@@ -103,7 +103,7 @@ class ExpectedPolicyPopup(
   private[this] val getDependantRulesForNode:Box[Seq[Rule]] = {
     for {
       allDynGroups <- dynGroupService.getAllDynGroups()
-      dynGroups    <- checkDynGroup.findDynGroups(Set(nodeSrv.id), allDynGroups.toList) ?~! "Error when building the map of dynamic group to update by node"
+      dynGroups    <- checkDynGroup.findDynGroups(Set(nodeSrv.id), allDynGroups.toList).toBox ?~! "Error when building the map of dynamic group to update by node"
       groupTargets =  dynGroups.getOrElse(nodeSrv.id, Seq())
       rules        <- ruleRepository.getAll(includeSytem = false).toBox
     } yield {

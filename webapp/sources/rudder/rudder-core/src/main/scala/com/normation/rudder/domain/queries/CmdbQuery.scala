@@ -73,7 +73,7 @@ sealed trait CriterionComparator {
   def hasValue : Boolean = true
 }
 
-trait BaseComparator extends CriterionComparator
+sealed trait BaseComparator extends CriterionComparator
 
 final case object Exists extends BaseComparator {
   override val id = "exists"
@@ -86,13 +86,13 @@ final case object NotExists extends BaseComparator {
 final case object Equals    extends BaseComparator { override val id = "eq" }
 final case object NotEquals extends BaseComparator { override val id = "notEq" }
 
-trait OrderedComparator extends BaseComparator
+sealed trait OrderedComparator extends BaseComparator
 final case object Greater   extends OrderedComparator { override val id = "gt"} //strictly greater
 final case object Lesser    extends OrderedComparator { override val id = "lt"} //strictly lower
 final case object GreaterEq extends OrderedComparator { override val id = "gteq"} //greater or equals
 final case object LesserEq  extends OrderedComparator { override val id = "lteq"} //lower or equals
 
-trait SpecialComparator extends BaseComparator
+sealed trait SpecialComparator extends BaseComparator
 final case object Regex extends SpecialComparator { override val id = "regex" }
 final case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
@@ -104,7 +104,7 @@ object KeyValueComparator {
   def values = ca.mrvisser.sealerate.values[KeyValueComparator]
 }
 
-trait ComparatorList {
+sealed trait ComparatorList {
 
 
   def comparators : Seq[CriterionComparator]
@@ -221,7 +221,120 @@ final case object NodeStateComparator extends NodeCriterionType {
     )
 }
 
+final case object NodeOstypeComparator extends NodeCriterionType {
+  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
+  override def comparators = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  }
 
+  override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
+    comparator match {
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName == value )
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName != value )
+    }
+  }
+
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+    SHtml.select(
+        (osTypes map (e => (e,e))).toSeq
+      , { if(osTypes.contains(value)) Full(value) else Empty}
+      , func
+      , attrs:_*
+    )
+}
+
+final case object NodeOsNameComparator extends NodeCriterionType {
+
+  import net.liftweb.http.S
+
+  val osNames = AixOS ::
+                BsdType.allKnownTypes.sortBy { _.name } :::
+                LinuxType.allKnownTypes.sortBy { _.name } :::
+                (SolarisOS :: Nil) :::
+                WindowsType.allKnownTypes
+
+
+  override def comparators = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  }
+
+  override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
+    comparator match {
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.name == value )
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.name != value )
+    }
+  }
+
+  private[this] def distribName(x: OsType): String = {
+    x match {
+      //add linux: for linux
+      case _: LinuxType   => "Linux - " + S.?("os.name."+x.name)
+      case _: BsdType     => "BSD - " + S.?("os.name."+x.name)
+      //nothing special for windows, Aix and Solaris
+      case _              => S.?("os.name."+x.name)
+    }
+  }
+
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+    SHtml.select(
+      osNames.map(e => (e.name,distribName(e))).toSeq,
+      {osNames.find(x => x.name == value).map( _.name)},
+      func,
+      attrs:_*
+    )
+}
+
+
+final case class NodeStringComparator(access: NodeInfo => String) extends NodeCriterionType {
+  override val comparators = BaseComparators.comparators
+
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+      comparator match {
+        case Regex | NotRegex => validateRegex(v)
+        case x                => Right(v)
+      }
+    }
+  }
+
+  override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
+    comparator match {
+      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
+      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => access(node) != value )
+      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => access(node).matches(value) )
+      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !access(node).matches(value) )
+      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => access(node).isEmpty )
+      case _         => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => access(node).nonEmpty )
+    }
+  }
+
+}
+
+final case object NodeIpListComparator extends NodeCriterionType {
+  override val comparators = BaseComparators.comparators
+
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+      comparator match {
+        case Regex | NotRegex => validateRegex(v)
+        case x                => Right(v)
+      }
+    }
+  }
+
+  override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
+    comparator match {
+      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node:NodeInfo) => node.ips.contains(value) )
+      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => !node.ips.contains(value) )
+      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => node.ips.exists(_.matches(value)) )
+      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !node.ips.exists(_.matches(value)) )
+      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node:NodeInfo) => node.ips.isEmpty )
+      case _         => NodeInfoMatcher(s"Prop exists", (node:NodeInfo) => node.ips.nonEmpty )
+    }
+  }
+}
 
 /*
  * This comparator is used for "node properties"-like attribute, i.e:
@@ -359,7 +472,7 @@ final case class BareComparator(override val comparators: CriterionComparator*) 
   override def toLDAP(value:String) = Right(value)
 }
 
-trait TStringComparator extends LDAPCriterionType {
+sealed trait TStringComparator extends LDAPCriterionType {
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
     if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
@@ -549,82 +662,6 @@ final case object MachineComparator extends LDAPCriterionType {
       , { if(machineTypes.contains(value)) Full(value) else Empty}
       , func
       , attrs:_*
-    )
-}
-
-final case object OstypeComparator extends LDAPCriterionType {
-  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
-  }
-  override def toLDAP(value:String) = Right(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val v = value match {
-      case "Windows" => OC_WINDOWS_NODE
-      case "Linux"   => OC_LINUX_NODE
-      case "Solaris" => OC_SOLARIS_NODE
-      case "AIX"     => OC_AIX_NODE
-      case "BSD"     => OC_BSD_NODE
-      case _         => OC_UNIX_NODE
-    }
-    comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => IS(v)
-      case _ => NOT(IS(v))
-    }
-  }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
-    SHtml.select(
-        (osTypes map (e => (e,e))).toSeq
-      , { if(osTypes.contains(value)) Full(value) else Empty}
-      , func
-      , attrs:_*
-    )
-}
-
-final case object OsNameComparator extends LDAPCriterionType {
-  import net.liftweb.http.S
-
-  val osNames = AixOS ::
-                BsdType.allKnownTypes.sortBy { _.name } :::
-                LinuxType.allKnownTypes.sortBy { _.name } :::
-                (SolarisOS :: Nil) :::
-                WindowsType.allKnownTypes
-
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
-  }
-  override def toLDAP(value:String) = Right(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val osName = comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => EQ(A_OS_NAME, value)
-      case _ => NOT(EQ(A_OS_NAME, value))
-    }
-    AND(EQ(A_OC,OC_NODE),osName)
-  }
-
-  private[this] def distribName(x: OsType): String = {
-    x match {
-      //add linux: for linux
-      case _: LinuxType   => "Linux - " + S.?("os.name."+x.name)
-      case _: BsdType     => "BSD - " + S.?("os.name."+x.name)
-      //nothing special for windows, Aix and Solaris
-      case _              => S.?("os.name."+x.name)
-    }
-  }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
-    SHtml.select(
-      osNames.map(e => (e.name,distribName(e))).toSeq,
-      {osNames.find(x => x.name == value).map( _.name)},
-      func,
-      attrs:_*
     )
 }
 
