@@ -187,7 +187,7 @@ class AcceptedNodesLDAPQueryProcessor(
             }
           }
           withoutServerRole
-        case NodeAndPolicyServerReturnType => foundNodes
+        case NodeAndRootServerReturnType => foundNodes
       }
     }
   }
@@ -308,8 +308,8 @@ class PendingNodesLDAPQueryChecker(
           case NodeReturnType =>
             // we have a special case for the root node that always never to that group, even if some weird
             // scenario lead to the removal (or non addition) of them
-            foundNodes.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") || x.isPolicyServer }
-          case NodeAndPolicyServerReturnType => foundNodes
+            foundNodes.filterNot { case x: NodeInfo =>  x.node.id.value ==("root") }
+          case NodeAndRootServerReturnType => foundNodes
         }).map(_.node.id).toSet
       }
     }
@@ -588,15 +588,9 @@ class InternalLDAPQueryProcessor(
    * - step2: filter out nodes based on a given list of acceptable entries
    */
   private[this] def postFilterNode(entries: Seq[NodeInfo], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[NodeInfo] = {
-    val step1 = returnType match {
-                  //actually, we are able at that point to know if we have a policy server,
-                  //so we don't post-process anything.
-                  case NodeReturnType => entries
-                  case NodeAndPolicyServerReturnType => entries
-                }
     val step2 = limitToNodeIds match {
-                 case None => step1
-                 case Some(seq) => step1.filter(nodeInfo =>
+                 case None => entries
+                 case Some(seq) => entries.filter(nodeInfo =>
                                      seq.exists(nodeId => nodeId.value == nodeInfo.node.id.value)
                                    )
                }

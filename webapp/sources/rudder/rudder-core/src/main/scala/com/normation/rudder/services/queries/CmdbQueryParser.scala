@@ -179,7 +179,7 @@ trait JsonQueryLexer extends QueryLexer {
     json.values.get(TARGET) match {
       case None => failureMissing(TARGET)
       case Some(NodeReturnType.value) => Full(NodeReturnType)
-      case Some(NodeAndPolicyServerReturnType.value) => Full(NodeAndPolicyServerReturnType)
+      case Some(NodeAndRootServerReturnType.value) => Full(NodeAndRootServerReturnType)
       case Some(x) =>  failureBadFormat(TARGET,x)
     }
   }

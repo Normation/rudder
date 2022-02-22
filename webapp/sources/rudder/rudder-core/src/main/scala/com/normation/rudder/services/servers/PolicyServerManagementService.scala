@@ -83,7 +83,7 @@ import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.Criterion
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NodeAndPolicyServerReturnType
+import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.StringComparator
@@ -552,7 +552,7 @@ object PolicyServerConfigurationObjects {
       , Nil
       , Some(
           Query(
-              NodeAndPolicyServerReturnType
+              NodeAndRootServerReturnType
             , And
             , List(
                 CriterionLine(objectType, Criterion("agentName", StringComparator), Equals, "cfengine")

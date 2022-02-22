@@ -247,10 +247,10 @@ class SearchNodeComponent(
       val NewQuery(otName,comp, trans, criteria) = query.get
       val checkBox = {
         SHtml.checkbox(
-            rType==NodeAndPolicyServerReturnType
+            rType==NodeAndRootServerReturnType
           , { value:Boolean =>
               if (value)
-                rType = NodeAndPolicyServerReturnType
+                rType = NodeAndRootServerReturnType
               else
                 rType = NodeReturnType
             }
