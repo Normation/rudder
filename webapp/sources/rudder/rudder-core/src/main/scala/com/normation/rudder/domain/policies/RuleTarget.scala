@@ -222,6 +222,7 @@ object RuleTarget extends Loggable {
       targets : Set[RuleTarget]
     , allNodes: Map[NodeId, (Boolean /* isPolicyServer */, Set[ServerRole])]
     , groups  : Map[NodeGroupId, Set[NodeId]]
+    , allNodesAreThere: Boolean = true  // if we are working on a subset of node, set to false
   ) : Set[NodeId] = {
 
     /* A Node with a server role is either:
@@ -235,7 +236,17 @@ object RuleTarget extends Loggable {
     targets.foldLeft(Set[NodeId]()) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet
       case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
-      case PolicyServerTarget(nodeId) => nodes + nodeId
+      case PolicyServerTarget(nodeId) =>
+        if (allNodesAreThere) {
+          nodes + nodeId
+        } else {
+          // nodeId may not be in allNodes
+          allNodes.keySet.contains(nodeId) match {
+            case true => nodes + nodeId
+            case _ => nodes
+          }
+        }
+
       case AllServersWithRole =>
         // All nodes with server roles or policyServer (ie relay)
         nodes ++ allNodes.collect {
@@ -255,7 +266,7 @@ object RuleTarget extends Loggable {
         nodes ++ groups.getOrElse(groupId, Set())
 
       case TargetIntersection(targets) =>
-        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
+        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
         // Compute the intersection of the sets of Nodes
         val intersection = nodeSets.foldLeft(allNodes.keySet) {
           case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
@@ -263,7 +274,7 @@ object RuleTarget extends Loggable {
         nodes ++ intersection
 
       case TargetUnion(targets) =>
-        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
+        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
         // Compute the union of the sets of Nodes
         val union = nodeSets.foldLeft(Set[NodeId]()) {
           case (currentUnion, nodes) => currentUnion.union(nodes)
@@ -272,9 +283,9 @@ object RuleTarget extends Loggable {
 
       case TargetExclusion(included,excluded) =>
         // Compute the included Nodes
-        val includedNodes = getNodeIds(Set(included), allNodes, groups)
+        val includedNodes = getNodeIds(Set(included), allNodes, groups, allNodesAreThere)
         // Compute the excluded Nodes
-        val excludedNodes = getNodeIds(Set(excluded), allNodes, groups)
+        val excludedNodes = getNodeIds(Set(excluded), allNodes, groups, allNodesAreThere)
         // Remove excluded nodes from included nodes
         val result = includedNodes -- excludedNodes
         nodes ++ result
