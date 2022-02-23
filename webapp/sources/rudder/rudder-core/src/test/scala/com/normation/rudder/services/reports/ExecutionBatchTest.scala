@@ -526,8 +526,8 @@ class ExecutionBatchTest extends Specification {
 
   "A block, with reporting focus " should {
     val reports = Seq[ResultReports](
-      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", "report_0", "component1", "foo", executionTimestamp, "message"),
-      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", "report_1", "component", "bar", executionTimestamp, "message")
+      new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", "report_0", "component", "foo", executionTimestamp, "message"),
+      new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", "report_1", "component1", "bar", executionTimestamp, "message")
     )
 
     val badReports = Seq[ResultReports](
@@ -541,7 +541,7 @@ class ExecutionBatchTest extends Specification {
       , ReportingLogic.FocusReport("component")
       , new ValueExpectedReport(
         "component"
-        , ExpectedValueId("bar", "report_0")  :: Nil
+        , ExpectedValueId("foo", "report_0")  :: Nil
       )  :: new ValueExpectedReport(
         "component1"
         , ExpectedValueId("bar", "report_1")  :: Nil
@@ -550,34 +550,41 @@ class ExecutionBatchTest extends Specification {
 
     val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
     val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
+
+    val goodBlock = withGood.asInstanceOf[BlockStatusReport]
+    val componentValues = withGood.componentValues
+
+
     "return a success block " in {
-      withGood.compliance === ComplianceLevel(success = 1)
+      withGood.compliance === ComplianceLevel(repaired = 1)
     }
-    "return a component with two key values " in {
+    "return a component with two key values" in {
       withGood.componentValues.size === 2
     }
     "return a component with the key values foo which is repaired " in {
-      withGood.componentValues("foo").head.messages.size === 1 and
-        withGood.componentValues("foo").head.messages.head.reportType ===  EnforceRepaired
+      goodBlock.componentValues("foo").head.messages.size === 1 and
+        goodBlock.componentValues("foo").head.messages.head.reportType ===  EnforceRepaired
     }
     "return a component with the key values bar which is a success " in {
-      withGood.componentValues("bar").head.messages.size === 1 and
-        withGood.componentValues("bar").head.messages.head.reportType ===  EnforceSuccess
+      goodBlock.componentValues("bar").head.messages.size === 1 and
+        goodBlock.componentValues("bar").head.messages.head.reportType ===  EnforceSuccess
     }
 
-    "only one reports in plus, mark the whole key unexpected" in {
-      withBad.compliance === ComplianceLevel(success = 1,  repaired = 1)
+    // bad:
+    // we have one repair and one unexpected for 'component' (because 'bar' is not the expected value)
+    // we have two errors for 'component1': missing the actual 'bar' report, and unexpected 'foo'
+
+    "focus on 'component' and get its two reports" in {
+      withBad.compliance === ComplianceLevel(repaired = 1, unexpected = 1)
     }
-    "with bad reports return a component with two key values " in {
+    "with bad reports return two components" in {
       withBad.componentValues.size === 2
     }
     "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
-      withBad.componentValues("foo").head.messages.size === 2 and
-        withBad.componentValues("foo").head.messages.map(_.reportType) ===  EnforceRepaired :: EnforceRepaired :: Nil
+      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) ===  EnforceRepaired :: Unexpected :: Nil
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      withBad.componentValues("bar").head.messages.size === 1 and
-        withBad.componentValues("bar").head.messages.head.reportType ===  EnforceSuccess
+      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) ===  Unexpected :: Missing :: Nil
     }
   }
 
@@ -1026,6 +1033,90 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  /*
+   * A rule with:
+   * - one historical technique/directive without reportId: d1
+   * - one ncf technique with reportId: gm1 and gm2 are in block (block1), gm3 is under root
+   * Data from a real cases https://issues.rudder.io/issues/20804
+   *
+   *  r = 32377fd7-02fd-43d0-aab7-28460a91347b (RuleId(RuleUid(uuid),Revision(default)))
+   *  d1 = DirectiveId(DirectiveUid(50a48619-5f04-489b-85f4-80f46968ac40),Revision(default))
+   *  d2 = DirectiveId(DirectiveUid(24ea2fd9-93e0-4de0-8ceb-773e86554e76),Revision(default))
+   *  nodeId = NodeId(root)
+   *  message0 = No post-modification script was defined
+   *  reportid1 = 4c4858a1-ed05-4a74-9362-624d5475d451
+   *  value1 = /bin/true
+   *  message1 = Execute the command /bin/true was repaired
+   *  reportid2 = 10957b22-20e5-43c3-8ef2-aa5b666b3bd9
+   *  value2 = /tmp/rudder-file-gm2
+   *  message2 = Presence of file /tmp/rudder-file-gm2 was correct
+   *  reportid3 = e0a496c2-14a5-4cd2-81bf-8d4630549b41
+   *  value3 = /tmp/rudder-file-gm3
+   *  message3 = Presence of file /tmp/rudder-file-gm3 was correct
+   *
+   *  t1 = 2022-02-23T11:40:30.000+01:00
+   *  t2 = 2022-02-23T11:40:23.000+01:00
+   *
+   *  [2022-02-23 11:40:32+0100] TRACE explain_compliance.root - Expected reports for rule 'r':
+   *   [expected] DirectiveExpectedReports(d1,None,false,List(
+   *                ValueExpectedReport(Package,List(ExpectedValueMatch(vim,vim))),  // the report for this one is missing due to a bug with virtual packages
+   *                ValueExpectedReport(Post-modification script,List(ExpectedValueMatch(vim,vim)))))
+   *   [expected] DirectiveExpectedReports(d2,None,false,List(
+   *                BlockExpectedReport(block1,WeightedReport,List(
+   *                  ValueExpectedReport(gm1,List(ExpectedValueId(value1,reportid1))),
+   *                  ValueExpectedReport(gm2,List(ExpectedValueId(value2,reportid2))))),
+   *                ValueExpectedReport(gm3,List(ExpectedValueId(value3,reportid3)))))
+   *
+   *  [2022-02-23 11:40:32+0100] TRACE explain_compliance.root - Reports for rule 'r':
+   *   [report] ResultNotApplicableReport(t1,r,d1,nodeId,0,Post-modification script,vim,t2,message1)
+   *   [report] ResultRepairedReport(t1,r,d2,nodeId,reportid1,gm1,value1,t2,message1)
+   *   [report] ResultSuccessReport(t1,r,d2,nodeId,reportid2,gm2,value2,t2,message2)
+   *   [report] ResultSuccessReport(t1,r,d2,nodeId,reportid3,gm3,value3,t2,message3)
+   *
+   *  [2022-02-23 11:40:32+0100] TRACE explain_compliance.root - Compliance for rule 'r':
+   *    [[root: r; run: t2;20220223-091215-f4ad7d27->2022-02-23T11:50:23.000+01:00]
+   *    compliance:[p:0 s:0 r:0 e:0 u:0 m:1 nr:0 na:1 rd:0 c:0 ana:0 nc:0 ae:0 bpm:0]
+   *    [24ea2fd9-93e0-4de0-8ceb-773e86554e76 =>
+   *      BlockStatusReport(block1,WeightedReport,List())
+   *    ]
+   *    [50a48619-5f04-489b-85f4-80f46968ac40 =>
+   *      Package:[vim(<-> vim):[Missing:"[Missing report #0]"]]
+   *      Post-modification script:[vim(<-> vim):[NotApplicable:"message1"]]
+   *    ]]
+   *
+   */
+  "A rule with directive with expected reports with and without reportId should report missing" >> {
+    val t1 = executionTimestamp
+    val t2 = executionTimestamp.minusSeconds(7)
+    val reports = Seq[ResultReports](
+        new ResultNotApplicableReport(t1, "r", "d1", "nodeId", "0", "Post-modification script", "vim", t2, "message0"),
+        new ResultRepairedReport(t1, "r", "d2", "nodeId", "reportid1", "gm1", "value1", t2, "message1"),
+        new ResultSuccessReport(t1, "r", "d2", "nodeId", "reportid2", "gm2", "value2", t2, "message2"),
+        new ResultSuccessReport(t1, "r", "d2", "nodeId", "reportid3", "gm3", "value3", t2, "message3")
+    )
+
+    val d1 = DirectiveExpectedReports("d1", None, false, List(
+      ValueExpectedReport("Package", List(ExpectedValueMatch("vim","vim"))),
+      ValueExpectedReport("Post-modification script", List(ExpectedValueMatch("vim","vim")))
+    ))
+    val d2 = DirectiveExpectedReports("d2", None, false, List(
+        BlockExpectedReport("block1", ReportingLogic.WeightedReport, List(
+            ValueExpectedReport("gm1", List(ExpectedValueId("value1", "reportid1")))
+          , ValueExpectedReport("gm2", List(ExpectedValueId("value2", "reportid2")))
+        ))
+      , ValueExpectedReport("gm3", List(ExpectedValueId("value3", "reportid3")))
+      , ValueExpectedReport("gm4", List(ExpectedValueId("value4", "reportid4")))
+    ))
+
+    val ruleExpectedReports = RuleExpectedReports(RuleId("cr"), d1 :: d2 :: Nil)
+    val mergeInfo = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+
+    val result = ExecutionBatch.getComplianceForRule(mergeInfo, reports, mode, ruleExpectedReports, strictUnexpectedInterpretation, new ComputeComplianceTimer())
+
+    result.compliance === ComplianceLevel(success = 2, repaired = 1, notApplicable = 1, missing = 2)
+
+  }
+
   "Shall we speak about unexpected" should {
     // we asked for a value "foo" and a variable ${param}
     val expectedComponent = new ValueExpectedReport("component"
@@ -1078,6 +1169,7 @@ class ExecutionBatchTest extends Specification {
       val res = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, unboundedVars, ReportType.Missing, PolicyMode.Enforce, UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.UnboundVarValues))).head
       res.compliance === ComplianceLevel(success = 4)
     }
+
 
   }
 

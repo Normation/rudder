@@ -171,7 +171,9 @@ final case class ValueExpectedReport(
   }*/
 }
 
-sealed trait ExpectedValue
+sealed trait ExpectedValue {
+  def value: String
+}
 
 case class ExpectedValueId(value : String, id : String) extends  ExpectedValue
 case class ExpectedValueMatch(value : String, unexpandedValue : String) extends  ExpectedValue
