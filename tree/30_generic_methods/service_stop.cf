@@ -24,7 +24,6 @@
 # @documentation See [service_action](#_service_action) for documentation.
 #
 # @parameter name Name of the service
-# 
 #
 # @parameter_rename service_name name
 # @class_prefix service_stop
@@ -33,36 +32,19 @@
 bundle agent service_stop(name)
 {
   vars:
-
-      "canonified_name" string => canonify("${name}");
-
-      "old_class_prefix"        string => "service_stop_${canonified_name}";
-
-      "args"                     slist => { "${name}" };
-
-      "full_class_prefix"       string => canonify("service_stop_${name}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("service_action_${name}_stop");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => "service_stop_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";      
 
   methods:
-      "disable_reporting_${class_prefix}"
-                   usebundle => disable_reporting;
-
-      "stop"       usebundle => service_action("${name}", "stop");
-
-      "reenable_reporting_${class_prefix}"
-                   usebundle => enable_reporting,
-                  ifvarclass => "should_report";
-    any::
-      "class copy" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-
-      "class copy" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"     usebundle => _log_v3("Stop service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("service_action");
+      "${report_data.method_id}" usebundle => service_action("${name}", "stop");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Stop service ${name}", "");
 }

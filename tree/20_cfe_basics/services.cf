@@ -25,7 +25,7 @@
 # * restart
 # * reload (with an alias to refresh)
 # * is-active (with an alias to status)
-# * is-active-process (in this case, the "service" parameter is the regex to match againt process list)
+# * is-active-process (in this case, the "service" parameter is the regex to match against process list)
 # * enable
 # * disable
 # * is-enabled
@@ -130,10 +130,10 @@ bundle agent ncf_services(service, action)
     # WARN: Some actions may not be supported by the init script
     pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.service_utility_present::
       "action_command" string => "${paths.path[service]} ${service} ${action}",
-                   ifvarclass => "!is_check_action";
+                           if => "!is_check_action";
       # is-active is mapped to "status"
       "action_command" string => "${paths.path[service]} ${service} status",
-                   ifvarclass => "is_check_action";
+                           if => "is_check_action";
       "method"         string => "service";
 
     # src
@@ -150,10 +150,10 @@ bundle agent ncf_services(service, action)
     # WARN: Some actions may not be supported by the init script
     pass1.!is_boot_action.(!systemctl_utility_present|is_init_service).!is_upstart_service.!svcadm_utility_present.!service_utility_present.!startsrc_utility_present.init_service_exists::
       "action_command" string => "/etc/init.d/${service} ${action}",
-                   ifvarclass => "!is_check_action";
+                           if => "!is_check_action";
       # is-active is mapped to "status"
       "action_command" string => "/etc/init.d/${service} status",
-                   ifvarclass => "is_check_action";
+                           if => "is_check_action";
       "method"         string => "/etc/init.d/";
 
     # Slackware
@@ -163,11 +163,6 @@ bundle agent ncf_services(service, action)
     # is-active is mapped to "status"
      "action_command"  string => "/etc/rc.d/rc.${service} status",
                            if => "is_check_action";
-
-    # windows
-    # Implementation is done in services promises
-    windows::
-      "method" string => "Windows Service Manager";
 
     ###########################################################################
 
@@ -180,22 +175,14 @@ bundle agent ncf_services(service, action)
 
   defaults:
       # status is an alias to is-active (in systemd, it is not the same thing the only difference is the output, which is not kept anyway)
-      "actual_action" string => "is-active", if_match_regex => "status";
+      "actual_action" string => "is-active",
+              if_match_regex => "status";
 
       # refresh is an alias to reload
-      "actual_action" string => "reload", if_match_regex => "refresh";
+      "actual_action" string => "reload",
+              if_match_regex => "refresh";
 
   classes:
-
-    windows::
-      "is_valid_action" or => {
-                                strcmp("start", "${action}"),
-                                strcmp("stop", "${action}"),
-                                strcmp("restart", "${action}"),
-                              };
-      "is_restart_action" expression => strcmp("restart", "${action}");
-
-    any::
       "is_process_action" expression => strcmp("is-active-process", "${action}");
 
       "is_boot_action"  or => {
@@ -209,13 +196,13 @@ bundle agent ncf_services(service, action)
                                 strcmp("is-active-process", "${action}"),
                                 strcmp("is-enabled", "${action}")
                               };
-      "is_start_action"         expression => regcmp(".*start.*", "${action}");
+      "is_start_action"         expression => regcmp(".*start$", "${action}");
       "is_systemd_action"       expression => strcmp("systemctl", "${method}");
       "is_systemd_start_action" expression => "is_start_action.is_systemd_action";
 
       # Due to lack of integration between upstart and init scripts, we have to make different cases.
       "is_upstart_service"         not => returnszero("/sbin/initctl status ${service} 2>&1 | ${paths.path[grep]} -E 'Unknown job|Unable to connect to Upstart' > /dev/null", "useshell"),
-                            ifvarclass => "ubuntu.initctl_utility_present";
+                                    if => "ubuntu.initctl_utility_present";
 
       # Due to compatibility issues when mixing init.d/service and systemctl calls, we use the init script when no systemd unit file is present
       # We only want to activate the init exception when necessary, i.e. when the init script exists and no unit files are present
@@ -232,10 +219,11 @@ bundle agent ncf_services(service, action)
       "method_found"        expression => isvariable("method");
 
     #####
-    # Actual command - for checks on non-windows systems
+    # Actual command - for checks
     #####
-    pass1.is_check_action.!windows.!is_process_action.method_found.!(slackware.is_boot_action)::
-      "action_ok" expression => returnszero("${action_command} 2>&1 > /dev/null", "useshell");
+    pass1.is_check_action.!is_process_action.method_found.!(slackware.is_boot_action)::
+      "action_ok" expression => returnszero("${action_command} 2>&1 > /dev/null # ${report_data.method_id}", "useshell"),
+                     comment => "${report_data.method_id}";
 
     any::
       "pass3" expression => "pass2";
@@ -243,67 +231,50 @@ bundle agent ncf_services(service, action)
       "pass1" expression => "any";
 
   methods:
-
     #####
-    # Actual command - for actions on non-windows systems, non using systemd
+    # Actual command - for actions, non using systemd
     #####
-    pass2.is_check_action.!windows.!is_process_action.method_found.action_ok::
-      "force_success_class"    usebundle => _classes_success("${class_prefix}");
+    pass2.is_check_action.!is_process_action.method_found.action_ok::
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
-    pass2.is_check_action.!windows.!is_process_action.method_found.!action_ok::
-      "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
+    pass2.is_check_action.!is_process_action.method_found.!action_ok::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
     # Method not found
-    pass2.(!method_found|(windows.!is_valid_action))::
-      "force_failure_class"    usebundle => _classes_failure("${class_prefix}");
+    pass2.!method_found::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
     # Classes for process check
     pass2::
-      "force_failure_process"  usebundle => _classes_failure("${class_prefix}"),
-                              ifvarclass => "${class_prefix}_checked_not_ok";
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}"),
+                                        if => "${class_prefix}_checked_not_ok";
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
+                                        if => "${class_prefix}_checked_not_ok";
 
-      "force_success_process"  usebundle => _classes_success("${class_prefix}"),
-                              ifvarclass => "${class_prefix}_checked_ok";
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}"),
+                                        if => "${class_prefix}_checked_ok";
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}"),
+                                        if => "${class_prefix}_checked_ok";
+
     # Slackware boot actions
     pass2.slackware.is_boot_action::
-      "action"  usebundle => slackware_boot_services("${service}", "${action}", "${class_prefix}");
-  processes:
+      "${report_data.method_id}" usebundle => slackware_boot_services("${service}", "${action}", "${class_prefix}");
 
+  processes:
     ###########################################################################
     # is-active-process action
     ###########################################################################
-
     is_process_action::
       "${service}"
-        process_count => any_count("${class_prefix}_checked_ok");
+        process_count => any_count("${class_prefix}_checked_ok"),
+              comment => "${report_data.method_id}";
 
       "${service}"
-        restart_class => "${class_prefix}_checked_not_ok";
-
-  services:
-
-    ###########################################################################
-    # Windows - only non-boot actions
-    ###########################################################################
-
-    #####
-    # Actual command - for actions on windows systems
-    #####
-    # Restart causes the agent to fail, so we must replace it by stop and start
-    windows.is_valid_action.!is_restart_action::
-      "${service}"
-        service_policy => "${action}",
-        classes        => classes_generic("${class_prefix}");
-
-    windows.is_restart_action::
-      "${service}"
-        service_policy => "stop",
-        classes        => classes_generic("${class_prefix}_stop_service");
-
-      "${service}"
-        service_policy => "start",
-        classes        => classes_generic("${class_prefix}"),
-        ifvarclass     => "${class_prefix}_stop_service_ok";
+        restart_class => "${class_prefix}_checked_not_ok",
+              comment => "${report_data.method_id}";
 
   commands:
     # https://bugzilla.redhat.com/show_bug.cgi?id=1016548
@@ -312,60 +283,56 @@ bundle agent ncf_services(service, action)
     # always want to actually do it.
     pass1.is_systemd_start_action::
       "${reset_command}"
-        contain => in_shell_and_silent;
+        contain => in_shell_and_silent,
+        comment => "${report_data.method_id}";
 
     #####
-    # Actual command - for actions on non-windows systems
+    # Actual command - for actions
     #####
     # We need to use our own commands: implementation here rather than calling command_execution
     # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
     # to fail if it can't find /dev/tty, which is the case unless using no_output => true
     # It also avoids reporting on command_execution for all platforms
-    pass2.!is_check_action.!windows.!is_process_action.method_found.!(slackware.is_boot_action)::
+    pass2.!is_check_action.!is_process_action.method_found.!(slackware.is_boot_action)::
       "${action_command}"
         contain => in_shell_and_silent,
-        classes => classes_generic("${class_prefix}");
+        classes => classes_generic_two("${class_prefix}", "${report_data.method_id}");
 
   reports:
-
     pass3.error.!method_found::
       "${configuration.error} Could not find a supported service management method on this system";
-    pass3.error.!is_valid_action::
-      "${configuration.error} The ${action} action is not supported on Windows (use 'start', 'stop' or 'restart')";
 
-    pass3.info.method_found.(!windows|is_valid_action)::
-      "${configuration.info} Executing ${action} on ${service} using the ${method} method";
+    pass3.info.method_found::
+      "${configuration.info} Executing ${action} on ${service} using the ${method} method" comment => "${report_data.method_id}";
 
-    pass3.debug.method_found.!windows::
-      "${configuration.debug} Executing: '${action_command}'";
+    pass3.debug.method_found::
+      "${configuration.debug} Executing: '${action_command}'" comment => "${report_data.method_id}";
 }
 
 bundle agent slackware_boot_services(service, action, class_prefix)
 {
   vars:
-    "canon_service" string => canonify("${service}");
+    "canon_service"         string => canonify("${service}");
 
   classes:
-
-    "action_enable" expression => strcmp("enable", ${action});
-    "action_disable" expression => strcmp("disable", ${action});
+    "action_enable"     expression => strcmp("enable", ${action});
+    "action_disable"    expression => strcmp("disable", ${action});
     "action_is_enabled" expression => strcmp("is-enabled", ${action});
 
   methods:
-
     action_disable::
-      "chmod 644" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "644", "${class_prefix}");
+      "${report_data.method_id}" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "644", "${class_prefix}");
 
     action_enable::
-      "chmod 755" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${class_prefix}");
-      "block in init scripts" usebundle => service_block_rc_d("${service}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${class_prefix}");
+      "${report_data.method_id}" usebundle => service_block_rc_d("${service}", "${class_prefix}");
 
     action_is_enabled::
-      "enable dry run" usebundle => push_dry_run_mode("true");
-      "chmod 755" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${canon_service}_init_script_execmod");
-      "block in init scripts" usebundle => service_block_rc_d("${service}", "${class_prefix}"),
-                             ifvarclass => "${canon_service}_init_script_execmod_ok";
-      "ifnoexecmod, new" usebundle => _classes_copy("${canon_service}_init_script_execmod", "${class_prefix}"),
-                        ifvarclass => "${canon_service}_init_script_execmod_not_ok";
-      "disable dry run" usebundle => pop_dry_run_mode();
+      "${report_data.method_id}" usebundle => push_dry_run_mode("true");
+      "${report_data.method_id}" usebundle => perm_on_file("/etc/rc.d/rc.${service}", "755", "${canon_service}_init_script_execmod");
+      "${report_data.method_id}" usebundle => service_block_rc_d("${service}", "${class_prefix}"),
+                                        if => "${canon_service}_init_script_execmod_ok";
+      "${report_data.method_id}" usebundle => _classes_copy("${canon_service}_init_script_execmod", "${class_prefix}"),
+                                        if => "${canon_service}_init_script_execmod_not_ok";
+      "${report_data.method_id}" usebundle => pop_dry_run_mode();
 }

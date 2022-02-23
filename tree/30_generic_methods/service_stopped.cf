@@ -29,58 +29,34 @@
 bundle agent service_stopped(name)
 {
   vars:
-
-      "canonified_name"    string => canonify("${name}");
-
-      "old_class_prefix"           string => "service_stopped_${canonified_name}";
-
-      "args"                        slist => { "${name}" };
-      "report_param"               string => join("_", args);
-      "full_class_prefix"          string => canonify("service_stopped_${report_param}");
-      "class_prefix"               string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix_check"   string => canonify("service_check_running_${report_param}");
-      "inner_class_prefix_check"        string => string_head("${full_inner_class_prefix_check}", "1000");
-
-      "full_inner_class_prefix_stop"    string => canonify("service_stop_${report_param}");
-      "inner_class_prefix_stop"         string => string_head("${full_inner_class_prefix_stop}", "1000");
+      "class_prefix" string => "service_stopped_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "needs_stop" expression => "${report_data.method_id}_ncf_services_check_kept";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-         usebundle => disable_reporting;
-
-      "check running"
-        usebundle  => service_check_running("${name}");
-
-      # If service_check_running has detected a process, it will result in
-      # a success, so we have to stop the process
-      "stop if running"
-        usebundle  => service_stop("${name}"),
-        ifvarclass => "${inner_class_prefix_check}_kept";
-
-      # If service_check_running has no detected any process, it will not result
-      # in a success so the result class of this promise should be the a success.
-      "create success class"
-        usebundle  => _classes_success("${old_class_prefix}"),
-        ifvarclass => "!${inner_class_prefix_check}_kept";
- 
-     # If service_check_running has detected a process, the process will be
-     # stopped and the result class should be the same as this promise.
-      "class copy if running"
-        usebundle  => _classes_copy("${inner_class_prefix_stop}", "${old_class_prefix}"),
-        ifvarclass => "${inner_class_prefix_check}_kept";
-
-      "class copy if running"
-        usebundle  => _classes_copy("${inner_class_prefix_stop}", "${class_prefix}"),
-        ifvarclass => "${inner_class_prefix_check}_kept";
-
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-      "report"
-        usebundle  => _log_v3("Ensure that service ${name} is stopped", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass2.!pass3::
+      # Get service status
+      "${report_data.method_id}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-active");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_check");
+    pass3.needs_stop::
+      # If service is running, stop it
+      "${report_data.method_id}" usebundle => call_method("ncf_services_stop");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "stop");
+      # Use stop result as method result
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes("${report_data.report_id}");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_stop");
+    pass3.!needs_stop::
+      # Define success classes is check_running was not kept
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.report_id}");
+    pass3::
+      # Report
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
 }

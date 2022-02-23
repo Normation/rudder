@@ -176,7 +176,7 @@ bundle agent log_na_rudder(message, class_parameter, unique_prefix, args)
 
   methods:
       "${report_data.method_id}" usebundle => _rudder_report_na("${report_data.technique_name}", "${c_class_prefix}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}"),
-                                classes    => classes_generic("log_na_rudder_${c_class_prefix}");
+                                   classes => classes_generic("log_na_rudder_${c_class_prefix}");
 }
 
 
