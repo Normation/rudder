@@ -19,11 +19,12 @@
 # @name File from HTTP server
 # @description Download a file if it does not exist, using curl with a fallback on wget
 # @documentation This method finds a HTTP command-line tool and downloads the given source
-# into the destination.
+# into the destination if it does not exist yet.
 #
 # This method **will NOT update the file after the first download** until its removal.
 #
-# It tries `curl` first, and `wget` as fallback.
+# On Linux based nodes it will tries `curl` first and fallback with `wget` if needed.
+# On Windows based nodes, only `curl` will be used.
 #
 # @parameter source      URL to download from
 # @parameter destination File destination (absolute path on the target node)
