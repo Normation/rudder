@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
+
 import net.liftweb.common.Loggable
 
 import java.util.regex.Pattern
@@ -53,7 +54,10 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
+
 import org.apache.commons.lang3.StringUtils
+
+import scala.annotation.tailrec
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -391,7 +395,7 @@ final case class ContextForNoAnswer(
    */
   private[this] def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
     val msg = if(traceMessage.trim.isEmpty) "" else ": " + traceMessage
-    ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
+    ComplianceDebugLogger.node(nodeId).debug(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
     runType
   }
 
@@ -695,13 +699,13 @@ final case class ContextForNoAnswer(
     //only interesting reports: for that node, with a status
     val nodeStatusReports = agentExecutionReports.collect{ case r: ResultReports if(r.nodeId == nodeId) => r }
 
-    ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
+    ComplianceDebugLogger.node(nodeId).debug(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
     val t1 = System.currentTimeMillis
     val ruleNodeStatusReports = runInfo match {
 
       case ReportsDisabledInInterval(expectedConfig, _) =>
-        ComplianceDebugLogger.node(nodeId).trace(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
+        ComplianceDebugLogger.node(nodeId).debug(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
         buildRuleNodeStatusReport(
             //these reports don't really expires - without change, it will
             //always be the same.
@@ -711,7 +715,7 @@ final case class ContextForNoAnswer(
         )
 
       case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
-        ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}")
+        ComplianceDebugLogger.node(nodeId).debug(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}")
         mergeCompareByRule(
             MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime)
           , nodeStatusReports
@@ -723,7 +727,7 @@ final case class ContextForNoAnswer(
       case Pending(expectedConfig, optLastRun, expirationTime) =>
         optLastRun match {
           case None =>
-            ComplianceDebugLogger.node(nodeId).trace(s"Node is Pending with no reports from a previous run, everything is pending")
+            ComplianceDebugLogger.node(nodeId).debug(s"Node is Pending with no reports from a previous run, everything is pending")
             // we don't have previous run, so we can simply say that all component in node are Pending
             buildRuleNodeStatusReport(
                 MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime)
@@ -738,7 +742,7 @@ final case class ContextForNoAnswer(
              * component in new expected config BUT NOT is the one for which we have the run,
              * set pending.
              */
-            ComplianceDebugLogger.node(nodeId).trace("Node is Pending with reports from previous run, using merge/compare strategy between last "
+            ComplianceDebugLogger.node(nodeId).debug("Node is Pending with reports from previous run, using merge/compare strategy between last "
                                                     + s"reports from run ${runConfig.toLog} and expect reports ${expectedConfig.toLog}")
             mergeCompareByRule(
                 MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime)
@@ -750,7 +754,7 @@ final case class ContextForNoAnswer(
         }
 
       case NoReportInInterval(expectedConfig, expirationTime) =>
-        ComplianceDebugLogger.node(nodeId).trace(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
+        ComplianceDebugLogger.node(nodeId).debug(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
         buildRuleNodeStatusReport(
             //these reports need to expire, so that we can recompute them automatically
             // at expiration, and store that the nodes were not answering
@@ -921,7 +925,7 @@ final case class ContextForNoAnswer(
     //unexpected contains the one with unexpected key and all non matching serial/version
     val unexpected = (if (okKeys.size != reportKeys.size) {
       buildUnexpectedDirectives(
-        reports.filter(k => !expectedKeys.contains(k._1                                       )).values.flatten.toSeq
+        reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
       )
     } else {
       Seq[DirectiveStatusReport]()
@@ -996,6 +1000,12 @@ final case class ContextForNoAnswer(
 
       val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleExpectedReport.ruleId, Seq[ResultReports]())
       val ruleCompliance = getComplianceForRule(mergeInfo, reportsForThatNodeRule, lastRunNodeConfig.modes, ruleExpectedReport, unexpectedInterpretation, timer)
+      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Expected reports for rule '${ruleCompliance.ruleId.serialize}': ${
+        ruleExpectedReport.directives.map(_.toString).mkString("\n [expected] ","\n [expected] ","\n")}")
+      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Reports for rule '${ruleCompliance.ruleId.serialize}': ${
+        reportsForThatNodeRule.map(_.toString).mkString("\n [report] ","\n [report] ","\n")}")
+      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Compliance for rule '${ruleCompliance.ruleId.serialize}': ${ruleCompliance}")
+
       (ruleExpectedReport.ruleId, ruleCompliance)
     }).toMap
 
@@ -1201,129 +1211,144 @@ final case class ContextForNoAnswer(
     , policyMode              : PolicyMode //the one of the directive, or node, or global
     , unexpectedInterpretation: UnexpectedReportInterpretation
   ) : List[ComponentStatusReport] = {
+    // an utility class that store an expected value and the list of matching reports for it
+    final case class Value(
+        expectedValue: ExpectedValueMatch
+      , cardinality: Int // number of expected reports, most of the time '1'
+      , isVar: Boolean
+      , pattern: Option[Pattern]
+      , specificity: Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
+      , matchingReports: List[Reports]
+    )
+    /*
+     * This function recursively try to pair the first report from input list with one of the component
+     * value.
+     * If no component value is found for the report, it is set aside in an "unexpected" list.
+     * A value can hold at most one report safe if:
+     * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
+     */
+    @tailrec
+    def recPairReports(reports: List[ResultReports], freeValues: List[Value], pairedValues: List[Value], unexpected: List[ResultReports], mode: UnexpectedReportInterpretation): (List[Value], List[ResultReports]) = {
+      // utility function: given a list of Values and one report, try to find a value whose pattern matches reports component value.
+      // the first matching value is used (they must be sorted by specificity).
+      // Returns (list of unmatched values, Option[matchedValue])
+      // We also have two special case to deal with:
+      // - in some case, we want to ignore a report totally (ie: it must not change compliance). This is typically for
+      //   what we want for duplicated reports. We need to log the report erasure as it won't be displayed in UI (by
+      //   design). The log level should be "info" and not more because it was chosen by configuration to ignore them.
+      // - in some case, we want to accept more reports than originally expected. Then, we must update cardinality to
+      //   trace that decision. It's typically what we want to do for expected reports matching a runtime computed seq of
+      //   values (or if not runtime, at least a sequence obtained through a variable).
+      // Be careful: the list of values must be kept sorted in the same order as paramater!
+      def findMatchingValue(
+          report: ResultReports
+        , values: List[Value]
+        , incrementCardinality: (Value, ResultReports) => Boolean
+      ): (List[Value], Option[Value]) = {
+        val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
+          found match {
+            case Some(x) => (value :: stack, Some(x))
+            case None =>
+              // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
+              if (((!value.isVar) && (value.expectedValue.value == report.keyValue)) || (value.isVar && (value.pattern.get.matcher(report.keyValue).matches()))) {
+                val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
+                (stack, Some(value.copy(
+                  cardinality = card
+                  , matchingReports = report :: value.matchingReports
+                )))
+              } else {
+                (value :: stack, None)
+              }
+          }
+        }
+        (stack.reverse, found)
+      }
+
+      reports match {
+        case Nil => (freeValues ::: pairedValues, unexpected)
+        case report :: tail =>
+          // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
+          // else (all free values, None).
+          // never increment the cardinality for free value.
+          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues,  (value, report) => false)
+
+          logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
+
+          tryPair match {
+            case Some(v) =>
+              recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
+            case None =>
+              // here, we don't have found any free value for that report. We are not done yet because it can be an
+              // unexpected reports bound to an already existing value (and so the whole component should be
+              // unexpected or if mode allows duplicates or unbound var values, it can be ok.
+
+
+              val unboundedVar = (value: Value, report: ResultReports) => {
+                mode.isSet(UnexpectedReportBehavior.UnboundVarValues) && {
+                  // this predicate is simpler: it just have to be a variable
+                  value.isVar
+                }
+              }
+
+              val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, unboundedVar)
+
+              logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
+
+              pairedAgain match {
+                case None => //really unexpected after all
+                  recPairReports(tail, newFreeValues, newPairedValues, report :: unexpected, mode)
+                case Some(v) => //found a new pair!
+                  recPairReports(tail, newFreeValues, v :: newPairedValues, unexpected, mode)
+              }
+          }
+      }
+    }
+
+
+    val componentGotAtLeastOneReport = filteredReports.nonEmpty
 
     expectedComponent match {
       case g: BlockExpectedReport =>
         BlockStatusReport(g.componentName, g.reportingLogic, g.subComponents.flatMap { case e =>
           checkExpectedComponentWithReports(e, filteredReports, noAnswerType, policyMode, unexpectedInterpretation)
         }) :: Nil
-         case expectedComponent: ValueExpectedReport =>
+
+      case expectedComponent: ValueExpectedReport =>
 
         val (matchValue, matchId) = expectedComponent.componentsValues.partitionMap{
-          case e:ExpectedValueMatch => Left(e)
-          case e: ExpectedValueId => Right(e)
+          case e: ExpectedValueMatch => Left(e)
+          case e: ExpectedValueId    => Right(e)
         }
 
-
-        // an utility class that store an expected value and the list of matching reports for it
-        final case class Value(
-            expectedValue: ExpectedValueMatch
-          , cardinality: Int // number of expected reports, most of the time '1'
-          , isVar: Boolean
-          , pattern: Option[Pattern]
-          , specificity: Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
-          , matchingReports: List[Reports]
-        )
-
-        /*
-         * This function recursively try to pair the first report from input list with one of the component
-         * value.
-         * If no component value is found for the report, it is set aside in an "unexpected" list.
-         * A value can hold at most one report safe if:
-         * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
-         */
-        def recPairReports(reports: List[ResultReports], freeValues: List[Value], pairedValues: List[Value], unexpected: List[ResultReports], mode: UnexpectedReportInterpretation): (List[Value], List[ResultReports]) = {
-          // utility function: given a list of Values and one report, try to find a value whose pattern matches reports component value.
-          // the first matching value is used (they must be sorted by specificity).
-          // Returns (list of unmatched values, Option[matchedValue])
-          // We also have two special case to deal with:
-          // - in some case, we want to ignore a report totally (ie: it must not change compliance). This is typically for
-          //   what we want for duplicated reports. We need to log the report erasure as it won't be displayed in UI (by
-          //   design). The log level should be "info" and not more because it was chosen by configuration to ignore them.
-          // - in some case, we want to accept more reports than originally expected. Then, we must update cardinality to
-          //   trace that decision. It's typically what we want to do for expected reports matching a runtime computed seq of
-          //   values (or if not runtime, at least a sequence obtained through a variable).
-          // Be careful: the list of values must be kept sorted in the same order as paramater!
-          def findMatchingValue(
-              report: ResultReports
-            , values: List[Value]
-            , incrementCardinality: (Value, ResultReports) => Boolean
-          ): (List[Value], Option[Value]) = {
-            val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
-              found match {
-                case Some(x) => (value :: stack, Some(x))
-                case None =>
-                  // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
-                  if (((!value.isVar) && (value.expectedValue.value == report.keyValue)) || (value.isVar && (value.pattern.get.matcher(report.keyValue).matches()))) {
-                    val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
-                    (stack, Some(value.copy(
-                      cardinality = card
-                      , matchingReports = report :: value.matchingReports
-                    )))
-                  } else {
-                    (value :: stack, None)
-                  }
-              }
-            }
-            (stack.reverse, found)
-          }
-
-          reports match {
-            case Nil => (freeValues ::: pairedValues, unexpected)
-            case report :: tail =>
-              // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
-              // else (all free values, None).
-              // never increment the cardinality for free value.
-              val (newFreeValues, tryPair) = findMatchingValue(report, freeValues,  (value, report) => false)
-
-              logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
-
-              tryPair match {
-                case Some(v) =>
-                  recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
-                case None =>
-                  // here, we don't have found any free value for that report. We are not done yet because it can be an
-                  // unexpected reports bound to an already existing value (and so the whole component should be
-                  // unexpected or if mode allows duplicates or unbound var values, it can be ok.
-
-
-                  val unboundedVar = (value: Value, report: ResultReports) => {
-                    mode.isSet(UnexpectedReportBehavior.UnboundVarValues) && {
-                      // this predicate is simpler: it just have to be a variable
-                      value.isVar
-                    }
-                  }
-
-                  val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, unboundedVar)
-
-                  logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
-
-                  pairedAgain match {
-                    case None => //really unexpected after all
-                      recPairReports(tail, newFreeValues, newPairedValues, report :: unexpected, mode)
-                    case Some(v) => //found a new pair!
-                      recPairReports(tail, newFreeValues, v :: newPairedValues, unexpected, mode)
-                  }
-              }
-          }
-        }
-
+        // 1. start with the easy case: expected reports with a report ID
 
         val (matched,last_unexpected) =  matchId.foldLeft((List.empty[ValueStatusReport],filteredReports)) {
-          case ((acc, reports), id) =>
-            val (matched, left) = reports.partition(_.reportId == id.id)
-            val res = matched.groupBy(_.component).toList.map {
-              case (c, reports) =>
-                ValueStatusReport(c,
-                  reports.groupBy(_.keyValue).toList.map {
-                    case (v, r) =>
-                      ComponentValueStatusReport(v, v, r.map(r => r.toMessageStatusReport(policyMode)).toList)
-                  }
-                )
+          case ((acc, reports), expectedValueId) =>
+            val (matched, left) = reports.partition(_.reportId == expectedValueId.id)
+
+            // By construction, components and values in reports with the same report id should be OK.
+            // We still want to check quickly if it's not an error, ie component or value need to be the same,
+            // else it's unexpected, appart if they contains a variable.
+            // We also assume that we await AT LEAST one report, but that more reports is OK to account for iterators
+
+            val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) { case ((ok, unexp), next) =>
+              if(  ( next.component == expectedComponent.componentName || matchCFEngineVars.pattern.matcher(next.component).matches())
+                 &&( next.keyValue == expectedValueId.value || matchCFEngineVars.pattern.matcher(next.keyValue).matches()) ) {
+                (next :: ok, unexp)
+              } else {
+                (ok, next :: unexp)
+              }
             }
-            (res ::: acc, left)
+
+            val expectedNumber = Math.max(ok.size, 1)
+            val resOk = buildComponentValueStatus(expectedValueId, ok, componentGotAtLeastOneReport, expectedNumber, noAnswerType, policyMode)
+            val resKo = unexpected.map(r => ComponentValueStatusReport(r.component, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil))
+
+            // we still attach the unexpected with that component since they have its reportId
+            (ValueStatusReport(expectedComponent.componentName, resOk :: resKo) :: acc, left)
         }
-        val componentGotAtLeastOneReport = filteredReports.nonEmpty
+
+        // 2. now the complicated case - do what we used to do for expected report without a reportId
 
         // the list of expected (value, unexpanded value for display)
         // it is very important to sort pattern so that the more precise come first to avoid
@@ -1373,17 +1398,17 @@ final case class ContextForNoAnswer(
         }
 
 
-        /*
-     * And now, merge all values into a component.
-     */
-           if (pairedReportStatus.isEmpty) {
-             matched
-           } else {
-             ValueStatusReport(
-               expectedComponent.componentName
-               , ComponentValueStatusReport.merge(pairedReportStatus)
-             ) :: matched
-           }
+      /*
+       * And now, merge all values into a component.
+       */
+       if (pairedReportStatus.isEmpty) {
+         matched
+       } else {
+         ValueStatusReport(
+           expectedComponent.componentName
+           , ComponentValueStatusReport.merge(pairedReportStatus)
+         ) :: matched
+       }
     }
   }
 
@@ -1408,7 +1433,7 @@ final case class ContextForNoAnswer(
    *
    */
   private[this] def buildComponentValueStatus(
-      expectedValueMatch: ExpectedValueMatch
+      expectedValue       : ExpectedValue
     , filteredReports     : Seq[Reports]
     , componentGotReports : Boolean // does the component got at least one report?
     , cardinality         : Int
@@ -1440,8 +1465,8 @@ final case class ContextForNoAnswer(
      * Note: we DO use expanded values to merge with reports.
      */
     ComponentValueStatusReport(
-        expectedValueMatch.value
-      , expectedValueMatch.value
+        expectedValue.value
+      , expectedValue.value
       , messageStatusReports
     )
   }
