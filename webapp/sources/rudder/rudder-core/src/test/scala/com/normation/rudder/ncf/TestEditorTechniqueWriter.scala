@@ -124,7 +124,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
     def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
-    def deleteTechnique(techniqueName: String, techniqueVersion: String, category : String, modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
+    def deleteTechnique(techniqueName: String, techniqueVersion: String, categories : Seq[String], modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
