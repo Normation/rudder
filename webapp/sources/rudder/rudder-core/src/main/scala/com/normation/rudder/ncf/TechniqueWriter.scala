@@ -140,9 +140,8 @@ class TechniqueWriter (
 
     for {
       directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
-
       technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
-      category   <- techniqueRepository.getParentTechniqueCategory_forTechnique(techniqueId)
+      categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
 
       // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
       _          <-  directives match {
@@ -159,7 +158,6 @@ class TechniqueWriter (
                          } else
                            Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
                      }
-
       activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
       _          <- activeTech match {
                       case None =>
@@ -168,8 +166,7 @@ class TechniqueWriter (
                       case Some(activeTechnique) =>
                         writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
                     }
-      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, category.id.name.value, modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
-
+      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
       _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
                     )
@@ -725,7 +722,7 @@ class DSCTechniqueWriter(
 }
 
 trait TechniqueArchiver {
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
   def commitTechnique(technique : Technique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
 }
 
@@ -741,14 +738,16 @@ class TechniqueArchiverImpl (
 
   override val encoding : String = "UTF-8"
 
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, category : String,  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
+  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String],  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
     (for {
       ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"techniques/${category}/${techniqueName}/${techniqueVersion}").call())
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
+      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}").call())
 
       commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
-      s"techniques/${category}/${techniqueName}/${techniqueVersion}"
+      s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}"
     }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
   }
 
