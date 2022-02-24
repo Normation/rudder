@@ -88,9 +88,9 @@ response:
               {"name":"s07","version":"1.0"}
             ],
             "softwareUpdate":[
-              {"name":"s00","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect"},
+              {"name":"s00","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect","description":"Some explanation","severity":"critical","ids":["RHSA-2020-4566","CVE-2021-4034"]},
               {"name":"s01","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"},
-              {"name":"s01","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports"}
+              {"name":"s01","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports","severity":"backport","ids":["CVE-2021-4034"]}
             ]
           }
         ]

@@ -1236,12 +1236,19 @@ class MockNodes() {
   , Software(SoftwareUuid("s13"), name = Some("s13"), version = Some(new Version("1.0")))
   )
 
-  val softwareUpdates = List(
-    SoftwareUpdate("s00", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None)
-  , SoftwareUpdate("s01", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"))
-    // we can have several time the same app
-  , SoftwareUpdate("s01", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"))
-  )
+  val softwareUpdates = {
+    val d0 = "2022-01-01-00:00:00Z"
+    val id0 = "RHSA-2020-4566"
+    val id1 = "CVE-2021-4034"
+    List(
+      SoftwareUpdate("s00", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None, Some("Some explanation"),
+        Some(SoftwareUpdateSeverity.Critical), JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption, Some(List(id0, id1)))
+    , SoftwareUpdate("s01", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"), None, None, None, None)
+      // we can have several time the same app
+    , SoftwareUpdate("s01", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"), None,
+        Some(SoftwareUpdateSeverity.Other("backport")), None, Some(List(id1)))
+    )
+  }
 
 
   //a valid, not used pub key
