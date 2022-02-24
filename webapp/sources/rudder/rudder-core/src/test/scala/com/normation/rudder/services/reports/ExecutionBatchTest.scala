@@ -555,7 +555,7 @@ class ExecutionBatchTest extends Specification {
     val componentValues = withGood.componentValues
 
 
-    "return a success block " in {
+    "return a repaired block " in {
       withGood.compliance === ComplianceLevel(repaired = 1)
     }
     "return a component with two key values" in {
@@ -1030,6 +1030,73 @@ class ExecutionBatchTest extends Specification {
     "with bad reports return a component with the cfengine key as unexpected " in {
       withBad.componentValues("node1").head.messages.size === 2 and
       withBad.componentValues("node1").head.messages.forall(x => x.reportType === Unexpected)
+    }
+  }
+
+  /*
+   * We want to allow variable in component name and values with report id, so that for example:
+   * - block1: ${users} // iterator on users
+   *   - gm1: "Chech user ${user} created": /bin/createUserScript ${user}
+   *   - gm2: "Check right OK for ${user}: /bin/checkRightsOK ${user}
+   *
+   * Is possible
+   */
+
+  "A component with reportId, with variable in its name" should {
+
+    val expectedComponent = BlockExpectedReport(
+      "${users}"
+      , ReportingLogic.WeightedReport
+      , new ValueExpectedReport(
+        "Check user ${user} created"
+        , ExpectedValueId("/bin/createUserScript ${user}", "report_0")  :: Nil
+      )  :: new ValueExpectedReport(
+        "Check right OK for ${user}"
+        , ExpectedValueId("/bin/checkRightsOK ${user}", "report_1")  :: Nil
+      )  :: Nil
+    )
+
+    val reports = Seq[ResultReports](
+        // first user: alice, already there
+        new ResultSuccessReport(executionTimestamp, "cr", "dir", "nodeId", "report_0", "Check user alice created", "/bin/createUserScript alice", executionTimestamp, "alice is correctly created"),
+        new ResultSuccessReport(executionTimestamp, "cr", "dir", "nodeId", "report_1", "Check right OK for alice", "/bin/checkRightsOK alice", executionTimestamp, "alice rights are correct"),
+        // second user: bob, new
+        new ResultRepairedReport(executionTimestamp, "cr", "dir", "nodeId", "report_0", "Check user bob created", "/bin/createUserScript bob", executionTimestamp, "bob is correctly created"),
+        new ResultRepairedReport(executionTimestamp, "cr", "dir", "nodeId", "report_1", "Check right OK for bob", "/bin/checkRightsOK bob", executionTimestamp, "bob rights are correct")
+    )
+
+    /*
+     * we see that for now, we are quite lenient on the check: we don't check for the shape of returned component messages and names
+     */
+    val badReports = Seq[ResultReports](
+        // user mallory
+        new ResultSuccessReport(executionTimestamp, "cr", "dir", "nodeId", "report_0", "I'm doing whatever", "/bin/badScript", executionTimestamp, "mallory is correctly created"),
+        new ResultSuccessReport(executionTimestamp, "cr", "dir", "nodeId", "report_1", "Really, nobody looks to green compliance", "/bin/moreBadThings", executionTimestamp, "mallory rights are correct"),
+    )
+
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
+    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
+
+    "return 2 components globally (because they work by reportId)" in {
+      withGood.componentValues.size === 2
+    }
+    "return a total with weight 4 (2x(2 each))" in {
+      withGood.compliance === ComplianceLevel(success = 2, repaired = 2)
+    }
+    "components are grouped by reportId - which not optimal, we would like them grouped by ${user}" in {
+      ( withGood.componentValues("/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Success:"alice is correctly created"""", """Repaired:"bob is correctly created"""") ) ) and
+      ( withGood.componentValues("/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Success:"alice rights are correct"""", """Repaired:"bob rights are correct"""") ) )
+    }
+    "mallory can get green compliance with other things executed that what we though" in {
+      ( withBad.compliance === ComplianceLevel(success = 2)) and
+      ( withBad.componentValues("/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Success:"mallory is correctly created"""") ) ) and
+      ( withBad.componentValues("/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Success:"mallory rights are correct"""") ) )
+
     }
   }
 
