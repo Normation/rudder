@@ -149,7 +149,7 @@ bundle agent log_rudder_v4(parameter_value, message, details)
       "component_key" string => "${report_data.component_key}", if_match_regex => "";
 
   methods:
-      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id_r}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
 # @name Log for Non Applicable call to generic method
