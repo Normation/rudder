@@ -1332,10 +1332,18 @@ final case class ContextForNoAnswer(
             // We also assume that we await AT LEAST one report, but that more reports is OK to account for iterators
 
             val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) { case ((ok, unexp), next) =>
-              if(  ( next.component == expectedComponent.componentName || matchCFEngineVars.pattern.matcher(next.component).matches())
-                 &&( next.keyValue == expectedValueId.value || matchCFEngineVars.pattern.matcher(next.keyValue).matches()) ) {
+
+              val componentOk = next.component == expectedComponent.componentName || matchCFEngineVars.pattern.matcher(expectedComponent.componentName).matches()
+              val valueOk = next.keyValue == expectedValueId.value || matchCFEngineVars.pattern.matcher(expectedValueId.value).matches()
+
+              if( componentOk && valueOk ) {
                 (next :: ok, unexp)
               } else {
+                val msg = List(
+                    if(componentOk) None else Some(s"component '${next.component}' does not match '${expectedComponent.componentName}'")
+                  , if(valueOk) None else Some(s"value '${next.keyValue}' does not match '${expectedValueId.value}'")
+                ).flatten.mkString(" and ")
+                ComplianceDebugLogger.node(next.nodeId).trace(s"Report unexpected because ${msg}: ${next}")
                 (ok, next :: unexp)
               }
             }

@@ -457,6 +457,7 @@ final case class MessageStatusReport(
   , message   : Option[String]
 ) {
   override def toString() = reportType.severity + message.fold(":\"\"")(":\""+ _ + "\"")
+  def debugString = toString()
 }
 
 object MessageStatusReport {
