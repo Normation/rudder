@@ -365,7 +365,21 @@ final object SoftwareUpdateKind {
 
   def parse(value: String) = all.find( _.name == value.toLowerCase()).getOrElse(Other(value))
 }
+sealed trait SoftwareUpdateSeverity {
+  def name: String
+}
 
+final object SoftwareUpdateSeverity {
+  final case object Low                  extends SoftwareUpdateSeverity { val name = "low" }
+  final case object Moderate             extends SoftwareUpdateSeverity { val name = "moderate" }
+  final case object High                 extends SoftwareUpdateSeverity { val name = "high" }
+  final case object Critical             extends SoftwareUpdateSeverity { val name = "critical" }
+  final case class  Other(value: String) extends SoftwareUpdateSeverity { val name = "other" }
+
+  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateSeverity]
+
+  def parse(value: String) = all.find( _.name == value.toLowerCase()).getOrElse(Other(value))
+}
 
 /*
  * A software update:
@@ -378,12 +392,16 @@ final object SoftwareUpdateKind {
  * #TODO: other informations ? A Map[String, String] of things ?
  */
 final case class SoftwareUpdate(
-    name   : String
-  , version: String
-  , arch   : String
-  , from   : String
-  , kind   : SoftwareUpdateKind
-  , source : Option[String]
+    name       : String
+  , version    : String
+  , arch       : String
+  , from       : String
+  , kind       : SoftwareUpdateKind
+  , source     : Option[String]
+  , description: Option[String]
+  , severity   : Option[SoftwareUpdateSeverity]
+  , date       : Option[DateTime]
+  , ids        : Option[List[String]]
 )
 
 

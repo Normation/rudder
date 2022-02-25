@@ -456,21 +456,27 @@ class TestInventory extends Specification {
       val dn = "nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       val inv = repo.get(NodeId("node0")).testRunGet
       val su1 = inv.node.softwareUpdates
+      val d0 = "2022-01-01T00:00:00Z"
+      val dt0 = JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption
+      val id0 = "RHSA-2020-4566"
+      val id1 = "CVE-2021-4034"
 
       val updates = List(
-        SoftwareUpdate("app1", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None)
-      , SoftwareUpdate("app2", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"))
+        SoftwareUpdate("app1", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None, Some("Some explanation"),
+          Some(SoftwareUpdateSeverity.Critical), dt0, Some(List(id0, id1)))
+      , SoftwareUpdate("app2", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"), None, None, None, None)
         // we can have several time the same app
-      , SoftwareUpdate("app2", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"))
+      , SoftwareUpdate("app2", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"), None,
+          Some(SoftwareUpdateSeverity.Other("backport")), None, Some(List(id1)))
       )
 
       val ldapValues = List(
-        """{"name":"app1","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect"}"""
-      , """{"name":"app2","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"}"""
-      , """{"name":"app2","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports"}"""
+        s"""{"name":"app1","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect","description":"Some explanation","severity":"critical","date":"${d0}","ids":["${id0}","${id1}"]}"""
+      , s"""{"name":"app2","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"}"""
+      , s"""{"name":"app2","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports","severity":"backport","ids":["${id1}"]}"""
       )
 
-      (su1 === Nil) and
+      (su1 === Nil) and (dt0.isEmpty must beFalse) and
       repo.save(inv.modify(_.node.softwareUpdates).setTo(updates)).isOK and
       (ldap.server.getEntry(dn).getAttribute("softwareUpdate").getValues.toList must containTheSameElementsAs(ldapValues))
     }
