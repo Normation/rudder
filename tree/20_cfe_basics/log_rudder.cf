@@ -550,6 +550,7 @@ bundle agent clean_reporting_context
     "report_data.canonified_directive_id" string => "";
     "report_data.rule_id"                 string => "";
     "report_data.identifier"              string => "";
+    "report_data.report_id_r"             string => "";
     "report_data.report_id"               string => "";
     "report_data.method_id"               string => "";
 }
