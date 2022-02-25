@@ -42,26 +42,31 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
+
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import net.liftweb.common.Box
-import com.normation.utils.Control.sequence
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
+
 import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.PolicyId
-import net.liftweb.common.EmptyBox
-import com.normation.box._
+
+import com.normation.errors._
+import zio.json._
+import zio.json.internal.Write
+
 
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode
@@ -199,350 +204,592 @@ final case class NodeConfigIdInfo(
   , endOfLife: Option[DateTime]
 )
 
+
 object ExpectedReportsSerialisation {
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
-
-
   /*
    * This object will be used for the JSON serialisation
    * to / from database
    */
-  final case class JsonNodeExpectedReports(
+  final case class JsonNodeExpectedReports private (
       modes              : NodeModeConfig
     , ruleExpectedReports: List[RuleExpectedReports]
     , overrides          : List[OverridenPolicy]
   )
 
+  val v0 = TechniqueVersion.parse("0.0").getOrElse(throw new IllegalArgumentException(s"Initialisation error for default technique version in overrides"))
 
-  def jsonNodeExpectedReports(n: JsonNodeExpectedReports): JValue = {
-    (
-        ( "modes" ->
-          ( "globalPolicyMode"       -> (
-              ("mode"                  -> n.modes.globalPolicyMode.mode.name)
-            ~ ("overridable"           -> (n.modes.globalPolicyMode.overridable match {
-                                            case Unoverridable => false
-                                            case Always        => true
-                                          })
-              )
-          ) )
-        ~ ( "nodePolicyMode"         -> n.modes.nodePolicyMode.map(_.name) )
-        ~ ( "globalComplianceMode"   -> n.modes.globalComplianceMode.name )
-        ~ ( "globalHeartbeatPeriod"  -> n.modes.globalComplianceMode.heartbeatPeriod )
-        ~ ( "nodeHeartbeatPeriod"    -> n.modes.nodeHeartbeatPeriod )
-        ~ ( "globalAgentRunInterval" ->
-                   (
-                       ( "interval"    -> n.modes.globalAgentRun.interval )
-                     ~ ( "startMinute" -> n.modes.globalAgentRun.startMinute )
-                     ~ ( "splayHour"   -> n.modes.globalAgentRun.startHour )
-                     ~ ( "splaytime"   -> n.modes.globalAgentRun.splaytime )
-                   )
-          )
-        ~ ( "nodeAgentRunInterval"   -> (n.modes.nodeAgentRun.flatMap { run =>
-            if(run.overrides.getOrElse(false)) {
-                   Some(
-                       ( "interval"    -> run.interval )
-                     ~ ( "startMinute" -> run.startMinute )
-                     ~ ( "splayHour"   -> run.startHour )
-                     ~ ( "splaytime"   -> run.splaytime )
-                   )
-            } else {
-              None
-            }
-          } ) )
-        )
-     ~  ("rules" -> jsonRuleExpectedReports(n.ruleExpectedReports))
-     ~  ("overrides" -> (n.overrides.map { o =>
-          (
-            ("policy"      -> ( ("ruleId" -> o.policy.ruleId.serialize     ) ~ ("directiveId" -> o.policy.directiveId.serialize) ))
-          ~ ("overridenBy" -> ( ("ruleId" -> o.overridenBy.ruleId.serialize) ~ ("directiveId" -> o.overridenBy.directiveId.serialize) ))
-          )
-        }))
+  // common json codec
+  implicit val codecComplianceModeName: JsonCodec[ComplianceModeName] = {
+    implicit val encoderComplianceModeName: JsonEncoder[ComplianceModeName] = JsonEncoder[String].contramap[ComplianceModeName](_.name)
+    implicit val decoderComplianceModeName: JsonDecoder[ComplianceModeName] = JsonDecoder[String].mapOrFail(s =>
+      ComplianceModeName.parse(s).toPureResult.left.map(_.fullMsg)
     )
+    JsonCodec(encoderComplianceModeName, decoderComplianceModeName)
+  }
+  implicit val codecPolicyMode: JsonCodec[PolicyMode] = {
+    val encoderPolicyMode = JsonEncoder[String].contramap[PolicyMode](_.name)
+    val decoderPolicyMode = JsonDecoder[String].mapOrFail(PolicyMode.parse(_).left.map(_.fullMsg))
+    JsonCodec(encoderPolicyMode, decoderPolicyMode)
+  }
+  implicit val codecPolicyModeOverrides: JsonCodec[PolicyModeOverrides] = JsonCodec.boolean.xmap(
+    b => if(b) Always else Unoverridable, o => o == Always
+  )
+  implicit val codecGlobalPolicyMode: JsonCodec[GlobalPolicyMode] = DeriveJsonCodec.gen
+  implicit val codecRuleId: JsonCodec[RuleId] = {
+    implicit val encoderRuleId: JsonEncoder[RuleId] = JsonEncoder[String].contramap[RuleId](_.serialize)
+    implicit val decoderRuleId: JsonDecoder[RuleId] = JsonDecoder[String].mapOrFail(RuleId.parse(_))
+    JsonCodec(encoderRuleId, decoderRuleId)
+  }
+  implicit val codecDirectiveId: JsonCodec[DirectiveId] = {
+    implicit val encoderDirectiveId: JsonEncoder[DirectiveId] = JsonEncoder[String].contramap[DirectiveId](_.serialize)
+    implicit val decoderDirectiveId: JsonDecoder[DirectiveId] = JsonDecoder[String].mapOrFail(DirectiveId.parse(_))
+    JsonCodec(encoderDirectiveId, decoderDirectiveId)
+  }
+  implicit val codecReportingLogic: JsonCodec[ReportingLogic] = {
+    implicit val encoderReportingLogic: JsonEncoder[ReportingLogic] = JsonEncoder[String].contramap[ReportingLogic](_.value)
+    implicit val decoderReportingLogic: JsonDecoder[ReportingLogic] = JsonDecoder[String].mapOrFail(s => ReportingLogic.parse(s).left.map(_.fullMsg))
+    JsonCodec(encoderReportingLogic, decoderReportingLogic)
   }
 
+  // a common trait for all each possible version of the Json mapped JsonNodeExpectedReports
+  sealed trait JsonNodeExpectedReportV
 
-  def jsonComponentExpectedReport(c : ExpectedValue): JValue = {
-    c match {
-      case v : ExpectedValueId =>
-        ( ( "value" -> v.value)
-        ~ ( "id" -> v.id )
-        )
-      case v : ExpectedValueMatch =>
-        ( ( "value" -> v.value )
-        ~ ( "unexpanded" -> v.unexpandedValue)
-        )
+  /*
+   * Parsing logic:
+   * - we first try 7.1 version, since it should become the most common over time
+   * - if it doesn't work, we fallback in 7.0 version
+   */
+  implicit val decoderJsonNodeExpectedReportV: JsonDecoder[JsonNodeExpectedReportV] =
+    Version7_1.codecJsonNodeExpecteReports7_1.decoder.
+      orElse(Version7_0.codecJsonNodeExpecteReports7_0.decoder.widen)
+
+  object Version7_0 {
+    /*
+     * Compatibility with expected reports version 7.0 and before:
+     * - use the long name format
+     * - 3 kinds of values: old format match with one array for unexpanded, one for expanded,
+     *   one for value with couple of expanded/unexpanded, one for value with report id
+     */
+
+    // name are false for startHour / splayHour. Override is computed on deserialization.
+    final case class JsonAgentRun7_0(
+        interval   : Int
+      , startMinute: Int
+      , splayHour  : Int
+      , splaytime  : Int
+    ) {
+      def transform(over: Option[Boolean] = None) = AgentRunInterval(over, interval, startMinute, splayHour, splaytime)
     }
-  }
-
-  def jsonComponentExpectedReport(c : ComponentExpectedReport): JValue = {
-
-    c match {
-      case c: ValueExpectedReport =>
-        ( ("componentName" -> c.componentName)
-        ~ ("values" -> c.componentsValues.map(jsonComponentExpectedReport))
-        )
-      case c: BlockExpectedReport =>
-        ( ("componentName" -> c.componentName)
-        ~ ("reportingLogic" -> (c.reportingLogic.value))
-        ~ ("subComponents" -> c.subComponents.map(jsonComponentExpectedReport))
-        )
+    implicit class _JsonAgentRun7_0(x: AgentRunInterval) {
+      def transform = JsonAgentRun7_0(x.interval, x.startMinute, x.startHour, x.splaytime)
     }
-  }
-  def jsonRuleExpectedReports(rules: List[RuleExpectedReports]): JArray = {
-    (
-      rules.map { r =>
-         (
-           ("ruleId"     -> r.ruleId.serialize)
-         ~ ("directives" -> r.directives.map { d =>
-             (
-               ("directiveId" -> d.directiveId.serialize)
-             ~ ("policyMode"  -> d.policyMode.map( _.name))
-             ~ ("isSystem"    -> d.isSystem )
-             ~ ("components"  -> d.components.map(jsonComponentExpectedReport))
-             )
-           })
-         )
+
+    final case class JsonModes7_0(
+        globalPolicyMode      : GlobalPolicyMode
+      , nodePolicyMode        : Option[PolicyMode]
+      , globalComplianceMode  : ComplianceModeName
+      , globalHeartbeatPeriod : Int
+      , nodeHeartbeatPeriod   : Option[Int]
+      , globalAgentRunInterval: JsonAgentRun7_0
+      , nodeAgentRunInterval  : Option[JsonAgentRun7_0]
+    ) {
+      def transform = {
+        val overrideAgentRun = if(nodeAgentRunInterval.isDefined) Some(true) else None
+        NodeModeConfig(
+            GlobalComplianceMode(globalComplianceMode, globalHeartbeatPeriod)
+          , nodeHeartbeatPeriod
+          , globalAgentRunInterval.transform()
+          , nodeAgentRunInterval.map(_.transform(overrideAgentRun))
+          , globalPolicyMode
+          , nodePolicyMode
+        )
       }
-    )
+    }
+
+    implicit class _JsonModes7_0(x: NodeModeConfig) {
+      def transform = JsonModes7_0(
+          x.globalPolicyMode
+        , x.nodePolicyMode
+        , x.globalComplianceMode.mode
+        , x.globalComplianceMode.heartbeatPeriod
+        , x.nodeHeartbeatPeriod
+        , x.globalAgentRun.transform
+        , x.nodeAgentRun.map(_.transform)
+      )
+    }
+
+    final case class JsonPolicy7_0(ruleId: RuleId, directiveId: DirectiveId) {
+      def transform = PolicyId(ruleId, directiveId, v0)
+    }
+    implicit class _JsonPolicy7_0(x: PolicyId) {
+      def transform = JsonPolicy7_0(x.ruleId, x.directiveId)
+    }
+
+    final case class JsonOverrides7_0(
+        policy     : JsonPolicy7_0
+      , overridenBy: JsonPolicy7_0
+    ) {
+      def transform = OverridenPolicy(policy.transform, overridenBy.transform)
+    }
+    implicit class _JsonOverrides7_0(x: OverridenPolicy) {
+      def transform = JsonOverrides7_0(x.policy.transform, x.overridenBy.transform)
+    }
+    sealed trait JsonExpectedValue7_0 {
+      def transform: ExpectedValue
+    }
+    implicit class _JsonExpectedValue7_0(x: ExpectedValue) {
+      def transform: JsonExpectedValue7_0 = x match {
+        case a: ExpectedValueId    => a.transform
+        case a: ExpectedValueMatch => a.transform
+      }
+    }
+    final case class JsonExpectedValueId7_0(value: String, id: String) extends JsonExpectedValue7_0 {
+      def transform = ExpectedValueId(value, id)
+    }
+    implicit class _JsonExpectedValueId7_0(x: ExpectedValueId) {
+      def transform = JsonExpectedValueId7_0(x.value, x.id)
+    }
+    final case class JsonExpectedValueMatch7_0(value: String, unexpanded: String) extends JsonExpectedValue7_0 {
+      def transform = ExpectedValueMatch(value, unexpanded)
+    }
+    implicit class _JsonExpectedValueMatch7_0(x: ExpectedValueMatch) {
+      def transform = JsonExpectedValueMatch7_0(x.value, x.unexpandedValue)
+    }
+
+    sealed trait JsonComponentExpectedReport7_0 {
+      def transform: ComponentExpectedReport
+    }
+    implicit class _JsonComponentExpectedReport7_0(x: ComponentExpectedReport) {
+      def transform: JsonComponentExpectedReport7_0 = x match {
+        case a: ValueExpectedReport => a.transform // alway transform to new schema
+        case a: BlockExpectedReport => a.transform
+      }
+    }
+    final case class JsonValueExpectedReport7_0(componentName: String, values: List[JsonExpectedValue7_0]) extends JsonComponentExpectedReport7_0 {
+      def transform = ValueExpectedReport(componentName, values.map(_.transform))
+    }
+    implicit class _JsonValueExpectedReport7_0(x: ValueExpectedReport) {
+      def transform = JsonValueExpectedReport7_0(x.componentName, x.componentsValues.map(_.transform))
+    }
+    final case class JsonBlockExpectedReport7_0(componentName: String, reportingLogic: ReportingLogic, subComponents: List[JsonComponentExpectedReport7_0]) extends JsonComponentExpectedReport7_0 {
+      def transform = BlockExpectedReport(componentName, reportingLogic, subComponents.map(_.transform))
+    }
+    implicit class _JsonBlockExpectedReport7_0(x: BlockExpectedReport) {
+      def transform = JsonBlockExpectedReport7_0(x.componentName, x.reportingLogic, x.subComponents.map(_.transform))
+    }
+    final case class JsonArrayValuesComponent7_0(componentName: String, values: List[String], unexpanded: List[String]) extends JsonComponentExpectedReport7_0 {
+      def toJsonValueExpectedReport7_0 = JsonValueExpectedReport7_0(componentName, values.zip(unexpanded).map { case (a,b) => JsonExpectedValueMatch7_0(a,b) })
+      def transform = toJsonValueExpectedReport7_0.transform
+    }
+
+    final case class JsonDirectiveExpecteReports7_0(
+        directiveId: DirectiveId
+      , policyMode : Option[PolicyMode]
+      , isSystem   : Boolean
+      , components : List[JsonComponentExpectedReport7_0]
+    ) {
+      def transform = DirectiveExpectedReports(directiveId, policyMode, isSystem, components.map(_.transform))
+    }
+    implicit class _JsonDirectiveExpecteReports7_0(x: DirectiveExpectedReports) {
+      def transform = JsonDirectiveExpecteReports7_0(x.directiveId, x.policyMode, x.isSystem, x.components.map(_.transform))
+    }
+
+    final case class JsonRuleExpectedReports7_0(
+        ruleId: RuleId
+      , directives: List[JsonDirectiveExpecteReports7_0]
+    ) {
+      def transform = RuleExpectedReports(ruleId, directives.map(_.transform))
+    }
+    implicit class _JsonRuleExpectedReports7_0(x: RuleExpectedReports) {
+      def transform = JsonRuleExpectedReports7_0(x.ruleId, x.directives.map(_.transform))
+    }
+
+    final case class JsonNodeExpectedReports7_0(
+        modes     : JsonModes7_0
+      , rules    : List[JsonRuleExpectedReports7_0]
+      , overrides: List[JsonOverrides7_0]
+    ) extends JsonNodeExpectedReportV {
+      def transform = JsonNodeExpectedReports(modes.transform, rules.map(_.transform), overrides.map(_.transform))
+    }
+    implicit class _JsonNodeExpecteReports7_0(x: JsonNodeExpectedReports) {
+      def transform = JsonNodeExpectedReports7_0(x.modes.transform, x.ruleExpectedReports.map(_.transform), x.overrides.map(_.transform))
+    }
+
+
+    ////////// json codec //////////
+
+    implicit val codecJsonAgentRun7_0: JsonCodec[JsonAgentRun7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonPolicy7_0: JsonCodec[JsonPolicy7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonJsonOverrides7_0: JsonCodec[JsonOverrides7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonModes7_0: JsonCodec[JsonModes7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonExpectedValueId7_0: JsonCodec[JsonExpectedValueId7_0] = DeriveJsonCodec.gen
+    implicit lazy val codecJsonExpectedValueMatch7_0: JsonCodec[JsonExpectedValueMatch7_0] = DeriveJsonCodec.gen
+    implicit lazy val decoderJsonArrayValuesComponent7_0: JsonDecoder[JsonArrayValuesComponent7_0] = DeriveJsonDecoder.gen
+    implicit lazy val codecJsonExpectedValue7_0: JsonCodec[JsonExpectedValue7_0] = {
+      val decoder: JsonDecoder[JsonExpectedValue7_0] = codecJsonExpectedValueId7_0.decoder.orElse(
+        codecJsonExpectedValueMatch7_0.decoder.widen
+      )
+      // this is necessary to avoid having a surnemary `{ "JsonExpectedValueId7_0" : { ... } }`
+      val encoder = new JsonEncoder[JsonExpectedValue7_0] {
+        override def unsafeEncode(a: JsonExpectedValue7_0, indent: Option[Int], out: Write): Unit = {
+          a match {
+            case x: JsonExpectedValueId7_0  =>
+              JsonEncoder[JsonExpectedValueId7_0].unsafeEncode(x, indent, out)
+            case x: JsonExpectedValueMatch7_0  =>
+              JsonEncoder[JsonExpectedValueMatch7_0].unsafeEncode(x, indent, out)
+          }
+        }
+      }
+      JsonCodec(encoder, decoder)
+    }
+    implicit lazy val codecJsonComponentExpecteReports7_0: JsonCodec[JsonComponentExpectedReport7_0] = {
+      val decoder: JsonDecoder[JsonComponentExpectedReport7_0] = {
+        val d1 : JsonDecoder[JsonComponentExpectedReport7_0] = decoderJsonArrayValuesComponent7_0.orElse(
+          codecJsonBlockExpectedReport7_0.decoder.widen
+        )
+        d1.orElse(codecJsonValueExpectedReport7_0.decoder.widen)
+      }
+      val encoder = new JsonEncoder[JsonComponentExpectedReport7_0] {
+        override def unsafeEncode(a: JsonComponentExpectedReport7_0, indent: Option[Int], out: Write): Unit = {
+          a match {
+            case x: JsonValueExpectedReport7_0  =>
+              JsonEncoder[JsonValueExpectedReport7_0].unsafeEncode(x, indent, out)
+            case x: JsonBlockExpectedReport7_0  =>
+              JsonEncoder[JsonBlockExpectedReport7_0].unsafeEncode(x, indent, out)
+            case x: JsonArrayValuesComponent7_0 =>
+              JsonEncoder[JsonValueExpectedReport7_0].unsafeEncode(x.toJsonValueExpectedReport7_0, indent, out)
+          }
+        }
+      }
+      JsonCodec(encoder, decoder)
+    }
+    implicit lazy val codecJsonBlockExpectedReport7_0: JsonCodec[JsonBlockExpectedReport7_0] = DeriveJsonCodec.gen
+    implicit lazy val codecJsonValueExpectedReport7_0: JsonCodec[JsonValueExpectedReport7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonDirectiveExpecteReports7_0: JsonCodec[JsonDirectiveExpecteReports7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonRuleExpectedReports7_0: JsonCodec[JsonRuleExpectedReports7_0] = DeriveJsonCodec.gen
+    implicit val codecJsonNodeExpecteReports7_0: JsonCodec[JsonNodeExpectedReports7_0]  = DeriveJsonCodec.gen
   }
 
-  implicit class ToValidInt(val b: BigInt) extends AnyVal {
-    def toValidInt = if(b.isValidInt) b.toInt else throw new NumberFormatException(s"${b.toString} is not a valid integer")
+  object Version7_1 {
+    /*
+     * Compatibility with expected reports version 7.1 and after
+     * - use short name format
+     * - only two kinds of value: couple of expanded/unexpanded, with reportid
+     *   - for the couple case, we have following optimisations:
+     *     - if same expanded/unexpanded, only write one
+     *     - if couple is None/None, write zero
+     * {
+     *  "ms": {                       //modes
+     *    "gpm": {                   // global policy mode
+     *      "m": "enforce",          // mode
+     *      "o": true                // override
+     *    },
+     *    "npm": "audit"             // node policy mode
+     *    "gcm": "full-compliance",  // global compliance mode
+     *    "ghp": 1,                  // global heartbeat period
+     *    "gar": {                   // global agent run (interval)
+     *      "i": 15,                 // interval
+     *      "sm": 0,                 // start minute
+     *      "sh": 0,                 // strart hour
+     *      "st": 4                  // splay time
+     *    },
+     *    "nar": {                   // node agent run (interval)
+     *      ...                      // same as gar
+     *    },
+     *  },
+     *  "rs": [                       // rules
+     *    {
+     *      "rid": "4bb75daa-a82f-445a-8e8e-af3e99608ffe",      // rule id
+     *      "ds": [                                              // directives
+     *        {
+     *          "did": "73e069ea-de00-4b5d-a00e-012709b7b462",  // directive id
+     *          "cs": [                                         // components
+     *            {                                             // block
+     *              "bid": "my main block",                     // block (component) id
+     *              "rl" : "weighted"                           // reporting logic
+     *              "scs": [                                    // sub components
+     *                 {                                        // component
+     *                    "vid": "Command execution",             // values (component) id
+     *                    "vs": [
+     *                      [],                                 // match value with None/None pair
+     *                      [ "/bin/true" ],                    // match value with same unexpanded/expanded
+     *                      [ "${file}", "/tmp" ],              // match value with different unexpanded/expanded
+     *                      {                                   // report id value
+     *                        "id": "37c57e98-328d-4cd2-8a71-33f2e449ba51",
+     *                        "v": "${file}"
+     *                      }
+     *                    ]
+     *            },
+     *             ...
+     *        ]
+     *      },
+     *      {
+     *        "rid": "hasPolicyServer-root",
+     *        "ds": [
+     *          {
+     *            "did": "common-hasPolicyServer-root",
+     *            "s": true,                                   // system - only mandatory when true
+     *            "cs": [ ...
+     *     "os": [                                             // overrides
+     *       { "p": {                                          // policy
+     *          "rid": "a3a796b9-8499-4e0b-86c5-975fc5a13505",
+     *          "did": "9b0dc972-f4dc-4aaa-bae6-1189cf9074b6"
+     *       },{
+     *         "ob": {                                         // overridden by
+     *           "rid": "2278f76f-28d3-4326-8199-99561dd8c785",
+     *           "did" "093a494b-1073-49e9-bb1e-3c128c7f6a42"
+     *        }
+     *     ]
+     */
+
+    final case class JsonAgentRun7_1(
+        i : Int   // interval
+      , sm: Int   // start minute
+      , sh: Int   // strart hour
+      , st: Int   // splay time
+    ) {
+      def transform(over: Option[Boolean] = None) = AgentRunInterval(over, i, sm, sh, st)
+    }
+    implicit class _JsonAgentRun7_1(x: AgentRunInterval) {
+      def transform = JsonAgentRun7_1(x.interval, x.startMinute, x.startHour, x.splaytime)
+    }
+
+    final case class JsonGlobalPolicyMode7_1(m: PolicyMode, o: PolicyModeOverrides) {
+      def transform = GlobalPolicyMode(m, o)
+    }
+    implicit class _JsonGlobalPolicyMode7_1(x: GlobalPolicyMode) {
+      def transform = JsonGlobalPolicyMode7_1(x.mode, x.overridable)
+    }
+
+    final case class JsonModes7_1(                                            //modes
+        gpm: JsonGlobalPolicyMode7_1 // global policy mode
+      , npm: Option[PolicyMode]      // node policy mode
+      , gcm: ComplianceModeName      // global compliance mode
+      , ghp: Int                     // global heartbeat period
+      , nhp: Option[Int]             // node heartbeat period
+      , gar: JsonAgentRun7_1         // global agent run (interval)
+      , nar: Option[JsonAgentRun7_1] // node agent run (interval)
+    ) {
+      def transform = {
+        val overrideAgentRun = if(nar.isDefined) Some(true) else None
+        NodeModeConfig(
+            GlobalComplianceMode(gcm, ghp)
+          , nhp
+          , gar.transform()
+          , nar.map(_.transform(overrideAgentRun))
+          , gpm.transform
+          , npm
+        )
+      }
+    }
+
+    implicit class _JsonModes7_1(x: NodeModeConfig) {
+      def transform = JsonModes7_1(
+          x.globalPolicyMode.transform
+        , x.nodePolicyMode
+        , x.globalComplianceMode.mode
+        , x.globalComplianceMode.heartbeatPeriod
+        , x.nodeHeartbeatPeriod
+        , x.globalAgentRun.transform
+        , x.nodeAgentRun.map(_.transform)
+      )
+    }
+
+    final case class JsonPolicy7_1(rid: RuleId, did: DirectiveId) {
+      def transform = PolicyId(rid, did, v0)
+    }
+    implicit class _JsonPolicy7_1(x: PolicyId) {
+      def transform = JsonPolicy7_1(x.ruleId, x.directiveId)
+    }
+
+    final case class JsonOverrides7_1(
+        p : JsonPolicy7_1
+      , ob: JsonPolicy7_1
+    ) {
+      def transform = OverridenPolicy(p.transform, ob.transform)
+    }
+    implicit class _JsonOverrides7_1(x: OverridenPolicy) {
+      def transform = JsonOverrides7_1(x.policy.transform, x.overridenBy.transform)
+    }
+    final case class JsonExpectedValueId7_1(id: String, v: String) {
+      def transform = ExpectedValueId(v, id)
+    }
+    implicit class _JsonExpectedValueId7_1(x: ExpectedValueId) {
+      def transform = JsonExpectedValueId7_1(x.id, x.value)
+    }
+
+    sealed trait JsonComponentExpectedReport7_1 {
+      def transform: ComponentExpectedReport
+    }
+    implicit class _JsonComponentExpectedReport7_1(x: ComponentExpectedReport) {
+      def transform: JsonComponentExpectedReport7_1 = x match {
+        case a: ValueExpectedReport => a.transform
+        case a: BlockExpectedReport => a.transform
+      }
+    }
+    final case class JsonValueExpectedReport7_1(
+        vid: String
+      , vs: List[Either[List[String],JsonExpectedValueId7_1]]
+    ) extends JsonComponentExpectedReport7_1 {
+      def transform = ValueExpectedReport(vid, vs.map {
+        case Left(Nil)     => ExpectedValueMatch("None", "None")
+        case Left(a::Nil)  => ExpectedValueMatch(a,a)
+        case Left(a::b::_) => ExpectedValueMatch(a, b)
+        case Right(v)      => v.transform
+      })
+    }
+    implicit class _JsonValueExpectedReport7_1(x: ValueExpectedReport) {
+      def transform = JsonValueExpectedReport7_1(x.componentName, x.componentsValues.map {
+        case ExpectedValueMatch(a, b) =>
+          Left(
+            if( a == b ) {
+              if(a == "None") Nil
+              else a :: Nil
+            } else a :: b :: Nil
+          )
+        case ExpectedValueId(v, id) => Right(JsonExpectedValueId7_1(id, v))
+      })
+    }
+    final case class JsonBlockExpectedReport7_1(bid: String, rl: ReportingLogic, scs: List[JsonComponentExpectedReport7_1]) extends JsonComponentExpectedReport7_1 {
+      def transform = BlockExpectedReport(bid, rl, scs.map(_.transform))
+    }
+    implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport) {
+      def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform))
+    }
+
+    final case class JsonDirectiveExpecteReports7_1(
+        did: DirectiveId
+      , pm : Option[PolicyMode]
+      , s  : Option[Boolean]
+      , cs : List[JsonComponentExpectedReport7_1]
+    ) {
+      def transform = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
+    }
+    implicit class _JsonDirectiveExpecteReports7_1(x: DirectiveExpectedReports) {
+      def transform = {
+        val s = if(x.isSystem) Some(true) else None
+        JsonDirectiveExpecteReports7_1(
+          x.directiveId, x.policyMode, s, x.components.map(_.transform)
+        )
+      }
+    }
+
+    final case class JsonRuleExpectedReports7_1(
+        rid: RuleId
+      , ds : List[JsonDirectiveExpecteReports7_1]
+    ) {
+      def transform = RuleExpectedReports(rid, ds.map(_.transform))
+    }
+    implicit class _JsonRuleExpectedReports7_1(x: RuleExpectedReports) {
+      def transform = JsonRuleExpectedReports7_1(x.ruleId, x.directives.map(_.transform))
+    }
+
+    final case class JsonNodeExpectedReports7_1(
+        ms: JsonModes7_1
+      , rs: List[JsonRuleExpectedReports7_1]
+      , os: List[JsonOverrides7_1]
+    ) extends JsonNodeExpectedReportV {
+      def transform = JsonNodeExpectedReports(ms.transform, rs.map(_.transform), os.map(_.transform))
+    }
+    implicit class _JsonNodeExpecteReports7_1(x: JsonNodeExpectedReports) {
+      def transform = JsonNodeExpectedReports7_1(x.modes.transform, x.ruleExpectedReports.map(_.transform), x.overrides.map(_.transform))
+    }
+
+
+
+    ////////// json codec //////////
+
+    implicit val codecJsonGlobalPolicyMode7_1: JsonCodec[JsonGlobalPolicyMode7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonAgentRun7_1: JsonCodec[JsonAgentRun7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonPolicy7_1: JsonCodec[JsonPolicy7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonJsonOverrides7_1: JsonCodec[JsonOverrides7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonModes7_1: JsonCodec[JsonModes7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonExpectedValueId7_1: JsonCodec[JsonExpectedValueId7_1] = DeriveJsonCodec.gen
+    implicit lazy val codecJsonEitherValue: JsonCodec[Either[List[String],JsonExpectedValueId7_1]] = {
+
+      // invariance is complicated
+      def toRight(x: JsonExpectedValueId7_1): Either[List[String],JsonExpectedValueId7_1] = Right(x)
+      def toLeft(x: List[String]): Either[List[String],JsonExpectedValueId7_1] = Left(x)
+
+      val decoder = JsonDecoder[List[String]].map(toLeft).orElse(codecJsonExpectedValueId7_1.decoder.map(toRight))
+      val encoder = new JsonEncoder[Either[List[String],JsonExpectedValueId7_1]] {
+        override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
+          a match {
+            case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
+            case Right(x) => codecJsonExpectedValueId7_1.unsafeEncode(x, indent, out)
+          }
+        }
+      }
+      JsonCodec(encoder, decoder)
+    }
+    implicit lazy val codecJsonComponentExpecteReports7_1: JsonCodec[JsonComponentExpectedReport7_1] = {
+      // order is important: leaf first, else with recurring part first, we stackoverflow
+      val decoder: JsonDecoder[JsonComponentExpectedReport7_1] = codecJsonValueExpectedReport7_1.decoder.orElse(
+        codecJsonBlockExpectedReport7_1.decoder.widen
+      )
+      val encoder = new JsonEncoder[JsonComponentExpectedReport7_1] {
+        override def unsafeEncode(a: JsonComponentExpectedReport7_1, indent: Option[Int], out: Write): Unit = {
+          a match {
+            case x: JsonValueExpectedReport7_1  =>
+              JsonEncoder[JsonValueExpectedReport7_1].unsafeEncode(x, indent, out)
+            case x: JsonBlockExpectedReport7_1  =>
+              JsonEncoder[JsonBlockExpectedReport7_1].unsafeEncode(x, indent, out)
+          }
+        }
+      }
+      JsonCodec(encoder, decoder)
+    }
+    implicit lazy val codecJsonValueExpectedReport7_1: JsonCodec[JsonValueExpectedReport7_1] = DeriveJsonCodec.gen
+    implicit lazy val codecJsonBlockExpectedReport7_1: JsonCodec[JsonBlockExpectedReport7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonDirectiveExpecteReports7_1: JsonCodec[JsonDirectiveExpecteReports7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonRuleExpectedReports7_1: JsonCodec[JsonRuleExpectedReports7_1] = DeriveJsonCodec.gen
+    implicit val codecJsonNodeExpecteReports7_1: JsonCodec[JsonNodeExpectedReports7_1]  = DeriveJsonCodec.gen
   }
+
+
 
   def parseJsonNodeExpectedReports(s: String): Box[JsonNodeExpectedReports] = {
-    import PolicyMode.{Audit, Enforce}
-    import net.liftweb.util.Helpers.tryo
-
-    implicit val formats = DefaultFormats
-
-    def modes(json: JValue): Box[NodeModeConfig] = {
-      def fail = Failure(s"Cannot parse JSON as modes parameters for expected node configuration: ${compactRender(json)}")
-      (
-          complianceMode( json \ "globalComplianceMode")
-        , json \ "globalHeartbeatPeriod"
-        , agentRun( json \ "globalAgentRunInterval", None)
-        , policyMode( json \ "globalPolicyMode" \ "mode")
-        , json \ "globalPolicyMode" \ "overridable"
-        , policyMode(json \ "nodePolicyMode")
-      ) match {
-        case (Some(gcm), JInt(ghp), Some(gari), Some(gpm), JBool(gpo), npm) =>
-          try {
-            Full(NodeModeConfig(
-                GlobalComplianceMode(gcm, ghp.toValidInt)
-              , heartbeat( json \ "nodeHeartbeatPeriod")
-              , gari
-              , agentRun( json \ "nodeAgentRunInterval", Some(true) )
-              , GlobalPolicyMode(gpm, if(gpo) Always else Unoverridable)
-              , npm
-            ))
-          } catch {
-            case ex: NumberFormatException => fail
-          }
-        case _ => fail
-      }
-    }
-
-    def heartbeat(json: JValue) = json match {
-      case JInt(i) => try {
-          Some(i.toValidInt)
-        } catch {
-          case ex: NumberFormatException => None
+    s.fromJson[JsonNodeExpectedReportV] match {
+      case Left(value)                                    =>
+        /*
+         * Here, we want to try to report a relevant error. If the problem was in
+         * version 7_0, the fallback will fail with an irrelevant problem.
+         * So in that case, we look if error is ".modes(missing)" and redo a pure Version7_1
+         * parsing to let the user know
+         */
+        value match {
+          case ".modes(missing)" =>
+            import Version7_1._
+            s.fromJson[JsonNodeExpectedReports7_1] match {
+              case Left(value) => Failure(value)
+              case Right(value) => Full(value.transform) // should not happen
+            }
+          case v => Failure(v)
         }
-      case _ => None
+      case Right(v:Version7_0.JsonNodeExpectedReports7_0) =>
+        Full(v.transform)
+      case Right(v:Version7_1.JsonNodeExpectedReports7_1) =>
+        Full(v.transform)
     }
+  }
 
-    def policyMode(json: JValue): Option[PolicyMode] = json match {
-      case JString(Audit.name)   => Some(Audit)
-      case JString(Enforce.name) => Some(Enforce)
-      case _ => None
-    }
-
-    def complianceMode(json: JValue): Option[ComplianceModeName] = json match {
-      case JString(name)  => ComplianceModeName.parse(name).toOption
-      case _              => None
-    }
-
-    def agentRun(json: JValue, overrides: Option[Boolean]): Option[AgentRunInterval] = {
-      (
-          json \ "interval"
-        , json \ "startMinute"
-        , json \ "splayHour"
-        , json \ "splaytime"
-      ) match {
-        case (JInt(i), JInt(minute), JInt(hour), JInt(splay)) =>
-          try {
-            Some(AgentRunInterval(overrides, i.toValidInt, minute.toValidInt, hour.toValidInt, splay.toValidInt))
-          } catch {
-            case ex: NumberFormatException => None
-          }
-        case _ => None
-      }
-    }
-
-    def over(json: JValue): Box[OverridenPolicy] = {
-      (
-          (json \ "policy" \ "ruleId")
-        , (json \ "policy" \ "directiveId")
-        , (json \ "overridenBy" \ "ruleId")
-        , (json \ "overridenBy" \ "directiveId")
-     ) match {
-        case (JString(drid), JString(ddid), JString(orid), JString(odid)) =>
-          val (v1, v2) = {
-            ((json \ "policy" \ "techniqueVersion"), (json \ "overridenBy" \ "techniqueVersion")) match {
-              case (JString(v1), JString(v2)) => (v1, v2)
-              case _                          => ("0.0", "0.0")
-            }
-          }
-
-          (for {
-            tv1 <- TechniqueVersion.parse(v1)
-            tv2 <- TechniqueVersion.parse(v2)
-            dd  <- DirectiveId.parse(ddid)
-            od  <- DirectiveId.parse(odid)
-            dr  <- RuleId.parse(drid)
-            or  <- RuleId.parse(orid)
-          } yield {
-            OverridenPolicy(PolicyId(dr, dd, tv1), PolicyId(or, od, tv2))
-          }).toBox ?~! s"Error when parsing rule expected reports from json: '${compactRender(json)}'"
-
-        case _ =>
-          Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")
-      }
-    }
-
-    def rule(json: JValue): Box[RuleExpectedReports] = {
-      (
-          (json \ "ruleId" )
-        , (json \ "directives")
-     ) match {
-        case (JString(id), jsonDirectives) =>
-          for {
-            directives <- jsonDirectives match {
-                            case JArray(directives) => sequence(directives)(directive)
-                            case x                  => Failure(s"Error when parsing the list of directives from expected rule report: '${compactRender(x)}'")
-                          }
-            rid        <- RuleId.parse(id).toBox
-          } yield {
-            RuleExpectedReports(rid, directives.toList)
-          }
-        case _ =>
-          Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")
-      }
-    }
-
-    def directive(json: JValue): Box[DirectiveExpectedReports] = {
-      (
-          (json \ "directiveId" )
-        , (json \ "policyMode"  )
-        , (json \ "components"  )
-     ) match {
-        case (JString(id), jsonMode, jsonComponents ) =>
-          for {
-            rid        <- DirectiveId.parse(id).toBox
-            components <- jsonComponents match {
-                            case JArray(components) => sequence(components)(component)
-                            case x                  => Failure(s"Error when parsing the list of components from expected directive report: '${compactRender(x)}'")
-                          }
-          } yield {
-            //if isSystem is not defined => false
-            val isSystem = (json \ "isSystem"  ) match {
-              case JBool(true) => true
-              case _           => false
-            }
-
-            DirectiveExpectedReports(rid, policyMode(jsonMode), isSystem, components.toList)
-          }
-        case _ =>
-          Failure(s"Error when parsing directive expected reports from json: '${compactRender(json)}'")
-      }
-    }
-
-    def value(json : JValue) = {
-
-      ( (json \ "value").extractOpt[String]
-      , (json \ "id").extractOpt[String]
-      , (json \ "unexpanded").extractOpt[String]
-      ) match {
-        case ( Some (value),Some(id), _ ) => Full(ExpectedValueId(value,id))
-        case ( Some (value),_, Some(unexpanded) ) => Full(ExpectedValueMatch(value,unexpanded))
-        case _ => Failure("")
-      }
-    }
-
-    def component(json: JValue): Box[ComponentExpectedReport] = {
-      (
-          (json \ "componentName" )
-        , (json \ "values")
-        , (json \ "values").extractOpt[List[String]]
-        , (json \ "unexpanded").extractOpt[List[String]]
-        , (json \ "subComponents") match {
-        case JArray(subs) => Some(sequence(subs)(component))
-        case _=> None
-      }
-
-        , (json \ "reportingLogic").extractOpt[String]
-     ) match {
-        case (JString(name), values, None, _, None, None ) =>
-              for {
-                values <- values match {
-                  case JArray(arrayValues) => sequence(arrayValues)(value)
-                  case _ => Failure("")
-                }
-              } yield {
-                ValueExpectedReport(name, values.toList)
-
-              }
-        case (JString(name), _, Some(values), Some(unexpanded), None, None ) =>
-          Full(ValueExpectedReport(name, values.zip(unexpanded).map(ExpectedValueMatch.tupled)))
-        case (JString(name),_,  _, _, Some(Full(sub)), Some(composition) )=>
-          for {
-            reportingLogic <-  ReportingLogic.parse(composition).toBox
-          } yield {
-            BlockExpectedReport(name, reportingLogic, sub.toList)
-          }
-        case _ =>
-          Failure(s"Error when parsing component expected reports from json: '${compactRender(json)}'")
-      }
-    }
-
-    val overrideUnserErrorMsg = s"Error when deserializing policy overrides in node configuration. They will be ignore. A full policy regeneration should correct the problem."
-
-    for {
-      json  <- tryo { parse(s) }
-      modes <- (json \ "modes" ) match {
-                 case JNothing => Failure(s"Error, missing mandatory 'modes' definition when parsing expected node configuration: '${compactRender(json)}'")
-                 case x        => modes(x)
-               }
-      rules <- (json \ "rules") match {
-                 case JArray(rules) => sequence(rules)(rule)
-                 case x             => Failure(s"Error when parsing the list of rules from expected node configuration: '${compactRender(x)}'")
-               }
-      over  <- (json \ "overrides") match {
-                 //we don't want to fail nodeconfig etraction for that.
-                 case JArray(overrides) => sequence(overrides)(over) match {
-                   case Full(seq)    => Full(seq)
-                   case eb: EmptyBox =>
-                     val msg = eb ?~! overrideUnserErrorMsg
-                     ApplicationLogger.error(msg.messageChain)
-                     Full(Nil)
-                 }
-                 case x                 =>
-                     ApplicationLogger.error(overrideUnserErrorMsg)
-                     Full(Nil)
-               }
-    } yield {
-      JsonNodeExpectedReports(modes, rules.toList, over.toList)
-    }
+  /*
+   * We always serialise to 7.1 format
+   */
+  implicit class JNodeToJson(val n: JsonNodeExpectedReports) extends AnyVal {
+    import Version7_1._
+    private def toJson7_1 = n.transform
+    def toJson = toJson7_1.toJsonPretty
+    def toCompactJson = toJson7_1.toJson
   }
 
   implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
-    def toJValue = {
-      jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides))
+    import Version7_1._
+    private def toJson7_1 = {
+      JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides).transform
     }
-    def toJson = prettyRender(toJValue)
-    def toCompactJson = compactRender(toJValue)
+    def toJson = toJson7_1.toJsonPretty
+    def toCompactJson = toJson7_1.toJson
   }
 }
 

@@ -1,0 +1,91 @@
+{
+  "ms": {
+    "gpm": {
+      "m": "enforce",
+      "o": true
+    },
+    "gcm": "full-compliance",
+    "ghp": 1,
+    "gar": {
+      "i": 15,
+      "sm": 0,
+      "sh": 0,
+      "st": 4
+    }
+  },
+  "rs": [
+    {
+      "rid": "4bb75daa-a82f-445a-8e8e-af3e99608ffe",
+      "ds": [
+        {
+          "did": "73e069ea-de00-4b5d-a00e-012709b7b462",
+          "cs": [
+            {
+              "vid": "Command execution",
+              "vs": [
+                [ "/bin/echo \"restore\"" ]
+               ]
+            },
+            {
+              "vid": "File absent",
+              "vs": [
+                [ "/tmp/pasla" ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid": "hasPolicyServer-root",
+      "ds": [
+        {
+          "did": "common-hasPolicyServer-root",
+          "s": true,
+          "cs": [
+            {
+              "vid": "Update",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "ncf Initialization",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Security parameters",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Log system for reports",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "CRON Daemon",
+              "vs": [ [] ]
+            },
+            {
+              "vid": "Monitoring",
+              "vs": [ [] ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rid": "inventory-all",
+      "ds": [
+        {
+          "did": "inventory-all",
+          "s": true,
+          "cs": [
+            {
+              "vid": "Inventory",
+              "vs": [ [] ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "os": []
+}
