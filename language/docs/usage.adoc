@@ -220,7 +220,7 @@ But configure it using a file and not use the CLI options will work.
 
 Below, 5 ways to use the compiler
 
-===== Required: a config file to work on a local environment: 
+===== Required: a config file to work on a local environment:
 
 .tools/my.conf
 [source,toml]
@@ -325,6 +325,59 @@ If you decided to go with the `--json-output` option, it means output will consi
 * `destination` field is null if content is directly written in the JSON
 * `errors` field is an array of strings
 # TODO log field
+
+== Writing a Rudder technique
+
+Rudder language techniques can be compiled to a Json file which can be imported in Rudder in the technique editor or using the API.
+Note that rudder language and the technique editor are not yet fully compatible. Some features will only be available in pure rudder language (without importing the technique to Rudder)
+and some will only be available by creating a technique through the GUI.
+
+In the restricted case where you want to import a rudder language technique to the technique editor, the known limitations are:
+
+* Only one resource by technique, which is the technique (as understand by the technique editor)
+* A state declaration in rudder language equals to a method call in the technique editor
+* Resulting conditions must be manually set and equals to the default ones from the technique editor
+* Technique resources can not yet be defined this way
+* The resource describing the technique must be prefixed by `technique_`
+
+==== Example
+
+Let's write a very simple technique in rudder language:
+
+.technique.rd
+[source, language]
+----
+@format=0
+@name="Deploy vim" // <1>
+@description="Make sure vim is installed everywhere"
+@category = "ncf_techniques"
+@version = "1.0" // <2>
+@parameters= []
+resource technique_Install_Vim() // <3>
+
+technique_Install_Vim state technique() {
+        @component = "Package is installed" // <4>
+        package("vim").present("","","") as package_present_vim
+}
+----
+
+<1> Technique name
+<2> Technique version (only 1.0 is currently supported)
+<3> Resource declaration followed by its implementation
+The resource name must be prefix by `technique_` and will defined the technique id
+<4> The component metadata set the reporting for the method call/state
+
+Which can then be compiled to a `technique.json` file understandable by the technique editor:
+
+----
+/opt/rudder/bin/rudderc technique read -i "technique.rd"
+----
+
+And import the result via the API or the GUI:
+
+----
+curl --silent -k --header "X-API-Token: $(cat /var/rudder/run/api-token)" --header "Content-type: application/json" --request PUT https://localhost/rudder/api/latest/techniques --data "@technique.json" | jq ''
+----
 
 == Using the technique editor
 
