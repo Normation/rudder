@@ -82,12 +82,12 @@ class NodeExpectedReportTest extends Specification {
   // return the couple of (var name, var with value)
   def v(x: String, values: String*) = {
     val v = tvar(x).toVariable(values)
-    (ComponentId(v.spec.name,  v.spec.name :: "root" :: Nil), v)
+    (ComponentId(v.spec.name,  v.spec.name :: "root" :: Nil, None), v)
   }
   // same with multivalued
   def mv(x: String, values: String*) = {
     val v = tmvar(x).toVariable(values)
-    (ComponentId(v.spec.name, v.spec.name :: "root":: Nil), v)
+    (ComponentId(v.spec.name, v.spec.name :: "root":: Nil, None), v)
   }
 
   def parse(s: String) = s.fromJson[List[JsonRuleExpectedReports7_0]] match {
@@ -341,8 +341,8 @@ class NodeExpectedReportTest extends Specification {
   "The rule expected reports from a technique with blocks " should {
     def componentIdCreator(componentKey: String, parentPath: List[String], value: String) : (ComponentId, Variable)= {
       // expectedReportKey is the prefix of the variable name, so necessary
-      val componentId = ComponentId("expectedReportKey " + componentKey, parentPath)
       val variable = SectionVariableSpec("expectedReportKey " + componentKey, "", "REPORTKEYS", valueslabels = Nil, providedValues = Seq(value), id = None)
+      val componentId = ComponentId("expectedReportKey " + componentKey, parentPath, variable.id)
       (componentId, variable.toVariable(Seq(value)))
     }
 

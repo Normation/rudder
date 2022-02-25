@@ -62,20 +62,24 @@ class RuleValServiceImpl(
     interpolatedValueCompiler: InterpolatedValueCompiler
 ) extends RuleValService with Loggable {
 
+  /*
+   * return variable merged when they have the same component name & reportid.
+   */
   private[this] def buildVariables(
       variableSpecs: Seq[(List[SectionSpec], VariableSpec)]
     , context      : Map[String, Seq[String]]
   ) : Box[Map[ComponentId, Variable]] = {
-
     Full(
       variableSpecs.map { case (parents, spec) =>
+        // be carefull, component id are not defined at the varspec level, but in its parent spec one
+        val reportId = spec.id.orElse(parents.headOption.flatMap(_.id))
         context.get(spec.name) match {
           case None => spec.toVariable()
-            (ComponentId(spec.toVariable().spec.name, parents.map(_.name)) ,spec.toVariable())
+            (ComponentId(spec.toVariable().spec.name, parents.map(_.name), reportId),spec.toVariable())
           case Some(seqValues) =>
             val newVar = spec.toVariable(seqValues)
             assert(seqValues.toSet == newVar.values.toSet)
-            (ComponentId(newVar.spec.name, parents.map(_.name)) ,newVar)
+            (ComponentId(newVar.spec.name, parents.map(_.name), reportId) ,newVar)
         }
       }.toMap
     )
@@ -124,7 +128,7 @@ class RuleValServiceImpl(
           technique <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.uid.value}]"
           varSpecs = technique.rootSection.getAllVariablesBySection(Nil) ++ technique.systemVariableSpecs.map((Nil,_)) :+ ((Nil, technique.trackerVariableSpec))
           vared <- buildVariables(varSpecs, directive.parameters)
-          trackerVariableComponentId = ComponentId(technique.trackerVariableSpec.name, Nil)
+          trackerVariableComponentId = ComponentId(technique.trackerVariableSpec.name, Nil, technique.trackerVariableSpec.id)
           exists <- {
             if (vared.isDefinedAt(trackerVariableComponentId)) {
               Full("OK")

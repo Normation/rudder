@@ -1470,20 +1470,20 @@ object RuleExpectedReportBuilder extends Loggable {
               case (None, None) =>
                 //a section that is a component without componentKey variable: card=1, value="None"
                 ValueExpectedReport(section.name, List(ExpectedValueMatch(DEFAULT_COMPONENT_KEY, DEFAULT_COMPONENT_KEY))) :: Nil
-              case (Some(id), None) =>
+              case (Some(id), None)                 =>
                 ValueExpectedReport(section.name, List(ExpectedValueId(DEFAULT_COMPONENT_KEY, id))) :: Nil
-              case (maybeId, Some(varName)) =>
+              case (sectionReportId, Some(varName)) =>
 
                 //a section with a componentKey variable: card=variable card
                 // we are maybe not in a block, but we should only take the values matching the current parent path
                 val currentPath = section.name :: path // (varName is not in parent, but in value)
-                val refComponentId = ComponentId(varName, currentPath)
+                val refComponentId = ComponentId(varName, currentPath, sectionReportId)
 
                 // There are many cases were the variable component is not in the sections
                 // In historical techniques, we have only one componentKey for all technique, and all sections
                 // so we cannot search it in a specific path, and must rather look for it everywhere if it doesn't match
 
-                val (id, innerExpandedVars, innerUnexpandedVars) = vars.expandedVars.get(refComponentId) match {
+                val (varReportId, innerExpandedVars, innerUnexpandedVars) = vars.expandedVars.get(refComponentId) match {
                   // ok, the componentKey is in the current path, all is great
                   // this is a technique from technique editor, or an historical technique with the right section
                   case Some(innerExpandedVars) =>
@@ -1502,9 +1502,9 @@ object RuleExpectedReportBuilder extends Loggable {
                   PolicyGenerationLogger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
                     section.componentKey, directiveId.serialize, innerExpandedVars, innerUnexpandedVars))
 
-                val values = maybeId match {
+                val values = sectionReportId match {
                   case None =>
-                    id match {
+                    varReportId match {
                       case None =>
                         innerExpandedVars.zip( innerUnexpandedVars).map(ExpectedValueMatch.tupled)
                       case Some(id) =>
