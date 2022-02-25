@@ -235,7 +235,7 @@ class TestNodeUnserialisation extends Specification {
       |inventoryDate: 20180717000031.000Z
       |receiveDate: 20180717000527.050Z
       |lastLoggedUserTime: 20000714084300.000Z
-      |softwareUpdate: {"name":"rudder-agent","version":"7.0.0-realease","from":"yum","arch":"x86_64","kind":"none"}""".stripMargin
+      |softwareUpdate: {"name":"rudder-agent","version":"7.0.0-realease","from":"yum","arch":"x86_64","kind":"none","description":"Local privilege escalation in pkexec","severity":"low","date":"2022-01-26T00:00:00Z","ids":["RHSA-2020-4566","CVE-2021-4034"]}""".stripMargin
 
   def node(ldif: String): NodeInventory = {
     val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
@@ -264,9 +264,11 @@ class TestNodeUnserialisation extends Specification {
     }
 
     "correctly unserialize software updates node from 7_0" in {
-      node(linux70Ldif).softwareUpdates(0) must beEqualTo(
-        SoftwareUpdate("rudder-agent","7.0.0-realease","x86_64", "yum", SoftwareUpdateKind.None, None)
-      )
+      val date = JsonSerializers.parseSoftwareUpdateDateTime("2022-01-26T00:00:00Z")
+      (date must beRight()) and (node(linux70Ldif).softwareUpdates(0) must beEqualTo(
+        SoftwareUpdate("rudder-agent","7.0.0-realease","x86_64", "yum", SoftwareUpdateKind.None, None, Some("Local privilege escalation in pkexec"),
+          Some(SoftwareUpdateSeverity.Low), date.toOption, Some(List("RHSA-2020-4566", "CVE-2021-4034") ))
+      ))
     }
   }
 }

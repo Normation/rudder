@@ -37,6 +37,9 @@
 
 package com.normation.inventory.domain
 
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
+
 import zio.json._
 
 /*
@@ -60,28 +63,55 @@ import zio.json._
 
 object JsonSerializers {
   object implicits extends InventoryJsonEncoders with InventoryJsonDecoders
+
+  // the update date is normalized in RFC3339, UTC, no millis
+  val softwareUpdateDateTimeFormat = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC()
+  def parseSoftwareUpdateDateTime(d: String) = {
+    try {
+      Right(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d))
+    } catch {
+      case e: IllegalArgumentException => Left(s"Error when parsing date '${d}', we expect an RFC3339, UTC no millis format. Error: ${e.getMessage}")
+    }
+  }
 }
 
 
 // encoder from object to json string
 trait InventoryJsonEncoders {
-  implicit val softwareUpdateKindEnd : JsonEncoder[SoftwareUpdateKind] = JsonEncoder[String].contramap { k =>
+  implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap[DateTime](d =>
+    d.toString(JsonSerializers.softwareUpdateDateTimeFormat)
+  )
+
+  implicit val encoderSoftwareUpdateKind : JsonEncoder[SoftwareUpdateKind] = JsonEncoder[String].contramap { k =>
     k match {
       case SoftwareUpdateKind.Other(v) => v
       case kind                        => kind.name
     }
   }
-  implicit val softwareUpdateEnc: JsonEncoder[SoftwareUpdate] = DeriveJsonEncoder.gen
+  implicit val encoderSoftwareUpdateSeverity : JsonEncoder[SoftwareUpdateSeverity] = JsonEncoder[String].contramap { k =>
+    k match {
+      case SoftwareUpdateSeverity.Other(v) => v
+      case kind                            => kind.name
+    }
+  }
+
+  implicit val encoderSoftwareUpdate: JsonEncoder[SoftwareUpdate] = DeriveJsonEncoder.gen
 
 }
 
 
 trait InventoryJsonDecoders {
-
-  implicit val softwareUpdateKindDec: JsonDecoder[SoftwareUpdateKind] = JsonDecoder[String].map(s =>
-    SoftwareUpdateKind.parse(s)
+  implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(d =>
+    JsonSerializers.parseSoftwareUpdateDateTime(d)
   )
 
-  implicit val softwareUpdateDec: JsonDecoder[SoftwareUpdate] = DeriveJsonDecoder.gen
+  implicit val decoderSoftwareUpdateKind: JsonDecoder[SoftwareUpdateKind] = JsonDecoder[String].map(s =>
+    SoftwareUpdateKind.parse(s)
+  )
+  implicit val decoderSoftwareUpdateSeverity: JsonDecoder[SoftwareUpdateSeverity] = JsonDecoder[String].map(s =>
+    SoftwareUpdateSeverity.parse(s)
+  )
+
+  implicit val decoderSoftwareUpdate: JsonDecoder[SoftwareUpdate] = DeriveJsonDecoder.gen
 }
 

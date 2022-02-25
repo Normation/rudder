@@ -941,8 +941,21 @@ class FusionInventoryParser(
       f <- getOrError(e, "FROM")
       k = optText(e \ "KIND").map(SoftwareUpdateKind.parse(_)).getOrElse(SoftwareUpdateKind.None)
       s = optText(e \ "SOURCE")
+      d = optText(e \ "DESCRIPTION")
+      sev = optText(e \ "SEVERITY" ).map(SoftwareUpdateSeverity.parse)
+      date = optText(e \ "DATE")
+      ids = (e \ "ID").map(_.text).toList
     } yield {
-      SoftwareUpdate(n, v, a, f, k, s)
+      val idss = if(ids.isEmpty) None else Some(ids)
+      // date should be normalized, but in case of error, report and set to None
+      val dd = date.flatMap(x => JsonSerializers.parseSoftwareUpdateDateTime(x) match {
+          case Left(err) =>
+            InventoryProcessingLogger.info(s"Error when parsing date for software update ${n}: ${err}")
+            None
+          case Right(value) =>
+            Some(value)
+        })
+      SoftwareUpdate(n, v, a, f, k, s, d, sev, dd, idss)
     }) match {
       case Left(err)    =>
         InventoryProcessingLogger.logEffect.warn(s"Ignoring malformed software update: '${err.fullMsg}': ${e}")

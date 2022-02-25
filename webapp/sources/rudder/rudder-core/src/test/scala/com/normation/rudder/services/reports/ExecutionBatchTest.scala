@@ -552,8 +552,6 @@ class ExecutionBatchTest extends Specification {
     val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
 
     val goodBlock = withGood.asInstanceOf[BlockStatusReport]
-    val componentValues = withGood.componentValues
-
 
     "return a repaired block " in {
       withGood.compliance === ComplianceLevel(repaired = 1)
