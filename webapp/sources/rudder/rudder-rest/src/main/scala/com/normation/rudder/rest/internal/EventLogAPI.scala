@@ -222,7 +222,7 @@ class EventLogAPI (
         rollbackReq      <- if(reqParam == "after") Full(eventLogDetail.RollbackTo) else if (reqParam == "before") Full(eventLogDetail.RollbackBefore) else Failure(s"Unknown rollback's action : ${reqParam}")
         idLong           <- Box.tryo(id.toLong)
         event            <- repos.getEventLogById(idLong).toBox
-        committer        <- personIdentService.getPersonIdentOrDefault(CurrentUserService.actor.name).toBox
+        committer        <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name).toBox
         rollbackExec     <- rollbackReq.action(event, committer, Seq(event), event)
       } yield {
         val r =

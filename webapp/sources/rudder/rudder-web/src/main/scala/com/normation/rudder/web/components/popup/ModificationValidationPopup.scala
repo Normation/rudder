@@ -51,7 +51,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff

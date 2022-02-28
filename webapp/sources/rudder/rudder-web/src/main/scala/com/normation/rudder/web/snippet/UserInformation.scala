@@ -45,7 +45,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.eventlog.EventActor
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId

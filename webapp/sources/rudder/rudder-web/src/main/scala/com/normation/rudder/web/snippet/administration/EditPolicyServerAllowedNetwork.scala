@@ -48,7 +48,6 @@ import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -59,6 +58,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.box._
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.zio._
+import com.normation.rudder.web.services.CurrentUser
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 

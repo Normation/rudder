@@ -11,7 +11,7 @@ import net.liftweb.http.{DispatchSnippet, SHtml}
 import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{FormTracker, WBRadioField, WBSelectField, WBTextAreaField, WBTextField}
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.policies.NonGroupRuleTarget

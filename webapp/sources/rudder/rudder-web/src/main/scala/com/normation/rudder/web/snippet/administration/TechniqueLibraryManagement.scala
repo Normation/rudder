@@ -37,17 +37,19 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import com.normation.rudder.web.model._
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.web.model.JsTreeNode
+
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.{S, SHtml}
+
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
+
 import net.liftweb.http.js.JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -58,12 +60,14 @@ import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.AuthorizationType
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
+
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.services.AgentCompat
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 

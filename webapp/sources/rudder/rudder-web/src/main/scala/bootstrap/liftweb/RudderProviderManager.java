@@ -45,7 +45,7 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 	// ~ Static fields/initializers
 	// =====================================================================================
 
-	private static final Log logger = LogFactory.getLog(RudderProviderManager.class);
+	private static final Log logger = LogFactory.getLog("org.springframework.security.RudderProviderManager");
 
 	// ~ Instance fields
 	// ================================================================================================
@@ -107,7 +107,7 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 			}
 
 			if (debug) {
-				logger.debug("Authentication attempt using "
+				logger.debug("Rudder authentication attempt using "
 						+ provider.getClass().getName());
 			}
 
@@ -168,7 +168,7 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 			lastException = new ProviderNotFoundException(messages.getMessage(
 					"ProviderManager.providerNotFound",
 					new Object[] { toTest.getName() },
-					"No AuthenticationProvider found for {0}"));
+					"Rudder Authentication: no AuthenticationProvider found for {0}"));
 		}
 
 		prepareException(lastException, authentication);

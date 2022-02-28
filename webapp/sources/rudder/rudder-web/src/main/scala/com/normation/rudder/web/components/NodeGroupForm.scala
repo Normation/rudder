@@ -45,7 +45,7 @@ import com.normation.rudder.web.model._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import JsCmds._
