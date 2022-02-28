@@ -49,7 +49,7 @@ import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model.{FormTracker, WBTextAreaField, WBTextField}
 import CreateOrCloneRulePopup._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.RuleUid
 

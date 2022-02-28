@@ -44,15 +44,15 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Collection
-
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.web.services.RudderUserDetail
+
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.core.userdetails.UserDetails
 import org.xml.sax.SAXParseException
 
 import scala.jdk.CollectionConverters._
@@ -246,29 +246,6 @@ final object RudderAuthType {
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
   }
 }
-
-/**
- * Our simple model for for user authentication and authorizations.
- * Note that authorizations are not managed by spring, but by the
- * 'authz' token of RudderUserDetail.
- */
-final case class RudderUserDetail(
-    account : RudderAccount
-  , roles   : Set[Role]
-  , apiAuthz: ApiAuthorization
-) extends UserDetails {
-  // merge roles rights
-  val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
-  override val (getUsername, getPassword, getAuthorities) = account match {
-    case RudderAccount.User(login, password) => (login         , password       , RudderAuthType.User.grantedAuthorities)
-    case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
-  }
-  override val isAccountNonExpired        = true
-  override val isAccountNonLocked         = true
-  override val isCredentialsNonExpired    = true
-  override val isEnabled                  = true
-}
-
 
 object UserFileProcessing {
 

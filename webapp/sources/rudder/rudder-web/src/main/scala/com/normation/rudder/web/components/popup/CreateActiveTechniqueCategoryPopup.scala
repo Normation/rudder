@@ -39,18 +39,20 @@ package com.normation.rudder.web.components.popup
 
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.rudder.domain.policies.{ActiveTechniqueCategory,ActiveTechniqueCategoryId}
+import com.normation.rudder.domain.policies.{ActiveTechniqueCategory, ActiveTechniqueCategoryId}
+
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
-}
+import com.normation.rudder.web.model.{FormTracker, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.eventlog.ModificationId
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 

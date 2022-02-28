@@ -41,7 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.DispatchSnippet
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.box._
 import com.normation.rudder.AuthorizationType.Administration
 import net.liftweb.http.CurrentReq
