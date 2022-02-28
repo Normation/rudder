@@ -51,7 +51,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category._
 import net.liftweb.json._
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 

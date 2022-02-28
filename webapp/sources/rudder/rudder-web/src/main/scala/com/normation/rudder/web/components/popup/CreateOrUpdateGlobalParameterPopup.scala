@@ -48,7 +48,7 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.model._
 
 import java.util.regex.Pattern

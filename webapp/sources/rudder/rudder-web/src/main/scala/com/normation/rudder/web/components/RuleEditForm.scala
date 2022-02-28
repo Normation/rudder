@@ -45,7 +45,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.{FullActiveTechnique, FullActiveTechniqueCategory, FullNodeGroupCategory}
 import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField

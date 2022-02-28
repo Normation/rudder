@@ -55,7 +55,7 @@ import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPo
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 

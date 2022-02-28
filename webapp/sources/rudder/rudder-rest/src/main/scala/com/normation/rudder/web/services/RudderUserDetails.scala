@@ -39,8 +39,11 @@ package com.normation.rudder.web.services
 import java.util.Collection
 import com.normation.rudder.{AuthorizationType, Rights, Role, RudderAccount}
 import com.normation.rudder.api.ApiAuthorization
+
 import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
+
 import scala.jdk.CollectionConverters._
 
 /**
@@ -62,7 +65,7 @@ sealed trait RudderAuthType {
 final object RudderAuthType {
   // build a GrantedAuthority from the string
   private def buildAuthority(s: String): Collection[GrantedAuthority] = {
-    Seq(new GrantedAuthority { override def getAuthority: String = s }).asJavaCollection
+    Seq(new SimpleGrantedAuthority(s): GrantedAuthority).asJavaCollection
   }
 
   final case object User extends RudderAuthType {
@@ -80,8 +83,9 @@ final object RudderAuthType {
  * Our simple model for for user authentication and authorizations.
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
+ * Don't make it final as SSO kind of authentication may need to extend it.
  */
-final case class RudderUserDetail(
+case class RudderUserDetail(
   account : RudderAccount
   , roles   : Set[Role]
   , apiAuthz: ApiAuthorization

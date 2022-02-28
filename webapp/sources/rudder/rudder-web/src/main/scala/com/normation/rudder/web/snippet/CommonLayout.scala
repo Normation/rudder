@@ -3,7 +3,7 @@ package com.normation.rudder.web.snippet
 import net.liftweb.http.DispatchSnippet
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 
 import scala.xml.NodeSeq
 

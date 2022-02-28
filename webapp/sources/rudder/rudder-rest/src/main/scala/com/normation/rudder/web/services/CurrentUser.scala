@@ -37,7 +37,10 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.{AuthorizationType, Rights, RudderAccount, User}
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.User
 import com.normation.rudder.api.ApiAuthorization
 import net.liftweb.http.SessionVar
 import org.springframework.security.core.context.SecurityContextHolder
@@ -47,7 +50,7 @@ import org.springframework.security.core.context.SecurityContextHolder
  * (if any)
  *
  */
-object CurrentUserService extends SessionVar[Option[RudderUserDetail]] ({
+object CurrentUser extends SessionVar[Option[RudderUserDetail]] ({
   SecurityContextHolder.getContext.getAuthentication match {
     case null => None
     case auth => auth.getPrincipal match {
