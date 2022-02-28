@@ -172,6 +172,11 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   border-radius: 0;
   background: #041922;
 }
+.skin-yellow .modal .modal-header .close{
+  color: #fff;
+  font-size: 1.8em;
+  opacity: .4;
+}
 .skin-yellow .modal .modal-footer .btn {
   width:auto;
 }
@@ -1514,7 +1519,8 @@ label.text-fit{
   color: #041922;
 }
 
-.badge-disabled {
+.badge-disabled,
+.badge-expired{
   background-color: #04192257;
   font-size: 0.8em;
   color: #fff;
@@ -1525,6 +1531,12 @@ label.text-fit{
 }
 .badge-disabled:before {
   content: "DISABLED";
+}
+.badge-expired {
+  background-color: #ef9600;
+}
+.badge-expired:before {
+  content: "EXPIRED";
 }
 .tooltip .badge-disabled {
   float: right;
@@ -2642,27 +2654,6 @@ hr.separation{
   background-color: #d43f3a !important;
   color: #fff !important;
 }
-/* API ACCOUNTS PAGE */
-#accountGrid .reload-token{
-	margin-right:10px;
-}
-#accountGrid .action-left>.btn,#accountGrid .action-center>.btn,#accountGrid .action-right>.btn{
-  width: 80px;
-  margin: 0px 10px;
-}
-#accountGrid .action-left{
-  border-right:none;
-  text-align:center;
-}
-#accountGrid .action-center{
-  border-right:none;
-  border-left:none;
-  text-align:center;
-}
-#accountGrid .action-right{
-  border-left:none;
-  text-align:center;
-}
 
 /* SETTINGS PAGE */
 #policyServerDetails{
@@ -3051,14 +3042,10 @@ h3.box-title {
 }
 .btn.new-icon:after{
   content: "\f055";
-  font: normal normal normal 14px/1 inherit;
   font-family: "Font Awesome 5 Free";
-  font-size: 1.2em;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
-  position: relative;
-  margin-left: 7px;
-  top: 1px;
+  margin-left: 6px;
   font-weight: 900;
 }
 
