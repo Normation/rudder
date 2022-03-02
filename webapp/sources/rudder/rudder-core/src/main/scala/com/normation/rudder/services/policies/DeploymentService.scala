@@ -1523,7 +1523,6 @@ object RuleExpectedReportBuilder extends Loggable {
             // structure of componentId is "Component Name", List("Component Name", "current block", "parent block", "great parent block")
             val currentPath = section.name :: path
             val children = section.children.collect{case c : SectionSpec => c }.flatMap(c => sectionToExpectedReports(currentPath)(c)).toList
-            logger.warn(children)
             BlockExpectedReport(section.name, rule, children) :: Nil
 
         }

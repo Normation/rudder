@@ -341,7 +341,8 @@ final case class BlockStatusReport (
   }
 }
 final case class ValueStatusReport  (
-    componentName      : String
+    componentName         : String
+  , expectedComponentName : String
     //only one ComponentValueStatusReport by valuex.
   , componentValues    : List[ComponentValueStatusReport]
 ) extends  ComponentStatusReport {
@@ -375,17 +376,21 @@ final case class ValueStatusReport  (
  */
 object ComponentStatusReport extends Loggable {
 
-  def merge(components: Iterable[ComponentStatusReport]): List[ ComponentStatusReport] = {
+  def merge(components: Iterable[ComponentStatusReport]): List[ComponentStatusReport] = {
     components.groupBy( _.componentName).flatMap { case (cptName, reports) =>
-
       val valueComponents = reports.collect{ case c : ValueStatusReport => c }.toList match {
-        case Nil => None
+        case Nil => Nil
         case r =>
-          val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues))
-          Some(ValueStatusReport(cptName, newValues))
+          r.groupBy(_.expectedComponentName).toList.map {
+            case (unexpanded, r) =>
+
+              val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues))
+              ValueStatusReport(cptName, unexpanded, newValues)
+
+          }
       }
       val groupComponent= reports.collect{ case c : BlockStatusReport => c }.toList match {
-        case Nil => None
+        case Nil => Nil
         case r =>
           import ReportingLogic._
           val reportingLogic = r.map(_.reportingLogic).reduce(
@@ -396,18 +401,13 @@ object ComponentStatusReport extends Loggable {
               case (FocusReport(a), _)                                       => FocusReport(a)
             }
           )
-          Some(BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).toList))
+          BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).toList) :: Nil
       }
 
-      (valueComponents,groupComponent) match {
-        case (None       , None       ) => Nil
-        case (Some(v)    , None       ) => (cptName, v) :: Nil
-        case (None       , Some(v)    ) => (cptName, v) :: Nil
-        case (Some(value), Some(group)) => (cptName, group.copy(subComponents = value :: group.subComponents)) :: Nil
-      }
+      groupComponent ::: valueComponents
 
     }
-  }.values.toList
+  }.toList
 }
 
 /**
@@ -417,12 +417,12 @@ object ComponentStatusReport extends Loggable {
  * Values are lost. They are not really used today
  */
 final case class ComponentValueStatusReport(
-    componentValue          : String
-  , unexpandedComponentValue: String
-  , messages                : List[MessageStatusReport]
+    componentValue         : String
+  , expectedComponentValue : String
+  , messages               : List[MessageStatusReport]
 ) extends StatusReport {
 
-  override def toString() = s"${componentValue}(<-> ${unexpandedComponentValue}):${messages.mkString("[", ";", "]")}"
+  override def toString() = s"${componentValue}(<-> ${expectedComponentValue}):${messages.mkString("[", ";", "]")}"
 
   override lazy val compliance = ComplianceLevel.compute(messages.map( _.reportType))
 
@@ -439,15 +439,11 @@ object ComponentValueStatusReport extends Loggable {
    * them by component *unexpanded* value
    */
   def merge(values: Iterable[ComponentValueStatusReport]): List[ ComponentValueStatusReport] = {
-    val pairs = values.groupBy(_.unexpandedComponentValue).map { case (unexpanded, values) =>
-      //the unexpanded value should be the same on all values.
-      //if not, report an error for devs
-
-          ComponentValueStatusReport(unexpanded, unexpanded, values.toList.flatMap(_.messages))
-
-
+    values.groupBy(_.componentValue).toList.flatMap { case (component, values) =>
+      values.groupBy(_.expectedComponentValue).toList.map { case (unexpanded, values) =>
+        ComponentValueStatusReport(component, unexpanded, values.toList.flatMap(_.messages))
+      }
     }
-    pairs.toList
   }
 }
 
@@ -580,7 +576,7 @@ object NodeStatusReportSerialization {
               ( ("value"         -> v.componentValue)
               ~ ("compliance"    -> v.compliance.computePercent().toJson)
               ~ ("numberReports" -> v.compliance.total)
-              ~ ("unexpanded"    -> v.unexpandedComponentValue)
+              ~ ("unexpanded"    -> v.expectedComponentValue)
               ~ ("messages"      -> v.messages.map { m =>
                   ( ("message" -> m.message )
                   ~ ("type"    -> m.reportType.severity)

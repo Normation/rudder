@@ -575,14 +575,14 @@ class ExecutionBatchTest extends Specification {
     "focus on 'component' and get its two reports" in {
       withBad.compliance === ComplianceLevel(repaired = 1, unexpected = 1)
     }
-    "with bad reports return two components" in {
-      withBad.componentValues.size === 2
+    "with bad reports return 4 values" in {
+      withBad.componentValues.size === 4
     }
     "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
-      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) ===  EnforceRepaired :: Unexpected :: Nil
+      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) ===  Unexpected :: EnforceRepaired :: Nil
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) ===  Unexpected :: Missing :: Nil
+      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) ===   Missing :: Unexpected :: Nil
     }
   }
 
@@ -1077,23 +1077,23 @@ class ExecutionBatchTest extends Specification {
     val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, ReportType.Missing, PolicyMode.Enforce, strictUnexpectedInterpretation).head
 
     "return 2 components globally (because they work by reportId)" in {
-      withGood.componentValues.size === 2
+      withGood.componentValues.size === 4
     }
     "return a total with weight 4 (2x(2 each))" in {
       withGood.compliance === ComplianceLevel(success = 2, repaired = 2)
     }
     "components are grouped by reportId - which not optimal, we would like them grouped by ${user}" in {
-      ( withGood.componentValues("/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+      ( withGood.componentValues.filter(_.expectedComponentValue ==  "/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
         List("""Success:"alice is correctly created"""", """Repaired:"bob is correctly created"""") ) ) and
-      ( withGood.componentValues("/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+      ( withGood.componentValues.filter(_.expectedComponentValue ==  "/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
         List("""Success:"alice rights are correct"""", """Repaired:"bob rights are correct"""") ) )
     }
     "mallory can get green compliance with other things executed that what we though" in {
-      ( withBad.compliance === ComplianceLevel(success = 2)) and
-      ( withBad.componentValues("/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
-        List("""Success:"mallory is correctly created"""") ) ) and
-      ( withBad.componentValues("/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
-        List("""Success:"mallory rights are correct"""") ) )
+      ( withBad.compliance === ComplianceLevel(unexpected = 2, missing = 2)) and
+      ( withBad.componentValues.filter(_.expectedComponentValue == "/bin/createUserScript ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Unexpected:"mallory is correctly created"""", """Missing:"Missing report"""") ) ) and
+      ( withBad.componentValues.filter(_.expectedComponentValue == "/bin/checkRightsOK ${user}").flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
+        List("""Unexpected:"mallory rights are correct"""", """Missing:"Missing report"""") ) )
 
     }
   }

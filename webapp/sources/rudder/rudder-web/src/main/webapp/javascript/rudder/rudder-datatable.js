@@ -930,6 +930,10 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
         } else {
           $(nTd).addClass("noExpand");
         }
+        if( oData.unexpanded !== undefined && oData["unexpanded"] !== sData) {
+          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
+          $(nTd).append(elem);
+        }
       }
   } , {
       "sWidth": complianceWidth
@@ -983,6 +987,12 @@ function createNodeComponentValueTable(contextPath) {
       "sWidth": "20%"
     , "mDataProp": "value"
     , "sTitle": "Value"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        if(oData["unexpanded"] !== sData) {
+          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
+          $(nTd).append(elem);
+        }
+      }
   } , {
       "sWidth": "62.4%"
     , "mDataProp": "messages"
@@ -1044,6 +1054,12 @@ function createRuleComponentValueTable (contextPath) {
       "sWidth": componentSize
     , "mDataProp": "value"
     , "sTitle": "Value"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        if(oData["unexpanded"] !== sData) {
+          var elem = $("<i class=\"fa fa-question-circle icon-info\" title=\"original value is "+ oData["unexpanded"]+"\"></i>")
+          $(nTd).append(elem);
+        }
+      }
   } , {
         "sWidth": complianceWidth
       , "mDataProp": "compliancePercent"
