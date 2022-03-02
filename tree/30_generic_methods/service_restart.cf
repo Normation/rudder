@@ -31,28 +31,19 @@
 bundle agent service_restart(name)
 {
   vars:
-      "old_class_prefix"         string => canonify("service_restart_${name}");
-
-      "args"                      slist => { "${name}" };
-      "full_class_prefix"        string => canonify("service_restart_${name}");
-      "class_prefix"             string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix"  string => canonify("service_action_${name}_restart");
-      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => canonify("service_restart_${name}");
 
   classes:
-      "should_report"        expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                              usebundle => disable_reporting;
-      "restart always"        usebundle => service_restart_if("${name}","any");
-
-      "reenable_reporting_${class_prefix}"
-                              usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      # old_class_prefix in service_restart_if is the same as in service_restart
-      "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"                usebundle => _log_v3("Restart service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("service_action");
+      "${report_data.method_id}" usebundle => service_action("${name}", "restart");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Restart service ${name}", "");
 }

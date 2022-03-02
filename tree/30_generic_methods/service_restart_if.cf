@@ -33,47 +33,25 @@
 bundle agent service_restart_if(name, expression)
 {
   vars:
-
-      "canonified_name"      string => canonify("${name}");
-
-      "old_class_prefix"             string => "service_restart_${canonified_name}";
-
-      "args"                          slist => { "${name}",  "${expression}" };
-
-      "report_param"                 string => join("_", args);
-      "full_class_prefix"            string => canonify("service_restart_${report_param}");
-      "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix"      string => canonify("service_action_${name}_restart");
-      "inner_class_prefix"           string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => "service_restart_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "should_restart" expression => "${expression}";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
-
-      # Create kept class
-      "success_class"              usebundle  => _classes_success("${old_class_prefix}"),
-                                   # parenthesis used to negate all the classes
-                                   ifvarclass => "!(${expression})";
-
-      "success_class"              usebundle  => _classes_success("${class_prefix}"),
-                                   # parenthesis used to negate all the classes
-                                   ifvarclass => "!(${expression})";
-
-      "restart"                    usebundle  => service_action("${name}", "restart"),
-                                   ifvarclass => "${expression}";
-
-      "class copy"                 usebundle  => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
-                                   ifvarclass => "${expression}";
-
-      "class copy"                 usebundle  => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                                   ifvarclass => "${expression}";
-
-      "reenable_reporting_${class_prefix}"
-                                    usebundle => enable_reporting,
-                                   ifvarclass => "should_report";
-
-      "report"                     usebundle  => _log_v3("Restart service ${canonified_name} if '${expression}' condition defined", "${name}", "service_restart_${canonified_name}", "${class_prefix}", @{args});
+    pass3.should_restart::
+      "${report_data.method_id}" usebundle => call_method("service_action");
+      "${report_data.method_id}" usebundle => service_action("${name}", "restart");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("service_action");
+    pass3.!should_restart::
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Restart service ${name} (as '${expression}' is defined)", "");
 }

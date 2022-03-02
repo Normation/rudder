@@ -338,7 +338,7 @@ bundle agent call_method(method) {
       # store initial value
       "should_report" string => "${report_data.should_report}";
     pass3::
-      "method_id"  string => "${report_data.method_id}";
+      "method_id" string => "${report_data.method_id}";
       # store value with new method_id
       "call_method_data.${method_id}_${method}" string => "${should_report}";
 
@@ -366,6 +366,16 @@ bundle agent call_method_classes(copy_to_prefix) {
       "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${prefix}");
 }
 
+# Define on upper level method id
+bundle agent call_method_classes_caller {
+  vars:
+      # First entry is latest inserted
+      "prefix"             string => canonify(nth("method_id_unique.stack", 0));
+
+  methods:
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${prefix}");
+}
+
 bundle agent call_method_end(method) {
   classes:
     pass2::
@@ -377,15 +387,15 @@ bundle agent call_method_end(method) {
 
   methods:
     pass2.!pass3::
-      "${report_data.method_id}" usebundle => method_id_pop;
+      "${report_data.method_id}_${method}" usebundle => method_id_pop;
     pass3::
-      "${report_data.method_id}" usebundle => enable_reporting,
-                                        if => "should_report";
+      "${report_data.method_id}_${method}" usebundle => enable_reporting,
+                                                  if => "should_report";
   
   reports:
-    pass3.debug.should_report::
+    pass1.!pass2.debug.should_report::
       "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: true";
-    pass3.debug.!should_report::
+    pass1.!pass2.debug.!should_report::
       "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: false";
 }
 

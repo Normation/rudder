@@ -31,36 +31,19 @@
 bundle agent service_reload(name)
 {
   vars:
-
-      "canonified_name" string => canonify("${name}");
-
-      "old_class_prefix"        string => "service_reload_${canonified_name}";
-  
-      "args"                    slist => { "${name}" };
-
-
-      "full_class_prefix"       string => canonify("service_reload_${name}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("service_action_${name}_reload");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => "service_reload_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                          usebundle => disable_reporting;
-
-      "reload"            usebundle => service_action("${name}", "reload");
-
-      "reenable_reporting_${class_prefix}"
-                          usebundle => enable_reporting,
-                         ifvarclass => "should_report";
-
-      "class copy"        usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-
-      "class copy"        usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"            usebundle => _log_v3("Reload service ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("service_action");
+      "${report_data.method_id}" usebundle => service_action("${name}", "reload");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Reload service ${name}", "");
 }

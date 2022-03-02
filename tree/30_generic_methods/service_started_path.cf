@@ -31,57 +31,34 @@
 bundle agent service_started_path(name, path)
 {
   vars:
-
-      "canonified_name"      string => canonify("${name}");
-      "canonified_path"      string => canonify("${path}");
-
-      "old_class_prefix"             string => "service_started_${canonified_name}";
-
-      "args"                          slist => { "${name}", "${path}" };
-      "report_param"                 string => join("_", args);
-      "full_class_prefix"            string => canonify("service_started_${report_param}");
-      "class_prefix"                 string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix_start"      string => canonify("service_start_${name}");
-      "inner_class_prefix_start"           string => string_head("${full_inner_class_prefix_start}", "1000");
-
-      "full_inner_class_prefix_is_active"  string => canonify("service_check_running_${path}");
-      "inner_class_prefix_is_active"       string => string_head("${full_inner_class_prefix_is_active}", "1000");
+      "class_prefix" string => "service_started_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "needs_start" expression => "${report_data.method_id}_ncf_services_check_error";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                       usebundle => disable_reporting;
-
-      "check running" usebundle  => service_check_running_ps("${path}");
-
-      "start if not running"
-        usebundle  => service_start("${name}"),
-        ifvarclass => "!${inner_class_prefix_is_active}_kept";
-
-      "class copy if not running"
-        usebundle  => _classes_copy("${inner_class_prefix_start}", "${old_class_prefix}"),
-        ifvarclass => "!${inner_class_prefix_is_active}_kept";
-
-      "class copy if not running"
-        usebundle  => _classes_copy("${inner_class_prefix_start}", "${class_prefix}"),
-        ifvarclass => "!${inner_class_prefix_is_active}_kept";
-
-      "class if running"
-        usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "${inner_class_prefix_is_active}_kept";
- 
-      "class if running"
-        usebundle  => _classes_success("${old_class_prefix}"),
-        ifvarclass => "${inner_class_prefix_is_active}_kept";
-
- 
-      "reenable_reporting_${class_prefix}"
-                              usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "report"
-        usebundle  => _log_v3("Ensure that service ${name} is running", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass2.!pass3::
+      # Get service status
+      "${report_data.method_id}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}" usebundle => ncf_services("${path}", "is-active-process");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_check");
+    pass3.needs_start::
+      # If service is running, stop it
+      "${report_data.method_id}" usebundle => call_method("ncf_services_start");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "start");
+      # Use stop result as method result
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_start");
+    pass3.!needs_start::
+      # Define success classes is check_running was not kept
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+    pass3::
+      # Report
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");
 }

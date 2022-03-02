@@ -37,14 +37,14 @@ bundle agent service_stop(name)
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
-      "pass1" expression => "any";      
+      "pass1" expression => "any";
 
   methods:
     pass3::
       "${report_data.method_id}" usebundle => call_method("service_action");
       "${report_data.method_id}" usebundle => service_action("${name}", "stop");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("service_action");
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Stop service ${name}", "");
 }

@@ -30,41 +30,19 @@
 bundle agent service_check_disabled_at_boot(name)
 {
   vars:
-      "canonified_name"         string => canonify("${name}");
-
-      "old_class_prefix"        string => "service_check_disabled_at_boot_${canonified_name}";
-
-      "args"                     slist => { "${name}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("service_check_disabled_at_boot_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("ncf_services_${report_param}_is_enabled");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
-
+      "class_prefix" string => "service_check_disabled_at_boot_${name}";
 
   classes:
-      "should_report"       expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                             usebundle => disable_reporting;
-      "check_enabled"        usebundle => ncf_services("${name}", "is-enabled");
-
-      "reenable_reporting_${class_prefix}"
-                             usebundle => enable_reporting,
-                            ifvarclass => "should_report";
-      "success"              usebundle => _classes_success("${old_class_prefix}"),
-                            ifvarclass => "ncf_services_${canonified_name}_is_enabled_not_ok";
-      "success"              usebundle => _classes_success("${class_prefix}"),
-                            ifvarclass => "${inner_class_prefix}_not_ok";
-
-      "failure"              usebundle => _classes_failure("${old_class_prefix}"),
-                            ifvarclass => "ncf_services_${canonified_name}_is_enabled_ok";
-      "failure"              usebundle => _classes_failure("${class_prefix}"),
-                            ifvarclass => "${inner_class_prefix}_ok";
-
-      "reports" usebundle => _log_v3("Check if service ${name} is disabled at boot", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_services");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-enabled");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Check if service ${name} is disabled at boot", "");
 }

@@ -29,56 +29,34 @@
 bundle agent service_disabled(name)
 {
   vars:
-
-
-    any::
-      "canonified_name"         string => canonify("${name}");
-
-      "old_class_prefix"        string => "service_disabled_${canonified_name}";
-
-      "args"                     slist => { "${name}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("service_disabled_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("ncf_services_${report_param}_disable");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
+      "class_prefix" string => "service_disabled_${name}";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "needs_disable" expression => "${report_data.method_id}_ncf_services_check_kept";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-        usebundle => disable_reporting;
-
-      "disable_at_boot"
-        usebundle => service_check_disabled_at_boot("${name}");
-
-      "undefine_at_boot"
-        usebundle => ncf_services("${name}", "disable"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_not_ok";
-
-      "already undefined"
-        usebundle  => _classes_success("${old_class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_ok";
-
-      "already undefined"
-        usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_ok";
-
-      "copy classes"
-        usebundle  => _classes_copy("ncf_services_${canonified_name}_disable", "${old_class_prefix}"),
-        ifvarclass => "service_check_disabled_at_boot_${canonified_name}_not_ok";
-
-      "copy classes"
-        usebundle  => _classes_copy("${inner_class_prefix}_disable", "${class_prefix}"),
-        ifvarclass => "${inner_class_prefix}_not_ok";
-
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-      "report"
-        usebundle => _log_v3("Ensure service ${name} is disabled at boot", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass2.!pass3::
+      # Get service status
+      "${report_data.method_id}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-enabled");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_check");
+    pass3.needs_disable::
+      # If service is running, disable it
+      "${report_data.method_id}" usebundle => call_method("ncf_services_disable");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "disable");
+      # Use stop result as method result
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services_disable");
+    pass3.!needs_disable::
+      # Define success classes is check_running was not kept
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+    pass3::
+      # Report
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure service ${name} is disabled at boot", "");
 }
