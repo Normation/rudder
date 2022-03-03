@@ -279,6 +279,7 @@ final case class BlockComplianceLine (
 
 final case class ValueComplianceLine (
     component   : String
+  , unexpanded  : String
   , compliance  : ComplianceLevel
   , details     : JsTableData[ComponentValueComplianceLine]
   , noExpand    : Boolean
@@ -287,6 +288,7 @@ final case class ValueComplianceLine (
   val json = {
     JsObj (
         ( "component"         -> escapeHTML(component)    )
+      , ( "unexpanded"        -> escapeHTML(unexpanded) )
       , ( "compliance"        -> jsCompliance(compliance) )
       , ( "compliancePercent" -> compliance.computePercent().compliance)
       , ( "details"           -> details.json             )
@@ -310,6 +312,7 @@ final case class ValueComplianceLine (
  */
 final case class ComponentValueComplianceLine (
     value       : String
+  , unexpandedValue : String
   , messages    : List[(String, String)]
   , compliance  : ComplianceLevel
   , status      : String
@@ -319,6 +322,7 @@ final case class ComponentValueComplianceLine (
   val json = {
     JsObj (
         ( "value"             -> escapeHTML(value) )
+      , ( "unexpanded"        -> escapeHTML(unexpandedValue) )
       , ( "status"            -> status )
       , ( "statusClass"       -> statusClass )
       , ( "messages"          -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m)))}))
@@ -543,6 +547,7 @@ object ComplianceData extends Loggable {
 
       ValueComplianceLine(
           component.componentName
+        , component.expectedComponentName
         , component.compliance
         , values
         , noExpand
@@ -563,11 +568,13 @@ object ComplianceData extends Loggable {
     } yield {
       val severity = ReportType.getWorseType(value.messages.map( _.reportType)).severity
       val status = getDisplayStatusFromSeverity(severity)
-      val key = value.unexpandedComponentValue
+      val key = value.componentValue
+      println(key)
       val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))
 
       ComponentValueComplianceLine(
           key
+        , value.expectedComponentValue
         , messages
         , value.compliance
         , status

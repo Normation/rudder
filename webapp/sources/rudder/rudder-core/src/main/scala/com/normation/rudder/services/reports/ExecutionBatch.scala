@@ -46,7 +46,6 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
-
 import net.liftweb.common.Loggable
 
 import java.util.regex.Pattern
@@ -54,7 +53,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.domain.policies.RuleId
-
 import org.apache.commons.lang3.StringUtils
 
 import scala.annotation.tailrec
@@ -899,7 +897,6 @@ final case class ContextForNoAnswer(
       // full compliance and "success" when on changes only - but that success
       // depends upon the policy mode
       missingReportStatus = missingReportType(modes.globalComplianceMode, policyMode)
-
       component  <- directive.components
 
     } yield {
@@ -908,6 +905,7 @@ final case class ContextForNoAnswer(
     }).toMap
     val t2 = System.nanoTime
     timer.u1 += t2-t1
+
 
     /*
      * now we have three cases:
@@ -1120,7 +1118,7 @@ final case class ContextForNoAnswer(
         , mergeInfo.configId
         , seq.groupBy(_.directiveId).map{ case (directiveId, reportsByDirectives) =>
           (directiveId, DirectiveStatusReport(directiveId, reportsByDirectives.groupBy(_.component).toList.map { case (component, reportsByComponents) =>
-            ValueStatusReport(component, reportsByComponents.groupBy(_.keyValue).toList.map { case (keyValue, reportsByComponent) =>
+            ValueStatusReport(component, component, reportsByComponents.groupBy(_.keyValue).toList.map { case (keyValue, reportsByComponent) =>
               ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList)
             })
             })
@@ -1135,7 +1133,7 @@ final case class ContextForNoAnswer(
   private[this] def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
       DirectiveStatusReport(r.directiveId,
-        ValueStatusReport(r.component, ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil) :: Nil
+        ValueStatusReport(r.component, r.component, ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil) :: Nil
         ) :: Nil)
 
     }
@@ -1144,7 +1142,7 @@ final case class ContextForNoAnswer(
   private[reports] def componentExpectedReportToStatusReport (reportType: ReportType, c : ComponentExpectedReport) : ComponentStatusReport = {
        c match {
          case c : ValueExpectedReport =>
-              ValueStatusReport(c.componentName, c.componentsValues.map {
+              ValueStatusReport(c.componentName,c.componentName, c.componentsValues.map {
                 case ExpectedValueId(v,_) => (v,v)
                 case ExpectedValueMatch(v,u) => (v,u)
               }.map { case(v,u) =>
@@ -1322,7 +1320,7 @@ final case class ContextForNoAnswer(
 
         // 1. start with the easy case: expected reports with a report ID
 
-        val (matched,last_unexpected) =  matchId.foldLeft((List.empty[ValueStatusReport],filteredReports)) {
+        val (matched,last_unexpected) =  matchId.foldLeft((List.empty[ComponentStatusReport],filteredReports)) {
           case ((acc, reports), expectedValueId) =>
             val (matched, left) = reports.partition(_.reportId == expectedValueId.id)
 
@@ -1333,8 +1331,8 @@ final case class ContextForNoAnswer(
 
             val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) { case ((ok, unexp), next) =>
 
-              val componentOk = next.component == expectedComponent.componentName || matchCFEngineVars.pattern.matcher(expectedComponent.componentName).matches()
-              val valueOk = next.keyValue == expectedValueId.value || matchCFEngineVars.pattern.matcher(expectedValueId.value).matches()
+              val componentOk = next.component == expectedComponent.componentName || replaceCFEngineVars(expectedComponent.componentName).matcher(next.component).matches()
+              val valueOk = next.keyValue == expectedValueId.value || replaceCFEngineVars(expectedValueId.value).matcher(next.keyValue).matches()
 
               if( componentOk && valueOk ) {
                 (next :: ok, unexp)
@@ -1348,12 +1346,33 @@ final case class ContextForNoAnswer(
               }
             }
 
-            val expectedNumber = Math.max(ok.size, 1)
-            val resOk = buildComponentValueStatus(expectedValueId, ok, componentGotAtLeastOneReport, expectedNumber, noAnswerType, policyMode)
-            val resKo = unexpected.map(r => ComponentValueStatusReport(r.component, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil))
 
+            val okRes: List[ComponentStatusReport] = ok.groupBy(_.component).toList.map { case (component, r) =>
+              val cv = r.groupBy(_.keyValue).toList.map { case (key, r) =>
+                ComponentValueStatusReport(key, expectedValueId.value, r.map(_.toMessageStatusReport(policyMode)))
+              }
+              ValueStatusReport(component, expectedComponent.componentName, cv)
+            }
+
+
+            val missingRes: List[ComponentStatusReport] = if (ok.isEmpty) {
+              ValueStatusReport(expectedComponent.componentName, expectedComponent.componentName, ComponentValueStatusReport( expectedValueId.value,  expectedValueId.value,  MessageStatusReport(noAnswerType, "Missing report") :: Nil) :: Nil) :: Nil
+            } else {
+              Nil
+            }
+
+            val unexpectedRes : List[ComponentStatusReport] = unexpected.groupBy(_.component).toList.map { case (component, r) =>
+              val cv = r.groupBy(_.keyValue).toList.map { case (key, r) =>
+                ComponentValueStatusReport(key, expectedValueId.value, r.map(r => MessageStatusReport(ReportType.Unexpected, r.message)))
+              }
+              ValueStatusReport(component, expectedComponent.componentName, cv)
+            }
+
+
+
+            val koRes = missingRes ::: unexpectedRes
             // we still attach the unexpected with that component since they have its reportId
-            (ValueStatusReport(expectedComponent.componentName, resOk :: resKo) :: acc, left)
+            ( ComponentStatusReport.merge(okRes ::: koRes ::: acc), left)
         }
 
         // 2. now the complicated case - do what we used to do for expected report without a reportId
@@ -1414,6 +1433,7 @@ final case class ContextForNoAnswer(
        } else {
          ValueStatusReport(
            expectedComponent.componentName
+           , expectedComponent.componentName
            , ComponentValueStatusReport.merge(pairedReportStatus)
          ) :: matched
        }
