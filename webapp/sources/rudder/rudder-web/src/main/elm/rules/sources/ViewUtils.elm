@@ -353,8 +353,31 @@ filterSearch filterString searchFields =
   in
     String.contains searchString stringToCheck
 
-
 -- TAGS DISPLAY
+filterTags : List Tag -> List Tag -> Bool
+filterTags ruleTags tags =
+  if List.isEmpty tags then
+    True
+  else if List.isEmpty ruleTags then
+    False
+  else
+    --List.Extra.count (\t -> List.Extra.notMember t ruleTags) tags <= 0
+    tags
+      |> List.all (\tag ->
+        if not (String.isEmpty tag.key) && not (String.isEmpty tag.value) then
+          List.member tag ruleTags
+        else if String.isEmpty tag.key then
+          case List.Extra.find (\t -> t.value == tag.value) ruleTags of
+            Just ok -> True
+            Nothing -> False
+        else if String.isEmpty tag.value then
+          case List.Extra.find (\t -> t.key == tag.key) ruleTags of
+            Just ok -> True
+            Nothing -> False
+        else
+          True
+        )
+
 buildHtmlStringTag : Tag -> String
 buildHtmlStringTag tag =
   let

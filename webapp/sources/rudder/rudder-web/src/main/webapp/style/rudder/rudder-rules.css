@@ -53,6 +53,10 @@
 .rudder-template .table-title + .callout-fade{
   margin: 10px 0 20px 0;
 }
+.rudder-template .header-filter .btn.more-filters{
+  min-width: 34px;
+  background-size: 58%;
+}
 /*================= */
 .main-details .row > div > .callout-fade.callout-info:first-child{
   margin-top: 10px;

@@ -254,6 +254,8 @@ type alias TableFilters =
 type alias TreeFilters =
   { filter : String
   , folded : List String
+  , newTag : Tag
+  , tags   : List Tag
   }
 
 type alias Filters =

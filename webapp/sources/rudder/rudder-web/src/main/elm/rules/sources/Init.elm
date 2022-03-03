@@ -10,7 +10,7 @@ init flags =
   let
 
     initCategory = Category "" "" "" (SubCategories []) []
-    initFilters  = Filters (TableFilters Name Asc "" []) (TreeFilters "" [])
+    initFilters  = Filters (TableFilters Name Asc "" []) (TreeFilters "" [] (Tag "" "") [])
     initUI       = UI initFilters initFilters initFilters NoModal flags.hasWriteRights True
     initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory Dict.empty Dict.empty Dict.empty Dict.empty initUI
 
