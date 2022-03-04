@@ -15,6 +15,15 @@ import DatePickerUtils exposing (..)
 displayModals : Model -> Html Msg
 displayModals model =
   let
+    (checkEmptyBtn, checkEmptyWarning, checkAlreadyUsedName) =
+      case model.editAccount of
+        Nothing -> (False, False, False)
+        Just account ->
+          case model.ui.modalState of
+            NewAccount    -> ( String.isEmpty account.name , False , List.member account.name (List.map .name model.accounts) )
+            EditAccount a -> ( String.isEmpty account.name , String.isEmpty account.name , (a.name/=account.name && List.member account.name (List.map .name model.accounts)) )
+            _ -> ( False , False , False )
+
     modalClass = if model.ui.modalState == NoModal then "" else " in"
 
     (modalTitle, btnTxt, btnClass) = case model.ui.modalState of
@@ -54,10 +63,18 @@ displayModals model =
               aclList = case account.acl of
                 Just l  -> l
                 Nothing -> []
+
+              displayWarningName =
+                if checkEmptyWarning then
+                  span[class "warning-info"] [i[class "fa fa-warning"][], text " This field is required"]
+                else if checkAlreadyUsedName then
+                  span[class "warning-info"] [i[class "fa fa-warning"][], text " This name is already used"]
+                else
+                  text ""
             in
               ( form [name "newAccount", class ("newAccount" ++ if SingleDatePicker.isOpen model.ui.datePickerInfo.picker then " datepicker-open" else "") ]
-                [ div [class "form-group"]
-                  [ label [for "newAccount-name"][text "Name"]
+                [ div [class ("form-group" ++ if checkEmptyWarning || checkAlreadyUsedName then " has-warning" else "")]
+                  [ label [for "newAccount-name"][text "Name", displayWarningName]
                   , input [id "newAccount-name", type_ "text", class "form-control", value account.name, onInput (\s -> UpdateAccountForm {account | name = s} )][]
                   ]
                 , div [class "form-group"]
@@ -70,9 +87,9 @@ displayModals model =
                     , label [for "selectDate", class "custom-toggle toggle-secondary"]
                       [ input [type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c ->  UpdateAccountForm {account | expirationDateDefined = c} )][]
                       , label [for "selectDate", class "custom-toggle-group"]
-                        [ label [for "selectDate", class "toggle-enabled" ][text "Enabled"]
+                        [ label [for "selectDate", class "toggle-enabled" ][text "Defined"]
                         , span  [class "cursor"][]
-                        , label [for "selectDate", class "toggle-disabled"][text "Disabled"]
+                        , label [for "selectDate", class "toggle-disabled"][text "Undefined"]
                         ]
                       ]
                     , ( if checkIfExpired model.ui.datePickerInfo account then
@@ -121,7 +138,7 @@ displayModals model =
           ]
         , div [class "modal-footer"]
           [ button [type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal)] [ text "Close" ]
-          , button [type_ "button", class ("btn btn-" ++ btnClass), onClick saveAction][text btnTxt]
+          , button [type_ "button", class ("btn btn-" ++ btnClass), onClick saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ][text btnTxt]
           ]
         ]
       ]
