@@ -131,8 +131,9 @@ bundle agent sysctl_value(key, value, filename, option) {
 
       "should_report"     expression => "${report_data.should_report}";
 
-      "check_smaller"     expression => strcmp("${option}", "min");
-      "check_larger"      expression => strcmp("${option}", "max");
+      "check_smaller"     expression => strcmp(string_downcase("${option}"), "min");
+      "check_larger"      expression => strcmp(string_downcase("${option}"), "max");
+
 
       "check_equality"           not => "check_larger|check_smaller";
 
@@ -150,6 +151,13 @@ bundle agent sysctl_value(key, value, filename, option) {
       "correct_value_post_modif"
                           expression => strcmp("${sysctl_var.${checkKey}}", "${value}"),
                                   if => "${inner_class_prefix_sysctl_reload}_repaired";
+      "correct_value_post_modif"
+                          expression => isgreaterthan("${sysctl_var.${getKey}}", "${value}"),
+                                  if => "${inner_class_prefix_sysctl_reload}_repaired.check_smaller";
+
+      "correct_value_post_modif"
+                          expression => islessthan("${sysctl_var.${getKey}}", "${value}"),
+                                  if => "${inner_class_prefix_sysctl_reload}_repaired.check_larger";
 
     any::
       "pass3" expression => "pass2";
@@ -199,10 +207,10 @@ bundle agent sysctl_value(key, value, filename, option) {
 
 
       "error"    usebundle => _classes_failure("${old_class_prefix}"),
-                        if => "!correct_value.((${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
+                        if => "!correct_value.(((${inner_class_prefix_key_value}_repaired|${inner_class_prefix_sysctl_reload}_repaired).!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
 
       "error"    usebundle => _classes_failure("${class_prefix}"),
-                        if => "!correct_value.((${inner_class_prefix_key_value}_repaired.!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
+                        if => "!correct_value.(((${inner_class_prefix_key_value}_repaired|${inner_class_prefix_sysctl_reload}_repaired).!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
 
   pass3.can_edit::
       "report"   usebundle => _log_v3("Set sysctl value for key ${key}, using file ${filename} with option ${option}", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
