@@ -21,6 +21,96 @@ body common control
 
 bundle agent init
 {
+  vars:
+  
+      "ok_codes" string => "0, 2,4, 6";
+  
+      "command[1]"   string => "exit 0";
+      "result[1]"    string => "repaired";
+      "until[1]"     string => "any";
+      "testName[1]"  string => "testA";
+      "mode[1]"      string => "enforce";
+      
+      "command[2]"   string => "exit 0 ";
+      "result[2]"    string => "success";
+      "until[2]"     string => "any";
+      "testName[2]"  string => "testA";
+      "mode[2]"      string => "enforce";
+
+      "command[3]"   string => "exit 0  ";
+      "result[3]"    string => "success";
+      "until[3]"     string => "any";
+      "testName[3]"  string => "testA";
+      "mode[3]"      string => "audit";
+
+      "command[4]"   string => "exit 1";
+      "result[4]"    string => "error";
+      "until[4]"     string => "any";
+      "testName[4]"  string => "testB";
+      "mode[4]"      string => "enforce";
+
+      "command[5]"   string => "exit 1 ";
+      "result[5]"    string => "success";
+      "until[5]"     string => "any";
+      "testName[5]"  string => "testB";
+      "mode[5]"      string => "enforce";
+
+      "command[6]"   string => "exit 2";
+      "result[6]"    string => "repaired";
+      "until[6]"     string => "ok";
+      "testName[6]"  string => "testC";
+      "mode[6]"      string => "enforce";
+
+      "command[7]"   string => "exit 2 ";
+      "result[7]"    string => "success";
+      "until[7]"     string => "ok";
+      "testName[7]"  string => "testC";
+      "mode[7]"      string => "enforce";
+
+      "command[8]"   string => "exit 3";
+      "result[8]"    string => "error";
+      "until[8]"     string => "ok";
+      "testName[8]"  string => "testD";
+      "mode[8]"      string => "enforce";
+
+      "command[9]"   string => "exit 3 ";
+      "result[9]"    string => "error";
+      "until[9]"     string => "ok";
+      "testName[9]"  string => "testD";
+      "mode[9]"      string => "enforce";
+
+      "command[10]"  string => "exit 4";
+      "result[10]"   string => "repaired";
+      "until[10]"    string => "ok";
+      "testName[10]" string => "testD";
+      "mode[10]"     string => "enforce";
+
+      "command[11]"  string => "exit 4 ";
+      "result[11]"   string => "success";
+      "until[11]"    string => "ok";
+      "testName[11]" string => "testD";
+      "mode[11]"     string => "enforce";
+
+      "command[12]"  string => "exit 5";
+      "result[12]"   string => "error";
+      "until[12]"    string => "ok";
+      "testName[12]" string => "testE";
+      "mode[12]"     string => "audit";
+
+      "command[13]"  string => "exit 5 ";
+      "result[13]"   string => "error";
+      "until[13]"    string => "ok";
+      "testName[13]" string => "testE";
+      "mode[13]"     string => "audit";
+
+      "command[14]"  string => "exit 6";
+      "result[14]"   string => "error";
+      "until[14]"    string => "ok";
+      "testName[14]" string => "testE";
+      "mode[14]"     string => "audit";
+
+      "indices"    slist => getindices("command");
+            
   methods:
       "clean" usebundle => file_absent("${configuration.flag_file}");
 }
@@ -30,31 +120,33 @@ bundle agent init
 bundle agent test
 {
   vars:
+    "args${init.indices}" slist => { "${init.command[${init.indices}]}", "${init.ok_codes}", "${init.until[${init.indices}]}", "${init.testName[${init.indices}]}" };
     "ok_codes" string => "0, 2,4, 6";
 
   methods:
-    "phA"  usebundle => command_execution_once("exit 0",    "${ok_codes}", "any", "testA");
-    "phAA" usebundle => command_execution_once("exit 0 ",   "${ok_codes}", "any", "testA");
-    "enable"  usebundle => set_dry_run_mode("true");
-    "phAAA" usebundle => command_execution_once("exit 0  ", "${ok_codes}", "any", "testA");
-    "disable" usebundle => set_dry_run_mode("false");
+
+    
+    "phA"   usebundle  => apply_gm_v4("command_execution_once", @{args1}, "${init.result[1]}", "phA"  , "${init.mode[1]}" );
+    "phAA"  usebundle  => apply_gm_v4("command_execution_once", @{args2}, "${init.result[2]}", "phAA" , "${init.mode[2]}" );
+    "phAAA" usebundle  => apply_gm_v4("command_execution_once", @{args3}, "${init.result[3]}", "phAAA", "${init.mode[3]}" );
+
+    "phB"   usebundle  => apply_gm_v4("command_execution_once", @{args4}, "${init.result[4]}", "phB"  , "${init.mode[4]}" );
+    "phBB"  usebundle  => apply_gm_v4("command_execution_once", @{args5}, "${init.result[5]}", "phBB" , "${init.mode[5]}" );
+
+    "phC"   usebundle  => apply_gm_v4("command_execution_once", @{args6}, "${init.result[6]}", "phC"  , "${init.mode[6]}" );
+    "phCC"  usebundle  => apply_gm_v4("command_execution_once", @{args7}, "${init.result[7]}", "phCC" , "${init.mode[7]}" );
 
 
-    "phB"  usebundle => command_execution_once("exit 1",  "${ok_codes}", "any", "testB");
-    "phBB" usebundle => command_execution_once("exit 1 ", "${ok_codes}", "any", "testB");
+    "phD"   usebundle  => apply_gm_v4("command_execution_once", @{args8}, "${init.result[8]}", "phD"  , "${init.mode[8]}" );
+    "phDD"  usebundle  => apply_gm_v4("command_execution_once", @{args9}, "${init.result[9]}", "phDD" , "${init.mode[9]}" );
+    "phDDD" usebundle  => apply_gm_v4("command_execution_once", @{args10}, "${init.result[10]}", "phDDD" , "${init.mode[10]}" );
+    "phDDE" usebundle  => apply_gm_v4("command_execution_once", @{args11}, "${init.result[11]}", "phDDE" , "${init.mode[11]}" );
+    
 
-    "phC"  usebundle => command_execution_once("exit 2",  "${ok_codes}", "ok", "testC");
-    "phCC" usebundle => command_execution_once("exit 2 ", "${ok_codes}", "ok", "testC");
+    "phE"   usebundle  => apply_gm_v4("command_execution_once", @{args12}, "${init.result[12]}", "phE"   , "${init.mode[12]}" );
+    "phEE"  usebundle  => apply_gm_v4("command_execution_once", @{args13}, "${init.result[13]}", "phEE"  , "${init.mode[13]}" );
+    "phEEE" usebundle  => apply_gm_v4("command_execution_once", @{args14}, "${init.result[14]}", "phEEE" , "${init.mode[14]}" );
 
-    "phD"    usebundle => command_execution_once("exit 3",  "${ok_codes}", "ok", "testD");
-    "phDD"   usebundle => command_execution_once("exit 3 ", "${ok_codes}", "ok", "testD");
-    "phDDD"  usebundle => command_execution_once("exit 4",  "${ok_codes}", "ok", "testD");
-
-    "reenable"  usebundle => set_dry_run_mode("true");
-    "phE"       usebundle => command_execution_once("exit 5",  "${ok_codes}", "ok", "testE");
-    "phEE"      usebundle => command_execution_once("exit 5 ", "${ok_codes}", "ok", "testE");
-    "phEEE"     usebundle => command_execution_once("exit 6",  "${ok_codes}", "ok", "testE");
-    "redisable" usebundle => set_dry_run_mode("false");
 }
 
 #######################################################
@@ -62,25 +154,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok_A" expression => "!command_execution_once_exit_0_kept.command_execution_once_exit_0_repaired.!command_execution_once_exit_0_error";
-    "ok_AA" expression => "command_execution_once_exit_0__kept.!command_execution_once_exit_0__repaired.!command_execution_once_exit_0__error";
-    "ok_AAA" expression => "command_execution_once_exit_0___kept.!command_execution_once_exit_0___repaired.!command_execution_once_exit_0___error";
-
-    "ok_B" expression => "!command_execution_once_exit_1_kept.!command_execution_once_exit_1_repaired.command_execution_once_exit_1_error";
-    "ok_BB" expression => "command_execution_once_exit_1__kept.!command_execution_once_exit_1__repaired.!command_execution_once_exit_1__error";
-
-    "ok_C" expression => "!command_execution_once_exit_2_kept.command_execution_once_exit_2_repaired.!command_execution_once_exit_2_error";
-    "ok_CC" expression => "command_execution_once_exit_2__kept.!command_execution_once_exit_2__repaired.!command_execution_once_exit_2__error";
-
-    "ok_D" expression => "!command_execution_once_exit_3_kept.!command_execution_once_exit_3_repaired.command_execution_once_exit_3_error";
-    "ok_DD" expression => "!command_execution_once_exit_3__kept.!command_execution_once_exit_3__repaired.command_execution_once_exit_3__error";
-    "ok_DDD" expression => "!command_execution_once_exit_4_kept.command_execution_once_exit_4_repaired.!command_execution_once_exit_4_error";
-
-    "ok_E" expression => "!command_execution_once_exit_5_kept.!command_execution_once_exit_5_repaired.command_execution_once_exit_5_error";
-    "ok_EE" expression => "!command_execution_once_exit_5__kept.!command_execution_once_exit_5__repaired.command_execution_once_exit_5__error";
-    "ok_EEE" expression => "!command_execution_once_exit_6_kept.!command_execution_once_exit_6_repaired.command_execution_once_exit_6_error";
-
-    "ok"  expression => "ok_A.ok_AA.ok_AAA.ok_B.ok_BB.ok_C.ok_CC.ok_D.ok_DD.ok_DDD.ok_E.ok_EE.ok_EEE";
+    "ok"  expression => "phA_ok.phAA_ok.phAAA_ok.phB_ok.phBB_ok.phC_ok.phCC_ok.phD_ok.phDD_ok.phDDD_ok.phDDE_ok.phE_ok.phEE_ok.phEEE_ok";
 
   reports:
     ok::

@@ -38,20 +38,22 @@
 bundle agent command_execution(command)
 {
   vars:
-      "old_class_prefix"  string => canonify("command_execution_${command}");
-      "args"               slist => { "${command}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("command_execution_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("command_execution_${command}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
+    pass3::
       "report"
-        usebundle  => _log_v3("Execute the command ${command}", "${command}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+        usebundle  => log_rudder_v4("${command}", "Execute command", "${command}"),
+        ifvarclass => "${report_data.method_id}_reached";
 
   commands:
+    pass2.!pass3::
       "${command}"
         contain      => in_shell,
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 }

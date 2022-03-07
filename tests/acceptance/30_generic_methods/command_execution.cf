@@ -56,14 +56,14 @@ bundle agent test
 
   methods:
       # Enforce
-      "ph1" usebundle  => apply_gm("command_execution", @{args1}, "${init.result[1]}", "ph1", "enforce" );
-      "ph2" usebundle  => apply_gm("command_execution", @{args2}, "${init.result[2]}", "ph2", "enforce" );
-      "ph3" usebundle  => apply_gm("command_execution", @{args3}, "${init.result[3]}", "ph3", "enforce" );
-      "ph4" usebundle  => apply_gm("command_execution", @{args4}, "${init.result[4]}", "ph4", "enforce" );
+      "ph1" usebundle  => apply_gm_v4("command_execution", @{args1}, "${init.result[1]}", "ph1", "enforce" );
+      "ph2" usebundle  => apply_gm_v4("command_execution", @{args2}, "${init.result[2]}", "ph2", "enforce" );
+      "ph3" usebundle  => apply_gm_v4("command_execution", @{args3}, "${init.result[3]}", "ph3", "enforce" );
+      "ph4" usebundle  => apply_gm_v4("command_execution", @{args4}, "${init.result[4]}", "ph4", "enforce" );
 
       # Audit
-      "ph5" usebundle  => apply_gm("command_execution", @{args5}, "${init.result[5]}", "ph5", "audit" );
-      "ph6" usebundle  => apply_gm("command_execution", @{args6}, "${init.result[6]}", "ph6", "audit" );
+      "ph5" usebundle  => apply_gm_v4("command_execution", @{args5}, "${init.result[5]}", "ph5", "audit" );
+      "ph6" usebundle  => apply_gm_v4("command_execution", @{args6}, "${init.result[6]}", "ph6", "audit" );
 }
 
 #######################################################

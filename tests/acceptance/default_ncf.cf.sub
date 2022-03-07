@@ -166,6 +166,124 @@ bundle agent apply_gm(name, args, status, result_class, mode)
         ifvarclass => "${define_expected_classes.unexpected_classes_class_prefix_${result_class}}";
 }
 
+# This bundle should be call when testing a generic method made with v4
+# It will call the target bundle with the given arguments,
+# check that the resulting classes are correct and define
+# a global class "${result_class}_ok" if everything succeed.
+#
+# name: name of the target bundle
+# args: slist containing the target bundle parameter, in 
+#       correct order.
+# status: expected result status, can be: success, error, repaired
+# result_class: prefix of the resulting class
+# TODO: It does not yet takes into account the report_id
+bundle agent apply_gm_v4(name, args, status, result_class, mode)
+{
+  vars:
+      "length"  int => length("args");
+      "arg0" string => nth("args", "0");
+      "arg1" string => nth("args", "1");
+      "arg2" string => nth("args", "2");
+      "arg3" string => nth("args", "3");
+      "arg4" string => nth("args", "4");
+      "arg5" string => nth("args", "5");
+
+      "class_prefix" string => "${${name}.class_prefix}";
+      
+      "report_param" string => join("_", args);
+    pass1:: # need to be guarded by a class, and need an extra parameter to be executed at each call
+      "uuid"         string => execresult("/usr/bin/uuidgen #${result_class}", "useshell");
+      "c_uuid"       string => canonify("${uuid}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "audit" expression => strcmp("${mode}", "audit");
+    pass1.!pass2::
+      # Dynamic bundle call does not support undefined arg number
+      # We have to explicitly define each possibility
+      "1_arg" expression => strcmp("${length}", "1");
+      "2_arg" expression => strcmp("${length}", "2");
+      "3_arg" expression => strcmp("${length}", "3");
+      "4_arg" expression => strcmp("${length}", "4");
+      "5_arg" expression => strcmp("${length}", "5");
+      "6_arg" expression => strcmp("${length}", "6");
+      "7_arg" expression => strcmp("${length}", "7");
+      "8_arg" expression => strcmp("${length}", "8");
+
+    pass2::
+      "class_prefix_ok"     expression => "${define_expected_classes.report_string_class_prefix_${result_class}}",
+              comment => "${c_uuid}";
+      "method_id_ok"        expression => "${define_expected_classes.report_string_method_id_${result_class}}",
+              comment => "${c_uuid}";
+      "${result_class}_ok"  expression => "class_prefix_ok.method_id_ok",
+        scope   => "namespace",
+        comment => "${c_uuid}";
+
+
+  methods:
+    pass1.!pass2::
+      "set_reporting"    usebundle => _method_reporting_context_v4("${name}", "${name}","${uuid}"); # component value is not used for classes
+    pass2::
+      "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix_${result_class}"),
+              comment => "${c_uuid}";
+      "expected_classes" usebundle => define_expected_classes("${c_uuid}", "${status}", "method_id_${result_class}"),
+              comment => "${c_uuid}";
+
+
+    audit.pass1.!pass2::
+      "enable_${result_class}" usebundle => push_dry_run_mode("true"),
+                                 comment => "${c_uuid}";
+    !audit.pass1.!pass2::
+      "enable_${result_class}" usebundle => push_dry_run_mode("false"),
+              comment => "${c_uuid}";
+
+    1_arg::
+      "execute_gm" usebundle => ${name}("${arg0}");
+    2_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}");
+    3_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
+    4_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
+    5_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
+    6_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
+    7_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
+    8_arg::
+      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
+
+    pass3::
+      "disable_${result_class}" usebundle => pop_dry_run_mode(),
+              comment => "${c_uuid}";
+
+    pass3::
+      "cancel_classes" usebundle => _classes_cancel("${class_prefix}"),
+              comment => "${c_uuid}";
+
+  reports:
+    pass2.!pass3::
+      "Missing method_id class ${define_expected_classes.report_string_method_id_${result_class}}"
+        ifvarclass => "!${define_expected_classes.report_string_method_id_${result_class}}",
+                comment => "${c_uuid}";
+
+      "Missing expected class ${define_expected_classes.expected_classes_class_prefix_${result_class}}"
+        ifvarclass => "!${define_expected_classes.expected_classes_class_prefix_${result_class}}",
+                comment => "${c_uuid}";
+
+      "Found unexpected method_id ${define_expected_classes.unexpected_classes_method_id_${result_class}}"
+        ifvarclass => "${define_expected_classes.unexpected_classes_method_id_${result_class}}",
+                comment => "${c_uuid}";
+
+      "Found unexpected class ${define_expected_classes.unexpected_classes_class_prefix_${result_class}}"
+        ifvarclass => "${define_expected_classes.unexpected_classes_class_prefix_${result_class}}",
+                comment => "${c_uuid}";
+}
+
 # Mimic default node properties values
 bundle common node
 {

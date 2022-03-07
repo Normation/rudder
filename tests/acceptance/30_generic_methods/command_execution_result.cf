@@ -76,21 +76,21 @@ bundle agent test
 
  methods:
     # Enforce
-    "ph0"     usebundle => apply_gm("command_execution_result", @{args0},  "${init.result[0]}",  "ph0",  "enforce" );
-    "ph1"     usebundle => apply_gm("command_execution_result", @{args1},  "${init.result[1]}",  "ph1",  "enforce" );
-    "ph2"     usebundle => apply_gm("command_execution_result", @{args2},  "${init.result[2]}",  "ph2",  "enforce" );
-    "ph3"     usebundle => apply_gm("command_execution_result", @{args3},  "${init.result[3]}",  "ph3",  "enforce" );
-    "ph4"     usebundle => apply_gm("command_execution_result", @{args4},  "${init.result[4]}",  "ph4",  "enforce" );
-    "ph5"     usebundle => apply_gm("command_execution_result", @{args5},  "${init.result[5]}",  "ph5",  "enforce" );
+    "ph0"     usebundle => apply_gm_v4("command_execution_result", @{args0},  "${init.result[0]}",  "ph0",  "enforce" );
+    "ph1"     usebundle => apply_gm_v4("command_execution_result", @{args1},  "${init.result[1]}",  "ph1",  "enforce" );
+    "ph2"     usebundle => apply_gm_v4("command_execution_result", @{args2},  "${init.result[2]}",  "ph2",  "enforce" );
+    "ph3"     usebundle => apply_gm_v4("command_execution_result", @{args3},  "${init.result[3]}",  "ph3",  "enforce" );
+    "ph4"     usebundle => apply_gm_v4("command_execution_result", @{args4},  "${init.result[4]}",  "ph4",  "enforce" );
+    "ph5"     usebundle => apply_gm_v4("command_execution_result", @{args5},  "${init.result[5]}",  "ph5",  "enforce" );
 
     # Audit
     "enable"  usebundle => set_dry_run_mode("true");
-    "ph6"     usebundle => apply_gm("command_execution_result", @{args6},  "${init.result[6]}",  "ph6",  "audit" );
-    "ph7"     usebundle => apply_gm("command_execution_result", @{args7},  "${init.result[7]}",  "ph7",  "audit" );
-    "ph8"     usebundle => apply_gm("command_execution_result", @{args8},  "${init.result[8]}",  "ph8",  "audit" );
-    "ph9"     usebundle => apply_gm("command_execution_result", @{args9},  "${init.result[9]}",  "ph9",  "audit" );
-    "ph10"    usebundle => apply_gm("command_execution_result", @{args10}, "${init.result[10]}", "ph10", "audit" );
-    "ph11"    usebundle => apply_gm("command_execution_result", @{args11}, "${init.result[11]}", "ph11", "audit" );
+    "ph6"     usebundle => apply_gm_v4("command_execution_result", @{args6},  "${init.result[6]}",  "ph6",  "audit" );
+    "ph7"     usebundle => apply_gm_v4("command_execution_result", @{args7},  "${init.result[7]}",  "ph7",  "audit" );
+    "ph8"     usebundle => apply_gm_v4("command_execution_result", @{args8},  "${init.result[8]}",  "ph8",  "audit" );
+    "ph9"     usebundle => apply_gm_v4("command_execution_result", @{args9},  "${init.result[9]}",  "ph9",  "audit" );
+    "ph10"    usebundle => apply_gm_v4("command_execution_result", @{args10}, "${init.result[10]}", "ph10", "audit" );
+    "ph11"    usebundle => apply_gm_v4("command_execution_result", @{args11}, "${init.result[11]}", "ph11", "audit" );
     "disable" usebundle => set_dry_run_mode("false");
 }
 
