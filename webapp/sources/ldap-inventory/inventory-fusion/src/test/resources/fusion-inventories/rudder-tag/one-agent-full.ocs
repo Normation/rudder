@@ -28,8 +28,7 @@
       <DESCRIPTION>Local privilege escalation in pkexec due to incorrect handling of argument vector (CVE-2021-4034)</DESCRIPTION>
       <SEVERITY>low</SEVERITY>
       <DATE>2022-01-26T00:00:00Z</DATE>
-      <ID>RHSA-2020-4566</ID>
-      <ID>CVE-2021-4034</ID>
+      <ID>RHSA-2020-4566,CVE-2021-4034</ID>
     </SOFTWAREUPDATES>
     <RUDDER>
       <AGENT>
