@@ -944,7 +944,7 @@ class FusionInventoryParser(
       d = optText(e \ "DESCRIPTION")
       sev = optText(e \ "SEVERITY" ).map(SoftwareUpdateSeverity.parse)
       date = optText(e \ "DATE")
-      ids = (e \ "ID").map(_.text).toList
+      ids = (e \ "ID").toList.flatMap(_.text.split(","))
     } yield {
       val idss = if(ids.isEmpty) None else Some(ids)
       // date should be normalized, but in case of error, report and set to None
