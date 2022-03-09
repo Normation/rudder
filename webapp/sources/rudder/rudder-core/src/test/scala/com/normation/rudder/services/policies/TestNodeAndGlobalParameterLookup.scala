@@ -151,7 +151,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     (for {
       params <- ZIO.foreach(lookupParam.parameters.toList) { case (k, c) => c(lookupParam).map((k, _)) }
       p      <- ZIO.foreach(params.toList) { case (k, value) => GenericProperty.parseValue(value).map(v => (k, v)).toIO}
-      res    <- lookupService.lookupNodeParameterization(variables.map(v => (ComponentId(v.spec.name, Nil),v)).toMap)(toNodeContext(lookupParam, p.toMap))
+      res    <- lookupService.lookupNodeParameterization(variables.map(v => (ComponentId(v.spec.name, Nil, v.spec.id),v)).toMap)(toNodeContext(lookupParam, p.toMap))
     } yield res)
   }
 

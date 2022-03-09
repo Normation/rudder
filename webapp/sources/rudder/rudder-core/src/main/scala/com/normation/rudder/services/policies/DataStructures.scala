@@ -294,8 +294,12 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
  * This will allow too prevent missing expected reports, because we were building a map with toMap, that only keep
  * one elem for a specific key. A component Id for now is composed of component name and a list of Parents
  * Section (and maybe blocks) that has lead to it.
+ *
+ * - since 7.1, with a reportId. The report id is optional since we don't have all techniques ported to
+ *   use it: as of 7.1, only ncf techniques (from editor) got it, so we needed a transitionnal period.
+ *
  */
-case class ComponentId(value: String, parents: List[String])
+case class ComponentId(value: String, parents: List[String], reportId: Option[String])
 
 
 /*
@@ -310,6 +314,7 @@ final case class PolicyVars(
   , originalVars   : Map[ComponentId, Variable] // variable with non-expanded ${node.prop etc} values
   , trackerVariable: TrackerVariable
 )
+
 
 /*
  * The technique bounded to a policy. It is specific to exactly one agent
