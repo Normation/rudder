@@ -44,3 +44,9 @@ ALTER TABLE RudderSysEvents
   ALTER COLUMN reportId TYPE text,
   ALTER COLUMN reportId SET NOT NULL,
   ADD CHECK (reportId <> '');
+
+ALTER TABLE ArchivedRudderSysEvents RENAME COLUMN serial TO reportId;
+ALTER TABLE ArchivedRudderSysEvents
+  ALTER COLUMN reportId TYPE text,
+  ALTER COLUMN reportId SET NOT NULL,
+  ADD CHECK (reportId <> '');
