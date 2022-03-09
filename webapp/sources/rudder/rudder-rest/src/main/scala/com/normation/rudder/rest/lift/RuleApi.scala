@@ -324,7 +324,7 @@ class RuleApi(
       (for {
         id <- RuleId.parse(sid).toIO
         r  <- serviceV14.getRule(id)
-      } yield r).toLiftResponseOne(params, schema, _.id)
+      } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -337,7 +337,7 @@ class RuleApi(
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
-      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, x._2.id ))
+      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id) ))
     }
   }
 
@@ -350,7 +350,7 @@ class RuleApi(
         res      <- serviceV14.updateRule(restRule.copy(id = Some(id)), params, authzToken.actor)
       } yield {
         res
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -360,7 +360,7 @@ class RuleApi(
       (for {
         id <- RuleId.parse(sid).toIO
         r  <-serviceV14.deleteRule(id, params, authzToken.actor)
-      } yield r).toLiftResponseOne(params, schema, _.id)
+      } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
 
     }
   }
@@ -368,14 +368,14 @@ class RuleApi(
   object GetRuleTreeV14 extends LiftApiModule0 {
     val schema = API.GetRuleTree
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getCategoryTree().toLiftResponseOne(params, schema, _.ruleCategories.id)
+      serviceV14.getCategoryTree().toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
   object GetRuleCategoryDetailsV14 extends LiftApiModuleString {
     val schema = API.GetRuleCategoryDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      serviceV14.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
@@ -387,7 +387,7 @@ class RuleApi(
         res <- serviceV14.createCategory(cat, () => uuidGen.newUuid, params, authzToken.actor)
       } yield {
         res
-      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
@@ -399,14 +399,14 @@ class RuleApi(
         res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.actor)
       } yield {
         res
-      }).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
   object DeleteRuleCategoryV14 extends LiftApiModuleString {
     val schema = API.DeleteRuleCategory
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteCategory(RuleCategoryId(id), params, authzToken.actor).toLiftResponseOne(params, schema, _.ruleCategories.id)
+      serviceV14.deleteCategory(RuleCategoryId(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
@@ -414,7 +414,7 @@ class RuleApi(
     val schema = API.LoadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.loadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+      serviceV14.loadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -422,7 +422,7 @@ class RuleApi(
     val schema = API.UnloadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.unloadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, _.serialize)
+      serviceV14.unloadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.serialize))
     }
   }
 }

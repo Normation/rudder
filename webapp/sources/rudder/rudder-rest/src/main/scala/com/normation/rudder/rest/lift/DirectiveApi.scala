@@ -236,7 +236,7 @@ class DirectiveApi (
         res <- serviceV14.directiveTree(includeSystem.getOrElse(false))
       } yield {
         res
-      }).toLiftResponseOne(params, schema, (_ => "tree"))
+      }).toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -244,7 +244,7 @@ class DirectiveApi (
     val schema = API.DirectiveDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.directiveDetails(DirectiveId(DirectiveUid(id), rev)).toLiftResponseOne(params, schema, _.id)
+      serviceV14.directiveDetails(DirectiveId(DirectiveUid(id), rev)).toLiftResponseOne(params, schema, d => Some(d.id))
     }
   }
 
@@ -272,7 +272,7 @@ class DirectiveApi (
       } yield {
         val action = if (restDirective.source.nonEmpty) "cloneDirective" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
-      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, x._2.id ))
+      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id) ))
 
     }
   }
@@ -286,14 +286,14 @@ class DirectiveApi (
         result        <- serviceV14.updateDirective(restDirective.copy(id = Some(id)), params, authzToken.actor)
       } yield {
         result
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object DeleteDirectiveV14 extends LiftApiModuleString {
     val schema = API.DeleteDirective
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteDirective(DirectiveUid(id), params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+      serviceV14.deleteDirective(DirectiveUid(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -306,7 +306,7 @@ class DirectiveApi (
         result        <- serviceV14.checkDirective(directiveId, restDirective)
       } yield {
         result
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 }
