@@ -123,14 +123,14 @@ object RudderJsonResponse {
   //rudder response. The "A" parameter is the business object (or list of it) in the response.
   // Success
   @silent("parameter value encoder .* is never used") // used by magnolia macro
-  def successOne[A](schema: ResponseSchema, obj: A, id: String)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = {
+  def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(implicit prettify: Boolean, encoder: JsonEncoder[A]) = {
     schema.dataContainer match {
       case Some(key) =>
         implicit val enc : JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
-        generic.success(JsonRudderApiResponse.success(schema, Some(id), Map((key, List(obj)))))
+        generic.success(JsonRudderApiResponse.success(schema, id, Map((key, List(obj)))))
       case None      => // in that case, the object is not even in a list
         implicit val enc : JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
-        generic.success(JsonRudderApiResponse.success(schema, Some(id), obj))
+        generic.success(JsonRudderApiResponse.success(schema, id, obj))
     }
   }
   @silent("parameter value encoder .* is never used") // used by magnolia macro
@@ -177,18 +177,18 @@ object RudderJsonResponse {
       }
     }
     implicit class ToLiftResponseOne[A](result: IOResult[A]) {
-      def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: A => String)(implicit encoder: JsonEncoder[A]): LiftResponse = {
+      def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: A => Option[String])(implicit encoder: JsonEncoder[A]): LiftResponse = {
         implicit val prettify = params.prettify
         result.fold(
           err => internalError(schema, err.fullMsg)
         , one => successOne(schema, one, id(one))
         ).runNow
       }
-      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => String)(implicit encoder: JsonEncoder[A]): LiftResponse = {
+      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit encoder: JsonEncoder[A]): LiftResponse = {
         toLiftResponseOne(params, ResponseSchema.fromSchema(schema), id)
       }
       // when the computation give the response schema
-      def toLiftResponseOneMap[B](params: DefaultParams, errorSchema: ResponseSchema, map: A => (ResponseSchema, B, String))(implicit encoder: JsonEncoder[B]): LiftResponse = {
+      def toLiftResponseOneMap[B](params: DefaultParams, errorSchema: ResponseSchema, map: A => (ResponseSchema, B, Option[String]))(implicit encoder: JsonEncoder[B]): LiftResponse = {
         implicit val prettify = params.prettify
         result.fold(
           err => internalError(errorSchema, err.fullMsg)

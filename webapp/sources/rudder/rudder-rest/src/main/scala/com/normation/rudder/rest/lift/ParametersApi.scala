@@ -192,7 +192,7 @@ class ParameterApi (
   object ParameterDetailsV14 extends LiftApiModuleString {
     val schema = API.ParameterDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.parameterDetails(id).toLiftResponseOne(params, schema, _.id)
+      serviceV14.parameterDetails(id).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -205,7 +205,7 @@ class ParameterApi (
         result    <- serviceV14.createParameter(restParam, params, authzToken.actor)
       } yield {
         result
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -214,7 +214,7 @@ class ParameterApi (
   object DeleteParameterV14 extends LiftApiModuleString {
     val schema = API.DeleteParameter
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteParameter(id, params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+      serviceV14.deleteParameter(id, params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -226,7 +226,7 @@ class ParameterApi (
         result   <- serviceV14.updateParameter(restParam.copy(id = Some(id)), params, authzToken.actor)
       } yield {
         result
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 

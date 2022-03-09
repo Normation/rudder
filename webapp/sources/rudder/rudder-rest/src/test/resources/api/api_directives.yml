@@ -1194,7 +1194,6 @@ response:
   content: >-
     {
       "action": "directiveTree",
-      "id": "tree",
       "result": "success",
       "data": {
         "directives": [

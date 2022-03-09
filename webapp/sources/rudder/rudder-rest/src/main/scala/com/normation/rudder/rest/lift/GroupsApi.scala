@@ -121,7 +121,7 @@ class GroupsApi(
   object Get extends LiftApiModuleString {
     val schema = API.GroupDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, _.id)
+      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -333,28 +333,28 @@ class GroupsApi(
   object GetV14 extends LiftApiModuleString {
     val schema = API.GroupDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, _.id)
+      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object GroupInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupInheritedProperties
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).toLiftResponseOne(params, schema, _.groupId)
+      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object GroupDisplayInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupDisplayInheritedProperties
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).toLiftResponseOne(params, schema, _.groupId)
+      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object DeleteV14 extends LiftApiModuleString {
     val schema = API.DeleteGroup
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteGroup(NodeGroupId(id), params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+      serviceV14.deleteGroup(NodeGroupId(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -367,7 +367,7 @@ class GroupsApi(
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
-      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, x._2.id ))
+      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id) ))
     }
   }
 
@@ -379,7 +379,7 @@ class GroupsApi(
         res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.actor)
       } yield {
         res
-      }).toLiftResponseOne(params, schema, _.id)
+      }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -387,7 +387,7 @@ class GroupsApi(
     val schema = API.ReloadGroup
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.reloadGroup(id, params, authzToken.actor).toLiftResponseOne(params, schema, _.id)
+      serviceV14.reloadGroup(id, params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
