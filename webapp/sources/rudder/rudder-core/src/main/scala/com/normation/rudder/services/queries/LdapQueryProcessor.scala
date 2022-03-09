@@ -47,7 +47,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.{NodeInfoService, NodeInfoServiceCached}
-import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import net.liftweb.common._
@@ -166,7 +165,7 @@ class AcceptedNodesLDAPQueryProcessor(
     val timePreCompute =  System.currentTimeMillis
 
     for {
-      foundNodes    <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, () => nodeInfoService.getAllNodeInfos).toBox
+      foundNodes    <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId, () => nodeInfoService.getAllNodeInfos()).toBox
       timeres        =  (System.currentTimeMillis - timePreCompute)
       _              =  logger.debug(s"LDAP result: ${foundNodes.size} entries obtained in ${timeres}ms for query ${query.toString}")
     } yield {
