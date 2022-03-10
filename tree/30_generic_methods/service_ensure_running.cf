@@ -40,10 +40,10 @@ bundle agent service_ensure_running(name)
 
   methods:
     pass3::
-      "${report_data.method_id}" usebundle => call_method("service_action");
+      "${report_data.method_id}" usebundle => call_method("service_started");
       "${report_data.method_id}" usebundle => service_started("${name}");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}" usebundle => call_method_end("service_started");
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");
 }

@@ -380,6 +380,7 @@ bundle agent call_method_end(method) {
   classes:
     pass2::
       "should_report" expression => "${call_method_data.${report_data.method_id}_${method}}";
+
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
@@ -393,9 +394,9 @@ bundle agent call_method_end(method) {
                                                   if => "should_report";
   
   reports:
-    pass1.!pass2.debug.should_report::
-      "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: true";
-    pass1.!pass2.debug.!should_report::
-      "${configuration.debug} Exiting method ${report_data.method_id}_${method}, should_report: false";
+    pass3.debug.should_report::
+      "${configuration.debug} Exiting method ${method} from ${report_data.method_id}, should_report: true";
+    pass3.debug.!should_report::
+      "${configuration.debug} Exiting method ${method} from ${report_data.method_id}, should_report: false";
 }
 
