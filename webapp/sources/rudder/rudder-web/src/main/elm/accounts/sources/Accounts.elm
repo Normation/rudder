@@ -99,7 +99,7 @@ update msg model =
         action = case ui.modalState of
           NewAccount -> "created"
           _ -> "updated"
-        newModel = {model | ui = {ui | modalState = NoModal }, editAccount = Nothing}
+        newModel = {model | ui = {ui | modalState = NoModal}, editAccount = Nothing}
       in
         (newModel, Cmd.batch [(successNotification ("Account '"++ account.name ++"' successfully " ++ action)) , (getAccounts newModel)])
 

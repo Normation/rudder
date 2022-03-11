@@ -1046,7 +1046,7 @@
 .rudder-template .toggle-checkbox + .callout-fade label:hover .fa-caret-down{
   opacity: 1;
 }
-.acl-category .toggle-checkbox:checked + .category-header .fa-caret-down,
+.acl-category .toggle-checkbox:not(:checked) + .category-header .fa-caret-down,
 .rudder-template .toggle-checkbox:checked + .callout-fade label .fa-caret-down{
   transform: rotate(0deg);
 }
@@ -1064,7 +1064,7 @@
   max-height: initial;
   border-top : none !important;
 }
-.acl-category .toggle-checkbox:checked ~ .category-body,
+.acl-category .toggle-checkbox:not(:checked) ~ .category-body,
 .rudder-template .toggle-checkbox:checked + .callout-fade ul{
   height: auto;
   border-top: 1px solid #eee;
@@ -1182,9 +1182,15 @@ label.custom-toggle .custom-toggle-group > span:after{
  right: 0;
  background-color: grey;
 }
+
+.rudder-template .form-group.has-warning label,
+.rudder-template .form-group.has-error label{
+  color: inherit;
+}
+
 label > .warning-info{
   padding: 5px;
-  margin-left: 10px;
+  margin-left:4px;
   background: transparent;
   border: none;
   color: #ef9600;
