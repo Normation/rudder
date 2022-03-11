@@ -39,24 +39,28 @@ bundle agent service_started(name)
       "pass1" expression => "any";
 
   methods:
+    pass1.!pass2::
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}");
     pass2.!pass3::
       # Get service status
-      "${report_data.method_id}" usebundle => call_method("ncf_services_check");
-      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-active");
-      "${report_data.method_id}" usebundle => call_method_end("ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "is-active");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${report_data.method_id}_ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_check");
     pass3.needs_start::
       # If service is running, stop it
-      "${report_data.method_id}" usebundle => call_method("ncf_services_start");
-      "${report_data.method_id}" usebundle => ncf_services("${name}", "start");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_start");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "start");
       # Use stop result as method result
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("ncf_services_start");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_start");
     pass3.!needs_start::
       # Define success classes is check_running was not kept
-      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
-      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.method_id}");
     pass3::
       # Report
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");
 }

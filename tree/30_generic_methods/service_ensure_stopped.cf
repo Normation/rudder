@@ -39,11 +39,14 @@ bundle agent service_ensure_stopped(name)
       "pass1" expression => "any";
 
   methods:
+    pass1.!pass2::
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}");
+
     pass3::
-      "${report_data.method_id}" usebundle => call_method("service_action");
-      "${report_data.method_id}" usebundle => service_stopped("${name}");
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("service_action");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
+      "${report_data.method_id}_${name}" usebundle => call_method("service_action");
+      "${report_data.method_id}_${name}" usebundle => service_stopped("${name}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
 }
