@@ -168,7 +168,7 @@ object BuildBundleSequence {
    */
   final case class TechniqueBundles(
       // Human readable name of the "Rule name / Directive name" for that list of bundle
-      promiser               : Promiser
+      promiser              : Promiser
     , directiveId           : DirectiveId
       // identifier of the technique from which that list of bundle derive (that's the one without spaces and only ascii chars)
     , techniqueId            : TechniqueId
@@ -183,8 +183,9 @@ object BuildBundleSequence {
     , enableMethodReporting  : Boolean
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.serialize, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) )
-    }
+      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.serialize, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) ) ::
+      Bundle(None, BundleName("_method_reporting_context_v4"), List(("","component"),("","value"),(id.directiveId.serialize++id.ruleId.serialize,"report_id")).map( (BundleParam.DoubleQuote.apply _).tupled ) ) :: Nil
+    }.flatten
 
     val methodReportingState : List[Bundle]  = {
       val bundleToUse = if (enableMethodReporting) "enable_reporting" else "disable_reporting"

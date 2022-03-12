@@ -57,6 +57,7 @@ bundle agent run_inventory_all
 {
   methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
+      "Rudder system policy: daily inventory/Inventory" usebundle => _method_reporting_context_v4("","","inventory-allinventory-all");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
       "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;

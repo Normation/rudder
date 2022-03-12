@@ -47,6 +47,7 @@ bundle agent run_16d86a56_93ef_49aa_86b7_0d10102e4ea9
 {
   methods:
       "50-rule-technique-ncf/Create a file" usebundle => rudder_reporting_context("16d86a56-93ef-49aa-86b7-0d10102e4ea9","208716db-2675-43b9-ab57-bfbab84346aa","Create_file");
+      "50-rule-technique-ncf/Create a file" usebundle => _method_reporting_context_v4("","","16d86a56-93ef-49aa-86b7-0d10102e4ea9208716db-2675-43b9-ab57-bfbab84346aa");
       "50-rule-technique-ncf/Create a file" usebundle => enable_reporting;
       "50-rule-technique-ncf/Create a file" usebundle => Create_file("\"foo");
       "50-rule-technique-ncf/Create a file" usebundle => Create_file_rudder_reporting("\"foo");
@@ -56,6 +57,7 @@ bundle agent run_16617aa8_1f02_4e4a_87b6_d0bcdfb4019f
 {
   methods:
       "60-rule-technique-std-lib/Package management." usebundle => rudder_reporting_context("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f","ff44fb97-b65e-43c4-b8c2-0df8d5e8549f","packageManagement");
+      "60-rule-technique-std-lib/Package management." usebundle => _method_reporting_context_v4("","","16617aa8-1f02-4e4a-87b6-d0bcdfb4019fff44fb97-b65e-43c4-b8c2-0df8d5e8549f");
       "60-rule-technique-std-lib/Package management." usebundle => disable_reporting;
       "60-rule-technique-std-lib/Package management." usebundle => package_management;
       "60-rule-technique-std-lib/Package management." usebundle => clean_reporting_context;
