@@ -40,23 +40,30 @@
 bundle agent package_state_options(name, version, architecture, provider, state, options)
 {
   vars:
-      "class_prefix"                string => "package_state_options_${name}";
+      "class_prefix"           string => "package_state_options_${name}";
+      "args"                   slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
+      "report_param"           string => join("_", args);
+      "canonify_class_prefix"  string => canonify("package_state_options_${report_param}");
+      "full_class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   defaults:
-      "state"                       string => "present", if_match_regex => "";
+      "state"                 string => "present", if_match_regex => "";
 
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
-      "pass1" expression => "any";   
+      "pass1" expression => "any";
 
   methods:
+    pass1.!pass2::
+      "${report_data.method_id}" usebundle => _classes_cancel("${report_data.report_id}");
     pass3::
       "${report_data.method_id}" usebundle => call_method("ncf_package");
       "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       # For compatibility with previous version of the generic method
-      "${report_data.method_id}" usebundle => call_method_classes("package_${canonified_state}_${canonified_name}");
+      "${report_data.method_id}" usebundle => call_method_classes("${full_class_prefix}");
       "${report_data.method_id}" usebundle => call_method_end("ncf_package");
 
       "${report_data.method_id}" usebundle => log_rudder_v4( "${name}", "${ncf_package.message}", "");

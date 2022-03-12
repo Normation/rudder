@@ -114,6 +114,29 @@ body classes classes_generic_two(x,y)
                         };
 }
 
+body classes cancel_classes(y)
+{
+   cancel_repaired => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept",  "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+   cancel_kept     => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept", "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+   cancel_notkept  => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept",  "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+ 
+}
+
 body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, repairedcodes, errorcodes)
 {
     kept_returncodes     => { "@{keptcodes}" };
