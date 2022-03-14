@@ -301,12 +301,12 @@ final case class NodeStringComparator(access: NodeInfo => String) extends NodeCr
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
       case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => access(node) != value )
       case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => access(node).matches(value) )
       case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !access(node).matches(value) )
+      case Exists    => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => access(node).nonEmpty )
       case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => access(node).isEmpty )
-      case _         => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => access(node).nonEmpty )
+      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
     }
   }
 
@@ -326,12 +326,12 @@ final case object NodeIpListComparator extends NodeCriterionType {
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node:NodeInfo) => node.ips.contains(value) )
       case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => !node.ips.contains(value) )
       case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => node.ips.exists(_.matches(value)) )
       case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !node.ips.exists(_.matches(value)) )
+      case Exists    => NodeInfoMatcher(s"Prop exists", (node:NodeInfo) => node.ips.nonEmpty )
       case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node:NodeInfo) => node.ips.isEmpty )
-      case _         => NodeInfoMatcher(s"Prop exists", (node:NodeInfo) => node.ips.nonEmpty )
+      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node:NodeInfo) => node.ips.contains(value) )
     }
   }
 }
