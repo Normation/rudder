@@ -28,6 +28,7 @@
 bundle agent _classes_cancel(prefix)
 {
   vars:
+    !pass1::
     # this is a way to remove the class without side effect
       "ignored_kept"         string => "", classes => if_ok_cancel("${prefix}_kept");
       "ignored_not_kept"     string => "", classes => if_ok_cancel("${prefix}_not_kept");
@@ -40,5 +41,7 @@ bundle agent _classes_cancel(prefix)
       "ignored_denied"       string => "", classes => if_ok_cancel("${prefix}_denied");
       "ignored_timeout"      string => "", classes => if_ok_cancel("${prefix}_timeout");
       "ignored_reached"      string => "", classes => if_ok_cancel("${prefix}_reached");
+  classes:
+      "pass1"               expression => "any";
 }
 
