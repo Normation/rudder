@@ -295,7 +295,9 @@ directivesTab model details =
       Nothing -> (\_ _ -> EQ)
     filter       = model.ui.directiveFilters.tableFilters.filter
     childs       = Maybe.withDefault [] (Maybe.map .directives details.compliance)
-    childrenSort = childs |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.directiveId.value) ) |> List.sortWith sort
+    childrenSort = childs
+      |> List.filter (\d -> (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectiveCompliance d)))
+      |> List.sortWith sort
     (directivesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
@@ -309,6 +311,16 @@ directivesTab model details =
     directiveFilters = model.ui.directiveFilters
     tableFilters     = directiveFilters.tableFilters
     treeFilters      = directiveFilters.treeFilters
+
+    noNodes = getRuleNbNodes details <= 0
+    noNodesInfo =
+      if noNodes then
+        div[ class "callout-fade callout-warning"]
+        [ i[class "fa fa-warning"][]
+        , text "This rule is not applied on any node"
+        ]
+      else
+        text ""
   in
     if not details.ui.editDirectives then
       div[class "tab-table-content"]
@@ -371,41 +383,41 @@ directivesTab model details =
               ]
             ]
         )
+      , noNodesInfo
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
         , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
         , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
         ]
       , div[class "table-container"] [(
-        if rule.enabled then
-          table [class "dataTable compliance-table"]
-          [ thead []
-            [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
+        let
+          filteredDirectives = ruleDirectives
+            |> List.filter (\d -> d.enabled && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
+            |> List.sortBy .displayName
+          sortedDirectives   = case tableFilters.sortOrder of
+            Asc  -> filteredDirectives
+            Desc -> List.reverse filteredDirectives
+          toggleSortOrder o = if o == Asc then Desc else Asc
+        in
+          if rule.enabled && not noNodes then
+            table [class "dataTable compliance-table"]
+            [ thead []
+              [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
             ]
-          , tbody [] (
-            if List.length childs <= 0 then
-              [ tr[]
-                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
-              ]
-            else if List.length directivesChildren == 0 then
-              [ tr[]
-                [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
-              ]
-            else
-              List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
-            )
-          ]
-        else
-          let
-            filteredDirectives = ruleDirectives
-              |> List.filter (\d -> d.enabled)
-              |> List.filter (\d -> (String.contains tableFilters.filter d.displayName) || (String.contains tableFilters.filter d.id.value) )
-              |> List.sortBy .displayName
-            sortedDirectives   = case tableFilters.sortOrder of
-              Asc  -> filteredDirectives
-              Desc -> List.reverse filteredDirectives
-            toggleSortOrder o = if o == Asc then Desc else Asc
-          in
+            , tbody [] (
+              if List.length childs <= 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                ]
+              else if List.length directivesChildren == 0 then
+                [ tr[]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                ]
+              else
+                List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
+              )
+            ]
+          else
             table [class "dataTable"]
             [ thead []
               [ tr [ class "head" ]
@@ -415,11 +427,11 @@ directivesTab model details =
             , tbody [] (
               if List.length ruleDirectives <= 0 then
                 [ tr[]
-                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                  [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
                 ]
               else if List.length filteredDirectives == 0 then
                 [ tr[]
-                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                  [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
                 ]
               else
                 sortedDirectives
