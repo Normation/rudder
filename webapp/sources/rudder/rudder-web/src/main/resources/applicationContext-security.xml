@@ -58,7 +58,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <csrf disabled="true"/>
     </http>
 
-    <http use-expressions="true" disable-url-rewriting="true">
+    <http use-expressions="true" disable-url-rewriting="true" name="mainHttpSecurityFilters">
+
         <csrf disabled="true"/>
         <session-management session-fixation-protection="migrateSession">
           <!--
@@ -99,6 +100,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         />
 <!--        <remember-me />-->
 
+      <!--authorization-code/callback-->
     </http>
 
 
@@ -106,6 +108,4 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       Other authentication beans, especially <authentication-manager>,
       are defined or imported in class bootstrap.liftweb.AppConfigAuth
     -->
-
-
 </beans:beans>
