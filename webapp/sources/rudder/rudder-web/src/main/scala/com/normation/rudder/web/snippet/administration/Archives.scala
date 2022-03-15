@@ -45,7 +45,7 @@ import js._
 import JsCmds._
 import JE._
 import com.normation.rudder.repository._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor

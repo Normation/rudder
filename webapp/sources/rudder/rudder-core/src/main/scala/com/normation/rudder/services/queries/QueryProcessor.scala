@@ -47,7 +47,6 @@ trait QueryProcessor {
    /**
    * Process a query and (hopefully) return the list of entry that match it.
    * @param query - the query to process
-   * @param select - attributes to fetch in the ldap entry. If empty, all attributes are fetched
    * @return
    */
   def process(query:QueryTrait) : Box[Seq[NodeInfo]]
@@ -56,7 +55,7 @@ trait QueryProcessor {
    * Only get node ids corresponding to that request, with minimal consistency check.
    * This method is useful to maximize performance (low memory, high throughout) for ex for dynamic groups.
    */
-  def processOnlyId(query:QueryTrait) : Box[Seq[NodeId]]
+  def processOnlyId(query:QueryTrait) : Box[Set[NodeId]]
 }
 
 
@@ -74,6 +73,6 @@ trait QueryChecker {
    *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
-  def check(query:QueryTrait, nodeIds:Option[Seq[NodeId]]) : Box[Seq[NodeId]]
+  def check(query:QueryTrait, nodeIds:Option[Seq[NodeId]]) : Box[Set[NodeId]]
 
 }

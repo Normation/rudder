@@ -37,17 +37,19 @@
 
 package com.normation.rudder.web.snippet.administration
 
-import com.normation.rudder.web.model._
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.web.model.JsTreeNode
+
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S}
+import net.liftweb.http.{S, SHtml}
+
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
+
 import net.liftweb.http.js.JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -58,12 +60,14 @@ import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.AuthorizationType
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
+
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.services.AgentCompat
+import com.normation.rudder.web.services.CurrentUser
 
 import com.normation.box._
 
@@ -660,13 +664,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
               </div>
             """
-
+              val badgeDisabled = if(activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
               val tooltipid1 = Helpers.nextFuncName
               val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
               SHtml.a(
                 { () => onClickTemplateNode(Some(technique), Some(activeTechnique)) },
                   (
-                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{agentCompat.icon}{technique.name}</span>
+                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}><span class="item-name">{agentCompat.icon} {technique.name}</span>{badgeDisabled}</span>
                   <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>
                     {s" (${activeTechnique.directives.size})"}
                   </span>

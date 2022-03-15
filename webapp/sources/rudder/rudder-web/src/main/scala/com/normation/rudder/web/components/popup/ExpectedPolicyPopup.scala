@@ -107,11 +107,11 @@ class ExpectedPolicyPopup(
       groupTargets =  dynGroups.getOrElse(nodeSrv.id, Seq())
       rules        <- ruleRepository.getAll(includeSytem = false).toBox
     } yield {
-      val allNodes = Map( (nodeSrv.id , (nodeSrv.isPolicyServer, nodeSrv.serverRoles)) )
+      val pendingNode = Map( (nodeSrv.id , (nodeSrv.isPolicyServer, nodeSrv.serverRoles)) )
       val groups = groupTargets.map { x => (x, Set(nodeSrv.id)) }.toMap
 
       rules.filter { r =>
-        RuleTarget.getNodeIds(r.targets, allNodes, groups).nonEmpty
+        RuleTarget.getNodeIds(r.targets, pendingNode, groups, false).nonEmpty
       }
     }
   }

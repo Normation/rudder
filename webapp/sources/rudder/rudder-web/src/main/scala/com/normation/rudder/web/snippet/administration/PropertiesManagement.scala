@@ -53,7 +53,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml._
 import com.normation.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.components.ComplianceModeEditForm

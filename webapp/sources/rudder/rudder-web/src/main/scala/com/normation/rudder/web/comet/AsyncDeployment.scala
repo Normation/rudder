@@ -47,7 +47,7 @@ import com.normation.rudder.batch._
 import org.joda.time.DateTime
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.utils.DateFormaterService
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {

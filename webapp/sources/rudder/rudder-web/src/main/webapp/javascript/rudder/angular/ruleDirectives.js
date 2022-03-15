@@ -149,7 +149,8 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
     };
 
     $scope.getTooltipContent = function(directive){
-        var title = "<h4>"+directive.name+"</h4>";
+        var disabled = directive.isEnabled ? "" : "<span class='badge-disabled'></span>"
+        var title = "<h4>" + directive.name + disabled + "</h4>";
         var tech  = "<div><label>Technique: </label><span>"+directive.techniqueName+"</span><span class='small'>"+directive.techniqueVersion+"</span></div>"
         var desc  = directive.desc != "" ? "<div>"+directive.desc+"</div>" : "<div><i class='empty'>This directive has no description.</i><div>";
         return title + tech + desc;

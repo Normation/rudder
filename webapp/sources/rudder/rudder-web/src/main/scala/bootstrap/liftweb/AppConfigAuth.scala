@@ -38,16 +38,18 @@
 package bootstrap.liftweb
 
 import java.util.Collection
-
 import com.github.ghik.silencer.silent
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.web.services.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
+
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
+
 import javax.servlet.Filter
 import javax.servlet.FilterChain
 import javax.servlet.FilterConfig
@@ -61,6 +63,7 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportResource
 import org.springframework.context.support.AbstractApplicationContext
@@ -80,6 +83,7 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+
 import com.normation.zio._
 import com.normation.errors._
 
@@ -98,6 +102,7 @@ import com.normation.errors._
  */
 @Configuration
 @ImportResource(Array("classpath:applicationContext-security.xml"))
+@ComponentScan(Array("bootstrap.rudder.plugin"))
 class AppConfigAuth extends ApplicationContextAware {
   import RudderProperties.config
 

@@ -55,7 +55,6 @@ import net.liftweb.util.Helpers._
 import scala.collection.mutable.ArrayBuffer
 import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
-import com.normation.rudder.domain.queries.OstypeComparator
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import scala.collection.mutable.{Map => MutMap}
@@ -610,7 +609,7 @@ object SearchNodeComponent {
   val defaultLine : CriterionLine = {
     //in case of further modification in ditQueryData
     require(ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS", "Error in search node criterion default line, did you change DitQueryData ?")
-    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.isInstanceOf[OstypeComparator.type], "Error in search node criterion default line, did you change DitQueryData ?")
+    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.isInstanceOf[NodeOstypeComparator.type], "Error in search node criterion default line, did you change DitQueryData ?")
     CriterionLine(
       objectType = ditQueryData.criteriaMap(OC_NODE)
     , attribute  = ditQueryData.criteriaMap(OC_NODE).criteria(0)

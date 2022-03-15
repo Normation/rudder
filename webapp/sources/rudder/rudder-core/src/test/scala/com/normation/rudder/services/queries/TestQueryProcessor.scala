@@ -188,7 +188,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       Nil)
 
-    testQueries( q0 :: q1 :: q2 :: Nil, true)
+    testQueries( q0 :: q1 :: q2 :: Nil, false)
   }
 
   @Test def basicQueriesOnOneNodeParameter(): Unit = {
@@ -311,7 +311,61 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(0) :: s(1) :: s(2) :: s(3) :: s(4) :: s(5) :: s(6) :: s(7) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: q7 :: Nil, true)
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: q7 :: Nil, false)
+  }
+
+  // group of group, with or/and composition
+  @Test def groupOfgroupsDoIntenalQueryTest(): Unit = {
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {  "select":"node", "composition":"or", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node2" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: s(2) :: Nil)
+
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"node", "attribute":"ram", "comparator":"gt", "value":"1" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node1" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node12" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node12" }
+      , { "objectType":"group", "attribute":"nodeGroupId", "comparator":"eq", "value":"test-group-node23" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(2) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: Nil, true)
   }
 
   @Test def machineComponentQueries(): Unit = {
@@ -388,7 +442,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
-    testQueries(q1 :: q2 :: q3 :: Nil, true)
+    testQueries(q1 :: q2 :: q3 :: q3bis :: Nil, true)
   }
 
   @Test def networkInterfaceElementQueries(): Unit = {
@@ -576,19 +630,114 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s.filterNot(n => n == s(1)) )
 
+    testQueries(q0 :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: q10 :: q11 :: Nil, false)
+  }
+
+  @Test def regexQueriesInventories(): Unit = {
+    // this test if for the queries that can be performed using only LDAP
+    //regex and "subqueries" for logical elements should not be contradictory
+    //here, we have to *only* search for logical elements with the regex
+    //and cn is both on node and logical elements
+    val q0 = TestQuery(
+      "q0",
+      parser("""
+      {  "select":"node", "composition":"or" , "where":[
+        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: Nil)
+
+
+    //on software, machine, machine element, node element
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "where":[
+          { "objectType":"software", "attribute":"cn", "comparator":"regex"   , "value":"Software [0-9]" }
+        , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-2]"  }
+        , { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"regex", "value":"[01]{2}" }
+        , { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"regex", "value":"[6.0]+" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(7) :: Nil)
+
+    val q2_ = TestQuery("q2_", query = q2.query match { case q : Query => q.copy(composition = Or); case q : NewQuery => q.copy(composition = Or)},
+      (
+        s(2) :: s(7) :: //software
+        s(4) :: s(5) :: s(6) :: s(7) :: //machine
+        s(2) :: root :: // free space
+        s(2) :: //bios
+        Nil).distinct)
+
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
+        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(3) :: s(7) :: root ::  Nil)
+
+    //same as q5 on IP, to test with escaping
+    //192.168.56.101 is for node3
+    val q8 = TestQuery(
+      "q8",
+      parser("""
+      {  "select":"node", "where":[
+          { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"notRegex", "value":"192.168.56.101" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s.filterNot( _ == s(1)) )
+
+    //typical use case for server on internal/dmz/both: want intenal (but not both)
+    //that test a match regex and not regex
+    val q9 = TestQuery(
+      "q9",
+      parser("""
+      {  "select":"node", "where":[
+          { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"regex", "value":"127.0.0.*" }
+        , { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"notRegex", "value":"192.168.56.10[23]" }
+      ] }
+      """).openOrThrowException("For tests"),
+      Seq(s(1), s(4)) )
+    //s0,5,6,7,8 not ok because no 127.0.0.1
+    //s1 ok because not in "not regex" pattern
+    //s2,s3 not ok because in the "not regex" pattern
+    //s4 ok because only 127.0.0.1
+
+    // test query that matches a software version
+    val q10 = TestQuery(
+      "q10",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"software", "attribute":"softwareVersion", "comparator":"regex", "value":"1\\.0.*" }
+      ] }
+      """).openOrThrowException("For tests"),
+      Seq(s(2), s(7)) )
+
+    // test "notRegex" query: "I want node for which ram is not "100000000" (ie not node1)
+    val q11 = TestQuery(
+      "q11",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"node", "attribute":"ram", "comparator":"notRegex", "value":"100000000" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s.filterNot(n => n == s(1)) )
+
     // test query that doesn't match a software name, ie we want all nodes on which "software 1" is not
     // installed (we don't care if there is 0 or 1000 other software)
     // THIS DOES NOT WORK DUE TO: https://issues.rudder.io/issues/19137
-//    val q12 = TestQuery(
-//      "q12",
-//      parser("""
-//      { "select":"node", "composition":"or", "where":[
-//        { "objectType":"software", "attribute":"cn", "comparator":"notRegex", "value":"Software 1" }
-//      ] }
-//      """).openOrThrowException("For tests"),
-//      s.filterNot(n => n == s(2)) )
+    //    val q12 = TestQuery(
+    //      "q12",
+    //      parser("""
+    //      { "select":"node", "composition":"or", "where":[
+    //        { "objectType":"software", "attribute":"cn", "comparator":"notRegex", "value":"Software 1" }
+    //      ] }
+    //      """).openOrThrowException("For tests"),
+    //      s.filterNot(n => n == s(2)) )
 
-    testQueries(q0 :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: q10 :: q11 :: Nil, true)
+    testQueries(q0 :: q2 :: q2_ :: q5 :: q8 :: q9 :: q10 :: q11 :: Nil, true)
   }
 
   @Test def invertQueries(): Unit = {
@@ -704,7 +853,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       sr)
 
-    testQueries( q0 :: q1 :: Nil, true)
+    testQueries( q0 :: q1 :: Nil, false)
   }
 
   @Test def agentTypeQueries: Unit = {
@@ -1056,7 +1205,7 @@ class TestQueryProcessor extends Loggable {
 
   private def testQueryResultProcessor(name:String,query:QueryTrait, nodes:Seq[NodeId], doInternalQueryTest : Boolean) = {
       val ids = nodes.sortBy( _.value )
-      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.sortBy( _.value )
+      val found = queryProcessor.process(query).openOrThrowException("For tests").map { _.id }.toSeq.sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
@@ -1078,10 +1227,9 @@ class TestQueryProcessor extends Loggable {
       if (doInternalQueryTest) {
         logger.debug("Testing with expected entries, This test should be ignored when we are looking for Nodes with NodeInfo and inventory (ie when we are looking for property and environement variable")
         val foundWithLimit =
-          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).runNow.entries.map {
-            entry =>
-              NodeId(entry("nodeId").get)
-          }).distinct.sortBy( _.value )
+          (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids), lambdaAllNodeInfos = (() => nodeInfoService.getAllNodeInfos())).runNow.map {
+            _.node.id
+          }).toSeq.distinct.sortBy( _.value )
 
         assertEquals(
           s"[${name}] Size differs between expected and found entries (InternalQueryProcessor, only inventory fields)\n Found: ${foundWithLimit}\n Expected: ${ids}"

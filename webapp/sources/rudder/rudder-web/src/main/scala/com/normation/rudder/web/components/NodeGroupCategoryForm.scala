@@ -41,16 +41,17 @@ import net.liftweb.http.js._
 import JsCmds._
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,DispatchSnippet}
+import net.liftweb.http.{DispatchSnippet, SHtml}
+
 import scala.xml._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.domain.nodes.{NodeGroupCategory,NodeGroupCategoryId}
+import com.normation.rudder.domain.nodes.{NodeGroupCategory, NodeGroupCategoryId}
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
-}
+import com.normation.rudder.web.model.{FormTracker, WBSelectField, WBTextAreaField, WBTextField}
 import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.services.CurrentUser
+
 import bootstrap.liftweb.RudderConfig
 
 import com.normation.box._

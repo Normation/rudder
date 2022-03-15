@@ -43,7 +43,7 @@ import common._
 import util.Helpers._
 import js._
 import JsCmds._
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.js.JE.JsRaw
 

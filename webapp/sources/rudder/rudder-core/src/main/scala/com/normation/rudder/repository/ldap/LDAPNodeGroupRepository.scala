@@ -749,28 +749,37 @@ class WoLDAPNodeGroupRepository(
         con          <- ldap
         existing     <- getSGEntry(con, nodeGroup.id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id))
         oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
-        systemCheck  <- if(onlyUpdateNodes) {
-          oldGroup.succeed
-        } else (oldGroup.isSystem, systemCall) match {
-          case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value).fail
-          case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
-          case _ => oldGroup.succeed
+        // check if old group is the same as new group
+        result       <- if (oldGroup.equals(nodeGroup)) {
+                          None.succeed
+                        } else {
+          for {
+            systemCheck <- if (onlyUpdateNodes) {
+              oldGroup.succeed
+            } else (oldGroup.isSystem, systemCall) match {
+              case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value).fail
+              case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
+              case _ => oldGroup.succeed
+            }
+            name      <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
+            exists    <- ZIO.when(name && !onlyUpdateNodes) {
+              s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
+            }
+            onlyNodes <- if (!onlyUpdateNodes) {
+              UIO.unit
+            } else { //check that nothing but the node list changed
+              if (nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
+                UIO.unit
+              } else {
+                logPure.debug(s"Inconsistency when modifying node lists for nodeGroup ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change") *>
+                  "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
+              }
+            }
+            change    <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
+          } yield {
+            change
+          }
         }
-        name         <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
-        exists       <- ZIO.when(name && !onlyUpdateNodes) {
-                          s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
-                        }
-        onlyNodes    <- if(!onlyUpdateNodes) {
-                          UIO.unit
-                        } else { //check that nothing but the node list changed
-                          if(nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
-                            UIO.unit
-                          } else {
-                            logPure.debug(s"Inconsistency when modifying node lists for nodeGroup ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change") *>
-                            "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
-                          }
-                        }
-        result       <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
       } yield {
         result
       }

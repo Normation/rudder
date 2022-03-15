@@ -55,7 +55,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.web.services.DisplayDirectiveTree
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.CurrentUser
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -286,7 +286,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                (".directive *" #> piForm.directive.name)
              }
            } &
-           "#techniqueName" #> <span class={ if(fullActiveTechnique.isEnabled) "" else "is-disabled" }>{technique.name}</span> &
+           "#techniqueName" #> <span>{technique.name} { if(fullActiveTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span> }</span> &
            "#techniqueID *" #>  technique.id.name.value &
            "#techniqueDescription *" #>  Script(JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""")) &
            "#techniqueLongDescription" #>  technique.longDescription &

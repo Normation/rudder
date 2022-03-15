@@ -214,7 +214,7 @@
                   <i class="fa fa-info-circle"></i>
                 </span>
               </li>
-              <li ng-repeat="directive in sortDirectives(directives)">
+              <li ng-repeat="directive in sortDirectives(directives)" ng-class="{'is-disabled': !directive.isEnabled}">
                 <span class="fa fa-file-text"></span>
                 <a href="{{directive.link}}">
                   <span class="rudder-label label-sm"
@@ -226,6 +226,7 @@
                     data-original-title="<h4>Policy Mode </h4><div class='tooltip-content policy-mode {{directive.mode}}'><div>This directive is in <b>{{directive.mode}}</b> mode.</div></div>"
                   ></span>
                   <span class="target-name"> {{ directive.name }} </span>
+                  <span class="badge-disabled" ng-if="!directive.isEnabled"></span>
                 </a>
                 <i class="fa fa-question-circle targetIcon icon-info"
                    data-toggle="tooltip"
@@ -441,11 +442,12 @@
                   <i class="fa fa-info-circle"></i>
                 </span>
             </li>
-            <li ng-repeat="included in target.include.or">
+            <li ng-repeat="included in target.include.or" ng-class="{'is-disabled': !getTarget(included).isEnabled}">>
               <span class="fa fa-sitemap"></span>
               <span class="target-name">
                 <a href="{{getTarget(included).link}}">
                   {{ getTarget(included).name }}
+                  <span class="badge-disabled" ng-if="!getTarget(included).isEnabled"></span>
                 </a>
                 <i class="fa fa-question-circle targetIcon icon-info"
                    data-toggle="tooltip"
@@ -488,11 +490,12 @@
                   <i class="fa fa-info-circle"></i>
                 </span>
             </li>
-            <li ng-repeat="excluded in target.exclude.or">
+            <li ng-repeat="excluded in target.exclude.or" ng-class="{'is-disabled': !getTarget(excluded).isEnabled}">
               <span class="fa fa-sitemap"></span>
               <span class="target-name">
                 <a href="{{getTarget(excluded).link}}">
                   {{getTarget(excluded).name}}
+                  <span class="badge-disabled" ng-if="!getTarget(excluded).isEnabled"></span>
                 </a>
                 <i class="fa fa-question-circle targetIcon icon-info"
                    data-toggle="tooltip"
