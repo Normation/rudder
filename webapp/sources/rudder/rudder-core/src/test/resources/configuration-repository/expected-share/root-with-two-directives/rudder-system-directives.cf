@@ -80,6 +80,7 @@ bundle agent run_root_distributePolicy
 {
   methods:
       "distributePolicy/Distribute Policy" usebundle => rudder_reporting_context("root-distributePolicy","root-DP","distributePolicy");
+      "distributePolicy/Distribute Policy" usebundle => _method_reporting_context_v4("","","root-distributePolicyroot-DP");
       "distributePolicy/Distribute Policy" usebundle => disable_reporting;
       "distributePolicy/Distribute Policy" usebundle => install_rsyslogd;
       "distributePolicy/Distribute Policy" usebundle => propagatePromises;
@@ -91,6 +92,7 @@ bundle agent run_inventory_all
 {
   methods:
       "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context("inventory-all","inventory-all","inventory");
+      "Rudder system policy: daily inventory/Inventory" usebundle => _method_reporting_context_v4("","","inventory-allinventory-all");
       "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
       "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
@@ -99,6 +101,7 @@ bundle agent run_server_roles_directive
 {
   methods:
       "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context("server-roles-directive","server-roles","server-roles");
+      "Rudder system policy: Server roles/Server Roles" usebundle => _method_reporting_context_v4("","","server-roles-directiveserver-roles");
       "Rudder system policy: Server roles/Server Roles" usebundle => disable_reporting;
       "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;
       "Rudder system policy: Server roles/Server Roles" usebundle => metrics_reporting;
