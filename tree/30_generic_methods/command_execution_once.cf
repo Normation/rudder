@@ -101,9 +101,8 @@ bundle agent command_execution_once(command, ok_codes, until, unique_id)
 
   methods:
     pass1.!pass2::
-      "reserve the flag" usebundle => reserve_flag("command_execution_once_${c_unique_id}"),
-                         useresult => "reserve",
-                           comment => "${report_data.method_id}";
+      "${report_data.method_id}" usebundle => reserve_flag("command_execution_once_${c_unique_id}"),
+                                 useresult => "reserve";
 
     pass2.reserved.!pass3::
       "${report_data.method_id}" usebundle => call_method("command_execution_result");
@@ -112,14 +111,12 @@ bundle agent command_execution_once(command, ok_codes, until, unique_id)
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("command_execution_result");
 
-      "set the flag"     usebundle => set_flag("command_execution_once_${c_unique_id}"),
-                         useresult => "set",
-                           comment => "${report_data.method_id}",
-                                if => "!until_ok|${class_prefix}_repaired";
+      "${report_data.method_id}" usebundle => set_flag("command_execution_once_${c_unique_id}"),
+                                 useresult => "set",
+                                        if => "!until_ok|${class_prefix}_repaired";
 
-      "cancel flag"      usebundle => cancel_flag("command_execution_once_${c_unique_id}"),
-                           comment => "${report_data.method_id}",
-                                if => "until_ok.!${class_prefix}_repaired";
+      "${report_data.method_id}" usebundle => cancel_flag("command_execution_once_${c_unique_id}"),
+                                        if => "until_ok.!${class_prefix}_repaired";
 
     # Problem when writing the flag
     pass3.reserved.!set_ok::
@@ -131,8 +128,6 @@ bundle agent command_execution_once(command, ok_codes, until, unique_id)
       "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
     pass3::
-      "clean"   usebundle => _classes_sanitize("${class_prefix}");
-
-      "report"
-        usebundle  => log_rudder_v4("${command}", "Execute the command once", "${command}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Execute the command once", "${command}");
 }

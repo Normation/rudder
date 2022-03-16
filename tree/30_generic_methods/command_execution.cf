@@ -47,10 +47,7 @@ bundle agent command_execution(command)
 
   methods:
     pass3::
-      "report"
-        usebundle  => log_rudder_v4("${command}", "Execute command", "${command}"),
-        ifvarclass => "${report_data.method_id}_reached";
-
+      "${report_data.method_id}" usebundle  => log_rudder_v4("${command}", "Execute command", "${command}");
   commands:
     pass2.!pass3::
       "${command}"

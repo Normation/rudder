@@ -42,10 +42,10 @@ bundle agent service_start(name)
 
   methods:
     pass3::
-      "${report_data.method_id}" usebundle => call_method("service_action");
-      "${report_data.method_id}" usebundle => service_action("${name}", "start");
+      "${report_data.method_id}" usebundle => call_method("ncf_services");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "start");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("service_action");
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services");
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Start service ${name}", "");
 }
