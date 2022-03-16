@@ -32,31 +32,37 @@ bundle agent service_stopped(name)
       "class_prefix" string => "service_stopped_${name}";
 
   classes:
+    pass2::
       "needs_stop" expression => "${report_data.method_id}_ncf_services_check_kept";
-
+    any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
+    pass1.!pass2::
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}_ncf_services_check");
     pass2.!pass3::
       # Get service status
-      "${report_data.method_id}" usebundle => call_method("ncf_services_check");
-      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-active");
-      "${report_data.method_id}" usebundle => call_method_end("ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "is-active");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${report_data.method_id}_ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_check");
     pass3.needs_stop::
       # If service is running, stop it
-      "${report_data.method_id}" usebundle => call_method("ncf_services_stop");
-      "${report_data.method_id}" usebundle => ncf_services("${name}", "stop");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_stop");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "stop");
       # Use stop result as method result
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("ncf_services_stop");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_stop");
     pass3.!needs_stop::
       # Define success classes is check_running was not kept
-      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
-      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.method_id}");
     pass3::
       # Report
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
 }

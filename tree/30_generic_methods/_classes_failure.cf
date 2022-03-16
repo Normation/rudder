@@ -27,10 +27,11 @@
 bundle agent _classes_failure(destination_prefix)
 {
   vars:
+    !pass1::
       "prefix" slist => { "repair_failed" };
       "suffix" slist => { "not_kept", "not_ok", "not_repaired", "failed", "reached", "error" };
 
-    destination_exists::
+    pass1.!pass2.destination_exists::
       "${prefix}_local"
         string     => "${prefix}_${destination_prefix}",
         classes    => always("${prefix}_${destination_prefix}");
@@ -46,4 +47,6 @@ bundle agent _classes_failure(destination_prefix)
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");
       "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
 }

@@ -149,7 +149,7 @@ bundle agent log_rudder_v4(parameter_value, message, details)
       "component_key" string => "${report_data.component_key}", if_match_regex => "";
 
   methods:
-      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
+      "${report_data.method_id}_${component_key}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
 # @name Log for Non Applicable call to generic method
@@ -531,6 +531,17 @@ bundle agent rudder_reporting_context(d_id, r_id, t_name)
     "report_data.canonified_directive_id" string => canonify("${d_id}");
     "report_data.rule_id"                 string => "${r_id}";
     "report_data.identifier"              string => "${r_id}@@${d_id}@@0";
+}
+
+bundle agent rudder_reporting_context_v4(d_id, r_id, t_name, m_id)
+{
+  vars:
+    "report_data.technique_name"          string => "${t_name}";
+    "report_data.directive_id"            string => "${d_id}";
+    "report_data.canonified_directive_id" string => canonify("${d_id}");
+    "report_data.rule_id"                 string => "${r_id}";
+    "report_data.method_id"               string => "${m_id}";
+    "report_data.identifier"              string => "${r_id}@@${d_id}@@${m_id}";
 }
 
 bundle agent rudder_reporting_context_id(id, t_name)

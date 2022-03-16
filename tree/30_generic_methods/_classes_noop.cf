@@ -27,9 +27,10 @@
 bundle agent _classes_noop(destination_prefix)
 {
   vars:
+    !pass1::
       "suffix" slist => { "noop" };
 
-    destination_exists::
+    pass1.!pass2.destination_exists::
       "local_${suffix}"
         string     => "${destination_prefix}_${suffix}",
         classes    => always("${destination_prefix}_${suffix}");
@@ -41,4 +42,6 @@ bundle agent _classes_noop(destination_prefix)
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");
       "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
 }

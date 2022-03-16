@@ -114,6 +114,29 @@ body classes classes_generic_two(x,y)
                         };
 }
 
+body classes cancel_classes(y)
+{
+   cancel_repaired => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept",  "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+   cancel_kept     => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept", "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+   cancel_notkept  => { "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok",
+                        "$(y)_reached", "$(y)_not_kept",  "repair_failed_$(y)",
+                        "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_repaired",
+                        "repair_denied_$(y)", "$(y)_denied", "repair_timeout_$(y)",
+                        "$(y)_timeout", "promise_kept_$(y)", "$(y)_kept"
+                      };
+ 
+}
+
 body classes common_classes_exclusive_persist_codes(prefix, persist, keptcodes, repairedcodes, errorcodes)
 {
     kept_returncodes     => { "@{keptcodes}" };
@@ -233,10 +256,11 @@ body classes cancel_all_classes(class_to_cancel)
 bundle agent ncf_classes_combine_two(first_prefix, second_prefix, destination_prefix)
 {
   classes:
+    !pass1::
       "first_reached"  expression => "${first_prefix}_reached";
       "second_reached" expression => "${second_prefix}_reached";
 
-    destination_exists.first_reached.second_reached::
+    pass1.!pass2.destination_exists.first_reached.second_reached::
       "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok",
                                                scope => "namespace";
 
@@ -284,20 +308,21 @@ bundle agent ncf_classes_combine_two(first_prefix, second_prefix, destination_pr
 
       "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
                                                scope => "namespace";
+    any::
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+      # and it will always be evaluated to true otherwise
+      "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+      "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+      "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 
-  classes:
-    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
-    # and it will always be evaluated to true otherwise
-    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
-    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
-    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
-
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
   methods:
-    first_reached.!second_reached::
-      "copy first"  usebundle => _classes_copy("${first_prefix}", "${destination_prefix}");
+    !pass2.first_reached.!second_reached::
+      "copy first"  usebundle => ncf_classes_copy("${first_prefix}", "${destination_prefix}");
 
-    !first_reached.second_reached::
-      "copy second" usebundle => _classes_copy("${second_prefix}", "${destination_prefix}");
+    !pass2.!first_reached.second_reached::
+      "copy second" usebundle => ncf_classes_copy("${second_prefix}", "${destination_prefix}");
 }
 
 # Copies classes with source_prefix into destination_prefix
@@ -305,10 +330,11 @@ bundle agent ncf_classes_combine_two(first_prefix, second_prefix, destination_pr
 bundle agent ncf_classes_copy(source_prefix, destination_prefix)
 {
   vars:
+    !pass1::
       "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
       "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
 
-    destination_exists::
+    !pass2.destination_exists::
       # Copy result classes prefixes
       "${prefix}_local_destination_prefix"
         string     => "${prefix}_${destination_prefix}",
@@ -327,6 +353,9 @@ bundle agent ncf_classes_copy(source_prefix, destination_prefix)
       "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");
       "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+      
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
 }
 
 ## Utility bundles to call sub methods

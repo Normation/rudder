@@ -231,6 +231,8 @@ bundle agent ncf_services(service, action)
       "pass1" expression => "any";
 
   methods:
+    pass1.!pass2::
+        "${report_data.method_id}_${service}" usebundle => _classes_cancel("${report_data.method_id}");
     #####
     # Actual command - for actions, non using systemd
     #####
