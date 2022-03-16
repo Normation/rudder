@@ -12,9 +12,9 @@ function Condition-Foreign-Variable {
   $ResourcesDir = $PSScriptRoot + "\resources"
   $Class = "server_machine|group_sbu_cmcs__sles12_"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "chown -R ${owner}:${owner} ${path}" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "chown -R ${owner}:${owner} ${path}" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -componentName "Command execution" -componentKey "chown -R ${owner}:${owner} ${path}" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+    _rudder_common_report_na -componentName "Command execution" -componentKey "chown -R ${owner}:${owner} ${path}" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
   }
 }

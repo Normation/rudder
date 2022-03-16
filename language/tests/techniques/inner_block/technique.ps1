@@ -16,30 +16,30 @@ function Inner-Block {
   $ResourcesDir = $PSScriptRoot + "\resources"
   $Class = "(debian).(centos)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $Class = "(debian).(centos)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $Class = "((debian).(debian_10)).(linux)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $Class = "(debian).(debian_10)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }

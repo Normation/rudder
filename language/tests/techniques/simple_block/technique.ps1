@@ -16,16 +16,16 @@ function Simple-Block {
   $ResourcesDir = $PSScriptRoot + "\resources"
   $Class = "debian"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $Class = "debian"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }

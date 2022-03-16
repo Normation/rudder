@@ -13,9 +13,9 @@ function Cdt {
 
   $class = "any.(debian)"
   if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Path "tmp" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Path "tmp" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   } else {
-    _rudder_common_report_na -componentName "File absent" -componentKey "tmp" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+    _rudder_common_report_na -componentName "File absent" -componentKey "tmp" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
   }
 
 }

@@ -13,9 +13,9 @@ function Condition-Errorprone {
 
   $class = "dragonfly"
   if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "pwd" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "pwd" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly).get_item("classes")
   } else {
-    _rudder_common_report_na -componentName "Command execution" -componentKey "pwd" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+    _rudder_common_report_na -componentName "Command execution" -componentKey "pwd" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
   }
 
 }

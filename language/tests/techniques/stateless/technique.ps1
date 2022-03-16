@@ -15,10 +15,10 @@ function Stateless {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
 #  _rudder_common_report_na -ComponentName "Variable string escaped" -ComponentKey "pref.name" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Permissions-Ntfs -Path "/var/test" -User "admin" -Rights "rxw" -Accesstype "Allow" -Propagationpolicy "ThisFolderOnly" -ComponentName "Permissions NTFS" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
-  _rudder_common_report_na -ComponentName "Permissions (non recursive)" -ComponentKey "/file/path" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
-  _rudder_common_report_na -ComponentName "Audit from osquery" -ComponentKey "query;" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
-  _rudder_common_report_na -ComponentName "Monitoring template" -ComponentKey "vision" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
-  _rudder_common_report_na -ComponentName "Monitoring parameter" -ComponentKey "paramname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Permissions-Ntfs -Path "/var/test" -User "admin" -Rights "rxw" -Accesstype "Allow" -Propagationpolicy "ThisFolderOnly" -ComponentName "Permissions NTFS" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  _rudder_common_report_na -ComponentName "Permissions (non recursive)" -ComponentKey "/file/path" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Audit from osquery" -ComponentKey "query;" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Monitoring template" -ComponentKey "vision" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Monitoring parameter" -ComponentKey "paramname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 #  _rudder_common_report_na -ComponentName "Variable string escaped" -ComponentKey "escaped.var" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
 }
