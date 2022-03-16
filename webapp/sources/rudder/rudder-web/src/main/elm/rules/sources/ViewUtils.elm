@@ -314,10 +314,14 @@ showComplianceDetails fun compliance parent openedRows model =
       detailsRows)
      :: details
 
-
 searchFieldDirectives d =
   [ d.id.value
   , d.displayName
+  ]
+
+searchFieldDirectiveCompliance d =
+  [ d.directiveId.value
+  , d.name
   ]
 
 searchFieldRules r model =
