@@ -29,6 +29,7 @@
 bundle agent _classes_sanitize(prefix)
 {
   vars:
+    !pass1::
       "complete_suffix" slist => { "not_kept", "kept", "not_ok", "ok", "not_repaired", "repaired", "failed", "error" };
 
     # this is a way to remove the class without side effect
@@ -40,12 +41,15 @@ bundle agent _classes_sanitize(prefix)
       "cancel_if_repaired" slist => difference( "success_suffix", "repaired_suffix" );
       "cancel_if_error"    slist => difference( "complete_suffix", "error_suffix" );
 
-    worst_is_error::
+    worst_is_error.pass1.!pass2::
       "ignored_kept_and_repaired" string => "", classes => if_ok_cancel("${prefix}_${cancel_if_error}");
-    worst_is_repaired::
+    worst_is_repaired.pass1.!pass2::
       "ignored_repaired"          string => "", classes => if_ok_cancel("${prefix}_${cancel_if_repaired}");
 
   classes:
-    "worst_is_error"    expression => "${prefix}_error|${prefix}_failed";
-    "worst_is_repaired" expression => "${prefix}_repaired.!${prefix}_error.!${prefix}_failed";
+      "worst_is_error"    expression => "${prefix}_error|${prefix}_failed";
+      "worst_is_repaired" expression => "${prefix}_repaired.!${prefix}_error.!${prefix}_failed";
+
+      "pass2"             expression => "pass1";
+      "pass1"             expression => "any";
 }
