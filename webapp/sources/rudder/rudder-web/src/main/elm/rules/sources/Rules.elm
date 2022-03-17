@@ -394,18 +394,18 @@ update msg model =
       let
         ui = model.ui
       in
-        ({model | ui = { ui | ruleFilters = filters}}, Cmd.none)
+        ({model | ui = { ui | ruleFilters = filters}}, initTooltips "")
     UpdateDirectiveFilters filters ->
       let
         ui = model.ui
       in
-        ({model | ui = { ui | directiveFilters = filters}}, Cmd.none)
+        ({model | ui = { ui | directiveFilters = filters}}, initTooltips "")
 
     UpdateGroupFilters filters ->
       let
         ui = model.ui
       in
-        ({model | ui = { ui | groupFilters = filters}}, Cmd.none)
+        ({model | ui = { ui | groupFilters = filters}}, initTooltips "")
 
     ToggleRow rowId defaultSortId ->
       case model.mode of
