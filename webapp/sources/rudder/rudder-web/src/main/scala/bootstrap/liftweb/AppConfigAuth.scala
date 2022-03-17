@@ -450,7 +450,7 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   }
 
   /*
-   * get the list of providers currently configured by user. Array because used from spring
+   * set the list of providers currently configured by user. Array because used from spring
    */
   def setConfiguredProviders(providers: Array[AuthenticationMethods]): Unit = {
     this.authenticationMethods = providers
