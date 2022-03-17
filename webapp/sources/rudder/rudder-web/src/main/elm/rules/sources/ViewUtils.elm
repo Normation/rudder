@@ -622,7 +622,14 @@ getDirectiveLink contextPath id =
 
 getGroupLink : String -> String -> String
 getGroupLink contextPath id =
-  contextPath ++ """/secure/nodeManager/groups#{"groupId":\"""" ++ id ++ """\"}"""
+  let
+    anchorKey =
+      if String.startsWith "special:" id || String.startsWith "policyServer:" id then
+        "target"
+      else
+        "groupId"
+  in
+    contextPath ++ """/secure/nodeManager/groups#{\"""" ++ anchorKey ++ """\":\"""" ++ id ++ """\"}"""
 
 getNodeLink : String -> String -> String
 getNodeLink contextPath id =
