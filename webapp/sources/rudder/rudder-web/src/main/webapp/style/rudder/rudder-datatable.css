@@ -236,6 +236,7 @@ td.listclose:after {
   border-bottom: 1px solid #c0d4e4;
   border-right: 1px solid #c0d4e4;
   bottom: -7px;
+  z-index: 1;
 }
 .dataTable .dataTable td.listclose:after {
   border: none !important;
