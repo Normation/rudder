@@ -9,7 +9,7 @@ import List.Extra
 import List
 import String
 import NaturalOrdering exposing (compareOn)
-import ViewUtils exposing (badgePolicyMode, buildComplianceBar, buildTagsTree, buildTooltipContent, countRecentChanges, filterSearch, getCategoryName, getListRules, searchFieldRules)
+import ViewUtils exposing (..)
 import ComplianceUtils exposing (getAllComplianceValues, getRuleCompliance)
 
 --
@@ -75,6 +75,7 @@ buildRulesTable model =
     rulesList       = getListRules model.rulesTree
     sortedRulesList = rulesList
       |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
+      |> List.filter (\r -> filterTags r.tags model.ui.ruleFilters.treeFilters.tags)
       |> List.sortWith (getSortFunction model)
 
     rowTable : Rule -> Html Msg

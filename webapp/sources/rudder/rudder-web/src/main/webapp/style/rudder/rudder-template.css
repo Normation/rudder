@@ -377,6 +377,12 @@
   background-repeat: no-repeat;
   margin-left: 10px;
 }
+.rudder-template input[type=checkbox].toggle-filters{
+  display: none !important;
+}
+.rudder-template input[type=checkbox].toggle-filters:not(:checked) + .filters-container{
+  display: none !important;
+}
 .rudder-template .filters-container{
   margin-left: -15px;
   width: calc(100% + 30px);
