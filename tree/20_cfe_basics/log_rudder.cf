@@ -140,13 +140,13 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 bundle agent log_rudder_v4(parameter_value, message, details)
 {
   vars:
-      "component_key"   string => "${parameter_value}";
+      "component_key"   string => "${report_data.component_key}";
     rudder_report_force_component_none::
       "component_key" string => "None";
 
   defaults:
       # if class_parameter is not set, then use the component_key from report_data
-      "component_key" string => "${report_data.component_key}", if_match_regex => "";
+      "component_key" string => "${parameter_value}", if_match_regex => "";
 
   methods:
       "${report_data.method_id}_${component_key}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
