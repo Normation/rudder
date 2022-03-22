@@ -12,8 +12,8 @@ response:
       "data":{
         "nodes":[
           {
-            "id":"root",
-            "hostname":"server.rudder.local",
+            "id":"node1",
+            "hostname":"node1.localhost",
             "status":"accepted"
           }
         ]
@@ -33,54 +33,109 @@ response:
       "data":{
         "nodes":[
           {
-            "id":"root",
-            "hostname":"server.rudder.local",
+            "id":"node1",
+            "hostname":"node1.localhost",
             "status":"accepted",
             "state":"enabled",
             "os":{
               "type":"Linux",
               "name":"Debian",
-              "version":"9.4",
-              "fullName":"Stretch",
-              "kernelVersion":"4.5"
+              "version":"10.6",
+              "fullName":"Buster",
+              "kernelVersion":"4.19"
             },
+            "ram":1,
             "machine":{
               "id":"machine1",
               "type":"Virtual",
               "provider":"vbox"
             },
-            "ipAddresses":["127.0.0.1","192.168.0.100"],
+            "ipAddresses":[
+              "192.168.0.10"
+            ],
             "description":"",
             "lastInventoryDate":"2021-01-30T01:20:00+01:00",
             "policyServerId":"root",
-            "managementTechnology":[{
-              "name":"Rudder",
-              "version":"7.0.0",
-              "capabilities":[],
-              "nodeKind":"root"
-            }],
+            "managementTechnology":[
+              {
+                "name":"Rudder",
+                "version":"6.2.0",
+                "capabilities":[],
+                "nodeKind":"node"
+              }
+            ],
             "properties":[],
-            "policyMode":"enforce",
-            "timezone":{"name":"UTC","offset":"+00"},
-            "environmentVariables":{"THE_VAR":"THE_VAR value!"},
-            "fileSystems":[{"name":"swap"}],
-            "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"},
+            "policyMode":"default",
+            "environmentVariables":{
+              "THE_VAR":"THE_VAR value!"
+            },
+            "fileSystems":[
+              {
+                "name":"swap"
+              }
+            ],
+            "managementTechnologyDetails":{
+              "cfengineKeys":[],
+              "cfengineUser":"root"
+            },
             "networkInterfaces":[],
             "software":[
-              {"name":"s09","version":"1.0"},
-              {"name":"s06","version":"1.0"},
-              {"name":"s05","version":"1.0"},
-              {"name":"s13","version":"1.0"},
-              {"name":"s08","version":"1.0"},
-              {"name":"s02","version":"1.0"},
-              {"name":"s03","version":"1.0"},
-              {"name":"s04","version":"1.0"},
-              {"name":"s10","version":"1.0"},
-              {"name":"s11","version":"1.0"},
-              {"name":"s12","version":"1.0"},
-              {"name":"s01","version":"1.0"},
-              {"name":"s00","version":"1.0"},
-              {"name":"s07","version":"1.0"}
+              {
+                "name":"s09",
+                "version":"1.0"
+              },
+              {
+                "name":"s06",
+                "version":"1.0"
+              },
+              {
+                "name":"s05",
+                "version":"1.0"
+              },
+              {
+                "name":"s13",
+                "version":"1.0"
+              },
+              {
+                "name":"s08",
+                "version":"1.0"
+              },
+              {
+                "name":"s02",
+                "version":"1.0"
+              },
+              {
+                "name":"s03",
+                "version":"1.0"
+              },
+              {
+                "name":"s04",
+                "version":"1.0"
+              },
+              {
+                "name":"s10",
+                "version":"1.0"
+              },
+              {
+                "name":"s11",
+                "version":"1.0"
+              },
+              {
+                "name":"s12",
+                "version":"1.0"
+              },
+              {
+                "name":"s01",
+                "version":"1.0"
+              },
+              {
+                "name":"s00",
+                "version":"1.0"
+              },
+              {
+                "name":"s07",
+                "version":"1.0"
+              }
             ]
           }
         ]
