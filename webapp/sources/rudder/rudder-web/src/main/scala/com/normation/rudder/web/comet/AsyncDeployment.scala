@@ -169,7 +169,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw("""$('body').removeClass('modal-open').attr('style','');""")
+    JsRaw("""$('#generatePoliciesDialog').hide();""")
   }
 
   private[this] def fullPolicyGeneration : NodeSeq = {
@@ -177,7 +177,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       SHtml.ajaxButton(
         "Regenerate"
         , () => {
-          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor)
+          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor) match {
+            case Full(_) => // ok
+            case eb: EmptyBox =>
+              val err = eb ?~! "Error when trying to start policy generation"
+              logger.warn(err.messageChain)
+          }
           closePopup()
         }
         , ("class","btn btn-danger")

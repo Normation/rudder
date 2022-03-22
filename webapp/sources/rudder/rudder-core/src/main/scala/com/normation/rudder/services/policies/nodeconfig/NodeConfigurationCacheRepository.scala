@@ -508,7 +508,9 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   override def deleteAllNodeConfigurations(): Box[Unit] = {
     timeLog(s => s"Deleting node configuration hashes took ${s}")(semaphore.withPermits(1)(
-      IOResult.effect(hashesFile.delete()).unit
+      IOResult.effect(
+        if(hashesFile.exists) hashesFile.delete() else () //ok, nothing to do
+       ).unit
     )).toBox
   }
 
