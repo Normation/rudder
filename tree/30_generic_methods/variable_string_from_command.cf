@@ -45,7 +45,7 @@ bundle agent variable_string_from_command(prefix, name, command)
       "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "tmp_script_name"   string => "/var/rudder/tmp/${variable_prefix}_${variable_name}_${this.promiser_pid}";
+      "tmp_script_name"   string => "/var/rudder/tmp/${prefix}_${name}_${this.promiser_pid}";
       "c_tmp_script_name" string => canonify("${tmp_script_name}");
       "inner_class_prefix" string => "file_lines_present_${c_tmp_script_name}";
 
