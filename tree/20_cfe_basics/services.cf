@@ -50,8 +50,8 @@ bundle agent ncf_services(service, action)
 
     # systemd
     pass1.!is_init_service.systemctl_utility_present::
-      "action_command" string => "${paths.path[systemctl]} --no-ask-password ${action} ${service}.service";
-      "reset_command"  string => "${paths.path[systemctl]} --no-ask-password reset-failed ${service}.service";
+      "action_command" string => "${paths.path[systemctl]} --no-ask-password ${action} ${service}";
+      "reset_command"  string => "${paths.path[systemctl]} --no-ask-password reset-failed ${service}";
       "method"         string => "systemctl";
 
     # upstart
@@ -209,11 +209,14 @@ bundle agent ncf_services(service, action)
       #
       # This has no impact for debian system service as their init script already redirect to systemd, but is only necessary for external programs
       # only providing an init script on a systemd system.
-      "init_service_exists" expression => fileexists("/etc/init.d/${service}"),
-                                    if => "!is_systemd_service";
+      "init_service_exists" expression => fileexists("/etc/init.d/${service}");
+      # Skip check if not a service (i.e. has a file extension)
+      "has_unit_type"       expression => regcmp(".+\..+", "${service}"),
+                                    if => "systemctl_utility_present";
+      # Force to use as init service if not a systemd service
       "is_init_service"            not => returnszero("${paths.path[systemctl]} --no-ask-password list-unit-files --type service --all ${service}.service 2>&1 | grep -q '\b1 unit files listed'", "useshell"),
                                     # Only execute when necessary
-                                    if => "init_service_exists.systemctl_utility_present";
+                                    if => "init_service_exists.!has_unit_type.systemctl_utility_present";
 
     pass1::
       "method_found"        expression => isvariable("method");
