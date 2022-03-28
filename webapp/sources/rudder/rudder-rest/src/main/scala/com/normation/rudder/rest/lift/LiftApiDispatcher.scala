@@ -40,8 +40,7 @@ package com.normation.rudder.rest.lift
 import cats.data._
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest._
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
@@ -142,8 +141,9 @@ class LiftHandler(
 
   def logBody(req: Req): String = {
     req.body match {
-      case eb: EmptyBox => (eb ?~! "Error geting request body:").messageChain
-      case Full(body)   => new String(body.take(1024), "UTF-8") + (if(body.size>1024) "..." else "")
+      case Empty      => "[request body is empty]"
+      case f:Failure  => (f ?~! "Error geting request body:").messageChain
+      case Full(body) => new String(body.take(1024), "UTF-8") + (if(body.size>1024) "..." else "")
     }
   }
 
@@ -162,8 +162,14 @@ class LiftHandler(
 
     def getApiPath() = {
       // here, we only use "sub path" kind of PathElement, because
-      // we don't know what should be what
-      req.path.partPath.map(e => ApiPathSegment.Segment(e)) match {
+      // we don't know what should be what. There is a bug in Lift decoding of path
+      // that changes "+" into " " will it should not, see
+      // https://issues.rudder.io/issues/20943
+      // https://stackoverflow.com/questions/1634271/url-encoding-the-space-character-or-20/29948396#29948396
+      (req.path.partPath.map { e =>
+        // change back spaces into "+"
+        ApiPathSegment.Segment(e.replaceAll(" ", "+"))
+      }) match {
         case h :: t => Right(ApiPath(NonEmptyList(h, t)))
         case _      => Left(ApiError.BadRequest(s"API does not support request on root URL", "unknown"))
       }
