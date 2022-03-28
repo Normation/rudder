@@ -46,7 +46,6 @@ bundle agent service_started(name)
       "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_check");
       "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "is-active");
       "${report_data.method_id}_${name}" usebundle => call_method_classes("${report_data.method_id}_ncf_services_check");
-      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
       "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_check");
     pass3.needs_start::
       # If service is running, stop it

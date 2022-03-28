@@ -899,11 +899,12 @@ bundle agent method_id_push(method_id)
 bundle agent method_id_pop()
 {
   vars:
+    !pass1::
       "stack_len"                int => length("method_id_unique.stack");
+      "method_id"             string => nth("method_id_unique.stack", "0");
+
     # this must be evaluated exactly only once
     pass2::
-      # get first value in the stack
-      "method_id"             string => nth("method_id_unique.stack", 0);
       # compute stack length minus 1
       "new_len_float"         string => eval("${stack_len}-1", "math", "infix");
       "new_len"               string => format("%d", "${new_len_float}");
@@ -919,11 +920,11 @@ bundle agent method_id_pop()
 
      # initial stack length must have at least one element
     pass1.!pass2::
-      "empty_stack" expression => islessthan("${stack_len}", "1");
+      "empty_stack" expression => islessthan("${stack_len}", "0");
 
-#  methods:
-#    pass3.empty_stack::
-#      "${report_data.method_id}" usebundle => _abort("BUG in method-id stack", "pop_method_id was called more times than push_method_id. Stopping immediately to prevent any unwanted behavior.");
+  methods:
+    pass3.empty_stack::
+      "${report_data.method_id}" usebundle => _abort("BUG in method-id stack", "pop_method_id was called more times than push_method_id. Stopping immediately to prevent any unwanted behavior.");
 
   reports:
     pass3.debug::
