@@ -630,6 +630,23 @@ properties:
         source:
           type: String
           description: information about the source providing that update
+        description:
+          type: String
+          description: details about the content of the update, if available
+        severity:
+          type: String
+          description: if available, the severity of the update
+          enum:
+            - critical
+            - high
+            - moderate
+            - low
+            - other
+        ids:
+          type: array
+          items:
+            type: String
+            description: Related identifiers, can be CVE number, vendor-specific advisory (RHSA, etc.)
   sound:
     type: array
     description: Sound card information
