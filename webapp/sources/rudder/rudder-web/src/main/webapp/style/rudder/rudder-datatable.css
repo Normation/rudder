@@ -602,3 +602,15 @@ td.greyBackground, th.greyBackground {
 #select-columns .rudder-label:hover .fa{
   opacity: 1;
 }
+
+/* TECHNICAL LOGS TABLE */
+.rudder-label.label-log{
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  padding: 5px 8px;
+  cursor: default;
+}
+.rudder-label.label-log > .fa{
+  margin-right: 4px;
+}
