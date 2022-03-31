@@ -12,7 +12,9 @@ function Simplest {
     [Switch]$AuditOnly
   )
 
+  $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
+  $ReportId = $ReportIdBase+"aeca6c93-47af-41ee-ba4a-8772f4ce7dd8"
   $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
 }

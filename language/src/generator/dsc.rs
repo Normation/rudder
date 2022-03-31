@@ -247,6 +247,12 @@ impl DSC {
                 if let Some(var) = sd.outcome {
                     self.new_var(&var);
                 }
+                let id = sd
+                    .metadata
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or("".to_string());
 
                 let mut parameters =
                     fetch_method_parameters(gc, sd, |name, value, parameter_metadatas| {
@@ -309,6 +315,7 @@ impl DSC {
                         condition.map_or_else(|| String::from("any"), |x| self.format_condition(x)),
                     ) // TODO
                     .source(sd.source.fragment())
+                    .id(id)
                     .build())
             }
             Statement::Case(_case, vec) => {
@@ -555,6 +562,10 @@ impl Generator for DSC {
                     .parameters(formatted_parameters.clone())
                     // Standard variables for all techniques
                     .scope(vec![
+                        Call::variable(
+                            "$ReportIdBase",
+                            "$reportId.Substring(0,$reportId.Length-1)",
+                        ),
                         Call::variable("$LocalClasses", "New-ClassContext"),
                         Call::variable("$ResourcesDir", "$PSScriptRoot + \"\\resources\""),
                     ]);

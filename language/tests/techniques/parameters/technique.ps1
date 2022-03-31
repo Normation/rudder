@@ -14,7 +14,9 @@ function Parameters {
     [Switch]$AuditOnly
   )
 
+  $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
+  $ReportId = $ReportIdBase+"235915e6-7408-4750-a7ae-38983f12b670"
   _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "${paramtest}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
 }
