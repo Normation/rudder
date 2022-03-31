@@ -800,7 +800,9 @@ class DSCTechniqueWriter(
 
             def naReport(method : GenericMethod, expectedReportingValue : String) =
               s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
-            for {
+
+
+            (for {
 
               // First translate parameters to Dsc values
               params    <- ((call.parameters.toList).traverse {
@@ -863,7 +865,7 @@ class DSCTechniqueWriter(
               } else {
                 s"  ${naReport(method,classParameter)}" :: Nil
               }
-           }
+           }).map(s"""  $$reportId=$$reportIdBase+"${call.id}"""" :: _)
          }
 
       case block : MethodBlock =>
@@ -897,7 +899,7 @@ class DSCTechniqueWriter(
             |      [string]$$techniqueName,${parameters}
             |      [switch]$$auditOnly
             |  )
-            |
+            |  $$reportIdBase = $$reportId.Substring(0,$$reportId.Length-1)
             |  $$local_classes = New-ClassContext
             |  $$resources_dir = $$PSScriptRoot + "\\resources"
             |
