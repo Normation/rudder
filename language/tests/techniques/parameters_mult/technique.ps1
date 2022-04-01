@@ -18,11 +18,11 @@ function Param-Mult {
   $ReportId = $ReportIdBase+"bfe4005a-c854-4bea-a760-6343ee84bd5c"
   $Class = "linux"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "target" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "target" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "target" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "target" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $ReportId = $ReportIdBase+"fa34708e-80c0-4369-b1b6-276d4f0a481a"
-  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "openvpn" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "openvpn" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 }

@@ -16,5 +16,5 @@ function Deprecated {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"3a5c97e5-0b4d-4341-b880-262ccd51f453"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Create -Path "tmp" -ComponentName "Directory create" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Create -Path "tmp" -ComponentName "Directory create" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
 }

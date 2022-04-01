@@ -18,9 +18,9 @@ function Condition-Foreign-Variable {
   $ReportId = $ReportIdBase+"f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16"
   $Class = "server_machine|group_sbu_cmcs__sles12_"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "chown -R ${owner}:${owner} ${path}" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "chown -R ${owner}:${owner} ${path}" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "chown -R ${owner}:${owner} ${path}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "chown -R ${owner}:${owner} ${path}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }

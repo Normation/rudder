@@ -16,11 +16,10 @@ function Cdt {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"ee867477-8629-448f-85d5-c8ef33357c0f"
-  $Class = "debian"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
-  }
-  else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  $class = "any.(debian)"
+  if (Evaluate-Class $class $local_classes $system_classes) {
+    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Path "tmp" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  } else {
+    _rudder_common_report_na -componentName "File absent" -componentKey "tmp" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
   }
 }

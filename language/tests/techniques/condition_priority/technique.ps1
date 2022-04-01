@@ -16,5 +16,5 @@ function Condition-Priority {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"9903b8c8-1ae3-4bea-a77c-0d70553bd5ce"
-  _rudder_common_report_na -ComponentName "Kernel module loaded" -ComponentKey "test" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Kernel module loaded" -ComponentKey "test" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 }
