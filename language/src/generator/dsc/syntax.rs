@@ -601,6 +601,7 @@ pub struct Method {
     condition: String,
     supported: bool,
     source: String,
+    id: String,
 }
 
 // TODO send to condition method
@@ -643,6 +644,10 @@ impl Method {
             source: source.to_string(),
             ..self
         }
+    }
+
+    pub fn id(self, id: String) -> Self {
+        Self { id, ..self }
     }
 
     pub fn alias(self, method_alias: Option<String>) -> Self {
@@ -688,6 +693,8 @@ impl Method {
         // Does the method have a real condition?
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
+        let report_id = Call::variable("$ReportId", format!("$ReportIdBase+\"{}\"", &self.id));
+
         let method_call = Call::method(
             Parameters::from(self.parameters.clone())
                 .method_name(&self.resource, &self.state, self.method_alias)
@@ -718,6 +725,7 @@ impl Method {
                     );
                     let condition_format = method_call.format();
                     vec![
+                        report_id,
                         Call::new()
                             .if_condition(self.condition.clone(), condition_format)
                             .else_condition(&self.condition, na_report.format()),
@@ -735,10 +743,10 @@ impl Method {
                         // ),
                     ]
                 } else {
-                    vec![method_call]
+                    vec![report_id, method_call]
                 }
             }
-            false => vec![na_report],
+            false => vec![report_id, na_report],
         }
     }
 }
@@ -904,6 +912,7 @@ mod tests {
                         .parameters(Parameters::new().method_parameter("p1", "vim"))
                         .component("component".to_string())
                         .condition("windows".to_string())
+                        .id("id".to_string())
                         .supported(true) // must be set manually since generic method check happens elsewhere
                         .build()
                 )
@@ -911,6 +920,7 @@ mod tests {
             r#"function Test {
 
 
+  $ReportId = $ReportIdBase+"id"
   $Class = "windows"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
     $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Absent -P0 "parameter With CASE" -P1 "vim" -ComponentName "component" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
@@ -939,12 +949,14 @@ mod tests {
                         .parameters(Parameters::new().method_parameter("p1", "vim"))
                         .component("component".to_string())
                         .condition("debian".to_string())
+                        .id("id".to_string())
                         .build()
                 )
                 .to_string(),
             r#"function Test {
 
 
+  $ReportId = $ReportIdBase+"id"
   _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
 }
 "#

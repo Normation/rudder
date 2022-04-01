@@ -12,8 +12,10 @@ function Condition-Useless-Brackets {
     [Switch]$AuditOnly
   )
 
+  $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
+  $ReportId = $ReportIdBase+"b75bd5d3-8304-4cd6-8689-2ba650c7c42a"
   $Class = "!debian|linux|ubuntu.windows|linux|ubuntu"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
     $LocalClasses = Merge-ClassContext $LocalClasses $(Dsc-Built-In-Resource -Tag "tagname" -ScriptBlock @'
