@@ -246,11 +246,11 @@ final case class DirectiveStatusReport(
 ) extends StatusReport {
   override lazy val compliance = ComplianceLevel.sum(components.map(_.compliance) )
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
-      components.flatMap( _.getValues(predicate) ).toSeq.map { case v => (directiveId,v.componentValue,v) }
+      components.flatMap( _.getValues(predicate) ).map { case v => (directiveId,v.componentValue,v) }
   }
 
   override def toString() = s"""[${directiveId.serialize} =>
-                               |    ${components.toSeq.sortBy(_.componentName).mkString("\n    ")}
+                               |    ${components.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
   def withFilteredElements(
