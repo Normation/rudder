@@ -16,5 +16,5 @@ function Parameters {
 
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
-  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "${paramtest}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "${paramtest}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 }

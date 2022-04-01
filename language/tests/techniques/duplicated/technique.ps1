@@ -11,9 +11,9 @@
   $local_classes = New-ClassContext
   $resources_dir = $PSScriptRoot + "\resources"
 
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
-  
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
-  
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
 }

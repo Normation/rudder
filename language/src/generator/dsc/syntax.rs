@@ -312,6 +312,17 @@ impl Parameters {
         self
     }
 
+    pub fn disable_reporting(mut self, value: bool) -> Self {
+        let parameter = Parameter::raw(
+            Some("report"),
+            if value { "$false" } else { "$true" },
+            ParameterKind::Switch,
+            ParameterType::default(),
+        );
+        self.push(parameter);
+        self
+    }
+
     pub fn mode(mut self) -> Self {
         let parameter = Parameter::variable(
             Some("AuditOnly"),
@@ -599,6 +610,7 @@ pub struct Method {
     component: String,
     class_parameter: Parameter,
     condition: String,
+    disable_reporting: bool,
     supported: bool,
     source: String,
 }
@@ -671,6 +683,13 @@ impl Method {
         }
     }
 
+    pub fn disable_reporting(self, disable_reporting: bool) -> Self {
+        Self {
+            disable_reporting,
+            ..self
+        }
+    }
+
     pub fn component(self, component: String) -> Self {
         Self { component, ..self }
     }
@@ -693,6 +712,7 @@ impl Method {
                 .method_name(&self.resource, &self.state, self.method_alias)
                 .class_parameter(self.class_parameter.clone())
                 .component_name(&self.component)
+                .disable_reporting(self.disable_reporting)
                 .report_id()
                 .technique_name()
                 .mode()
@@ -702,6 +722,7 @@ impl Method {
             Parameters::new()
                 .component_name(&self.component)
                 .component_key(&self.class_parameter.value)
+                .disable_reporting(self.disable_reporting)
                 .message("Not applicable")
                 .report_id()
                 .technique_name()
@@ -913,10 +934,10 @@ mod tests {
 
   $Class = "windows"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Absent -P0 "parameter With CASE" -P1 "vim" -ComponentName "component" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Absent -P0 "parameter With CASE" -P1 "vim" -ComponentName "component" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }
 "#
@@ -945,7 +966,7 @@ mod tests {
             r#"function Test {
 
 
-  _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "component" -ComponentKey "parameter With CASE" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 }
 "#
         );

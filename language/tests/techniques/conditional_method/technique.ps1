@@ -11,5 +11,5 @@ function Conditional-Method {
   $local_classes = New-ClassContext
   $resources_dir = $PSScriptRoot + "\resources"
 
-  _rudder_common_report_na -componentName "HTTP request check status with headers" -componentKey "/myurl" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+  _rudder_common_report_na -componentName "HTTP request check status with headers" -componentKey "/myurl" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
 }
