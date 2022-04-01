@@ -16,13 +16,13 @@ function Stateless {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"b9f8a4d5-ea74-461b-9d0d-81575fa78cc6"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Permissions-Ntfs -Path "/var/test" -User "admin" -Rights "rxw" -Accesstype "Allow" -Propagationpolicy "ThisFolderOnly" -ComponentName "Permissions NTFS" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Permissions-Ntfs -Path "/var/test" -User "admin" -Rights "rxw" -Accesstype "Allow" -Propagationpolicy "ThisFolderOnly" -ComponentName "Permissions NTFS" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   $ReportId = $ReportIdBase+"6912f9ff-27f8-42fb-9f38-bd330d64162a"
-  _rudder_common_report_na -ComponentName "Permissions (non recursive)" -ComponentKey "/file/path" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Permissions (non recursive)" -ComponentKey "/file/path" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   $ReportId = $ReportIdBase+"9a29b174-d512-4534-b58c-7804a1ad990e"
-  _rudder_common_report_na -ComponentName "Audit from osquery" -ComponentKey "query;" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Audit from osquery" -ComponentKey "query;" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   $ReportId = $ReportIdBase+"43697ece-b31e-4756-ae04-a47c8ab0034d"
-  _rudder_common_report_na -ComponentName "Monitoring template" -ComponentKey "vision" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Monitoring template" -ComponentKey "vision" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   $ReportId = $ReportIdBase+"8594e7f6-2f7b-452c-9dac-9b29515797af"
-  _rudder_common_report_na -ComponentName "Monitoring parameter" -ComponentKey "paramname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+  _rudder_common_report_na -ComponentName "Monitoring parameter" -ComponentKey "paramname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
 }

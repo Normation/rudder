@@ -792,14 +792,16 @@ class DSCTechniqueWriter(
             Right(Nil)
           } else {
             val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
+            val disableReporting =
+              s"""-Report $$${if (call.disabledReporting) {"false" } else { "true" }}"""
 
 
             def canonifyCondition(methodCall: MethodCall) = {
-               methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
+              methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
             }
 
             def naReport(method : GenericMethod, expectedReportingValue : String) =
-              s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${genericParams}"""
+              s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${disableReporting} ${genericParams}"""
 
 
             (for {
@@ -833,7 +835,7 @@ class DSCTechniqueWriter(
                 }).mkString(" ")
 
               effectiveCall =
-                s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${genericParams}).get_item("classes")"""
+                s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${disableReporting} ${genericParams}).get_item("classes")"""
 
               // Check if method exists
               method <- methods.get(call.methodId) match {

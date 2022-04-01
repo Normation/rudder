@@ -18,33 +18,33 @@ function Inner-Block {
   $ReportId = $ReportIdBase+"cb2881a0-11c8-4040-8ac0-3751d10146b7"
   $Class = "(debian).(centos)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $ReportId = $ReportIdBase+"df319f6f-3573-4b7e-95e5-f10dcd3f7a3f"
   $Class = "(debian).(centos)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $ReportId = $ReportIdBase+"e6ccdd10-642b-494a-9b06-27ce509f579f"
   $Class = "((debian).(debian_10)).(linux)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $ReportId = $ReportIdBase+"7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9"
   $Class = "(debian).(debian_10)"
   if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp2" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp2" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }

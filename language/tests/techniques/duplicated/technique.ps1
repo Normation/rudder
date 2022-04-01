@@ -16,9 +16,9 @@ function Add-GSN-Users-To-Vboxusers-Group {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"cc8efd39-c24d-4074-9cf6-2d53b1c27788"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   $ReportId = $ReportIdBase+"4b40dc15-5a5e-4a1e-a91d-0bc53a10b658"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
   $ReportId = $ReportIdBase+"f3510d66-e96b-4f0b-91d4-9633ec7eec86"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
 }

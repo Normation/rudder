@@ -16,19 +16,20 @@ function Condition-Alias {
   $LocalClasses = New-ClassContext
   $ResourcesDir = $PSScriptRoot + "\resources"
   $ReportId = $ReportIdBase+"8b575191-0ab0-4851-b05c-e7cde3726f05"
-  $Class = "sles_12"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "pwd" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+
+  $class = "any.(SLES12)"
+  if (Evaluate-Class $class $local_classes $system_classes) {
+    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "pwd" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "pwd" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "pwd" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
   $ReportId = $ReportIdBase+"3a8f5707-a86a-4599-8c68-3dbbfd6f70a1"
-  $Class = "ubuntu_10_04"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "ls" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly).get_item("classes")
+  $class = "any.(ubuntu_10_04)"
+  if (Evaluate-Class $class $local_classes $system_classes) {
+    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "ls" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly).get_item("classes")
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "ls" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -AuditOnly:$AuditOnly
+    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "ls" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
   }
 }
