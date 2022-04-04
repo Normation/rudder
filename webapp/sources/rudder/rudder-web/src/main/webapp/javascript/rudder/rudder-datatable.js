@@ -1529,7 +1529,7 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
                 icon= "fa fa-file-text"
               default:
             }
-            var state = '<div style="width:100%; text-align:left; white-space:nowrap; padding:5px;" class="rudder-label '+className +'"> <i class="' + icon  + '"></i> '+ value + '</div>'
+            var state = '<div class="rudder-label label-log '+className +'"> <i class="' + icon  + '"></i> '+ value + '</div>'
 
             $(nTd).prepend(state);
           }
