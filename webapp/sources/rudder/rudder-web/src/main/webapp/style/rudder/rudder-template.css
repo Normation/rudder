@@ -94,7 +94,8 @@
 .content-wrapper .rudder-template .jstree .fa.jstree-icon{
   margin-right: 2px;
 }
-.content-wrapper .rudder-template .jstree .rudder-label.label-sm{
+.content-wrapper .rudder-template .jstree .rudder-label.label-sm,
+.content-wrapper .rudder-template .jstree .fa-warning{
   margin-right: 4px;
 }
 .main-details .well{
