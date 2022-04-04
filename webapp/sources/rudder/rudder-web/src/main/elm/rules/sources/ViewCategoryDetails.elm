@@ -21,13 +21,16 @@ editionTemplateCat model details =
   let
     originCat = details.originCategory
     category  = details.category
+    allMissingCategories = List.filter (\sub -> sub.id == missingCategoryId) (getSubElems model.rulesTree)
+    listOfCat = List.concatMap getAllCats (allMissingCategories)
+    listCatIdMissing = List.map (\r -> r.id) (listOfCat)
+    writeRights = model.ui.hasWriteRights && (not (category.id == missingCategoryId) && not (List.member category.id listCatIdMissing))
     categoryTitle =
       case originCat of
        Nothing -> span[style "opacity" "0.4"][text "New category"]
        Just cat -> text cat.name
-
     categoryForm =
-      if model.ui.hasWriteRights then
+      if writeRights then
         form[class "col-xs-12 col-sm-6 col-lg-7", onSubmit Ignore]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
@@ -75,7 +78,7 @@ editionTemplateCat model details =
         , div[class "header-buttons"]
           ( button [class "btn btn-default", type_ "button", onClick CloseDetails]
             [ text "Close", i [ class "fa fa-times"][]]
-          :: ( if model.ui.hasWriteRights then
+          :: ( if writeRights then
               [ div [ class "btn-group" ]
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]
