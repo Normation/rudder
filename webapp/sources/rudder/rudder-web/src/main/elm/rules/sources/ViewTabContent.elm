@@ -466,11 +466,28 @@ directivesTab model details =
                       ("", text "")
                     else
                       (" is-disabled", span[class "badge-disabled"][])
+
+                  isUsed = (getAllElems model.rulesTree)
+                    |> List.concatMap (\ r -> r.directives)
+                    |> List.member d.id
+
+                  unusedWarning =
+                    if isUsed then text ""
+                    else
+                      span
+                      [ class "fa fa-warning text-warning-rudder bs-tooltip"
+                      , attribute "data-toggle" "tooltip"
+                      , attribute "data-placement" "bottom"
+                      , attribute "data-container" "body"
+                      , attribute "data-html" "true"
+                      , attribute "data-original-title" (buildTooltipContent "Unused directive" "This directive is not used in any rule")
+                      ][]
                 in
                   li [class ("jstree-node jstree-leaf directiveNode" ++ disabledClass)]
                   [ i [class "jstree-icon jstree-ocl"][]
                   , a [class ("jstree-anchor" ++ selectedClass), onClick (addDirectives d.id)]
                     [ badgePolicyMode model.policyMode d.policyMode
+                    , unusedWarning
                     , span [class "item-name tooltipable"][text d.displayName]
                     , disabledLabel
                     , buildTagsTree d.tags
