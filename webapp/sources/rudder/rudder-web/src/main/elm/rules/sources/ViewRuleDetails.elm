@@ -24,9 +24,9 @@ editionTemplate model details =
     originRule = details.originRule
 
     rule = details.rule
-    ruleTitle = case originRule of
-      Nothing -> span[style "opacity" "0.4"][text "New rule"]
-      Just r -> text r.name
+    (ruleTitle, isNewRule) = case originRule of
+      Nothing -> (span[style "opacity" "0.4"][text "New rule"], True)
+      Just r  -> (text r.name, False)
     (classDisabled, badgeDisabled) = if (Maybe.withDefault True (Maybe.map .enabled originRule)) then
         ("", text "")
       else
@@ -148,7 +148,10 @@ editionTemplate model details =
               ]
             ]
           ]
-        , li[class ("ui-tabs-tab" ++ (if details.tab == Nodes        then " ui-tabs-active" else ""))]
+        , ( if isNewRule then
+          text ""
+        else
+          li[class ("ui-tabs-tab" ++ (if details.tab == Nodes        then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
             [ text "Nodes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
@@ -156,6 +159,7 @@ editionTemplate model details =
               ]
             ]
           ]
+        )
         , li[class ("ui-tabs-tab" ++ (if details.tab == Groups       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Groups })]
             [ text "Groups"
@@ -164,7 +168,10 @@ editionTemplate model details =
               ]
             ]
           ]
-        , li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
+        , ( if isNewRule then
+          text ""
+        else
+          li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
             [ text "Recent Changes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
@@ -172,6 +179,7 @@ editionTemplate model details =
               ]
             ]
           ]
+        )
         ]
       ]
     , div [class "main-details"]
