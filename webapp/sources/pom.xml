@@ -370,7 +370,7 @@ limitations under the License.
     <commons-lang-version>3.11</commons-lang-version>
     <commons-codec-version>1.15</commons-codec-version>
     <commons-fileupload>1.4</commons-fileupload>
-    <spring-version>5.2.19.RELEASE</spring-version>
+    <spring-version>5.2.20.RELEASE</spring-version>
     <spring-security-version>5.3.10.RELEASE</spring-security-version>
     <jgit-version>5.9.0.202009080501-r</jgit-version>
     <cglib-version>3.3.0</cglib-version>
