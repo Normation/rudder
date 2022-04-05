@@ -154,6 +154,14 @@ showMethodTab model method parentId call uiInfo=
     CallConditions ->
       let
         condition = call.condition
+
+        ubuntuLi = List.map (\ubuntuMinor ->
+                     let
+                       updatedCall = Call parentId { call | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
+                     in
+                       li [ onClick (MethodCallModified updatedCall) ] [ a [href "#" ] [ text (showUbuntuMinor ubuntuMinor) ] ]
+
+                   ) [All, ZeroFour, Ten]
         updateConditonVersion = \f s ->
                       let
                         updatedCall = Call parentId { call | condition = {condition | os =  f  (String.toInt s) condition.os } }
@@ -179,12 +187,12 @@ showMethodTab model method parentId call uiInfo=
                      in
                        li [ onClick (MethodCallModified (Call parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
               ]
-            , if (hasMajorMinorVersion condition.os ) then
+            , if (hasMajorMinorVersion condition.os || isUbuntu condition.os ) then
                 input [ readonly (not model.hasWriteRights)
                       , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) ))
                       , onInput (updateConditonVersion updateMajorVersion)
                       , type_ "number", style "display" "inline-block", style "width" "auto", style "margin-left" "5px"
-                      ,  class "form-control", placeholder "Major version"
+                      , style "margin-top" "0",  class "form-control", placeholder "Major version"
                       , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                       ] []
               else text ""
@@ -193,16 +201,32 @@ showMethodTab model method parentId call uiInfo=
                       , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) ))
                       , onInput (updateConditonVersion updateMinorVersion)
                       , type_ "number", style "display" "inline-block", style "width" "auto", class "form-control"
-                      , style "margin-left" "5px", placeholder "Minor version"
+                      , style "margin-left" "5px", style "margin-top" "0", placeholder "Minor version"
                       , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                       ] []
               else text ""
+           , if  ( isUbuntu condition.os ) then
+               div [ style  "margin-left" "5px", class "btn-group" ]
+                 [ button
+                   [ class "btn btn-default dropdown-toggle", id "ubuntuMinor" , attribute  "data-toggle" "dropdown"
+                   , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
+                   , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                   ]
+                   [ text  ((getUbuntuMinor condition.os) ++ " ")
+                   , span [ class"caret" ] []
+                   ]
+                 , ul [ class "dropdown-menu", attribute "aria-labelledby" "ubuntuMinor" ] ubuntuLi
+
+                 ]
+              else text ""
+
+
             , if (hasVersion condition.os ) then
                 input [ readonly (not model.hasWriteRights)
                       , value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) ))
                       , onInput  (updateConditonVersion updateVersion)
                       , type_ "number", style "display" "inline-block", style "width" "auto"
-                      , class "form-control", style "margin-left" "5px", placeholder "Version"
+                      , class "form-control", style "margin-left" "5px", style "margin-top" "0", placeholder "Version"
                       , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                       ] []
               else text ""
@@ -211,7 +235,7 @@ showMethodTab model method parentId call uiInfo=
                       , value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) ))
                       , onInput (updateConditonVersion updateSP)
                       , type_ "number", style "display" "inline-block", style "width" "auto", class "form-control"
-                      , style "margin-left" "5px", placeholder "Service pack"
+                      , style "margin-left" "5px", style "margin-top" "0", placeholder "Service pack"
                       , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                       ] []
               else text ""
