@@ -6,6 +6,7 @@ use crate::error::{Error, Result};
 use std::{fmt, str::FromStr};
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
+use std::collections::HashMap;
 /// This does not modelize full CFEngine syntax but only a subset of it, which is our
 /// execution target, plus some Rudder-specific metadata in comments.
 
@@ -481,14 +482,40 @@ impl Call {
         Call::new_variable(name).component(CallType::Variable, value.as_ref())
     }
 
-    pub fn method(parameters: Parameters) -> Self {
-        Call::new_variable("$LocalClasses").component(
-            CallType::MethodCall,
-            format!(
-                "Merge-ClassContext $LocalClasses $({}).get_item(\"classes\")",
-                parameters
-            ),
-        )
+    pub fn map(name: &str, content: &HashMap<String,String>) -> Self{
+        let mut map_as_string = "@{\n".to_string();
+        for (key, value) in content.iter() {
+            map_as_string.push_str(format!(
+                    "  {} = {}\n",
+                    key,
+                    value
+            ).as_str());
+        };
+        map_as_string.push_str("}");
+        Call::new_variable(name).component(CallType::Variable,&map_as_string)
+    }
+
+    pub fn parameters_as_map(name: &str, parameters: Parameters) -> Self{
+        let mut map: HashMap<String, String> = HashMap::new();
+        for p in parameters.iter() {
+            if p.kind != ParameterKind::MethodName {
+                let formatted_value = match p.content_type {
+                    ParameterType::String => p.value.clone(),
+                    ParameterType::HereString => format!("@'\n{}\n'@", p.value.trim_matches('"')),
+                };
+                map.insert(p.name.clone().unwrap(), formatted_value);
+            }
+        };
+        Call::map(name, &map)
+    }
+
+    pub fn splatted_method(result_variable: &str, param_variable: &str, parameters: Parameters) -> Self {
+        let method_name = &parameters.iter().find(|&x| x.kind == ParameterKind::MethodName).unwrap().value;
+        Call::new_variable(result_variable).component(CallType::Variable, format!(
+                    "{} @{}",
+                    method_name,
+                    param_variable
+        ))
     }
 
     pub fn report_na(parameters: Parameters) -> Self {
@@ -713,9 +740,7 @@ impl Method {
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
         let report_id = Call::variable("$ReportId", format!("$ReportIdBase+\"{}\"", &self.id));
-
-        let method_call = Call::method(
-            Parameters::from(self.parameters.clone())
+        let method_call_params = Parameters::from(self.parameters.clone())
                 .method_name(&self.resource, &self.state, self.method_alias)
                 .class_parameter(self.class_parameter.clone())
                 .component_name(&self.component)
@@ -723,10 +748,24 @@ impl Method {
                 .report_id()
                 .technique_name()
                 .mode()
-                .sort(),
+                .sort();
+        let prepare_parameters = Call::parameters_as_map("$param1", method_call_params.clone());
+        let method_call = Call::splatted_method(
+            "$call1",
+            "$param1",
+            method_call_params.clone()
         );
-        let na_report = Call::report_na(
-            Parameters::new()
+        //let compute_method_call = Call::compute_method_call(
+        //    Parameters::new()
+        //        .component_name(&self.component)
+        //        .component_key(&self.class_parameter.value)
+        //        .disable_reporting(self.disable_reporting)
+        //        .technique_name()
+        //        .report_id()
+        //        .mode(),
+        //);
+
+        let na_report_params = Parameters::new()
                 .component_name(&self.component)
                 .component_key(&self.class_parameter.value)
                 .disable_reporting(self.disable_reporting)
@@ -734,8 +773,9 @@ impl Method {
                 .report_id()
                 .technique_name()
                 .mode()
-                .sort(),
-        );
+                .sort();
+        let na_report = Call::report_na(na_report_params.clone());
+        let prepare_na_parameters = Call::parameters_as_map("$param_na1", na_report_params);
 
         match self.supported {
             true => {
@@ -747,6 +787,7 @@ impl Method {
                     let condition_format = method_call.format();
                     vec![
                         report_id,
+                        prepare_parameters,
                         Call::new()
                             .if_condition(self.condition.clone(), condition_format)
                             .else_condition(&self.condition, na_report.format()),
@@ -764,10 +805,10 @@ impl Method {
                         // ),
                     ]
                 } else {
-                    vec![report_id, method_call]
+                    vec![report_id, prepare_parameters, method_call]
                 }
             }
-            false => vec![report_id, na_report],
+            false => vec![report_id, prepare_parameters, prepare_na_parameters, na_report],
         }
     }
 }
