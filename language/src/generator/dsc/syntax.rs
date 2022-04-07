@@ -7,6 +7,7 @@ use std::{fmt, str::FromStr};
 use toml::map::Map as TomlMap;
 use toml::Value as TomlValue;
 use std::collections::HashMap;
+use itertools::Itertools;
 /// This does not modelize full CFEngine syntax but only a subset of it, which is our
 /// execution target, plus some Rudder-specific metadata in comments.
 
@@ -105,6 +106,8 @@ pub fn quoted(s: &str) -> String {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ParameterKind {
     MethodName,
+    ExtraReference,
+    MethodCall,
     ClassParameter,
     MethodParameter,
     ComponentName,
@@ -120,8 +123,10 @@ impl Default for ParameterKind {
     }
 }
 
-const PARAMETER_ORDERING: [ParameterKind; 9] = [
+const PARAMETER_ORDERING: [ParameterKind; 11] = [
     ParameterKind::MethodName,
+    ParameterKind::ExtraReference,
+    ParameterKind::MethodCall,
     ParameterKind::ClassParameter,
     ParameterKind::MethodParameter,
     ParameterKind::ComponentName,
@@ -366,6 +371,19 @@ impl Parameters {
         self
     }
 
+    // Concatenate with the rest of the parameters
+    // $a = $b + "something"
+    //      ^^^^
+    pub fn extra_reference(mut self, name: &str) -> Self {
+        self.push(Parameter {
+            name: None,
+            value: name.to_string(),
+            kind: ParameterKind::ExtraReference,
+            content_type: ParameterType::default(),
+        });
+        self
+    }
+
     pub fn class_parameter(mut self, parameter: Parameter) -> Self {
         self.push(Parameter {
             name: parameter.name,
@@ -381,6 +399,17 @@ impl Parameters {
             Some("Message"),
             message,
             ParameterKind::Message,
+            ParameterType::default(),
+        );
+        self.push(parameter);
+        self
+    }
+
+    pub fn method_call(mut self, call: &str) -> Self {
+        let parameter = Parameter::string(
+            Some("MethodCall"),
+            call,
+            ParameterKind::MethodCall,
             ParameterType::default(),
         );
         self.push(parameter);
@@ -482,13 +511,19 @@ impl Call {
         Call::new_variable(name).component(CallType::Variable, value.as_ref())
     }
 
-    pub fn map(name: &str, content: &HashMap<String,String>) -> Self{
-        let mut map_as_string = "@{\n".to_string();
-        for (key, value) in content.iter() {
+    pub fn map(name: &str, content: &HashMap<String,String>, extra_ref: Option<String>) -> Self{
+        let mut map_as_string = match extra_ref {
+            None => "@{\n".to_string(),
+            Some(i) => format!(
+                "{} + @{{\n",
+                Some(i).unwrap()
+            ),
+        };
+        for key in content.keys().sorted() {
             map_as_string.push_str(format!(
                     "  {} = {}\n",
                     key,
-                    value
+                    content[key]
             ).as_str());
         };
         map_as_string.push_str("}");
@@ -497,20 +532,26 @@ impl Call {
 
     pub fn parameters_as_map(name: &str, parameters: Parameters) -> Self{
         let mut map: HashMap<String, String> = HashMap::new();
+        let mut extra_ref = None;
         for p in parameters.iter() {
-            if p.kind != ParameterKind::MethodName {
-                let formatted_value = match p.content_type {
-                    ParameterType::String => p.value.clone(),
-                    ParameterType::HereString => format!("@'\n{}\n'@", p.value.trim_matches('"')),
-                };
-                map.insert(p.name.clone().unwrap(), formatted_value);
+            match p.kind {
+                ParameterKind::MethodName => {},
+                ParameterKind::ExtraReference => {
+                    extra_ref = Some(p.value.clone());
+                },
+                _ => {
+                    let formatted_value = match p.content_type {
+                        ParameterType::String => p.value.clone(),
+                        ParameterType::HereString => format!("@'\n{}\n'@", p.value.trim_matches('"')),
+                    };
+                    map.insert(p.name.clone().unwrap(), formatted_value);
+                }
             }
         };
-        Call::map(name, &map)
+        Call::map(name, &map, extra_ref)
     }
 
-    pub fn splatted_method_call(result_variable: &str, param_variable: &str, parameters: Parameters) -> Self {
-        let method_name = &parameters.iter().find(|&x| x.kind == ParameterKind::MethodName).unwrap().value;
+    pub fn splatted_method_call(result_variable: &str, param_variable: &str, method_name: &str) -> Self {
         Call::new_variable(result_variable).component(CallType::Variable, format!(
                     "{} @{}",
                     method_name,
@@ -523,6 +564,14 @@ impl Call {
             CallType::ReportNa,
             format!("_rudder_common_report_na {}", parameters),
         )
+    }
+
+    pub fn splatted_report_na(result_variable: &str, param_variable: &str) -> Self {
+        Call::splatted_method_call(result_variable, param_variable, "_rudder_common_report_na")
+    }
+
+    pub fn compute_method_call(result_variable: &str, param_variable: &str) -> Self {
+        Call::splatted_method_call(result_variable, param_variable, "Compute-Method-Call")
     }
 
     pub fn abort(parameters: Parameters) -> Self {
@@ -597,13 +646,13 @@ impl Call {
                     let fmt_call = match (attr_type, &self.variable) {
                         (CallType::If(call), _) => {
                             format!(
-                                "$Class = {}\nif (Evaluate-Class $Class $LocalClasses $SystemClasses) {{{}\n}}",
+                                "if ($localContext.evaluate({})) {{{}\n}}",
                                 content.as_ref().unwrap(),
-                                call.iter().map(|c| c.format()).collect::<Vec<String>>().join("\n  ")
+                                call.iter().map(|c| c.format()).collect::<Vec<String>>().concat()
                             )
                         },
                         (CallType::Else(call), _) => format!("else {{{}\n}}",
-                        call.iter().map(|c| c.format()).collect::<Vec<String>>().join("\n")),
+                        call.iter().map(|c| c.format()).collect::<Vec<String>>().concat()),
                         (_, Some(var)) => format!("{} = {}", var, content.as_ref().unwrap()),
                         (_, None) => content.as_ref().unwrap().to_owned()
                     };
@@ -741,45 +790,48 @@ impl Method {
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
         let report_id = Call::variable("$ReportId", format!("$ReportIdBase+\"{}\"", &self.id));
-        let method_call_params = Parameters::from(self.parameters.clone())
-                .method_name(&self.resource, &self.state, self.method_alias)
-                .class_parameter(self.class_parameter.clone())
-                .component_name(&self.component)
-                .disable_reporting(self.disable_reporting)
-                .report_id()
-                .technique_name()
-                .mode()
-                .sort();
-        let prepare_parameters = Call::parameters_as_map("$param1", method_call_params.clone());
-        let  method_call =
-                Call::splatted_method_call(
-                    "$call1",
-                    "$param1",
-                    method_call_params.clone()
-                );
 
-
-        //let compute_method_call = Call::compute_method_call(
-        //    Parameters::new()
-        //        .component_name(&self.component)
-        //        .component_key(&self.class_parameter.value)
-        //        .disable_reporting(self.disable_reporting)
-        //        .technique_name()
-        //        .report_id()
-        //        .mode(),
-        //);
-
-        let na_report_params = Parameters::new()
+        let common_params = Call::parameters_as_map(
+            "$common_param1",
+            Parameters::new()
                 .component_name(&self.component)
                 .component_key(&self.class_parameter.value)
                 .disable_reporting(self.disable_reporting)
-                .message("Not applicable")
-                .report_id()
                 .technique_name()
+                .report_id()
+                .mode()
+                .sort()
+        );
+        let method_call_params = Parameters::from(self.parameters.clone())
+                .method_name(&self.resource, &self.state, self.method_alias)
+                .class_parameter(self.class_parameter.clone())
                 .mode()
                 .sort();
-        let na_report = Call::report_na(na_report_params.clone());
-        let prepare_na_parameters = Call::parameters_as_map("$param_na1", na_report_params);
+        let method_call = vec![
+            Call::parameters_as_map("$param1", method_call_params.clone()),
+            Call::splatted_method_call(
+                "$call1",
+                "$param1",
+                &method_call_params.iter().find(|&x| x.kind == ParameterKind::MethodName).unwrap().value
+            ),
+            Call::parameters_as_map(
+                "$compute_param1",
+                Parameters::new()
+                    .method_call("$call1")
+                    .extra_reference("$common_param1")
+                    .sort()
+            ),
+            Call::compute_method_call("$context1", "$compute_param1")
+        ];
+
+        let na_report = vec![
+            Call::parameters_as_map(
+                "$param1",
+                Parameters::new()
+                    .message("Not applicable")
+            ),
+            Call::splatted_report_na("$context1", "param1")
+        ];
 
         match self.supported {
             true => {
@@ -790,27 +842,22 @@ impl Method {
                     );
                     vec![
                         report_id,
+                        common_params,
                         Call::new()
-                            .if_condition(self.condition.clone(), vec![prepare_parameters, method_call])
-                            .else_condition(&self.condition, vec![na_report]),
-                        // Call::method(Parameters::new()
-                        //     .class_parameter(self.class_parameter.clone())
-                        //     .message(&format!(
-                        //         "Skipping method '{}' with key parameter '{}' since condition '{}' is not reached",
-                        //         &self.component,
-                        //         report_param_name,
-                        //         self.condition)
-                        //     )
-                        //     .message(&na_condition)
-                        //     .message(&na_condition)
-                        //     .message("@{args}")
-                        // ),
+                            .if_condition(self.condition.clone(), method_call)
+                            .else_condition(&self.condition, na_report),
                     ]
                 } else {
-                    vec![report_id, prepare_parameters, method_call]
+                    let mut a = vec![report_id, common_params];
+                    a.extend(method_call.iter().cloned());
+                    a
                 }
             }
-            false => vec![report_id, prepare_parameters, prepare_na_parameters, na_report],
+            false => {
+                let mut a = vec![report_id, common_params];
+                a.extend(na_report.iter().cloned());
+                a
+            }
         }
     }
 }
