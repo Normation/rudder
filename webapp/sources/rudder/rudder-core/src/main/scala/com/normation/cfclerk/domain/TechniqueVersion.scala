@@ -108,9 +108,11 @@ case class UpstreamTechniqueVersion(value: String) extends Ordered[UpstreamTechn
       val validReg = new Regex("[A-Za-z0-9.+\\-:~]*")
       validReg.findPrefixOf(value) match {
         case Some(matchReg) if (matchReg != value) =>
-          throw new TechniqueVersionFormatException("The upstream_version contains invalid charaters.\n" +
+          throw new TechniqueVersionFormatException("The upstream_version contains invalid characters.\n" +
             "The upstream_version may contain only alphanumerics and " +
-            "the characters . + - : ~ (full stop, plus, hyphen, colon, tilde).")
+            "the characters . + - : ~ (full stop, plus, hyphen, colon, tilde).\n" +
+            s"faulty value is: ${value}")
+
       case _ => ParseVersion.parse(value) match {
         case Right(v)  => v
         case Left(err) => throw new TechniqueVersionFormatException(err)
