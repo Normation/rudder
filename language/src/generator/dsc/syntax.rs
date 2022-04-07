@@ -509,7 +509,7 @@ impl Call {
         Call::map(name, &map)
     }
 
-    pub fn splatted_method(result_variable: &str, param_variable: &str, parameters: Parameters) -> Self {
+    pub fn splatted_method_call(result_variable: &str, param_variable: &str, parameters: Parameters) -> Self {
         let method_name = &parameters.iter().find(|&x| x.kind == ParameterKind::MethodName).unwrap().value;
         Call::new_variable(result_variable).component(CallType::Variable, format!(
                     "{} @{}",
@@ -750,11 +750,17 @@ impl Method {
                 .mode()
                 .sort();
         let prepare_parameters = Call::parameters_as_map("$param1", method_call_params.clone());
-        let method_call = Call::splatted_method(
-            "$call1",
-            "$param1",
-            method_call_params.clone()
-        );
+        let mut method_call = Call::new();
+        method_call.components.push((CallType::MethodCall, Some(prepare_parameters.format())));
+        method_call.components.push((CallType::MethodCall, Some(
+                Call::splatted_method_call(
+                    "$call1",
+                    "$param1",
+                    method_call_params.clone()
+                ).format()
+        )));
+
+
         //let compute_method_call = Call::compute_method_call(
         //    Parameters::new()
         //        .component_name(&self.component)
@@ -784,12 +790,11 @@ impl Method {
                         "canonify(\"${{class_prefix}}_{}_{}_{}\")",
                         self.resource, self.state, self.class_parameter.value
                     );
-                    let condition_format = method_call.format();
                     vec![
                         report_id,
                         prepare_parameters,
                         Call::new()
-                            .if_condition(self.condition.clone(), condition_format)
+                            .if_condition(self.condition.clone(), method_call.format())
                             .else_condition(&self.condition, na_report.format()),
                         // Call::method(Parameters::new()
                         //     .class_parameter(self.class_parameter.clone())
