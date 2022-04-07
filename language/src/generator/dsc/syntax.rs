@@ -419,8 +419,8 @@ pub enum CallType {
     Variable,
     String,
     Slist,
-    If(String),
-    Else(String),
+    If(Vec<Call>),
+    Else(Vec<Call>),
     MethodCall,
     ReportNa,
     Outcome,
@@ -428,7 +428,7 @@ pub enum CallType {
     Abort,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Call {
     /// Comments in output file
     comments: Vec<String>,
@@ -553,7 +553,7 @@ impl Call {
     }
 
     /// Shortcut for adding a condition
-    pub fn if_condition<T: AsRef<str>>(mut self, condition: T, call: String) -> Self {
+    pub fn if_condition<T: AsRef<str>>(mut self, condition: T, call: Vec<Call>) -> Self {
         // Don't use always true conditions
         if !TRUE_CLASSES.iter().any(|c| c == &condition.as_ref()) {
             self.components
@@ -563,7 +563,7 @@ impl Call {
     }
 
     /// Shortcut for adding a condition
-    pub fn else_condition<T: AsRef<str>>(mut self, condition: T, call: String) -> Self {
+    pub fn else_condition<T: AsRef<str>>(mut self, condition: T, call: Vec<Call>) -> Self {
         // Don't use always true conditions
         if !FALSE_CLASSES.iter().any(|c| c == &condition.as_ref()) {
             // else if condition
@@ -599,10 +599,11 @@ impl Call {
                             format!(
                                 "$Class = {}\nif (Evaluate-Class $Class $LocalClasses $SystemClasses) {{{}\n}}",
                                 content.as_ref().unwrap(),
-                                call
+                                call.iter().map(|c| c.format()).collect::<Vec<String>>().join("\n  ")
                             )
                         },
-                        (CallType::Else(call), _) => format!("else {{{}\n}}", call),
+                        (CallType::Else(call), _) => format!("else {{{}\n}}",
+                        call.iter().map(|c| c.format()).collect::<Vec<String>>().join("\n")),
                         (_, Some(var)) => format!("{} = {}", var, content.as_ref().unwrap()),
                         (_, None) => content.as_ref().unwrap().to_owned()
                     };
@@ -750,15 +751,12 @@ impl Method {
                 .mode()
                 .sort();
         let prepare_parameters = Call::parameters_as_map("$param1", method_call_params.clone());
-        let mut method_call = Call::new();
-        method_call.components.push((CallType::MethodCall, Some(prepare_parameters.format())));
-        method_call.components.push((CallType::MethodCall, Some(
+        let  method_call =
                 Call::splatted_method_call(
                     "$call1",
                     "$param1",
                     method_call_params.clone()
-                ).format()
-        )));
+                );
 
 
         //let compute_method_call = Call::compute_method_call(
@@ -792,10 +790,9 @@ impl Method {
                     );
                     vec![
                         report_id,
-                        prepare_parameters,
                         Call::new()
-                            .if_condition(self.condition.clone(), method_call.format())
-                            .else_condition(&self.condition, na_report.format()),
+                            .if_condition(self.condition.clone(), vec![prepare_parameters, method_call])
+                            .else_condition(&self.condition, vec![na_report]),
                         // Call::method(Parameters::new()
                         //     .class_parameter(self.class_parameter.clone())
                         //     .message(&format!(
@@ -952,7 +949,7 @@ mod tests {
         );
         assert_eq!(
             Call::string("test", "plop")
-                .if_condition("debian", Call::new().comment("empty").format())
+                .if_condition("debian", vec![Call::new().comment("empty")])
                 .format(),
             r#"
   test = "plop"
