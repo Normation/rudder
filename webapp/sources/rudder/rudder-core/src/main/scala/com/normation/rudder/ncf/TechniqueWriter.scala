@@ -815,7 +815,7 @@ class DSCTechniqueWriter(
           } else {
             val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
             val disableReporting =
-              s"""-Report $$${if (call.disabledReporting) {"false" } else { "true" }}"""
+              s"""-Report:$$${if (call.disabledReporting) {"false" } else { "true" }}"""
 
 
             def canonifyCondition(methodCall: MethodCall) = {
