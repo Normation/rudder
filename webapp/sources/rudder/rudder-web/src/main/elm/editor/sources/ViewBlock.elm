@@ -94,6 +94,12 @@ showBlockTab model parentId block uiInfo techniqueUi =
                    li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ]
                  )
                osList
+        ubuntuLi = List.map (\ubuntuMinor ->
+                     let
+                       updatedCall = Block parentId { block | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
+                     in
+                       li [ onClick (MethodCallModified updatedCall) ] [ a [href "#" ] [ text (showUbuntuMinor ubuntuMinor) ] ]
+                   ) [All, ZeroFour, Ten]
         condition = block.condition
         updateConditionVersion = \f s ->
                       let
@@ -137,25 +143,47 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                             , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMajorVersion condition.os) ))
                                             , onInput (updateConditionVersion updateMajorVersion)
                                             , type_ "number", style "display" "inline-block", style "width" "auto"
-                                            , style "margin-left" "5px",  class "form-control", placeholder "Major version"
+                                            , style "margin-left" "5px", style "margin-top" "0",  class "form-control", placeholder "Major version"
                                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                             ] [] )
-                                    ( hasMajorMinorVersion condition.os)
+                                    ( hasMajorMinorVersion condition.os || isUbuntu condition.os )
                                  |> appendNodeConditional
                                     ( input [ readonly (not model.hasWriteRights)
                                             , value (Maybe.withDefault "" (Maybe.map String.fromInt (getMinorVersion condition.os) ))
                                             , onInput (updateConditionVersion updateMinorVersion), type_ "number"
                                             , style "display" "inline-block", style "width" "auto", class "form-control"
-                                            , style "margin-left" "5px", placeholder "Minor version"
+                                            , style "margin-left" "5px", style "margin-top" "0", placeholder "Minor version"
                                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                             ] [] )
                                     ( hasMajorMinorVersion condition.os )
+                                 |> appendChildConditional
+                                    ( element "div"
+                                        |> addStyle ("margin-left", "5px")
+                                        |> addClass "btn-group"
+                                        |> appendChildList
+                                           [ element "button"
+                                             |> addClass "btn btn-default dropdown-toggle"
+                                             |> addAttributeList
+                                                [ id "ubuntuMinor" , attribute  "data-toggle" "dropdown"
+                                                , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
+                                                , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                                ]
+                                             |> appendText  ((getUbuntuMinor condition.os) ++ " ")
+                                             |> appendChild  (element "span" |> addClass"caret")
+                                           , element "ul"
+                                             |> addClass "dropdown-menu"
+                                             |> addAttribute (attribute "aria-labelledby" "ubuntuMinor")
+                                             |> appendNodeList ubuntuLi
+                                           ]
+                                    )
+
+                                    ( isUbuntu condition.os )
                                  |> appendNodeConditional
                                     ( input [ readonly (not model.hasWriteRights)
                                             , value (Maybe.withDefault "" (Maybe.map String.fromInt (getVersion condition.os) ))
                                             , onInput  (updateConditionVersion updateVersion), type_ "number"
                                             , style "display" "inline-block", style "width" "auto", class "form-control"
-                                            , style "margin-left" "5px", placeholder "Version"
+                                            , style "margin-left" "5px", style "margin-top" "0", placeholder "Version"
                                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                             ] [] )
                                     ( hasVersion condition.os )
@@ -164,7 +192,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                             , value (Maybe.withDefault "" (Maybe.map String.fromInt (getSP condition.os) ))
                                             , onInput (updateConditionVersion updateSP), type_ "number"
                                             , style "display" "inline-block", style "width" "auto", class "form-control"
-                                            , style "margin-left" "5px", placeholder "Service pack"
+                                            , style "margin-left" "5px", style "margin-top" "0", placeholder "Service pack"
                                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                             ] [] )
                                     ( hasSP condition.os )
