@@ -359,10 +359,10 @@ object ComplianceData extends Loggable {
       } yield {
 
       val overrides = getOverridenDirectiveDetails(reports.overrides, directiveLib, allRules, None)
-      val directivesMode = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toSet
-      val (policyMode,explanation) = ComputePolicyMode.nodeModeOnRule(nodeInfo.policyMode, globalMode)(directivesMode)
+      val directivesMode = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode))
+      val (policyMode,explanation) = ComputePolicyMode.nodeModeOnRule(nodeInfo.policyMode, globalMode)(directivesMode.toSet)
 
-        val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
+        val details = getDirectivesComplianceDetails(aggregate.directives.values.toList, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode))
         NodeComplianceLine(
             nodeInfo
           , aggregate.compliance
@@ -409,10 +409,10 @@ object ComplianceData extends Loggable {
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap { _.policyMode }
       val details = getOverridenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules, None) ++
-                    getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
+                    getDirectivesComplianceDetails(aggregate.directives.values.toList, directiveLib, globalMode, ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode))
 
-      val directivesMode = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toSet
-      val (policyMode,explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode)
+      val directivesMode = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toList
+      val (policyMode,explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet)
       RuleComplianceLine (
           rule
         , rule.id
@@ -485,14 +485,14 @@ object ComplianceData extends Loggable {
     // restrict mode calcul to node really targetted by that rule
     val appliedNodes = groupLib.getNodeIds(rule.targets, allNodeInfos)
     val nodeModes = appliedNodes.flatMap(id => allNodeInfos.get(id).map(_.policyMode))
-    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(nodeModes, globalMode))
+    val lines = getDirectivesComplianceDetails(report.report.directives.values.toList, directiveLib, globalMode, ComputePolicyMode.directiveModeOnRule(nodeModes, globalMode))
 
     JsTableData(overrides ++ lines)
   }
 
   // From Node Point of view
   private[this] def getDirectivesComplianceDetails (
-      directivesReport : Set[DirectiveStatusReport]
+      directivesReport : List[DirectiveStatusReport]
     , directiveLib     : FullActiveTechniqueCategory
     , globalPolicyMode : GlobalPolicyMode
     , computeMode      : Option[PolicyMode]=> (String,String)
@@ -503,7 +503,7 @@ object ComplianceData extends Loggable {
     } yield {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion = directive.techniqueVersion
-      val components       =  getComponentsComplianceDetails(directiveStatus.components.toSet, true)
+      val components       =  getComponentsComplianceDetails(directiveStatus.components, true)
       val (policyMode,explanation) = computeMode(directive.policyMode)
       val directiveTags    = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine (
@@ -518,13 +518,13 @@ object ComplianceData extends Loggable {
       )
     }
 
-    directivesComplianceData.toList
+    directivesComplianceData
   }
   //////////////// Component Report ///////////////
 
   // From Node Point of view
   private[this] def getComponentsComplianceDetails (
-      components    : Set[ComponentStatusReport]
+      components    : List[ComponentStatusReport]
     , includeMessage: Boolean
   ) : JsTableData[ComponentComplianceLine] = {
     val componentsComplianceData = components.map {
@@ -532,17 +532,17 @@ object ComplianceData extends Loggable {
         BlockComplianceLine(
           component.componentName
           , component.compliance
-          , getComponentsComplianceDetails(component.subComponents.toSet, includeMessage)
+          , getComponentsComplianceDetails(component.subComponents, includeMessage)
           , component.reportingLogic
         )
       case component : ValueStatusReport =>
 
       val (noExpand, values) = if(!includeMessage) {
-        (true, getValuesComplianceDetails(component.componentValues.toSet))
+        (true, getValuesComplianceDetails(component.componentValues))
       } else {
         val noExpand  = component.componentValues.forall( x => x.componentValue == DEFAULT_COMPONENT_KEY)
 
-        (noExpand, getValuesComplianceDetails(component.componentValues.toSet))
+        (noExpand, getValuesComplianceDetails(component.componentValues))
       }
 
       ValueComplianceLine(
@@ -554,14 +554,14 @@ object ComplianceData extends Loggable {
       )
     }
 
-    JsTableData(componentsComplianceData.toList)
+    JsTableData(componentsComplianceData)
   }
 
   //////////////// Value Report ///////////////
 
   // From Node Point of view
   private[this] def getValuesComplianceDetails (
-      values  : Set[ComponentValueStatusReport]
+      values  : List[ComponentValueStatusReport]
   ) : JsTableData[ComponentValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
@@ -569,7 +569,6 @@ object ComplianceData extends Loggable {
       val severity = ReportType.getWorseType(value.messages.map( _.reportType)).severity
       val status = getDisplayStatusFromSeverity(severity)
       val key = value.componentValue
-      println(key)
       val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))
 
       ComponentValueComplianceLine(
@@ -581,7 +580,7 @@ object ComplianceData extends Loggable {
         , severity
       )
     }
-    JsTableData(valuesComplianceData.toList)
+    JsTableData(valuesComplianceData)
   }
 
    private[this] def getDisplayStatusFromSeverity(severity: String) : String = {
