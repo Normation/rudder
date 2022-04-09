@@ -13,13 +13,31 @@ function Cdt {
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"ee867477-8629-448f-85d5-c8ef33357c0f"
-  $class = "any.(debian)"
-  if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(File-Absent -Path "tmp" -componentName "File absent" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
-  } else {
-    _rudder_common_report_na -componentName "File absent" -componentKey "tmp" -message "Not applicable" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly
+  $common_params = @{
+    ClassPrefix = "tmp"
+    ComponentKey = "tmp"
+    ComponentName = "File absent"
+    PolicyMode = [Rudder.PolicyMode]::Enforce
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("debian")) {
+    $call_params = @{
+      Path = "tmp"
+      PolicyMode = [Rudder.PolicyMode]::Enforce
+    }
+    $call = File-Absent @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $local_context.merge($context)
+  }
+  else {
+    Rudder-Report-NA @common_params
   }
 }

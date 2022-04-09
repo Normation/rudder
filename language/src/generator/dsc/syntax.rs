@@ -439,7 +439,7 @@ impl Parameters {
     }
 
     pub fn method_call(mut self, call: &str) -> Self {
-        let parameter = Parameter::string(
+        let parameter = Parameter::raw(
             Some("MethodCall"),
             call,
             ParameterKind::MethodCall,
@@ -599,7 +599,11 @@ impl Call {
         Call::new_variable(result_variable).component(CallType::Variable, format!(
                     "{} @{}",
                     method_name,
-                    param_variable
+                    match param_variable.chars().next() {
+                        Some('$') => param_variable.chars().next().map(|c| &param_variable[c.len_utf8()..]).unwrap_or(""),
+                        Some(_)   => param_variable,
+                        None      => panic!("received an empty string to splat"),
+                    }
         ))
     }
 
@@ -874,7 +878,7 @@ impl Method {
                     .sort()
             ),
             Call::compute_method_call(result_context_name, compute_param_variable),
-            Call::merge_context("$local_context", result_context_name),
+            Call::merge_context("$localContext", result_context_name),
         ];
 
         let na_report = vec![
