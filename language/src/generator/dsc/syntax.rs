@@ -107,14 +107,17 @@ pub fn quoted(s: &str) -> String {
 pub enum ParameterKind {
     MethodName,
     ExtraReference,
+    Splatted,
     MethodCall,
     ClassParameter,
     MethodParameter,
     ComponentName,
     ComponentKey,
+    ClassPrefix,
     Message,
     ReportId,
     TechniqueName,
+    PolicyMode,
     Switch,
 }
 impl Default for ParameterKind {
@@ -123,17 +126,20 @@ impl Default for ParameterKind {
     }
 }
 
-const PARAMETER_ORDERING: [ParameterKind; 11] = [
+const PARAMETER_ORDERING: [ParameterKind; 14] = [
     ParameterKind::MethodName,
     ParameterKind::ExtraReference,
+    ParameterKind::Splatted,
     ParameterKind::MethodCall,
     ParameterKind::ClassParameter,
     ParameterKind::MethodParameter,
     ParameterKind::ComponentName,
     ParameterKind::ComponentKey,
+    ParameterKind::ClassPrefix,
     ParameterKind::Message,
     ParameterKind::ReportId,
     ParameterKind::TechniqueName,
+    ParameterKind::PolicyMode,
     ParameterKind::Switch,
 ];
 
@@ -318,6 +324,17 @@ impl Parameters {
         self
     }
 
+    pub fn class_prefix(mut self, value: &str) -> Self {
+        let parameter = Parameter::raw(
+            Some("ClassPrefix"),
+            value,
+            ParameterKind::ClassPrefix,
+            ParameterType::default(),
+        );
+        self.push(parameter);
+        self
+    }
+
     pub fn disable_reporting(mut self, value: bool) -> Self {
         let parameter = Parameter::raw(
             Some("report"),
@@ -329,11 +346,11 @@ impl Parameters {
         self
     }
 
-    pub fn mode(mut self) -> Self {
-        let parameter = Parameter::variable(
-            Some("AuditOnly"),
-            "AuditOnly",
-            ParameterKind::Switch,
+    pub fn mode(mut self, value: &str) -> Self {
+        let parameter = Parameter::raw(
+            Some("policyMode"),
+            if value == "audit" { "[Rudder.PolicyMode]::Audit" } else { "[Rudder.PolicyMode]::Enforce" },
+            ParameterKind::PolicyMode,
             ParameterType::default(),
         );
         self.push(parameter);
@@ -379,6 +396,22 @@ impl Parameters {
             name: None,
             value: name.to_string(),
             kind: ParameterKind::ExtraReference,
+            content_type: ParameterType::default(),
+        });
+        self
+    }
+
+    // Used to represent a splatted param: @param
+    pub fn splatted(mut self, name: &str) -> Self {
+        let hash_name = match name.chars().next() {
+            Some('$') => name.chars().next().map(|c| &name[c.len_utf8()..]).unwrap_or(""),
+            Some(_)   => name,
+            None      => panic!("received an empty string to splat"),
+        };
+        self.push(Parameter {
+            name: None,
+            value: format!("@{}", hash_name),
+            kind: ParameterKind::Splatted,
             content_type: ParameterType::default(),
         });
         self
@@ -455,6 +488,7 @@ pub enum CallType {
     Outcome,
     Log,
     Abort,
+    MergeContext,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -511,7 +545,17 @@ impl Call {
         Call::new_variable(name).component(CallType::Variable, value.as_ref())
     }
 
-    pub fn map(name: &str, content: &HashMap<String,String>, extra_ref: Option<String>) -> Self{
+    pub fn method(parameters: Parameters) -> Self {
+        Call::new_variable("$LocalClasses").component(
+            CallType::MethodCall,
+            format!(
+                "Merge-ClassContext $LocalClasses $({}).get_item(\"classes\")",
+                parameters
+            )
+        )
+    }
+
+    pub fn map(name: &str, content: &HashMap<String,String>, extra_ref: Option<String>) -> Self {
         let mut map_as_string = match extra_ref {
             None => "@{\n".to_string(),
             Some(i) => format!(
@@ -562,16 +606,16 @@ impl Call {
     pub fn report_na(parameters: Parameters) -> Self {
         Call::new().component(
             CallType::ReportNa,
-            format!("_rudder_common_report_na {}", parameters),
+            format!("Rudder-Report-NA {}", parameters),
         )
-    }
-
-    pub fn splatted_report_na(result_variable: &str, param_variable: &str) -> Self {
-        Call::splatted_method_call(result_variable, param_variable, "_rudder_common_report_na")
     }
 
     pub fn compute_method_call(result_variable: &str, param_variable: &str) -> Self {
         Call::splatted_method_call(result_variable, param_variable, "Compute-Method-Call")
+    }
+
+    pub fn merge_context(source_context: &str, context_to_merge: &str) -> Self {
+        Call::new().component(CallType::MergeContext, format!("{}.merge({})", source_context, context_to_merge))
     }
 
     pub fn abort(parameters: Parameters) -> Self {
@@ -789,48 +833,55 @@ impl Method {
         // Does the method have a real condition?
         let has_condition = !TRUE_CLASSES.iter().any(|c| c == &self.condition);
 
-        let report_id = Call::variable("$ReportId", format!("$ReportIdBase+\"{}\"", &self.id));
+        //Variable names
+        let call_result_variable = "$call";
+        let common_param_variable = "$common_params";
+        let call_param_variable = "$call_params";
+        let compute_param_variable = "$compute_params";
+        let result_context_name = "$context";
 
+        let report_id = Call::variable("$ReportId", format!("$ReportIdBase+\"{}\"", &self.id))
+                            .comment(format!("{:-^1$} #", "Method Call", 40));
         let common_params = Call::parameters_as_map(
-            "$common_param1",
+            common_param_variable,
             Parameters::new()
                 .component_name(&self.component)
                 .component_key(&self.class_parameter.value)
-                .disable_reporting(self.disable_reporting)
+            //    .disable_reporting(self.disable_reporting)
                 .technique_name()
                 .report_id()
-                .mode()
+                .mode("Enforce")
+                .class_prefix(&self.class_parameter.value)
                 .sort()
         );
         let method_call_params = Parameters::from(self.parameters.clone())
                 .method_name(&self.resource, &self.state, self.method_alias)
                 .class_parameter(self.class_parameter.clone())
-                .mode()
+                .mode("Enforce")
                 .sort();
         let method_call = vec![
-            Call::parameters_as_map("$param1", method_call_params.clone()),
+            Call::parameters_as_map(call_param_variable, method_call_params.clone()),
             Call::splatted_method_call(
-                "$call1",
-                "$param1",
+                call_result_variable,
+                call_param_variable,
                 &method_call_params.iter().find(|&x| x.kind == ParameterKind::MethodName).unwrap().value
             ),
             Call::parameters_as_map(
-                "$compute_param1",
+                compute_param_variable,
                 Parameters::new()
-                    .method_call("$call1")
-                    .extra_reference("$common_param1")
+                    .method_call(call_result_variable)
+                    .extra_reference(common_param_variable)
                     .sort()
             ),
-            Call::compute_method_call("$context1", "$compute_param1")
+            Call::compute_method_call(result_context_name, compute_param_variable),
+            Call::merge_context("$local_context", result_context_name),
         ];
 
         let na_report = vec![
-            Call::parameters_as_map(
-                "$param1",
+            Call::report_na(
                 Parameters::new()
-                    .message("Not applicable")
-            ),
-            Call::splatted_report_na("$context1", "param1")
+                    .splatted(common_param_variable)
+            )
         ];
 
         match self.supported {

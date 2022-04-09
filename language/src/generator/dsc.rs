@@ -566,8 +566,8 @@ impl Generator for DSC {
                             "$ReportIdBase",
                             "$reportId.Substring(0,$reportId.Length-1)",
                         ),
-                        Call::variable("$LocalClasses", "[Rudder.Context]::new()"),
-                        Call::variable("$ResourcesDir", "$PSScriptRoot + \"\\resources\""),
+                        Call::variable("$localContext", "[Rudder.Context]::new()"),
+                        Call::variable("$resourcesDir", "$PSScriptRoot + \"\\resources\""),
                     ]);
 
                 for methods in state.statements.iter().flat_map(|statement| {
