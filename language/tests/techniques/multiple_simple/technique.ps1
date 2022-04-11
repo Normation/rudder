@@ -9,22 +9,113 @@ function Multiple-Simple {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"3c1c7ff4-a4a2-4b1b-8c88-4a70b2ae3395"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "/tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "File absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "/tmp"
+    PolicyMode = $PolicyMode
+  }
+  $call = File-Absent @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"da4e48c9-f13b-4cf7-9fbe-9130b3a4a7f0"
-  _rudder_common_report_na -ComponentName "File check exists" -ComponentKey "/tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "File check exists"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"1c5237ee-67ff-4b4b-9b0c-71c3b5a77f15"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "/tmp" -ComponentName "File present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "File present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "/tmp"
+    PolicyMode = $PolicyMode
+  }
+  $call = File-Present @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"43bc93ec-df5d-4a35-8e1c-a60185c8fc1a"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Absent -Path "/tmp" -Recursive "false" -ComponentName "Directory absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "Directory absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "/tmp"
+    PolicyMode = $PolicyMode
+    Recursive = "false"
+  }
+  $call = Directory-Absent @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"a453d84c-06d3-4f03-8df8-7142b9316cb7"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Present -Path "/tmp" -ComponentName "Directory present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "Directory present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "/tmp"
+    PolicyMode = $PolicyMode
+  }
+  $call = Directory-Present @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"bc2b4696-130b-4f87-a65b-a6b0a7c14062"
-  _rudder_common_report_na -ComponentName "Directory check exists" -ComponentKey "/tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "/tmp"
+    ComponentKey = "/tmp"
+    ComponentName = "Directory check exists"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
 }

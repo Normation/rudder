@@ -9,20 +9,78 @@ function Stateless {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"b9f8a4d5-ea74-461b-9d0d-81575fa78cc6"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Permissions-Ntfs -Path "/var/test" -User "admin" -Rights "rxw" -Accesstype "Allow" -Propagationpolicy "ThisFolderOnly" -ComponentName "Permissions NTFS" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/var/test"
+    ComponentKey = "/var/test"
+    ComponentName = "Permissions NTFS"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Accesstype = "Allow"
+    Path = "/var/test"
+    PolicyMode = $PolicyMode
+    Propagationpolicy = "ThisFolderOnly"
+    Rights = "rxw"
+    User = "admin"
+  }
+  $call = Permissions-Ntfs @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"6912f9ff-27f8-42fb-9f38-bd330d64162a"
-  _rudder_common_report_na -ComponentName "Permissions (non recursive)" -ComponentKey "/file/path" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "/file/path"
+    ComponentKey = "/file/path"
+    ComponentName = "Permissions (non recursive)"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"9a29b174-d512-4534-b58c-7804a1ad990e"
-  _rudder_common_report_na -ComponentName "Audit from osquery" -ComponentKey "query;" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "query;"
+    ComponentKey = "query;"
+    ComponentName = "Audit from osquery"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"43697ece-b31e-4756-ae04-a47c8ab0034d"
-  _rudder_common_report_na -ComponentName "Monitoring template" -ComponentKey "vision" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "vision"
+    ComponentKey = "vision"
+    ComponentName = "Monitoring template"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"8594e7f6-2f7b-452c-9dac-9b29515797af"
-  _rudder_common_report_na -ComponentName "Monitoring parameter" -ComponentKey "paramname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "paramname"
+    ComponentKey = "paramname"
+    ComponentName = "Monitoring parameter"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
 }

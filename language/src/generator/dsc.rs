@@ -416,7 +416,7 @@ impl DSC {
                             // replace ${const.xx}
                             s.replace("$", "${const.dollar}")
                                 .replace("\\", "\\\\") // backslash escape
-                                .replace("\"", "\\\"") // quote escape
+                                .replace("\"", "`\"") // quote escape
                                 .replace("\\n", "${const.n}")
                                 .replace("\\r", "${const.r}")
                                 .replace("\\t", "${const.t}")

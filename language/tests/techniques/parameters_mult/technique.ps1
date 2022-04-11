@@ -9,20 +9,46 @@ function Param-Mult {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"bfe4005a-c854-4bea-a760-6343ee84bd5c"
-  $Class = "linux"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "target" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "target"
+    ComponentKey = "target"
+    ComponentName = "File absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("linux")) {
+    $call_params = @{
+      Path = "target"
+      PolicyMode = $PolicyMode
+    }
+    $call = File-Absent @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "target" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"fa34708e-80c0-4369-b1b6-276d4f0a481a"
-  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "openvpn" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "openvpn"
+    ComponentKey = "openvpn"
+    ComponentName = "Package absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
 }

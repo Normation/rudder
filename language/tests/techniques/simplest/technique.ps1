@@ -9,12 +9,30 @@ function Simplest {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"aeca6c93-47af-41ee-ba4a-8772f4ce7dd8"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "tmp"
+    ComponentKey = "tmp"
+    ComponentName = "File absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "tmp"
+    PolicyMode = $PolicyMode
+  }
+  $call = File-Absent @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
 }

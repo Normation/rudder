@@ -9,26 +9,60 @@ function Simple-Block {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"d58aec44-675b-48fd-985e-499ec4c5e525"
-  $Class = "debian"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Absent -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "tmp"
+    ComponentKey = "tmp"
+    ComponentName = "File absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("debian")) {
+    $call_params = @{
+      Path = "tmp"
+      PolicyMode = $PolicyMode
+    }
+    $call = File-Absent @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"7ba6a2ec-ebb5-4445-b7d4-9cec5a2e52a9"
-  $Class = "debian"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(File-Present -Path "tmp" -ComponentName "File absent" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "tmp"
+    ComponentKey = "tmp"
+    ComponentName = "File absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("debian")) {
+    $call_params = @{
+      Path = "tmp"
+      PolicyMode = $PolicyMode
+    }
+    $call = File-Present @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "File absent" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
 }

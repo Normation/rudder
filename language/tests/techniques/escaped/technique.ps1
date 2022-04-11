@@ -9,16 +9,52 @@ function Escaped {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"3316c616-faec-46e7-b7be-bd5463b47142"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "echo \"Hello de Lu\" > /tmp/myfile-${sys.host}.txt" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "echo `"Hello de Lu`" > /tmp/myfile-${sys.host}.txt"
+    ComponentKey = "echo `"Hello de Lu`" > /tmp/myfile-${sys.host}.txt"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Command = "echo `"Hello de Lu`" > /tmp/myfile-${sys.host}.txt"
+    PolicyMode = $PolicyMode
+  }
+  $call = Command-Execution @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"018d891b-9a63-4bf7-b90f-dfc123050b85"
-  _rudder_common_report_na -ComponentName "Command execution result" -ComponentKey "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair"
+    ComponentKey = "rpm -qi gpg-pubkey-\\*|grep -E ^Packager|grep Innoflair"
+    ComponentName = "Command execution result"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"00c8bb99-805c-4c43-ab58-f9df8eec99c3"
-  _rudder_common_report_na -ComponentName "File replace lines" -ComponentKey "/etc/default/grub" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "/etc/default/grub"
+    ComponentKey = "/etc/default/grub"
+    ComponentName = "File replace lines"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
 }

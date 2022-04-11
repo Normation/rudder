@@ -9,32 +9,111 @@ function Supported-Formats {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"929a286e-1fc0-4147-876e-5a009f162822"
-  _rudder_common_report_na -ComponentName "Condition once" -ComponentKey "cfengine_only" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "cfengine_only"
+    ComponentKey = "cfengine_only"
+    ComponentName = "Condition once"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"65a6abf0-52cc-47d3-a3d0-6470bca49734"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Present -Path "shared_cf_dsc" -ComponentName "Directory present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "shared_cf_dsc"
+    ComponentKey = "shared_cf_dsc"
+    ComponentName = "Directory present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Path = "shared_cf_dsc"
+    PolicyMode = $PolicyMode
+  }
+  $call = Directory-Present @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"2c88bb01-9178-4aa0-87b0-cbcbda5c8a71"
-  $Class = "windows"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Directory-Present -Path "shared_cf_dsc_condition" -ComponentName "Directory present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "shared_cf_dsc_condition"
+    ComponentKey = "shared_cf_dsc_condition"
+    ComponentName = "Directory present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("windows")) {
+    $call_params = @{
+      Path = "shared_cf_dsc_condition"
+      PolicyMode = $PolicyMode
+    }
+    $call = Directory-Present @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "Directory present" -ComponentKey "shared_cf_dsc_condition" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"062332fb-2b49-4386-8cfe-46dad2dbe92d"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Registry-Key-Present -Key "DSC_ONLY" -ComponentName "Registry key present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "DSC_ONLY"
+    ComponentKey = "DSC_ONLY"
+    ComponentName = "Registry key present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Key = "DSC_ONLY"
+    PolicyMode = $PolicyMode
+  }
+  $call = Registry-Key-Present @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"37a1055d-ee98-4b56-81a0-562134476acc"
-  $Class = "windows"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Registry-Key-Present -Key "IF_DSC_ONLY" -ComponentName "Registry key present" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "IF_DSC_ONLY"
+    ComponentKey = "IF_DSC_ONLY"
+    ComponentName = "Registry key present"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("windows")) {
+    $call_params = @{
+      Key = "IF_DSC_ONLY"
+      PolicyMode = $PolicyMode
+    }
+    $call = Registry-Key-Present @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "Registry key present" -ComponentKey "IF_DSC_ONLY" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
 }

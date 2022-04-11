@@ -11,12 +11,21 @@ function Parameters {
     [String]$TechniqueName,
     [Parameter(Mandatory=$True)]
     [String]$Paramtest,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"235915e6-7408-4750-a7ae-38983f12b670"
-  _rudder_common_report_na -ComponentName "Package absent" -ComponentKey "${paramtest}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "${paramtest}"
+    ComponentKey = "${paramtest}"
+    ComponentName = "Package absent"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
 }
