@@ -346,10 +346,14 @@ impl Parameters {
         self
     }
 
-    pub fn mode(mut self, value: &str) -> Self {
+    pub fn mode(mut self, value: Option<&str>) -> Self {
         let parameter = Parameter::raw(
             Some("policyMode"),
-            if value == "audit" { "[Rudder.PolicyMode]::Audit" } else { "[Rudder.PolicyMode]::Enforce" },
+            match value {
+                Some("audit") => "[Rudder.PolicyMode]::Audit",
+                Some("enforce") => "[Rudder.PolicyMode]::Enforce",
+                _  => "$PolicyMode",
+            },
             ParameterKind::PolicyMode,
             ParameterType::default(),
         );
@@ -854,14 +858,14 @@ impl Method {
             //    .disable_reporting(self.disable_reporting)
                 .technique_name()
                 .report_id()
-                .mode("Enforce")
+                .mode(None)
                 .class_prefix(&self.class_parameter.value)
                 .sort()
         );
         let method_call_params = Parameters::from(self.parameters.clone())
                 .method_name(&self.resource, &self.state, self.method_alias)
                 .class_parameter(self.class_parameter.clone())
-                .mode("Enforce")
+                .mode(None)
                 .sort();
         let method_call = vec![
             Call::parameters_as_map(call_param_variable, method_call_params.clone()),

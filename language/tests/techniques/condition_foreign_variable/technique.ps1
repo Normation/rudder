@@ -9,18 +9,35 @@ function Condition-Foreign-Variable {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"f2c8e8b2-43d0-4ce2-ace7-fe5ad3ac7a16"
-  $Class = "server_machine|group_sbu_cmcs__sles12_"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "chown -R ${owner}:${owner} ${path}" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "chown -R ${owner}:${owner} ${path}"
+    ComponentKey = "chown -R ${owner}:${owner} ${path}"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("server_machine|group_sbu_cmcs__sles12_")) {
+    $call_params = @{
+      Command = "chown -R ${owner}:${owner} ${path}"
+      PolicyMode = $PolicyMode
+    }
+    $call = Command-Execution @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "chown -R ${owner}:${owner} ${path}" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
 }

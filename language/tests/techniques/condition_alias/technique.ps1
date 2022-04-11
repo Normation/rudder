@@ -9,27 +9,60 @@ function Condition-Alias {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"8b575191-0ab0-4851-b05c-e7cde3726f05"
-
-  $class = "any.(SLES12)"
-  if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "pwd" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "pwd"
+    ComponentKey = "pwd"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("sles_12")) {
+    $call_params = @{
+      Command = "pwd"
+      PolicyMode = $PolicyMode
+    }
+    $call = Command-Execution @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "pwd" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"3a8f5707-a86a-4599-8c68-3dbbfd6f70a1"
-  $class = "any.(ubuntu_10_04)"
-  if (Evaluate-Class $class $local_classes $system_classes) {
-    $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "ls" -componentName "Command execution" -reportId $reportId -techniqueName $techniqueName -Report:$true -AuditOnly:$auditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "ls"
+    ComponentKey = "ls"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("ubuntu_10_04")) {
+    $call_params = @{
+      Command = "ls"
+      PolicyMode = $PolicyMode
+    }
+    $call = Command-Execution @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "Command execution" -ComponentKey "ls" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
 }

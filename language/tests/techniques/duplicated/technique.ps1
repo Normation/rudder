@@ -9,16 +9,70 @@ function Add-GSN-Users-To-Vboxusers-Group {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"cc8efd39-c24d-4074-9cf6-2d53b1c27788"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwcyrille" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/usr/sbin/usermod -a -G vboxusers nwcyrille"
+    ComponentKey = "/usr/sbin/usermod -a -G vboxusers nwcyrille"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Command = "/usr/sbin/usermod -a -G vboxusers nwcyrille"
+    PolicyMode = $PolicyMode
+  }
+  $call = Command-Execution @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"4b40dc15-5a5e-4a1e-a91d-0bc53a10b658"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nweric" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/usr/sbin/usermod -a -G vboxusers nweric"
+    ComponentKey = "/usr/sbin/usermod -a -G vboxusers nweric"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Command = "/usr/sbin/usermod -a -G vboxusers nweric"
+    PolicyMode = $PolicyMode
+  }
+  $call = Command-Execution @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"f3510d66-e96b-4f0b-91d4-9633ec7eec86"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "/usr/sbin/usermod -a -G vboxusers nwantoine" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "/usr/sbin/usermod -a -G vboxusers nwantoine"
+    ComponentKey = "/usr/sbin/usermod -a -G vboxusers nwantoine"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Command = "/usr/sbin/usermod -a -G vboxusers nwantoine"
+    PolicyMode = $PolicyMode
+  }
+  $call = Command-Execution @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
 }

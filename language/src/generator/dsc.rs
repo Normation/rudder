@@ -550,7 +550,7 @@ impl Generator for DSC {
                 );
                 // parameter is not mandatory (implicit)
                 // Switches should be put last
-                formatted_parameters.push("[Switch]$AuditOnly".to_owned());
+                formatted_parameters.push("[Rudder.PolicyMode]$PolicyMode".to_owned());
 
                 let fn_name = if state_name.fragment() == "technique" {
                     resource_name.to_owned()

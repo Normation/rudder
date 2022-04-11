@@ -9,7 +9,7 @@ function Cdt {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
@@ -21,21 +21,21 @@ function Cdt {
     ClassPrefix = "tmp"
     ComponentKey = "tmp"
     ComponentName = "File absent"
-    PolicyMode = [Rudder.PolicyMode]::Enforce
+    PolicyMode = $PolicyMode
     ReportId = $ReportId
     TechniqueName = $TechniqueName
   }
   if ($localContext.evaluate("debian")) {
     $call_params = @{
       Path = "tmp"
-      PolicyMode = [Rudder.PolicyMode]::Enforce
+      PolicyMode = $PolicyMode
     }
     $call = File-Absent @call_params
     $compute_params = $common_params + @{
       MethodCall = $call
     }
     $context = Compute-Method-Call @compute_params
-    $local_context.merge($context)
+    $localContext.merge($context)
   }
   else {
     Rudder-Report-NA @common_params

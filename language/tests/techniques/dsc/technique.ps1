@@ -9,14 +9,41 @@ function Technique-Dsc {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"58fc35d7-7277-49d9-a6f5-a3ecb715d694"
-  _rudder_common_report_na -ComponentName "Directory check exists" -ComponentKey "tmp" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+  $common_params = @{
+    ClassPrefix = "tmp"
+    ComponentKey = "tmp"
+    ComponentName = "Directory check exists"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  Rudder-Report-NA @common_params
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"c00d3129-f612-4087-84ea-c1ae9b98f9d8"
-  $LocalClasses = Merge-ClassContext $LocalClasses $(Command-Execution -Command "dsc" -ComponentName "Command execution" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+  $common_params = @{
+    ClassPrefix = "dsc"
+    ComponentKey = "dsc"
+    ComponentName = "Command execution"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  $call_params = @{
+    Command = "dsc"
+    PolicyMode = $PolicyMode
+  }
+  $call = Command-Execution @call_params
+  $compute_params = $common_params + @{
+    MethodCall = $call
+  }
+  $context = Compute-Method-Call @compute_params
+  $localContext.merge($context)
 }

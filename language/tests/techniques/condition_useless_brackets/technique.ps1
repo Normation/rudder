@@ -9,20 +9,39 @@ function Condition-Useless-Brackets {
     [String]$ReportId,
     [Parameter(Mandatory=$True)]
     [String]$TechniqueName,
-    [Switch]$AuditOnly
+    [Rudder.PolicyMode]$PolicyMode
   )
 
   $ReportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $LocalClasses = New-ClassContext
-  $ResourcesDir = $PSScriptRoot + "\resources"
+  $localContext = [Rudder.Context]::new()
+  $resourcesDir = $PSScriptRoot + "\resources"
+  # --------------Method Call--------------- #
   $ReportId = $ReportIdBase+"b75bd5d3-8304-4cd6-8689-2ba650c7c42a"
-  $Class = "!debian|linux|ubuntu.windows|linux|ubuntu"
-  if (Evaluate-Class $Class $LocalClasses $SystemClasses) {
-    $LocalClasses = Merge-ClassContext $LocalClasses $(Dsc-Built-In-Resource -Tag "tagname" -ScriptBlock @'
+  $common_params = @{
+    ClassPrefix = "tagname"
+    ComponentKey = "tagname"
+    ComponentName = "DSC built-in resource"
+    PolicyMode = $PolicyMode
+    ReportId = $ReportId
+    TechniqueName = $TechniqueName
+  }
+  if ($localContext.evaluate("!debian|linux|ubuntu.windows|linux|ubuntu")) {
+    $call_params = @{
+      PolicyMode = $PolicyMode
+      ResourceName = "file"
+      ScriptBlock = @'
 exists
-'@ -ResourceName "file" -ComponentName "DSC built-in resource" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly).get_item("classes")
+'@
+      Tag = "tagname"
+    }
+    $call = Dsc-Built-In-Resource @call_params
+    $compute_params = $common_params + @{
+      MethodCall = $call
+    }
+    $context = Compute-Method-Call @compute_params
+    $localContext.merge($context)
   }
   else {
-    _rudder_common_report_na -ComponentName "DSC built-in resource" -ComponentKey "tagname" -Message "Not applicable" -ReportId $ReportId -TechniqueName $TechniqueName -Report:$true -AuditOnly:$AuditOnly
+    Rudder-Report-NA @common_params
   }
 }
