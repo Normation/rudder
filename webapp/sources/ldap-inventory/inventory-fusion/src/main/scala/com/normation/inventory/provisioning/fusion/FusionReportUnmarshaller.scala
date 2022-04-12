@@ -1185,13 +1185,14 @@ class FusionReportUnmarshaller(
   }
 
   def processEnvironmentVariable(ev : NodeSeq) : Option[EnvironmentVariable] = {
-    optText(ev\"KEY")  match {
-    case None =>
-      InventoryProcessingLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
-      InventoryProcessingLogger.logEffect.debug(ev.toString())
-      None
-    case Some(key) =>
-      Some (
+    // we need to keep the key exactly as it is, see https://issues.rudder.io/issues/20984
+    (ev\"KEY").text match {
+      case null | "" =>
+        InventoryProcessingLogger.logEffect.debug("Ignoring entry Envs because tag KEY is empty")
+        InventoryProcessingLogger.logEffect.debug(ev.toString())
+        None
+      case key => // even accept only blank key, if the OS accepted it
+        Some (
           EnvironmentVariable (
               name = key
               , value = optText(ev\"VAL")
