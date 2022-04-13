@@ -435,6 +435,7 @@ trait RudderJsonDecoders {
  * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
  */
 class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
+
   import JsonResponseObjects._
   import JsonQueryObjects._
   import implicits._
@@ -444,16 +445,18 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
    * This is the root method to transform a JSON query into a Rest object.
    */
   def parseJson[A](req: Req)(implicit decoder: JsonDecoder[A]): PureResult[A] = {
-    if(req.json_?) {
-    // copied from `Req.forcedBodyAsJson`
-    def r = """; *charset=(.*)""".r
-    def r2 = """[^=]*$""".r
+    if (req.json_?) {
+      // copied from `Req.forcedBodyAsJson`
+      def r = """; *charset=(.*)""".r
+
+      def r2 = """[^=]*$""".r
+
       def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
-    // end copy
+      // end copy
 
       req.body match {
         case eb: EmptyBox => Left(Unexpected((eb ?~! "error when accessing request body").messageChain))
-        case Full(bytes)  => decoder.decodeJson(new String(bytes, charset)).left.map(Unexpected(_))
+        case Full(bytes) => decoder.decodeJson(new String(bytes, charset)).left.map(Unexpected(_))
       }
     } else {
       Left(Unexpected("Cannot parse non-JSON request as JSON; please check content-type."))
@@ -463,23 +466,26 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   /**
    * Utilities to extract values from params Map
    */
-  implicit class Extract(params: Map[String,List[String]]) {
+  implicit class Extract(params: Map[String, List[String]]) {
     def optGet(key: String): Option[String] = params.get(key).flatMap(_.headOption)
+
     def parse[A](key: String, decoder: JsonDecoder[A]): PureResult[Option[A]] = {
       optGet(key) match {
-        case None    => Right(None)
+        case None => Right(None)
         case Some(x) => decoder.decodeJson(x).map(Some(_)).left.map(Unexpected)
       }
     }
+
     def parse2[A](key: String, decoder: String => PureResult[A]): PureResult[Option[A]] = {
       optGet(key) match {
-        case None    => Right(None)
+        case None => Right(None)
         case Some(x) => decoder(x).map(Some(_))
       }
     }
+
     def parseString[A](key: String, decoder: String => Either[String, A]): PureResult[Option[A]] = {
       optGet(key) match {
-        case None    => Right(None)
+        case None => Right(None)
         case Some(x) => decoder(x).map(Some(_)).left.map(Inconsistency)
       }
     }
@@ -487,7 +493,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
 
 
   def extractDirective(req: Req): PureResult[JQDirective] = {
-    if(req.json_?) {
+    if (req.json_?) {
       parseJson[JQDirective](req)
     } else {
       extractDirectiveFromParams(req.params)
@@ -495,7 +501,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   }
 
   def extractRule(req: Req): PureResult[JQRule] = {
-    if(req.json_?) {
+    if (req.json_?) {
       parseJson[JQRule](req)
     } else {
       extractRuleFromParams(req.params)
@@ -503,7 +509,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   }
 
   def extractRuleCategory(req: Req): PureResult[JQRuleCategory] = {
-    if(req.json_?) {
+    if (req.json_?) {
       parseJson[JQRuleCategory](req)
     } else {
       extractRuleCategoryFromParam(req.params)
@@ -511,7 +517,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   }
 
   def extractGlobalParam(req: Req): PureResult[JQGlobalParameter] = {
-    if(req.json_?) {
+    if (req.json_?) {
       parseJson[JQGlobalParameter](req)
     } else {
       extractGlobalParamFromParams(req.params)
@@ -519,24 +525,24 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   }
 
   def extractGroup(req: Req): PureResult[JQGroup] = {
-    if(req.json_?) {
+    if (req.json_?) {
       parseJson[JQGroup](req)
     } else {
       extractGroupFromParams(req.params)
     }
   }
 
-  def extractRuleFromParams(params: Map[String,List[String]]) : PureResult[JQRule] = {
+  def extractRuleFromParams(params: Map[String, List[String]]): PureResult[JQRule] = {
     for {
-      id               <- params.parseString("id"  , RuleId.parse)
-      enabled          <- params.parse("enabled"   , JsonDecoder[Boolean])
-      directives       <- params.parse("directives", JsonDecoder[Set[DirectiveId]])
-      target           <- params.parse("targets"   , JsonDecoder[Set[JRRuleTarget]])
-      tags             <- params.parse("tags"      , JsonDecoder[Tags])
-      source           <- params.parseString("source"    , RuleId.parse)
+      id <- params.parseString("id", RuleId.parse)
+      enabled <- params.parse("enabled", JsonDecoder[Boolean])
+      directives <- params.parse("directives", JsonDecoder[Set[DirectiveId]])
+      target <- params.parse("targets", JsonDecoder[Set[JRRuleTarget]])
+      tags <- params.parse("tags", JsonDecoder[Tags])
+      source <- params.parseString("source", RuleId.parse)
     } yield {
       JQRule(
-          id
+        id
         , params.optGet("displayName")
         , params.optGet("category")
         , params.optGet("shortDescription")
@@ -550,9 +556,9 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
-  def extractRuleCategoryFromParam(params: Map[String,List[String]]): PureResult[JQRuleCategory] = {
+  def extractRuleCategoryFromParam(params: Map[String, List[String]]): PureResult[JQRuleCategory] = {
     Right(JQRuleCategory(
-        params.optGet("name")
+      params.optGet("name")
       , params.optGet("description")
       , params.optGet("parent")
       , params.optGet("id")
@@ -560,20 +566,20 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   }
 
 
-  def extractDirectiveFromParams(params: Map[String,List[String]]) : PureResult[JQDirective] = {
+  def extractDirectiveFromParams(params: Map[String, List[String]]): PureResult[JQDirective] = {
 
     for {
-      id         <- params.parseString("id", DirectiveId.parse)
-      enabled    <- params.parse("enabled"          , JsonDecoder[Boolean])
-      priority   <- params.parse("priority"         , JsonDecoder[Int])
-      parameters <- params.parse("parameters"       , JsonDecoder[Map[String, JQDirectiveSection]])
-      policyMode <- params.parse2("policyMode"      , PolicyMode.parseDefault(_))
-      tags       <- params.parse("tags"             , JsonDecoder[Tags])
-      tv         <- params.parse2("techniqueVersion", TechniqueVersion.parse(_).left.map(Inconsistency(_)))
-      source     <- params.parseString("source"           , DirectiveId.parse)
+      id <- params.parseString("id", DirectiveId.parse)
+      enabled <- params.parse("enabled", JsonDecoder[Boolean])
+      priority <- params.parse("priority", JsonDecoder[Int])
+      parameters <- params.parse("parameters", JsonDecoder[Map[String, JQDirectiveSection]])
+      policyMode <- params.parse2("policyMode", PolicyMode.parseDefault(_))
+      tags <- params.parse("tags", JsonDecoder[Tags])
+      tv <- params.parse2("techniqueVersion", TechniqueVersion.parse(_).left.map(Inconsistency(_)))
+      source <- params.parseString("source", DirectiveId.parse)
     } yield {
       JQDirective(
-          id
+        id
         , params.optGet("displayName")
         , params.optGet("shortDescription")
         , params.optGet("longDescription")
@@ -589,24 +595,24 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
-  def extractGlobalParamFromParams(params: Map[String,List[String]]) : PureResult[JQGlobalParameter] = {
+  def extractGlobalParamFromParams(params: Map[String, List[String]]): PureResult[JQGlobalParameter] = {
     for {
-      value       <- params.parse2("value"      , GenericProperty.parseValue(_))
+      value <- params.parse2("value", GenericProperty.parseValue(_))
       inheritMode <- params.parse2("inheritMode", InheritMode.parseString(_))
     } yield {
       JQGlobalParameter(params.optGet("id"), value, params.optGet("description"), inheritMode)
     }
   }
 
-  def extractGroupFromParams(params : Map[String,List[String]]) : PureResult[JQGroup] = {
+  def extractGroupFromParams(params: Map[String, List[String]]): PureResult[JQGroup] = {
     for {
-      enabled     <- params.parse ("enabled"   , JsonDecoder[Boolean])
-      dynamic     <- params.parse ("dynamic"   , JsonDecoder[Boolean])
-      query       <- params.parse2("query"     , queryParser.lex(_).toPureResult)
-      properties  <- params.parse ("properties", JsonDecoder[List[GroupProperty]])
+      enabled <- params.parse("enabled", JsonDecoder[Boolean])
+      dynamic <- params.parse("dynamic", JsonDecoder[Boolean])
+      query <- params.parse2("query", queryParser.lex(_).toPureResult)
+      properties <- params.parse("properties", JsonDecoder[List[GroupProperty]])
     } yield {
       JQGroup(
-          params.optGet("id")
+        params.optGet("id")
         , params.optGet("displayName")
         , params.optGet("description")
         , properties
@@ -619,6 +625,21 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractComplianceLevel(params: Map[String, List[String]]): PureResult[Option[Int]] = {
+    for {
+      level <- params.parse("level", JsonDecoder[Int])
+    } yield {
+      level
+    }
+  }
+
+  def extractPercentPrecision(params: Map[String, List[String]]): PureResult[Option[Int]] = {
+    for {
+      precision <- params.parse("precision", JsonDecoder[Int])
+    } yield {
+      precision
+    }
+  }
 }
 
 

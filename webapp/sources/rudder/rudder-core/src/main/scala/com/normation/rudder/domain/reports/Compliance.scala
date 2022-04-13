@@ -35,17 +35,13 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.rest.data
+package com.normation.rudder.domain.reports
 
-import net.liftweb.json._
-import com.normation.rudder.domain.reports._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonAST
-import com.normation.rudder.reports.ComplianceModeName
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.policies.{DirectiveId, RuleId}
+import com.normation.rudder.reports.ComplianceModeName
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 
 
 
@@ -506,7 +502,7 @@ object JsonCompliance {
 
   }
 
-  private[this] def statusDisplayName(r: ReportType): String = {
+  def statusDisplayName(r: ReportType): String = {
     import ReportType._
 
     r match {
@@ -534,7 +530,7 @@ object JsonCompliance {
    * the semantic of unexpected / missing and no answer is not clear at all.
    *
    */
-  private[this] def percents(c: ComplianceLevel, precision: Int): Map[String, Double] = {
+  def percents(c: ComplianceLevel, precision: Int): Map[String, Double] = {
     import ReportType._
 
     //we want at most `precision` decimals

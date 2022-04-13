@@ -42,6 +42,7 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPr
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.cfclerk.domain.Technique
 import com.normation.inventory.domain.RuddercTarget
+import com.normation.rudder.apidata.JsonResponseObjects.{JRByRuleByNodeByDirectiveByComponentCompliance, JRByRuleByNodeByDirectiveCompliance, JRByRuleByNodeCompliance, JRByRuleComponentCompliance, JRByRuleDirectiveCompliance, JRByRuleNodeCompliance, JRComponentValueStatusReport, JRMessageStatusReport}
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.rule.category.RuleCategory
@@ -64,6 +65,8 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.queries.ResultTransformation
+import com.normation.rudder.domain.reports.JsonCompliance.statusDisplayName
+import com.normation.rudder.domain.reports.{BlockStatusReport, ByRuleBlockCompliance, ByRuleByNodeByDirectiveByBlockCompliance, ByRuleByNodeByDirectiveByComponentCompliance, ByRuleByNodeByDirectiveByValueCompliance, ByRuleByNodeByDirectiveCompliance, ByRuleByNodeCompliance, ByRuleComponentCompliance, ByRuleDirectiveCompliance, ByRuleNodeCompliance, ByRuleRuleCompliance, ByRuleValueCompliance, ComplianceLevel, ComponentStatusReport, ComponentValueStatusReport, DirectiveStatusReport, JsonCompliance, MessageStatusReport, ValueStatusReport}
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.GenericMethod
@@ -692,6 +695,317 @@ object JsonResponseObjects {
   // used to encode RuddercTargets in settings into an json array of strings
   final case class JRRuddercTargets(values: Set[RuddercTarget])
 
+  // Compliance part
+  /*
+  final case class JRComplianceLevel(
+      pending           : Int = 0
+    , success           : Int = 0
+    , repaired          : Int = 0
+    , error             : Int = 0
+    , unexpected        : Int = 0
+    , missing           : Int = 0
+    , noAnswer          : Int = 0
+    , notApplicable     : Int = 0
+    , reportsDisabled   : Int = 0
+    , compliant         : Int = 0
+    , auditNotApplicable: Int = 0
+    , nonCompliant      : Int = 0
+    , auditError        : Int = 0
+    , badPolicyMode     : Int = 0
+  )
+
+  object JRComplianceLevel {
+    def fromComplianceLevel(cl: ComplianceLevel) = {
+      cl.into[JRComplianceLevel]
+        .enableBeanGetters
+        .transform
+    }
+  }
+  final case class JRMessageStatusReport(
+      reportType: String
+    , message   : Option[String]
+  )
+
+  object JRMessageStatusReport {
+    def fromMessageStatusReport(msr: MessageStatusReport) = {
+      msr.into[JRMessageStatusReport]
+        .enableBeanGetters
+        .withFieldComputed(_.reportType, _.reportType.severity)
+        .transform
+    }
+  }
+  */
+
+  final case class JRMessageStatusReport(
+      status         : String
+    , message        : Option[String]
+  )
+
+  object JRMessageStatusReport {
+    def fromMessageStatusReport(msr: MessageStatusReport) = {
+      JRMessageStatusReport(
+          statusDisplayName(msr.reportType)
+        , msr.message
+      )
+    }
+  }
+  final case class JRComponentValueStatusReport(
+      value          : String
+    , reports        : Seq[JRMessageStatusReport]
+  )
+
+  object JRComponentValueStatusReport {
+    def fromComponentValueStatusReport(cvsr: ComponentValueStatusReport, level: Int) = {
+      JRComponentValueStatusReport(
+          cvsr.componentValue
+        , cvsr.messages.map(JRMessageStatusReport.fromMessageStatusReport(_))
+      )
+    }
+  }
+  /*
+    sealed trait JRStatusReport {
+      def compliance : JRComplianceLevel
+    }
+
+    sealed trait JRComponentStatusReport extends JRStatusReport {
+      def componentName: String
+      def status: String
+    }
+
+    object JRComponentStatusReport {
+      def fromComponentStatusReport(csr: ComponentStatusReport) : JRComponentStatusReport = {
+        csr match {
+          case a: BlockStatusReport => JRBlockStatusReport.fromBlockStatusReport(a)
+          case a: ValueStatusReport => JRValueStatusReport.fromValueStatusReport(a)
+        }
+      }
+    }
+
+    final case class JRValueStatusReport(
+        componentName      : String
+      , componentValues    : Map[String, JRComponentValueStatusReport]
+      , status             : String
+      , compliance         : JRComplianceLevel
+    ) extends JRComponentStatusReport
+
+    object JRValueStatusReport {
+      def fromValueStatusReport(vsr: ValueStatusReport) = {
+        vsr.into[JRValueStatusReport]
+          .enableBeanGetters
+          .withFieldComputed(_.componentValues, _.componentValues.map{ case (k,v) => (k, JRComponentValueStatusReport.fromComponentValueStatusReport(v))})
+          .withFieldComputed(_.status, _.status.severity)
+          .withFieldComputed(_.compliance, x => JRComplianceLevel.fromComplianceLevel(x.compliance))
+          .transform
+      }
+    }
+
+    final case class JRBlockStatusReport (
+        componentName : String
+      , reportingLogic: String
+      , subComponents : List[JRComponentStatusReport]
+      , status        : String
+      , compliance    : JRComplianceLevel
+    ) extends JRComponentStatusReport
+
+    object JRBlockStatusReport {
+      def fromBlockStatusReport(bsr: BlockStatusReport): JRBlockStatusReport = {
+        JRBlockStatusReport(
+            bsr.componentName
+          , bsr.reportingLogic.value
+          , bsr.subComponents.map { _ match {
+            case a: BlockStatusReport => fromBlockStatusReport(a)
+            case a: ValueStatusReport => JRValueStatusReport.fromValueStatusReport(a)
+          }}
+          , bsr.status.severity
+          , JRComplianceLevel.fromComplianceLevel(bsr.compliance)
+        )
+      }
+    }
+
+    final case class JRDirectiveStatusReport(
+        directiveId: String
+      , components : Map[String, JRComponentStatusReport]
+      , compliance : JRComplianceLevel
+    ) extends JRStatusReport
+
+    object JRDirectiveStatusReport {
+      def fromDirectiveStatusReport(dsr: DirectiveStatusReport) = {
+        JRDirectiveStatusReport(
+            dsr.directiveId.serialize
+          , dsr.components.map{ case (k, v) => (k, JRComponentStatusReport.fromComponentStatusReport(v))}
+          , JRComplianceLevel.fromComplianceLevel(dsr.compliance)
+        )
+      }
+    }
+    */
+
+  final case class JRReportType(
+      status           : String
+    , value            : Double
+  )
+
+  object JRReportType {
+    def fromMap(percents: Map[String, Double]) = {
+      percents.map{ case (k, v) => JRReportType(k, v) }.toSeq
+    }
+  }
+  final case class JRByRuleNodeCompliance(
+      id               : String
+    , name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+    , values           : Option[Seq[JRComponentValueStatusReport]]
+  )
+
+  object JRByRuleNodeCompliance {
+    def fromByRuleNodeCompliance(brnc: ByRuleNodeCompliance, level: Int, precision: Int) = {
+      JRByRuleNodeCompliance(
+          brnc.id.value
+        , brnc.name
+        , brnc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brnc.compliance, precision))
+        , if (level < 5) None
+          else Some(brnc.values.map(JRComponentValueStatusReport.fromComponentValueStatusReport(_, level)))
+      )
+    }
+  }
+  final case class JRByRuleComponentCompliance(
+      name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+   // , components       : Option[Seq[JRByRuleComponentCompliance]]
+    , nodes            : Option[Seq[JRByRuleNodeCompliance]]
+  )
+
+  object JRByRuleComponentCompliance {
+    def fromByRuleComponentCompliance(brcc: ByRuleComponentCompliance, level: Int, precision: Int) = {
+      JRByRuleComponentCompliance(
+          brcc.name
+        , brcc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brcc.compliance, precision))
+        /* , brcc match {
+             case component : ByRuleBlockCompliance => Some(component.subComponents.map(fromByRuleComponentCompliance(_, level, precision)))
+             case _ => None
+           }*/
+         , if (level < 4) None
+           else brcc match {
+                  case component: ByRuleValueCompliance => Some(component.nodes.map(JRByRuleNodeCompliance.fromByRuleNodeCompliance(_, level, precision)))
+                  case _ => None
+         }
+      )
+    }
+  }
+  final case class JRByRuleDirectiveCompliance(
+      id               : String
+    , name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+    , components       : Option[Seq[JRByRuleComponentCompliance]]
+  )
+
+  object JRByRuleDirectiveCompliance {
+    def fromByRuleDirectiveCompliance(brdc: ByRuleDirectiveCompliance, level: Int, precision: Int) = {
+      JRByRuleDirectiveCompliance(
+          brdc.id.serialize
+        , brdc.name
+        , brdc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brdc.compliance, precision))
+        , if (level < 3) None else Some(brdc.components.map(JRByRuleComponentCompliance.fromByRuleComponentCompliance(_, level, precision)))
+      )
+    }
+  }
+
+  final case class JRByRuleRuleCompliance(
+      id               : String
+    , name             : String
+    , compliance       : Double
+    , mode             : String
+    , complianceDetails: Seq[JRReportType]
+    , directives       : Option[Seq[JRByRuleDirectiveCompliance]]
+    , nodes            : Option[Seq[JRByRuleByNodeCompliance]]
+  )
+  object JRByRuleRuleCompliance {
+    def fromByRuleRuleCompliance(brrc : ByRuleRuleCompliance, level: Int, precision: Int) = {
+      JRByRuleRuleCompliance(
+          brrc.id.serialize
+        , brrc.name
+        , brrc.compliance.withoutPending.computePercent().compliance
+        , brrc.mode.name
+        , JRReportType.fromMap(JsonCompliance.percents(brrc.compliance, precision))
+        , if (level < 2) None else Some(brrc.directives.map(JRByRuleDirectiveCompliance.fromByRuleDirectiveCompliance(_, level, precision)))
+        , if (level < 2) None else Some(brrc.nodes.map(JRByRuleByNodeCompliance.fromByRuleByNodeCompliance(_, level, precision)))
+
+      )
+    }
+  }
+
+  case class JRByRuleByNodeCompliance(
+      id               : String
+    , name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+    , directives       : Option[Seq[JRByRuleByNodeByDirectiveCompliance]]
+  )
+
+  object JRByRuleByNodeCompliance {
+    def fromByRuleByNodeCompliance(brbnc: ByRuleByNodeCompliance, level: Int, precision: Int) = {
+      JRByRuleByNodeCompliance(
+          brbnc.id.value
+        , brbnc.name
+        , brbnc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brbnc.compliance, precision))
+        , if (level < 3) None else Some(brbnc.directives.map(JRByRuleByNodeByDirectiveCompliance.fromByRuleByNodeByDirectiveCompliance(_, level, precision)))
+      )
+    }
+  }
+
+  final case class JRByRuleByNodeByDirectiveCompliance(
+      id               : String
+    , name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+    , components       : Option[Seq[JRByRuleByNodeByDirectiveByComponentCompliance]]
+  )
+
+  object JRByRuleByNodeByDirectiveCompliance {
+    def fromByRuleByNodeByDirectiveCompliance(brbdc: ByRuleByNodeByDirectiveCompliance, level: Int, precision: Int) = {
+      JRByRuleByNodeByDirectiveCompliance(
+          brbdc.id.serialize
+        , brbdc.name
+        , brbdc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brbdc.compliance, precision))
+        , if (level < 4) None else Some(brbdc.components.map(JRByRuleByNodeByDirectiveByComponentCompliance.fromByRuleByNodeByDirectiveByComponentCompliance(_, level, precision)))
+      )
+    }
+  }
+
+  final case class JRByRuleByNodeByDirectiveByComponentCompliance(
+      name             : String
+    , compliance       : Double
+    , complianceDetails: Seq[JRReportType]
+  //  , components       : Option[Seq[JRByRuleByNodeByDirectiveByComponentCompliance]]
+    , values           : Option[Seq[JRComponentValueStatusReport]]
+  )
+
+  object JRByRuleByNodeByDirectiveByComponentCompliance {
+    def fromByRuleByNodeByDirectiveByComponentCompliance(brbnbdbcc: ByRuleByNodeByDirectiveByComponentCompliance, level: Int, precision: Int):JRByRuleByNodeByDirectiveByComponentCompliance = {
+      JRByRuleByNodeByDirectiveByComponentCompliance(
+          brbnbdbcc.name
+        , brbnbdbcc.compliance.withoutPending.computePercent().compliance
+        , JRReportType.fromMap(JsonCompliance.percents(brbnbdbcc.compliance, precision))
+      /*  , brbnbdbcc match {
+          case component : ByRuleByNodeByDirectiveByBlockCompliance => Some(component.subComponents.map(fromByRuleByNodeByDirectiveByComponentCompliance(_, level, precision)))
+          case _ => None
+        }*/
+        , if (level < 5) None
+          else brbnbdbcc match {
+            case component: ByRuleByNodeByDirectiveByValueCompliance => Some(component.values.map(JRComponentValueStatusReport.fromComponentValueStatusReport(_, level)))
+            case _ => None
+          }
+      )
+    }
+  }
+
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
@@ -790,5 +1104,29 @@ trait RudderJsonEncoders {
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 
   implicit val ruddercTargetsEncoder: JsonEncoder[JRRuddercTargets] = JsonEncoder[List[String]].contramap[JRRuddercTargets](_.values.map(_.name).toList.sorted)
+
+
+
+
+
+  implicit val JRReportTypeEncoder: JsonEncoder[JRReportType] = DeriveJsonEncoder.gen
+  implicit val messageStatusReport: JsonEncoder[JRMessageStatusReport] = DeriveJsonEncoder.gen
+  implicit val componentValueStatusReport: JsonEncoder[JRComponentValueStatusReport] = DeriveJsonEncoder.gen
+  implicit val byRuleNodeCompliance: JsonEncoder[JRByRuleNodeCompliance] = DeriveJsonEncoder.gen
+  implicit lazy val optSeqJRByRuleComponentCompliance: JsonEncoder[Option[Seq[JRByRuleComponentCompliance]]] =  DeriveJsonEncoder.gen
+
+  implicit lazy val byRuleComponentCompliance: JsonEncoder[JRByRuleComponentCompliance] = DeriveJsonEncoder.gen
+  implicit val byRuleDirectiveCompliance: JsonEncoder[JRByRuleDirectiveCompliance] = DeriveJsonEncoder.gen
+
+
+  implicit lazy val byRuleByNodeByDirectiveByComponentCompliance: JsonEncoder[JRByRuleByNodeByDirectiveByComponentCompliance] = DeriveJsonEncoder.gen
+  implicit val byRuleByNodeByDirectiveCompliance: JsonEncoder[JRByRuleByNodeByDirectiveCompliance] = DeriveJsonEncoder.gen
+  implicit val byRuleByNodeCompliance: JsonEncoder[JRByRuleByNodeCompliance] = DeriveJsonEncoder.gen
+
+
+
+
+
+  implicit val byRuleRuleComplianceEncoder: JsonEncoder[JRByRuleRuleCompliance] = DeriveJsonEncoder.gen
 }
 

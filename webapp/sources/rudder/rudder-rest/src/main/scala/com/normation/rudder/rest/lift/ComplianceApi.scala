@@ -39,10 +39,10 @@ package com.normation.rudder.rest.lift
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.{Directive, DirectiveId, Rule, RuleId}
-import com.normation.rudder.domain.reports.{ComplianceLevel, ComponentStatusReport, DirectiveStatusReport}
+import com.normation.rudder.domain.reports.{BlockStatusReport, ByNodeDirectiveCompliance, ByNodeNodeCompliance, ByNodeRuleCompliance, ByRuleBlockCompliance, ByRuleComponentCompliance, ByRuleDirectiveCompliance, ByRuleNodeCompliance, ByRuleRuleCompliance, ByRuleValueCompliance, ComplianceLevel, ComponentStatusReport, DirectiveStatusReport, ValueStatusReport}
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.zio.currentTimeMillis
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.logger.{TimingDebugLogger, TimingDebugLoggerPure}
 import com.normation.rudder.repository.{FullActiveTechnique, RoDirectiveRepository, RoNodeGroupRepository, RoRuleRepository}
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
@@ -57,20 +57,25 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
-import com.normation.rudder.domain.reports.BlockStatusReport
-import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.JsonResponseObjects.JRByRuleRuleCompliance
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits.byRuleRuleComplianceEncoder
+import com.normation.rudder.domain.reports
+import com.normation.rudder.rest.implicits._
 import zio.syntax._
 
 import scala.collection.immutable
 
 class ComplianceApi(
     restExtractorService: RestExtractorService
+  , zioJsonExtractor    : ZioJsonExtractor
   , complianceService   : ComplianceAPIService
+  , complianceServiceV14: ComplianceAPIService14
 ) extends LiftApiModuleProvider[API] {
 
-  import JsonCompliance._
+  import com.normation.rudder.domain.reports.JsonCompliance._
 
   def schemas = API
 
@@ -85,7 +90,7 @@ class ComplianceApi(
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => e match {
         case API.GetRulesCompliance   => GetRules
-        case API.GetRulesComplianceId => GetRuleId
+        case API.GetRulesComplianceId =>  ChooseApiN(GetRuleId, GetRuleIdV14)
         case API.GetNodesCompliance   => GetNodes
         case API.GetNodeComplianceId  => GetNodeId
         case API.GetGlobalCompliance  => GetGlobal
@@ -126,7 +131,7 @@ class ComplianceApi(
     }
   }
 
-  object GetRuleId extends LiftApiModule {
+  object GetRuleId extends LiftApiModuleString {
     val schema = API.GetRulesComplianceId
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, ruleId: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -142,7 +147,11 @@ class ComplianceApi(
         if(version.value <= 6) {
           rule.toJsonV6
         } else {
-          rule.toJson(level.getOrElse(10), precision.getOrElse(2)) //by default, all details are displayed
+          val t1           = System.currentTimeMillis
+          val machin = rule.toJson(level.getOrElse(10), precision.getOrElse(2)) //by default, all details are displayed
+          val t2            = System.currentTimeMillis
+          TimingDebugLogger.trace(s"getRuleCompliance - getting  rule.toJson in ${t2 - t1} ms")
+machin
         }
       }) match {
         case Full(rule) =>
@@ -154,6 +163,21 @@ class ComplianceApi(
       }
     }
   }
+
+  object GetRuleIdV14 extends LiftApiModuleString {
+    val schema = API.GetRulesComplianceId
+    def process(version: ApiVersion, path: ApiPath, ruleId: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+
+      (for {
+        level     <- zioJsonExtractor.extractComplianceLevel(req.params).toIO
+        precision <- zioJsonExtractor.extractPercentPrecision(req.params).toIO
+        id        <- RuleId.parse(ruleId).toIO
+        rule      <- complianceServiceV14.getRuleCompliance(id, level, precision)
+      } yield rule).toLiftResponseOne(params, schema, s => Some(s.id))
+    }
+  }
+
 
   object GetNodes extends LiftApiModule0 {
     val schema = API.GetNodesCompliance
@@ -235,19 +259,36 @@ class ComplianceApi(
   }
 }
 
+class ComplianceAPIService14(
+    override val rulesRepo       : RoRuleRepository
+  , override val nodeInfoService : NodeInfoService
+  , override val nodeGroupRepo   : RoNodeGroupRepository
+  , override val reportingService: ReportingService
+  , override val directiveRepo   : RoDirectiveRepository
+  , override val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
+) extends ComplianceAPIMethod {
+  def getRuleCompliance(ruleId: RuleId, level: Option[Int], precision: Option[Int]): IOResult[JRByRuleRuleCompliance] = {
+    for {
+      t1      <- currentTimeMillis
+      rule    <- rulesRepo.get(ruleId)
+      reports <- getByRulesCompliance(Seq(rule), level)
+      report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.serialize}'")
+      t2      <- currentTimeMillis
+      _       <- TimingDebugLoggerPure.trace(s"getRuleCompliance - getting  ByRuleRuleCompliance in ${t2 - t1} ms")
+    } yield {
+      JRByRuleRuleCompliance.fromByRuleRuleCompliance(report, level.getOrElse(10), precision.getOrElse(2))
+    }
+  }
+}
 
-/**
- * The class in charge of getting and calculating
- * compliance for all rules/nodes/directives.
- */
-class ComplianceAPIService(
-    rulesRepo       : RoRuleRepository
-  , nodeInfoService : NodeInfoService
-  , nodeGroupRepo   : RoNodeGroupRepository
-  , reportingService: ReportingService
-  , directiveRepo   : RoDirectiveRepository
-  , val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
-) {
+
+trait ComplianceAPIMethod {
+  def rulesRepo       : RoRuleRepository
+  def nodeInfoService : NodeInfoService
+  def nodeGroupRepo   : RoNodeGroupRepository
+  def reportingService: ReportingService
+  def directiveRepo   : RoDirectiveRepository
+  def getGlobalComplianceMode: () => Box[GlobalComplianceMode]
 
   /**
    * Get the compliance for everything
@@ -257,10 +298,10 @@ class ComplianceAPIService(
    * level 3 includes components, but not nodes
    * level 4 includes the nodes
    */
- private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int]) : IOResult[Seq[ByRuleRuleCompliance]] = {
-   val computedLevel = level.getOrElse(10)
+  def getByRulesCompliance(rules: Seq[Rule], level: Option[Int]) : IOResult[Seq[ByRuleRuleCompliance]] = {
+    val computedLevel = level.getOrElse(10)
 
-   for {
+    for {
       t1            <- currentTimeMillis
       groupLib      <- nodeGroupRepo.getFullGroupLibrary()
       t2            <- currentTimeMillis
@@ -268,10 +309,10 @@ class ComplianceAPIService(
 
       // this can be optimized, as directive only happen for level=2
       directives    <- if (computedLevel >= 2 ) {
-                        directiveRepo.getFullDirectiveLibrary().map(_ . allDirectives )
-                        } else {
-                          Map[DirectiveId, (FullActiveTechnique, Directive)]().succeed
-                        }
+        directiveRepo.getFullDirectiveLibrary().map(_ . allDirectives )
+      } else {
+        Map[DirectiveId, (FullActiveTechnique, Directive)]().succeed
+      }
       t3            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getFullDirectiveLibrary in ${t3 - t2} ms")
 
@@ -285,16 +326,16 @@ class ComplianceAPIService(
 
       ruleObjects   <- rules.map { case x => (x.id, x) }.toMap.succeed
       reportsByNode <- reportingService.findRuleNodeStatusReports(
-                         nodeInfos.keySet, ruleObjects.keySet
-                       ).toIO
+        nodeInfos.keySet, ruleObjects.keySet
+      ).toIO
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
-   } yield {
+    } yield {
 
-     val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
-     val t7            = System.currentTimeMillis()
-     TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
+      val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      val t7            = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
       //for each rule for each node, we want to have a
       //directiveId -> reporttype map
@@ -352,28 +393,28 @@ class ComplianceAPIService(
 
 
         ByRuleRuleCompliance(
-            ruleId
-            , ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule")
-            , ComplianceLevel.sum(reports.map(_.compliance))
-            , compliance.mode
-            , byDirectives.map { case (directiveId, nodeDirectives) =>
-                  ByRuleDirectiveCompliance(
-                    directiveId
-                    , directives.get(directiveId).map(_._2.name).getOrElse("Unknown directive")
-                    , ComplianceLevel.sum(nodeDirectives.map(_._2.compliance))
-                    , //here we want the compliance by components of the directive.
-                    // if level is high enough, get all components and group by their name
-                    {
-                      val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
-                        Map()
-                      } else {
-                        nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy(_._2.componentName)
-                      }
-                      byComponents.flatMap { case (name, nodeComponents) => components(name, nodeComponents.toList)
-                      }.toSeq
-                    }
-                  )
-              }.toSeq
+          ruleId
+          , ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule")
+          , ComplianceLevel.sum(reports.map(_.compliance))
+          , compliance.mode
+          , byDirectives.map { case (directiveId, nodeDirectives) =>
+            ByRuleDirectiveCompliance(
+              directiveId
+              , directives.get(directiveId).map(_._2.name).getOrElse("Unknown directive")
+              , ComplianceLevel.sum(nodeDirectives.map(_._2.compliance))
+              , //here we want the compliance by components of the directive.
+              // if level is high enough, get all components and group by their name
+              {
+                val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
+                  Map()
+                } else {
+                  nodeDirectives.flatMap { case (nodeId, d) => d.components.values.map(c => (nodeId, c)).toSeq }.groupBy(_._2.componentName)
+                }
+                byComponents.flatMap { case (name, nodeComponents) => components(name, nodeComponents.toList)
+                }.toSeq
+              }
+            )
+          }.toSeq
         )
       }
       val t8        = System.currentTimeMillis()
@@ -394,15 +435,15 @@ class ComplianceAPIService(
             val rule = ruleObjects(ruleId) // we know by construct that it exists
             val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
             ByRuleRuleCompliance(
-                rule.id
-                , rule.name
-                , ComplianceLevel(noAnswer = nodeIds.size)
-                , compliance.mode
-                , Seq()
-              )
-            }
+              rule.id
+              , rule.name
+              , ComplianceLevel(noAnswer = nodeIds.size)
+              , compliance.mode
+              , Seq()
+            )
           }
         }
+      }
 
       val t9 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute ${initializedCompliances.size} empty rules in ${t9 - t8} ms")
@@ -413,14 +454,31 @@ class ComplianceAPIService(
       val t10 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute result in ${t10 - t9} ms")
       result
-   }
- }
+    }
+  }
+}
+/**
+ * The class in charge of getting and calculating
+ * compliance for all rules/nodes/directives.
+ */
+class ComplianceAPIService(
+    override val rulesRepo       : RoRuleRepository
+  , override val nodeInfoService : NodeInfoService
+  , override val nodeGroupRepo   : RoNodeGroupRepository
+  , override val reportingService: ReportingService
+  , override val directiveRepo   : RoDirectiveRepository
+  , override val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
+) extends ComplianceAPIMethod {
+
 
   def getRuleCompliance(ruleId: RuleId, level: Option[Int]): Box[ByRuleRuleCompliance] = {
     for {
+      t1            <- currentTimeMillis
       rule    <- rulesRepo.get(ruleId)
       reports <- getByRulesCompliance(Seq(rule), level)
       report  <- reports.find( _.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.serialize}'")
+      t2            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getRuleCompliance - getting  ByRuleRuleCompliance in ${t2 - t1} ms")
     } yield {
       report
     }
