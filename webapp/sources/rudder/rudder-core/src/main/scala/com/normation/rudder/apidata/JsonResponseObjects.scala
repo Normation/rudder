@@ -846,7 +846,7 @@ object JsonResponseObjects {
 
   object JRReportType {
     def fromMap(percents: Map[String, Double]) = {
-      percents.map{ case (k, v) => JRReportType(k, v) }.toSeq
+      percents.toSeq.map{ case (k, v) => JRReportType(k, v) }
     }
   }
   final case class JRByRuleNodeCompliance(
@@ -1113,7 +1113,6 @@ trait RudderJsonEncoders {
   implicit val messageStatusReport: JsonEncoder[JRMessageStatusReport] = DeriveJsonEncoder.gen
   implicit val componentValueStatusReport: JsonEncoder[JRComponentValueStatusReport] = DeriveJsonEncoder.gen
   implicit val byRuleNodeCompliance: JsonEncoder[JRByRuleNodeCompliance] = DeriveJsonEncoder.gen
-  implicit lazy val optSeqJRByRuleComponentCompliance: JsonEncoder[Option[Seq[JRByRuleComponentCompliance]]] =  DeriveJsonEncoder.gen
 
   implicit lazy val byRuleComponentCompliance: JsonEncoder[JRByRuleComponentCompliance] = DeriveJsonEncoder.gen
   implicit val byRuleDirectiveCompliance: JsonEncoder[JRByRuleDirectiveCompliance] = DeriveJsonEncoder.gen

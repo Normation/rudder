@@ -1157,6 +1157,14 @@ object RudderConfig extends Loggable {
         , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
+  private[this] val complianceAPIService14 = new ComplianceAPIService14(
+          roRuleRepository
+        , nodeInfoService
+        , roNodeGroupRepository
+        , reportingService
+        , roDirectiveRepository
+        , () => globalComplianceModeService.getGlobalComplianceMode
+      )
   val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
   val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_GIT_ROOT_CONFIG_REPO)
   val ncfTechniqueWriter = new TechniqueWriter(
@@ -1316,7 +1324,7 @@ object RudderConfig extends Loggable {
     val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
 
     val modules = List(
-        new ComplianceApi(restExtractorService, complianceAPIService)
+        new ComplianceApi(restExtractorService, zioJsonExtractor, complianceAPIService, complianceAPIService14)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
       , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)

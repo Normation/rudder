@@ -140,6 +140,7 @@ class ComplianceApi(
 
       (for {
         level <- restExtractor.extractComplianceLevel(req.params)
+        t0 <- currentTimeMillis.toBox
         precision <- restExtractor.extractPercentPrecision(req.params)
         id    <- RuleId.parse(ruleId).toBox
         rule  <- complianceService.getRuleCompliance(id, level)
@@ -152,6 +153,8 @@ class ComplianceApi(
           val t2            = System.currentTimeMillis
           TimingDebugLogger.trace(s"getRuleCompliance - getting  rule.toJson in ${t2 - t1} ms")
 machin
+          TimingDebugLogger.trace(s"getRuleCompliance v13 - total time before reponse  in ${t2 - t0} ms")
+          machin
         }
       }) match {
         case Full(rule) =>
@@ -170,10 +173,13 @@ machin
 
 
       (for {
+        t1      <- currentTimeMillis
         level     <- zioJsonExtractor.extractComplianceLevel(req.params).toIO
         precision <- zioJsonExtractor.extractPercentPrecision(req.params).toIO
         id        <- RuleId.parse(ruleId).toIO
         rule      <- complianceServiceV14.getRuleCompliance(id, level, precision)
+        t2      <- currentTimeMillis
+        _       <- TimingDebugLoggerPure.trace(s"getRuleCompliance V14 - making all ByRuleRuleCompliance in ${t2 - t1} ms")
       } yield rule).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
