@@ -661,9 +661,9 @@ update msg model =
           case model.mode of
            TechniqueDetails t o ui->
              let
-               newUi = {ui | blockUI = Dict.update  callId.value (Maybe.map (always newBlockUi )) ui.blockUI }
+               newUi = {ui | blockUI = Dict.update  callId.value (always (Just newBlockUi) ) ui.blockUI }
              in
-              TechniqueDetails t o newUi
+               TechniqueDetails t o newUi
            m -> m
       in
         ({ model | mode = newMode}, Cmd.none )
