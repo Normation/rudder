@@ -143,6 +143,7 @@ type alias Model =
   , dropTarget         : Maybe DropElement
   , isMethodHovered    : Maybe MethodId
   , loadingTechniques  : Bool
+  , recClone           : List Msg
   }
 
 type ResourceState = New | Untouched | Deleted | Modified
