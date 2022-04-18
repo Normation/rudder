@@ -86,7 +86,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
@@ -689,7 +689,7 @@ update msg model =
         clone = case setId newId call of
                   Call p c -> Call p c
                   Block p b -> Block p {b | calls = [] }
-        (newModel, msgs) =
+        newModel =
           case model.mode of
             TechniqueDetails t o ui ->
               let
@@ -697,14 +697,14 @@ update msg model =
                    case getParent clone of
                      Nothing ->
                         let
-                          (heads, tails) = Maybe.withDefault ([],[]) (List.Extra.splitWhen (\e -> getId e == getId call) t.elems)
+                          (heads, tails) = Maybe.withDefault (t.elems,[]) (List.Extra.splitWhen(\e -> getId e == getId call) t.elems)
                         in
                           List.append heads (clone :: tails)
                      Just pid -> updateElemIf (getId >> (==) pid) ( \child -> case child of
                                                                                 Call _  _ -> child
                                                                                 Block p b ->
                                                                                   let
-                                                                                    (heads, tails) = Maybe.withDefault ([],[]) (List.Extra.splitWhen (\e -> getId e == getId call) b.calls)
+                                                                                    (heads, tails) = Maybe.withDefault (b.calls,[]) (List.Extra.splitWhen (\e -> getId e == getId call) b.calls)
                                                                                   in
                                                                                   Block p {b | calls = List.append heads  ( clone :: tails ) }
                                                                   ) t.elems
@@ -715,23 +715,27 @@ update msg model =
                 m = { model | mode = TechniqueDetails technique o newUi }
               in
                 case call of
-                          Call _ _  -> (m, [])
+                          Call _ _  -> m
                           Block _ b  ->
 
                             let
-                              res = List.map (\child  ->
+                              res = List.map (\ child  ->
                                                      let
                                                        elem = case child of
                                                                 Call _ c -> Call (Just (getId clone)) c
                                                                 Block _ c -> Block (Just (getId clone)) c
                                                      in
-                                                       Tuple.second (update (GenerateId (\s -> CloneElem  elem (CallId s))) m)
-                                                   ) b.calls
+                                                       GenerateId (\s -> CloneElem  elem (CallId s))
+                                                   )  b.calls
                             in
-                              (m,res)
-            _ -> (model, [])
+                              {m| recClone = List.append m.recClone res}
+            _ -> model
       in
-            Tuple.mapSecond (\c -> ( c :: (List.reverse msgs)) |> Cmd.batch) (updatedStoreTechnique newModel)
+        case newModel.recClone of
+          [] -> updatedStoreTechnique newModel
+          h :: t ->
+            update h {newModel  | recClone = t}
+
 
     MethodCallModified method ->
       case model.mode of
