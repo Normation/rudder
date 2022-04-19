@@ -99,7 +99,7 @@ class Archives extends DispatchSnippet with Loggable {
       , restoreSuccessDebugMessage= "Importing groups, parameters, directive library and rules on user request"
       , downloadButtonId          = "downloadAllButton"
       , downloadButtonName        = DL_NAME
-      , downloadRestAction        = "all"
+      , downloadRestAction        = "full"
     )
   }
 
@@ -207,7 +207,7 @@ class Archives extends DispatchSnippet with Loggable {
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
     , downloadButtonId          : String               //input button id to download the zip of an archive
     , downloadButtonName        : String               //what is displayed to download the zip of an archive
-    , downloadRestAction        : String               //the specific action for the REST api, i.e the %s in: /api/archives/zip/%s
+    , downloadRestAction        : String               //the specific action for the REST api, i.e the %s in: /api/system/archives/%s/zip
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
     var selectedCommitId = Option.empty[GitCommitId]
@@ -274,7 +274,7 @@ class Archives extends DispatchSnippet with Loggable {
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) =>
-          S.redirectTo("/secure/utilities/archiveManagement/zip/%s/%s".format(downloadRestAction, commit.value))
+          S.redirectTo(s"/secure/api/system/archives/${downloadRestAction}/zip/${commit.value}")
       }
 
     }
