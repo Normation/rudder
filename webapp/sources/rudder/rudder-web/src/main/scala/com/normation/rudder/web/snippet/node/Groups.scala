@@ -353,7 +353,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               refreshGroupLib()
               (
                   refreshTree(htmlTreeNodeId(ng.id.serialize))
-                & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId))
+                & JsRaw("""setTimeout(function() { $("[groupid=%s]").attempt("highlight", {}, 2000)}, 100)""".format(sourceGroupId))
                 & refreshRightPanel(GroupForm(Right(ng),cat))
               )
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
@@ -393,7 +393,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               refreshGroupLib()
               (
                   refreshTree(htmlTreeNodeId(id))
-                & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId)))
+                & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)""".format(sourceCatId)))
                 & refreshRightPanel(CategoryForm(res))
               )
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")

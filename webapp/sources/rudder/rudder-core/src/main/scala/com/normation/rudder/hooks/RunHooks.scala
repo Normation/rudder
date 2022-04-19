@@ -46,10 +46,8 @@ import net.liftweb.common.Logger
 import org.slf4j.LoggerFactory
 import zio._
 import zio.syntax._
-import zio.duration._
 import com.normation.errors._
 import com.normation.zio._
-import com.normation.zio.ZioRuntime
 import com.normation.box._
 
 import java.nio.charset.StandardCharsets
@@ -260,14 +258,14 @@ object RunHooks {
             _ <- PureHooksLogger.debug(s"Run hook: ${cmdInfo}")
             _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.debugString}")
             f <- PureHooksLogger.LongExecLogger.warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}").delay(warnTimeout).fork
-            p <- RunNuCommand.run(Cmd(path, Nil, env.toMap)).untraced
+            p <- RunNuCommand.run(Cmd(path, Nil, env.toMap))
             r <- p.await.timeout(killTimeout).flatMap {
                    case Some(ok) =>
                      ok.succeed
                    case None =>
                      val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.asJava.toString}"
                      PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
-                 }.untraced
+                 }
             _ <- f.interrupt
             c =  translateReturnCode(path, r)
             _ <- logReturnCode(c)
@@ -275,7 +273,7 @@ object RunHooks {
             c
           }
       }
-    }.provide(ZioRuntime.environment).untraced
+    }
 
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.debugString}]"
     (for {
@@ -284,7 +282,7 @@ object RunHooks {
       _        <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.debugString}")
       time_0   <- currentTimeNanos
       f        <- PureHooksLogger.LongExecLogger.warn(s"Executing all hooks in directory ${cmdInfo} is taking more time than configured expected max duration of '${globalWarnAfter.render}'").delay(globalWarnAfter).fork
-      res      <- ZioRuntime.blocking(runAllSeq)
+      res      <- runAllSeq
       time_1   <- currentTimeNanos
       _        <- f.interrupt // noop if timeout is already reached
       duration =  time_1 - time_0
@@ -294,7 +292,7 @@ object RunHooks {
       _        <- PureHooksLogger.debug(s"Done in ${duration/1000} us: ${cmdInfo}") // keep that one in all cases if people want to do stats
     } yield {
       (res, duration)
-    }).provide(ZioRuntime.environment).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
+    }).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
   }
 
   /*
@@ -333,7 +331,7 @@ object RunHooks {
 
   /*
    * Check for the existence of hook limit in the 1000 first chars of the file.
-   * This method is effectful, needs to be wrap in an IO.
+   * This method is effectful, needs to be wrap in an ZIO.
    */
   def effectfulGetHookTimeout(hook: File): HookTimeout = {
     def get(filename: String, lines: List[String], varName: String): Option[Duration] = {
@@ -366,7 +364,7 @@ object RunHooks {
   }
 
   def getHooksPure(basePath: String, ignoreSuffixes: List[String]): IOResult[Hooks] = {
-    IOResult.effect {
+    IOResult.attempt {
       val dir = new File(basePath)
       // Check that dir exists before looking in it
       if (dir.exists) {

@@ -116,7 +116,7 @@ class CheckNcfTechniqueUpdate(
                                                         // Update technique library once all technique are updated
         libUpdate   <- techLibUpdate.update(ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value), Some(s"Update Technique library after updating all techniques at start up")).toIO.chainError( s"An error occured during techniques update after update of all techniques from the editor")
 
-        flagDeleted <- IOResult.effect( ncfTechniqueUpdateFlag.delete() )
+        flagDeleted <- IOResult.attempt( ncfTechniqueUpdateFlag.delete() )
       } yield {
          techniques
       }
@@ -124,7 +124,7 @@ class CheckNcfTechniqueUpdate(
 
     val prog = (for {
       _          <- techniqueReader.updateMethodsMetadataFile
-      flagExists <- IOResult.effect(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag.pathAsString}'")(ncfTechniqueUpdateFlag.exists)
+      flagExists <- IOResult.attempt(s"An error occurred while accessing flag file '${ncfTechniqueUpdateFlag.pathAsString}'")(ncfTechniqueUpdateFlag.exists)
       _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag.pathAsString}' does not exist, do not regenerate ncf Techniques")
     } yield ())
 

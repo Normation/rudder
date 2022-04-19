@@ -40,7 +40,6 @@ import com.unboundid.ldap.sdk.ReadOnlyLDAPRequest
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.SearchRequest
 import com.unboundid.ldif.LDIFChangeRecord
-import zio.blocking.Blocking
 import zio._
 import zio.syntax._
 
@@ -301,14 +300,13 @@ sealed class RoLDAPConnection(
     override val backed   : UnboundidLDAPConnection
   , val ldifFileLogger    : LDIFFileLogger
   , val onlyReportOnSearch: ResultCode => Boolean = RoLDAPConnection.onlyReportOnSearch
-  , val blockingModule    : Blocking
 ) extends
   UnboundidBackendLDAPConnection with
   ReadOnlyEntryLDAPConnection with
   ReadOnlyTreeLDAPConnection
 {
 
-  def blocking[A](effect: => A): Task[A] = ZIO.accessM[Blocking](_.get.blocking( IO.effect(effect) )).provide(blockingModule)
+  def blocking[A](effect: => A): Task[A] = ZIO.attempt(effect)
 
   /*
    * //////////////////////////////////////////////////////////////////
@@ -439,14 +437,13 @@ object RwLDAPConnection {
 class RwLDAPConnection(
     override val backed              : UnboundidLDAPConnection
   , override val ldifFileLogger      : LDIFFileLogger
-  , override val blockingModule      : Blocking
   ,              onlyReportOnAdd     : ResultCode => Boolean = RwLDAPConnection.onlyReportOnAdd
   ,              onlyReportOnModify  : ResultCode => Boolean = RwLDAPConnection.onlyReportOnModify
   ,              onlyReportOnModifyDN: ResultCode => Boolean = RwLDAPConnection.onlyReportOnModifyDN
   ,              onlyReportOnDelete  : ResultCode => Boolean = RwLDAPConnection.onlyReportOnDelete
   , override val onlyReportOnSearch  : ResultCode => Boolean = RoLDAPConnection.onlyReportOnSearch
 ) extends
-  RoLDAPConnection(backed, ldifFileLogger, onlyReportOnSearch, blockingModule) with
+  RoLDAPConnection(backed, ldifFileLogger, onlyReportOnSearch) with
   WriteOnlyEntryLDAPConnection with
   WriteOnlyTreeLDAPConnection
 {
@@ -488,10 +485,10 @@ class RwLDAPConnection(
    *   the list of modification to apply.
    */
   private def applyMods[MOD <: ReadOnlyLDAPRequest](modName: String, toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult, onlyReportThat: ResultCode => Boolean)(reqs: List[MOD]) : LDAPIOResult[Seq[LDIFChangeRecord]] = {
-    if(reqs.isEmpty) IO.succeed(Seq())
+    if(reqs.isEmpty) ZIO.succeed(Seq())
     else {
-      UIO.effectTotal(ldifFileLogger.records(reqs map (toLDIFChangeRecord (_)))) *>
-      IO.foreach(reqs) { req =>
+      ZIO.succeed(ldifFileLogger.records(reqs map (toLDIFChangeRecord (_)))) *>
+      ZIO.foreach(reqs) { req =>
         applyMod(modName, toLDIFChangeRecord, backendAction, onlyReportThat)(req)
       }
     }
@@ -677,7 +674,7 @@ class RwLDAPConnection(
           case Delete(tree) =>
             if(deleteRemoved) delete(tree.root, true) //TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
             else Seq().succeed
-          case Replace((dn,mods)) => IO.foreach(mods) { mod => modify(dn, mod) }
+          case Replace((dn,mods)) => ZIO.foreach(mods) { mod => modify(dn, mod) }
         }
       }
       mods.foldLeft(Seq().succeed:LDAPIOResult[Seq[LDIFChangeRecord]]) { (records, mod) =>

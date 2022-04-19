@@ -72,16 +72,15 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import com.normation.rudder.hooks.HookReturnCode
+
 import zio._
 import zio.syntax._
-import zio.duration._
 import com.normation.errors._
 import com.normation.box._
 import com.normation.zio._
-import zio.duration.Duration
-import cats.data._
-import cats.implicits._
+import zio.Duration
 import com.normation.rudder.domain.logger.NodeConfigurationLogger
+
 import better.files._
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
@@ -89,6 +88,8 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
+
+import cats.data.NonEmptyList
 import org.apache.commons.io.FileUtils
 
 import java.nio.file.Files
@@ -185,7 +186,7 @@ object PolicyOrdering {
     val sorted = policies.sortWith(compareBundleOrder)
 
     //some debug info to understand what order was used for each node:
-    // it's *extremelly* versbose, perhaps it should have it's own logger.
+    // it's *extremely* verbose, perhaps it should have it's own logger.
     if(PolicyGenerationLogger.isTraceEnabled) {
       val logSorted = sorted.map(p => s"${p.technique.id.serialize}: [${p.ruleOrder.value} | ${p.directiveOrder.value}]").mkString("[","][", "]")
       PolicyGenerationLogger.trace(s"Sorted Technique (and their Rules and Directives used to sort): ${logSorted}")
@@ -257,14 +258,14 @@ class PolicyWriterServiceImpl(
     }
     import StandardOpenOption._
     // open file mode for create or overwrite mode
-    def createParentsAndWrite(text: String, isRootServer: Boolean) = IOResult.effect {
+    def createParentsAndWrite(text: String, isRootServer: Boolean) = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
 
-    def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean) = IOResult.effect {
+    def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean) = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
@@ -309,10 +310,10 @@ class PolicyWriterServiceImpl(
 
   /*
    * For all the writing part, we want to limit the number of concurrent workers on two aspects:
-   * - we want an I/O threadpool, which knows what to do when a thread is blocked for a long time,
-   *   and risks thread exaustion
+   * - we want an I/O thread-pool, which knows what to do when a thread is blocked for a long time,
+   *   and risks thread exhaustion
    *   (it can happens, since we have a number of files to write, some maybe big)
-   * - we want to limit the total number of concurrent execution to avoid blowming up the number
+   * - we want to limit the total number of concurrent execution to avoid blowing up the number
    *   of open files, concurrent hooks, etc. This is not directly linked to the number of CPU,
    *   but clearly there is no point having a pool of 4 threads for 1000 nodes which will
    *   fork 1000 times for hooks - even if there is 4 threads used for that.
@@ -321,22 +322,14 @@ class PolicyWriterServiceImpl(
    * - a common thread pool, i/o oriented
    * - a common max numbers of concurrent tasks.
    *   I believe it should be common to all steps because it's mostly on the same machine - but
-   *   for now, that doesn't really matter, since each step is bloking (ie wait before next).
+   *   for now, that doesn't really matter, since each step is blocking (ie wait before next).
    *   A parallelism around the thread pool sizing (by default, number of CPU) seems ok.
    *
-   * here, f must not throws execption.
+   * here, f must not throws exception.
    *
    */
-  def parrallelSequence[U,T](seq: Seq[U])(f:U => IOResult[T])(implicit timeout: Duration, maxParallelism: Int): IOResult[Seq[T]] = {
-    seq.accumulateParN(maxParallelism)(a => f(a)).timeout(timeout).foldM(
-      err => err.fail
-    , suc => suc match {
-        case None      => //timeout
-          Accumulated(NonEmptyList.one(Unexpected(s"Execution of computation timed out after '${timeout.asJava.toString}'"))).fail
-        case Some(seq) =>
-          seq.succeed
-      }
-    ).provide(clock)
+  def parallelSequence[U,T](seq: Seq[U])(f:U => IOResult[T])(implicit timeout: Duration, maxParallelism: Int): IOResult[Seq[T]] = {
+    (seq.accumulateParN(maxParallelism)(f)).timeoutFail(Accumulated(NonEmptyList.one(Unexpected(s"Execution of computation timed out after '${timeout.asJava.toString}'"))))(timeout)
   }
 
   // a version for Hook with a nicer message accumulation
@@ -349,21 +342,21 @@ class PolicyWriterServiceImpl(
         if(s.size <= max) s else s.substring(0, max-3) + "..."
       }
       val msg = errorCode match {
-          // we need to limit sdtout/sdterr lenght
+          // we need to limit sdtout/sdterr length
           case HookReturnCode.ScriptError(code, stdout, stderr, msg) => s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]"
           case x                                                     => x.msg
       }
     }
 
     seq.accumulateParNELN(maxParallelism){ a =>
-      f(a).foldM(
+      f(a).foldZIO(
         ex   => HookError(a.config.nodeInfo.id, HookReturnCode.SystemError(ex.fullMsg)).fail
       , code => code match {
           case s:HookReturnCode.Success => s.succeed
           case e:HookReturnCode.Error   => HookError(a.config.nodeInfo.id, e).fail
         }
       )
-    }.timeout(timeout).foldM(
+    }.timeout(timeout).foldZIO(
         nel => {
           // in that case, it is extremely likely that most messages are the same. We group them together
           val nodeErrors = nel.toList.map{ err => (err.nodeId, err.msg) }
@@ -374,10 +367,10 @@ class PolicyWriterServiceImpl(
         }
       , ok => ok match {
           case None    => Unexpected(s"Execution of computation timed out after '${timeout.asJava.toString}'").fail
-          case Some(x) => UIO.unit
+          case Some(x) => ZIO.unit
         }
-    ).provide(clock)
-  }.untraced
+    )
+  }
 
 
   /**
@@ -422,9 +415,9 @@ class PolicyWriterServiceImpl(
 
     //debug - but don't fails for debugging !
     val logNodeConfigurations = ZIO.when(logNodeConfig.isDebugEnabled) {
-      IOResult.effect(logNodeConfig.log(interestingNodeConfigs)).foldM(
+      IOResult.attempt(logNodeConfig.log(interestingNodeConfigs)).foldZIO(
           err => PolicyGenerationLoggerPure.error(s"Error when trying to write node configurations for debugging: ${err.fullMsg}")
-        , ok  => UIO.unit
+        , ok  => ZIO.unit
       )
     }
 
@@ -447,7 +440,6 @@ class PolicyWriterServiceImpl(
 
     //we need to add the current environment variables to the script context
     //plus the script environment variables used as script parameters
-    import scala.jdk.CollectionConverters._
 
     // give a timeout for the whole tasks sufficiently large.
     // Hint: CF-promise taking 2s by node, for 10 000 nodes, on
@@ -460,7 +452,10 @@ class PolicyWriterServiceImpl(
 
     for {
       _                    <- logNodeConfigurations
-      systemEnv            <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
+      systemEnv            <- System.envs.foldZIO(
+                                  err  => SystemError("error when accessing environment variable to run hooks", err).fail
+                                , vars => HookEnvPairs.build(vars.toSeq:_*).succeed
+                              )
       readTemplateTime1    <- currentTimeMillis
       configAndPaths       <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeInfos, newPostfix, backupPostfix)
       pathsInfo            =  configAndPaths.map { _.paths }
@@ -470,7 +465,7 @@ class PolicyWriterServiceImpl(
           templates         <- readTemplateFromFileSystem(templateToRead.toSeq)
           resources         <- readResourcesFromFileSystem(fileToRead.toSeq)
           // Clearing cache
-          _                 <- IOResult.effect(fillTemplates.clearCache())
+          _                 <- IOResult.attempt(fillTemplates.clearCache())
           readTemplateTime2 <- currentTimeMillis
           _                 <- timingLogger.debug(s"Paths computed and templates read in ${readTemplateTime2 - readTemplateTime1} ms")
 
@@ -478,7 +473,7 @@ class PolicyWriterServiceImpl(
           // nothing agent specific before that
           //////////
           prepareTimer          <- PrepareTemplateTimer.make()
-          preparedTemplates     <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+          preparedTemplates     <- parallelSequence(configAndPaths) { case agentNodeConfig =>
                                      val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                                      prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, Policy.TAG_OF_RUDDER_ID, globalPolicyMode, generationTime, prepareTimer).chainError(
                                        s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
@@ -487,7 +482,7 @@ class PolicyWriterServiceImpl(
           preparedTemplatesTime <- currentTimeMillis
           _                     <- timingLogger.debug(s"Policy templates prepared in ${preparedTemplatesTime - readTemplateTime2} ms") *> {
                                      ZIO.when(timingLogger.logEffect.isTraceEnabled) { (prepareTimer.buildBundleSeq.get <*> prepareTimer.buildAgentVars.get <*> prepareTimer.prepareTemplate.get).flatMap( t =>
-                                       timingLogger.trace(s" -> bundle sequence built in ${t._1._1} ms | agent system variables built in ${t._1._2} ms | policy template prepared in ${t._2} ms")
+                                       timingLogger.trace(s" -> bundle sequence built in ${t._1} ms | agent system variables built in ${t._2} ms | policy template prepared in ${t._3} ms")
                                      ) }
                                    }
         } yield {
@@ -527,7 +522,7 @@ class PolicyWriterServiceImpl(
       // nothing agent specific after that
       //////////
       beforePropertiesTime <- currentTimeMillis
-      propertiesWritten    <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      propertiesWritten    <- parallelSequence(configAndPaths) { case agentNodeConfig =>
                                 writeNodePropertiesFile(agentNodeConfig).chainError(
                                   s"An error occurred while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                 )
@@ -536,7 +531,7 @@ class PolicyWriterServiceImpl(
       propertiesWrittenTime<- currentTimeMillis
       _                    <- timingLogger.debug(s"Properties written in ${propertiesWrittenTime - beforePropertiesTime} ms")
 
-      parametersWritten    <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
+      parametersWritten    <- parallelSequence(configAndPaths) { case agentNodeConfig =>
                                 writeRudderParameterFile(agentNodeConfig).chainError(
                                   s"An error occurred while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                 )
@@ -546,7 +541,7 @@ class PolicyWriterServiceImpl(
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
 
-      _                     <- IOResult.effect(fillTemplates.clearCache())
+      _                     <- IOResult.attempt(fillTemplates.clearCache())
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
 
@@ -665,15 +660,15 @@ class PolicyWriterServiceImpl(
     import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
 
     // now process by template, which are not thread safe but here, accessed sequentially
-    parrallelSequence(byTemplate.toSeq) { case (content, seqInfos) =>
+    parallelSequence(byTemplate.toSeq) { case (content, seqInfos) =>
       for {
         t0      <- currentTimeNanos
-        parsed  <- IOResult.effect(s"Error when trying to parse template '${seqInfos.head.destination}'") { // head ok because of groupBy
+        parsed  <- IOResult.attempt(s"Error when trying to parse template '${seqInfos.head.destination}'") { // head ok because of groupBy
                      new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
                    }
         t1      <- currentTimeNanos
         _       <- fillTimer.get.update(_ + t1 - t0)
-        _       <- ZIO.foreach_(seqInfos) { info =>
+        _       <- ZIO.foreachDiscard(seqInfos) { info =>
 
                      for {
                        // we need to for {} yield {} to free resources
@@ -701,9 +696,9 @@ class PolicyWriterServiceImpl(
 
 
   private[this] def writeOtherResources(preparedTemplates: Seq[AgentNodeWritableConfiguration], writeTimer: WriteTimer, globalPolicyMode: GlobalPolicyMode, resources: Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo])(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
-    parrallelSequence(preparedTemplates) { prepared =>
+    parallelSequence(preparedTemplates) { prepared =>
       val isRootServer = prepared.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
-      val writeResources = ZIO.foreach_(prepared.preparedTechniques) { preparedTechnique => ZIO.foreach_(preparedTechnique.filesToCopy) { file =>
+      val writeResources = ZIO.foreachDiscard(prepared.preparedTechniques) { preparedTechnique => ZIO.foreachDiscard(preparedTechnique.filesToCopy) { file =>
          for {
            t0 <- currentTimeNanos
            r  <- copyResourceFile(file, isRootServer, prepared.agentNodeProps.agentType, prepared.paths.newFolder, preparedTechnique.reportIdToReplace, resources)
@@ -715,7 +710,7 @@ class PolicyWriterServiceImpl(
       val writeAgent = for {
               // changing `writeAllAgentSpecificFiles.write` to IOResult breaks DSC
         t0 <- currentTimeNanos
-        _  <- IOResult.effect(writeAllAgentSpecificFiles.write(prepared)).chainError(s"Error with node '${prepared.paths.nodeId.value}'")
+        _  <- IOResult.attempt(writeAllAgentSpecificFiles.write(prepared)).chainError(s"Error with node '${prepared.paths.nodeId.value}'")
         t1 <- currentTimeNanos
         _  <- writeTimer.agentSpecific.update(_ + t1 - t0)
       } yield ()
@@ -803,7 +798,7 @@ class PolicyWriterServiceImpl(
      */
     for {
       t0  <- currentTimeMillis
-      res <- (parrallelSequence(templatesToRead) { case ToRead(templateId, agentType, templateOutPath) =>
+      res <- (parallelSequence(templatesToRead) { case ToRead(templateId, agentType, templateOutPath) =>
                for {
                  copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
                                optInputStream match {
@@ -813,7 +808,7 @@ class PolicyWriterServiceImpl(
                                    for {
                                      _       <- PolicyGenerationLoggerPure.trace(s"Loading template: ${templateId.displayPath}")
                                                //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-                                     content <- IOResult.effect(s"Error when copying technique template '${templateId.displayPath}'")(inputStream.asString(false))
+                                     content <- IOResult.attempt(s"Error when copying technique template '${templateId.displayPath}'")(inputStream.asString(false))
                                    } yield {
                                      TechniqueTemplateCopyInfo(templateId, templateOutPath, content)
                                    }
@@ -840,7 +835,7 @@ class PolicyWriterServiceImpl(
 
     for {
       t0  <- currentTimeMillis
-      res <- (parrallelSequence(staticResourceToRead) { case ToRead(templateId, agentType, templateOutPath) =>
+      res <- (parallelSequence(staticResourceToRead) { case ToRead(templateId, agentType, templateOutPath) =>
                for {
                  copyInfo <- techniqueRepository.getFileContent(templateId) { optInputStream =>
                                optInputStream match {
@@ -923,7 +918,7 @@ class PolicyWriterServiceImpl(
                     case Some(relayPem) =>
                       writeCert(filepaths.POLICY_SERVER_CERT, relayPem)
                     case None => // create a symlink from root to policy-server.pem
-                      IOResult.effect {
+                      IOResult.attempt {
                         // we want to have a symlink with a relative path, not full path
                         val source = Paths.get(rootPem.name)
                         val dest = File(paths.newFolder, filepaths.POLICY_SERVER_CERT)
@@ -986,7 +981,7 @@ class PolicyWriterServiceImpl(
     val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ =='/')).reverse
 
     if(sortedFolder.isEmpty) {
-      UIO.unit
+      ZIO.unit
     } else {
       for {
         mvOptions  <- getMoveOptions(sortedFolder.head)
@@ -996,7 +991,7 @@ class PolicyWriterServiceImpl(
         totalNum   =  sortedFolder.size
                       // can't trivialy parallelise because we need parents before
                       // here, base folder, newFolder and backupFolder target agent directory under rules: we need one level up appart for root.
-        _          <- (ZIO.foreachParN_(maxParallelism)(sortedFolder) { case folder @ NodePoliciesPaths(nodeId, baseFolderAgent, newFolderAgent, backupFolderAgent) =>
+        _          <- (ZIO.foreachParDiscard(sortedFolder) { case folder @ NodePoliciesPaths(nodeId, baseFolderAgent, newFolderAgent, backupFolderAgent) =>
                         val (optGroupOwner, perms) = if(nodeId == Constants.ROOT_POLICY_SERVER_ID) (None, rootDirectoryPerms) else (groupOwner, defaultDirectoryPerms)
                         val (baseFolder, newFolder, backupFolder) = nodeId match {
                           case Constants.ROOT_POLICY_SERVER_ID =>
@@ -1013,7 +1008,7 @@ class PolicyWriterServiceImpl(
                           _ <- PolicyGenerationLoggerPure.trace(s"Copying new policies into '${baseFolder}'")
                           _ <- moveNewNodeFolder(newFolder, baseFolder, newMvOpt, optGroupOwner, perms)
                         } yield ()
-                      }).tapError(err =>
+                      }.withParallelism(maxParallelism)).tapError(err =>
                         //in case of any error, restore all folders which were backuped, i.e in newFolders
                         //here we do "as best as possible"
                         for {
@@ -1043,7 +1038,7 @@ class PolicyWriterServiceImpl(
     val atomically = StandardCopyOption.ATOMIC_MOVE :: StandardCopyOption.REPLACE_EXISTING :: Nil
 
     def testMove(file: File, destination: String): Task[File] = {
-      IO.effect {
+      ZIO.attempt {
         val destDir = File(destination).parent
         if(file.parent.path == destDir.path) file // same directory is ok
         else {
@@ -1051,7 +1046,7 @@ class PolicyWriterServiceImpl(
           file.moveTo(destDir / file.name)(atomically)
         }
         File(destDir, file.name).delete(false)
-      }.catchAll(ex => IO.effect(file.delete(true)) *> ex.fail)
+      }.catchAll(ex => ZIO.attempt(file.delete(true)) *> ex.fail)
     }
 
     def decideIfAtomic(src: File, destDir: String): IOResult[Option[File.CopyOptions]] = {
@@ -1073,12 +1068,12 @@ class PolicyWriterServiceImpl(
     // simple move
     for {
       n    <- currentTimeNanos
-      f1   <- IOResult.effect {
+      f1   <- IOResult.attempt {
                 File(examplePath.newFolder).parent.createChild("test-rudder-policy-mv-options" + n.toString, true, true)
               }
       opt1 <- decideIfAtomic(f1, examplePath.baseFolder)
       _    <- PolicyGenerationLoggerPure.debug(s"Can use atomic move from policy new folder to base folder")
-      f2   <- IOResult.effect {
+      f2   <- IOResult.attempt {
                 File(examplePath.baseFolder).parent.createChild("test-rudder-policy-mv-options" + n.toString, true, true)
               }
       opt2 <- examplePath.backupFolder match {
@@ -1131,11 +1126,11 @@ class PolicyWriterServiceImpl(
   private[this] def backupNodeFolder(nodeFolder: File, backupFolder: Option[File], mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
     backupFolder match {
       case None => // just delete base
-        ZIO.whenM(IOResult.effect(nodeFolder.exists)) {
-          IOResult.effect(nodeFolder.delete(false, File.LinkOptions.noFollow))
-        }
+        ZIO.whenZIO(IOResult.attempt(nodeFolder.exists)) {
+          IOResult.attempt(nodeFolder.delete(false, File.LinkOptions.noFollow))
+        }.unit
       case Some(d) =>
-        IOResult.effect {
+        IOResult.attempt {
           if (nodeFolder.isDirectory()) {
             if (d.isDirectory) {
               // force deletion of previous backup
@@ -1159,20 +1154,20 @@ class PolicyWriterServiceImpl(
   private[this] def moveNewNodeFolder(src: File, dest: File, mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
 
     for {
-      b <- IOResult.effect(src.isDirectory)
+      b <- IOResult.attempt(src.isDirectory)
       _ <- if (b) {
              for {
                _ <- PolicyGenerationLoggerPure.trace(s"Moving folders: \n  from ${src.pathAsString}\n  to   ${dest.pathAsString}")
-               _ <- ZIO.whenM(IOResult.effect(dest.isDirectory)) {
+               _ <- ZIO.whenZIO(IOResult.attempt(dest.isDirectory)) {
                       // force deletion of previous promises
-                      IOResult.effect(dest.delete(false, File.LinkOptions.noFollow))
+                      IOResult.attempt(dest.delete(false, File.LinkOptions.noFollow))
                     }
-               _ <- IOResult.effect {
+               _ <- IOResult.attempt {
                       moveFile(src, dest, mvOptions, Some(perms), optGroupOwner)
                     }.chainError(s"Error when moving newly generated policies to node directory")
                     // force deletion of dandling new promise folder
-               _ <- ZIO.whenM(IOResult.effect(src.parent.isDirectory && src.parent.pathAsString.endsWith("rules.new"))) {
-                      IOResult.effect(src.parent.delete(false, File.LinkOptions.noFollow))
+               _ <- ZIO.whenZIO(IOResult.attempt(src.parent.isDirectory && src.parent.pathAsString.endsWith("rules.new"))) {
+                      IOResult.attempt(src.parent.delete(false, File.LinkOptions.noFollow))
                     }
              } yield ()
            } else {
@@ -1188,14 +1183,14 @@ class PolicyWriterServiceImpl(
    * @param backupFolder
    */
   private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String, mvOptions: Option[File.CopyOptions], optGroupOwner: Option[String], perms: Set[PosixFilePermission]): IOResult[Unit] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       val src = File(backupFolder)
       if (src.isDirectory()) {
         val dest = File(nodeFolder)
         // force deletion of invalid promises
         dest.delete(false, File.LinkOptions.noFollow)
         moveFile(src, dest, mvOptions, Some(perms), optGroupOwner)
-        UIO.unit
+        ZIO.unit
       } else {
         PolicyGenerationLoggerPure.error(s"Could not find freshly backup policies at '${backupFolder}'") *>
         Inconsistency(s"Backup policies could not be found at '${src.pathAsString}', and valid policies couldn't be restored.").fail

@@ -76,7 +76,7 @@ class CheckAddSpecialTargetAllPolicyServers(
   override def description: String = "Check if special target all_policyServers from Rudder 7.0 is present"
 
   override def checks() : Unit = {
-    ZIO.whenM(checkMigrationNeeded())(
+    ZIO.whenZIO(checkMigrationNeeded())(
       createSpecialTarget()
     ).catchAll(err =>
       MigrationLoggerPure.error(s"Error during addition of new special target 'all_policyServers'. You can restart Rudder to " +

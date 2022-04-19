@@ -45,12 +45,13 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import zio._
-import zio.duration._
-import zio.test.environment._
+
+import zio.{System => _, _}
+import zio.test._
 import better.files._
 import org.joda.time.DateTimeZone
-import zio.clock.Clock
+
+import com.normation.zio.ZioRuntime
 
 @RunWith(classOf[JUnitRunner])
 class NodeCountHistorizationTest extends Specification with BeforeAfter  {
@@ -83,7 +84,7 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter  {
   }
 
 
-  def makeService(rootDir: String, refMetrics: Ref[FrequentNodeMetrics], zclock: Clock) = for {
+  def makeService(rootDir: String, refMetrics: Ref[FrequentNodeMetrics]) = for {
     gitLogger <- CommitLogServiceImpl.make(rootDir)
     writer    <- WriteNodeCSV.make(rootDir, ";", "yyyy-MM")
   } yield {
@@ -91,23 +92,24 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter  {
         new TestAggregateDataService(refMetrics)
       , writer
       , gitLogger
-      , zclock
       , DateTimeZone.UTC // never change log line
     )
   }
 
   "Calling one time fetchDataAndLog should initialize everything and write log" >> {
     val t = 1584676176000L.millis // 2020-03-20 3:49:36
-    val prog = ZIO.accessM[Clock with TestClock] { testClock =>
+    val prog = {
       for {
-        refMetrics <- Ref.make(FrequentNodeMetrics(1,2,3,4,5))
-        _          <- testClock.get[Clock.Service].sleep(t).fork
-        _          <- testClock.get[TestClock.Service].setTime(t)
-        service    <- makeService(rootDir, refMetrics, testClock)
-        commit     <- service.fetchDataAndLog("initilize logs")
-      } yield commit
-    }.provideLayer(testEnvironment)
-    Runtime.default.unsafeRun(prog)
+        refMetrics <- Ref.make(FrequentNodeMetrics(1, 2, 3, 4, 5))
+        _ <- ZIO.sleep(t).fork
+        _ <- TestClock.adjust(t)
+        service <- makeService(rootDir, refMetrics)
+        commit <- service.fetchDataAndLog("initilize logs")
+      } yield {
+        commit
+      }
+    }
+    ZioRuntime.unsafeRun(prog.provideLayer(Scope.default >>> testEnvironment))
     val lines = File(rootDir, "nodes-2020-03").lines(StandardCharsets.UTF_8).toVector
 
     (lines.size must beEqualTo(2)) and (

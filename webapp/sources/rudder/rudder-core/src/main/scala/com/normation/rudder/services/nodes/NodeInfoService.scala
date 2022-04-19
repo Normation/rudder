@@ -56,7 +56,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.domain.Constants
 import com.normation.ldap.sdk.LDAPIOResult._
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.errors._
 import com.normation.zio._
@@ -446,7 +446,7 @@ object NodeInfoServiceCached {
                       }
       // here, we must ensure that root ID is on the list, else chaos ensue.
       // If root is missing, invalidate the case
-      _            <- ZIO.whenM(rootMissing.get) {
+      _            <- ZIO.whenZIO(rootMissing.get) {
                         val msg = "'root' node is missing from the list of nodes. Rudder can not work in that state. We clear the cache now to try" +
                                   "to auto-correct the problem. If it persists, try to run 'rudder agent inventory && rudder agent run' " +
                                   "from the root server and check /var/log/rudder/webapp/ logs for additionnal information."
@@ -526,7 +526,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * Compare if cache is up to date (based on internal state of the cache)
    */
   def isUpToDate(): IOResult[Boolean] = {
-    IOResult.effect(nodeCache).flatMap {
+    IOResult.attempt(nodeCache).flatMap {
       case Some(cache) => checkUpToDate(cache.lastModTime, cache.lastModEntryCSN)
       case None        => false.succeed  // an empty cache is never up to date
     }
@@ -572,7 +572,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    */
   def removeNodeFromCache(nodeId: NodeId): IOResult[Unit] = {
     semaphore.withPermit(
-      IOResult.effect( { nodeCache = nodeCache.map(x => x.copy(nodeInfos = x.nodeInfos.removed(nodeId))) })
+      IOResult.attempt( { nodeCache = nodeCache.map(x => x.copy(nodeInfos = x.nodeInfos.removed(nodeId))) })
     )
   }
 
@@ -580,7 +580,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * Update cache, without doing anything with the data
    */
   def updateCache(): IOResult[Unit] = {
-    withUpToDateCache("update cache")(_ => UIO.unit)
+    withUpToDateCache("update cache")(_ => ZIO.unit)
   }
 
 
@@ -660,7 +660,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                              ldapNode.nodeEntry
                            , ldapNode.nodeInventoryEntry
                            , ldapNode.machineEntry
-                         ).foldM(
+                         ).foldZIO(
                              err      => NodeLoggerPure.Cache.error(s"An error occured while updating node cache: can not unserialize node with id '${id}', it will be ignored: ${err.fullMsg}") *> None.succeed
                            , nodeInfo => Some((nodeInfo.id, (ldapNode,nodeInfo))).succeed
                          )
@@ -695,14 +695,14 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
           updatedCache <- nodeCache match {
                     case None =>
                       for {
-                        updated    <- getDataFromBackend(None).foldM(
+                        updated    <- getDataFromBackend(None).foldZIO(
                           err      =>
-                            IOResult.effect({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
+                            IOResult.attempt({nodeCache = None; ()}) *> Chained("Could not get node information from database", err).fail
                           , newCache =>
                             logPure.debug(s"NodeInfo cache is now initialized, last modification time: '${newCache.lastModTime}', last cache update:"+
                               s" with ${newCache.nodeInfos.size} entries") *>
                               logPure.trace(s"NodeInfo cache initialized entries: [${newCache.nodeInfos.keySet.map{ _.value }.mkString(", ")}]") *>
-                              IOResult.effect({nodeCache = Some(newCache); () }) *>
+                              IOResult.attempt({nodeCache = Some(newCache); () }) *>
                               newCache.succeed
                         )
                       } yield {
@@ -713,9 +713,9 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                       isUpToDate().flatMap(isClean =>
                         if (!isClean) {
                           for {
-                            updated <- getDataFromBackend(Some(currentCache)).foldM(
+                            updated <- getDataFromBackend(Some(currentCache)).foldZIO(
                               err =>
-                                IOResult.effect({
+                                IOResult.attempt({
                                   nodeCache = None; ()
                                 }) *> Chained("Could not get updated node information from database", err).fail
                               , newCache =>
@@ -726,7 +726,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                                       _.value
                                     }.mkString(", ")
                                   }]") *>
-                                  IOResult.effect({
+                                  IOResult.attempt({
                                     nodeCache = Some(newCache); ()
                                   }) *>
                                   newCache.succeed
@@ -742,7 +742,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                     }
 
           t1     <- currentTimeMillis
-          _      <- IOResult.effect(TimingDebugLogger.debug(s"Get cache for node info (${label}): ${t1-t0}ms"))
+          _      <- IOResult.attempt(TimingDebugLogger.debug(s"Get cache for node info (${label}): ${t1-t0}ms"))
         } yield {
           (t0, updatedCache)
         }
@@ -751,7 +751,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
       t1                 <- currentTimeMillis
       res                <- useCache(updatedCache.nodeInfos) // this does not need to be in a semaphore
       t2                 <- currentTimeMillis
-      _                  <- IOResult.effect(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-t0}ms - exploring the cache took ${t2-t1}ms "))
+      _                  <- IOResult.attempt(TimingDebugLogger.debug(s"Get node info (${label}): ${t2-t0}ms - exploring the cache took ${t2-t1}ms "))
     } yield {
       res
     }
@@ -848,7 +848,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
   // return the cache last update time, or epoch if cache is not init
   def getCacheLastUpdate: UIO[DateTime] = {
-    semaphore.withPermit(UIO.effectTotal(this.nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))))
+    semaphore.withPermit(ZIO.succeed(this.nodeCache.map(_.lastModTime).getOrElse(new DateTime(0))))
   }
 
   def getAll(): IOResult[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
@@ -994,7 +994,7 @@ class NodeInfoServiceCachedImpl(
    *   back ~10ms on a dev machine.
    */
   override def checkUpToDate(lastKnowModification: DateTime, lastModEntryCSN: Seq[String]): IOResult[Boolean] = {
-    UIO(System.currentTimeMillis).flatMap { n0 =>
+    ZIO.succeed(System.currentTimeMillis).flatMap { n0 =>
       //if last check is less than 100 ms ago, consider cache ok
       if(n0 - lastKnowModification.getMillis < minimumCacheValidityMillis) {
         true.succeed
@@ -1019,12 +1019,12 @@ class NodeInfoServiceCachedImpl(
         for {
           con     <- ldap
           entries <- //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
-                     (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
+                     (ZIO.attempt(con.backed.search(searchRequest).getSearchEntries) catchAll {
                        case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
                          e.getSearchEntries().succeed
                        case e: Throwable =>
                          SystemError("Error when searching node information", e).fail
-                     }).foldM(
+                     }).foldZIO(
                        err =>
                          logPure.debug(s"Error when checking for cache expiration: invalidating it. Error was: ${err.fullMsg}") *> false.succeed
                      , seq => {
@@ -1033,8 +1033,8 @@ class NodeInfoServiceCachedImpl(
                          logPure.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)") *> res.succeed
                        }
                      )
-          n1       <- UIO(System.currentTimeMillis)
-          _        <- IOResult.effect(TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms"))
+          n1       <- ZIO.succeed(System.currentTimeMillis)
+          _        <- IOResult.attempt(TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms"))
         } yield {
           entries
         }
@@ -1088,7 +1088,7 @@ class NodeInfoServiceCachedImpl(
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
       containers  =  nodeInvs.flatMap(e => e(A_CONTAINER_DN).map(dn => new DN(dn).getRDN.getAttributeValues()(0)))
       machineInvs <- con.search(inventoryDit.MACHINES.dn, One, OR(containers.map(id => EQ(A_MACHINE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
+      infoMaps    <- IOResult.attempt { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases
@@ -1105,7 +1105,7 @@ class NodeInfoServiceCachedImpl(
       nodeInvs    <- con.search(inventoryDit.NODES.dn   , One, OR(containersDn.map(container => EQ(A_CONTAINER_DN, container)):_*), NodeInfoService.nodeInfoAttributes:_*)
       nodeIds      = nodeInvs.flatMap(_(A_NODE_UUID))
       nodeEntries <- con.search(nodeDit.NODES.dn        , One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)):_*), NodeInfoService.nodeInfoAttributes:_*)
-      infoMaps    <- IOResult.effect { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
+      infoMaps    <- IOResult.attempt { constructInfoMaps(nodeEntries, nodeInvs, machineInvs) }
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {
       // here, we ignore error cases

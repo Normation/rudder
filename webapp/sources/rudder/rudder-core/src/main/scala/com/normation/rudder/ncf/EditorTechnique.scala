@@ -508,7 +508,7 @@ class ResourceFileService( gitReposProvider    : GitRepositoryProvider) {
         s"Error when getting status of resource files of technique ${techniqueName}/${techniqueVersion}"
       )
       resourceDir =  File(gitReposProvider.db.getDirectory.getParent, resourcesPath)
-      allFiles    <- IOResult.effect(s"Error when getting all resource files of technique ${techniqueName}/${techniqueVersion} ") {
+      allFiles    <- IOResult.attempt(s"Error when getting all resource files of technique ${techniqueName}/${techniqueVersion} ") {
         getAllFiles(resourceDir)
       }
     } yield {

@@ -175,7 +175,7 @@ class TechniqueAcceptationUpdater(
             rwActiveTechniqueRepo.deleteCategory(toActiveCatId(cat.id), modId, actor, reason).map(_ => ())
           } else {
             logPure.info(s"Not deleting non empty category: '${cat.id.toString}'") *>
-            UIO.unit
+            ZIO.unit
           }) // do nothing
         case TechniqueCategoryModType.Added(cat, parentId) =>
           logPure.debug(s"Category '${cat.id.toString}' added into '${parentId.toString}'") *>
@@ -206,7 +206,7 @@ class TechniqueAcceptationUpdater(
           roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id)).flatMap { opt => opt match {
             case None          =>
               (cat.id: @unchecked) match {
-                case _:RootTechniqueCategoryId.type => UIO.unit
+                case _:RootTechniqueCategoryId.type => ZIO.unit
                 case i:SubTechniqueCategoryId =>
                   rwActiveTechniqueRepo.addActiveTechniqueCategory(
                     ActiveTechniqueCategory(
@@ -237,7 +237,7 @@ class TechniqueAcceptationUpdater(
 
                               case (TechniqueDeleted(name, versions), None) =>
                                 //nothing to do
-                                UIO.unit
+                                ZIO.unit
 
                               case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
                                 // If an active technique, not system, still exists for that technique, disable it.
@@ -279,7 +279,7 @@ class TechniqueAcceptationUpdater(
                                  */
                                 mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
                                   case None => //do nothing
-                                    UIO.unit
+                                    ZIO.unit
 
                                   case Some((version, mod)) =>
 
@@ -290,7 +290,7 @@ class TechniqueAcceptationUpdater(
                                       case None =>
                                         //hum, something changed on the repos since the update. Strange.
                                         //ignore ? => do nothing
-                                        UIO.unit
+                                        ZIO.unit
                                       case Some(t) =>
                                         val referenceId = t.head._2.id
 

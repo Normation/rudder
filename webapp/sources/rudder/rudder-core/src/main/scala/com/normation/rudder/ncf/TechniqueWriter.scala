@@ -158,7 +158,7 @@ class TechniqueWriterImpl (
         categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
         // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
         _          <- directives match {
-                        case Nil => UIO.unit
+                        case Nil => ZIO.unit
                         case _ =>
                           if (deleteDirective) {
                             val wf = workflowLevelService.getWorkflowService()
@@ -377,7 +377,7 @@ class TechniqueWriterImpl (
     val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
       content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
-      _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
+      _       <- IOResult.attempt(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
         implicit val charSet = StandardCharsets.UTF_8
         val file = File (path).createFileIfNotExists (true)
         file.write (content)
@@ -394,7 +394,7 @@ class TechniqueWriterImpl (
 
     val content = techniqueSerializer.serializeTechniqueMetadata(technique, methods)
     for {
-      _       <- IOResult.effect(s"An error occurred while creating json file for Technique '${technique.name}'") {
+      _       <- IOResult.attempt(s"An error occurred while creating json file for Technique '${technique.name}'") {
         implicit val charSet = StandardCharsets.UTF_8
         val file = File (path).createFileIfNotExists (true)
         file.write (net.liftweb.json.prettyRender(content))
@@ -619,7 +619,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
     implicit val charset = StandardCharsets.UTF_8
     val techFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "technique.cf"
-    val t = IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${techFile.path.toString}") {
+    val t = IOResult.attempt(s"Could not write na reporting Technique file '${technique.name}' in path ${techFile.path.toString}") {
       techFile.createFileIfNotExists(true).write(content.stripMargin('|'))
       File(basePath).relativize(techFile.path).toString
     }
@@ -695,7 +695,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
            |${bundleActings}"""
 
       val reportingFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
-      IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
+      IOResult.attempt(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
         reportingFile.createFileIfNotExists(true).write(content.stripMargin('|'))
         Seq(File(basePath).relativize(reportingFile.path).toString)
       }
@@ -915,7 +915,7 @@ class DSCTechniqueWriter(
             |  EndTechniqueCall -Name $$techniqueName
             |}""".stripMargin('|')
 
-      path  <-  IOResult.effect(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
+      path  <-  IOResult.attempt(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
                   Paths.get(s"${basePath}/${techniquePath}")
                 )
       // Powershell files needs to have a BOM added at the beginning of all files when using UTF8 enoding
@@ -923,7 +923,7 @@ class DSCTechniqueWriter(
       // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
       contentWithBom = Array(239.toByte, 187.toByte, 191.toByte) ++ content.getBytes(StandardCharsets.UTF_8)
 
-      files <-  IOResult.effect(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}") {
+      files <-  IOResult.attempt(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}") {
                   Files.createDirectories(path.getParent)
                   Files.write(path, contentWithBom.toArray)
                 }

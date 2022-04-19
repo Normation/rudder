@@ -109,8 +109,8 @@ class InventoryApi (
     val sigExtension = ".sign"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      def writeFile(item: FileParamHolder, file: File) = ZIO.bracket(IOResult.effect(item.fileStream))(is => effectUioUnit(is.close())) { is =>
-        IOResult.effect(file.outputStream.foreach(is.pipeTo(_)))
+      def writeFile(item: FileParamHolder, file: File) = ZIO.acquireReleaseWith(IOResult.attempt(item.fileStream))(is => effectUioUnit(is.close())) { is =>
+        IOResult.attempt(file.outputStream.foreach(is.pipeTo(_)))
       }
       def parseInventory(pretty: Boolean, inventoryFile: FileParamHolder, signatureFile: FileParamHolder): IOResult[String] = {
         // here, we are at the end of our world. Evaluate ZIO and see what happen.

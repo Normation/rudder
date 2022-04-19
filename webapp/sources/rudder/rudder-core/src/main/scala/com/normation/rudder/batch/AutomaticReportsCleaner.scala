@@ -40,8 +40,10 @@ package com.normation.rudder.batch
 import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
+
 import net.liftweb.actor.LAPinger
 import com.normation.rudder.services.system.DatabaseManager
+
 import net.liftweb.common._
 import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
@@ -49,9 +51,13 @@ import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+
 import net.liftweb.actor.SpecializedLiftActor
 import com.normation.rudder.services.system.DeleteCommand
+
+import com.github.ghik.silencer.silent
 import com.unboundid.ldap.sdk.DN
+
 import zio._
 import zio.syntax._
 import com.normation.zio._
@@ -365,7 +371,7 @@ class AutomaticReportsCleaning(
             r
         }
       }
-      val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap).foldM(
+      val interval = AutomaticReportsCleaning.getMaxRunMinutes(ldap).foldZIO(
         failure =>
           ScheduledJobLoggerPure.warn(s"Error when trying to get maximun run interval, defaulting to  5 minutes. Error was: ${failure.fullMsg}") *>
           5.succeed
@@ -384,17 +390,16 @@ class AutomaticReportsCleaning(
       }
     }
   }
-  import zio.duration._
 
   (for {
     ttl   <- deleteLogttl
     dur   =  ttl.toLong.minutes
     batch <- if(ttl < 1) {
                ScheduledJobLoggerPure.info(s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative") *>
-               UIO.unit
+               ZIO.unit
              } else {
                ScheduledJobLoggerPure.debug(s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****") *>
-               IOResult.effect(dbManager.deleteLogReports(dur.asScala) match {
+               IOResult.attempt(dbManager.deleteLogReports(dur.asScala) match {
                    case Full(n)      => logger.debug(s"Deleted ${n} log reports from report table.")
                    case eb: EmptyBox =>
                      val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
@@ -402,9 +407,10 @@ class AutomaticReportsCleaning(
                  }
                ).catchAll(error =>
                  ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
-               ).delay(dur).repeat(Schedule.spaced(dur).forever).forkDaemon
+               ).delay(dur).repeat(Schedule.spaced(dur).forever).forkDaemon : @silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+
               }
-  } yield ()).provide(ZioRuntime.environment).runNow
+  } yield ()).runNow
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////

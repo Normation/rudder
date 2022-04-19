@@ -400,7 +400,7 @@ object GenericProperty {
    * Parse a value that was correctly serialized to hocon (ie string are quoted, etc)
    */
   def parseSerialisedValue(value: String): PureResult[ConfigValue] = {
-    PureResult.effect(s"Error: value is not parsable as a property: ${value}") {
+    PureResult.attempt(s"Error: value is not parsable as a property: ${value}") {
       ConfigFactory.parseString(
         // it's necessary to put it on its own line to avoid pb with comments/multilines
         s"""{"x":
@@ -562,7 +562,7 @@ object GenericProperty {
    * Parse a string a hocon config object
    */
   def parseConfig(json: String): PureResult[Config] = {
-    PureResult.effectM(s"Error when parsing data as a property: ${json}") {
+    PureResult.attemptZIO(s"Error when parsing data as a property: ${json}") {
       val cfg = ConfigFactory.parseString(json)
       if(cfg.hasPath(NAME) && cfg.hasPath(VALUE)) Right(cfg)
       else Left(Inconsistency(s"Error when parsing data as a property: it misses required field 'name' or 'value': ${json}"))

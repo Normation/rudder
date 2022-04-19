@@ -39,8 +39,8 @@ final case class SystemError(cause: Throwable) extends RudderError {
 
 object StringMarshaller extends FileMarshalling[String] {
   //simply read / write file content
-  override def fromFile(in:File) : IOResult[String] = IO.effect(FileUtils.readFileToString(in,"UTF-8")).mapError(SystemError)
-  override def toFile(out:File, data: String) : IOResult[String] = IO.effect {
+  override def fromFile(in:File) : IOResult[String] = ZIO.attempt(FileUtils.readFileToString(in,"UTF-8")).mapError(SystemError)
+  override def toFile(out:File, data: String) : IOResult[String] = ZIO.attempt {
     FileUtils.writeStringToFile(out,data, "UTF-8")
     data
   }.mapError(SystemError)
@@ -92,7 +92,7 @@ class TestFileHistoryLogRepository {
 }
 
 object TestFileHistoryLogRepository {
-  val rootDir = System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
+  val rootDir = java.lang.System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
 
   def clean: Unit = {
     FileUtils.deleteDirectory(new File(rootDir))

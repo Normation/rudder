@@ -95,7 +95,7 @@ import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.Box
 
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import zio.stream._
 import com.normation.zio._
@@ -113,7 +113,7 @@ object DeletionResult {
       case Error(err) => err.fail
       case PreHookFailed(err) => Inconsistency(s"Pre hook error: ${err.msg}").fail
       case PostHookFailed(err) => Inconsistency(s"Post hook error: ${err.msg}").fail
-      case Success => UIO.unit
+      case Success => ZIO.unit
     })
   }
 
@@ -254,7 +254,7 @@ class RemoveNodeServiceImpl(
           _       <- NodeLoggerPure.Delete.debug(s"-> execute clean-up actions for node '${nodeId.value}'")
           actions <- postNodeDeleteActions.get
           optInfo <- info.get
-          _       <- ZIO.foreach_(actions)(_.run(nodeId, mode, optInfo, status))
+          _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, mode, optInfo, status))
           _       <- NodeLoggerPure.Delete.info(s"Node '${nodeId.value}' ${optInfo.map(_.hostname).getOrElse("")} was successfully deleted")
           _       <- effectUioUnit(nodeInfoService.clearCache())
         } yield {
@@ -397,7 +397,7 @@ class RemoveNodeServiceImpl(
     }
 
     for {
-      optNodePaths <- getNodePath(nodeInfo).foldM(
+      optNodePaths <- getNodePath(nodeInfo).foldZIO(
                         err => {
                           val msg = s"Error when trying to calculate node '${nodeInfo.id.value}' policy path: ${err.fullMsg}"
                           NodeLoggerPure.Delete.warn(msg) *>
@@ -539,7 +539,7 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
     // we can avoid to do LDAP requests if we are sure the node wasn't a policy server
     info.map(_.isPolicyServer) match {
       case Some(false) =>
-        UIO.unit
+        ZIO.unit
       case _           =>
         NodeLoggerPure.Delete.debug(s"  - delete relay related policies in LDAP'${nodeId.value}'") *>
         policyServerManagement.deleteRelaySystemObjects(nodeId).catchAll(err =>
@@ -560,7 +560,7 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
       } yield () ).catchAll(err =>
         NodeLoggerPure.Delete.error(s"Error when removing the certification status of node key ${(nodeId, info).name}: ${err.fullMsg}")
       )
-    } else UIO.unit
+    } else ZIO.unit
   }
 }
 
@@ -573,8 +573,8 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
         if(agentTypes.contains(AgentType.CfeCommunity)) {
           NodeLoggerPure.Delete.debug(s"  - delete CFEngine keys for '${nodeId.value}'") *>
           deleteCfengineKey(i)
-        } else UIO.unit
-      case _       => UIO.unit
+        } else ZIO.unit
+      case _       => ZIO.unit
     }
   }
 
@@ -585,10 +585,10 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
   def deleteCfengineKey(nodeInfo: NodeInfo): UIO[Unit] = {
     nodeInfo.keyHashCfengine match {
       case null | "" => // no key or not a cfengine agent
-        UIO.unit
+        ZIO.unit
       case key =>
         //key name looks like: root-MD5=8d3270d42486e8d6436d06ed5cc5034f.pub
-        IOResult.effect(Files.find(Paths.get("/var/rudder/cfengine-community/ppkeys"), 1, new BiPredicate[Path, BasicFileAttributes] {
+        IOResult.attempt(Files.find(Paths.get("/var/rudder/cfengine-community/ppkeys"), 1, new BiPredicate[Path, BasicFileAttributes] {
           override def test(keyName: Path, u: BasicFileAttributes): Boolean = keyName.toString().endsWith(key + ".pub")
         }).forEach(new Consumer[Path] {
           override def accept(p: Path): Unit = {
@@ -649,8 +649,8 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
    *   "several time per minute" range.
    */
   def cleanPoliciesRec(nodeId: NodeId, file: File): ZStream[Any, RudderError, File] = {
-    ZStream.fromEffect(
-      IOResult.effect(file.exists).catchAll(err =>
+    ZStream.fromZIO(
+      IOResult.attempt(file.exists).catchAll(err =>
         NodeLoggerPure.Delete.error(err.fullMsg) *> false.succeed
       )
     ).flatMap(cond =>
@@ -660,7 +660,7 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
       else {
         ZStream.fromIterator(file.children).mapError(SystemError(s"Error when listing children of file '${file.pathAsString}' when cleaning node '${nodeId.value}'", _)).tap(_ =>
             NodeLoggerPure.Delete.ifTraceEnabled {
-              (ZIO.effect {
+              (ZIO.attempt {
                 (root / "proc" / "self").children.size
               } catchAll { _ => (-1).succeed }).flatMap(openfd =>
                 NodeLoggerPure.Delete.trace(s"Currently ${openfd} open files by Rudder Server process")
@@ -668,7 +668,7 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
             }
         ).flatMap { nodeFolder =>
           if(nodeId == NodeId(nodeFolder.name)) {
-            ZStream.fromEffect(IOResult.effect(nodeFolder.delete()) *> nodeFolder.succeed)
+            ZStream.fromZIO(IOResult.attempt(nodeFolder.delete()) *> nodeFolder.succeed)
           } else {
             cleanPoliciesRec(nodeId, nodeFolder / "share")
           }

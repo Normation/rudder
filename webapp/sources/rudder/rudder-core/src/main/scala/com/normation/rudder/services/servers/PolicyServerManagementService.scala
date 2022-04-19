@@ -279,7 +279,7 @@ object PolicyServerManagementService {
     //filter out bad networks
     def validNets(networks: List[AllowedNetwork]): IOResult[Unit] = {
       networks.accumulate(net =>
-        if(AllowedNetwork.isValid(net.inet)) UIO.unit
+        if(AllowedNetwork.isValid(net.inet)) ZIO.unit
         else Inconsistency(s"Allowed network '${net}' is not a valid network syntax").fail
       ).unit
     }

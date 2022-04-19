@@ -663,7 +663,7 @@ class WoLDAPDirectiveRepository(
                              , oldRootSection
                            ).toIO.chainError("Error when processing saved modification to log them"))
       eventLogged <- (optDiff match {
-                       case None => UIO.unit
+                       case None => ZIO.unit
                        case Some(diff:AddDirectiveDiff) =>
                          actionLogger.saveAddDirective(
                              modId
@@ -944,7 +944,7 @@ class WoLDAPDirectiveRepository(
                                 con, techniqueName,
                                 { name => EQ(A_TECHNIQUE_UUID, name.value) },
                                 "1.1") flatMap {
-                                  case None => UIO.unit
+                                  case None => ZIO.unit
                                   case Some(uptEntry) => s"Can not add a technique with id '${techniqueName.value}' in user library. active technique '${uptEntry.dn}}' is already defined with such a reference technique.".fail
                               }
                             }
@@ -1013,7 +1013,7 @@ class WoLDAPDirectiveRepository(
                           s"Error when mapping technique '${uactiveTechniqueId.value}' update to an diff: ${saved}"
                          )
       loggedAction    <- optDiff match {
-                           case None       => UIO.unit
+                           case None       => ZIO.unit
                            case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
       newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(s"Technique with id '${uactiveTechniqueId.value}' can't be find back after status change")

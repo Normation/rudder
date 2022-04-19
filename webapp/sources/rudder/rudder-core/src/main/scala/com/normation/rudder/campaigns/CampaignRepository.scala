@@ -53,11 +53,11 @@ trait CampaignRepository {
 
 object CampaignRepositoryImpl {
   def make(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository): IOResult[CampaignRepositoryImpl] = {
-    IOResult.effectM {
+    IOResult.attempt {
       if(path.exists) {
         if(!path.isDirectory|| !path.isWritable) {
           Unexpected(s"Campaign configuration repository is not a writable directory: " + path.pathAsString).fail
-        } else UIO.unit
+        } else ZIO.unit
       } else {
         path.createDirectoryIfNotExists(createParents = true).succeed
       }
@@ -70,7 +70,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
 
   def getAll(): IOResult[List[Campaign]] = {
     for {
-      jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ ==".json"))}
+      jsonFiles <- IOResult.attempt{path.collectChildren(_.extension.exists(_ ==".json"))}
       campaigns <- (ZIO.foreach(jsonFiles.toList) {
 
         json =>
@@ -90,7 +90,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
   }
   def get(id : CampaignId) : IOResult[Campaign] = {
     for {
-      content <- IOResult.effect (s"error when getting campaign file for campaign with id '${id.value}'"){
+      content <- IOResult.attempt (s"error when getting campaign file for campaign with id '${id.value}'"){
         val file = path / (s"${id.value}.json")
         file.createFileIfNotExists(createParents = true)
         file
@@ -102,13 +102,13 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
   }
   def   save(c : Campaign): IOResult[Campaign] = {
     for {
-      file <- IOResult.effect (s"error when creating campaign file for campaign with id '${c.info.id.value}'"){
+      file <- IOResult.attempt (s"error when creating campaign file for campaign with id '${c.info.id.value}'"){
                 val file = path / (s"${c.info.id.value}.json")
                 file.createFileIfNotExists(true)
                 file
               }
       content <- campaignSerializer.serialize(c)
-      _       <- IOResult.effect { file.write(content) }
+      _       <- IOResult.attempt { file.write(content) }
     } yield {
       c
     }
@@ -116,7 +116,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
 
   def delete(id: CampaignId): IOResult[CampaignId] =
     for {
-      campaign_deleted <- IOResult.effect (s"error when delete campaign file for campaign with id '${id.value}'"){
+      campaign_deleted <- IOResult.attempt (s"error when delete campaign file for campaign with id '${id.value}'"){
         val file = path / (s"${id.value}.json")
         file.delete()
       }

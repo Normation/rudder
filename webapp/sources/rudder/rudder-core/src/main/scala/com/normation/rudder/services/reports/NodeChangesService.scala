@@ -48,12 +48,10 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.js.JE._
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.zio._
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
-import zio.duration._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ReportLoggerPure
-import zio.blocking.Blocking
 import com.normation.box._
 
 /**
@@ -201,7 +199,7 @@ class CachedNodeChangesServiceImpl(
   ZioRuntime.runNow((for {
     _ <- ReportLoggerPure.Changes.debug("Initialize rule changes caches")
     _ <- this.addUpdate(ChangesUpdate.Init)
-  } yield ()).delay(10.seconds).forkDaemon.provide(ZioRuntime.environment))
+  } yield ()).delay(10.seconds).forkDaemon)
 
   /*
    * The cache can only be modified through a queue of updates.
@@ -219,10 +217,10 @@ class CachedNodeChangesServiceImpl(
      *   lowestId and the highest ID if all interval for highestId
      */
     @scala.annotation.tailrec
-    private def mergeUpdates(current: ChangesUpdate, updates: List[ChangesUpdate]): ChangesUpdate = {
-      updates match {
-        case Nil     => current
-        case h::tail =>
+    private def mergeUpdates(current: ChangesUpdate, updates: Chunk[ChangesUpdate]): ChangesUpdate = {
+      updates.headOption match {
+        case None    => current
+        case Some(h) =>
           import ChangesUpdate._
           val c = (h, current) match {
             case (Init     , Init    ) => Init
@@ -230,11 +228,11 @@ class CachedNodeChangesServiceImpl(
             case (For(a,b) , Init    ) => For(a, b)
             case (For(a, b), For(c,d)) => For(Math.min(a,c), Math.max(b,d))
           }
-          mergeUpdates(c, tail)
+          mergeUpdates(c, updates.tail)
       }
     }
 
-    def consumeOne(queue: Queue[ChangesUpdate]): ZIO[Blocking, Nothing, Unit] = {
+    def consumeOne(queue: Queue[ChangesUpdate]): ZIO[Any, Nothing, Unit] = {
       for {
         // takeAll doesn't wait for items, so we wait for at least one and then take all other
         one  <- queue.take
@@ -242,7 +240,7 @@ class CachedNodeChangesServiceImpl(
         all  <- queue.takeAll
         _    <- ReportLoggerPure.Changes.trace(s"Actually ${all.size + 1} updates!")
         // update the cache, log and never fail
-        fib  <- blocking.blocking(updateCache(mergeUpdates(one, all))).fork
+        fib  <- ZIO.blocking(updateCache(mergeUpdates(one, all))).fork
         _    <- fib.join
       } yield ()
     }
@@ -263,7 +261,7 @@ class CachedNodeChangesServiceImpl(
     ZioRuntime.runNow(
       for{
         _ <- ReportLoggerPure.Changes.debug(s"Start waiting for rule changes update")
-       _  <- (consumeOne(queue) *> ReportLoggerPure.Changes.trace(s"done, looping")).forever.provide(ZioRuntime.environment).forkDaemon
+       _  <- (consumeOne(queue) *> ReportLoggerPure.Changes.trace(s"done, looping")).forever.forkDaemon
       } yield ()
     )
   }
@@ -321,7 +319,7 @@ class CachedNodeChangesServiceImpl(
   }
 
   def addUpdate(update: ChangesUpdate): IOResult[Unit] = {
-    IOResult.effect(computeChangeEnabled().getOrElse(true)).flatMap { enabled => // always true by default
+    IOResult.attempt(computeChangeEnabled().getOrElse(true)).flatMap { enabled => // always true by default
       if(enabled) {
         for {
           _  <- ReportLoggerPure.Changes.debug(s"Add changes cache update ${update} on queue")
@@ -343,7 +341,7 @@ class CachedNodeChangesServiceImpl(
    * This method must be accessed in a monothreaded way.
    */
   protected def updateCache(update: ChangesUpdate): UIO[Unit] = {
-    IOResult.effect(computeChangeEnabled().getOrElse(true)).flatMap { enabled =>  // always true by default
+    IOResult.attempt(computeChangeEnabled().getOrElse(true)).flatMap { enabled =>  // always true by default
       if(enabled) {
         (for {
           time1   <- currentTimeMillis
@@ -404,7 +402,7 @@ class CachedNodeChangesServiceImpl(
       _          <- ReportLoggerPure.Changes.debug(s"Rule Changes cache updating for changes between ID '${lowestId}' and '${highestId}'")
       time0      <- currentTimeMillis
       changes    <- changeService.reportsRepository.getChangeReportsOnInterval(Math.max(lowestId, previous.highestId), highestId)
-      intervals  <- IOResult.effect(changeService.getCurrentValidIntervals(None))
+      intervals  <- IOResult.attempt(changeService.getCurrentValidIntervals(None))
       newChanges =  changes.groupBy(_.ruleId).map { case (id, ch) =>
                       val c = intervals.map { interval =>
                         (interval, ch.filter(interval contains _.executionTimestamp).size )

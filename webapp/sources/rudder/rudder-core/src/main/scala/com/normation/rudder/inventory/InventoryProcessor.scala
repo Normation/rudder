@@ -53,6 +53,7 @@ import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 
 import better.files.File
+import com.github.ghik.silencer.silent
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
@@ -192,9 +193,10 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
+    @silent("a type was inferred to be `Any`")
     def saveWithSignature(inventory: Inventory, publicKey: JavaSecPubKey, newInventoryStream: IOManaged[InputStream], newSignature: IOManaged[InputStream]): IOResult[InventoryProcessStatus] = {
-      newInventoryStream.use(inventoryStream =>
-        newSignature.use(signatureStream =>
+      ZIO.scoped(newInventoryStream.flatMap(inventoryStream =>
+        ZIO.scoped(newSignature.flatMap(signatureStream =>
           for {
             digest  <- digestService.parse(signatureStream)
             checked <- digestService.check(publicKey, digest, inventoryStream)
@@ -212,19 +214,19 @@ class InventoryProcessor(
            } yield {
              saved
            }
-        )
-      )
+        ))
+      ))
     }
 
     def parseSafe(newInventoryStream: IOManaged[InputStream], inventoryFileName: String): IOResult[Inventory] = {
-      newInventoryStream.use(is =>
+      ZIO.scoped(newInventoryStream.flatMap(is =>
         for {
           r <- unmarshaller.fromXml(inventoryFileName, is)
         } yield {
           // use the provided file name as inventory name, else it's a generic one setted by fusion (like "inventory")
           r.copy(name = inventoryFileName)
         }
-      )
+      ))
     }
 
     // actual inventory processing logic
@@ -239,28 +241,28 @@ class InventoryProcessor(
       secPair      <- digestService.getKey(inventory).chainError(s"Error when trying to check inventory key for Node '${inventory.node.main.id.value}'")
       parsed       <- digestService.parseSecurityToken(secPair._1)
       _            <- parsed.subject match {
-                        case None       => UIO.unit
+                        case None       => ZIO.unit
                         case Some(list) => SecurityToken.checkCertificateSubject(inventory.node.main.id, list)
                       }
-      afterParsing =  System.currentTimeMillis()
+      afterParsing <- currentTimeMillis
       inventoryName= inventory.name
       nodeId       = inventory.node.main.id
-      _            =  InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+      _            =  InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, java.lang.System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- saveWithSignature(inventory, parsed.publicKey, info.inventory, info.signature).chainError("Error when trying to check inventory signature")
-      _            <- InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' for node '${inventory.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _            <- InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' for node '${inventory.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, java.lang.System.currentTimeMillis).toPeriod)} ms")
     } yield {
       saved
     })
 
     // guard against missing files: as there may be a latency between file added to buffer / file processed, we
     // need to check again here.
-    info.exists.use(exists =>
+    ZIO.scoped[Any](info.exists.flatMap(exists =>
       for {
         res    <- if(exists) processLogic
                   else InventoryProcessingLogger.trace(s"File '${info.fileName}' was deleted, skipping") *>
                        InventoryProcessStatus.Saved(info.fileName, NodeId("skipped")).succeed
       } yield res
-    ).catchAll(
+    )).catchAll(
         err    => {
           val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
           InventoryProcessingLogger.error(fail.fullMsg) *> InventoryProcessStatus.SaveError(info.fileName, NodeId("unknown"), fail).succeed
@@ -305,11 +307,10 @@ class InventoryFailedHook(
   , HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
   import scala.jdk.CollectionConverters._
-  import zio.duration._
 
   def runHooks(file: File): UIO[Unit] = {
     (for {
-      systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
+      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
       hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
       _         <- for {
                      timeHooks0 <- currentTimeMillis
@@ -355,7 +356,7 @@ class InventoryMover(
   // we don't manage race condition very well, so we have cases where
   // we can have two things trying to move
   def safeMove[T](file: File, chunk: =>T): UIO[Unit] = {
-    Task.effect{chunk ; ()}.catchAll {
+    ZIO.attempt { chunk ; () }.catchAll {
       case ex: NoSuchFileException => // ignore
         InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The file '${file.pathAsString}' was correctly handled.")
       case ex                      =>

@@ -111,15 +111,15 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   override def afterAll(): Unit = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
+    if(java.lang.System.getProperty("tests.clean.tmp") != "false") {
       FileUtils.deleteDirectory(new File(basePath))
     }
   }
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    override def deleteTechnique(techniqueId: TechniqueId, categories: Seq[String], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = UIO.unit
-    override def saveTechnique(techniqueId: TechniqueId, categories: Seq[String], resourcesStatus: Chunk[ResourceFile], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = UIO.unit
+    override def deleteTechnique(techniqueId: TechniqueId, categories: Seq[String], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = ZIO.unit
+    override def saveTechnique(techniqueId: TechniqueId, categories: Seq[String], resourcesStatus: Chunk[ResourceFile], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = ZIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {

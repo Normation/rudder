@@ -13,7 +13,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.nodes.NodeInfoService
-import zio.UIO
 import zio.ZIO
 import zio.syntax.ToZio
 
@@ -58,7 +57,7 @@ class HealthcheckService(checks: List[Check]) {
     } yield res
   }
 
-  private[this] def logHealthcheck(name: CheckName, check: HealthcheckResult): UIO[Unit] = {
+  private[this] def logHealthcheck(name: CheckName, check: HealthcheckResult): zio.UIO[Unit] = {
     val msg = s"${name.value}: ${check.msg}"
     check match {
       case _: Critical => logger.error(msg)
@@ -71,7 +70,7 @@ class HealthcheckService(checks: List[Check]) {
 final object CheckCoreNumber extends Check {
   def name: CheckName = CheckName("CPU cores")
   def run: IOResult[HealthcheckResult] = for {
-    availableCores <- IOResult.effect(getRuntime.availableProcessors)
+    availableCores <- IOResult.attempt(getRuntime.availableProcessors)
   } yield {
     availableCores match {
       // Should not happen, but not critical by itself
@@ -107,7 +106,7 @@ final object CheckFreeSpace extends Check {
     }
 
     for {
-      paritionSpaceInfos <- IOResult.effect {
+      paritionSpaceInfos <- IOResult.attempt {
                               partitionToCheck.map { x =>
                                 val file = new io.File(x)
                                 SpaceInfo(x, file.getUsableSpace, file.getTotalSpace)
@@ -150,7 +149,7 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
                         s"An error occurred while getting file descriptor soft limit with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
                       ).fail
                     }
-      limit      <- IOResult.effectNonBlocking(res.stdout.trim.toLong)
+      limit      <- IOResult.attempt(res.stdout.trim.toLong)
     } yield {
       val numNode = nodeInfoService.getNumberOfManagedNodes
       val minimalLimit = 100 * numNode

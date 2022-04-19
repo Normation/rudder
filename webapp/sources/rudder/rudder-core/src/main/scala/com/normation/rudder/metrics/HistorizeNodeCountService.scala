@@ -57,7 +57,6 @@ import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
 
 import zio._
-import zio.clock.Clock
 import com.normation.zio._
 
 
@@ -100,7 +99,6 @@ class HistorizeNodeCountService(
     dataService: FetchDataService
   , writer     : WriteLogService
   , gitLog     : CommitLogService
-  , zclock     : Clock
   , timeZone   : DateTimeZone = DateTimeZone.getDefault()
 ) {
 
@@ -111,7 +109,7 @@ class HistorizeNodeCountService(
     for {
       start <- currentTimeMillis
       data  <- dataService.getFrequentNodeMetric()
-      now   <- zclock.get.currentTime(TimeUnit.MILLISECONDS).map(new DateTime(_, timeZone))
+      now   <- ZIO.clockWith(_.currentTime(TimeUnit.MILLISECONDS).map(new DateTime(_, timeZone)))
       _     <- writer.write(now, data)
       c     <- gitLog.commitLog(cause)
       end   <- currentTimeMillis
@@ -185,7 +183,7 @@ object WriteNodeCSV {
     val base = File(directoryPath)
 
     // Check parent directory exists (or can be created) and is writable
-    IOResult.effect {
+    IOResult.attempt {
       if(base.exists) {
         if(base.isDirectory) {
           if(base.isWritable) {
@@ -201,7 +199,7 @@ object WriteNodeCSV {
       }
     } *>
     // check that fileDateFormat is OK
-    IOResult.effect(DateTimeFormat.forPattern(fileDateFormat)).map(formatter =>
+    IOResult.attempt(DateTimeFormat.forPattern(fileDateFormat)).map(formatter =>
       new WriteNodeCSV(base, csvSeparator, formatter)
     )
   }
@@ -244,10 +242,10 @@ class WriteNodeCSV(
     // write in file
     val f = File(baseDdirectory, filename(date))
     for {
-      _ <- ZIO.whenM(IOResult.effect(!f.exists)) {
-             IOResult.effect(f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(File.OpenOptions.default, StandardCharsets.UTF_8))
+      _ <- ZIO.whenZIO(IOResult.attempt(!f.exists)) {
+             IOResult.attempt(f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(File.OpenOptions.default, StandardCharsets.UTF_8))
            }
-      _ <- IOResult.effect(f.writeText(csv(date, metrics))(File.OpenOptions.append, StandardCharsets.UTF_8))
+      _ <- IOResult.attempt(f.writeText(csv(date, metrics))(File.OpenOptions.append, StandardCharsets.UTF_8))
     } yield ()
   }
 }
@@ -261,7 +259,7 @@ class CommitLogServiceImpl(val gitRepo: GitRepositoryProvider, val commitInfo: R
 
   def commitLog(cause: String): IOResult[RevCommit] = {
     commitInfo.get.flatMap { info =>
-      IOResult.effect {
+      IOResult.attempt {
         gitRepo.git.add().addFilepattern(".").setUpdate(false).call()
         gitRepo.git.commit()
           .setCommitter(info.name, info.email.getOrElse(""))
@@ -285,7 +283,7 @@ object CommitLogServiceImpl {
      * By default, commit are not signed
      */
     for {
-      _    <- IOResult.effect(File(gitRoot).createDirectoryIfNotExists(createParents = true))
+      _    <- IOResult.attempt(File(gitRoot).createDirectoryIfNotExists(createParents = true))
       // by default, commit by rudder system user with no signature
       info <- Ref.make(CommitInformation(RudderEventActor.name, None, false))
       repo <- GitRepositoryProviderImpl.make(gitRoot)

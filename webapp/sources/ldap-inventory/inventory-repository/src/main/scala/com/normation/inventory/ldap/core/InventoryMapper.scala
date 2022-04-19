@@ -704,7 +704,7 @@ class InventoryMapper(
     implicit class Unserialize(json: String) {
       def toCustomProperty: IOResult[CustomProperty] = {
         implicit val formats = DefaultFormats
-        IOResult.effect(Serialization.read[CustomProperty](json))
+        IOResult.attempt(Serialization.read[CustomProperty](json))
       }
     }
   }
@@ -976,7 +976,7 @@ class InventoryMapper(
                                     AgentInfoSerialisation.parseCompatNonJson(agent,key).chainError(s"Error when parsing agent security token '${agent}'")
                                   case (None, key)        =>
                                     InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
-                                }).foldM(
+                                }).foldZIO(
                                   err => InventoryDataLogger.error(s"Error when parsing agent information for node '${id.value}': that agent will be " +
                                                                    s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}") *> None.succeed
                                 , ok  => Some(ok).succeed
@@ -1019,7 +1019,7 @@ class InventoryMapper(
                             }
       customProperties   <-  { import CustomPropertiesSerialization.Unserialize
                               ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))( a =>
-                                a.toCustomProperty.foldM(
+                                a.toCustomProperty.foldZIO(
                                     err =>
                                       InventoryProcessingLogger.warn(Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg) *> None.succeed
                                   , p =>

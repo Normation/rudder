@@ -61,12 +61,12 @@ class TestPreParsing extends Specification {
   private[this] implicit class TestParser(pre: PreInventoryParser) {
 
     def fromXml(checkName:String,is:InputStream) : IOResult[NodeSeq] = {
-      Task.effect(XML.load(is)).mapError(SystemError("error in test", _))
+      ZIO.attempt(XML.load(is)).mapError(SystemError("error in test", _))
     }
 
     def check(checkRelativePath: String): Either[RudderError, NodeSeq] = {
-      (IO.bracket {
-        IOResult.effect {
+      (ZIO.acquireReleaseWith {
+        IOResult.attempt {
           val url = this.getClass.getClassLoader.getResource(checkRelativePath)
           if(null == url) throw new NullPointerException(s"Resource with relative path '${checkRelativePath}' is null (missing resource? Spelling? Permissions?)")
           url.openStream()

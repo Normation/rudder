@@ -204,15 +204,15 @@ class GitNodeFactRepository(
 
     // save in human readable format (ie with indentation and git diff compatible)
     // prettyRender throws exception when it encounters "JNothing"
-    IOResult.effect(prettyRender(json))
+    IOResult.attempt(prettyRender(json))
   }
 
   override def persist(nodeInfo: NodeInfo, inventory: FullInventory, software: Seq[Software]): IOResult[Unit] = {
     for {
       json    <- toJson((nodeInfo, inventory, software))
       file    =  getFile(nodeInfo.id, inventory.node.main.status)
-      _       <- IOResult.effect(file.write(json))
-      _       <- IOResult.effect(file.setGroup(groupOwner))
+      _       <- IOResult.attempt(file.write(json))
+      _       <- IOResult.attempt(file.setGroup(groupOwner))
       gitPath =  toGitPath(file.toJava)
       saved   <- commitAddFile(commiter, gitPath, s"Save inventory facts for ${inventory.node.main.status.name} node '${nodeInfo.hostname}' (${nodeInfo.id.value})")
     } yield ()
@@ -227,14 +227,14 @@ class GitNodeFactRepository(
       val fromFile = getFile(nodeId, from)
       val toFile = getFile(nodeId, to)
       // check if fact already where it should
-      ZIO.ifM(IOResult.effect(fromFile.exists))(
+      ZIO.ifZIO(IOResult.attempt(fromFile.exists))(
         // however toFile exists, move, because if present it may be because a deletion didn't work and
         // we need to overwritte
-        IOResult.effect(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
+        IOResult.attempt(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
         commitMvDirectory(commiter, toGitPath(fromFile.toJava), toGitPath(toFile.toJava), s"Updating facts for node '${nodeId.value}': accepted")
 
         // if source file does not exist, check if dest is present. If present, assume it's ok, else error
-      , ZIO.whenM(IOResult.effect(!toFile.exists)) {
+      , ZIO.whenZIO(IOResult.attempt(!toFile.exists)) {
           Inconsistency(s"Error when trying to move fact for node '${nodeId.value}' from '${fromFile.pathAsString}' to '${toFile.pathAsString}': missing files").fail
         }
       )
@@ -246,7 +246,7 @@ class GitNodeFactRepository(
     def delete() = {
       ZIO.foreach(List(PendingInventory, AcceptedInventory)) { s =>
         val file = getFile(nodeId, s)
-        ZIO.whenM(IOResult.effect(file.exists)) {
+        ZIO.whenZIO(IOResult.attempt(file.exists)) {
           commitRmFile(commiter, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
         }
       } *> checkInit()
@@ -267,13 +267,13 @@ class GitNodeFactRepository(
     dirs.accumulate { dir =>
       val d = gitRepo.rootDirectory / relativePath / dir
       for {
-        _ <- ZIO.whenM(IOResult.effect(d.notExists)) {
-               IOResult.effect {
+        _ <- ZIO.whenZIO(IOResult.attempt(d.notExists)) {
+               IOResult.attempt {
                  d.createDirectories()
                  d.setGroup(groupOwner)
                }
              }.chainError(s"Error when creating directory '${d.pathAsString}' for historising inventories: ${}")
-        _ <- ZIO.whenM(IOResult.effect(!d.isOwnerWritable)) {
+        _ <- ZIO.whenZIO(IOResult.attempt(!d.isOwnerWritable)) {
                Inconsistency(s"Error, directory '${d.pathAsString}' must be a writable directory to allow inventory historisation").fail
              }
       } yield ()

@@ -65,11 +65,11 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
   override def beforeAll(): Unit = {
     val inventory = NodeInventory(NodeSummary(myNode.id, AcceptedInventory, "root", myNode.hostname, myNode.osDetails, myNode.policyServerId, myNode.keyStatus))
     val details = NodeDetails(myNode, inventory, None)
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.update(nodes => (nodes+(myNode.id -> details)).succeed))
+    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes+(myNode.id -> details)).succeed))
   }
 
   override def afterAll(): Unit = {
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.update(nodes => (nodes-(myNode.id)).succeed))
+    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes-(myNode.id)).succeed))
   }
 
   val test = new RestTest(env.liftRules)

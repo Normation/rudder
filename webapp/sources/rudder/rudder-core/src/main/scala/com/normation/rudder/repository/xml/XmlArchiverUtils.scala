@@ -81,7 +81,7 @@ trait XmlArchiverUtils {
 
     // an utility that write text in a file and create file parents if needed
     // open file mode for create or overwrite mode
-    IOResult.effect {
+    IOResult.attempt {
       val file = fileName.toScala
       file.parent.createDirectoryIfNotExists(true).setPermissions(directoryPerms).setGroup(groupOwner)
       file.writeText(xmlPrettyPrinter.format(elem))(Seq(WRITE, TRUNCATE_EXISTING, CREATE), Charset.forName(encoding)).setPermissions(filePerms).setGroup(groupOwner)

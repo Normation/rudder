@@ -171,8 +171,8 @@ class TestBuildNodeConfiguration extends Specification {
 //
 //  def main(args: Array[String]): Unit = {
 //
-//    def nano = UIO.effectTotal(System.nanoTime)
-//    def log(s: String, t1: Long, t2: Long) = UIO.effectTotal(logger.trace(s + s"${(t2-t1)/1000} µs"))
+//    def nano = ZIO.succeed(System.nanoTime)
+//    def log(s: String, t1: Long, t2: Long) = ZIO.succeed(logger.trace(s + s"${(t2-t1)/1000} µs"))
 //
 //    val count = 0 until 1
 //    val prog =
@@ -190,7 +190,7 @@ class TestBuildNodeConfiguration extends Specification {
 //                }
 //        t4   <- nano
 //        _    <- log(s"external $j : ", t1, t4)
-//        _    <- ref.get.flatMap(t => UIO.effectTotal(logger.trace(s"inner sum $j: ${t/1000} µs")))
+//        _    <- ref.get.flatMap(t => ZIO.succeed(logger.trace(s"inner sum $j: ${t/1000} µs")))
 //      } yield ()
 //    }
 //    ZioRuntime.unsafeRun(prog)

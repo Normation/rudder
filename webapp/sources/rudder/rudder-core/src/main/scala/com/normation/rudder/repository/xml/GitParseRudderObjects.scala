@@ -523,7 +523,7 @@ class GitParseTechniqueLibrary(
      * find the path of the technique version
      */
     def getFilePath(db: Repository, revTreeId: ObjectId, techniqueId: TechniqueId) = {
-      IOResult.effect {
+      IOResult.attempt {
         //a first walk to find categories
         val tw = new TreeWalk(db)
         // there is no directory in git, only files

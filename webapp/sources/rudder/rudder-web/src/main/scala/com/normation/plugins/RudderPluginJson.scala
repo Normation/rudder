@@ -83,19 +83,19 @@ class ReadPluginPackageInfo(path: String) {
   val index = File(path)
 
   def check: IOResult[Boolean] = {
-    IOResult.effect {
+    IOResult.attempt {
       index.isRegularFile && index.isReadable
     }
   }
 
   def readIndex(): IOResult[String] = {
-    IOResult.effect {
+    IOResult.attempt {
       index.contentAsString(StandardCharsets.UTF_8)
     }
   }
 
   def parseFile(json: String): IOResult[JsonPluginFile] = {
-    IOResult.effect {
+    IOResult.attempt {
       implicit val formats = net.liftweb.json.DefaultFormats
       JsonParser.parse(json).extract[JsonPluginFile]
     }
@@ -104,8 +104,8 @@ class ReadPluginPackageInfo(path: String) {
   def decodeOne(plugin: JValue): IOResult[JsonPluginDef] = {
     implicit val formats = net.liftweb.json.DefaultFormats
     for {
-      p       <- IOResult.effect(plugin.extract[JsonPluginRaw])
-      date    <- IOResult.effect(DateTime.parse(p.`build-date`, ISODateTimeFormat.dateTimeNoMillis()))
+      p       <- IOResult.attempt(plugin.extract[JsonPluginRaw])
+      date    <- IOResult.attempt(DateTime.parse(p.`build-date`, ISODateTimeFormat.dateTimeNoMillis()))
       version <- PluginVersion.from(p.version).notOptional(s"Version for '${p.name}' is not a valid plugin version: ${p.version}")
     } yield {
       JsonPluginDef(p.name, version, p.files, p.`jar-files`, p.`build-commit`, date)
@@ -119,12 +119,12 @@ class ReadPluginPackageInfo(path: String) {
   }
 
   def parseJson(json: String): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    parseFile(json) >>= decode
+    parseFile(json).flatMap(decode)
   }
 
   def getInfo(): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    IOResult.effect(index.exists).flatMap { exists =>
-      if(exists) check *> readIndex() >>= parseJson
+    IOResult.attempt(index.exists).flatMap { exists =>
+      if(exists) check *> readIndex().flatMap(parseJson)
       else List().succeed
     }
   }

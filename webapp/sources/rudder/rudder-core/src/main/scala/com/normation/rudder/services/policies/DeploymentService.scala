@@ -95,7 +95,7 @@ import com.normation.box._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.services.nodes.MergeNodeProperties
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.softwaremill.quicklens._
 import cats.implicits._
@@ -1060,14 +1060,14 @@ object BuildNodeConfiguration extends Loggable {
     // 1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
 
-    val nanoTime = UIO.effectTotal(System.nanoTime())
+    val nanoTime = ZIO.succeed(System.nanoTime())
 
 
     val evalJsProg = JsEngineProvider.withNewEngine(scriptEngineEnabled, maxParallelism, jsTimeout) { jsEngine =>
 
       val nodeConfigsProg = for {
         counters          <- Counters.make()
-        ncp               <- ZIO.foreachParN(maxParallelism)(nodeContexts.toSeq) { case (nodeId, context) =>
+        ncp               <- ZIO.foreachPar(nodeContexts.toSeq) { case (nodeId, context) =>
 
                               (for {
                                 t1_0           <- nanoTime
@@ -1153,7 +1153,7 @@ object BuildNodeConfiguration extends Loggable {
                                 )
                                 nodeConfig
                               }).chainError(s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})").either
-                          }
+                          }.withParallelism(maxParallelism)
       _                   <- Counters.log(counters)
       } yield ncp
 
@@ -1679,13 +1679,13 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val savedOld = File(path+".old")
 
     for {
-      _ <- IOResult.effect(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
+      _ <- IOResult.attempt(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
                file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
              }
            }
-      _ <- IOResult.effect(s"Can not write updated node IDs file '${file.pathAsString}'") {
+      _ <- IOResult.attempt(s"Can not write updated node IDs file '${file.pathAsString}'") {
             // header
             file.writeText(s"# This file contains IDs of nodes updated by policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
             // policy servers
@@ -1759,13 +1759,13 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val savedOld = File(path+".old")
 
     for {
-      _ <- IOResult.effect(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
+      _ <- IOResult.attempt(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if(file.exists) {
                file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
              }
            }
-      _ <- IOResult.effect(s"Can not write error message file '${file.pathAsString}'") {
+      _ <- IOResult.attempt(s"Can not write error message file '${file.pathAsString}'") {
             // header
             file.writeText(s"# This file contains error message for the failed policy generation started at '${date(start)}' ended at '${date(end)}'\n\n")
             file.writeText(error)

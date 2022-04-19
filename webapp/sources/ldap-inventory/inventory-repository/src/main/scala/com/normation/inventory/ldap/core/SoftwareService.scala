@@ -47,12 +47,12 @@ class SoftwareServiceImpl(
                                   import better.files._
                                   import better.files.Dsl._
                                   (for {
-                                    f <- IOResult.effect {
+                                    f <- IOResult.attempt {
                                            val dir = File("/var/rudder/tmp/purgeSoftware")
                                            dir.createDirectories()
                                            File(dir, s"${DateFormaterService.serialize(DateTime.now())}-unreferenced-software-dns.txt")
                                          }
-                                    _ <- IOResult.effect {
+                                    _ <- IOResult.attempt {
                                            extraSoftware.foreach(x => (f  << softwareDIT.SOFTWARE.SOFT.dn(x).toString))
                                          }
                                     _ <- InventoryProcessingLogger.debug(s"[purge unreferenced software] List of unreferenced software DN available in file: ${f.pathAsString}")

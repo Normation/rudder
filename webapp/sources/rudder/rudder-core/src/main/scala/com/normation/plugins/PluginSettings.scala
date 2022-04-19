@@ -65,20 +65,20 @@ class FilePluginSettingsService  (
 
     val p = new Properties()
     for {
-      _ <- IOResult.effect(s"Reading properties from ${pluginConfFile.pathAsString}")(p.load(pluginConfFile.newInputStream))
+      _ <- IOResult.attempt(s"Reading properties from ${pluginConfFile.pathAsString}")(p.load(pluginConfFile.newInputStream))
 
-      url <- IOResult.effect(s"Getting plugin repository url in ${pluginConfFile.pathAsString}")(p.getProperty("url"))
-      userName <- IOResult.effect(s"Getting user name for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("username"))
-      pass <- IOResult.effect(s"Getting password for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("password"))
-      proxy <- IOResult.effect(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
+      url <- IOResult.attempt(s"Getting plugin repository url in ${pluginConfFile.pathAsString}")(p.getProperty("url"))
+      userName <- IOResult.attempt(s"Getting user name for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("username"))
+      pass <- IOResult.attempt(s"Getting password for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("password"))
+      proxy <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
         val res = p.getProperty("proxy_url", "")
         if (res == "") None else Some(res)
       }
-      proxy_user <- IOResult.effect(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
+      proxy_user <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
         val res = p.getProperty("proxy_user", "")
         if (res == "") None else Some(res)
       }
-      proxy_password <- IOResult.effect(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
+      proxy_password <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
         val res = p.getProperty("proxy_password", "")
         if (res == "") None else Some(res)
       }
@@ -88,7 +88,7 @@ class FilePluginSettingsService  (
   }
 
   def writePluginSettings(settings : PluginSettings): IOResult[Unit] = {
-    IOResult.effect({
+    IOResult.attempt({
       pluginConfFile.write(
         s"""[Rudder]
           |url = ${settings.url}

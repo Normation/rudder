@@ -179,7 +179,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
    * -Dtests.clean.tmp=false
    */
   override def afterAll() = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
+    if(java.lang.System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(setupRepos.abstractRoot)
     }

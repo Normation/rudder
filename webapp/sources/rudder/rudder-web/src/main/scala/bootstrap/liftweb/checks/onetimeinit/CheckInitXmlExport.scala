@@ -78,7 +78,7 @@ class CheckInitXmlExport(
                   itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
                 } else {
                   BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
-                  UIO.unit
+                  ZIO.unit
                 }
 
     } yield {

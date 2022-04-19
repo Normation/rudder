@@ -60,7 +60,7 @@ class TestSignatureService extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider())
 
   private[this] def getInputStream (path : String) : IOResult[InputStream] = {
-    Task.effect {
+    ZIO.attempt {
       val url = this.getClass.getClassLoader.getResource(path)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${path}' is null (missing resource? Spelling? Permissions?)")
       url.openStream()
@@ -69,7 +69,7 @@ class TestSignatureService extends Specification with Loggable {
 
   private[this] implicit class TestParser(parser: FusionInventoryParser) {
     def parse(inventoryRelativePath: String): IOResult[Inventory] = {
-      ZIO.bracket(getInputStream(inventoryRelativePath))(is => Task.effect(is.close).run) { is =>
+      ZIO.acquireReleaseWith(getInputStream(inventoryRelativePath))(is => effectUioUnit(is.close)) { is =>
         parser.fromXml("inventory", is)
       }
     }
@@ -98,7 +98,7 @@ class TestSignatureService extends Specification with Loggable {
   val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
 
   def parseSignature(path: String): IOResult[InventoryDigest] = {
-     IO.bracket(getInputStream(path))(is => effectUioUnit(is.close))(TestInventoryDigestServiceV1.parse)
+     ZIO.acquireReleaseWith(getInputStream(path))(is => effectUioUnit(is.close))(TestInventoryDigestServiceV1.parse)
   }
 
   val boxedSignature = parseSignature("fusion-inventories/signed_inventory.ocs.sign")
@@ -119,7 +119,7 @@ class TestSignatureService extends Specification with Loggable {
         signature  <- boxedSignature
         signed_inv <- parser.parse("fusion-inventories/signed_inventory.ocs")
         token      <- TestInventoryDigestServiceV1.getKey(signed_inv)
-        check      <- ZIO.bracket(getInputStream("fusion-inventories/signed_inventory.ocs"))(is => Task.effect(is.close).run)(is =>
+        check      <- ZIO.acquireReleaseWith(getInputStream("fusion-inventories/signed_inventory.ocs"))(is => effectUioUnit(is.close))(is =>
           for {
             parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
             check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)
@@ -134,7 +134,7 @@ class TestSignatureService extends Specification with Loggable {
         signature    <- boxedSignature
         unsigned_inv <- parser.parse("fusion-inventories/node-with-server-role-attribute.ocs")
         token        <- TestInventoryDigestServiceV1.getKey(unsigned_inv)
-        check        <- ZIO.bracket(getInputStream("fusion-inventories/node-with-server-role-attribute.ocs"))(is => Task.effect(is.close).run)(is =>
+        check        <- ZIO.acquireReleaseWith(getInputStream("fusion-inventories/node-with-server-role-attribute.ocs"))(is => effectUioUnit(is.close))(is =>
           for {
             parsed <- TestInventoryDigestServiceV1.parseSecurityToken(token._1)
             check  <- TestInventoryDigestServiceV1.check(parsed.publicKey, signature, is)

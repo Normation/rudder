@@ -100,7 +100,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.box._
 
@@ -251,9 +251,9 @@ trait ListNewNode extends NewNodeManager {
     for {
       con  <- ldap
       seq  <- con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*)
-      srvs <- ZIO.foreach(seq) { e => serverSummaryService.makeSrv(e).foldM(
+      srvs <- ZIO.foreach(seq) { e => serverSummaryService.makeSrv(e).foldZIO(
                 err =>
-                  IOResult.effect(NodeLogger.PendingNode.debug(s"Error when mapping a pending node entry '${e.dn}' to a node object. Error was: ${err.fullMsg}")) *>
+                  IOResult.attempt(NodeLogger.PendingNode.debug(s"Error when mapping a pending node entry '${e.dn}' to a node object. Error was: ${err.fullMsg}")) *>
                   None.succeed
               , srv => Some(srv).succeed
               ) }

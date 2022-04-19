@@ -38,14 +38,13 @@
 package com.normation.rudder.metrics
 
 import java.util.concurrent.TimeUnit
-
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import zio._
-import zio.clock._
-import zio.duration._
-import zio.test.environment._
+
+import zio.{Scheduler => _, _}
+import zio.test._
+import com.normation.zio.ZioRuntime
 
 
 @RunWith(classOf[JUnitRunner])
@@ -61,10 +60,9 @@ class SchedulerTest extends Specification {
  */
 
     "yield execution at the correct time" in  {
-      val prog = ZIO.accessM[Clock with TestClock] { testClock =>
-        // in RC18-2, we need to sleep as long as we adjusted
+      val prog = {
         def adjust(d: Duration) = {
-          testClock.get[TestClock.Service].adjust(d)
+          testClock.flatMap(_.adjust(d))
         }
         def take(q: Queue[Long], r: Ref[List[Long]]): UIO[Unit] = {
           for {
@@ -77,8 +75,8 @@ class SchedulerTest extends Specification {
 
           q <- Queue.unbounded[Long]
           r <- Ref.make(List.empty[Long])
-          c =  testClock.get[Clock.Service].currentTime(TimeUnit.MINUTES).flatMap(t => q.offer(t)).unit
-          s <- Scheduler.make[Unit](10.minutes, 20.minutes, Unit => c, UIO.unit, testClock)
+          c =  ZIO.clockWith(_.currentTime(TimeUnit.MINUTES)).flatMap(t => q.offer(t)).unit
+          s <- Scheduler.make[Unit](10.minutes, 20.minutes, Unit => c, ZIO.unit)
           // start prog and trigger event
           f <- s.start
           _ <- s.triggerSchedule(())
@@ -92,23 +90,21 @@ class SchedulerTest extends Specification {
           _ <- adjust( 1.minutes) // 20 min
           _ <- take(q,r) // 20 min
           _ <- adjust(12.minutes) *> s.triggerSchedule(()) // 32 min
-          // Due to https://github.com/zio/zio/issues/3395 this part is broken in `RC18-2`
-//          _ <- take(q,r) // 32 min
-//          _ <- adjust(20.minutes) // 52 min
-//          _ <- take(q,r) // 52 min
-//          _ <- s.triggerSchedule(()) // 52 min
-//          _ <- adjust(10.minutes) // 62 min
-//          _ <- take(q,r) // 62 min
-//          _ <- adjust(20.minutes) // 82 min
-//          _ <- take(q,r) // 82 min
-//          _ <- adjust(20.minutes) // 102 min
-//          _ <- take(q,r) // 102 min
+          _ <- take(q,r) // 32 min
+          _ <- adjust(20.minutes) // 52 min
+          _ <- take(q,r) // 52 min
+          _ <- s.triggerSchedule(()) // 52 min
+          _ <- adjust(10.minutes) // 62 min
+          _ <- take(q,r) // 62 min
+          _ <- adjust(20.minutes) // 82 min
+          _ <- take(q,r) // 82 min
+          _ <- adjust(20.minutes) // 102 min
+          _ <- take(q,r) // 102 min
           l <- r.get
         } yield l.reverse
-      }.provideLayer(testEnvironment)
-      val l = Runtime.default.unsafeRun(prog)
-//      l must containTheSameElementsAs(List(0L, 10L, 20L, 32L, 52L, 62L, 82L, 102L))
-      l must containTheSameElementsAs(List(0L, 10L, 20L))
+      }
+      val l = ZioRuntime.unsafeRun(prog.provideLayer(Scope.default >>> testEnvironment))
+      l must containTheSameElementsAs(List(0L, 10L, 20L, 32L, 52L, 62L, 82L, 102L))
     }
   }
 }

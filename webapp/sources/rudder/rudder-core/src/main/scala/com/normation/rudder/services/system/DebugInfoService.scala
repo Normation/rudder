@@ -47,7 +47,6 @@ import com.normation.rudder.hooks._
 import scala.jdk.CollectionConverters._
 import com.normation.errors._
 import zio._
-import zio.duration._
 import zio.syntax._
 import com.normation.zio._
 
@@ -66,7 +65,7 @@ class DebugInfoServiceImpl extends DebugInfoService {
   val logger = NamedZioLogger(this.getClass.getName)
 
   private[this] def execScript() : IOResult[Promise[Nothing, CmdResult]] = {
-    val environment = System.getenv.asScala.toMap
+    val environment = java.lang.System.getenv.asScala.toMap
     val timeOut     = Duration(30, TimeUnit.SECONDS)
     val scriptPath  = "/opt/rudder/bin/rudder-debug-info"
     val cmd         = Cmd(scriptPath, Nil, environment)
@@ -80,7 +79,7 @@ class DebugInfoServiceImpl extends DebugInfoService {
   // In order for the API to build an InMemoryResponse
 
   private[this] def getScriptResult() : IOResult[DebugInfoScriptResult] = {
-    IOResult.effect(s"Could not get file debug info result file") {
+    IOResult.attempt(s"Could not get file debug info result file") {
       val resultPath = s"/var/rudder/debug/info/debug-info-latest.tar.gz"
       val result = Paths.get(resultPath).toRealPath()
       DebugInfoScriptResult(result.getFileName.toString, Files.readAllBytes(result))

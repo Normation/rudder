@@ -83,7 +83,7 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
     val properties = new Properties()
 
     for {
-      loaded  <- Task.effect {
+      loaded  <- ZIO.attempt {
                    import scala.jdk.CollectionConverters._
                    properties.load(is)
                    properties.asInstanceOf[java.util.Map[String, String]].asScala.toMap
@@ -111,7 +111,7 @@ trait CheckInventoryDigest {
    * bouncy castle: https://www.bouncycastle.org/
    */
   def check(publicKey: PublicKey, digest: InventoryDigest, inventoryStream: InputStream): IOResult[Boolean] = {
-    Task.effect {
+    ZIO.attempt {
       val signature = Signature.getInstance("SHA512withRSA", "BC");
       signature.initVerify(publicKey);
       val data = IOUtils.toByteArray(inventoryStream)

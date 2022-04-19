@@ -58,7 +58,7 @@ import com.normation.NamedZioLogger
 import com.normation.box._
 import com.normation.errors.RudderError
 import com.normation.errors._
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
 import com.normation.zio.currentTimeMillis
@@ -532,7 +532,7 @@ class InternalLDAPQueryProcessor(
                         // Ok, do the computation here
                         // still rely on LDAP here
                         _      <- logPure.ifTraceEnabled {
-                                    ZIO.foreach_(dms) { case (dnType, dns) =>
+                                    ZIO.foreachDiscard(dms) { case (dnType, dns) =>
                                       logPure.trace(s"/// ${dnType} ==> ${dns.map(_.getRDN).mkString(", ")}")
                                     }
                                   }
@@ -792,7 +792,7 @@ class InternalLDAPQueryProcessor(
 
     //log sub-query with two "-"
     logPure.debug(s"[${debugId}] |-- ${lot}") *>
-    executeQuery(base, scope, objectFilter, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId) >>= { results =>
+    executeQuery(base, scope, objectFilter, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId).flatMap { results =>
       val res = (results.flatMap { e:LDAPEntry =>
         joinType match {
           case DNJoin => Some(e.dn)
@@ -841,7 +841,7 @@ class InternalLDAPQueryProcessor(
   ) : IOResult[Seq[LDAPEntry]] = {
     def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : IOResult[Seq[LDAPEntry]] = {
       def getRegex(regexText: String): IOResult[Pattern] = {
-        IOResult.effect(s"The regular expression '${regexText}' is not valid. Expected regex syntax is the java " +
+        IOResult.attempt(s"The regular expression '${regexText}' is not valid. Expected regex syntax is the java " +
                          s"one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html"
                        )(Pattern.compile(regexText))
       }

@@ -66,7 +66,7 @@ import com.normation.errors._
 import com.normation.zio._
 import zio._
 import zio.syntax._
-import GitTechniqueReader._
+import com.normation.cfclerk.services.impl.GitTechniqueReader._
 import com.normation.GitVersion
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.rudder.git.ExactFileTreeFilter
@@ -304,16 +304,16 @@ class GitTechniqueReader(
       mods     <- if(nextId == cached._1) modifiedTechniquesCache.get
                   else for {
                     nextTechniquesInfo <- processRevTreeId(repo.db, nextId)
-                    managedDiffFmt     =  ZManaged.make(IOResult.effect{
+                    managedDiffFmt     =  ZIO.acquireRelease(IOResult.attempt {
                                             val diffFmt = new DiffFormatter(null)
                                             diffFmt.setRepository(repo.db)
                                             diffFmt
                                           })(diffFmt => effectUioUnit(diffFmt.close))
-                    diffPathEntries    <- managedDiffFmt.use(diffFmt => IOResult.effect {
+                    diffPathEntries    <- ZIO.scoped[Any](managedDiffFmt.flatMap(diffFmt => IOResult.attempt {
                                             diffFmt.scan(cached._1, nextId).asScala.flatMap { diffEntry =>
                                               Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
                                             }.toSet
-                                          })
+                                          }))
                     next               <- processRevTreeId(repo.db, nextId)
                     mods               =  buildTechniqueMods(diffPathEntries, cached._2, next)
                     nextCache          =  (nextId, next)
@@ -332,13 +332,13 @@ class GitTechniqueReader(
     //has package id are unique among the whole tree, we are able to find a
     //template only base on the packageId + name.
 
-    val managed = Managed.make(
+    val managed = ZIO.acquireRelease(
       for {
         currentId <- techniqueId.version.rev match {
                        case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
                        case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
                      }
-        optStream <- IOResult.effect {
+        optStream <- IOResult.attempt {
                        try {
                          val tw = new TreeWalk(repo.db)
                          tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, path))
@@ -367,7 +367,7 @@ class GitTechniqueReader(
          } yield optStream
     )(optStream => effectUioUnit(optStream.map(_.close())))
 
-    managed.use(useIt)
+    ZIO.scoped(managed.flatMap(useIt))
   }
 
   override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
@@ -388,10 +388,10 @@ class GitTechniqueReader(
     // since package id are unique among the whole tree, we are able to find a
     // template only base on the techniqueId + name.
 
-    val managed = Managed.make(
+    val managed = ZIO.acquireRelease(
       for {
         currentId <- GitFindUtils.findRevTreeFromRevision(repo.db, rev, revisionProvider.currentRevTreeId)
-        optStream <- IOResult.effect {
+        optStream <- IOResult.attempt {
                        try {
                          //now, the treeWalk
                          val tw = new TreeWalk(repo.db)
@@ -421,7 +421,7 @@ class GitTechniqueReader(
       } yield optStream
     )(optStream => effectUioUnit(optStream.map(_.close())))
 
-    managed.use(useIt)
+    ZIO.scoped(managed.flatMap(useIt))
   }
 
   /**
@@ -496,7 +496,7 @@ class GitTechniqueReader(
       //now, build techniques
       _                 <- processTechniques(db, id, techniqueInfosRef, parseDescriptor)
       techniqueInfos    <- techniqueInfosRef.get
-      defaulName        <- IOResult.effect( processDirectiveDefaultName(db, id))
+      defaulName        <- IOResult.attempt( processDirectiveDefaultName(db, id))
     } yield {
 
       //ok, return the result in its immutable format
@@ -549,7 +549,7 @@ class GitTechniqueReader(
 
   private[this] def processTechniques(gitRepo: Repository, revTreeId: ObjectId, techniqueInfosRef: Ref[InternalTechniquesInfo], parseDescriptor: Boolean) : IOResult[Unit] = {
       //a first walk to find categories
-    val managed = ZManaged.make(IOResult.effect {
+    val managed = ZIO.acquireRelease(IOResult.attempt {
       val tw = new TreeWalk(gitRepo)
       tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, techniqueDescriptorName))
       tw.setRecursive(true)
@@ -558,22 +558,22 @@ class GitTechniqueReader(
     })(tw => effectUioUnit(tw.close()))
 
     def rec(tw: TreeWalk): IOResult[Unit] = {
-      IOResult.effect(tw.next()).flatMap { hasNext =>
+      IOResult.attempt(tw.next()).flatMap { hasNext =>
         if(hasNext) {
           val path = toTechniquePath(tw.getPathString) //we will need it to build the category id
-          val stream = ZManaged.make(IOResult.effect(gitRepo.open(tw.getObjectId(0)).openStream))(is => effectUioUnit(is.close()))
+          val stream = ZIO.acquireRelease(IOResult.attempt(gitRepo.open(tw.getObjectId(0)).openStream))(is => effectUioUnit(is.close()))
           for {
-            _       <- processTechnique(stream, path.path, techniqueInfosRef, parseDescriptor, revTreeId).foldM(
+            _       <- processTechnique(stream, path.path, techniqueInfosRef, parseDescriptor, revTreeId).foldZIO(
                            err => TechniqueReaderLoggerPure.error(s"Error with technique at path: '${path.path}', it will be ignored. Error: ${err.fullMsg}")
-                         , ok  => UIO.unit
+                         , ok  => ZIO.unit
                        )
             _       <- rec(tw)
           } yield ()
-        } else UIO.unit
+        } else ZIO.unit
       }
     }
 
-    managed.use(tw => rec(tw))
+    ZIO.scoped(managed.flatMap(tw => rec(tw)))
   }
 
 
@@ -581,10 +581,10 @@ class GitTechniqueReader(
     //now, for each potential path, look if the cat or policy is valid
     def recBuildCat(db: Repository, cats: Map[TechniqueCategoryId, TechniqueCategory], tw: TreeWalk): IOResult[Map[TechniqueCategoryId, TechniqueCategory]] = {
       for {
-        hasNext <- IOResult.effect(tw.next())
+        hasNext <- IOResult.attempt(tw.next())
         res     <- if(hasNext) {
                      for {
-                       id  <- IOResult.effect(tw.getObjectId(0))
+                       id  <- IOResult.attempt(tw.getObjectId(0))
                        path = toTechniquePath(tw.getPathString) //we will need it to build the category id
                        opt <- extractMaybeCategory(id, db, path.path, parseDescriptor).either
                        res <- opt match {
@@ -620,7 +620,7 @@ class GitTechniqueReader(
     }
 
     //a first walk to find categories
-    val managed = ZManaged.make(IOResult.effect {
+    val managed = ZIO.acquireRelease(IOResult.attempt {
       val tw = new TreeWalk(db)
       tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, categoryDescriptorName))
       tw.setRecursive(true)
@@ -629,7 +629,7 @@ class GitTechniqueReader(
     })(tw => effectUioUnit(tw.close()))
 
     for {
-      cats            <- managed.use(tw => recBuildCat(db, Map(), tw))
+      cats            <- ZIO.scoped[Any](managed.flatMap(tw => recBuildCat(db, Map(), tw)))
       toRemove        =  cats.flatMap {
                            case (sId:SubTechniqueCategoryId,cat:SubTechniqueCategory) =>
                              recToRemove(sId,Set[SubTechniqueCategoryId](), cats)
@@ -688,7 +688,7 @@ class GitTechniqueReader(
  )
 
   private[this] def processTechnique(
-      is             : ZManaged[Any, RudderError, InputStream]
+      is             : ZIO[Any with Scope, RudderError, InputStream]
     , filePath       : String
     , techniquesInfo : Ref[InternalTechniquesInfo]
     , parseDescriptor: Boolean // that option is a success optimization for the case diff between old/new commit
@@ -725,7 +725,7 @@ class GitTechniqueReader(
       pack <- if(parseDescriptor) loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
               else dummyTechnique.succeed
       info <- techniquesInfo.get
-      res  <- Task.effect {
+      res  <- ZIO.attempt {
                 //check that that package is not already know, else its an error (by id ?)
                 info.techniques.get(techniqueId.name) match {
                   case None => //so we don't have any version yet, and so no id
@@ -783,7 +783,7 @@ class GitTechniqueReader(
     }
     def parse(db: Repository, parseDesc:Boolean, catId: TechniqueCategoryId): IOResult[(String, String, Boolean)] = {
       if(parseDesc) {
-        val managedStream = ZManaged.make(IOResult.effect(db.open(descriptorObjectId).openStream))(is => effectUioUnit(is.close()))
+        val managedStream = ZIO.acquireRelease(IOResult.attempt(db.open(descriptorObjectId).openStream))(is => effectUioUnit(is.close()))
         for {
           xml <- loadDescriptorFile(managedStream, filePath)
         } yield {
@@ -815,11 +815,11 @@ class GitTechniqueReader(
   /**
    * Load a descriptor document.
    */
-  private[this] def loadDescriptorFile(managedStream: ZManaged[Any, RudderError, InputStream], filePath : String ) : IOResult[Elem] = {
-    managedStream.use(is =>
-      Task.effect {
+  private[this] def loadDescriptorFile(managedStream: ZIO[Any with Scope, RudderError, InputStream], filePath : String ) : IOResult[Elem] = {
+    ZIO.scoped(managedStream.flatMap(is =>
+      ZIO.attempt {
         XML.load(is)
-      }.foldM(
+      }.foldZIO(
         err => err match {
           case e: SAXParseException =>
             LoadTechniqueError.Parsing(s"Unexpected issue with the descriptor file '${filePath}' at line ${e.getLineNumber}, column ${e.getColumnNumber}: ${e.getMessage}").fail
@@ -831,7 +831,7 @@ class GitTechniqueReader(
           LoadTechniqueError.Parsing(s"Error when parsing descriptor file: '${filePath}': the parsed document is empty").fail
         } else doc.succeed
       )
-    )
+    ))
   }
 
   /**

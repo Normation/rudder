@@ -66,7 +66,7 @@ import com.unboundid.ldap.sdk.LDAPSearchException
 import com.unboundid.ldap.sdk.ResultCode
 import org.joda.time.DateTime
 
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
@@ -188,12 +188,12 @@ class DynGroupServiceImpl(
       (for {
         con     <- ldap
         entries <- //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
-                   (Task.effect(con.backed.search(searchRequest).getSearchEntries) catchAll {
+                   (ZIO.attempt(con.backed.search(searchRequest).getSearchEntries) catchAll {
                      case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
                        e.getSearchEntries().succeed
                      case e:Throwable =>
                        SystemError("Error when searching dyngroup information", e).fail
-                   }).foldM(
+                   }).foldZIO(
                      err =>
                        ScheduledJobLoggerPure.debug(s"Error when checking if dynamic group need update. Error was: ${err.fullMsg}") *> true.succeed
                    , seq => {
@@ -201,7 +201,7 @@ class DynGroupServiceImpl(
                        (!seq.isEmpty).succeed
                      }
                    )
-        n1       <- UIO(System.currentTimeMillis)
+        n1       <- ZIO.succeed(System.currentTimeMillis)
         _        <- TimingDebugLoggerPure.debug(s"Check if dynamic groups may need update (${entries}): ${n1 - n0}ms")
       } yield {
         entries
@@ -386,7 +386,7 @@ class CheckPendingNodeInDynGroups(
     // start the process ! End at the end, transform the result into a map.
     val res = recProcess(nodep, withdep, Nil)
     // end result
-    NodeLoggerPure.PendingNode.Policies.ifDebugEnabled(res.foldM(
+    NodeLoggerPure.PendingNode.Policies.ifDebugEnabled(res.foldZIO(
       err => NodeLoggerPure.PendingNode.Policies.debug(s"Errror when executing request: ${err.fullMsg}")
     , r   => NodeLoggerPure.PendingNode.Policies.debug("Result: " + r.debugString)
     )) *>

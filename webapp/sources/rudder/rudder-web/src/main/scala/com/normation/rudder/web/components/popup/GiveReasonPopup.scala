@@ -165,7 +165,7 @@ class GiveReasonPopup(
           }) match {
             case Full(res) =>
               val jsString = """setTimeout(function() { $("[activeTechniqueId=%s]")
-                .effect("highlight", {}, 2000)}, 100)"""
+                .attempt("highlight", {}, 2000)}, 100)"""
                 formTracker.clean
                 closePopup() &
                 onSuccessCallback(res.id) &

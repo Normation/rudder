@@ -63,7 +63,6 @@ import com.normation.errors._
 import com.normation.zio._
 import com.normation.box._
 import com.normation.rudder.domain.policies.DirectiveId
-import zio.blocking.Blocking
 import zio.interop.catz.implicits.rts
 import zio.json.ast.Json
 import org.postgresql.util.PGobject
@@ -80,10 +79,10 @@ class Doobie(datasource: DataSource) {
   val xa = (for {
     // zio.interop.catz._ provides a `zioContextShift`
     // our transaction EC: wait for aquire/release connections, must accept blocking operations
-    te <- ZIO.access[Blocking](_.get.blockingExecutor.asEC)
+    te <- ZIO.blockingExecutor.map(_.asExecutionContext)
   } yield {
     Transactor.fromDataSource[Task](datasource, te)
-  }).provide(ZioRuntime.environment).runNow
+  }).runNow
 
   def transactTask[T](query: Transactor[Task] => Task[T]): Task[T] = {
     query(xa)

@@ -44,7 +44,7 @@ class HookApiService(
 
   def listHooks(): IOResult[List[JRHooks]]  = {
     for {
-      hooksDirectories <- IOResult.effect(File(hooksDirectory).list.filter(_.isDirectory).toList)
+      hooksDirectories <- IOResult.attempt(File(hooksDirectory).list.filter(_.isDirectory).toList)
       hooks <- ZIO.foreach(hooksDirectories)(d => RunHooks.getHooksPure(s"$hooksDirectory/${d.name}", suffixIgnoreList))
       res = hooks.map(JRHooks.fromHook)
     } yield {

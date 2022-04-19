@@ -189,7 +189,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(xpath: String, eventTypeFilter: List[EventLogFilter]): IOResult[Map[ChangeRequestId, EventLog]] = ???
 
-    // the following implementation likely means that these methods should return UIO.unit
+    // the following implementation likely means that these methods should return ZIO.unit
     override def saveAddDirective(modId: ModificationId, principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec, reason: Option[String]): IOResult[EventLog] = {
       ZIO.succeed(null)
     }

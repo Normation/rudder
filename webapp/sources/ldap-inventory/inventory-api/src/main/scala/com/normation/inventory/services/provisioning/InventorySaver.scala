@@ -42,6 +42,7 @@ import com.normation.inventory.domain.Inventory
 import com.normation.errors._
 import net.liftweb.common.Loggable
 import zio._
+import com.normation.zio._
 
 /**
  *
@@ -89,9 +90,9 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
 
   override def save(inventory:Inventory) : IOResult[R] = {
 
-    val t0 = System.currentTimeMillis
 
     for {
+      t0 <- currentTimeMillis
       /*
        * Firstly, we let the chance to third part contributor to
        * modify the inventory to be save, make additional synchro,
@@ -102,9 +103,9 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
        */
       postPreCommitInventory <- ZIO.foldLeft(preCommitPipeline)(inventory){ (currentInventory, preCommit) =>
         (for {
-          t0  <- UIO(System.currentTimeMillis)
+          t0  <- currentTimeMillis
           res <- preCommit(currentInventory).chainError(s"Error in preCommit pipeline with processor '${preCommit.name}', abort")
-          t1  <- UIO(System.currentTimeMillis)
+          t1  <- currentTimeMillis
           _   <- InventoryProcessingLogger.timing.trace(s"Precommit '${preCommit.name}': ${t1 - t0} ms")
         } yield {
           res
@@ -114,12 +115,12 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
        * commit change - no rollback !
        */
 
-      t1 <- UIO(System.currentTimeMillis)
+      t1 <- currentTimeMillis
       _  <- InventoryProcessingLogger.timing.trace(s"Pre commit inventory: ${t1-t0} ms")
 
       commitedChange <- commitChange(postPreCommitInventory).chainError("Exception when commiting inventory, abort.")
 
-      t2 <- UIO(System.currentTimeMillis)
+      t2 <- currentTimeMillis
       _  <- InventoryProcessingLogger.timing.trace(s"Commit inventory: ${t2-t1} ms")
 
 
@@ -130,7 +131,7 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
         postCommit(postPreCommitInventory, currentChanges).chainError(s"Error in postCommit pipeline with processor '${postCommit.name}'. The commit was done, we may be in a inconsistent state.")
       }
 
-      t3 <- UIO(System.currentTimeMillis)
+      t3 <- currentTimeMillis
       _  <- InventoryProcessingLogger.timing.trace(s"Post commit inventory: ${t3-t2} ms")
     } yield {
       postPostCommitInventory

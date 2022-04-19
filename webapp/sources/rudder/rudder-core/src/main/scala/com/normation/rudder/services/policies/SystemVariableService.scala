@@ -365,7 +365,7 @@ class SystemVariableServiceImpl(
         agent.securityToken match {
           // A certificat, we return it
           case cert:Certificate =>
-            // for the certificate part, we exec the IO. If we have failure, log it and return "None"
+            // for the certificate part, we exec the ZIO. If we have failure, log it and return "None"
             val parsedCert = cert.cert.either.runNow match {
               case Left(err) =>
                 logger.error(s"Error when parsing certificate for node '${node.hostname}' [${node.id.value}]: ${err.fullMsg}")

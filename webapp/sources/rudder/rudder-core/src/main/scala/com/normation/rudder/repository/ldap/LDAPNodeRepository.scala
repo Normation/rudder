@@ -87,7 +87,7 @@ class WoLDAPNodeRepository(
         result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
         // only record an event log if there is an actual change
         _             <- result match {
-                           case LDIFNoopChangeRecord(_) => UIO.unit
+                           case LDIFNoopChangeRecord(_) => ZIO.unit
                            case _                       =>
                              val diff = ModifyNodeDiff(oldNode, node)
                              actionLogger.saveModifyNode(modId, actor, diff, reason)
@@ -109,13 +109,13 @@ class WoLDAPNodeRepository(
       (agents.toList, status)
     }
     import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENTS_NAME}
-    if(agentKey.isEmpty && agentKeyStatus.isEmpty) UIO.unit
+    if(agentKey.isEmpty && agentKeyStatus.isEmpty) ZIO.unit
     else {
       nodeLibMutex.writeLock(for {
         // check that in the case of a certificate, we are using a certificate for the node
         _             <- agentKey match {
                            case Some(Certificate(value)) => SecurityToken.checkCertificateForNode(nodeId, Certificate(value))
-                           case _                        => UIO.unit
+                           case _                        => ZIO.unit
                          }
         con           <- ldap
         existingEntry <- con.get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENTS_NAME :: Nil:_*).notOptional(
@@ -137,7 +137,7 @@ class WoLDAPNodeRepository(
                          }
         // only record an event log if there is an actual change
         _             <- result match {
-                           case LDIFNoopChangeRecord(_) => UIO.unit
+                           case LDIFNoopChangeRecord(_) => ZIO.unit
                            case _                       =>
                              val diff = ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
                              actionLogger.saveModifyNode(modId, actor, diff, reason)
@@ -179,14 +179,14 @@ class WoLDAPNodeRepository(
         validation.fold(
           nel => nel.toList.mkString("; ").fail
         ,
-          _ => UIO.unit
+          _ => ZIO.unit
         )
       }
 
       List(rootIsEnabled(node), rootIsPolicyServer(node), rootIsSystem(node)).sequence.map( _ => ())
     }
 
-    ZIO.when(newNode.id == Constants.ROOT_POLICY_SERVER_ID) { validateRoot(newNode) }
+    ZIO.when(newNode.id == Constants.ROOT_POLICY_SERVER_ID) { validateRoot(newNode) }.unit
   }
 
   override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {

@@ -136,7 +136,7 @@ class CachedNodeConfigurationService(
    * invalidation request.
    * // unsure if its a CacheComplianceQueueAction or another queueaction
    */
-  private[this] val invalidateNodeConfigurationRequest = Queue.dropping[List[(NodeId, CacheExpectedReportAction)]](1).runNow
+  private[this] val invalidateNodeConfigurationRequest = Queue.dropping[Chunk[(NodeId, CacheExpectedReportAction)]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
@@ -165,7 +165,7 @@ class CachedNodeConfigurationService(
    * we need to keep order
    */
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateNodeConfigurationRequest.take.flatMap(invalidatedIds =>
-    ZIO.foreach_(invalidatedIds.map(_._2) : List[CacheExpectedReportAction])(action =>
+    ZIO.foreachDiscard(invalidatedIds.map(_._2) : Chunk[CacheExpectedReportAction])(action =>
       performAction(action).catchAll(err =>
         // when there is an error with an action on the cache, it can becomes inconsistant and we need to (try to) reinit it
         logger.error(s"Error when updating NodeConfiguration cache for node: [${action.nodeId.value}]: ${err.fullMsg}") *>
@@ -199,7 +199,7 @@ class CachedNodeConfigurationService(
                           case update: UpdateNodeConfiguration =>
                             cache.update( data => data + (update.nodeId -> Some(update.nodeConfiguration)))
                    }) *>
-        ZIO.foreach_(hooks) { hook => hook.newExpectedReports(action)}
+        ZIO.foreachDiscard(hooks) { hook => hook.newExpectedReports(action)}
      // complianceCache.get.invalidateWithAction(Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action))))
     )
   }
@@ -217,7 +217,7 @@ class CachedNodeConfigurationService(
           _            <- invalidateNodeConfigurationRequest.offer(allActions)
         } yield ())
     }
-  }
+  }.unit
 
   /**
    * get the current expected reports
@@ -225,7 +225,7 @@ class CachedNodeConfigurationService(
   def getCurrentExpectedReports(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[NodeExpectedReports]]] = {
     // add logging, to ensure that semaphoring the whole is not too blocking
     logger.logEffect.trace(s"Calling getCurrentExpectedReports - before semaphore for nodes ${nodeIds.map(_.value).mkString(", ")}")
-    val before_semaphoreTime = System.currentTimeMillis
+    val before_semaphoreTime = java.lang.System.currentTimeMillis
 
     // In a semaphore, nothing should change the cache
     semaphore.withPermit(for {

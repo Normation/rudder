@@ -64,7 +64,7 @@ class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
 
   def dir(path: String) = (new File(testDir, path)).getAbsolutePath
 
-  "The main programm" should {
+  "The main program" should {
     "correctly replace variable in template" in {
 
       FileUtils.copyDirectory(new File("src/test/resources/templates1"), testDir)

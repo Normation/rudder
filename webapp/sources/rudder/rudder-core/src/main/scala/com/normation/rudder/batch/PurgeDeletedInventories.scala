@@ -39,13 +39,17 @@ package com.normation.rudder.batch
 
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.services.servers.RemoveNodeService
+
 import org.joda.time.DateTime
+
 import com.normation.errors.Chained
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+
+import scala.concurrent.duration.FiniteDuration
+
 import com.normation.zio.ZioRuntime
 import zio._
 
-import scala.concurrent.duration._
 
 
 /**
@@ -63,7 +67,7 @@ class PurgeDeletedInventories(
   if (TTL<0) {
     logger.info(s"Disable automatic purge for delete nodes inventories (TTL cannot be negative: ${TTL})")
   } else {
-    if (updateInterval < 1.hour) {
+    if (updateInterval < 1.hour.asScala) {
       logger.info(s"Disable automatic purge for delete nodes inventories (update interval cannot be less than 1 hour)")
     } else {
       logger.debug(s"***** starting batch that purge deleted inventories older than ${TTL} days, every ${updateInterval.toString()} *****")
@@ -77,8 +81,8 @@ class PurgeDeletedInventories(
           val error = Chained(s"Error when purging deleted nodes inventories older than ${TTL} days", err)
           ScheduledJobLoggerPure.error(error.fullMsg)
       })
-      import zio.duration.Duration.{fromScala => zduration}
-      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).forkDaemon)
+      import zio.Duration.{fromScala => zduration}
+      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon)
     }
   }
 }

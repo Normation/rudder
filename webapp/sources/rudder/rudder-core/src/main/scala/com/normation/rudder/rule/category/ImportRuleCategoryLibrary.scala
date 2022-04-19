@@ -190,7 +190,7 @@ class ImportRuleCategoryLibraryImpl(
           } }
       }
 
-      IOResult.effect(recSanitizeCategory(rootCategory, rootCategory, true)).notOptional("Error when trying to sanitize serialised user library for consistency errors")
+      IOResult.attempt(recSanitizeCategory(rootCategory, rootCategory, true)).notOptional("Error when trying to sanitize serialised user library for consistency errors")
     }
 
     //all the logic for a library swap.

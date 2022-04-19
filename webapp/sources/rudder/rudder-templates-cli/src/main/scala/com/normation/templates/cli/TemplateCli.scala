@@ -48,7 +48,7 @@ import java.nio.charset.StandardCharsets
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.errors._
 import com.normation.templates.FillTemplateTimer
@@ -191,9 +191,9 @@ object TemplateCli {
 
   def readStdin(): IOResult[String] = {
     for {
-      in      <- IOResult.effect("Error when trying to access stdin")(new java.io.InputStreamReader(System.in))
-      ready   <- if(in.ready) UIO.unit else Inconsistency("Can not get template content from stdin and no template file given").fail
-      content <- IOResult.effect("Error when trying to read content from stdin")(IOUtils.toString(System.in, "UTF-8"))
+      in      <- IOResult.attempt("Error when trying to access stdin")(new java.io.InputStreamReader(System.in))
+      ready   <- if(in.ready) ZIO.unit else Inconsistency("Can not get template content from stdin and no template file given").fail
+      content <- IOResult.attempt("Error when trying to read content from stdin")(IOUtils.toString(System.in, "UTF-8"))
       ok      <- if(content.length > 0) {
                    content.succeed
                  } else {
@@ -214,12 +214,12 @@ object TemplateCli {
    */
   def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
-      content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
+      ok      <- if(template.getName.endsWith(inputExtension)) { ZIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       filled  <- fillerService.fill(template.getAbsolutePath, content, variables, timer)
       name     = template.getName
       out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
-      writed  <- IOResult.effect( s"Error when writting filled template into ${out.getAbsolutePath}")(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8))
+      writed  <- IOResult.attempt( s"Error when writting filled template into ${out.getAbsolutePath}")(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8))
     } yield {
       out.getAbsolutePath
     }
@@ -230,8 +230,8 @@ object TemplateCli {
    */
   def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { UIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
-      content <- IOResult.effect(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
+      ok      <- if(template.getName.endsWith(inputExtension)) { ZIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
+      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
       writed  <- filledAndWriteToStdout(variables, content, template.getName, timer)
     } yield {
       writed
@@ -241,7 +241,7 @@ object TemplateCli {
   def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String, timer: FillTemplateTimer) = {
     for {
       filled  <- fillerService.fill(templateName, content, variables, timer)
-      writed  <- IOResult.effect(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
+      writed  <- IOResult.attempt(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
     } yield {
       templateName
     }
@@ -273,7 +273,7 @@ object ParseVariables extends Loggable {
 
   def fromFile(file: File):  IOResult[Set[STVariable]] = {
     for {
-      jsonString <- IOResult.effect(s"Error when trying to read file ${file.getAbsolutePath}")(FileUtils.readFileToString(file, "UTF-8"))
+      jsonString <- IOResult.attempt(s"Error when trying to read file ${file.getAbsolutePath}")(FileUtils.readFileToString(file, "UTF-8"))
       vars       <- fromString(jsonString)
     } yield {
       vars
@@ -298,7 +298,7 @@ object ParseVariables extends Loggable {
 
     //the whole logic
     for {
-      json       <- IOResult.effect(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
+      json       <- IOResult.attempt(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
     } yield {
       json match {
         case JObject(fields) => fields.flatMap { x =>

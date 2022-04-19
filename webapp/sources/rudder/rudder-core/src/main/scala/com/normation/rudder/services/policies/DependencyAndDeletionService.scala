@@ -242,7 +242,7 @@ class DependencyAndDeletionServiceImpl(
       ZIO.foreach(targets) { target =>
         for {
           targetInfo <- groupLib.allTargets.get(target).notOptional("target info must be defined")
-          _          <- if(targetInfo.isEnabled) UIO.unit
+          _          <- if(targetInfo.isEnabled) ZIO.unit
                         else Inconsistency(s"target is not enable: ${targetInfo.name}").fail
         } yield {
           rule

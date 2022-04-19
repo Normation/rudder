@@ -58,7 +58,7 @@ import com.normation.utils.Control.sequence
 import com.normation.zio._
 import net.liftweb.common._
 import org.joda.time._
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.box._
 import com.normation.errors._
@@ -66,7 +66,7 @@ import com.normation.errors._
 object ReportingServiceUtils {
 
   def log(msg: String) = ZIO.succeed(println(msg)) // you actual log lib
-  val effect = Task.effect(throw new RuntimeException("I'm some impure code!")) // here, exception is caught and you get a ZIO[Any, Throwable, Something]
+  val effect = ZIO.attempt(throw new RuntimeException("I'm some impure code!")) // here, exception is caught and you get a ZIO[Any, Throwable, Something]
   val withLogError = effect.flatMapError(exception => log(exception.getMessage) *> ZIO.succeed(exception) )
 
   /*
@@ -325,7 +325,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * It's a List and not a Set, because we want to keep the precedence in
    * invalidation request.
    */
-  private[this] val invalidateComplianceRequest = Queue.dropping[List[(NodeId, CacheComplianceQueueAction)]](1).runNow
+  private[this] val invalidateComplianceRequest = Queue.dropping[Chunk[(NodeId, CacheComplianceQueueAction)]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
@@ -337,7 +337,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    */
 
   val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds =>
-    ZIO.foreach_(groupQueueActionByType(invalidatedIds.map(x => x._2)).to(Iterable))(actions =>
+    ZIO.foreachDiscard(groupQueueActionByType(invalidatedIds.map(x => x._2)))(actions =>
       // several strategy:
       // * we have a compliance: yeah, put it in the cache
       // * new policy generation, a new nodeexpectedreports is available: compute compliance for last run of the node, based on this nodeexpectedreports
@@ -361,7 +361,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Do something with the action we received
    * All actions must have *exactly* the *same* type
    */
-  private[this] def performAction(actions: List[CacheComplianceQueueAction]): IOResult[Unit] = {
+  private[this] def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
     import CacheComplianceQueueAction._
     import CacheExpectedReportAction._
 
@@ -378,7 +378,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                          case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
                          case x                   => Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
                        }}
-            _       <-  IOResult.effectNonBlocking { cache = cache ++ updates }
+            _       <-  IOResult.attempt { cache = cache ++ updates }
           } yield ())
 
         case ExpectedReportAction((RemoveNodeInCache(_))) =>
@@ -387,7 +387,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
                          case ExpectedReportAction((RemoveNodeInCache(nodeId))) => nodeId.succeed
                          case x                                                 => Inconsistency(s"Error: found an action of incorrect type in a 'delete' for cache: ${x}").fail
                        }}
-            _       <-  IOResult.effectNonBlocking { cache = cache.removedAll(deletes) }
+            _       <-  IOResult.attempt { cache = cache.removedAll(deletes) }
           } yield ()
 
         // need to compute compliance
@@ -397,7 +397,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
               x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
                   for {
                   updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
-                  _       <- IOResult.effectNonBlocking {
+                  _       <- IOResult.attempt {
                                   cache = cache ++ updated
                              }
                 _         <- ReportLoggerPure.Cache.debug(s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}")
@@ -413,8 +413,8 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * It is necessary to keep global order so that we serialize compliance in order
    * and don't loose information
    */
-  private[this] def groupQueueActionByType(l: List[CacheComplianceQueueAction]): List[List[CacheComplianceQueueAction]] = {
-    l.headOption.map{x => val (h,t)=l.span{x.getClass==_.getClass}; h::groupQueueActionByType(t)}.getOrElse(Nil)
+  private[this] def groupQueueActionByType(l: Chunk[CacheComplianceQueueAction]): Chunk[Chunk[CacheComplianceQueueAction]] = {
+    l.headOption.map{x => val (h,t)=l.span{x.getClass==_.getClass}; groupQueueActionByType(t).prepended(h)}.getOrElse(Chunk.empty)
   }
 
   private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
@@ -443,7 +443,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
           allActions   =  (elements.flatten ++ actions)
           _            <- invalidateComplianceRequest.offer(allActions)
         } yield ())
-    }
+    }.unit
   }
 
   /**

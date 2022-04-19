@@ -69,7 +69,7 @@ class TestInventoryParsing extends Specification with Loggable {
       val url = this.getClass.getClassLoader.getResource(inventoryRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${inventoryRelativePath}' is null (missing resource? Spelling? Permissions?)")
 
-      ZIO.bracket(Task.effect(url.openStream()).mapError(e => SystemError(s"error opening ${url.toString}", e)))(is => Task.effect(is.close).run){ is =>
+      ZIO.acquireReleaseWith(ZIO.attempt(url.openStream()).mapError(e => SystemError(s"error opening ${url.toString}", e)))(is => effectUioUnit(is.close)){ is =>
         parser.fromXml(inventoryRelativePath, is).chainError(s"Parsing error with file ${inventoryRelativePath}")
       }
     }
@@ -163,6 +163,7 @@ class TestInventoryParsing extends Specification with Loggable {
   }
 
   "We can override hostname with custom property 'rudder_override_hostname'">> {
+
     // after parsing, we also have custom property for original hostname
     val expected = List(
         CustomProperty("rudder_override_hostname", JString("node1-overridden.rudder.local.override"))

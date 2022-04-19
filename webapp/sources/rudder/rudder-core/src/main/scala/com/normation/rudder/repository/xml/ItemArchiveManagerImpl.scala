@@ -37,40 +37,38 @@
 
 package com.normation.rudder.repository.xml
 
-import org.apache.commons.io.FileUtils
-import com.normation.rudder.repository._
-import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
-
-import org.joda.time.DateTime
-import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.eventlog._
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-
-import org.eclipse.jgit.api._
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.EventLog
-import com.normation.rudder.rule.category.RoRuleCategoryRepository
-import com.normation.rudder.rule.category.GitRuleCategoryArchiver
-import com.normation.rudder.git.GitArchiveId
-import com.normation.rudder.git.GitCommitId
-
-import java.io.File
-import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.services.queries.DynGroupUpdaterService
-
-import com.normation.errors._
+import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitArchiverFullCommitUtils
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.repository._
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.rule.category.GitRuleCategoryArchiver
+import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.services.queries.DynGroupUpdaterService
+
+import com.github.ghik.silencer.silent
+import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api._
+import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
+
+import java.io.File
 
 import zio._
 import zio.syntax._
-import zio.duration._
+import com.normation.errors._
 import com.normation.zio._
 
 class ItemArchiveManagerImpl(
@@ -109,15 +107,16 @@ class ItemArchiveManagerImpl(
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
   val importSemaphore = Semaphore.make(1).runNow
 
+  @silent("a type was inferred to be `Any`")
   def useSemaphoreOrFail[A](effect: IOResult[A]) = {
-    // we timeout the semaphore aquisition to fail if another op is already running
-    importSemaphore.withPermitManaged.timeout(1.second).provide(ZioRuntime.environment).use(isOK =>
+    // we timeout the semaphore acquisition to fail if another op is already running
+    ZIO.scoped(importSemaphore.withPermitScoped.timeout(1.second).flatMap(isOK =>
       if(isOK.isDefined) {
         effect
       } else {
         Inconsistency("An other operation of import or rollback is already running. You should check its result before doing another one. Please retry latter.").fail
       }
-    )
+    ))
   }
 
   override val tagPrefix = "archives/full/"
@@ -126,9 +125,9 @@ class ItemArchiveManagerImpl(
   ///// implementation /////
   override def loggerName: String = this.getClass.getName
 
-  // Clean a directory only if it exists, all exception are catched by the tryo
+  // Clean a directory only if it exists, all exception are caught by the tryo
   private[this] def cleanExistingDirectory (directory : File) : IOResult[Unit] = {
-    IOResult.effect {
+    IOResult.attempt {
       if (directory.exists) FileUtils.cleanDirectory(directory)
       else ()
     }
@@ -159,7 +158,7 @@ class ItemArchiveManagerImpl(
       // Get Map of all categories grouped by parent categories
       categories  <- roRuleCategoryeRepository.getRootCategory().map(_.childrenMap)
       cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getItemDirectory)
-      _           <- ZIO.foreach_(categories) {
+      _           <- ZIO.foreachDiscard(categories) {
                        case (parentCategories, cats) =>
                          // Archive each category
                          ZIO.foreach(cats) { category =>
@@ -176,7 +175,7 @@ class ItemArchiveManagerImpl(
       // Treat categories before treating Rules
       categories  <- exportRuleCategories(commiter, modId, actor, reason)
       rules       <- roRuleRepository.getAll(false)
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitRuleArchiver.getItemDirectory) )
+      cleanedRoot <- IOResult.attempt( FileUtils.cleanDirectory(gitRuleArchiver.getItemDirectory) )
       saved       <- ZIO.foreach(rules.filterNot(_.isSystem)) { rule =>
                        gitRuleArchiver.archiveRule(rule, None)
                      }
@@ -198,7 +197,7 @@ class ItemArchiveManagerImpl(
                           case (categories, CategoryWithActiveTechniques(cat, upts)) if(cat.isSystem == false || categories.size <= 1) =>
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
                       }
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getItemDirectory) )
+      cleanedRoot <- IOResult.attempt( FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getItemDirectory) )
 
       savedItems  <- exportElements(okCatWithUPT.toSeq)
 
@@ -220,14 +219,14 @@ class ItemArchiveManagerImpl(
     ZIO.foldLeft(elements)(NotArchivedElements( Seq(), Seq(), Seq())) { case (notArchived, (categories, CategoryWithActiveTechniques(cat, activeTechniques))) =>
 
       //we try to save the category, and else record an error. It's a seq with at most one element
-      val catInErrorIO: UIO[Seq[CategoryNotArchived]] = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None).foldM(
+      val catInErrorIO: UIO[Seq[CategoryNotArchived]] = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None).foldZIO(
         err => Seq(CategoryNotArchived(cat.id, err)).succeed
       , suc => Seq().succeed
       )
 
       //now, we try to save the active techniques - we only
       val activeTechniquesInErrorIO: UIO[Set[(Seq[ActiveTechniqueNotArchived], Seq[DirectiveNotArchived])]]  = ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
-        gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None).foldM(
+        gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None).foldZIO(
           err => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, err)), Seq.empty[DirectiveNotArchived]).succeed
           // in case of success, we can still have directive not archived
         , suc => (Seq.empty[ActiveTechniqueNotArchived], suc._2).succeed
@@ -257,7 +256,7 @@ class ItemArchiveManagerImpl(
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) =>
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
                          }
-      cleanedRoot     <- IOResult.effect( FileUtils.cleanDirectory(gitNodeGroupArchiver.getItemDirectory) )
+      cleanedRoot     <- IOResult.attempt( FileUtils.cleanDirectory(gitNodeGroupArchiver.getItemDirectory) )
       savedItems      <- ZIO.foreach(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) =>
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
@@ -279,7 +278,7 @@ class ItemArchiveManagerImpl(
   override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : IOResult[GitArchiveId] = {
     for {
       parameters  <- roParameterRepository.getAllGlobalParameters()
-      cleanedRoot <- IOResult.effect( FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory) )
+      cleanedRoot <- IOResult.attempt( FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory) )
       saved       <- ZIO.foreach(parameters) { param =>
                        gitParameterArchiver.archiveParameter(param, None)
                      }
@@ -518,7 +517,7 @@ object PartialArchive {
   val parameterArchive = PartialArchive("parameters/")
 }
 
-import PartialArchive._
+import com.normation.rudder.repository.xml.PartialArchive._
 
 final case object TechniqueLibraryArchive extends ArchiveMode {
   def configureRm(rmCmd:RmCommand) = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))

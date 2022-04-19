@@ -87,7 +87,7 @@ trait InventoryParser {
 trait XmlInventoryParser extends InventoryParser {
 
   override def fromXml(inventoryName:String,is:InputStream) : IOResult[Inventory] = {
-    (Task.effect {
+    (ZIO.attempt {
       XML.load(is)
     } mapError { ex =>
       InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex)

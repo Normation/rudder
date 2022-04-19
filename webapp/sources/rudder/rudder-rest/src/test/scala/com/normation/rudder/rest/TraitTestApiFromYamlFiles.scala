@@ -50,9 +50,7 @@ import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
 
 import com.normation.errors.IOResult
-import com.normation.errors.RudderError
 import com.normation.errors.effectUioUnit
-
 import scala.jdk.CollectionConverters._
 import org.specs2.mutable._
 import org.specs2.specification.core.Fragment
@@ -78,6 +76,7 @@ import java.io.InputStream
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import com.normation.box.IOManaged
 import com.normation.errors._
 
 /*
@@ -162,7 +161,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
 
     // we accept that the resources is not there
     def listFilesUnder(dir: String, mandatory: Boolean): IOResult[List[String]] = {
-      IOResult.effectM(Resource.url(dir) match {
+      IOResult.attemptZIO(Resource.url(dir) match {
         case None if(mandatory)  => Unexpected(s"Missing required classpath resources: ${dir}").fail
         case None                => Nil.succeed
         case Some(_)             => Resource.getAsString(dir).linesIterator.toList.succeed
@@ -175,22 +174,22 @@ trait TraitTestApiFromYamlFiles extends Specification {
     }
 
     // file are copier directly into destDir
-    def copyTransform(orig: Path, destDir: File): IOResult[(String, Managed[RudderError, InputStream])] = {
+    def copyTransform(orig: Path, destDir: File): IOResult[(String, IOManaged[InputStream])] = {
       // for now, nothing more
       val name = orig.getFileName.toString
       val dest = destDir / name
       for {
-        f <- IOResult.effect(Resource.asString(orig.toString).map(s => dest.write(transform(name, s)))).notOptional(s"Missing source file: ${orig}")
+        f <- IOResult.attempt(Resource.asString(orig.toString).map(s => dest.write(transform(name, s)))).notOptional(s"Missing source file: ${orig}")
       } yield {
-        (name, Managed.make(IOResult.effect(f.newInputStream))(is => effectUioUnit(is.close())))
+        (name, ZIO.acquireRelease(IOResult.attempt(f.newInputStream))(is => effectUioUnit(is.close())))
       }
     }
 
     // the list anyref here is Yaml objects
-    def loadYamls(input: Managed[RudderError, InputStream]): IOResult[List[AnyRef]] = {
+    def loadYamls(input: IOManaged[InputStream]): IOResult[List[AnyRef]] = {
       for {
-        tool  <- IOResult.effect(new Yaml())
-        yamls <- input.use(x => IOResult.effect(tool.loadAll(x).asScala.toList))
+        tool  <- IOResult.attempt(new Yaml())
+        yamls <- ZIO.scoped(input.flatMap(x => IOResult.attempt(tool.loadAll(x).asScala.toList)))
       } yield {
         yamls
       }
@@ -199,7 +198,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
     for {
       // base, directly from classpath
       baseFiles   <- listFilesUnder(baseDir, true).map(_.filter(only))
-      baseIs      =  baseFiles.map { name => (name, Managed.make(IOResult.effect(Resource.getAsStream(baseDir + "/" + name)))(is => effectUioUnit(is.close()))) }
+      baseIs      =  baseFiles.map { name => (name, ZIO.acquireRelease(IOResult.attempt(Resource.getAsStream(baseDir + "/" + name)))(is => effectUioUnit(is.close()))) }
       // templates: need copy to tmp file
       templates   <- listFilesUnder(templateDir, false).map(_.filter(only))
       copied      <- ZIO.foreach(templates) { t => copyTransform(Paths.get(templateDir, t), tmpDir) }
