@@ -592,7 +592,7 @@ class ReportDisplayer(
     * we could add more information at each level (directive name? rule name?)
     */
     for {
-      (_, directive) <- DirectiveStatusReport.merge(nodeStatusReports.reports.toIterable.flatMap(_.directives.values))
+      (_, directive) <- DirectiveStatusReport.merge(nodeStatusReports.reports.toList.flatMap(_.directives.values))
       value          <- directive.getValues(v => v.status == status)
     } yield {
       val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech, dir) =>
