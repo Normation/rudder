@@ -958,7 +958,7 @@ final case class ContextForNoAnswer(
     // if there is no missing nor unexpected, then data is already correct, otherwise we need to merge it
     val directiveStatusReports = {
       if (unexpected.nonEmpty) {
-        DirectiveStatusReport.merge(expected ++ unexpected)
+        DirectiveStatusReport.merge((expected ++ unexpected).toList)
       } else {
         expected.map( dir => (dir.directiveId, dir)).toMap
       }
@@ -1122,7 +1122,7 @@ final case class ContextForNoAnswer(
               ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList)
             })
             })
-          )}.toMap
+          )}
         , mergeInfo.expirationTime
       )
     }.toSet

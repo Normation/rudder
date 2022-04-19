@@ -161,7 +161,7 @@ final class AggregatedStatusReport private(
   lazy val directives: Map[DirectiveId, DirectiveStatusReport] = {
     //toSeq is mandatory; here, we may have some directive only different
     //by rule or node and we don't want to loose the weight
-    DirectiveStatusReport.merge(reports.toSeq.flatMap( _.directives.values))
+    DirectiveStatusReport.merge(reports.toList.flatMap( _.directives.values))
   }
   lazy val compliance                                          = ComplianceLevel.sum(directives.map(_._2.compliance))
 }
@@ -230,12 +230,12 @@ final case class RuleNodeStatusReport(
 object RuleNodeStatusReport {
  def merge(reports: Iterable[RuleNodeStatusReport]): Map[(NodeId, RuleId, Option[DateTime], Option[NodeConfigId]), RuleNodeStatusReport] = {
     reports.groupBy(r => (r.nodeId, r.ruleId, r.agentRunTime, r.configId)).map { case (id, reports) =>
-      val newDirectives = DirectiveStatusReport.merge(reports.flatMap( _.directives.values))
+      val newDirectives = DirectiveStatusReport.merge(reports.toList.flatMap( _.directives.values))
 
       //the merge of two reports expire when the first one expire
       val expire = new DateTime( reports.map( _.expirationDate.getMillis).min )
       (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, newDirectives, expire))
-    }.toMap
+    }
   }
 }
 
@@ -270,11 +270,11 @@ final case class DirectiveStatusReport(
 
 object DirectiveStatusReport {
 
-  def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
+  def merge(directives: List[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy( _.directiveId).map { case (directiveId, reports) =>
       val newComponents = ComponentStatusReport.merge(reports.flatMap( _.components))
       (directiveId, DirectiveStatusReport(directiveId, newComponents))
-    }.toMap
+    }
   }
 }
 
@@ -384,6 +384,7 @@ object ComponentStatusReport extends Loggable {
           r.groupBy(_.expectedComponentName).toList.map {
             case (unexpanded, r) =>
 
+
               val newValues = ComponentValueStatusReport.merge(r.flatMap( _.componentValues))
               ValueStatusReport(cptName, unexpanded, newValues)
 
@@ -403,7 +404,6 @@ object ComponentStatusReport extends Loggable {
           )
           BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).toList) :: Nil
       }
-
       groupComponent ::: valueComponents
 
     }
