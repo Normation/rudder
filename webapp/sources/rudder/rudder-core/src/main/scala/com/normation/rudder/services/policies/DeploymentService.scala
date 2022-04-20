@@ -1436,21 +1436,18 @@ object RuleExpectedReportBuilder extends Loggable {
       val boundingVar = vars.trackerVariable.spec.boundingVariable.getOrElse(vars.trackerVariable.spec.name)
       // now the cardinality is the length of the boundingVariable
       (vars.expandedVars.filter(_._1.value == boundingVar), vars.originalVars.filter(_._1.value == boundingVar)) match {
-        case (m, n) if m.isEmpty && n.isEmpty =>
-          PolicyGenerationLogger.debug("Could not find the bounded variable %s for %s in ParsedPolicyDraft %s".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
-          (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
+        case (m, n) if m.isEmpty && n.isEmpty || m.values.flatMap(_.values).isEmpty && n.values.flatMap(_.values).isEmpty =>
+          PolicyGenerationLogger.debug(s"Could not find the bounded variable ${boundingVar} for ${vars.trackerVariable.spec.name} in Directive ${directiveId.serialize}")
+          (Seq(DEFAULT_COMPONENT_KEY),Seq(DEFAULT_COMPONENT_KEY)) // this is an autobounding policy
         case (variables, originalVariables) if (variables.values.flatMap(_.values).size==originalVariables.values.flatMap(_.values).size) =>
           (variables.values.flatMap(_.values).toSeq, originalVariables.values.flatMap(_.values).toSeq)
         case (m, originalVariables) if (m.isEmpty && originalVariables.nonEmpty) =>
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values.flatMap(_.values).toSeq) // this is an autobounding policy
         case (variables, m)  if (m.isEmpty) =>
-          PolicyGenerationLogger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in ParsedPolicyDraft %s appeared, but was not originally there".format(
-              boundingVar, vars.trackerVariable.spec.name, directiveId.serialize))
-          (variables.values.flatMap(_.values).toSeq,Seq()) // this is an autobounding policy
+          PolicyGenerationLogger.warn(s"Somewhere in the expansion of variables, the bounded variable ${boundingVar} for ${vars.trackerVariable.spec.name} in Directive ${directiveId.serialize} appeared, but was not originally there")
+          (variables.values.flatMap(_.values).toSeq,variables.values.flatMap(_.values).toSeq) // this is an autobounding policy
         case (variables, originalVariables) =>
-          PolicyGenerationLogger.warn("Expanded and unexpanded values for bounded va.flatMap(_.values)riable %s for %s in ParsedPolicyDraft %s have not the same size : %s and %s".format(
-            boundingVar, vars.trackerVariable.spec.name, directiveId.serialize,variables.values, originalVariables.values ))
+          PolicyGenerationLogger.warn(s"Expanded and unexpanded values for bounded variable ${boundingVar} for ${vars.trackerVariable.spec.name} in Directive ${directiveId.serialize} have not the same size : ${variables.values} and ${originalVariables.values}")
           (variables.values.flatMap(_.values).toSeq, originalVariables.values.flatMap(_.values).toSeq)
 
       }
