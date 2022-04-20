@@ -114,6 +114,26 @@ class NodeExpectedReportTest extends Specification {
       , Set()
     )
   }
+  val tNoComponent = {
+    val x = "noComponent"
+    PolicyTechnique(
+    TechniqueId(TechniqueName("t"+x), TechniqueVersionHelper("1.0"))
+    , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("t"+x)), Nil)
+    , TrackerVariableSpec(Some(s"m_var_${x}_1"))
+    , SectionSpec(name = "root", isMultivalued = false, isComponent = false, componentKey = None, children = List(
+      SectionSpec(name = s"var_${x}_0", isMultivalued = false, isComponent = false, componentKey = Some(s"var_${x}_0"), children = List(
+        tvar(x+"_0")
+      ))
+      , SectionSpec(name = s"m_var_${x}_1", isMultivalued = true, isComponent = false, componentKey = Some(s"m_var_${x}_1"), children = List(
+        tmvar(x+"_1")
+        , SectionSpec(name = s"m_var_${x}_2", isMultivalued = false, isComponent = false, componentKey = Some(s"m_var_${x}_2"), children = List(
+          tmvar(x+"_2")
+        ))
+      ))
+    ))
+    , Set())
+  }
+
   val t1 = technique("1")
   val t2 = technique("2")
 
@@ -199,6 +219,41 @@ class NodeExpectedReportTest extends Specification {
     , overrides      = Set()
   )
 
+  val p3_id = PolicyId(r2, d4, TechniqueVersionHelper("1.0"))
+  val p3 = Policy(
+    p3_id
+    , "rule name"
+    , "directive name"
+    , technique      = tNoComponent
+    , DateTime.now.minusDays(1)
+    , policyVars     = NonEmptyList.of(
+      PolicyVars(
+        PolicyId(r2, d4, TechniqueVersionHelper("1.0"))
+        , None
+        , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))
+        , Map(v("2_0", "3_0_0"), mv("2_1", "3_1_0"), mv("2_2", "3_2_0"))
+        , t1.trackerVariableSpec.toVariable(p3_id.getReportId :: p3_id.getReportId :: Nil)
+      )
+    )
+    , priority       = 0
+    , policyMode     = None
+    , ruleOrder      = BundleOrder("1")
+    , directiveOrder = BundleOrder("1")
+    , overrides      = Set()
+  )
+
+  def sortJs(js: JValue): JValue = js match {
+    case JObject(fields) => JObject(fields.sortBy{ case x =>
+      x.name match {
+        case "componentName" => x.value match { // special case for component name, we want also to sort by value
+          case  JString(value) => value
+          case _ => x.value.toString
+        }
+        case _ => x.name
+      }} .map { case JField(k, v) => JField(k, sortJs(v)) })
+    case JArray(array) => JArray(array.sortBy{ case x => x.values.toString }.map(e => sortJs(e))) // this toString is not optimal but it's consistent :)
+    case _ => js
+  }
 
   // compare and json of expected reports with the one produced by RuleExpectedReports.
   // things are sorted and Jnothing values are cleaned up to keep things understandable
@@ -330,11 +385,22 @@ class NodeExpectedReportTest extends Specification {
                    }
                  ]
                }
+             , {
+                 "directiveId": "directive_4"
+               , "isSystem"   : false
+               , "components" : [
+                   {
+                     "componentName": "tnoComponent"
+                   , "values"       : ["None"]
+                   , "unexpanded"   : ["None"]
+                   }
+                 ]
+               }
              ]
            }
          ]""")
 
-      compareExpectedReportsJson(expected, p1 :: p2 :: Nil)
+      compareExpectedReportsJson(expected, p1 :: p2 :: p3 :: Nil)
     }
   }
 
