@@ -119,7 +119,7 @@ class NodeExpectedReportTest extends Specification {
     PolicyTechnique(
     TechniqueId(TechniqueName("t"+x), TechniqueVersionHelper("1.0"))
     , AgentConfig(AgentType.CfeCommunity, Nil, Nil, List(BundleName("t"+x)), Nil)
-    , TrackerVariableSpec(Some(s"m_var_${x}_1"))
+    , TrackerVariableSpec(Some(s"m_var_${x}_1"), None)
     , SectionSpec(name = "root", isMultivalued = false, isComponent = false, componentKey = None, children = List(
       SectionSpec(name = s"var_${x}_0", isMultivalued = false, isComponent = false, componentKey = Some(s"var_${x}_0"), children = List(
         tvar(x+"_0")
@@ -241,19 +241,6 @@ class NodeExpectedReportTest extends Specification {
     , directiveOrder = BundleOrder("1")
     , overrides      = Set()
   )
-
-  def sortJs(js: JValue): JValue = js match {
-    case JObject(fields) => JObject(fields.sortBy{ case x =>
-      x.name match {
-        case "componentName" => x.value match { // special case for component name, we want also to sort by value
-          case  JString(value) => value
-          case _ => x.value.toString
-        }
-        case _ => x.name
-      }} .map { case JField(k, v) => JField(k, sortJs(v)) })
-    case JArray(array) => JArray(array.sortBy{ case x => x.values.toString }.map(e => sortJs(e))) // this toString is not optimal but it's consistent :)
-    case _ => js
-  }
 
   // compare and json of expected reports with the one produced by RuleExpectedReports.
   // things are sorted and Jnothing values are cleaned up to keep things understandable
