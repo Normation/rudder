@@ -87,4 +87,9 @@ bundle agent condition_from_expression(condition, expression)
       "success" usebundle => _classes_success("${class_prefix}");
 
       "report"  usebundle => _log_v3("Create the condition ${condition}_{true,false} with ${expression}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+  reports:
+    "Condition ${condition}_true defined"
+      if => "${condition}_true";
+    "Condition ${condition}_false defined"
+      if => "${condition}_false";
 }
