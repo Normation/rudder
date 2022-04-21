@@ -36,12 +36,7 @@ getSortFunction model r1 r2 =
             EQ -> NaturalOrdering.compare r1.name r2.name
             _  -> o
 
-      Status     ->
-        let
-          r1Status = if r1.enabled then 0 else 1
-          r2Status = if r2.enabled then 0 else 1
-        in
-          compare r1Status r2Status
+      Status -> NaturalOrdering.compare r1.status.value r2.status.value
       Compliance ->
         let
           getCompliance : Maybe RuleComplianceGlobal -> Float
