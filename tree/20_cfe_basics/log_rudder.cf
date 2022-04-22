@@ -930,3 +930,33 @@ bundle agent method_id_pop()
     pass3.debug::
       "${configuration.debug} Popping method id ${method_id} from method stack (length: ${stack_len}, new length: ${new_len})";
 }
+
+bundle agent _rudder_report_state(class_prefix, message, state)
+{
+  # We cannot allow for empty component_name
+  vars:
+      "component_key" string => "${report_data.component_key}";
+
+      "final_state" string => "${state}";
+  defaults:
+    pass1.!report::
+      "final_state" string => "log_info", if_match_regex => "result_success|result_na|result_error|audit_na|audit_compliant|audit_noncompliant";
+      "final_state" string => "log_repaired", if_match_regex => "result_repaired";
+      "final_state" string => "log_error", if_match_regex => "audit_error";
+    pass1.report.(dry_run|global_dry_run)::
+      "final_state" string => "audit_na", if_match_regex => "result_na";
+      "final_state" string => "audit_compliant", if_match_regex => "result_success";
+      "final_state" string => "audit_noncompliant", if_match_regex => "result_error";
+      "final_state" string => "audit_error", if_match_regex => "result_repaired";
+
+      "component_key" string => "None", if_match_regex => "";
+  classes:
+      "pass2"  expression => "pass1";
+      "pass1"  expression => "any";
+      "report" expression => "${report_data.should_report}";
+
+  methods:
+    pass2::
+      "${report_data.method_id}"
+        usebundle  => _rudder_common_report("${report_data.technique_name}", "${class_prefix}", "${final_state}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}");
+}
