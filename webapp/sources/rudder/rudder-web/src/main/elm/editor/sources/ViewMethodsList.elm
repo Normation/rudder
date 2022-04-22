@@ -39,7 +39,6 @@ methodsList model =
         filter = model.methodsUI.filter
         filterMethods = List.filter ( filterMethod filter )  (Dict.values model.methods)
         methodByCategories = Dict.Extra.groupBy (\m -> Maybe.withDefault m.id.value (List.head (String.split "_" m.id.value)) |> String.Extra.toTitleCase) (filterMethods)
-        dscIcon = if filter.agent == Just Dsc then "dsc-icon-white.svg" else "dsc-icon.svg"
 
         block = element "li"
               |> appendChild
@@ -102,7 +101,7 @@ methodsList model =
              , button [ class ("btn btn-default" ++ (if filter.agent == Just Cfengine then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Cfengine }) ] [text "Classic"]
              , button [ class ("btn btn-default" ++ (if filter.agent == Just Dsc then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Dsc }) ] [
                  text "DSC "
-               , img [ src ("../../images/" ++ dscIcon),  class "dsc-icon" ] []
+               , span [ class "dsc-icon" ] []
                ]
              ]
            , div [ class "input-group" ] [
@@ -226,10 +225,10 @@ showMethod ui method mode dnd =
                          ]
                     )
                ) (Maybe.Extra.isJust  method.deprecated )
-            |> appendChildConditional
-               ( element "img"
-                 |> addAttributeList [ src "../../images/dsc-icon.svg",  class "dsc-icon" ]
-               ) (List.member Dsc method.agentSupport)
+            |> appendChild
+               ( element "span"
+                 |> addAttributeList [ class "dsc-icon" ]
+               )
           ]
        |> appendChildConditional
             ( element "div"
