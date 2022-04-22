@@ -119,11 +119,33 @@ $(document).ready(function(){
   app.ports.clearTooltips.subscribe(function(str) {
     $(".popover").remove();
   });
-    $(document).on('mouseover','.popover-bs',function(){
-      $(this).bsPopover('show');
-    });
-    $('.tooltip-bs').bsTooltip();
-    });
+
+  app.ports.scrollMethod.subscribe(function(info){
+    var addDelay = info[0] ? 350 : 0;
+    var methodId = "#" + info[1];
+    setTimeout(function(){
+      scrollToMethod(methodId);
+    }, addDelay);
+  });
+
+  $(document).on('mouseover','.popover-bs',function(){
+    $(this).bsPopover('show');
+  });
+
+  $('.tooltip-bs').bsTooltip();
+});
+
+function scrollToMethod(target){
+  var container       = $("#methods-list-container");
+  var target          = $(target);
+  var paddingTop      = 10;
+  var containerOffset = container.offset().top;
+  var targetOffset    = target.offset().top - paddingTop;
+  var offsetDiff      = targetOffset - containerOffset;
+  var scrollTop       = container.scrollTop()
+  container.animate({ scrollTop: scrollTop + offsetDiff }, 0);
+  return false;
+}
 </script>
     </div>
   </div>

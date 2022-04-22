@@ -46,6 +46,7 @@ port pushUrl             : String -> Cmd msg
 port getUrl              : () -> Cmd msg
 port readUrl             : (String -> msg) -> Sub msg
 port clearTooltips       : String -> Cmd msg
+port scrollMethod        : (Bool , String) -> Cmd msg
 
 -- utility to write a understandable debug message from a get response
 debugHttpErr : Detailed.Error String -> String
@@ -178,16 +179,6 @@ updateParameter paramId newValue x =
     Call p c -> Call p { c | parameters =  List.Extra.updateIf (.id >> (==) paramId) (\param -> { param | value = (getAgentValue newValue) } ) c.parameters }
     Block p b -> Block p { b | calls = List.map (updateParameter paramId newValue) b.calls}
 
-scrollInMethod: String -> Cmd Msg
-scrollInMethod containerId =
-  let
-    task = (Browser.Dom.getElement "methods-list-container")
-      |> ((Browser.Dom.getViewportOf "methods-list-container")
-      |> ((Browser.Dom.getElement containerId)
-      |> Task.map3 (\elem viewport container -> viewport.viewport.y + elem.element.y - container.element.y ))  )
-      |> Task.andThen (Browser.Dom.setViewportOf "methods-list-container" 0)
-  in
-  Task.attempt (always Ignore) task
 --
 -- update loop --
 --
@@ -571,21 +562,21 @@ update msg model =
 
 
     ScrollCategory category ->
-        (model, scrollInMethod category )
+        (model, scrollMethod ((not model.genericMethodsOpen) , category) )
 
     ToggleDoc methodId ->
       let
         ui = model.methodsUI
         newDocs = if List.member methodId ui.docsOpen then List.Extra.remove methodId ui.docsOpen else methodId :: ui.docsOpen
       in
-        ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollInMethod methodId.value)
+        ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollMethod ((not model.genericMethodsOpen) , methodId.value))
 
     ShowDoc methodId ->
       let
         ui = model.methodsUI
         newDocs = if List.member methodId ui.docsOpen then ui.docsOpen else methodId :: ui.docsOpen
       in
-      ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollInMethod methodId.value)
+      ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollMethod ((not model.genericMethodsOpen) , methodId.value))
 
     AddMethod method newId ->
       if model.hasWriteRights then

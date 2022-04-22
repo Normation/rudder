@@ -999,11 +999,6 @@ ul.list-unstyled > li{
 }
 .method-elmt {
   border: 1px solid #e5e5e5;
-  /*
-    This is useful for auto scroll to show method doc when the right panel is closed
-    see https://issues.rudder.io/issues/19720
-  */
-  min-width:350px;
 }
 ul li.hide-method {
   margin-bottom : 0px !important;
