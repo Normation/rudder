@@ -37,8 +37,9 @@
 
 package com.normation.rudder.domain.reports
 
-import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
+import com.normation.rudder.domain.reports.CompliancePrecision.{Level0, Level2}
+import net.liftweb.common._
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.json.JsonAST.JObject
@@ -87,7 +88,7 @@ final case class CompliancePercent(
   , nonCompliant      : Double = 0
   , auditError        : Double = 0
   , badPolicyMode     : Double = 0
-)(val precision: Int = 0) {
+)(val precision: CompliancePrecision = Level0) {
   val compliance = success+repaired+notApplicable+compliant+auditNotApplicable
 }
 
@@ -110,67 +111,7 @@ object CompliancePercent {
   }
 
 
-  /*
-   * Ensure that the sum is 100% and that no case disapear because it is
-   * less that 0.01% (assuming precision 2).
-   *
-   * Rules are:
-   * - always keeps at least 10e(-precision)% for any case
-   *   (given that we have 14 categories, it means that at worst, if 13 are at the mean in place of ~0%;
-   *   the last one will be false by 13*10e(-precision)%. For precision = 0, it can reach 13% in a pathological case.
-   * - the biggest value is rounded to compensate
-   * - in case of equality (ex: 1/3 success, 1/3 NA, 1/3 error), the biggest is
-   *   chosen accordingly to "ReportType.level" logic.
-   *
-   */
-  def fromLevels(c: ComplianceLevel, precision: Int): CompliancePercent = {
-
-    if(c.total == 0) {  // special case: let it be 0
-      CompliancePercent()(precision)
-    } else {
-      // the value for the minimum percent reported even if less (see class description)
-      val MIN_PC = {
-        if (precision == PERCENT_PRECISION) {
-          ComplianceLevel.GLOBAL_MIN_PC
-        } else {
-          BigDecimal(1) * BigDecimal(10).pow(- precision) // since we keep precision digits in percents
-        }
-      }
-      val total = BigDecimal(c.total) // not zero
-      def pc_for(i:Int) : Double = {
-        if(i == 0) {
-          0
-        } else {
-          val pc = (i * 100 / total).setScale(precision, BigDecimal.RoundingMode.HALF_UP)
-          (if(pc < MIN_PC) MIN_PC else pc).toDouble
-        }
-      }
-
-      // default percent calculation
-      val levels = CompliancePercent.sortLevels(c)
-
-      // round the first ones keeping at least MIN_PC
-      val pc = levels.init.map { case (l, index) => (pc_for(l), index) }
-      // the last one is rounded by "100 - sum of other"
-      val pc_last = 100 - pc.map(_._1).sum
-
-      // check that the rounding error is below what is expected (0.15%) else warn
-      val error = Math.abs((pc_for(levels.last._1)-pc_last)/pc_last)
-      if( error > 14 * MIN_PC) {
-        ComplianceLogger.info(s"Rounding error in compliances is above expected threshold: error is ${error} for ${c}")
-      }
-
-      // sort back percents by index
-      val all = ((pc_last, levels.last._2) :: pc).sortBy(_._2).map(_._1)
-//println("historic : " + all(1) + " " + all(2)+ " "+ all(3) + " " + all(4)+ " " + all(5)+ " " + all(6) + " "+ all(7))
-//println("high     :" + levels.last)
-//      println(c)
-      // create array of pecents
-      CompliancePercent.fromSeq(all, precision)
-    }
-  }
-
-  // hardcoding the precision
+  // hardcoding the precision levels
   val divisers: Seq[Long] = Seq(1, 10, 100, 1000, 10000, 100000)
   val hundreds: Seq[Long] = Seq(100, 1000, 10000, 100000, 1000000, 10000000)
 
@@ -186,16 +127,16 @@ object CompliancePercent {
    * All computation is in Long by multiplying the values with the power of ten
    * and then truncated by converting to double and dividing after by the power of ten
    */
-  def correctFromLevels(c: ComplianceLevel, precision: Int): CompliancePercent = {
+  def fromLevels(c: ComplianceLevel, precision: CompliancePrecision): CompliancePercent = {
     val total = c.total
     if (total == 0) { // special case: let it be 0
       CompliancePercent()(precision)
     } else {
       // these depends on the precision
-      val diviser = divisers(precision)
-      val hundred = hundreds(precision)
+      val diviser = divisers(precision.precision)
+      val hundred = hundreds(precision.precision)
 
-      val levels = CompliancePercent.otherSortLevels(c)
+      val levels = CompliancePercent.sortLevels(c)
 
       // when a value is too small and rounded to 1, we add one percent to extraPercent
       var extraPercent = 1.00
@@ -225,7 +166,6 @@ object CompliancePercent {
       val pc_last = hundred - total_pc
 
       val correct_percent = ((pc_last, levels.last._2) :: pc).sortBy(_._2).map(_._1.toDouble/diviser)
-
       CompliancePercent.fromSeq(correct_percent, precision)
     }
   }
@@ -233,17 +173,17 @@ object CompliancePercent {
   // Directly computes the compliance without taking into account the pending level
   // It is made to skip the extra step of creating a new CompliancePercent, and save a bit
   // of perf
-  def complianceWithoutPending(c: ComplianceLevel, precision: Int): Double = {
+  def complianceWithoutPending(c: ComplianceLevel, precision: CompliancePrecision): Double = {
     val total = c.success+c.repaired+c.error+c.unexpected+c.missing+c.noAnswer+c.notApplicable+c.reportsDisabled+c.compliant+c.auditNotApplicable+c.nonCompliant+c.auditError+c.badPolicyMode
 
     if (total == 0) { // special case: let it be 0
       0
     } else {
       // these depends on the precision
-      val diviser = divisers(precision)
-      val hundred = hundreds(precision)
+      val diviser = divisers(precision.precision)
+      val hundred = hundreds(precision.precision)
 
-      val levels = CompliancePercent.otherSortLevelsWithoutPending(c)
+      val levels = CompliancePercent.sortLevelsWithoutPending(c)
 
       // when a value is too small and rounded to 1, we add one percent to extraPercent
       var extraPercent = 1.00
@@ -288,38 +228,6 @@ object CompliancePercent {
     // So we map index of a compliance element to it's worse type order and compare by index
 
     val levels = List(
-        c.pending
-      , c.success
-      , c.repaired
-      , c.error
-      , c.unexpected
-      , c.missing
-      , c.noAnswer
-      , c.notApplicable
-      , c.reportsDisabled
-      , c.compliant
-      , c.auditNotApplicable
-      , c.nonCompliant
-      , c.auditError
-      , c.badPolicyMode
-    ).zipWithIndex
-
-    // sort smallest first, and then by worst type
-    levels.sortWith { case ((l1, i1), (l2, i2)) =>
-      if(l1 == l2)  {
-        // index in WORSE_ORDER is the same as index in levels, so just compare WORSE_INDEX(index)
-        WORSE_ORDER(i1) < WORSE_ORDER(i2)
-      } else {
-        l1 < l2
-      }
-    }
-  }
-  def otherSortLevels(c: ComplianceLevel): List[(Int, Int)] = {
-    // we want to compare accordingly to `ReportType.getWorsteType` but I don't see any
-    // way to do it directly since we don't use the same order in compliance.
-    // So we map index of a compliance element to it's worse type order and compare by index
-
-    val levels = List(
         (c.pending           , 0)
       , (c.success           , 1)
       , (c.repaired          , 2)
@@ -347,7 +255,7 @@ object CompliancePercent {
     }
   }
 
-  def otherSortLevelsWithoutPending(c: ComplianceLevel): List[(Int, Int)] = {
+  def sortLevelsWithoutPending(c: ComplianceLevel): List[(Int, Int)] = {
     // we want to compare accordingly to `ReportType.getWorsteType` but I don't see any
     // way to do it directly since we don't use the same order in compliance.
     // So we map index of a compliance element to it's worse type order and compare by index
@@ -382,7 +290,7 @@ object CompliancePercent {
    *  Init compliance percent from a Seq. Order is of course extremely important here.
    *  This is a dangerous internal only method: if the seq is too short or too big, throw an error.
    */
-  protected def fromSeq(pc: Seq[Double], precision: Int) = {
+  protected def fromSeq(pc: Seq[Double], precision: CompliancePrecision) = {
     val expected = WORSE_ORDER.length
     if(pc.length != expected) {
       throw new IllegalArgumentException(s"We are trying to build a compliance bar from a sequence of double that has" +
@@ -420,11 +328,10 @@ final case class ComplianceLevel(
   lazy val total_ok = success+repaired+notApplicable+compliant+auditNotApplicable
 
   def withoutPending = this.copy(pending = 0, reportsDisabled = 0)
-  def computePercent(precision: Int = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
-  def computeCorrectPercent(precision: Int = PERCENT_PRECISION) = CompliancePercent.correctFromLevels(this, precision)
+  def computePercent(precision: CompliancePrecision = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
 
 
-  def complianceWithoutPending(precision: Int = PERCENT_PRECISION): Double = CompliancePercent.complianceWithoutPending(this, precision)
+  def complianceWithoutPending(precision: CompliancePrecision = PERCENT_PRECISION): Double = CompliancePercent.complianceWithoutPending(this, precision)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
@@ -449,11 +356,32 @@ final case class ComplianceLevel(
   def +(reports: Iterable[ReportType]): ComplianceLevel = this+ComplianceLevel.compute(reports)
 }
 
+sealed trait CompliancePrecision {
+  def precision: Int
+}
+object CompliancePrecision {
+  final case object Level0 extends CompliancePrecision { val precision = 0 }
+  final case object Level1 extends CompliancePrecision { val precision = 1 }
+  final case object Level2 extends CompliancePrecision { val precision = 2 }
+  final case object Level3 extends CompliancePrecision { val precision = 3 }
+  final case object Level4 extends CompliancePrecision { val precision = 4 }
+  final case object Level5 extends CompliancePrecision { val precision = 5 }
+
+  def fromPrecision(i: Int) : Box[CompliancePrecision] = {
+    i match {
+      case Level0.precision => Full(Level0)
+      case Level1.precision => Full(Level1)
+      case Level2.precision => Full(Level2)
+      case Level3.precision => Full(Level3)
+      case Level4.precision => Full(Level4)
+      case Level5.precision => Full(Level5)
+      case _                => Failure(s"Invalid level for compliance precision ${i}, valid values are 0 to 5")
+    }
+  }
+}
 object ComplianceLevel {
 
-  def PERCENT_PRECISION = 2
-
-  val GLOBAL_MIN_PC = BigDecimal(1) * BigDecimal(10).pow(- PERCENT_PRECISION) // since we keep precision digits in percents
+  def PERCENT_PRECISION = Level2
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
     import ReportType._

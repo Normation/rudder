@@ -109,6 +109,7 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.ncf.MethodBlock
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.services.policies.PropertyParser
@@ -765,14 +766,20 @@ final case class RestExtractorService (
         }
     }
   }
-  def extractPercentPrecision(params: Map[String, List[String]]) : Box[Option[Int]] = {
+  def extractPercentPrecision(params: Map[String, List[String]]) : Box[Option[CompliancePrecision]] = {
     params.get("precision") match {
       case None | Some(Nil) => Full(None)
       case Some(h :: tail) => //only take into account the first level param is several are passed
-        try { Full(Some(h.toInt)) }
-        catch {
-          case ex:NumberFormatException => Failure(s"percent precison must be an integer, was: '${h}'")
+        for {
+          extracted <-  try { Full(h.toInt) }
+                        catch {
+                          case ex:NumberFormatException => Failure(s"percent precison must be an integer, was: '${h}'")
+                        }
+          level      <- CompliancePrecision.fromPrecision(extracted)
+        } yield {
+          Some(level)
         }
+
     }
   }
 

@@ -39,10 +39,10 @@ package com.normation.rudder.rest.lift
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.{Directive, DirectiveId, Rule, RuleId}
-import com.normation.rudder.domain.reports.{ComplianceLevel, ComponentStatusReport, DirectiveStatusReport}
+import com.normation.rudder.domain.reports.{BlockStatusReport, ComplianceLevel, CompliancePrecision, ComponentStatusReport, DirectiveStatusReport, ValueStatusReport}
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.zio.currentTimeMillis
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.logger.{TimingDebugLogger, TimingDebugLoggerPure}
 import com.normation.rudder.repository.{FullActiveTechnique, RoDirectiveRepository, RoNodeGroupRepository, RoRuleRepository}
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
@@ -57,8 +57,6 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import com.normation.box._
-import com.normation.rudder.domain.reports.BlockStatusReport
-import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import zio.syntax._
@@ -113,7 +111,7 @@ class ComplianceApi(
         if(version.value <= 6) {
           rules.map( _.toJsonV6 )
         } else {
-          rules.map( _.toJson(level.getOrElse(10), precision.getOrElse(2))) //by default, all details are displayed
+          rules.map( _.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))) //by default, all details are displayed
         }
       }) match {
         case Full(rules) =>
@@ -134,15 +132,25 @@ class ComplianceApi(
       implicit val prettify = params.prettify
 
       (for {
-        level <- restExtractor.extractComplianceLevel(req.params)
+        level     <- restExtractor.extractComplianceLevel(req.params)
+        t1        = System.currentTimeMillis
         precision <- restExtractor.extractPercentPrecision(req.params)
-        id    <- RuleId.parse(ruleId).toBox
-        rule  <- complianceService.getRuleCompliance(id, level)
+        id        <- RuleId.parse(ruleId).toBox
+        t2        = System.currentTimeMillis
+
+        rule      <- complianceService.getRuleCompliance(id, level)
+        t3        = System.currentTimeMillis
+        _         = TimingDebugLogger.trace(s"API GetRuleId - getting query param in ${t2 - t1} ms")
+        _         = TimingDebugLogger.trace(s"API GetRuleId - getting rule compliance in ${t3 - t2} ms")
+
       } yield {
         if(version.value <= 6) {
           rule.toJsonV6
         } else {
-          rule.toJson(level.getOrElse(10), precision.getOrElse(2)) //by default, all details are displayed
+          val json = rule.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2)) //by default, all details are displayed
+          val t4   = System.currentTimeMillis
+          TimingDebugLogger.trace(s"API GetRuleId - serialize to json in ${t4 - t3} ms")
+          json
         }
       }) match {
         case Full(rule) =>
@@ -170,7 +178,7 @@ class ComplianceApi(
         if(version.value <= 6) {
           nodes.map( _.toJsonV6 )
         } else {
-          nodes.map( _.toJson(level.getOrElse(10), precision.getOrElse(2)) )
+          nodes.map( _.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2)) )
         }
       })match {
         case Full(nodes) =>
@@ -198,7 +206,7 @@ class ComplianceApi(
         if(version.value <= 6) {
           node.toJsonV6
         } else {
-          node.toJson(level.getOrElse(10), precision.getOrElse(2))
+          node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
         }
       })match {
         case Full(node) =>
@@ -222,7 +230,7 @@ class ComplianceApi(
         precision <- restExtractor.extractPercentPrecision(req.params)
         optCompliance <- complianceService.getGlobalCompliance()
       } yield {
-        optCompliance.toJson(precision.getOrElse(2))
+        optCompliance.toJson(precision.getOrElse(CompliancePrecision.Level2))
       }) match {
         case Full(json) =>
           toJsonResponse(None, json)

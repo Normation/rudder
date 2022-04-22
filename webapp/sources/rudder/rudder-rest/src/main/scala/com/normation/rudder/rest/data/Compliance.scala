@@ -275,7 +275,7 @@ object JsonCompliance {
   //global compliance
 
   implicit class JsonGlobalCompliance(val optCompliance: Option[(ComplianceLevel, Long)]) extends AnyVal {
-    def toJson(precision: Int): JValue = {
+    def toJson(precision: CompliancePrecision): JValue = {
       optCompliance match {
         case Some((details, value)) =>
           ( "globalCompliance" -> (
@@ -296,9 +296,9 @@ object JsonCompliance {
     def toJsonV6 = (
         ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
-      ~ ("compliance" -> rule.compliance.withoutPending.computeCorrectPercent().compliance)
-      ~ ("complianceDetails" -> percents(rule.compliance, 2))
-      ~ ("directives" -> directives(rule.directives, 10, 2) )
+      ~ ("compliance" -> rule.compliance.complianceWithoutPending())
+      ~ ("complianceDetails" -> percents(rule.compliance, CompliancePrecision.Level2))
+      ~ ("directives" -> directives(rule.directives, 10, CompliancePrecision.Level2) )
     )
 
     /*
@@ -309,7 +309,7 @@ object JsonCompliance {
      * - 4 and up: rules, directives, components, node and component values
      */
 
-    def toJson(level: Int, precision: Int) = (
+    def toJson(level: Int, precision: CompliancePrecision) = (
         ("id" -> rule.id.serialize)
       ~ ("name" -> rule.name)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending(precision))
@@ -319,7 +319,7 @@ object JsonCompliance {
       ~ ("nodes" -> byNodes(rule.nodes, level, precision) )
     )
 
-    private[this] def directives(directives: Seq[ByRuleDirectiveCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def directives(directives: Seq[ByRuleDirectiveCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 2) None
       else Some( directives.map { directive =>
         (
@@ -331,7 +331,7 @@ object JsonCompliance {
         )
        })
     }
-    private[this] def byNodes(nodes: Seq[ByRuleByNodeCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def byNodes(nodes: Seq[ByRuleByNodeCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 2) None
       else Some( nodes.map { node =>
         (
@@ -344,7 +344,7 @@ object JsonCompliance {
       })
     }
 
-    private[this] def byNodesByDirectives(directives: Seq[ByRuleByNodeByDirectiveCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def byNodesByDirectives(directives: Seq[ByRuleByNodeByDirectiveCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 3) None
       else Some( directives.map { directive =>
         (
@@ -356,7 +356,7 @@ object JsonCompliance {
           )
       })
     }
-    private[this] def components(comps: Seq[ByRuleComponentCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def components(comps: Seq[ByRuleComponentCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 3) None
       else Some(comps.map { component =>
         (
@@ -373,7 +373,7 @@ object JsonCompliance {
       })
     }
 
-    private[this] def byNodeByDirectiveByComponents(comps: Seq[ByRuleByNodeByDirectiveByComponentCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def byNodeByDirectiveByComponents(comps: Seq[ByRuleByNodeByDirectiveByComponentCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 4) None
       else Some(comps.map { component =>
         (
@@ -404,7 +404,7 @@ object JsonCompliance {
           )
       })
     }
-    private[this] def nodes(nodes: Seq[ByRuleNodeCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def nodes(nodes: Seq[ByRuleNodeCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 4) None
       else Some(nodes.map { node =>
         (
@@ -424,8 +424,8 @@ object JsonCompliance {
     def toJsonV6 = (
         ("id" -> n.id.value)
       ~ ("compliance" -> n.compliance.complianceWithoutPending())
-      ~ ("complianceDetails" -> percents(n.compliance, 2))
-      ~ ("rules" -> rules(n.nodeCompliances, 10, 2))
+      ~ ("complianceDetails" -> percents(n.compliance, CompliancePrecision.Level2))
+      ~ ("rules" -> rules(n.nodeCompliances, 10, CompliancePrecision.Level2))
     )
 
     /*
@@ -437,7 +437,7 @@ object JsonCompliance {
      * - 5 and up: nodes, rules, directives, components and component values
      */
 
-    def toJson(level: Int, precision: Int) = (
+    def toJson(level: Int, precision: CompliancePrecision) = (
         ("id" -> n.id.value)
       ~ ("name" -> n.name)
       ~ ("compliance" -> n.compliance.complianceWithoutPending(precision))
@@ -446,7 +446,7 @@ object JsonCompliance {
       ~ ("rules" -> rules(n.nodeCompliances, level, precision))
     )
 
-    private[this] def rules(rules: Seq[ByNodeRuleCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def rules(rules: Seq[ByNodeRuleCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 2) None
       else Some(rules.map { rule =>
         (
@@ -459,7 +459,7 @@ object JsonCompliance {
       })
     }
 
-    private[this] def directives(directives: Seq[ByNodeDirectiveCompliance], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def directives(directives: Seq[ByNodeDirectiveCompliance], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 3) None
       else Some(directives.map { directive =>
         (
@@ -472,7 +472,7 @@ object JsonCompliance {
       })
     }
 
-    private[this] def components(comps: Map[String, ComponentStatusReport], level: Int, precision: Int): Option[JsonAST.JValue] = {
+    private[this] def components(comps: Map[String, ComponentStatusReport], level: Int, precision: CompliancePrecision): Option[JsonAST.JValue] = {
       if(level < 4) None
       else Some(comps.map { case (_, component) =>
         (
@@ -534,11 +534,11 @@ object JsonCompliance {
    * the semantic of unexpected / missing and no answer is not clear at all.
    *
    */
-  private[this] def percents(c: ComplianceLevel, precision: Int): Map[String, Double] = {
+  private[this] def percents(c: ComplianceLevel, precision: CompliancePrecision): Map[String, Double] = {
     import ReportType._
 
     //we want at most `precision` decimals
-    val pc = CompliancePercent.correctFromLevels(c, precision)
+    val pc = CompliancePercent.fromLevels(c, precision)
     Map(
         statusDisplayName(EnforceNotApplicable) -> pc.notApplicable
       , statusDisplayName(EnforceSuccess) -> pc.success
