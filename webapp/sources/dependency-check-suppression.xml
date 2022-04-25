@@ -43,4 +43,18 @@
    <cve>CVE-2020-11022</cve>
    <cve>CVE-2020-11023</cve>
 </suppress>
+<suppress>
+   <notes><![CDATA[
+      file name: spring-ldap-core-2.3.5.RELEASE.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
+   <cpe>cpe:/a:pivotal_software:spring-ldap</cpe>
+</suppress>
+<suppress>
+   <notes><![CDATA[
+      file name: spring-ldap-core-2.3.5.RELEASE.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
+   <cpe>cpe:/a:vmware:spring_framework</cpe>
+</suppress>
 </suppressions>
