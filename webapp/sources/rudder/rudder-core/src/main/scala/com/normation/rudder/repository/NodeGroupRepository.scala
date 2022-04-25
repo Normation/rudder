@@ -230,6 +230,12 @@ trait RoNodeGroupRepository {
   def getAll() : IOResult[Seq[NodeGroup]]
 
   /**
+   * Get all the node group id and the set of ndoes within
+   * Goal is to be more efficient
+   */
+  def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]]
+
+  /**
    * Get all pairs of (category details, Set(node groups) )
    * in a map in which keys are the parent category of the groups.
    * The map is sorted by category:
@@ -314,6 +320,16 @@ trait RoNodeGroupRepository {
    */
   def getAllNonSystemCategories() : IOResult[Seq[NodeGroupCategory]]
 
+}
+
+object RoNodeGroupRepository {
+  /**
+   * Return all node ids that match the set of target.
+   */
+  def getNodeIds(allGroups: Map[NodeGroupId, Set[NodeId]], targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Set[NodeId] = {
+    val allNodes = allNodeInfos.view.mapValues { x => (x.isPolicyServer, x.serverRoles) }
+    RuleTarget.getNodeIds(targets, allNodes.toMap, allGroups)
+  }
 }
 
 trait WoNodeGroupRepository {
