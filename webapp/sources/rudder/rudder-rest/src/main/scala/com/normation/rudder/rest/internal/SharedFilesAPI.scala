@@ -154,8 +154,7 @@ class SharedFilesAPI(
       if (file.exists) {
         if (file.isRegularFile) {
           import net.liftweb.json.JsonDSL._
-          val fileContent: Seq[String] = file.lines(StandardCharsets.UTF_8).toSeq
-          val result = JObject(List(JField("result", fileContent.mkString("\n"))))
+          val result = JObject(List(JField("result", file.contentAsString(StandardCharsets.UTF_8))))
           JsonResponse(result, List(), List(), 200).succeed
         } else {
           Unexpected(s"File '${file.name}' is not a regular file").fail

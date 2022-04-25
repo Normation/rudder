@@ -55,8 +55,8 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 	private AuthenticationManager parent;
 	private boolean eraseCredentialsAfterAuthentication = true;
 
-    // the rudder provider
-    private DynamicRudderProviderManager dynamicProvider;
+  // the rudder provider
+  private DynamicRudderProviderManager dynamicProvider;
 
 	public RudderProviderManager(DynamicRudderProviderManager dynamicProvider) {
 	    this.dynamicProvider = dynamicProvider;
