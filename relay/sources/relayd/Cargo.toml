@@ -51,7 +51,7 @@ tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_t
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
 warp = { version = "0.3", default-features = false }
 # Use rust implementation
-zip = { version = "0.5", default-features = false, features = ["deflate"] }
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 criterion = "0.3"
@@ -64,3 +64,6 @@ pretty_assertions = "1"
 # Disabling debug info speeds up builds a bunch,
 # and we don't rely on it for debugging that much.
 debug = 0
+
+[profile.release]
+strip = true

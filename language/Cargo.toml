@@ -28,13 +28,16 @@ toml = "0.5"
 typed-arena = "2.0"
 walkdir = "2"
 backtrace = "0.3"
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
-test-case = "1"
+test-case = "2"
 pretty_assertions = "1"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,
 # and we don't rely on it for debugging that much.
 debug = 0
+
+[profile.release]
+strip = true

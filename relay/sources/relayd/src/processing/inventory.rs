@@ -86,11 +86,7 @@ async fn serve(
 
         let queue_id = format!(
             "{:X}",
-            Md5::digest(
-                file.file_name()
-                    .unwrap_or_else(|| file.as_os_str())
-                    .as_bytes()
-            )
+            Md5::digest(file.file_name().unwrap_or(file.as_os_str()).as_bytes())
         );
         let span = span!(
             Level::INFO,

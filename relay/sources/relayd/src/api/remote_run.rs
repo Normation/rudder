@@ -433,10 +433,10 @@ impl RunParameters {
         } else {
             Command::new(&cfg.command)
         };
-        cmd.arg("remote".to_string());
-        cmd.arg("run".to_string());
+        cmd.arg("remote");
+        cmd.arg("run");
         if !&self.conditions.is_empty() {
-            cmd.arg("-D".to_string());
+            cmd.arg("-D");
             cmd.arg(
                 self.conditions
                     .iter()
@@ -445,7 +445,7 @@ impl RunParameters {
                     .join(","),
             );
         }
-        cmd.arg("--".to_string());
+        cmd.arg("--");
         cmd.arg(nodes.join(","));
         debug!("Remote run command: '{:#?}'", cmd);
         cmd

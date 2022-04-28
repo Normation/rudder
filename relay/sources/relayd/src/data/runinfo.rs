@@ -36,7 +36,7 @@ impl Display for RunInfo {
 fn parse_runinfo(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("@"), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
-        DateTime::parse_from_str(&d.replace("_", ":"), "%+")
+        DateTime::parse_from_str(&d.replace('_', ":"), "%+")
     })(i)?;
     let (i, _) = tag("@")(i)?;
     let (i, node_id) = take_until(".")(i)?;
