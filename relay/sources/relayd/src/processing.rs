@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use anyhow::Error;
 use std::path::PathBuf;
+
+use anyhow::Error;
 use tokio::fs::{remove_file, rename};
 use tracing::debug;
 
 pub mod inventory;
 pub mod reporting;
+pub mod shared_files;
 
 pub type ReceivedFile = PathBuf;
 pub type RootDirectory = PathBuf;

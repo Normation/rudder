@@ -90,7 +90,6 @@ install: build
 	mkdir -p $(DESTDIR)/var/rudder/share
 	mkdir -p $(DESTDIR)/var/log/rudder/apache2/
 	mkdir -p $(DESTDIR)/etc/sysconfig/
-	mkdir -p $(DESTDIR)/etc/cron.d/
 	mkdir -p $(DESTDIR)/etc/sudoers.d/
 	mkdir -p $(DESTDIR)/usr/lib/systemd/system/
 
@@ -126,9 +125,7 @@ install: build
 	# Others
 	install -m 644 openssl.cnf $(DESTDIR)/opt/rudder/etc/ssl/openssl.cnf
 	install -m 644 rudder-relay-apache $(DESTDIR)/etc/sysconfig/rudder-relay-apache
-	install -m 644 rudder-relay.cron $(DESTDIR)/etc/cron.d/rudder-relay
 	install -m 644 rudder-relay.sudo $(DESTDIR)/etc/sudoers.d/rudder-relay
-	install -m 755 relay-cleanup $(DESTDIR)/opt/rudder/bin/relay-cleanup
 	
 	# Copy stub rudder-networks*.conf
 	install -m 644 apache/rudder-networks-24.conf $(DESTDIR)/opt/rudder/etc/

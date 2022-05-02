@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{configuration::Secret, data::node::NodeId};
-use anyhow::{anyhow, Error};
-use serde::{
-    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
-    Deserialize,
-};
 use std::{
     collections::HashSet,
     convert::TryFrom,
@@ -16,7 +10,15 @@ use std::{
     str::FromStr,
     time::Duration,
 };
+
+use anyhow::{anyhow, Error};
+use serde::{
+    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
+    Deserialize,
+};
 use tracing::{debug, warn};
+
+use crate::{configuration::Secret, data::node::NodeId};
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -472,10 +474,34 @@ impl Default for RemoteRun {
     }
 }
 
+#[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
+pub struct SharedFilesCleanupConfig {
+    #[serde(deserialize_with = "compat_humantime")]
+    #[serde(default = "CleanupConfig::default_cleanup_frequency")]
+    pub frequency: Duration,
+}
+
+impl SharedFilesCleanupConfig {
+    /// 10 minutes
+    fn default_cleanup_frequency() -> Duration {
+        Duration::from_secs(600)
+    }
+}
+
+impl Default for SharedFilesCleanupConfig {
+    fn default() -> Self {
+        Self {
+            frequency: Self::default_cleanup_frequency(),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SharedFiles {
     #[serde(default = "SharedFiles::default_path")]
     pub path: PathBuf,
+    #[serde(default)]
+    pub cleanup: SharedFilesCleanupConfig,
 }
 
 impl SharedFiles {
@@ -488,6 +514,7 @@ impl Default for SharedFiles {
     fn default() -> Self {
         Self {
             path: Self::default_path(),
+            cleanup: SharedFilesCleanupConfig::default(),
         }
     }
 }
@@ -616,8 +643,9 @@ impl Default for UpstreamConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_parses_listen_with_hostname() {
@@ -715,6 +743,9 @@ mod tests {
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("/var/rudder/shared-files/"),
+                cleanup: SharedFilesCleanupConfig {
+                    frequency: Duration::from_secs(600),
+                },
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("/var/rudder/configuration-repository/shared-files/"),
@@ -813,6 +844,9 @@ mod tests {
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("tests/api_shared_files"),
+                cleanup: SharedFilesCleanupConfig {
+                    frequency: Duration::from_secs(43),
+                },
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("tests/api_shared_folder"),

@@ -4,16 +4,24 @@
 #[macro_use]
 extern crate diesel;
 
-pub mod api;
-pub mod configuration;
-pub mod data;
-pub mod error;
-pub mod hashing;
-pub mod http_client;
-pub mod input;
-pub mod metrics;
-pub mod output;
-pub mod processing;
+use std::{
+    collections::HashMap, fs, fs::create_dir_all, process::exit, string::ToString, sync::Arc,
+};
+
+use anyhow::Error;
+use tokio::{
+    signal::unix::{signal, SignalKind},
+    sync::RwLock,
+};
+use tracing::{debug, error, info};
+use tracing_subscriber::{
+    filter::EnvFilter,
+    fmt::{
+        format::{DefaultFields, Format, Full},
+        Formatter, Subscriber,
+    },
+    reload::Handle,
+};
 
 use crate::{
     configuration::{
@@ -28,25 +36,19 @@ use crate::{
     http_client::HttpClient,
     metrics::{MANAGED_NODES, SUB_NODES},
     output::database::{pg_pool, PgPool},
-    processing::{inventory, reporting},
+    processing::{inventory, reporting, shared_files},
 };
-use anyhow::Error;
-use std::{
-    collections::HashMap, fs, fs::create_dir_all, process::exit, string::ToString, sync::Arc,
-};
-use tokio::{
-    signal::unix::{signal, SignalKind},
-    sync::RwLock,
-};
-use tracing::{debug, error, info};
-use tracing_subscriber::{
-    filter::EnvFilter,
-    fmt::{
-        format::{DefaultFields, Format, Full},
-        Formatter, Subscriber,
-    },
-    reload::Handle,
-};
+
+pub mod api;
+pub mod configuration;
+pub mod data;
+pub mod error;
+pub mod hashing;
+pub mod http_client;
+pub mod input;
+pub mod metrics;
+pub mod output;
+pub mod processing;
 
 pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -152,6 +154,9 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
         } else {
             info!("Skipping inventory as it is disabled");
         }
+
+        // Spawn shared-files cleaner
+        shared_files::start(&job_config);
 
         // Initialize metrics
         job_config.reload_metrics().await;
