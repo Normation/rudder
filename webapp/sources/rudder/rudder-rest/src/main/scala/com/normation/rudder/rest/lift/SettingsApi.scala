@@ -939,6 +939,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
                     }
         set      <- policyServerManagementService.setAuthorizedNetworks(nodeId, networks, modificationId, actor)
       } yield {
+         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(networks.map(JString).toList)
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
@@ -1004,6 +1005,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         _        <- sequence(diff.add)(checkAllowedNetwork)
         res      <- policyServerManagementService.updateAuthorizedNetworks(nodeId, diff.add, diff.delete, modificationId, actor)
       } yield {
+         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(res.map(JString).toList)
       }
       RestUtils.response(restExtractorService, "settings", Some(id))(result, req, s"Error when trying to modify allowed networks for policy server '${id}'")
