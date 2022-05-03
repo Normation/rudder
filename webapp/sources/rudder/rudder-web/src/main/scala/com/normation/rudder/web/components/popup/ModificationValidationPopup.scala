@@ -116,7 +116,7 @@ object ModificationValidationPopup extends Loggable {
     <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to enable this {item}?
-  ²      </h4>
+        </h4>
     </div>
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
             Enabling this {item} will have an impact on the following Rules which apply it.

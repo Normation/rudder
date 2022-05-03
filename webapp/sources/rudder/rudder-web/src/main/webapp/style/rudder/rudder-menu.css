@@ -796,10 +796,16 @@ ul.graph-legend > li.legend:hover{
   position: relative;
   left: 7px;
   top: -2px;
-  background-color: #fff;
-  border: 2px solid rgba(240, 128, 4, 0.47);
+  background-color: #e8eaed;
+  border: 2px solid #e8eaed;
   color: rgb(34, 45, 50);
   border-radius:3px;
+}
+.notifications-menu a:hover .rudder-badge{
+  border-color: #fff;
+}
+.notifications-menu a:hover .rudder-badge::before {
+  border-right-color: #fff;
 }
 .notifications-menu .rudder-badge::before {
   content: "";
@@ -810,7 +816,7 @@ ul.graph-legend > li.legend:hover{
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-right: 11px solid #FFF;
+  border-right: 11px solid #e8eaed;
   position: absolute;
 }
 .wrapper .navbar-nav li > a {
@@ -1142,72 +1148,6 @@ ul.graph-legend > li.legend:hover{
 }
 .skin-yellow.sidebar-collapse .directive-footer {
   width: 63.2%;style="margin-top: 10px;padding: 0 4px;"
-}
-
-/* --- CHANGE REQUEST PAGE --- */
-#changeRequestHeader{
-  margin: 0 40px;
-  padding-bottom:5px;
-  border-bottom: 2px solid #d6deef;
-}
-#nameTitle {
-  font-weight: bold;
-  font-size: 25px;
-  color:#555;
-}
-#CRLastAction {
-  font-size: 15px;
-  margin-bottom:5px;
-  font-style:italic;
-  color: #777;
-}
-#backButton > span{
-  margin-right: 5px;
-  position: relative;
-}
-#backButton:hover{
-  color: #23527c;
-}
-#backButton:hover > span{
-  -webkit-animation: bounceH .8s ease infinite;
-  -moz-animation:    bounceH .8s ease infinite;
-  -o-animation:      bounceH .8s ease infinite;
-  animation:         bounceH .8s ease infinite;
-}
-
-#changeRequestHeader > #CRStatus {
-  background-color: #eeeeee;
-  min-width: 160px;
-  line-height: 50px;
-  min-height: 50px;
-  text-align: center;
-  color: #555555;
-  float: right;
-  font-size: 15px;
-  font-weight: bold;
-  cursor: default;
-  text-align:center;
-  position:relative;
-}
-#changeRequestHeader > #CRStatus:before {
-  position: absolute;
-  content: "";
-  width: 0;
-  height: 0;
-  border-left: 80px solid transparent;
-  border-right: 80px solid transparent;
-  border-top: 20px solid #eeeeee;
-  left: 0;
-  top: 50px;
-}
-#CRSave{
-	margin-top: 10px;
-}
-#changeRequestDetails .alert.alert-danger {
-  margin-bottom: 0px;
-}
-#detailsForm,#warnOnUnmergeable{
-  margin:10px 40px 30px;
 }
 
 /* --- TECHNIQUES PAGE --- */
