@@ -225,10 +225,10 @@ showMethod ui method mode dnd =
                          ]
                     )
                ) (Maybe.Extra.isJust  method.deprecated )
-            |> appendChild
+            |> appendChildConditional
                ( element "span"
                  |> addAttributeList [ class "dsc-icon" ]
-               )
+               ) (List.member Dsc method.agentSupport)
           ]
        |> appendChildConditional
             ( element "div"
