@@ -58,6 +58,11 @@ function resortTable (tableId) {
   table.draw();
 }
 
+$.fn.extend({
+  toggleHtml: function(a, b){
+    return this.html(this.html() == b ? a : b);
+  }
+});
 
 $.fn.dataTable.ext.search.push(
     function(settings, data, dataIndex ) {
@@ -1444,13 +1449,21 @@ function createNodeTable(gridId, refresh) {
   function columnSelect(editOpen) {
     dynColumns.sort()
     var table = $('#'+gridId).DataTable();
-    $("#edit-columns").html($("<button class='btn btn-blue' > <i class='fa fa-pencil'></i> Edit columns</button>").click(function(){$("#select-columns").toggle()}))
+    var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
+    var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
+    var textBtn    = editOpen ? confirmTxt : editTxt;
+    var classBtn   = editOpen ? "btn-blue" : "btn-success";
+    var editColBtn = $("<button class='btn btn-icon " + classBtn + "' id='edit-col-btn'>" + textBtn + "</button>").click(function(){
+      $("#select-columns").toggle();
+      $(this).toggleClass("btn-success").toggleClass("btn-blue").toggleHtml(confirmTxt, editTxt)
+    });
+    $("#edit-columns").append(editColBtn)
     var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-control'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-success'><i class='fa fa-plus-circle'></i>Add column</button><button id='reset-columns' class='btn btn-blue'><i class='fa fa-rotate-left'></i>Reset columns</button></div>"
+    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-blue btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
