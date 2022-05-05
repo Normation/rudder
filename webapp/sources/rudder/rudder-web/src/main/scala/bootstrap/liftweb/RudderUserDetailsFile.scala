@@ -50,7 +50,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.RudderUserDetail
-
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.xml.sax.SAXParseException
@@ -136,16 +135,55 @@ final case class UserDetailList(
 )
 
 object UserDetailList {
+  /**
+   * Filter the list of users by checking if the username
+   * is unique according to case sensitivity:
+   *
+   *   - if `case sensitivity` is enable
+   *     log a warn if there is potential collision when
+   *     this parameter will be disabled
+   *
+   *   - users with same username (according to the case sensitivity)
+   *     will be removed from the returned list
+   */
+  def sanityLoginFilter(userDetails: List[RudderUserDetail]): Map[String,RudderUserDetail] = {
+    userDetails.groupBy(_.getUsername.toLowerCase).flatMap{
+      // User name is unique with or without case sensitivity, accept
+      case (k, u :: Nil) => (u.getUsername,u) :: Nil
+      // User name is not unique with case sensitivity disabled, refuse everything
+      case (_, users) if ! RudderConfig.rudderUsernameCaseSensitive =>
+        ApplicationLogger.error(s"Users with duplicates username will be ignored: ${users.map(_.getUsername).mkString(", ")}")
+        Nil
+      // Disabled case sensitivity is treated above, putting a guard here make a non exhaustive match, do without guard,
+      case (_,users) =>
+        // Remove user with exact same name, not only with case sensitivity
+        val res = users.groupBy(_.getUsername).flatMap {
+          // User name is unique, accept
+          case (k, u :: Nil) => (k,u) :: Nil
+          // User name is not unique with case sensitivity disabled, Refuse login
+          case (_, users) =>
+            ApplicationLogger.error(s"Users with duplicates username will be ignored: ${users.map(_.getUsername).mkString(", ")}")
+            Nil
+        }
+
+        // Warn that some users  with name different only by their case are defined, and that disabling case sensitivity would break those users
+        ApplicationLogger.warn(s"Users with potential username collision if case sensitivity is disabled: ${res.keys.mkString(", ")}")
+        res
+    }
+  }
+
   def fromRudderAccount(roleApiMapping: RoleApiMapping, encoder: PasswordEncoder.Rudder, users: List[(RudderAccount.User,Seq[Role])]): UserDetailList = {
-    new UserDetailList(encoder, users.map { case (user, roles) =>
+    val userDetails = users.map { case (user, roles) =>
       // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
       // (ie from longest path to shorted)
       // but still group by first part so that we have all nodes together, etc.
       val acls = roleApiMapping.getApiAclFromRoles(roles).groupBy(_.path.parts.head).flatMap { case (_, seq) =>
-         seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
+        seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
       }.toList
-      (user.login, RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls)))
-    }.toMap)
+      RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls))
+    }
+    val filteredUsers = sanityLoginFilter(userDetails)
+    UserDetailList(encoder, filteredUsers)
   }
 }
 
@@ -212,6 +250,7 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
   }
 
   override def authConfig: UserDetailList = cache
+
 }
 
 
@@ -289,6 +328,29 @@ object UserFileProcessing {
     }
   }
 
+  def parseCaseSensitivityOpt(resource: UserFile): Either[UserConfigFileError, Boolean] = {
+    val optXml = {
+      try {
+        Right(scala.xml.XML.load(resource.inputStream()))
+      } catch {
+        case e : SAXParseException =>
+          Left(UserConfigFileError(s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e.getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})", Some(e)))
+        case e: Exception =>
+          Left(UserConfigFileError("User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.", Some(e)))
+      }
+    }
+    for {
+      xml <- optXml
+      root = (xml \\ "authentication")
+    } yield {
+      (root(0) \ "@case-sensitivity").text.toLowerCase match {
+        case "true" => true
+        // error if not "true" or "false" ?
+        case _      => false
+      }
+    }
+  }
+
   /**
    * Parse the given input stream toward a Rudder XML user file. The expected format is:
    * <authentication hash="sha512">
@@ -347,9 +409,7 @@ object UserFileProcessing {
            Nil
        }
       })
-
       Right(UserDetailList.fromRudderAccount(roleApiMapping, hash, users))
     }
   }
-
 }
