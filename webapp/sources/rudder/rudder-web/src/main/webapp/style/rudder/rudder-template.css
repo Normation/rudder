@@ -781,6 +781,10 @@
   background-color: transparent !important;
   position: relative;
 }
+.rudder-template .one-col .sidebar-left ul.nav > li > a.subtitle {
+  margin-left: 15px;
+  width: calc(100% - 15px);
+}
 .rudder-template .one-col .sidebar-left ul.nav > li > a:before {
   content: "";
   position: absolute;
@@ -807,6 +811,12 @@
   color: #222D42 !important;
   border-bottom: 2px solid #d6deef;
   margin-top: 20px;
+}
+.rudder-template .main-details h3.page-subtitle {
+  margin-top: 20px;
+  font-weight: bold !important;
+  font-size: 1.2em !important;
+  color: #738195 !important;
 }
 .rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title,
 .rudder-template .one-col .main-details > div:first-child > .inner-portlet:first-child h3.page-title {
@@ -1101,7 +1111,8 @@
   cursor: pointer;
 }
 .rudder-template .dataTable .btn-goto:hover,
-.rudder-template .jstree .btn-goto:hover{
+.rudder-template .jstree .btn-goto:hover,
+.rudder-template .clipboard-list .btn-goto:hover{
   background-color: #3694d133;
 }
 .rudder-template .applied-list a > .btn-goto {
@@ -1224,6 +1235,62 @@ label > .warning-info{
 }
 .rudder-template .modal .form-group + .form-group{
   margin-top: 12px;
+}
+
+.rudder-template .clipboard-list > li:hover .btn-goto{
+  opacity: 1;
+}
+
+
+/* === SECTION WITH DOC === */
+.rudder-template .section-with-doc{
+  display: flex;
+}
+.rudder-template .section-with-doc .section-left {
+  flex: 60;
+  padding-right: 15px;
+}
+.rudder-template .section-with-doc .section-right {
+  flex: 40;
+}
+.rudder-template .section-with-doc .section-right .doc{
+  border-left: 1px solid #d6deef;
+  padding-left: 15px;
+  color: #738195;
+  transition: color .2s;
+  height: 100%;
+}
+.rudder-template .section-with-doc .section-right .doc:hover{
+  color: #36474E;
+}
+.rudder-template .section-with-doc .section-right .doc .marker {
+  font-size: 1.4em;
+  transition: opacity .2s;
+}
+.rudder-template .section-with-doc .section-right .doc.doc-info .marker{
+  color: #337ab7;
+  opacity: .6;
+}
+.rudder-template .section-with-doc .section-right .doc.doc-info:hover .marker{
+  opacity: 1;
+}
+.rudder-template .section-with-doc .section-right .doc.doc-info:hover b {
+  color: #337ab7;
+}
+@media (max-width:1200px) {
+  .rudder-template .section-with-doc{
+    flex-direction: column-reverse;
+  }
+  .rudder-template .section-with-doc .section-right .doc{
+    padding: 0;
+  }
+  .rudder-template .section-with-doc .section-left {
+    flex: initial;
+    padding-right: 0;
+  }
+  .rudder-template .section-with-doc .section-right {
+    flex: initial;
+  }
 }
 
 /* === KEYFRAMES === */
