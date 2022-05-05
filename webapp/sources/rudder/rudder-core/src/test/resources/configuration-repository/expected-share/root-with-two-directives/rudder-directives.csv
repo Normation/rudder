@@ -1,4 +1,4 @@
-"directive1","enforce","merged","false","clockConfiguration","3.0","false","10. Clock Configuration"
+"directive1+rev1","enforce","merged","false","clockConfiguration","3.0","false","10. Clock Configuration"
 "directive2","audit","merged","false","rpmPackageInstallation","7.0","false","20. Install PLOP STACK main rpm"
 "root-distributePolicy","audit","merged","false","distributePolicy","1.0","true","Distribute Policy"
 "common-root","audit","merged","false","common","1.0","true","Common"

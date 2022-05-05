@@ -194,7 +194,7 @@ object BuildBundleSequence {
     }
 
     val runBundle : Bundle = {
-      Bundle(None,BundleName(s"run_${directiveId.serialize.replace("-","_")}"), Nil)
+      Bundle(None,BundleName(s"run_${directiveId.serialize.replaceAll("[-+]","_")}"), Nil)
     }
 
     def runBundles : List[Bundle] = Bundle.modeBundle(policyMode, isSystem) :: runBundle :: Nil

@@ -12,8 +12,8 @@ response:
       "data":{
         "nodes":[
           {
-            "id":"root",
-            "hostname":"server.rudder.local",
+            "id":"node1",
+            "hostname":"node1.localhost",
             "status":"accepted"
           }
         ]
@@ -33,32 +33,37 @@ response:
       "data":{
         "nodes":[
           {
-            "id":"root",
-            "hostname":"server.rudder.local",
+            "id":"node1",
+            "hostname":"node1.localhost",
             "status":"accepted",
             "state":"enabled",
             "os":{
               "type":"Linux",
               "name":"Debian",
-              "version":"9.4",
-              "fullName":"Stretch",
-              "kernelVersion":"4.5"
+              "version":"10.6",
+              "fullName":"Buster",
+              "kernelVersion":"4.19"
             },
+            "ram":1,
             "machine":{
               "id":"machine1",
               "type":"Virtual",
               "provider":"vbox"
             },
-            "ipAddresses":["127.0.0.1","192.168.0.100"],
+            "ipAddresses":[
+              "192.168.0.10"
+            ],
             "description":"",
             "lastInventoryDate":"2021-01-30T01:20:00+01:00",
             "policyServerId":"root",
-            "managementTechnology":[{
-              "name":"Rudder",
-              "version":"7.0.0",
-              "capabilities":[],
-              "nodeKind":"root"
-            }],
+            "managementTechnology":[
+              {
+                "name":"Rudder",
+                "version":"7.0.0",
+                "capabilities":[],
+                "nodeKind":"node"
+              }
+            ],
             "properties":[],
             "policyMode":"enforce",
             "timezone":{"name":"UTC","offset":"+00"},

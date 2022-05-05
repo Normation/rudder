@@ -26,7 +26,7 @@
   "RUDDER_DIRECTIVES_INPUTS":[
     "\"clockConfiguration/3.0/clockConfiguration.cf\","
   ],
-  "RUDDER_DIRECTIVES_SEQUENCE":"      \"10. Global configuration for all nodes/10. Clock Configuration\" usebundle => set_dry_run_mode(\"false\");\n      \"10. Global configuration for all nodes/10. Clock Configuration\" usebundle => run_directive1;",
+  "RUDDER_DIRECTIVES_SEQUENCE":"      \"10. Global configuration for all nodes/10. Clock Configuration\" usebundle => set_dry_run_mode(\"false\");\n      \"10. Global configuration for all nodes/10. Clock Configuration\" usebundle => run_directive1_rev1;",
   "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"root-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_a_group_for_root_only\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_serveurs_______casses\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_policyserver_root\"          expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_policyserver_root\"  expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

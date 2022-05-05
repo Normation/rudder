@@ -450,7 +450,9 @@ class DirectiveEditForm(
   def tagsEditForm = new TagsEditForm(directive.tags, directive.id.uid.value)
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
-    val deprecationInfo = techniques(version).deprecrationInfo match {
+    // here, we use default revision to get deprecation info, but we should likely have a per revision
+    // deprecation message possible
+    val deprecationInfo = techniques(version.withDefaultRev).deprecrationInfo match {
       case Some(_) => "(deprecated)"
       case None => ""
     }

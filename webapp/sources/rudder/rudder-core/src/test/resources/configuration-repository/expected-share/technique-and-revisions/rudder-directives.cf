@@ -34,13 +34,13 @@ bundle agent rudder_directives {
   # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => set_dry_run_mode("false");
-      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => run_directive1;
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => run_directive1_rev1;
       "clean_mode"                                                     usebundle => set_dry_run_mode("false");
 }
-bundle agent run_directive1
+bundle agent run_directive1_rev1
 {
   methods:
-      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => rudder_reporting_context("directive1","rule1","clockConfiguration");
+      "10. Global configuration for all nodes/10. Clock Configuration" usebundle => rudder_reporting_context("directive1+rev1","rule1","clockConfiguration");
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => _method_reporting_context_v4("","","directive1rule1");
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => disable_reporting;
       "10. Global configuration for all nodes/10. Clock Configuration" usebundle => check_clock_configuration;

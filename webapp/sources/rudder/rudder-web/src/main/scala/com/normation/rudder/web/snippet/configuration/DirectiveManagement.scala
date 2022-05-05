@@ -50,6 +50,7 @@ import JsCmds._
 import JE._
 import net.liftweb.util.Helpers._
 import com.normation.cfclerk.domain.TechniqueVersion
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
@@ -58,16 +59,22 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.CurrentUser
+
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.AgentCompat
+
 import net.liftweb.util.Helpers.TimeSpan
 import com.normation.cfclerk.domain.TechniqueGenerationMode._
+import com.normation.cfclerk.domain.TechniqueId
+
+import com.normation.zio._
 import com.normation.box._
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.DirectiveId
+
 import net.liftweb.json
 import com.normation.utils.DateFormaterService
 
@@ -93,6 +100,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
   private[this] val linkUtil      = RudderConfig.linkUtil
   private[this] val configService = RudderConfig.configService
+  private[this] val configRepo    = RudderConfig.configurationRepository
+
 
   def dispatch = {
     case "head" => { _ => head() }
@@ -567,7 +576,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         )
     }
 
-    techniques.get(directive.techniqueVersion) match {
+     configRepo.getTechnique(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)).runNow match {
       case Some(technique) =>
         val dirEditForm = createForm(directive, oldDirective, technique, None)
         currentDirectiveSettingForm.set(Full(dirEditForm))

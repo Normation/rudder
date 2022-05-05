@@ -1486,7 +1486,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )).runNow
 
     def getGenericOne[A](id: NodeId, status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Option[A]] = {
-      nodeBase.get.map(_.collectFirst { case(id, n) if (id == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
+      nodeBase.get.map(_.collectFirst { case(i, n) if (i == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
     }
     def getGenericAll[A](status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Map[NodeId, A]] = {
       nodeBase.get.map(_.collect { case(id, n) if(n.nInv.main.status == status && f(n).isDefined) => (id, f(n).get) })

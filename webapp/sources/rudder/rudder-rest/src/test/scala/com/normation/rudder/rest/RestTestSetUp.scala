@@ -131,6 +131,7 @@ import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
+
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
@@ -155,11 +156,14 @@ import java.nio.charset.StandardCharsets
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
+
 import zio._
 import zio.duration._
 import zio.syntax._
 import com.normation.box._
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.domain.policies.DirectiveId
+
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
@@ -169,6 +173,7 @@ import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
+
 import com.normation.zio._
 
 /*
@@ -273,7 +278,7 @@ class RestTestSetUp {
   val policyGeneration = new PromiseGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
-    override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
     override def getGroupLibrary(): Box[FullNodeGroupCategory] = ???
     override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = ???
     override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = ???
