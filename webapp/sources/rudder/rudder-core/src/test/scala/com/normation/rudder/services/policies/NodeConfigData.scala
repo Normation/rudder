@@ -880,7 +880,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
      ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
   }
   lazy val clock = {
-    val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
+    val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1+rev1")), TechniqueVersionHelper("1.0+rev2"))
     draft(
         id
       , "10. Global configuration for all nodes"
