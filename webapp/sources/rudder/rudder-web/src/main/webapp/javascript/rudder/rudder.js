@@ -883,14 +883,15 @@ function buildScrollSpyNav(){
     $("#navbar-scrollspy > ul").html("");
     var linkText, tmp, link, listItem;
     var regex = /[^a-z0-9]/gmi
-    $(".page-title").each(function(){
+    $(".page-title, .page-subtitle").each(function(){
       linkText = $(this).text();
       tmp      = linkText.replace(regex, "-");
       $(this).attr('id', tmp);
       link     = $("<a>");
       listItem = $("<li>");
       var targetLink = '#'+tmp;
-      link.attr("href","#"+tmp).text(linkText).on('click',function(event){navScroll(event, targetLink, '.main-details')});
+      var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
+      link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, '.main-details')});
       listItem.addClass("ui-tabs-tab").append(link);
       $("#navbar-scrollspy > ul").append(listItem);
     });

@@ -1344,7 +1344,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , DateTime.parse("2021-01-30T01:20+01:00")
     , emptyNodeReportingConfiguration
     , Nil
-    , None
+    , Some(PolicyMode.Enforce)
   )
 
   val node1 = NodeInfo (
@@ -1355,12 +1355,12 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , List("192.168.0.10")
     , DateTime.parse("2021-01-30T01:20+01:00")
     , UndefinedKey
-    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.2.0")), PublicKey(PUBKEY), Set()))
+    , Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set()))
     , rootId
     , admin1
     , None
     , Some(MemorySize(1460132))
-    , None
+    , Some(NodeTimezone("UTC", "+00"))
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -1375,8 +1375,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       )
     , name                 = None
     , description          = None
-    , ram                  = None
-    , swap                 = None
+    , ram                  = Some(MemorySize(100000))
+    , swap                 = Some(MemorySize(1000000))
     , inventoryDate        = None
     , receiveDate          = None
     , archDescription      = None
@@ -1386,12 +1386,13 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
     , softwareIds          = softwares.drop(5).take(10).map(_.id)
-    , accounts             = Seq()
+    , softwareUpdates      = softwareUpdates
+    , accounts             = Seq("root", "httpd")
     , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
-    , processes            = Seq()
+    , processes            = Seq(Process(54432, Some("/bin/true"), Some(34.5f), Some(4235)))
     , vms                  = Seq()
-    , networks             = Seq()
-    , fileSystems          = Seq()
+    , networks             = Seq(Network("enp0s3", None, InetAddressUtils.getAddressByName("10.0.2.15").toSeq, speed = Some("1000"), status = Some("Up")))
+    , fileSystems          = Seq(FileSystem("/", Some("ext4"), freeSpace = Some(MemorySize(12076449792L)), totalSpace = Some(MemorySize(55076449792L))))
   )
 
   //node1 us a relay
