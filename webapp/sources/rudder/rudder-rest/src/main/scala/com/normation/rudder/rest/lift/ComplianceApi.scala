@@ -262,9 +262,9 @@ class ComplianceAPIService(
 
    for {
       t1            <- currentTimeMillis
-      groupLib      <- nodeGroupRepo.getFullGroupLibrary()
+      allGroups     <- nodeGroupRepo.getAllNodeIds()
       t2            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getFullGroupLibrary in ${t2 - t1} ms")
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeGroupRepo.getAllNodeIds in ${t2 - t1} ms")
 
       // this can be optimized, as directive only happen for level=2
       directives    <- if (computedLevel >= 2 ) {
@@ -392,7 +392,7 @@ class ComplianceAPIService(
         } else {
           rulesWithoutCompliance.toSeq.map { case ruleId =>
             val rule = ruleObjects(ruleId) // we know by construct that it exists
-            val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
+            val nodeIds = RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, nodeInfos)
             ByRuleRuleCompliance(
                 rule.id
                 , rule.name
@@ -442,7 +442,7 @@ class ComplianceAPIService(
 
     for {
       rules        <- rulesRepo.getAll()
-      groupLib     <- nodeGroupRepo.getFullGroupLibrary()
+      allGroups    <- nodeGroupRepo.getAllNodeIds()
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
@@ -457,7 +457,7 @@ class ComplianceAPIService(
 
       //get nodeIds by rules
       val nodeByRules = rules.map { rule =>
-        (rule, groupLib.getNodeIds(rule.targets, allNodeInfos) )
+        (rule, RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, allNodeInfos) )
       }
 
       val ruleMap = rules.map(r => (r.id,r)).toMap
