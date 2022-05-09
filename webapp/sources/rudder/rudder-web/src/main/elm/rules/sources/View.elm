@@ -231,7 +231,7 @@ view model =
         , div [class "header-filter"]
           [ div [class "input-group"]
             [ div [class "input-group-btn"]
-              [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
+              [ button [class "btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.ruleFilters) ][span [class "fa fa-folder fa-folder-open"][]]
               ]
             , input[type_ "text", value model.ui.ruleFilters.treeFilters.filter ,placeholder "Filter", class "form-control", onInput (\s -> UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = s}})][]
             , div [class "input-group-btn"]
