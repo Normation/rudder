@@ -102,13 +102,17 @@ decodeDeleteRuleResponse =
      |> required "displayName" string
   ))
 
-decodeDeleteCategoryResponse : Decoder (String, String)
-decodeDeleteCategoryResponse =
-  at ["data", "ruleCategories" ](index 0
+decodeIdCategory: Decoder (String, String)
+decodeIdCategory =
+  at ["ruleCategories" ](
   ( succeed Tuple.pair
      |> required "id" string
      |> required "name" string
   ))
+
+decodeDeleteCategoryResponse : Decoder (String, String)
+decodeDeleteCategoryResponse =
+  at ["data", "rulesCategories" ](index 0 decodeIdCategory)
 
 decodeStatus : Decoder RuleStatus
 decodeStatus =
