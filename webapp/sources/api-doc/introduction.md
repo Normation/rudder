@@ -13,23 +13,23 @@ You can change the version of the API used by setting it either within the url o
 
 * the URL: each URL is prefixed by its version id, like `/api/version/function`.
 
-
-    # Version 10
-    curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/10/rules
-    # Latest
-    curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules
-    # Wrong (not an integer) => 404 not found
-    curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/3.14/rules
-
+```bash
+# Version 10
+curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/10/rules
+# Latest
+curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules
+# Wrong (not an integer) => 404 not found
+curl -X GET -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/3.14/rules
+```
 
 * the HTTP headers. You can add the **X-API-Version** header to your request. The value needs to be an integer or `latest`.
 
-
-    # Version 10
-    curl -X GET -H "X-API-Token: yourToken" -H "X-API-Version: 10" https://rudder.example.com/rudder/api/rules
-    # Wrong => Error response indicating which versions are available
-    curl -X GET -H "X-API-Token: yourToken" -H "X-API-Version: 3.14" https://rudder.example.com/rudder/api/rules
-
+```bash
+# Version 10
+curl -X GET -H "X-API-Token: yourToken" -H "X-API-Version: 10" https://rudder.example.com/rudder/api/rules
+# Wrong => Error response indicating which versions are available
+curl -X GET -H "X-API-Token: yourToken" -H "X-API-Version: 3.14" https://rudder.example.com/rudder/api/rules
+```
 
 In the future, we may declare some versions as deprecated, in order to remove them in a later version of Rudder, but we will never remove any versions without warning, or without a safe
 period of time to allow migration from previous versions.
@@ -99,15 +99,15 @@ period of time to allow migration from previous versions.
 
 All responses from the API are in the JSON format.
 
-
-    {
-      "action": The name of the called function,
-      "id": The ID of the element you want, if relevant,
-      "result": The result of your action: success or error,
-      "data": Only present if this is a success and depends on the function, it's usually a JSON object,
-      "errorDetails": Only present if this is an error, it contains the error message
-    }
-
+```json
+{
+  "action": "The name of the called function",
+  "id": "The ID of the element you want, if relevant",
+  "result": "The result of your action: success or error",
+  "data": "Only present if this is a success and depends on the function, it's usually a JSON object",
+  "errorDetails": "Only present if this is an error, it contains the error message"
+}
+```
 
 
 * __Success__ responses are sent with the 200 HTTP (Success) code
@@ -214,9 +214,10 @@ Parameters to the API can be sent:
 
 Parameters in URLs are used to indicate which resource you want to interact with. The function will not work if this resource is missing.
 
-
-    # Get the Rule of ID "id"
-    curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules/id
+```bash
+# Get the Rule of ID "id"
+curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules/id
+```
 
 
 
@@ -231,8 +232,9 @@ JSON format is the preferred way to interact with Rudder API for creating or upd
 You'll also have to set the *Content-Type* header to **application/json** (without it the JSON content would be ignored).
 In a `curl` `POST` request, that header can be provided with the `-H` parameter:
 
-    curl -X POST -H "Content-Type: application/json" ...
-
+```bash
+curl -X POST -H "Content-Type: application/json" ...
+```
 
 The supplied file must contain a valid JSON: strings need quotes, booleans and integers don't, etc.
 
@@ -249,27 +251,26 @@ The (human readable) format is:
 
 Here is an example with inlined data:
 
-
-
-    # Update the Rule 'id' with a new name, disabled, and setting it one directive
-    curl -X POST -H "X-API-Token: yourToken" -H  "Content-Type: application/json"
-      https://rudder.example.com/rudder/api/rules/latest/{id}
-      -d '{ "displayName": "new name", "enabled": false, "directives": "directiveId"}'
-
-
+```bash
+# Update the Rule 'id' with a new name, disabled, and setting it one directive
+curl -X POST -H "X-API-Token: yourToken" -H  "Content-Type: application/json"
+https://rudder.example.com/rudder/api/rules/latest/{id}
+  -d '{ "displayName": "new name", "enabled": false, "directives": "directiveId"}'
+```
 
 You can also pass a supply the JSON in a file:
 
-
-    # Update the Rule 'id' with a new name, disabled, and setting it one directive
-    curl -X POST -H "X-API-Token: yourToken" -H "Content-Type: application/json" https://rudder.example.com/rudder/api/rules/latest/{id} -d @jsonParam
-
+```bash
+# Update the Rule 'id' with a new name, disabled, and setting it one directive
+curl -X POST -H "X-API-Token: yourToken" -H "Content-Type: application/json" https://rudder.example.com/rudder/api/rules/latest/{id} -d @jsonParam
+```
 
 Note that the general parameters view in the previous chapter cannot be passed in a JSON, and you will need to pass them a URL parameters if you want them to be taken into account (you can't mix JSON and request parameters):
 
-    # Update the Rule 'id' with a new name, disabled, and setting it one directive with reason message "Reason used"
-    curl -X POST -H "X-API-Token: yourToken" -H "Content-Type: application/json" "https://rudder.example.com/rudder/api/rules/latest/{id}?reason=Reason used" -d @jsonParam -d "reason=Reason ignored"
-
+```bash
+# Update the Rule 'id' with a new name, disabled, and setting it one directive with reason message "Reason used"
+curl -X POST -H "X-API-Token: yourToken" -H "Content-Type: application/json" "https://rudder.example.com/rudder/api/rules/latest/{id}?reason=Reason used" -d @jsonParam -d "reason=Reason ignored"
+```
 
 ##### Request parameters
 
@@ -278,23 +279,23 @@ request parameters. You will need to pass one parameter for each data you want t
 
 Parameters follow the following schema:
 
-
-    key=value
-
+```
+key=value
+```
 
 You can pass parameters by two means:
 
 * As query parameters: At the end of your url, put a **?** then your first parameter and then a **&** before next parameters. In that case, parameters need to be https://en.wikipedia.org/wiki/Percent-encoding[URL encoded]
 
-
-    # Update the Rule 'id' with a new name, disabled, and setting it one directive
-    curl -X POST -H "X-API-Token: yourToken"  https://rudder.example.com/rudder/api/rules/latest/{id}?"displayName=my new name"&"enabled=false"&"directives=aDirectiveId"
-
+```bash
+# Update the Rule 'id' with a new name, disabled, and setting it one directive
+curl -X POST -H "X-API-Token: yourToken"  https://rudder.example.com/rudder/api/rules/latest/{id}?"displayName=my new name"&"enabled=false"&"directives=aDirectiveId"
+```
 
 * As request data: You can pass those parameters in the request data, they won't figure in the URL, making it lighter to read, You can pass a file that contains data.
 
-
-    # Update the Rule 'id' with a new name, disabled, and setting it one directive (in file directive-info.json)
-    curl -X POST -H "X-API-Token: yourToken"
-    https://rudder.example.com/rudder/api/rules/latest/{id} -d "displayName=my new name" -d "enabled=false" -d @directive-info.json
-
+```bash
+# Update the Rule 'id' with a new name, disabled, and setting it one directive (in file directive-info.json)
+curl -X POST -H "X-API-Token: yourToken"
+https://rudder.example.com/rudder/api/rules/latest/{id} -d "displayName=my new name" -d "enabled=false" -d @directive-info.json
+```
