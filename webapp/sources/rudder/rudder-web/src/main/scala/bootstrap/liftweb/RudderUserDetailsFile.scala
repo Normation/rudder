@@ -344,9 +344,15 @@ object UserFileProcessing {
       root = (xml \\ "authentication")
     } yield {
       (root(0) \ "@case-sensitivity").text.toLowerCase match {
-        case "true" => true
-        // error if not "true" or "false" ?
-        case _      => false
+        case "true"  => true
+        case "false" => false
+        case str     =>
+          if(str.isEmpty) {
+            ApplicationLogger.warn(s"Case sensitivity: in file /opt/rudder/etc/rudder-users.xml parameter `case-sensitivity` is missing, set by default on `true`")
+          } else {
+            ApplicationLogger.warn(s"Case sensitivity: unknown case-sensitivity parameter `$str` in file /opt/rudder/etc/rudder-users.xml, set by default on `true`")
+          }
+          true
       }
     }
   }
