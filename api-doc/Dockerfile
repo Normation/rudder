@@ -5,5 +5,5 @@ ARG USER_ID=1000
 COPY ci/user.sh .
 RUN ./user.sh $USER_ID
 
-RUN npm install --global @redocly/openapi-cli@1.0.0-beta.79 redoc-cli@0.13.2
+RUN npm install --global @redocly/openapi-cli@1.0.0-beta.95 redoc-cli@0.13.11
 RUN apt-get update && apt-get install -y rsync python3-yaml && rm -rf /var/lib/apt/lists/*
