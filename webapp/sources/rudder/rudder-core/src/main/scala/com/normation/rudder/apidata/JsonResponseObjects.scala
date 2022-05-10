@@ -76,6 +76,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens._
 import io.scalaland.chimney.dsl._
+import com.normation.rudder.hooks.Hooks
 
 /*
  * This class deals with everything serialisation related for API.
@@ -708,6 +709,19 @@ object JsonResponseObjects {
     }
   }
 
+  final case class JRHooks(
+      basePath: String
+    , hooksFile: List[String]
+  )
+
+  object JRHooks {
+    def fromHook(hook: Hooks) = {
+      hook.into[JRHooks]
+        .withFieldConst(_.basePath, hook.basePath)
+        .withFieldConst(_.hooksFile, hook.hooksFile.map(_._1))
+        .transform
+    }
+  }
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
@@ -735,6 +749,7 @@ trait RudderJsonEncoders {
   implicit val applicationStatusEncoder: JsonEncoder[JRApplicationStatus] = DeriveJsonEncoder.gen
 
   implicit val ruleEncoder: JsonEncoder[JRRule] = DeriveJsonEncoder.gen
+  implicit val hookEncoder: JsonEncoder[JRHooks] = DeriveJsonEncoder.gen
 
   implicit val ruleNodesDirectiveEncoder: JsonEncoder[JRRuleNodesDirectives] = DeriveJsonEncoder.gen
 

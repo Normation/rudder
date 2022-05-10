@@ -1142,6 +1142,7 @@ object RudderConfig extends Loggable {
     , clearableCache
   )
 
+  val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
 
   val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary
@@ -1330,6 +1331,7 @@ object RudderConfig extends Loggable {
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
+    ApiVersion(16 , false) :: // rudder 7.2
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1356,6 +1358,7 @@ object RudderConfig extends Loggable {
       , new PluginApi(restExtractorService, pluginSettingsService)
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       , new RulesInternalApi(restExtractorService, ruleInternalApiService)
+      , new HookApi(hookApiService)
       // info api must be resolved latter, because else it misses plugin apis !
     )
 

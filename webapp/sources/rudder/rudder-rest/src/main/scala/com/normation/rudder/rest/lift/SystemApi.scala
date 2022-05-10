@@ -41,7 +41,6 @@ package com.normation.rudder.rest.lift
 
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -67,7 +66,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common._
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -80,13 +78,10 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-
 import com.normation.zio._
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.rest.EndpointSchema
-
 import net.liftweb.json.JsonAST.JArray
-
 import zio._
 import com.normation.box._
 import com.normation.rudder.api.ApiVersion

@@ -774,7 +774,6 @@ object SystemApi extends ApiModuleProvider[SystemApi] {
     val (action, path) = POST / "system" / "maintenance" / "purgeSoftware"
   }
 
-
   def endpoints = ca.mrvisser.sealerate.values[SystemApi].toList.sortBy( _.z )
 }
 
@@ -799,6 +798,18 @@ object InfoApi extends ApiModuleProvider[InfoApi] {
   }
 
   def endpoints = ca.mrvisser.sealerate.values[InfoApi].toList.sortBy( _.z )
+}
+
+sealed trait HookApi extends EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer = None // nothing normalized here ?
+}
+object HookApi extends ApiModuleProvider[HookApi] {
+  final case object GetHooks extends HookApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description    = "Get all hooks"
+    val (action, path) = GET / "hooks"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[HookApi].toList.sortBy( _.z )
 }
 
 /*
@@ -889,6 +900,7 @@ object AllApi {
     RuleApi.endpoints :::
     InventoryApi.endpoints :::
     InfoApi.endpoints :::
+    HookApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
 }
