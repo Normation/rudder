@@ -95,14 +95,14 @@ function homePage (
         pointer: {
           length: 0.9, // The radius of the inner circle
           strokeWidth: 0.035, // The rotation offset
-          color: '#000000' // Fill color
+          color: '#36474E' // Fill color
         },
-        limitMax: 'false',   // If true, the pointer will not go past the end of the gauge
-        colorStart: '#6FADCF',   // Colors
-        colorStop: '#8FC0DA',    // just experiment with them
-        strokeColor: '#E0E0E0',   // to see which ones work best for you
-        percentColors : [[0.0, "#c9302c" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
-        generateGradient: true
+        limitMax         : 'false'  , // If true, the pointer will not go past the end of the gauge
+        colorStart       : '#6FADCF', // Colors
+        colorStop        : '#8FC0DA', // just experiment with them
+        strokeColor      : '#E9EAEC', // to see which ones work best for you
+        percentColors    : [[0.0, "#DA291C" ], [0.30, "#EF9600"], [0.50, "#b1eda4"], [1.0, "#13BEB7"]],
+        generateGradient : true
       };
       var target = document.getElementById('complianceGauge'); // your canvas element
       var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
@@ -120,26 +120,26 @@ function homePage (
 }
 
 var inventoryColors =
-  [ 'rgb(54 , 148, 209)'
-  , 'rgb(23 , 190, 207)'
-  , 'rgb(255, 113, 37 )'
-  , 'rgb(255, 224, 14 )'
-  , 'rgb(227, 119, 194)'
-  , 'rgb(44 , 160, 44 )'
-  , 'rgb(255, 104, 105)'
-  , 'rgb(148, 103, 189)'
-  , 'rgb(140, 86 , 75 )'
-  , 'rgb(160, 160, 160)'
-  , 'rgb(155, 200, 50 )'
-  , 'rgb(255, 210, 3  )'
-  , 'rgb(132, 63 , 152)'
+  [ "#13beb7"
+  , "#EF9600"
+  , "#da291c"
+  , "#6dd7ad"
+  , "#b1eda4"
+  , "#f2e27d"
+  , "#f6ffa4"
+  , "#8fe3a8"
+  , "#e78225"
+  , "#d4f7a2"
+  , "#48cbb2"
+  , "#eec459"
+  , "#e25c1a"
   ];
 
 function doughnutChart (id,data,count,colors) {
 
   var context = $("#"+id)
 
-  var borderW = data.values.length > 1 ? 1 : 0;
+  var borderW = data.values.length > 1 ? 3 : 0;
   var chartData = {
     labels  :  data.labels,
     datasets:
@@ -156,6 +156,7 @@ function doughnutChart (id,data,count,colors) {
         legend: {
           display:false
         }
+      , aspectRatio: 1
       , legendCallback: function(chart) {
         var text = [];
         text.push('<ul class="graph-legend">');
