@@ -273,7 +273,7 @@ pipeline {
                 axes {
                     axis {
                         name 'JDK_VERSION'
-                        values '8', '17'
+                        values '17'
                     }
                 }
                 stages {
