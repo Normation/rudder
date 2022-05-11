@@ -48,7 +48,7 @@ target/man/rudder-relayd.1.gz:
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
-	# Build relayd 
+	# Build relayd
 	mkdir -p ../../../../../.cargo/ relayd/target/
 	$(CACHE) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
 	$(CACHE) get relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
@@ -107,7 +107,7 @@ install: build
 
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
-	
+
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
@@ -115,7 +115,7 @@ install: build
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
 	cp -r rudder-pkg/lib/* $(DESTDIR)/opt/rudder/share/python/
-	
+
 	# Apache
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
 	install -m 644 apache/rudder-apache-relay-common.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-common.conf
@@ -126,14 +126,14 @@ install: build
 	install -m 644 openssl.cnf $(DESTDIR)/opt/rudder/etc/ssl/openssl.cnf
 	install -m 644 rudder-relay-apache $(DESTDIR)/etc/sysconfig/rudder-relay-apache
 	install -m 644 rudder-relay.sudo $(DESTDIR)/etc/sudoers.d/rudder-relay
-	
+
 	# Copy stub rudder-networks*.conf
 	install -m 644 apache/rudder-networks-24.conf $(DESTDIR)/opt/rudder/etc/
 	install -m 644 apache/rudder-networks-policy-server-24.conf $(DESTDIR)/opt/rudder/etc/
-	
-	install -m 755 rudder-server-relay-postinst $(DESTDIR)/opt/rudder/share/package-scripts/
-	install -m 755 rudder-server-relay-prerm $(DESTDIR)/opt/rudder/share/package-scripts/
-	
+
+	install -m 755 rudder-relay-postinst $(DESTDIR)/opt/rudder/share/package-scripts/
+	install -m 755 rudder-relay-prerm $(DESTDIR)/opt/rudder/share/package-scripts/
+
 ifeq ($(SELINUX),true)
 	# Install SELinux policy
 	install -m 644 selinux/rudder-relay.pp $(DESTDIR)/opt/rudder/share/selinux/
