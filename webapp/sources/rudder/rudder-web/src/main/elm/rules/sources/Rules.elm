@@ -382,7 +382,26 @@ update msg model =
         (nm,cmd) = update callback { model | ui = { ui | modal = NoModal } }
       in
         (nm , cmd)
-
+    FoldAllCategories filters ->
+      let
+        -- remove "rootRuleCategory" because we can't fold/unfold root category
+        catIds =
+          getListCategories model.rulesTree
+            |> List.map .id
+            |> List.filter (\id -> id /= "rootRuleCategory")
+        foldedCat =
+          filters.treeFilters.folded
+            |> List.filter (\id -> id /= "rootRuleCategory")
+        ui = model.ui
+        newState =
+          if(List.length foldedCat == (List.length catIds)) then
+            False
+          else
+            True
+        treeFilters = filters.treeFilters
+        foldedList = {filters | treeFilters = {treeFilters | folded = if(newState) then catIds else []}}
+      in
+        ({model | ui = { ui | isAllCatFold = newState, ruleFilters = foldedList}}, initTooltips "")
     UpdateRuleFilters filters ->
       let
         ui = model.ui
