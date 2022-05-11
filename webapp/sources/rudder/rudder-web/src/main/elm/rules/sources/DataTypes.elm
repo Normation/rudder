@@ -270,6 +270,7 @@ type alias UI =
   , modal            : ModalState
   , hasWriteRights   : Bool
   , loadingRules     : Bool
+  , isAllCatFold     : Bool
   }
 
 type alias  Changes =
@@ -337,3 +338,4 @@ type Msg
   | UpdateDirectiveFilters Filters
   | UpdateGroupFilters     Filters
   | GoTo                   String
+  | FoldAllCategories      Filters
