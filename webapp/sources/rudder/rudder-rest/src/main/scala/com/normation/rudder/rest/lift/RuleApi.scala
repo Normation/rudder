@@ -1037,8 +1037,8 @@ class RuleApiService14 (
       ok                <- ZIO.when(!category.canBeDeleted(rules.toList)) {
                              Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
-      _                <- writeRuleCategory.delete(id, ModificationId(uuidGen.newUuid), actor, params.reason)
       category         <- getCategoryDetails(id)
+      _                <- writeRuleCategory.delete(id, ModificationId(uuidGen.newUuid), actor, params.reason)
     } yield {
       category
     }
