@@ -44,9 +44,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.inventory.ldap.core.LDAPConstants.A_DESCRIPTION
-import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
-import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.inventory.ldap.core.LDAPConstants.{A_DESCRIPTION, A_NAME, A_NODE_UUID, A_OC}
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.BuildFilter.AND
 import com.normation.ldap.sdk.BuildFilter.EQ
@@ -358,7 +356,21 @@ class RoLDAPNodeGroupRepository(
       //for each directive entry, map it. if one fails, all fails
       entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP)) }
       groups  <- ZIO.foreach(entries)( groupEntry =>
-        mapper.entryToGroupNodeIds(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+        mapper.entryToGroupNodeIds(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a list of noes. Entry: ${groupEntry}")
+      )
+    } yield {
+      groups.toMap
+    }
+  }
+
+  def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
+    val attributes = Seq(A_NODE_GROUP_UUID, A_NODE_UUID)
+    for {
+      con     <- ldap
+      //for each directive entry, map it. if one fails, all fails
+      entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP), attributes:_* ) }
+      groups  <- ZIO.foreach(entries)( groupEntry =>
+        mapper.entryToGroupNodeIdsChunk(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a list of nodes. Entry: ${groupEntry}")
       )
     } yield {
       groups.toMap

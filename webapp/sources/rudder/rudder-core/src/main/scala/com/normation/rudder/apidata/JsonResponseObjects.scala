@@ -41,7 +41,7 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.cfclerk.domain.Technique
-import com.normation.inventory.domain.RuddercTarget
+import com.normation.inventory.domain.{NodeId, RuddercTarget}
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.rule.category.RuleCategory
@@ -76,6 +76,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens._
 import io.scalaland.chimney.dsl._
+import zio.Chunk
 
 /*
  * This class deals with everything serialisation related for API.
@@ -692,6 +693,22 @@ object JsonResponseObjects {
   // used to encode RuddercTargets in settings into an json array of strings
   final case class JRRuddercTargets(values: Set[RuddercTarget])
 
+  final case class JRRuleNodesDirectives(
+      id              : String // id is in format uid+rev
+    , numberOfNodes   : Int
+    , numberOfDirectives: Int
+  )
+
+  object JRRuleNodesDirectives {
+    // create an empty json rule with just ID set
+    def empty(id: String) = JRRuleNodesDirectives(id, 0,0)
+
+    // create from a rudder business rule
+    def fromData(ruleId: RuleId, nodesCount: Int, directivesCount: Int): JRRuleNodesDirectives = {
+      JRRuleNodesDirectives(ruleId.serialize, nodesCount, directivesCount)
+    }
+  }
+
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
@@ -719,6 +736,8 @@ trait RudderJsonEncoders {
   implicit val applicationStatusEncoder: JsonEncoder[JRApplicationStatus] = DeriveJsonEncoder.gen
 
   implicit val ruleEncoder: JsonEncoder[JRRule] = DeriveJsonEncoder.gen
+
+  implicit val ruleNodesDirectiveEncoder: JsonEncoder[JRRuleNodesDirectives] = DeriveJsonEncoder.gen
 
   implicit val simpleCategoryEncoder: JsonEncoder[JRSimpleRuleCategory] = DeriveJsonEncoder.gen
   implicit lazy val fullCategoryEncoder: JsonEncoder[JRFullRuleCategory]   = DeriveJsonEncoder.gen

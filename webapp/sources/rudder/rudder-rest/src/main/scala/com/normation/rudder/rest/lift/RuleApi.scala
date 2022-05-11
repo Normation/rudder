@@ -92,7 +92,7 @@ import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.configuration.ConfigurationRepository
-import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.logger.{ConfigurationLoggerPure, TimingDebugLoggerPure}
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.ApplicationStatus
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -105,6 +105,7 @@ import com.normation.rudder.rest.implicits._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.zio.currentTimeMillis
 
 import scala.annotation.tailrec
 
@@ -143,6 +144,8 @@ class RuleApi(
       case API.DeleteRuleCategory     => ChooseApiN(DeleteRuleCategory    , DeleteRuleCategoryV14    )
       case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
       case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
+      case API.GetRuleNodesAndDirectives => GetRuleNodesAndDirectives
+      case API.GetRuleNodesAndDirectivesOld => GetRuleNodesAndDirectivesOld
     })
   }
 
@@ -423,6 +426,26 @@ class RuleApi(
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
       serviceV14.unloadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.serialize))
+    }
+  }
+
+  object GetRuleNodesAndDirectives  extends LiftApiModuleString {
+    val schema = API.GetRuleNodesAndDirectives
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        id <- RuleId.parse(sid).toIO
+        r  <- serviceV14.GetRuleNodesAndDirectives(id)
+      } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
+    }
+  }
+
+  object GetRuleNodesAndDirectivesOld  extends LiftApiModuleString {
+    val schema = API.GetRuleNodesAndDirectivesOld
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        id <- RuleId.parse(sid).toIO
+        r  <- serviceV14.GetRuleNodesAndDirectivesOld(id)
+      } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 }
@@ -1076,4 +1099,53 @@ class RuleApiService14 (
       category
     }
   }
+
+  def GetRuleNodesAndDirectives(id: RuleId): IOResult[JRRuleNodesDirectives] = {
+    for {
+      t1            <- currentTimeMillis
+      rule          <- readRule.get(id)
+
+      t2            <- currentTimeMillis
+      allGroups     <- readGroup.getAllNodeIdsChunk()
+      t3            <- currentTimeMillis
+      nodeInfos     <- readNodes.getAll()
+      t4            <- currentTimeMillis
+      nodesIds      <- RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeInfos).size.succeed
+      t5            <- currentTimeMillis
+
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readRule in ${t2 - t1} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - getAllNodeIdsChunk in ${t3 - t2} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readNodes.getAll() in ${t4 - t3} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - getNodeIdsChunk in ${t5 - t4} ms")
+
+
+    } yield {
+      JRRuleNodesDirectives.fromData(id, nodesIds, rule.directiveIds.size)
+    }
+  }
+
+  def GetRuleNodesAndDirectivesOld(id: RuleId): IOResult[JRRuleNodesDirectives] = {
+    for {
+      t1            <- currentTimeMillis
+      rule          <- readRule.get(id)
+
+      t2            <- currentTimeMillis
+      allGroups     <- readGroup.getAllNodeIds()
+      t3            <- currentTimeMillis
+      nodeInfos     <- readNodes.getAll()
+      t4            <- currentTimeMillis
+      nodesIds      <- RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, nodeInfos).size.succeed
+      t5            <- currentTimeMillis
+
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - readRule in ${t2 - t1} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - getAllNodeIdsChunk in ${t3 - t2} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - readNodes.getAll() in ${t4 - t3} ms")
+      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - getNodeIdsChunk in ${t5 - t4} ms")
+
+
+    } yield {
+      JRRuleNodesDirectives.fromData(id, nodesIds, rule.directiveIds.size)
+    }
+  }
+
 }
