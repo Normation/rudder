@@ -21,15 +21,15 @@
 package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.schema.Schema
-import com.unboundid.ldap.sdk.{DN,RDN, Attribute,Modification}
+import com.unboundid.ldap.sdk.{Attribute, DN, Modification, RDN}
 import DN.NULL_DN
 import com.unboundid.ldif.LDIFRecord
+
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable.Buffer
-
 import org.slf4j.LoggerFactory
-
 import com.normation.ldap.sdk.syntax._
+import zio.Chunk
 
 /**
  * A Scala facade for LDAP Entry.
@@ -157,6 +157,17 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   def valuesFor(attributeName:String) : Set[String] = _backed.getAttributeValues(attributeName) match {
     case null => Set()
     case x => x.toSet
+  }
+
+  /**
+   * Return the Chunk of values for the given attribute.
+   * The Chunk may be empty if the entry has not the given
+   * attribute.
+   * Using Chunk for performance, as constructing Set can be very costly
+   */
+  def valuesForChunk(attributeName:String) : Chunk[String] = _backed.getAttributeValues(attributeName) match {
+    case null => Chunk.empty
+    case x => Chunk.fromArray(x)
   }
 
   /**

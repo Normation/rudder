@@ -169,7 +169,7 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
 
 
         case Rule.Read            => RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
-                                     RuleApi.GetRuleCategoryDetails.x :: Nil
+                                     RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x :: Nil
         case Rule.Write           => RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
                                      RuleApi.DeleteRuleCategory.x :: RuleApi.LoadRuleRevisionForGeneration.x :: RuleApi.UnloadRuleRevisionForGeneration.x ::
                                      Nil

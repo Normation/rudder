@@ -531,7 +531,23 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
   }
 
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
+
 }
+
+sealed trait RuleInternalApi extends EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = Some("rulesinternal")
+}
+object RuleInternalApi extends ApiModuleProvider[RuleInternalApi] {
+  // For the rule detail page
+  final case object GetRuleNodesAndDirectives extends RuleInternalApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
+    val description = "Get the list of nodes and directives of a rule"
+    val (action, path)  = GET / "rulesinternal" / "nodesanddirectives" / "{id}"
+    override def dataContainer = None
+  }
+  def endpoints = ca.mrvisser.sealerate.values[RuleInternalApi].toList.sortBy( _.z )
+
+}
+
 
 sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex {
   override def dataContainer = None // nothing normalized here ?
