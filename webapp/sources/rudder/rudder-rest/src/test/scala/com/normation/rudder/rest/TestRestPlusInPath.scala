@@ -84,7 +84,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
     mockReq.method = "GET"
     mockReq.path = "/api/latest/nodes/my+node" // should be kept
-    mockReq.queryString = "include=minimal"  // should be changed to space
+    mockReq.queryString = "include=minimal"
     mockReq.body   = ""
     mockReq.headers = Map()
     mockReq.contentType = "text/plain"
