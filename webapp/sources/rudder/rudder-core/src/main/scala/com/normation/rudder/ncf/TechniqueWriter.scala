@@ -586,7 +586,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             }
           }  yield {
             val condition = canonifyCondition(call, parentBlocks)
-            val promiser = call.id
+            val promiser = call.id + "_${report_data.directive_id}"
             // Check constraint and missing value
             val args = params.mkString(", ")
             val bundleCall =
@@ -632,6 +632,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
          |{
          |  vars:
          |    "resources_dir" string => "$${this.promise_dirname}/resources";
+         |  classes:
+         |    "pass3" expression => "pass2";
+         |    "pass2" expression => "pass1";
+         |    "pass1" expression => "any";
          |  methods:
          |${methodCalls}
          |}""".stripMargin('|')

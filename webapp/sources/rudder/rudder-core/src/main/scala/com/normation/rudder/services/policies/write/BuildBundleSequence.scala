@@ -183,8 +183,7 @@ object BuildBundleSequence {
     , enableMethodReporting  : Boolean
   ) {
     val contextBundle : List[Bundle]  = main.map(_.id).distinct.collect{ case Some(id) =>
-      Bundle(None, BundleName("rudder_reporting_context"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.serialize, "ruleId"), (techniqueId.name.value,"techniqueName")).map( (BundleParam.DoubleQuote.apply _).tupled ) ) ::
-      Bundle(None, BundleName("_method_reporting_context_v4"), List(("","component"),("","value"),(id.directiveId.serialize++id.ruleId.serialize,"report_id")).map( (BundleParam.DoubleQuote.apply _).tupled ) ) :: Nil
+      Bundle(None, BundleName("rudder_reporting_context_v4"), List((id.directiveId.serialize,"directiveId"), (id.ruleId.serialize, "ruleId"), (techniqueId.name.value,"techniqueName"), ("","component"),("","value"),(id.directiveId.serialize++id.ruleId.serialize,"report_id")).map( (BundleParam.DoubleQuote.apply _).tupled ) ) :: Nil
     }.flatten
 
     val methodReportingState : List[Bundle]  = {
