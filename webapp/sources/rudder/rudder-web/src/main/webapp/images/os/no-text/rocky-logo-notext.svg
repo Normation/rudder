@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 105.83333 105.83334"
+   height="400"
+   width="400">
+  <defs
+     id="defs2">
+    <rect
+       x="322.7081"
+       y="109.49711"
+       width="656.25759"
+       height="245.6882"
+       id="rect23901" />
+    <rect
+       x="319.14754"
+       y="115.26738"
+       width="568.74967"
+       height="206.15028"
+       id="rect8253" />
+  </defs>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(0,-191.16665)"
+     id="layer1">
+    <g
+       style="fill:#222d42;fill-opacity:1"
+       transform="matrix(0.11746085,0,0,0.11746085,-0.39770453,219.12997)"
+       id="g878">
+      <g
+         id="text8251"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:'Rocky Display';-inkscape-font-specification:'Rocky Display';white-space:pre;shape-inside:url(#rect8253);fill:#222d42;fill-opacity:1;stroke:none" />
+      <g
+         aria-label="Rocky "
+         transform="translate(-76.526421,-18.110047)"
+         id="text23899"
+         style="font-weight:900;font-size:128px;line-height:1.25;font-family:'Rocky Display';-inkscape-font-specification:'Rocky Display Heavy';white-space:pre;shape-inside:url(#rect23901);fill:#222d42;fill-opacity:1">
+        <path
+           id="path1585"
+           d="m 530.41321,-201.23071 c -238.46492,8e-5 -431.772848,193.315654 -431.772848,431.78045 0,117.99268 47.325068,224.93435 124.034748,302.86581 L 660.65801,95.43261 768.79126,203.56585 938.16653,372.93354 c 15.56659,-44.58123 24.02709,-92.49078 24.02709,-142.3838 0,-238.464796 -193.31697,-431.78045 -431.78041,-431.78045 z m 130.2448,512.92977 -311.05976,311.0598 c 55.00279,25.39835 116.25272,39.57133 180.81496,39.57133 131.72862,0 249.68899,-58.99122 328.88434,-151.99918 z"
+           style="font-size:213.33299255px;fill:#222d42;fill-opacity:1;stroke-width:1" />
+      </g>
+    </g>
+  </g>
+</svg>
