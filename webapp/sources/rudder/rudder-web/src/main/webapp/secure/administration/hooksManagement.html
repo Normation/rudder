@@ -1,0 +1,38 @@
+<lift:surround with="common-layout" at="content">
+    <div id="hooks-main">
+        <head_merge>
+            <title>Hooks</title>
+            <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-hooks.js"></script>
+            <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-hooks.css" />
+        </head_merge>
+
+        <div id="setup-content"></div>
+    </div>
+    <script>
+        var hasWriteRights = false;
+    </script>
+    <lift:authz role="administration_write">
+        <script>
+          hasWriteRights = true;
+        </script>
+    </lift:authz>
+    <script>
+      var main = document.getElementById("setup-content")
+      var initValues = {
+        contextPath    : contextPath
+      , hasWriteRights : hasWriteRights
+      };
+      var app  = Elm.Hooks.init({node: main, flags: initValues});
+
+      app.ports.errorNotification.subscribe(function(message) {
+        createErrorNotification(message);
+      });
+
+      app.ports.successNotification.subscribe(function(message) {
+        createSuccessNotification(message);
+      });
+      app.ports.copy.subscribe(function(str) {
+        navigator.clipboard.writeText(str);
+      });
+    </script>
+</lift:surround>
