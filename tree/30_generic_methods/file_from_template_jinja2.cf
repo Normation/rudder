@@ -278,17 +278,17 @@ bundle agent file_from_template_jinja2(source_template, destination)
       "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
       # Use a file copy to avoid any file size limitations of CFEngine variables.
     pass2.templating_ok::
-      "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
+      "copy file_${class_prefix}"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
     pass2.templating_ok::
       "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
       "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
     pass3::
       # In non audit mode, we need to force enforce mode to remove the temp files.
-      "remove_dry_run_mode" usebundle => push_dry_run_mode("false");
-      "clean data file"     usebundle => file_absent("${datastate_file}");
-      "clean template file" usebundle => file_absent("${destination_tmp}");
-      "restore dry-run"     usebundle => pop_dry_run_mode();
+      "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
+      "clean data file_${class_prefix}"     usebundle => file_absent("${datastate_file}");
+      "clean template file_${class_prefix}" usebundle => file_absent("${destination_tmp}");
+      "restore dry-run_${class_prefix}"     usebundle => pop_dry_run_mode();
 
     pass3::
       "failure" usebundle  => _classes_failure("${old_class_prefix}"),
