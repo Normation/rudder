@@ -100,10 +100,14 @@ import com.normation.rudder.domain.queries._
 import com.normation.rudder.facts.nodes.GitNodeFactRepository
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.inventory.DefaultProcessInventoryService
 import com.normation.rudder.inventory.FactRepositoryPostCommit
+import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryFileWatcher
+import com.normation.rudder.inventory.InventoryMover
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
+import com.normation.rudder.inventory.ProcessFile
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
@@ -596,20 +600,13 @@ object RudderConfig extends Loggable {
     case ex:ConfigException => "/var/rudder/inventories/debug"
   }
 
-  val WAITING_QUEUE_SIZE = try {
-    config.getInt("waiting.inventory.queue.size")
-  } catch {
-    case ex:ConfigException => 50
-  }
-
-  // the number of inventories parsed in parallel.
-  // It also limits the number of inventories proccessed in
-  // parallel, because obviously you need to parse the inventory before saving it.
+  // the number of inventories parsed and saved in parallel.
+  // That number should be small, LDAP doesn't like lots of write
   // Minimum 1, 1x mean "0.5x number of cores"
   val MAX_PARSE_PARALLEL = try {
     config.getString("inventory.parse.parallelization")
   } catch {
-    case ex: ConfigException => "0.5x"
+    case ex: ConfigException => "2"
   }
 
   val INVENTORY_ROOT_DIR = try {
@@ -624,20 +621,16 @@ object RudderConfig extends Loggable {
     case ex: ConfigException => true
   }
 
-  val WATCHER_WAIT_FOR_SIG = try {
-    Duration.fromScala(scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.waitForSignatureDuration")))
-  } catch {
-    case ex: Exception => try {
-      config.getInt("inventories.watcher.waitForSignatureDuration").seconds
-    } catch {
-      case ex: ConfigException => 10.seconds
-    }
-  }
-
   val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD = try {
     Duration.fromScala(scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.period.garbage.old")))
   } catch {
     case ex: Exception => 5.minutes
+  }
+
+  val WATCHER_DELETE_OLD_INVENTORIES_AGE = try {
+    Duration.fromScala(scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.max.age.before.deletion")))
+  } catch {
+    case _: Exception => 3.days
   }
 
   val METRICS_NODES_DIRECTORY_GIT_ROOT = "/var/rudder/metrics/nodes"
@@ -1268,7 +1261,7 @@ object RudderConfig extends Loggable {
       )
   )
 
-  lazy val inventoryProcessor = {
+  lazy val inventoryProcessorInternal = {
     val checkLdapAlive: () => IOResult[Unit] = {
       () =>
       for {
@@ -1289,15 +1282,14 @@ object RudderConfig extends Loggable {
     } catch {
       case ex: Exception =>
         // logs are not available here
-        println(s"ERROR Error when parsing configuration properties for the parallelisation of inventory processing. " +
-                s"Expecting a positive integer or number of time the avaiblable processors. Default to '0.5x': " +
+        println(s"ERROR Error when parsing configuration properties for the parallelization of inventory processing. " +
+                s"Expecting a positive integer or number of time the available processors. Default to '0.5x': " +
                 s"inventory.parse.parallelization=${MAX_PARSE_PARALLEL}")
         Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
     }
     new InventoryProcessor(
         pipelinedInventoryParser
       , inventorySaver
-      , WAITING_QUEUE_SIZE
       , maxParallel
       , fullInventoryRepository
       , new InventoryDigestServiceV1(fullInventoryRepository)
@@ -1305,18 +1297,27 @@ object RudderConfig extends Loggable {
       , pendingNodesDit
     )
   }
-  lazy val inventoryWatcher = {
-    new InventoryFileWatcher(
-        inventoryProcessor
-      , INVENTORY_ROOT_DIR + "/incoming"
-      , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
-      , INVENTORY_ROOT_DIR + "/received"
+  lazy val inventoryProcessor = {
+    val mover = new InventoryMover(
+        INVENTORY_ROOT_DIR + "/received"
       , INVENTORY_ROOT_DIR + "/failed"
-      , WATCHER_WAIT_FOR_SIG
-      , ".sign"
+      , new InventoryFailedHook(
+          HOOKS_D
+        , HOOKS_IGNORE_SUFFIXES
+      )
+    )
+    new DefaultProcessInventoryService(inventoryProcessorInternal, mover)
+  }
+  val INVENTORY_INCOMING_DIR = INVENTORY_ROOT_DIR + "/incoming"
+  lazy val inventoryWatcher = {
+    val fileProcessor = new ProcessFile(inventoryProcessor, INVENTORY_INCOMING_DIR)
+
+    new InventoryFileWatcher(
+        fileProcessor
+      , INVENTORY_INCOMING_DIR
+      , INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
+      , WATCHER_DELETE_OLD_INVENTORIES_AGE
       , WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD
-      , HOOKS_D
-      , HOOKS_IGNORE_SUFFIXES
     )
   }
 
@@ -1346,7 +1347,7 @@ object RudderConfig extends Loggable {
       , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, stringUuidGenerator, resourceFileService)
       , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService13, stringUuidGenerator)
       , new SystemApi(restExtractorService,systemApiService11, systemApiService13, rudderMajorVersion, rudderFullVersion, builtTimestamp)
-      , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
+      , new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_INCOMING_DIR))
       , new PluginApi(restExtractorService, pluginSettingsService)
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       // info api must be resolved latter, because else it misses plugin apis !

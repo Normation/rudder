@@ -13,9 +13,11 @@ post:
             file:
               type: string
               format: binary
+              description: The inventory file. The original file name is used to check extension, that should be .xml[.gz] or .ocs[.gz]
             signature:
               type: string
               format: binary
+              description: The signature file. The original file name is used to check extension, that should be ${originalInventoryFileName}.sign[.gz]
   responses:
     "200":
       description: Inventory uploaded

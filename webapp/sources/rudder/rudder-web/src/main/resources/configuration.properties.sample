@@ -205,19 +205,13 @@ rudder.batch.databasecleaner.runtime.day=sunday
 #########################
 
 #
-# Inventories are processed throught a file watcher
+# Inventories are processed through a file watcher
 # (inotify) which react to new
 # inventories put in ${inventories.root.directory}/incoming.
 # You can [start, stop, restart] the watcher with POST to API
 # /api/latest/inventories/watcher/[start, stop, restart].
 #
 inventories.root.directory=/var/rudder/inventories
-
-# 'inventories.watcher.waitForSignatureDuration' is the time
-# in seconds the watcher will wait for the signature file
-# in case there is only an inventory file before sending
-# only inventory to backend.
-inventories.watcher.waitForSignatureDuration=10 seconds
 
 #
 # Period for a batch to run and see if any inventories were
@@ -226,28 +220,22 @@ inventories.watcher.waitForSignatureDuration=10 seconds
 inventories.watcher.period.garbage.old=5 minutes
 
 #
-# Max number of inventories waiting to be processed internally.
-# For a rough estimation, you can consider that an inventory in queue
-# takes 5 MB, so to handle 50 (default), the application will
-# need around 250 MB of spare memory.
-# You don't need to make that queue big is you don't send inventories
-# through REST API endpoint: inventories coming from agent by usual
-# way wait on disk.
-# In the case of inventories sent via REST API, a bigger queue will allows to
-# send API response more quickly (just after inventory parsing, before saving it)
-# while in the same time not making new invetory rejected.
-# Minimal size is 1.
+# Maximum relative age for inventories before being deleted without
+# trying to add them. This can be important if Rudder was down for
+# a long time and inventories accumulated, no need to keep the older.
 #
-waiting.inventory.queue.size=5
+inventories.watcher.max.age.before.deletion=3 days
 
 #
-# You may want to limit the number of inventory files parsed in parallele.
-# The goal is to avoid parsing hundreds of XML in parallel when we prefer
-# to totally parse some (and then the others) and send them to backend.
-# You can specify a positive integer or a string formated "Nx" where
+# You may want to limit the number of inventory files parsed and save in parallel.
+# You can specify a positive integer or a string formatted "Nx" where
 # "N" is an Int and x means "number of available core".
-# A safe default is "0.5x"
-inventory.parse.parallelization=0.5x
+# By default, inventories are parsed and saved one with parallelization of 2, which allows
+# to keep a lowish LDAP write contention but still avoid a starvation in case one inventory is
+# extremely long to parse. On a big server with lots of inventories coming in parallel,
+# you can try to rise that number. In case with number of nodes < 500, you can safely set it to 1
+# which will make logs simpler to understand.
+inventory.parse.parallelization=2
 
 #
 # You can keep exhaustive information about LDAP base modification

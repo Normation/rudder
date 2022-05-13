@@ -37,37 +37,32 @@
 
 package com.normation.rudder.rest.lift
 
-import java.nio.file.Files
 import better.files._
-import better.files.File.Attributes
+
 import com.normation.errors._
-import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.inventory.InventoryFileWatcher
-import com.normation.rudder.inventory.InventoryProcessStatus
-import com.normation.rudder.inventory.InventoryProcessor
-import com.normation.rudder.inventory.SaveInventoryInfo
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.HttpStatus
 import com.normation.rudder.rest.RestError
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.{InventoryApi => API}
-import com.normation.zio._
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
+
 import zio._
 import zio.syntax._
+import com.normation.rudder.rest.implicits._
 
 class InventoryApi (
     restExtractorService: RestExtractorService
-  , inventoryProcessor  : InventoryProcessor
   , inventoryFileWatcher: InventoryFileWatcher
+  , incomingInventoryDir: File
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -90,20 +85,12 @@ class InventoryApi (
     val restExtractor = restExtractorService
     val actionName = "queueInformation"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val saturated = inventoryProcessor.isQueueFull.catchAll(err =>
-        InventoryProcessingLogger.error(err.fullMsg) *> true.succeed
-      ).runNow
       val json = (
-                    ("queueMaxSize"   -> inventoryProcessor.maxQueueSize)
-                  ~ ("queueSaturated" -> saturated)
+                    ("queueMaxSize"   -> Int.MaxValue)
+                  ~ ("queueSaturated" -> false)
                  )
 
-      if(saturated) {
-        effectiveResponse (None, json, tooManyRequestError, actionName, params.prettify
-        )
-      } else {
-        toJsonResponse(None, json)(actionName, params.prettify)
-      }
+      effectiveResponse (None, json, tooManyRequestError, actionName, params.prettify)
     }
   }
 
@@ -112,74 +99,52 @@ class InventoryApi (
    * get file with name "file" and "signature", for ex produced by:
    *   curl -F "file=@path/to/file" -F "signature=@path/to/signature"
    *
-   * Uploaded files are stored in a temporary file (which is particularly
-   * inefficient for inventory already uploaded to rudder).
+   * Uploaded files are put in `/var/rudder/inventories/incoming` for processing.
+   * Signature file mandatory now
    */
   object UploadInventory extends LiftApiModule0 {
     val schema = API.UploadInventory
-    val restExtractor = restExtractorService
     val FILE = "file"
     val SIG = "signature"
     val sigExtension = ".sign"
 
-    object UNAUTHORIZED        extends RestError { override val code: Int = 401 }
-    object PRECONDITION_FAILED extends RestError { override val code: Int = 412 }
-    object SERVICE_UNAVAILABLE extends RestError { override val code: Int = 503 }
-    object ACCEPTED extends HttpStatus {
-      val code = 200
-      val status = "success"
-      val container = "data"
-    }
-    val tempDir = File(Files.createTempDirectory("rudder-rest-uploaded-inventories", Attributes.default:_*))
-    implicit val actionName = "uploadInventory"
-
-    def parseInventory(pretty: Boolean, inventoryFile: FileParamHolder, signatureFile: Option[FileParamHolder]): LiftResponse = {
-      // here, we are at the end of our world. Evaluate ZIO and see what happen.
-      val originalFilename = inventoryFile.name
-      val signatureFilename = originalFilename + sigExtension
-
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       def writeFile(item: FileParamHolder, file: File) = ZIO.bracket(IOResult.effect(item.fileStream))(is => effectUioUnit(is.close())) { is =>
-        IOResult.effect(file.outputStream.foreach(is.pipeTo(_))) *> file.succeed
+        IOResult.effect(file.outputStream.foreach(is.pipeTo(_)))
       }
-      def optWrite(item: Option[FileParamHolder], file: File) = item match {
-        case None    => None.succeed
-        case Some(i) => writeFile(i, file).map(Some(_))
-      }
+      def parseInventory(pretty: Boolean, inventoryFile: FileParamHolder, signatureFile: FileParamHolder): IOResult[String] = {
+        // here, we are at the end of our world. Evaluate ZIO and see what happen.
+        val originalFilename = inventoryFile.fileName
+        // for the signature, we want:
+        // - to assume the signature is for the given inventory, so make the name matches
+        // - still keep the extension so that we do what is needed for compressed file. No extension == assume non compressed
+        val signatureFilename = {
+          // remove gz extension for sig name comparison
+          val simpleOrig = if(originalFilename.endsWith(".gz")) originalFilename.substring(0, originalFilename.size-3) else originalFilename
+          if(signatureFile.fileName.startsWith(simpleOrig)) { // assume extension is ok
+            signatureFile.fileName
+          } else {
+            // we assume that anything that is not ending by .gz is a simple signature, whatever its extension
+            val ext = sigExtension + (if(signatureFile.fileName.endsWith(".gz")) ".gz" else "" )
 
-      val prog =
-        ZIO.bracket(writeFile(inventoryFile, File(tempDir, originalFilename)))(f => effectUioUnit(f.delete())) { inv =>
-          ZIO.bracket(optWrite(signatureFile, File(tempDir, signatureFilename)))(opt => opt.fold(UIO.unit)(f => effectUioUnit(f.delete()))) { optSig =>
-            inventoryProcessor.saveInventory(SaveInventoryInfo(
-              originalFilename, () => inv.newFileInputStream, optSig.map(f => () => f.newFileInputStream), IOResult.effect(inv.exists).orElseSucceed(false)
-            )).map {
-              status =>
-                import com.normation.rudder.inventory.StatusLog.LogMessage
-                status match {
-                  case InventoryProcessStatus.MissingSignature(_,_) => effectiveResponse(None, status.msg, UNAUTHORIZED, actionName, pretty)
-                  case InventoryProcessStatus.SignatureInvalid(_,_) => effectiveResponse(None, status.msg, UNAUTHORIZED, actionName, pretty)
-                  case InventoryProcessStatus.QueueFull(_,_)        => effectiveResponse(None, status.msg, SERVICE_UNAVAILABLE, actionName, pretty)
-                  case InventoryProcessStatus.Accepted(_,_)         => effectiveResponse(None, status.msg, ACCEPTED, actionName, pretty)
-                }
-            }
+            simpleOrig + ext
           }
         }
 
-      ZioRuntime.runNow(prog.catchAll { eb =>
-        val fail = Chained(s"Error when trying to process inventory '${originalFilename}'", eb)
-        InventoryProcessingLogger.error(fail.fullMsg) *>
-        effectiveResponse(None, fail.fullMsg, PRECONDITION_FAILED, actionName, pretty).succeed
-      })
-    }
-
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      // we need at least the file, else the request is in error
-      (req.uploadedFiles.find(_.name == FILE), req.uploadedFiles.find(_.name == SIG)) match {
-        case (None, _) =>
-          toJsonError(None, "Missing uploaded file with parameter name 'file'")
-        case (Some(inv), sig) =>
-          parseInventory(params.prettify, inv, sig)
+        for {
+          _ <- writeFile(signatureFile, incomingInventoryDir/signatureFilename)
+          _ <- writeFile(inventoryFile, incomingInventoryDir/originalFilename)
+        } yield s"Inventory '${originalFilename}' added to processing queue."
       }
+
+      val prog = (req.uploadedFiles.find(_.name == FILE), req.uploadedFiles.find(_.name == SIG)) match {
+        case (Some(inv), Some(sig)) =>
+          parseInventory(params.prettify, inv, sig)
+        case (_, _) =>
+          Unexpected(s"Missing uploaded file with parameter name '${FILE}' or '${SIG}'").fail
+      }
+
+      prog.toLiftResponseZero(params, schema)
     }
   }
 

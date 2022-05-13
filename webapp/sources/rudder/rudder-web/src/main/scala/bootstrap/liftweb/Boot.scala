@@ -533,6 +533,8 @@ class Boot extends Loggable {
     ZioRuntime.runNow(RudderConfig.historizeNodeCountBatch.catchAll(err =>
       ApplicationLoggerPure.error(s"Error when starting node historization batch: ${err.fullMsg}")
     ))
+    // start inventory garbage collector
+    RudderConfig.inventoryWatcher.startGarbageCollection
     // start inventory watchers if needed
     if(RudderConfig.WATCHER_ENABLE) {
       RudderConfig.inventoryWatcher.startWatcher()
