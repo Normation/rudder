@@ -55,6 +55,7 @@
   white-space: nowrap;
   overflow: hidden;
   padding: 0 2px;
+  border-radius: 4px;
 }
 .content-wrapper .progress-bar-reportsdisabled {
   background-color: #b4b4b4;
@@ -69,7 +70,7 @@
   background-color: #5bc0de;
 }
 .content-wrapper .progress-bar-no-report {
-  background-color: #848484;
+  background-color: #B1BBCB;
 }
 .content-wrapper .progress-bar-unknown {
   background-color: #c9302c;

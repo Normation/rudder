@@ -108,9 +108,10 @@ header.main-header .logo-lg img{
   word-break: break-word;
 }
 .legend-square {
-  width : 10px;
-  height : 10px;
+  width: 12px;
+  height: 12px;
   margin: 5px;
+  border-radius: 3px;
   float:left;
 }
 .legend {
@@ -310,6 +311,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 /* FIX CSS BUGS */
 .main-header>.navbar {
   max-height: 50px;
+  box-shadow: 4px 4px 10px #dce3efb0 !important;
 }
 .navbar-nav li.dropdown > a {
   padding: 14px 8px;
@@ -550,83 +552,6 @@ a.sidebar-toggle{
   font-size: 18px;
 }
 
-/* ----- <DASHBOARD>  ----- */
-#globalComplianceStats {
-  color: rgba(34, 45, 50, 0.75);
-  line-height: 20px;
-  height: auto;
-  padding-top: 15px;
-  border-top: 2px solid #EBE7E7;
-  margin-left: 15%;
-  width: 70%;
-  position:relative;
-}
-
-.highlight{
-  color: #041922;
-  font-weight:700;
-}
-.content-wrapper .progress {
-  margin: 3px 5px;
-  border-radius:0;
-}
-.content-wrapper .panel-default > .panel-heading {
-  color: #041922;
-  background-color:#fff;
-  border-color: #F0F0F0;
-  margin: 0 10px 10px 10px;
-}
-.stats li > a{
-  display: flex;
-  justify-content: space-between;
-}
-.stats li>a .badge{
-  background-color: #213640;
-  opacity:.5;
-  display: inline-flex;
-  justify-content: center;
-  align-items: flex-end;
-}
-.stats li>a:hover .badge{
-  background-color: #213640;
-  opacity:1;
-}
-.content-wrapper .nav-pills > li > a {
-  font-weight:300;
-  border-radius: 0px;
-  color: #041922;
-  font-size: 15px;
-  padding: 7px 15px;
-}
-.content-wrapper .nav > li > a:hover, .content-wrapper .nav > li > a:focus, .content-wrapper .nav li.dropdown > a:hover, .content-wrapper .nav li.dropdown > a:focus {
-  background-color: #f4f4f4;
-  color: #041922;
-  text-decoration: none;
-}
-
-/* Global Compliance */
-.global-compliance,.global-compliance-details {
-  height: 279px;
-}
-
-/* Node Breakdown */
-ul.graph-legend{
-  margin-top:10px;
-}
-ul.graph-legend > li.legend{
-  background-color:transparent;
-  transition-property:background-color;
-  transition-duration:.2s;
-  cursor:pointer;
-  border-radius:4px;
-  display: flex;
-  align-items: flex-end;
-}
-ul.graph-legend > li.legend:hover{
-  background-color:#f4f4f4;
-}
-
-/* ----- </DASHBOARD>  ----- */
 /* -- <NAVBAR>  ------------ */
 #rudder-navbar {
   display: flex;

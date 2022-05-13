@@ -397,30 +397,6 @@ body{
   padding-right:0;
 }
 
-#globalCompliance .progress {
-  height:80px;
-  margin: 33px 30px;
-}
-
-#globalCompliance .progress .progress-bar {
-  line-height: 90px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: help;
-}
-
-#complianceGauge {
-  max-width: 100%;
-  width:420px;
-}
-#gauge-value {
-  font-weight: bold;
-  text-align: center;
-  font-size:30px;
-  float: left;
-  width: 100%;
-}
-
 .content-wrapper .nav-pills.navbar-rudder {
   padding-right : 0px;
   background-color: #fff;
@@ -664,10 +640,6 @@ body{
 
 .content-wrapper .table-responsive {
   overflow-x: visible
-}
-
-.content-wrapper .homePage {
-  padding: 15px;
 }
 
 .content-wrapper .jstree {
