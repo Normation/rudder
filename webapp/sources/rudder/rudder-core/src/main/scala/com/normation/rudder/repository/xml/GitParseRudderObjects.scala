@@ -419,7 +419,7 @@ class GitParseTechniqueLibrary(
                     } yield {
                       // we need to correct techniqueId revision to the one we just looked-up.
                       // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
-                      Some(t.modify(_.id.version.rev).setTo(rev))
+                      Some(t.modify(_.id.version).using(_.withRevision(rev)))
                     }).tapError(err =>
                       ConfigurationLoggerPure.revision.debug(s"Impossible to find technique with id/revision: '${id.debugString}': ${err.fullMsg}.")
                     )
@@ -509,7 +509,7 @@ class GitParseActiveTechniqueLibrary(
                       val rd = (d
                         .modify(_.id.rev).setTo(rev)
                         // we need to check if the technique version wasn't already frozen
-                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.DEFAULT_REV) v.copy(rev = rev) else v)
+                        .modify(_.techniqueVersion).using(v => if(v.rev == GitVersion.DEFAULT_REV) v.withRevision(rev) else v)
                       )
                       Some((at, rd))
                     }).tapError(err =>

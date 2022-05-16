@@ -58,17 +58,20 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
     case i => i
   }
 
-  def withDefaultRev = this.copy(rev = GitVersion.DEFAULT_REV)
+  def withDefaultRev: TechniqueVersion = this.copy(rev = GitVersion.DEFAULT_REV)
+
+  // we don't have to check here, revision can be anything
+  def withRevision(r: Revision): TechniqueVersion = this.copy(rev = r)
 
   // intended for debug
-  def debugString = serialize
+  def debugString: String = serialize
   // for serialisation on path
-  def serialize = rev match {
+  def serialize: String = rev match {
     case GitVersion.DEFAULT_REV => version.toVersionString
     case r                      => version.toVersionString + "+" + r.value
   }
 
-  // to avoid compat error
+  // to avoid compatibility error
   @silent("method toString overrides concrete, non-deprecated symbol")
   @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
   override def toString: String = serialize
@@ -95,8 +98,8 @@ object TechniqueVersion {
   }
 
   /*
-   * Technique parsing is a bit more complexe than RuleId/etc
-   * because technnique version must be parsed, too.
+   * Technique parsing is a bit more complex than RuleId/etc
+   * because technique version must be parsed, too.
    * We start by splitting on "+", since technique version can't have
    * that character in them, but we still take the last bit of the split
    * for revision, and redo a string separated with + with the first parts
