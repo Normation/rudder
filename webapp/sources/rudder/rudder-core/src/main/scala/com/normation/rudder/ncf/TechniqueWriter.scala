@@ -818,8 +818,17 @@ class DSCTechniqueWriter(
               s"""-Report:$$${if (call.disabledReporting) {"false" } else { "true" }}"""
 
 
+            def truthyCondition(condition : String) = condition.isEmpty || condition == "any"
+            def formatCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) =  {
+              (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
+                case (Nil, true) => "any"
+                case (list, true) => list.mkString("(",").(",")")
+                case (Nil, false) => methodCall.condition
+                case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
+              }
+            }
             def canonifyCondition(methodCall: MethodCall) = {
-               methodCall.condition.replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
+              formatCondition(methodCall, parentBlocks).replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
             }
 
             def naReport(method : GenericMethod, expectedReportingValue : String) =
