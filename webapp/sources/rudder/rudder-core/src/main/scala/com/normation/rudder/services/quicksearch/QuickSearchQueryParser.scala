@@ -159,42 +159,42 @@ object QSRegexQueryParser {
   ///// this is the entry point /////
   /////
 
-  private[this] def all[_:P]          : P[QF] = P( Start ~ ( nominal | onlyFilters ) ~ End )
+  private[this] def all[A:P]          : P[QF] = P( Start ~ ( nominal | onlyFilters ) ~ End )
 
   /////
   ///// different structure of queries
   /////
 
   //degenerated case with only filters, no query string
-  private[this] def onlyFilters[_:P]  : P[QF] = P( filter.rep(1) )                      map { case f             => (EmptyQuery, f.toList) }
+  private[this] def onlyFilters[A:P]  : P[QF] = P( filter.rep(1) )                      map { case f             => (EmptyQuery, f.toList) }
 
   //nonimal case: zero of more filter, a query string, zero or more filter
-  private[this] def nominal[_:P]      : P[QF] = P( filter.rep(0) ~/ ( case0 | case1 ) ) map { case (f1, (q, f2)) => (check(q), f1.toList ::: f2.toList) }
+  private[this] def nominal[A:P]      : P[QF] = P( filter.rep(0) ~/ ( case0 | case1 ) ) map { case (f1, (q, f2)) => (check(q), f1.toList ::: f2.toList) }
 
   //need the two following rules so that so the parsing is correctly done for filter in the end
-  private[this] def case0[_:P]        : P[QF] = P( queryInMiddle ~ filter.rep(1) )      map { case (q, f)        => (check(q)  , f.toList) }
-  private[this] def case1[_:P]        : P[QF] = P( queryAtEnd                    )      map { case q             => (check(q)  , Nil     ) }
+  private[this] def case0[A:P]        : P[QF] = P( queryInMiddle ~ filter.rep(1) )      map { case (q, f)        => (check(q)  , f.toList) }
+  private[this] def case1[A:P]        : P[QF] = P( queryAtEnd                    )      map { case q             => (check(q)  , Nil     ) }
 
   /////
   ///// simple elements: filters
   /////
 
   // deal with filters: they all start with "in:"
-  private[this] def filter[_:P]       : P[Filter] = P( filterAttr | filterType )
-  private[this] def filterType[_:P]   : P[Filter] = P( IgnoreCase("is:") ~ filterKeys )  map { FilterType }
-  private[this] def filterAttr[_:P]   : P[Filter] = P( IgnoreCase("in:") ~ filterKeys )  map { FilterAttr }
+  private[this] def filter[A:P]       : P[Filter] = P( filterAttr | filterType )
+  private[this] def filterType[A:P]   : P[Filter] = P( IgnoreCase("is:") ~ filterKeys )  map { FilterType }
+  private[this] def filterAttr[A:P]   : P[Filter] = P( IgnoreCase("in:") ~ filterKeys )  map { FilterAttr }
 
   // the keys part
-  private[this] def filterKeys[_:P]   : P[Set[String]] = P( filterKey.rep(sep = ",") )   map { l => l.toSet }
-  private[this] def filterKey[_:P]    : P[String]      = P( CharsWhileIn("""\\-._a-zA-Z0-9""").! )
+  private[this] def filterKeys[A:P]   : P[Set[String]] = P( filterKey.rep(sep = ",") )   map { l => l.toSet }
+  private[this] def filterKey[A:P]    : P[String]      = P( CharsWhileIn("""\\-._a-zA-Z0-9""").! )
 
   /////
   ///// simple elements: query string
   /////
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
-  private[this] def queryInMiddle[_:P]: P[QueryString] = P( (!("in:"|"is:") ~ AnyChar).rep(1).! ) map { x => CharSeq(x.trim) }
-  private[this] def queryAtEnd[_:P]   : P[QueryString] = P( AnyChar.rep(1).!                    ) map { x => CharSeq(x.trim) }
+  private[this] def queryInMiddle[A:P]: P[QueryString] = P( (!("in:"|"is:") ~ AnyChar).rep(1).! ) map { x => CharSeq(x.trim) }
+  private[this] def queryAtEnd[A:P]   : P[QueryString] = P( AnyChar.rep(1).!                    ) map { x => CharSeq(x.trim) }
 
   /////
   ///// utility methods
