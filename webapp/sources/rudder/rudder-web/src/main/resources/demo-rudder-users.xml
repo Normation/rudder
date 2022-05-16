@@ -76,7 +76,7 @@
   systemctl restart rudder-jetty
 -->
 
-<authentication hash="bcrypt">
+<authentication hash="bcrypt" case-sensitivity="true">
   <!--
     <user name="NAME" password="REPLACE_BY_HASH" role="ROLE" />
   -->

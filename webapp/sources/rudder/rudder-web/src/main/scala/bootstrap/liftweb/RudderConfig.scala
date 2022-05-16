@@ -835,6 +835,21 @@ object RudderConfig extends Loggable {
 
   lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
+  lazy val rudderUsernameCaseSensitive: Boolean = {
+    (for {
+      resource <- UserFileProcessing.getUserResourceFile()
+      test <- UserFileProcessing.parseCaseSensitivityOpt(resource)
+    } yield {
+      test
+    }) match {
+      case Right(resource) => resource
+      case Left(UserConfigFileError(msg, exception)) =>
+        ApplicationLogger.error(msg, Box(exception))
+        //make the application not available
+        throw new javax.servlet.UnavailableException(s"Error when triyng to parse Rudder users file, aborting.")
+    }
+  }
+
   // rudder user list
   lazy val rudderUserListProvider : FileUserDetailListProvider = {
     (for {
