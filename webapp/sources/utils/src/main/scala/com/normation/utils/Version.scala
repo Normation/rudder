@@ -192,8 +192,8 @@ object ParseVersion {
   def versionChar(c: Char) = ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c) || c == ':')
   def separatorChar(c: Char) = List('~', '+', ',', '-', '.').contains(c)
 
-  def num[_ :P] = P(CharIn("0-9").rep(1).!.map(_.toLong))
-  def chars[_ : P] = P( CharsWhile(versionChar).rep(1).! ).map { s =>
+  def num[A :P] = P(CharIn("0-9").rep(1).!.map(_.toLong))
+  def chars[A : P] = P( CharsWhile(versionChar).rep(1).! ).map { s =>
     import PartType._
     s.toLowerCase match {
       case "snapshot"  => Snapshot(s)
@@ -205,7 +205,7 @@ object ParseVersion {
       case _           => Chars(s)
   }}
 
-  def epoch[_:P] = P( num ~ ":")
+  def epoch[A:P] = P( num ~ ":")
   def toSeparator(c: Char) = { c match {
     case '~' => Separator.Tilde
     case '-' => Separator.Minus
@@ -213,7 +213,7 @@ object ParseVersion {
     case ',' => Separator.Comma
     case '.' => Separator.Dot
   }}
-  def separators[_:P] = P( CharsWhile(separatorChar).! ).map { (s: String) =>
+  def separators[A:P] = P( CharsWhile(separatorChar).! ).map { (s: String) =>
     s.toSeq.map(toSeparator)
   }
 
@@ -221,29 +221,29 @@ object ParseVersion {
     case Separator.Tilde => VersionPart.Before(Separator.Tilde, PartType.Chars(""))
     case sep             => VersionPart.After(sep, PartType.Chars(""))
   } }
-  def numPart[_:P]: P[List[VersionPart]] = P( separators ~ num).map { case (seq, n) => // seq is at least 1
+  def numPart[A:P]: P[List[VersionPart]] = P( separators ~ num).map { case (seq, n) => // seq is at least 1
     seq.last match {
       case Separator.Tilde => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n)) :: Nil
       case sep             => listOfSepToPart(seq.init.toList) ::: VersionPart.After (sep            , PartType.Numeric(n)) :: Nil
   }}
 
-  def charPart[_:P]: P[List[VersionPart]] = P( separators ~ chars).map { case (seq, n) => // seq is at least 1
+  def charPart[A:P]: P[List[VersionPart]] = P( separators ~ chars).map { case (seq, n) => // seq is at least 1
     (seq.last, n) match {
       case (Separator.Tilde, s)                => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, s) :: Nil
       case (sep            , c:PartType.Chars) => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, c)              :: Nil
       case (sep            , prerelease      ) => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(sep, prerelease)    :: Nil
   }}
 
-  def noSepPart1[_:P] = P( chars ).map { c =>
+  def noSepPart1[A:P] = P( chars ).map { c =>
       VersionPart.After(Separator.None, c) :: Nil
   }
-  def noSepPart2[_:P] = P( num ).map { n =>
+  def noSepPart2[A:P] = P( num ).map { n =>
       VersionPart.After(Separator.None, PartType.Numeric(n)) :: Nil
   }
 
-  def startNum[_:P] = P( num ).map(PartType.Numeric)
+  def startNum[A:P] = P( num ).map(PartType.Numeric)
 
-  def version[_ :P] = P( Start ~ epoch.? ~/ startNum ~/
+  def version[A :P] = P( Start ~ epoch.? ~/ startNum ~/
                          (numPart | charPart | noSepPart1 | noSepPart2).rep(0) ~ separators.? ~ End).map {
     case (e, head, list, opt) =>
       Version(e.getOrElse(0L), head, list.flatten.toList ::: listOfSepToPart(opt.toList.flatten))
