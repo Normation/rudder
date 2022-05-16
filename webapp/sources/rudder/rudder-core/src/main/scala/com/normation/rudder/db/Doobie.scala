@@ -42,28 +42,31 @@ import org.joda.time.DateTime
 
 import scala.xml.XML
 import java.sql.SQLXML
-
 import scala.xml.Elem
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
+
 import net.liftweb.common._
 import com.normation.rudder.services.reports.RunAndConfigInfo
+
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import doobie.postgres.implicits._  // it is necessary whatever intellij/scalac tells
 import doobie.implicits.javasql._
 import cats.data._
-import cats.effect.{IO => _, _}
 import doobie._
+
 import zio._
 import zio.interop.catz._
 import com.normation.errors._
 import com.normation.zio._
 import com.normation.box._
 import com.normation.rudder.domain.policies.DirectiveId
+
 import zio.blocking.Blocking
+import zio.interop.catz.implicits.rts
 
 /**
  *
@@ -78,7 +81,7 @@ class Doobie(datasource: DataSource) {
     // our transaction EC: wait for aquire/release connections, must accept blocking operations
     te <- ZIO.access[Blocking](_.get.blockingExecutor.asEC)
   } yield {
-    Transactor.fromDataSource[Task](datasource, te, Blocker.liftExecutionContext(te))
+    Transactor.fromDataSource[Task](datasource, te)
   }).provide(ZioRuntime.environment).runNow
 
   def transactTask[T](query: Transactor[Task] => Task[T]): Task[T] = {

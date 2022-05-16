@@ -159,7 +159,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
-      <version>1.26</version>
+      <version>${snakeyaml-version}</version>
       <scope>test</scope>
     </dependency>
 

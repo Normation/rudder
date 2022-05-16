@@ -188,7 +188,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-      <version>${cafeine-version}</version>
+      <version>${caffeine-version}</version>
     </dependency>
 
     <!-- High performance, low memory native process fork/exec -->
@@ -259,7 +259,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.github.seancfoley</groupId>
       <artifactId>ipaddress</artifactId>
-      <version>5.3.3</version>
+      <version>${ipaddress-version}</version>
     </dependency>
   </dependencies>
 </project>

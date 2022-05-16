@@ -103,7 +103,7 @@ limitations under the License.
       <extension>
         <groupId>org.apache.maven.wagon</groupId>
         <artifactId>wagon-ssh</artifactId>
-        <version>2.6</version>
+        <version>3.5.1</version>
       </extension>
     </extensions>
     <plugins>
@@ -159,6 +159,7 @@ limitations under the License.
         </compilerPlugins>
           <args>
             <arg>-target:11</arg>
+            <arg>-Xsource:3</arg> <!-- check for scala 3 removed features -->
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
             <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
@@ -236,7 +237,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.7.0</version>
+        <version>3.10.1</version>
         <configuration>
           <release>11</release>
         </configuration>
@@ -252,7 +253,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -270,7 +271,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>3.2.2</version>
         <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -286,7 +287,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.2</version>
         <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -362,59 +363,67 @@ limitations under the License.
     <rudder-major-version>7.2</rudder-major-version>
     <rudder-version>7.2.0~alpha1-SNAPSHOT</rudder-version>
 
-    <scala-version>2.13.6</scala-version>
+    <scala-version>2.13.8</scala-version>
+    <silencer-lib-version>1.7.8</silencer-lib-version>
     <scala-binary-version>2.13</scala-binary-version>
+    <!-- lift force us to remain with 1.3.0 because of
+         java.lang.NoSuchMethodError: 'scala.collection.mutable.Stack scala.xml.parsing.NoBindingFactoryAdapter.scopeStack()'net.liftweb.util.Html5Parser.$anonfun$parse$1(HtmlParser.scala:373)
+          And scala-xml 2.1.0 has non-trivial change on parsing semantic, can't
+         upgrade without much care and correcting how we parse XML doc (xml
+         parser option - see https://github.com/scala/scala-xml/releases/tag/v2.1.0 -->
     <scala-xml-version>1.3.0</scala-xml-version>
-    <lift-version>3.4.3</lift-version>
-    <slf4j-version>1.7.32</slf4j-version>
-    <logback-version>1.2.9</logback-version>
-    <junit-version>4.13.2</junit-version>
-    <jodatime-version>2.10.10</jodatime-version>
-    <jodaconvert-version>2.2.1</jodaconvert-version>
+    <lift-version>3.5.0</lift-version>
+    <slf4j-version>1.7.36</slf4j-version>
+    <logback-version>1.2.11</logback-version>
+    <jodatime-version>2.10.14</jodatime-version>
+    <jodaconvert-version>2.2.2</jodaconvert-version>
     <commons-io-version>2.11.0</commons-io-version>
     <commons-lang-version>3.12.0</commons-lang-version>
     <commons-codec-version>1.15</commons-codec-version>
     <commons-fileupload>1.4</commons-fileupload>
-    <spring-version>5.3.19</spring-version>
-    <spring-security-version>5.5.6</spring-security-version>
-    <jgit-version>5.12.0.202106070339-r</jgit-version>
+    <spring-version>5.3.20</spring-version>
+    <spring-security-version>5.6.3</spring-security-version>
+    <jgit-version>6.1.0.202203080745-r</jgit-version>
     <cglib-version>3.3.0</cglib-version>
-    <asm-version>5.2</asm-version>
-    <bcpkix-jdk15on-version>1.69</bcpkix-jdk15on-version>
-    <silencer-lib-version>1.7.5</silencer-lib-version>
+    <asm-version>9.3</asm-version>
+    <bcpkix-jdk15on-version>1.70</bcpkix-jdk15on-version>
     <better-files-version>3.9.1</better-files-version>
-    <sourcecode-version>0.2.7</sourcecode-version>
-    <quicklens-version>1.7.4</quicklens-version>
-    <hikaricp-version>4.0.3</hikaricp-version>
-    <nuprocess-version>2.0.1</nuprocess-version> <!-- 2.0.2 doesn't work with Java8 -->
-    <postgresql-version>42.2.25</postgresql-version>
-    <json-path-version>2.6.0</json-path-version>
+    <sourcecode-version>0.2.8</sourcecode-version>
+    <quicklens-version>1.8.8</quicklens-version>
+    <hikaricp-version>5.0.1</hikaricp-version>
+    <nuprocess-version>2.0.3</nuprocess-version>
+    <postgresql-version>42.3.5</postgresql-version>
+    <json-path-version>2.7.0</json-path-version>
     <scalaj-version>2.4.2</scalaj-version>
-    <unboundid-version>6.0.0</unboundid-version>
-    <fastparse-version>2.3.2</fastparse-version>
-    <config-version>1.4.1</config-version>
-    <cafeine-version>2.8.6</cafeine-version>
-    <jgrapht-version>1.4.0</jgrapht-version>
-    <reflections-version>0.9.12</reflections-version>
-    <graalvm-version>21.2.0</graalvm-version>
+    <unboundid-version>6.0.5</unboundid-version>
+    <fastparse-version>2.3.3</fastparse-version>
+    <config-version>1.4.2</config-version>
+    <caffeine-version>3.1.0</caffeine-version>
+    <jgrapht-version>1.5.1</jgrapht-version>
+    <reflections-version>0.10.2</reflections-version>
+    <graalvm-version>22.1.0</graalvm-version>
     <chimney-version>0.6.1</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
+    <ipaddress-version>5.3.3</ipaddress-version>
+    <snakeyaml-version>1.30</snakeyaml-version>
+
+    <zhttp-version>1.0.0.0-RC27</zhttp-version> <!-- used in datasources -->
 
     <!--
       These one must be updated to work together
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <cats-version>2.6.1</cats-version>
-    <specs2-version>4.12.3</specs2-version>
-    <doobie-version>0.13.4</doobie-version>
-    <fs2-version>2.5.0</fs2-version>
-    <http4s-version>1.0-232-85dadc2</http4s-version>
+    <specs2-version>4.15.0</specs2-version>
+    <junit-version>4.13.2</junit-version>
+    <cats-version>2.7.0</cats-version>
+    <doobie-version>1.0.0-RC2</doobie-version>
+    <fs2-version>3.2.4</fs2-version>
     <shapeless-version>2.3.7</shapeless-version>
-    <cats-effect-version>2.5.1</cats-effect-version>
+    <cats-effect-version>3.3.4</cats-effect-version>
     <dev-zio-version>1.0.10</dev-zio-version>
-    <zio-cats-version>2.3.1.0</zio-cats-version>
-    <zio-json-version>0.2.0-M1</zio-json-version>
+    <zio-cats-version>3.2.9.1</zio-cats-version> <!-- gives fs2 3.1.6, but doobie 1.0.0-RC1 is in 3.0.3 -->
+    <zio-json-version>0.2.0-M4</zio-json-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
