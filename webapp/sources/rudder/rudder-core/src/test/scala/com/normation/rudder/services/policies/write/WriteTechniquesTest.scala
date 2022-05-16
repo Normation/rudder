@@ -633,11 +633,11 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
     def changeRev(draft: BoundPolicyDraft, rev: Revision): BoundPolicyDraft = {
       // need to change in technique and policyId and all resources - usually, both depend from one other each other.
       draft
-        .modify(_.id.techniqueVersion.rev).setTo(rev)
-        .modify(_.technique.id.version.rev).setTo(rev)
+        .modify(_.id.techniqueVersion).using(_.withRevision(rev))
+        .modify(_.technique.id.version).using(_.withRevision(rev))
         .modify(_.technique.agentConfigs.each.templates.each.id).using {
           case TechniqueResourceIdByName(id, name)         =>
-            TechniqueResourceIdByName(id.modify(_.version.rev).setTo(rev), name)
+            TechniqueResourceIdByName(id.modify(_.version).using(_.withRevision(rev)), name)
           case TechniqueResourceIdByPath(parents, _, name) =>
             TechniqueResourceIdByPath(parents, rev, name)
         }
