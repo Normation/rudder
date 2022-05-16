@@ -404,9 +404,11 @@ class ProcessFile(
       // deduplicate and priorize file in 'incoming', which are new inventories. TakeAll is not blocking
       all <- saveInventoryBuffer.takeAll
       inv =  (fst::all).find { case (f,_) => f.parent == prioIncomingDir }.getOrElse(fst)
-      _   <- saveInventoryBuffer.offerAll(all.filterNot { case (f, _) => inv._1.name == f.name })
       // process
+      _ <- InventoryProcessingLogger.info(s"Received new inventory file '${inv._1.name}' with signature available: process.")
       _ <- sendToProcessorBlocking(inv._1, inv._2)
+      all2 <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
+      _    <- saveInventoryBuffer.offerAll((all++all2).filterNot { case (f, _) => inv._1.name == f.name })
     } yield ()
   }
   saveInventoryBufferProcessing.forever.forkDaemon.runNow
@@ -511,73 +513,42 @@ class ProcessFile(
   def processFile(file: File, locks: zio.Ref[Set[String]]): ZIO[Any, RudderError, Unit] = {
     // the ZIO program
     val prog = for {
-        _ <- InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
+      _ <- InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
       // We need to only try to do things on fully-written file.
       // The canonical way seems to be to try to get a write lock on the file and see if
       // it works. We assume that once we successfully get the lock, it means that
       // the file is written (so we can immediately release it).
-      _   <- if(file.name.endsWith(".gz")) {
-                val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
-                IOResult.effect {
-                  file.unGzipTo(dest)
-                  file.delete()
-                }
-              } else if(file.name.endsWith(sign)) { // a signature
-                val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
+      _ <- if(file.name.endsWith(".gz")) {
+             val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
+             InventoryProcessingLogger.debug(s"Dealing with zip file '${file.name}'") *>
+             IOResult.effect {
+               file.unGzipTo(dest)
+               file.delete()
+             }.unit
+           } else if(file.name.endsWith(sign)) { // a signature
+             val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
 
-                if(inventory.exists) {
-                  // process !
-                  InventoryProcessingLogger.info(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
-                  saveInventoryBuffer.offer((inventory, Some(file)))
-                } else {
-                  InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
-                }
-              } else { // an inventory
-                val signature = File(file.pathAsString+sign)
-                if(signature.exists) {
-                  // process !
-                  InventoryProcessingLogger.info(s"Watch new inventory file '${file.name}' with signature available: process.") *>
-                  saveInventoryBuffer.offer((file, Some(signature)))
-                } else { // wait for expiration time and exec without signature
-                  InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' without signature available: wait for it ${waitForSig.asJava.getSeconds}s before processing.") *>
-                  //check that the inventory file is still there and that the signature didn't come while waiting
-                  (for {
-                    exists <- IOResult.effect(file.exists).orElseSucceed(false)
-                    sig    <- IOResult.effect(signature.exists).orElseSucceed(false)
-                    _      <- (exists, sig) match {
-                      case (false, _    ) => ().succeed // do nothing
-                      case (true , false) => saveInventoryBuffer.offer((file, None))
-                      case (true , true ) => saveInventoryBuffer.offer((file, Some(signature)))
-                    }
-                  } yield ()).delay(waitForSig)
-                }
-              }
+             if(inventory.exists) {
+               // process !
+               InventoryProcessingLogger.debug(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
+               saveInventoryBuffer.offer((inventory, Some(file)))
+             } else {
+               InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+             }
+           } else { // an inventory
+             val signature = File(file.pathAsString+sign)
+             if(signature.exists) {
+               // process !
+               InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' with signature available: process.") *>
+               saveInventoryBuffer.offer((file, Some(signature)))
+             } else { // wait for expiration time and exec without signature
+               InventoryProcessingLogger.debug(s"Watch incoming inventory file '${file.pathAsString}' but no corresponding signature available: waiting")
+             }
+           }
     } yield ()
 
-    final case class Todo(canProcess: Boolean, lockName: String)
-
-    val lockName = if(file.name.endsWith(".gz") | file.name.endsWith(sign)) {
-      file.nameWithoutExtension(includeAll = false)
-    } else {
-      file.name
-    }
-
-    // limit one parallel exec of the program for a given inventory
-    val lockProg = for {
-      td <-  locks.modify( current => (current.contains(lockName), current + lockName) ).map(b => Todo(!b, lockName))
-
-      res <- if(td.canProcess) {
-               prog *>
-               locks.update(current => current - lockName)
-             } else {
-               InventoryProcessingLogger.debug(s"Not starting process of '${file.name}': already processing.")
-             }
-    } yield {
-      ()
-    }
-
     // run program for that input file.
-    lockProg.provide(ZioRuntime.environment)
+    prog
   }
 }
 
