@@ -11,5 +11,8 @@ RUN gzip -d elm.gz
 RUN chmod +x elm
 RUN mv elm /usr/local/bin/elm-0.19.1
 
+RUN apt-get update && apt-get install -y npm
+RUN npm install terser@5.13.1 -g
+
 # Make it temporary as elm fails on concurrent builds
 ENV ELM_HOME /tmp/

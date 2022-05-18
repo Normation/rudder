@@ -156,8 +156,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>bash</executable>
-              <commandlineArgs>src/main/elm/build-app.sh</commandlineArgs>
+              <executable>src/main/elm/build.sh</executable>
+              <commandlineArgs>--release</commandlineArgs>
             </configuration>
           </execution>
         </executions>

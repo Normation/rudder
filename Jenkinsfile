@@ -151,7 +151,7 @@ pipeline {
                     }
                     steps {
                         dir('webapp/sources/rudder/rudder-web/src/main/elm') {
-                            sh script: './build-app.sh', label: 'build elm apps'
+                            sh script: './build.sh', label: 'build elm apps'
                             dir('editor') {
                                 sh script: 'elm-test', label: 'run technique editor tests'
                             }

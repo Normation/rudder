@@ -334,7 +334,7 @@ The `Program` field value is the same for these 3 watchers
 
 ![File watcher setting](file_watcher2.png)
 
-Otherwise at every modification you will need to run the `src/main/elm/build-dev.sh` script in the module.
+Otherwise at every modification you will need to run the `src/main/elm/build.sh` script in the module.
 
 ## Setup technique editor
 
