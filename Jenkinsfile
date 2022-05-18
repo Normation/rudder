@@ -62,7 +62,8 @@ pipeline {
                     sh script: 'PATH="/opt/rudder/bin:$PATH" make test', label: 'test methods'
                 }
                 // clean leftover files owned by root anyway
-                sh script: 'git clean -fdx', label: 'cleanup'
+                sh script: 'rm -rf tests/acceptance/.succeeded', label: 'cleanup'
+                sh script: 'rm -rf tests/acceptance/.failed', label: 'cleanup'
             }
             post {
                 always {
