@@ -693,7 +693,7 @@ final case class RestExtractorService (
    * ] }
    */
 
-  private[this] def extractNodeProperty(json : JValue) : Box[NodeProperty] = {
+  def extractNodeProperty(json : JValue) : Box[NodeProperty] = {
     ( (json \ "name"), (json \ "value") ) match {
       case ( JString(nameValue), value ) =>
         val provider = (json \ "provider") match {

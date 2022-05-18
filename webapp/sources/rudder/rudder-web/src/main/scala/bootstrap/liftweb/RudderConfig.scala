@@ -1115,6 +1115,18 @@ object RudderConfig extends Loggable {
       nodeInfoService, cachedAgentRunRepository, readOnlySoftwareDAO, restExtractorService
     , () => configService.rudder_global_policy_mode().toBox, reportingServiceImpl, roNodeGroupRepository, roLDAPParameterRepository
   )
+
+  val nodeApiService16 = new NodeApiService15(
+      fullInventoryRepository
+    , rwLdap
+    , ldapEntityMapper
+    , newNodeManager
+    , stringUuidGenerator
+    , nodeDit
+    , pendingNodesDit
+    , acceptedNodesDit
+  )
+
   val parameterApiService2 =
     new ParameterApiService2 (
         roLDAPParameterRepository
@@ -1327,11 +1339,22 @@ object RudderConfig extends Loggable {
     )
   }
 
+  /*
+   * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
+   * of an existing endpoint, if done in a purely compatible way, don't change api version).
+   * It may happen that some rudder branches don't have a version bump, and other have several (in case of
+   * horrible breaking bugs). We avoid the case where a previous release need a version bump.
+   * For ex:
+   * - 7.0: 14
+   * - 7.1: 14 (no change)
+   * - 7.2[.0~.4]: 15
+   * - 7.2.5: 16
+   */
   val ApiVersions =
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
-    ApiVersion(16 , false) :: // rudder 7.2
+    ApiVersion(15 , false) :: // rudder 7.2
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1348,7 +1371,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeApiService16, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
       , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, stringUuidGenerator, resourceFileService)

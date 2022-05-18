@@ -39,12 +39,14 @@ package com.normation.rudder.rest
 
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.ldap.core.InventoryDit
@@ -63,10 +65,13 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
@@ -76,11 +81,16 @@ import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueReader
+import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -88,6 +98,9 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
+import com.normation.rudder.rest.data.Creation
+import com.normation.rudder.rest.data.Creation.CreationError
+import com.normation.rudder.rest.data.NodeSetup
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
@@ -108,6 +121,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigurations
 import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -161,19 +175,7 @@ import zio._
 import zio.duration._
 import zio.syntax._
 import com.normation.box._
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.policies.DirectiveId
-
 import com.normation.errors.IOResult
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
-
 import com.normation.zio._
 
 /*
@@ -589,6 +591,37 @@ class RestTestSetUp {
   val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )
+  // override ldap methods to use mock nodes
+  val nodeApiService16 = new NodeApiService15(nodeInfo, null, null, mockNodes.newNodeManager, uuidGen, null, null, null) {
+
+    override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
+      mockNodes.nodeInfoService.get(nodeId).map(_.nonEmpty).mapError(err =>
+        CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}")
+      ).unit
+    }
+
+    override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
+      mockNodes.nodeInfoService.save(inventory).mapBoth(
+          err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}")
+        , _   => inventory.node.main.id
+      )
+    }
+
+
+    override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
+      mockNodes.nodeInfoService.nodeBase.update { nodes =>
+
+        nodes.get(id) match {
+          case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail
+          case Some(n) =>
+            import com.softwaremill.quicklens._
+            val res = n.modify(_.info.node).using(x => mergeNodeSetup(x, setup))
+
+            (nodes + ((id, res))).succeed
+        }
+      }.map(_ => id)
+    }
+  }
 
   val parameterApiService2 = new ParameterApiService2(
       mockParameters.paramsRepo
@@ -622,12 +655,12 @@ class RestTestSetUp {
     , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, uuidGen, resourceFileService)
     , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
     , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
-    , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
+    , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, nodeApiService16, null, DeleteMode.Erase)
     , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
     , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
   )
 
-  val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: Nil
+  val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: ApiVersion(15 , false) :: Nil
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)

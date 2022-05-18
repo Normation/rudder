@@ -37,8 +37,102 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.rudder.UserService
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.NodeDetailLevel
+import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.logger.NodeLogger
+import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.WoNodeRepository
+import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.NotFoundError
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.RestUtils.effectiveResponse
+import com.normation.rudder.rest.RestUtils.toJsonError
+import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.data.Creation.CreationError
+import com.normation.rudder.rest.data.NodeDetailsSerialize
+import com.normation.rudder.rest.data.NodeSetup
+import com.normation.rudder.rest.data.NodeTemplate
+import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
+import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
+import com.normation.rudder.rest.data.Rest
+import com.normation.rudder.rest.data.Validation
+import com.normation.rudder.rest.data.Validation.NodeValidationError
+import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.{NodeApi => API}
+import com.normation.rudder.services.nodes.MergeNodeProperties
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.queries._
+import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.services.servers.NewNodeManager
+import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.utils.Control._
+import com.normation.utils.DateFormaterService
+import com.normation.utils.StringUuidGenerator
+
+import cats.data.Validated.Invalid
+import cats.data.Validated.Valid
+import cats.data.ValidatedNel
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.JsonResponse
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.OutputStreamResponse
+import net.liftweb.http.Req
+import net.liftweb.http.js.JsExp
+import net.liftweb.json.JArray
+import net.liftweb.json.JValue
+import net.liftweb.json.JsonAST.JDouble
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JInt
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.pair2jvalue
+import net.liftweb.json.JsonDSL.string2jvalue
+import org.joda.time.DateTime
+import scalaj.http.Http
+import scalaj.http.HttpOptions
 
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -49,84 +143,14 @@ import java.io.PipedOutputStream
 import java.net.ConnectException
 import java.nio.charset.StandardCharsets
 import java.util.Arrays
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentActor
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.WoNodeRepository
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.{NodeApi => API}
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.queries._
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.utils.Control._
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.OutputStreamResponse
-import net.liftweb.http.Req
-import net.liftweb.json.JArray
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonDSL.pair2jvalue
-import net.liftweb.json.JsonDSL.string2jvalue
-import scalaj.http.Http
-import scalaj.http.HttpOptions
-import com.normation.box._
-import com.normation.zio._
-import com.normation.errors._
-import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.domain.logger.NodeLogger
-import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
-import com.normation.rudder.domain.properties.CompareProperties
-import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.queries.QueryTrait
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
-import com.normation.rudder.rest.NotFoundError
-import com.normation.rudder.rest.RestUtils.effectiveResponse
-import com.normation.rudder.services.nodes.MergeNodeProperties
-import com.normation.rudder.services.servers.DeleteMode
-import com.normation.rudder.services.reports.ReportingService
-import com.normation.utils.DateFormaterService
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.js.JsExp
-import net.liftweb.json.JsonAST.JDouble
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JInt
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import zio.duration._
+
 import zio._
+import zio.duration._
 import zio.syntax._
+import com.normation.box._
+import com.normation.errors._
+import com.normation.zio._
+
 
 
 /*
@@ -144,9 +168,12 @@ class NodeApi (
   , apiV8service        : NodeApiService8
   , apiV12              : NodeApiService12
   , apiV13              : NodeApiService13
+  , apiV15              : NodeApiService15
   , inheritedProperties : NodeApiInheritedProperties
   , deleteDefaultMode   : DeleteMode
 ) extends LiftApiModuleProvider[API] {
+
+  val serializeNodeDetails = new NodeDetailsSerialize(restExtractorService)
 
   def schemas = API
 
@@ -160,7 +187,7 @@ class NodeApi (
       case API.DeleteNode                     => DeleteNode
       case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
       case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
-      case API.ApplyPolicyAllNodes            => ApplyPocicyAllNodes
+      case API.ApplyPolicyAllNodes            => ApplyPolicyAllNodes
       case API.UpdateNode                     => UpdateNode
       case API.ListAcceptedNodes              => ListAcceptedNodes
       case API.ApplyPolicy                    => ApplyPolicy
@@ -168,7 +195,47 @@ class NodeApi (
       case API.NodeDetailsTable               => NodeDetailsTable
       case API.NodeDetailsSoftware            => NodeDetailsSoftware
       case API.NodeDetailsProperty            => NodeDetailsProperty
+      case API.CreateNodes                    => CreateNodes
     })
+  }
+
+  /*
+   * Return a Json Object that list available backend,
+   * their state of configuration, and what are the current
+   * enabled ones.
+   */
+  object CreateNodes extends LiftApiModule0 { //
+    val schema        = API.CreateNodes
+    val restExtractor = restExtractorService
+
+    import ResultHolder._
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      import com.softwaremill.quicklens._
+      (for {
+        json  <- (req.json ?~! "This API only Accept JSON request").toIO
+        nodes <- serializeNodeDetails.parseAll(json)
+        res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) { case (res, node) =>
+                   apiV15.saveNode(node, authzToken.actor).either.map {
+                     case Right(id) => res.modify(_.created).using(_ :+ id)
+                     case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
+                   }
+                 }
+      } yield res).toBox match {
+        case Full(resultHolder) =>
+          // if all success, return success.
+          // Or if at least one is not failed, return success ?
+          val json = resultHolder.toJson()
+          if (resultHolder.failed.isEmpty) {
+            RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
+          } else {
+            RestUtils.toJsonError(None, json)(schema.name, params.prettify)
+          }
+        case eb: EmptyBox       =>
+          val err = eb ?~! "Error when trying to parse node creation request"
+          RestUtils.toJsonError(None, JString(err.messageChain))(schema.name, params.prettify)
+      }
+    }
   }
 
   object NodeDetails extends LiftApiModule {
@@ -262,7 +329,7 @@ class NodeApi (
         case Full(response) =>
           response
         case eb : EmptyBox =>
-          val fail = eb ?~! s"An error occured while updating Node '${id}'"
+          val fail = eb ?~! s"An error occurred while updating Node '${id}'"
           toJsonError(Some(id), fail.messageChain)
       }
     }
@@ -355,7 +422,7 @@ class NodeApi (
     }
   }
 
-  object ApplyPocicyAllNodes extends LiftApiModule0 {
+  object ApplyPolicyAllNodes extends LiftApiModule0 {
     val schema = API.ApplyPolicyAllNodes
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -424,7 +491,7 @@ class NodeApi (
           val status = {
             if(accepted.contains(id))     AcceptedInventory.name
             else if(pending.contains(id)) PendingInventory.name
-            else if(deleted.contains(id)) "deleted" // RemovedInventory would output "removed" which is inconsistant with other API
+            else if(deleted.contains(id)) "deleted" // RemovedInventory would output "removed" which is inconsistent with other API
             else                          "unknown"
           }
           JObject(JField("id", id) :: JField("status", status) :: Nil)
@@ -469,7 +536,7 @@ class NodeApi (
         response
       }) match {
         case Full(res) => res
-        case eb: EmptyBox =>  JsonResponse(JObject(JField("error", (eb ?~! s"An error occurred while fetching verions of '${software}' software for nodes").messageChain)))
+        case eb: EmptyBox =>  JsonResponse(JObject(JField("error", (eb ?~! s"An error occurred while fetching versions of '${software}' software for nodes").messageChain)))
       }
     }
   }
@@ -518,10 +585,6 @@ class NodeApiInheritedProperties(
       ) :: Nil)
     }
   }
-
-
-
-
 }
 
 class NodeApiService12(
@@ -542,6 +605,131 @@ class NodeApiService12(
       case eb: EmptyBox => val message = (eb ?~ ("Error when deleting Nodes")).msg
         toJsonError(None, message)
     }
+  }
+}
+class NodeApiService15(
+    inventoryRepos      : LDAPFullInventoryRepository
+  , ldapConnection      : LDAPConnectionProvider[RwLDAPConnection]
+  , ldapEntityMapper    : LDAPEntityMapper
+  , newNodeManager      : NewNodeManager
+  , uuidGen             : StringUuidGenerator
+  , nodeDit             : NodeDit
+  , pendingDit          : InventoryDit
+  , acceptedDit         : InventoryDit
+) {
+  /// utility functions ///
+
+  /*
+   * for a given nodedetails, we:
+   * - try to convert it to inventory/node setup info
+   * - save inventory
+   * - if needed, accept
+   * - now, setup node info (property, state, etc)
+   */
+  def saveNode(nodeDetails: Rest.NodeDetails, eventActor: EventActor): IO[CreationError, NodeId] = {
+    def toCreationError(res: ValidatedNel[NodeValidationError, NodeTemplate]) = {
+      res match {
+        case Invalid(nel) => CreationError.OnValidation(nel).fail
+        case Valid(r)     => r.succeed
+      }
+    }
+
+    for {
+      validated <- toCreationError(Validation.toNodeTemplate(nodeDetails))
+      _         <- checkUuid(validated.inventory.node.main.id)
+      created   <- saveInventory(validated.inventory)
+      nodeSetup <- accept(validated, eventActor)
+      nodeId    <- saveRudderNode(validated.inventory.node.main.id, nodeSetup)
+    } yield {
+      nodeId
+    }
+  }
+
+  /*
+   * You can't use an existing UUID (neither pending nor accepted)
+   */
+  def checkUuid(nodeId: NodeId): IO[CreationError, Unit] = {
+    // we don't want a node in pending/accepted
+    def inventoryExists(con: RwLDAPConnection, id:NodeId) = {
+      ZIO.foldLeft(Seq((acceptedDit, AcceptedInventory), (pendingDit, PendingInventory)))(Option.empty[InventoryStatus]) { case(current, (dit, s)) =>
+        current match {
+          case None    => con.exists(dit.NODES.NODE.dn(id)).map(exists => if(exists) Some(s) else None)
+          case Some(v) => Some(v).succeed
+        }
+      }.flatMap {
+        case None => // ok, it doesn't exists
+          UIO.unit
+        case Some(s) => // oups, already present
+          Inconsistency(s"A node with id '${nodeId.value}' already exists with status '${s.name}'").fail
+      }
+    }
+
+    (for {
+      con <- ldapConnection
+      _   <- inventoryExists(con, nodeId)
+    } yield ()).mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
+  }
+
+  /*
+   * Save the inventory part. Always save in "pending", acceptation
+   * is done afterward if needed.
+   */
+  def saveInventory(inventory: FullInventory): IO[CreationError, NodeId] = {
+    inventoryRepos.save(inventory).map(_ => inventory.node.main.id).mapError(err => CreationError.OnSaveInventory(s"Error during node creation: ${err.fullMsg}"))
+  }
+
+  def accept(template: NodeTemplate, eventActor: EventActor): IO[CreationError, NodeSetup] = {
+    val id = template.inventory.node.main.id
+
+    // only nodes with status "accepted" need to be accepted
+    template match {
+      case AcceptedNodeTemplate(_, properties, policyMode, state) =>
+        newNodeManager.accept(id, ModificationId(uuidGen.newUuid), eventActor).toIO.mapError(err => CreationError.OnAcceptation((s"Can not accept node '${id.value}': ${err.fullMsg}"))) *>
+        NodeSetup(properties, policyMode, state).succeed
+      case PendingNodeTemplate(_, properties) =>
+        NodeSetup(properties, None, None).succeed
+    }
+  }
+
+  def mergeNodeSetup(node: Node, changes: NodeSetup): Node = {
+    import com.softwaremill.quicklens._
+
+    // for properties, we don't want to modify any of the existing one because
+    // we were put during acceptation (or since node is live).
+    val keep = node.properties.map(p => (p.name, p)).toMap
+    val user = changes.properties.map(p => (p.name, p)).toMap
+    // override user prop with keep
+    val properties = (user ++ keep).values.toList
+
+    node.modify(_.policyMode).using(x => changes.policyMode.fold(x)(Some(_)))
+      .modify(_.state     ).using(x => changes.state.fold(x)(identity))
+      .modify(_.properties).setTo(properties)
+  }
+
+  /*
+   * Save rudder node part. Must be done after acceptation if
+   * acceptation is needed. If no acceptation is wanted, then
+   * we provide a default node context but we can't ensure that
+   * policyMode / node state will be set (validation must forbid that)
+   */
+  def saveRudderNode(id: NodeId, setup: NodeSetup): IO[CreationError, NodeId] = {
+    // a default Node
+    def default() = Node(id, id.value, "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None)
+
+    (for {
+      ldap    <- ldapConnection
+      // try t get node
+      entry   <- ldap.get(nodeDit.NODES.NODE.dn(id.value), NodeInfoService.nodeInfoAttributes:_*)
+      current <- entry match {
+        case Some(x) => ldapEntityMapper.entryToNode(x).toIO
+        case None    => default().succeed
+      }
+      merged  =  mergeNodeSetup(current, setup)
+      // we ony want to touch things that were asked by the user
+      nSaved  <- ldap.save(ldapEntityMapper.nodeToEntry(merged))
+    } yield {
+      merged.id
+    }).mapError(err => CreationError.OnSaveNode(s"Error during node creation: ${err.fullMsg}"))
   }
 }
 
@@ -639,7 +827,7 @@ class NodeApiService13 (
       ~  ("os"                  -> nodeInfo.osDetails.fullName)
       ~  ("state"               -> nodeInfo.state.name)
       ~  ("compliance"          -> userCompliance )
-      ~ ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
+      ~  ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
       ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
       ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
@@ -1167,7 +1355,7 @@ class NodeApiService8 (
       }
     }
 
-    def errorMessageWithHint(s: String) = s"Error occured when contacting internal remote-run API to apply classes on Node '${nodeId.value}': ${s}"
+    def errorMessageWithHint(s: String) = s"Error occurred when contacting internal remote-run API to apply classes on Node '${nodeId.value}': ${s}"
 
     // buffer size for file I/O
     val pipeSize = 4096
@@ -1182,7 +1370,7 @@ class NodeApiService8 (
         _   <- NodeLoggerPure.debug(s"Executing remote run call: ${request.toString}")
         opt <- IOResult.effect {
                 request.exec{ case (status,headers,is) =>
-                  NodeLogger.debug(s"Processing remore-run on ${nodeId.value}: HTTP status ${status}") // this one is written two times - why ??
+                  NodeLogger.debug(s"Processing remote-run on ${nodeId.value}: HTTP status ${status}") // this one is written two times - why ??
                   if (status >= 200 && status < 300) {
                     copyStreamTo(pipeSize, is)(os)
                   } else {
@@ -1222,7 +1410,7 @@ class NodeApiService8 (
       out <- IOResult.effect(new PipedOutputStream(in))
       _   <- NodeLoggerPure.trace("remote-run: reading stream from remote API")
       _   <- copy(out, readTimeout).forkDaemon // read from HTTP request
-      res <- IOResult.effect(copyStreamTo(pipeSize, in) _) // give the writter function waiting for out
+      res <- IOResult.effect(copyStreamTo(pipeSize, in) _) // give the writer function waiting for out
       // don't close out here, it was closed inside `copy`
     } yield res).catchAll { err =>
       NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *>
@@ -1249,7 +1437,7 @@ class NodeApiService8 (
                 if (result.isSuccess) {
                   "Started"
                 } else {
-                  s"An error occured when applying policy on Node '${node.id.value}', cause is: ${result.body}"
+                  s"An error occurred when applying policy on Node '${node.id.value}', cause is: ${result.body}"
                 }
               } catch {
                 case ex: ConnectException =>

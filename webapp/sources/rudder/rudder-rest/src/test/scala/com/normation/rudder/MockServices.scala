@@ -46,92 +46,89 @@ import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.reports._
-import com.normation.rudder.repository._
-import com.normation.rudder.rule.category._
-import com.normation.rudder.services.policies.SystemVariableServiceImpl
-import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
-import com.normation.utils.StringUuidGeneratorImpl
-
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import better.files._
-
-import zio.{Tag => _, _}
-import zio.syntax._
-import com.normation.errors._
 import com.normation.inventory.domain.AgentType.CfeCommunity
-
-import com.normation.zio._
-import com.normation.rudder.domain.archives.RuleArchiveId
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.rudder.services.policies.ParameterForConfiguration
-import com.normation.rudder.services.policies.Policy
-
-import org.joda.time.format.ISODateTimeFormat
-
-import scala.annotation.tailrec
-import scala.collection.SortedMap
-
-import com.normation.box._
+import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
-import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
+import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.eventlog
-import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.reports._
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.repository._
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.rule.category._
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.NodeConfiguration
+import com.normation.rudder.services.policies.ParameterForConfiguration
+import com.normation.rudder.services.policies.Policy
+import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.NewNodeManager
+import com.normation.rudder.services.servers.NewNodeManagerHooks
 import com.normation.rudder.services.servers.PolicyServer
+import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.DateFormaterService
+import com.normation.utils.StringUuidGeneratorImpl
 
+import better.files._
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldif.LDIFChangeRecord
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
+import scala.annotation.tailrec
+import scala.collection.SortedMap
 import scala.collection.immutable
 import scala.util.control.NonFatal
 import scala.xml.Elem
+
+import zio.syntax._
+import zio.{Tag => _, _}
+import com.normation.box._
+import com.normation.errors.IOResult
+import com.normation.errors._
+import com.normation.zio._
 
 /*
  * Mock services for test, especially reposositories, and provides
@@ -1528,9 +1525,38 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] = getGenericAll(inventoryStatus, _fullInventory)
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 
+    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = {
+
+      // logic is in LDAPEntityMapper#inventoryEntriesToNodeInfos
+      def mainFromInventory(inv: FullInventory): NodeInfo = {
+        NodeInfo(
+            Node(inv), inv.node.main.hostname
+          , inv.machine.map(m => MachineInfo(m.id, m.machineType, m.systemSerialNumber, m.manufacturer))
+          , inv.node.main.osDetails
+          , inv.node.serverIps.toList
+          , inv.node.inventoryDate.getOrElse(new DateTime(0))
+          , inv.node.main.keyStatus
+          , inv.node.agents
+          , inv.node.main.policyServerId
+          , inv.node.main.rootUser
+          , inv.node.archDescription
+          , inv.node.ram
+          , inv.node.timezone
+        )
+      }
+      val id = serverAndMachine.node.main.id
+
+      nodeBase.update(nodes => (nodes.get(id) match {
+        case None => // new node
+          nodes + ((id, NodeDetails(mainFromInventory(serverAndMachine), serverAndMachine.node, serverAndMachine.machine)))
+        case Some(NodeDetails(m, nInv, mInv)) => // only update inventory
+          nodes + ((id, NodeDetails(m, serverAndMachine.node, serverAndMachine.machine)))
+      }).succeed).map(_ => Nil)
+    }
+
     // not implemented yet
     override def getNumberOfManagedNodes: Int = ???
-    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = ???
+
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
     override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
     override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
@@ -1649,6 +1675,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   object queryProcessor extends QueryProcessor {
     import com.normation.inventory.ldap.core.LDAPConstants._
     import com.normation.rudder.domain.RudderLDAPConstants._
+
     import cats.implicits._
 
     //return the value to corresponding to the given object/attribute
@@ -1730,6 +1757,42 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }.toBox
 
     override def processOnlyId(query: QueryTrait): Box[Set[NodeId]] = process(query).map(_.map(_.id).toSet)
+  }
+
+  object newNodeManager extends NewNodeManager {
+    def nodeToSrv(n: NodeDetails): Srv = {
+      Srv(n.nInv.main.id, n.nInv.main.status, n.nInv.main.hostname
+        , n.nInv.main.osDetails.os.kernelName, n.nInv.main.osDetails.os.name, n.nInv.main.osDetails.fullName,
+        n.info.ips, n.info.creationDate, n.info.isPolicyServer)
+    }
+    override def listNewNodes: Box[Seq[Srv]] = {
+      for {
+        nodes   <- nodeInfoService.nodeBase.get
+        pending =  nodes.toList.collect { case (id, n@NodeDetails(info, nInv, mInv)) if(nInv.main.status == PendingInventory) => nodeToSrv(n) }
+      } yield pending
+    } .toBox
+
+    override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+      (nodeInfoService.nodeBase.modify { nodes =>
+        nodes.get(id) match {
+          case None    => Inconsistency(s"node is missing").fail
+          case Some(x) =>
+            import com.softwaremill.quicklens._
+            val xx = x.modify(_.nInv.main.status).setTo(AcceptedInventory)
+            (FullInventory(xx.nInv, xx.mInv), nodes + ((id, xx))).succeed
+        }
+      }).toBox
+    }
+
+    override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = ???
+
+    override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = ???
+
+    override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = ???
+
+    override def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit = ???
+
+    override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = ???
   }
 }
 

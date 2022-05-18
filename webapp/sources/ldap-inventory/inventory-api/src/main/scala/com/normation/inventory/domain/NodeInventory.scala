@@ -317,6 +317,113 @@ final case class Windows(
   , productId                  : Option[String] = None
 ) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
 
+
+object ParseOSType {
+
+  def getType(osType: String, osName: String, fullName: String): OsType = {
+    (osType, osName) match {
+        case ("mswin32", _ ) =>
+          val x = fullName.toLowerCase
+          //in windows, relevant information are in the fullName string
+          if     (x contains  "xp"     )   WindowsXP
+          else if(x contains  "vista"  )   WindowsVista
+          else if(x contains  "seven"  )   WindowsSeven
+          else if(x contains  "10"  )      Windows10
+          else if(x contains  "2000"   )   Windows2000
+          else if(x contains  "2003"   )   Windows2003
+          else if(x contains  "2008 r2")   Windows2008R2 //must be before 2008 for obvious reason
+          else if(x contains  "2008"   )   Windows2008
+          else if(x contains  "2012 r2")   Windows2012R2
+          else if(x contains  "2012"   )   Windows2012
+          else if(x contains  "2016 r2")   Windows2016R2
+          else if(x contains  "2016"   )   Windows2016
+          else if(x contains  "2019"   )   Windows2019
+          else                             UnknownWindowsType
+
+        case ("linux"  , x ) =>
+          if     (x contains "debian"      ) Debian
+          else if(x contains "ubuntu"      ) Ubuntu
+          else if(x contains "kali"        ) Kali
+          else if(x contains "redhat"      ) Redhat
+          else if(x contains "centos"      ) Centos
+          else if(x contains "fedora"      ) Fedora
+          else if(x contains "suse"        ) Suse
+          else if(x contains "android"     ) Android
+          else if(x contains "oracle"      ) Oracle
+          else if(x contains "scientific"  ) Scientific
+          else if(x contains "slackware"   ) Slackware
+          else if(x contains "mint"        ) Mint
+          else if(x contains "amazon linux") AmazonLinux
+          else if(x contains "rocky"       ) RockyLinux
+          else if(x contains "almalinux"   ) AlmaLinux
+          else                               UnknownLinuxType
+
+        case("solaris", _) => SolarisOS
+
+        case("aix", _) => AixOS
+
+        case ("freebsd", _) => FreeBSD
+
+        case _  => UnknownOSType
+      }
+  }
+
+  def getDetails(osType: OsType, fullName: String, version: Version, servicePack: Option[String], kernelVersion: Version): OsDetails = {
+      osType match {
+        case w:WindowsType =>
+          Windows(
+              os = w
+            , fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+            , userDomain = None
+            , registrationCompany = None
+            , productId = None
+            , productKey = None
+          )
+
+        case distrib:LinuxType =>
+          Linux(
+              os = distrib
+            , fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case FreeBSD =>
+          Bsd(
+              os = FreeBSD
+            , fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case SolarisOS =>
+          Solaris(
+              fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case AixOS =>
+
+          Aix(
+              fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case _  => UnknownOS(fullName, version, servicePack, kernelVersion)
+      }
+  }
+}
+
+
 final case class NodeSummary(
     id : NodeId
   , status:InventoryStatus

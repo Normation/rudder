@@ -957,10 +957,10 @@ class NodeInfoServiceCachedImpl(
    * and inventory nodes under ou=RemovedInventories
    *  Reason:
    * - only these three entries are used for node info (and none of their
-   *   subentries)
+   *   sub-entries)
    * - if a node is deleted, it either go to RemovedInventories (and so the
    *   machine, but we don't care as soon as we know a node went there) and we
-   *   will see its based on modifity timestamps, or if "node full erase" is enabled,
+   *   will see its based on modify timestamps, or if "node full erase" is enabled,
    *   a special call to "remove node from cache" must be done
    * - for ou=Node, all modifications happen in the entry, so the modifyTimestamp
    *   is changed accordingly.
@@ -981,8 +981,8 @@ class NodeInfoServiceCachedImpl(
    * at least one exists.
    *
    * A cleaner implementation could use a two persistent search which would notify
-   * when a cache becomes invalide and reset it, but the rationnal for that implementation is:
-   * - it's extremelly simple to understand the logic (if(cache is uptodate) use it else update cache)
+   * when a cache becomes invalid and reset it, but the rational for that implementation is:
+   * - it's extremely simple to understand the logic (if(cache is up-to-date) use it else update cache)
    * - most of the time (99.99% of it), the search will return 0 result and will be cache on OpenLDAP,
    *   whatever the number of entries. So we talking of a request taking a couple of ms on the server
    *   (with a vagrant VM on the same host (so, almost no network), it takes from client to server and
