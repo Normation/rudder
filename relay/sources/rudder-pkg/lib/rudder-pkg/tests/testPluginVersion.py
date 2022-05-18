@@ -1,4 +1,4 @@
-from rpkg import PluginVersion, WebappVersion
+from rpkg import PluginVersion, WebappVersion, Rpkg
 from distutils.version import LooseVersion, StrictVersion
 import unittest
 from parameterized import parameterized
@@ -66,6 +66,26 @@ class TestPluginVersion(unittest.TestCase):
             '{vleft} < {vright} could not be verified'.format(vleft=a, vright=b),
         )
 
+
+class TestRpkg(unittest.TestCase):
+    @parameterized.expand(
+        [
+            ['7.0.0-1.0', '7.0.1-1.0'],
+            ['7.0.0~alpha2-1.0', '7.0.0~alpha3-1.0'],
+            ['7.0.0-1.0', '7.0.0-1.1'],
+            ['6.3.2-1.0', '6.3.3-1.0'],
+            ['6.3.2-1.0-nightly', '6.3.3-1.0'],
+            ['6.0.0-1.0-SNAPSHOT', '6.0.0-1.0'],
+            ['5.0-1.1-SNAPSHOT', '6.0.0-1.0'],
+        ]
+    )
+    def test_less(self, a, b):
+        self.assertLess(
+            Rpkg("long","short", "path", PluginVersion(a),None),
+
+            Rpkg("long","short", "path", PluginVersion(b),None),
+            '{vleft} < {vright} could not be verified'.format(vleft=a, vright=b),
+        )
 
 if __name__ == '__main__':
     unittest.main()
