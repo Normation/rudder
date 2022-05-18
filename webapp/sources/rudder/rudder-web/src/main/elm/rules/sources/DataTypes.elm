@@ -230,10 +230,13 @@ type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu,
 
 type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
+type alias RuleNodesDirectives = { id: String, numberOfNodes: Int, numberOfDirectives: Int }
+
 type Mode
   = Loading
   | RuleTable
   | RuleForm RuleDetails
+  | RuleNodesDirectivesCount RuleNodesDirectives
   | CategoryForm CategoryDetails
 
 type SortBy
@@ -311,6 +314,7 @@ type Msg
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetCategoryDetailsResult (Result Error (Category Rule))
+  | GetRuleNodesDirectivesResult (Result Error RuleNodesDirectives)
   | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
   | GetRuleComplianceResult  RuleId (Result Error RuleCompliance)
   | GetNodesList             (Result Error (List NodeInfo))

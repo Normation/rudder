@@ -116,6 +116,14 @@ decodeStatus =
     |> required "value"    string
     |> optional "details" (maybe string) Nothing
 
+
+decodeRuleNodesDirective : Decoder RuleNodesDirectives
+decodeRuleNodesDirective =
+  succeed RuleNodesDirectives
+      |> required "id"                 string
+      |> required "numberOfNodes"      int
+      |> required "numberOfDirectives" int
+
 -- COMPLIANCE
 decodeGetRulesCompliance : Decoder (List RuleComplianceGlobal)
 decodeGetRulesCompliance =

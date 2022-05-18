@@ -167,6 +167,21 @@ update msg model =
         Err err ->
           processApiError "Getting changes" err model
 
+    GetRuleNodesDirectivesResult id res ->
+      case res of
+        Ok r ->
+          case model.mode of
+            RuleNodesDirectivesCount details   ->
+              let
+                 newDetails = {details | numberOfNodes   = Just r}
+              in
+                 ({model | mode = RuleForm newDetails }, Cmd.none)
+             _ ->
+               (model, Cmd.none)
+        Err err ->
+         processApiError ("Getting rule nodes and directives of Rule "++ id.value) err model
+
+
     GetRuleComplianceResult id res ->
       case res of
         Ok r ->
