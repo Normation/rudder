@@ -13,9 +13,14 @@
   $local_classes = New-ClassContext
   $resources_dir = $PSScriptRoot + "\resources"
 
-  $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -componentName "Customized component" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+  $class = "(debian)"
+  if (Evaluate-Class $class $local_classes $system_classes) {
+    $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -componentName "Customized component" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+  } else {
+    _rudder_common_report_na -componentName "Customized component" -componentKey "$($node.properties[apache_package_name])" -message "Not applicable" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+  }
 
-  $class = "windows"
+  $class = "(debian.windows)"
   if (Evaluate-Class $class $local_classes $system_classes) {
     $local_classes = Merge-ClassContext $local_classes $(Command-Execution -Command "Write-Host `"testing special characters ` è &é 'à é `"" -componentName "Command execution" -Report:$false -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
   } else {
