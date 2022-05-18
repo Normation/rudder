@@ -705,7 +705,7 @@ def list_plugin_name():
 
 CONFIG_PATH = '/opt/rudder/etc/rudder-pkg/rudder-pkg.conf'
 FOLDER_PATH = '/var/rudder/tmp/plugins'
-VERSIONS_PATH = '/opt/rudder/share/versions/rudder-version'
+VERSIONS_PATH = '/opt/rudder/share/versions/rudder-server-version'
 INDEX_PATH = FOLDER_PATH + '/rpkg.index'
 GPG_HOME = '/opt/rudder/etc/rudder-pkg'
 GPG_RUDDER_KEY = '/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub'
