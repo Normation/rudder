@@ -92,8 +92,12 @@ import scalaj.http.HttpOptions
 import com.normation.box._
 import com.normation.zio._
 import com.normation.errors._
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.RenderInheritedProperties
+import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -111,7 +115,9 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.NotFoundError
+import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.servers.DeleteMode
@@ -119,6 +125,7 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.utils.DateFormaterService
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.js.JsExp
+import net.liftweb.json.JString
 import net.liftweb.json.JsonAST.JDouble
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
@@ -144,6 +151,7 @@ class NodeApi (
   , apiV8service        : NodeApiService8
   , apiV12              : NodeApiService12
   , apiV13              : NodeApiService13
+  , apiV15              : NodeApiService15
   , inheritedProperties : NodeApiInheritedProperties
   , deleteDefaultMode   : DeleteMode
 ) extends LiftApiModuleProvider[API] {
@@ -168,8 +176,45 @@ class NodeApi (
       case API.NodeDetailsTable               => NodeDetailsTable
       case API.NodeDetailsSoftware            => NodeDetailsSoftware
       case API.NodeDetailsProperty            => NodeDetailsProperty
+      case API.CreateNode                     => CreateNode
     })
   }
+
+  /*
+   * Return a Json Object that list available backend,
+   * their state of configuration, and what are the current
+   * enabled ones.
+   */
+  object CreateNodes extends LiftApiModule0 { //
+    val schema = API.CreateNode
+    val restExtractor = restExtractorService
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        json    <- (req.json ?~! "This API only Accept JSON request").toIO
+        nodes   <- Serialize.parseAll(json)
+      } yield {
+        import com.softwaremill.quicklens._
+        nodes.foldLeft(ResultHolder(Nil, Nil)) { case (res, node) =>
+          // now, try to save each node
+          ZioRuntime.unsafeRun(saveNode(node, authzToken.actor).either) match {
+            case Right(id) => res.modify(_.created).using(_ :+id)
+            case Left(err) => res.modify(_.failed ).using(_ :+ ((node.id, err)) )
+          }
+        }
+      }).toBox match {
+        case Full(resultHolder) =>
+          // if all succes, return success.
+          // Or if at least one is not failed, return success ?
+          if(resultHolder.failed.isEmpty) {
+            RestUtils.toJsonResponse(None, resultHolder.toJson())(schema.name, params.prettify)
+          } else {
+            RestUtils.toJsonError(None, resultHolder.toJson())(schema.name, params.prettify)
+          }
+        case eb: EmptyBox =>
+          val err = eb ?~! "Error when trying to parse node creation request"
+          RestUtils.toJsonError(None, JString(err.messageChain))(schema.name, params.prettify)
+      }
+    }
 
   object NodeDetails extends LiftApiModule {
     val schema = API.NodeDetails
@@ -1268,5 +1313,19 @@ class NodeApiService8 (
       JArray(res)
     }
   }
+
+}
+
+class NodeApiService15(
+  restExtractorService: RestExtractorService
+  , inventoryRepos      : LDAPFullInventoryRepository
+  , ldapConnection      : LDAPConnectionProvider[RwLDAPConnection]
+  , ldapEntityMapper    : LDAPEntityMapper
+  , newNodeManager      : NewNodeManager
+  , uuidGen             : StringUuidGenerator
+  , nodeDit             : NodeDit
+  , pendingDit          : InventoryDit
+  , acceptedDit         : InventoryDit
+) extends Loggable {
 
 }

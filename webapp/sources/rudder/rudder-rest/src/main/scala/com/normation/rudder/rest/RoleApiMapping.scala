@@ -110,7 +110,7 @@ final case object OnlyAdmin extends AuthorizationApiMapping {
                                      SettingsApi.GetAllowedNetworks.x :: SettingsApi.GetAllAllowedNetworks.x :: InfoApi.endpoints.map(_.x)
         case Administration.Write => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
                                      InventoryApi.FileWatcherRestart.x :: InventoryApi.FileWatcherStart.x :: InventoryApi.FileWatcherStop.x ::
-                                     SystemApi.endpoints.map(_.x)
+                                     NodeApi.CreateNode.x :: SystemApi.endpoints.map(_.x)
         case Administration.Edit  => PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
                                      SettingsApi.ModifyAllowedNetworks.x :: SettingsApi.ModifyDiffAllowedNetworks.x ::
                                      Nil
