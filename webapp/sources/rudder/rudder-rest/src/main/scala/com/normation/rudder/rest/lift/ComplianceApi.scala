@@ -249,7 +249,7 @@ class ComplianceAPIService(
     val computedLevel = level.getOrElse(10)
     val t1 = System.currentTimeMillis()
     for {
-      groupLib      <- nodeGroupRepo.getFullGroupLibrary().toBox
+      allGroups      <- nodeGroupRepo.getAllNodeIds().toBox
       t2             = System.currentTimeMillis()
       _              = logger.trace(s"getByRulesCompliance - getFullGroupLibrary in ${t2 - t1} ms")
 
@@ -352,7 +352,7 @@ class ComplianceAPIService(
         } else {
           rulesWithoutCompliance.toSeq.map { case ruleId =>
             val rule = ruleObjects(ruleId) // we know by construct that it exists
-            val nodeIds = groupLib.getNodeIds(rule.targets, nodeInfos)
+            val nodeIds = RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, nodeInfos)
             ByRuleRuleCompliance(
                 rule.id
                 , rule.name
@@ -402,7 +402,7 @@ class ComplianceAPIService(
 
     for {
       rules        <- rulesRepo.getAll().toBox
-      groupLib     <- nodeGroupRepo.getFullGroupLibrary().toBox
+      allGroups    <- nodeGroupRepo.getAllNodeIds().toBox
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives).toBox
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
@@ -417,7 +417,7 @@ class ComplianceAPIService(
 
       //get nodeIds by rules
       val nodeByRules = rules.map { rule =>
-        (rule, groupLib.getNodeIds(rule.targets, allNodeInfos) )
+        (rule, RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, allNodeInfos) )
       }
 
       val ruleMap = rules.map(r => (r.id,r)).toMap

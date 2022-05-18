@@ -337,16 +337,29 @@ class RoLDAPNodeGroupRepository(
   }
 
   def getAll(): IOResult[Seq[NodeGroup]] = {
-    groupLibMutex.readLock { for {
-      con    <- ldap
+    for {
+      con     <- ldap
       //for each directive entry, map it. if one fails, all fails
-      entries <- con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))
+      entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP)) }
       groups  <- ZIO.foreach(entries)( groupEntry =>
                    mapper.entry2NodeGroup(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
                  )
     } yield {
       groups
-    } }
+    }
+  }
+
+  def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = {
+    for {
+      con     <- ldap
+      //for each directive entry, map it. if one fails, all fails
+      entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP)) }
+      groups  <- ZIO.foreach(entries)( groupEntry =>
+        mapper.entryToGroupNodeIds(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+      )
+    } yield {
+      groups.toMap
+    }
   }
 
   private[this] def findGroupWithFilter(filter:Filter) : IOResult[Seq[NodeGroupId]] = {
@@ -437,7 +450,7 @@ class RoLDAPNodeGroupRepository(
     groupLibMutex.readLock( for {
       con     <- ldap
       entries <- con.getTree(rudderDit.GROUP.dn).notOptional("The root category of the node group library seems to be missing in LDAP directory. Please check its content")
-    } yield {
+    } yield  entries ).map { entries =>
       val allMaps =  entries.toSeq.foldLeft(emptyAll) { case (current, e) =>
          if(isACategory(e)) {
            mapper.entry2NodeGroupCategory(e) match {
@@ -475,8 +488,9 @@ class RoLDAPNodeGroupRepository(
       }
 
       fromCategory(NodeGroupCategoryId(rudderDit.GROUP.rdnValue._1), allMaps)
-    })
+    }
   }
+
 }
 
 class WoLDAPNodeGroupRepository(

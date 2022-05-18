@@ -217,11 +217,10 @@ function doughnutChart (id,data,count,colors) {
                   case 'nodeAgents':
                       query.query.where = [{
                           objectType: "software"
-                        , attribute : "cn"
-                        , comparator: "eq"
-                        , value     : "rudder-agent"
+												 , attribute : "cn"
+												 , comparator: "regex"
+												 , value     : "rudder-agent|Rudder agent \\(DSC\\)"
                       },{
-
                           objectType: "software"
                         , attribute : "softwareVersion"
                         , comparator: "regex"

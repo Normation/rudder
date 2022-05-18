@@ -268,6 +268,12 @@ object RudderConfig extends Loggable {
   val hiddenRegisteredProperties = scala.collection.mutable.Buffer[String]()
   hiddenRegisteredProperties += "rudder.dir.licensesFolder"
 
+  // auth backend is init too late to have a chance to hide its values, which is a bit sad.
+  // We still need to make invisible all oauth/oidc client secret
+  hiddenRegisteredProperties ++= {
+    import scala.jdk.CollectionConverters._
+    config.entrySet().asScala.map(_.getKey).filter(s => s.startsWith("rudder.auth.oauth2.provider") && s.endsWith("client.secret"))
+  }
   //other values
 
   val LDAP_HOST = config.getString("ldap.host")

@@ -1384,7 +1384,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )).runNow
 
     def getGenericOne[A](id: NodeId, status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Option[A]] = {
-      nodeBase.get.map(_.collectFirst { case(id, n) if (id == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
+      nodeBase.get.map(_.collectFirst { case(i, n) if (i == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
     }
     def getGenericAll[A](status: InventoryStatus, f:NodeDetails => Option[A]): IOResult[Map[NodeId, A]] = {
       nodeBase.get.map(_.collect { case(id, n) if(n.nInv.main.status == status && f(n).isDefined) => (id, f(n).get) })
@@ -1740,6 +1740,8 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       } yield cat
     }
     override def getAll(): IOResult[Seq[NodeGroup]] = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
+
+    override def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = categories.get.map(_.allGroups.values.map(_.nodeGroup).map(g => (g.id, g.serverList)).toMap)
 
     override def getGroupsByCategory(includeSystem: Boolean): IOResult[immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
       def getChildren(parents: List[NodeGroupCategoryId], root: FullNodeGroupCategory) : immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
