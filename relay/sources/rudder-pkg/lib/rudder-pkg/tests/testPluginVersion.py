@@ -81,11 +81,11 @@ class TestRpkg(unittest.TestCase):
     )
     def test_less(self, a, b):
         self.assertLess(
-            Rpkg("long","short", "path", PluginVersion(a),None),
-
-            Rpkg("long","short", "path", PluginVersion(b),None),
+            Rpkg('long', 'short', 'path', PluginVersion(a), None),
+            Rpkg('long', 'short', 'path', PluginVersion(b), None),
             '{vleft} < {vright} could not be verified'.format(vleft=a, vright=b),
         )
+
 
 if __name__ == '__main__':
     unittest.main()
