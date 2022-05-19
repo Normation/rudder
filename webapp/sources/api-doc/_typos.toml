@@ -1,0 +1,4 @@
+[default.extend-words]
+# sadly those are part of the APIs...
+commiter = "commiter"
+Informations = "Informations"

@@ -26,7 +26,7 @@ Since _language_ OS list is composed of `enums`, it meets the requirements that 
 - _sub-enums_ that expand their parent item: `items in linux` or `items in ubuntu_20`
 - _aliases_ can be used to define any sub-enum, like: `enum alias focal = ubuntu_20_04`
 
-NOTE: enums are compatible with metadatas, not only outter but also inner elements.
+NOTE: enums are compatible with metadatas, not only outer but also inner elements.
 
 More about <<enums,enums>>
 

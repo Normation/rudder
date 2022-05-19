@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-mod syntax;
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
-use super::Generator;
+use toml::Value as TomlValue;
+
 use crate::{
     command::CommandResult,
     error::*,
@@ -18,13 +24,10 @@ use crate::{
     parser::*,
     technique::fetch_method_parameters,
 };
-use std::{
-    collections::HashMap,
-    convert::TryFrom,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
-use toml::Value as TomlValue;
+
+use super::Generator;
+
+mod syntax;
 
 type Condition = String;
 
@@ -383,7 +386,7 @@ impl DSC {
             Statement::BlockDeclaration(def) => {
                 let mut res = vec![];
 
-                for st in &def.childs {
+                for st in &def.children {
                     res.append(&mut self.format_statement(
                         gc,
                         res_def,

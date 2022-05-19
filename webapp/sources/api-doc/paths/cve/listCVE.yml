@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 post:
   summary: Get a list of CVE details 
-  description: Get CVE details, from a list passed a paremeter
+  description: Get CVE details, from a list passed as parameter
   operationId: getCVEList
   requestBody:
     content:

@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-mod levels;
-pub use levels::LogLevel;
-#[macro_use]
-mod macros;
+use std::fmt;
+use std::sync::RwLock;
 
 use lazy_static::lazy_static;
 use serde::Serialize;
-use std::fmt;
-use std::sync::RwLock;
+
+pub use levels::LogLevel;
+
+mod levels;
+#[macro_use]
+mod macros;
 
 // to keep LOGS usage as safe as possible, make sure it is only called from this file
 // any outside module call is just a push that happens through macros
@@ -50,8 +52,8 @@ impl fmt::Display for Log {
     }
 }
 
-/// Logs is used through our static, global variable LOGS throughought the program
-/// all logs are pushed into it, be it errors, informations, debug
+/// Logs is used through our static, global variable LOGS throughout the program
+/// all logs are pushed into it, be it errors, information, debug
 /// they are effectively printed at program exit using the output format, even in case of panic
 // Logs content should stay private since we do not want unsafe code elsewhere in the program
 #[derive(Serialize, Clone)]

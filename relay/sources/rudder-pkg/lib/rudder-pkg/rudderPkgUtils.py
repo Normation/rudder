@@ -214,7 +214,7 @@ def getRequest(url, stream, timeout=60):
             )
 
 
-# Check if plugin URL defined in configuration file can be accessed, so we can fail early our cmmands
+# Check if plugin URL defined in configuration file can be accessed, so we can fail early our commands
 def check_url():
     try:
         r = getRequest(URL, False, 5)

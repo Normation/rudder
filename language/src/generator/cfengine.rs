@@ -382,7 +382,7 @@ impl CFEngine {
             Statement::BlockDeclaration(def) => {
                 let mut res = vec![];
 
-                for st in &def.childs {
+                for st in &def.children {
                     res.append(&mut self.format_statement(
                         gc,
                         res_def,

@@ -146,7 +146,7 @@ impl<'src> IR1<'src> {
                                 self.enum_list.global_item_iter()
                             )
                         )),
-                        // We know in which enum we shoud be
+                        // We know in which enum we should be
                         Some(name) => self.errors.push(err!(
                             se.name,
                             "Enum {} item {} not found when trying to define sub enum {}",

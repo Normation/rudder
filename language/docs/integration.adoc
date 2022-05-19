@@ -3,7 +3,7 @@
 
 Right now language is in a _testing_ state. It has been released alongside _Rudder 7.0_.
 
-This means while _language_ CLI features are usable, its current state as part of the released product is mainly: working in parallel with our legacy genertion tools, to monitor how robust _language_ is and make sure it would not break things (and fix it when it would).
+This means while _language_ CLI features are usable, its current state as part of the released product is mainly: working in parallel with our legacy generation tools, to monitor how robust _language_ is and make sure it would not break things (and fix it when it would).
 
 We made sure this integration is made flowlessly for the end user and does not come with any breaking change. More about the way we are integrating it in the next section (_Testing Loop_).
 

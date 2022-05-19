@@ -4,7 +4,7 @@ type: object
 properties:
   isPreHahed:
     type: boolean
-    description: If you want to provide hashed password set this propertie to `true` otherwise we will hash the plain password and store the hash
+    description: If you want to provide hashed password set this property to `true` otherwise we will hash the plain password and store the hash
     enum:
       - false
       - true

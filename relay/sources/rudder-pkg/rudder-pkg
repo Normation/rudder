@@ -41,7 +41,7 @@ Commands:
         download and upgrade the installed plugins to their latest available version
 
     show
-        show detailed informations on a given plugin
+        show detailed information on a given plugin
 
     remove
         remove the given package from Rudder

@@ -48,7 +48,7 @@ done
 if [ -z "$1" ]
 then
   echo "Usage tester.sh [--dev|-d] [--keep|-k] <technique_name> [<technique_category>]"
-  echo " --dev or -d: force using a development environnement (meaning no json logs and local rudder repo rather than production files)"
+  echo " --dev or -d: force using a development environment (meaning no json logs and local rudder repo rather than production files)"
   echo " --keep or -k: keep temporary files after cleanup"
   echo " <technique_name>: can be either a technique name from the techniques production directory or a JSON technique an path (absolute or relative)."
   echo " <technique_category>: Use with production environment only. The location of a technique depends on its category"
@@ -131,10 +131,10 @@ fi
 if [ ${env} = "dev" ]
 then
   ##########################
-  # DEVELOPMENT EVIRONMENT #
+  # DEVELOPMENT ENVIRONMENT #
   ##########################
 
-  # first, generate rl from json. Cannot do tests if this one fails, so it has to be treated separatly
+  # first, generate rl from json. Cannot do tests if this one fails, so it has to be treated separately
   if (set -x ; ${rudderc} save -j -i "${technique}.json" --config-file=${config_file})
   then
     # json -> rl, if success compare json
@@ -235,7 +235,7 @@ else
   # prepare new entry for log trace or create log trace
   ([ -f "${trace}" ] && echo -e "\n=== ${technique} ===" >> "${trace}") || touch "${trace}"
 
-  # first, generate rl from json. Cannot do tests if this one fails, so it has to be treated separatly
+  # first, generate rl from json. Cannot do tests if this one fails, so it has to be treated separately
   # redirects stderr to a logfile (2>>) so that errors can be retrieved by Rudder team
   if (set -x ; ${rudderc} save -j -i "${technique_path}.json" -o "${technique_path}.rd" 2>> "${logfiles[0]}")
   then

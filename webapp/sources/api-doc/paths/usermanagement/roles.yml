@@ -6,7 +6,7 @@ get:
   operationId: getRole
   responses:
     "200":
-      description: Roles informations
+      description: Roles information
       content:
         application/json:
           schema:

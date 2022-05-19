@@ -76,18 +76,18 @@ pipeline {
                     agent { 
                         dockerfile { 
                             filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.0'
+                            additionalBuildArgs  '--build-arg VERSION=1.8'
                         }
                     }
                     steps {
                         dir('language') {
-                            sh script: 'typos', label: 'check language typos'
+                            sh script: 'typos --exclude "*.svg" --exclude "tests/" --exclude "docs/DESIGN_DECISIONS"', label: 'check language typos'
                         }
                         dir('webapp/sources/api-doc') {
                             sh script: 'typos', label: 'check webapp api doc typos'
                         }
                         dir('relay/sources/') {
-                            sh script: 'typos --exclude "*.pem"', label: 'check relayd typos'
+                            sh script: 'typos --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
                         }
                     }
                     post {

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-mod cfstrings;
-mod from_ir;
-
-use crate::{
-    error::*,
-    ir::{ir2::IR2, resource::StateDeclaration, value::Value},
-    language_lib::{LanguageLib, LibMethod},
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+use std::{
+    convert::TryFrom,
+    fmt,
+    str::{self, FromStr},
 };
+
 use colored::Colorize;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
@@ -18,17 +18,19 @@ use serde::{
     de::{self, Deserializer},
     Deserialize, Serialize, Serializer,
 };
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-use std::{
-    convert::TryFrom,
-    fmt,
-    str::{self, FromStr},
-};
 use toml::ser::to_string as to_toml_string;
 use toml::ser::to_vec as to_toml_vec;
 use toml::Value as TomlValue;
 use uuid::Uuid;
+
+use crate::{
+    error::*,
+    ir::{ir2::IR2, resource::StateDeclaration, value::Value},
+    language_lib::{LanguageLib, LibMethod},
+};
+
+mod cfstrings;
+mod from_ir;
 
 // Techniques are limited subsets of CFEngine in JSON representation
 // that only carry method calls and Rudder metadata
@@ -320,7 +322,7 @@ impl MethodBlock {
         let formatted_component = format!("@component = \"{}\"", self.component);
         let formatted_reporting_logic = format!("@reporting_logic = {}", self.reportingLogic);
         newContext.push(self);
-        let childs = self
+        let children = self
             .calls
             .iter()
             .map(|c| match c {
@@ -339,10 +341,10 @@ impl MethodBlock {
             });
 
         let withCondition = if (self.condition == "" || self.condition == "any") {
-            childs
+            children
         } else {
             let condition = format_condition(&self.condition, &lib)?;
-            childs.map(|c| format!("if {} =>\n  {}", condition, c))
+            children.map(|c| format!("if {} =>\n  {}", condition, c))
         };
 
         return withCondition;
@@ -657,8 +659,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     struct TestVersion {

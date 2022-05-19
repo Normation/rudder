@@ -1,0 +1,7 @@
+[default.extend-words]
+# from garbage
+ede = "ede"
+# openssl option
+passin = "passin"
+# crate name
+flate = "flate"

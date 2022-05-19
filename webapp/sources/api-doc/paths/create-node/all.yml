@@ -8,7 +8,7 @@ put:
     - $ref: ../../components/parameters/node-info.yml
   responses:
     "200":
-      description: Creation informations
+      description: Creation information
       content:
         application/json:
           schema:

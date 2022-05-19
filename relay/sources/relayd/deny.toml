@@ -17,19 +17,3 @@ allow = [
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
 
-[advisories]
-ignore = [
-    # Only a segfault, and no patches for 0.1 version
-    "RUSTSEC-2020-0071",
-    # Same in chrono
-    "RUSTSEC-2020-0159",
-]
-
-# https://github.com/hsivonen/encoding_rs#licensing
-[[licenses.clarify]]
-name = "encoding_rs"
-version = "*"
-expression = "(Apache-2.0 OR MIT) AND BSD-3-Clause"
-license-files = [
-    { path = "COPYRIGHT", hash = 0x39f8ad31 }
-]

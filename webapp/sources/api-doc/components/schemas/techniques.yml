@@ -68,7 +68,7 @@ definitions:
         example: "Name of a package to install"
       mayBeEmpty:
         type: boolean
-        description: May the alue given when creating a directive be empty
+        description: May the value given when creating a directive be empty
         example: true
   techniqueResource:
     type: object

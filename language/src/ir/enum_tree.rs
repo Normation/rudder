@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
+
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
+
 use crate::{
     error::*,
     ir::resource::create_metadata,
     parser::{PEnum, PMetadata, PSubEnum, Token},
 };
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
-use toml::map::Map as TomlMap;
-use toml::Value as TomlValue;
 
 /// This item type is internal, because First and Last cannot be constructed from an enum declaration or from and enum expression
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -187,7 +189,7 @@ impl<'src> EnumTree<'src> {
             &self.children[&self.parents[&i]]
         } else {
             panic!("Empty range")
-        }; // else None,None is imposible
+        }; // else None,None is impossible
 
         // if item is a descendant, find its ancestor that is a sibling
         let test_item = if item_list.contains(item) {
@@ -260,10 +262,12 @@ impl<'src> EnumTree<'src> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::tests::{penum_t, psub_enum_t};
     use maplit::hashset;
     use pretty_assertions::assert_eq;
+
+    use crate::parser::tests::{penum_t, psub_enum_t};
+
+    use super::*;
 
     fn item(name: &str) -> EnumItem {
         EnumItem::Item(name.into())

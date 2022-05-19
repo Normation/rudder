@@ -1,6 +1,6 @@
 @format=0
 
-# TODO we should only keep variables that we intend to implement fo every target agent and not only cfengine
+# TODO we should only keep variables that we intend to implement for every target agent and not only cfengine
 # Otherwise they should be put in a cfengine namespace
 
 # This file holds every cfengine special variable. These special variables are stored in a global context

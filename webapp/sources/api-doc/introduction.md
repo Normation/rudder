@@ -221,7 +221,7 @@ curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/ru
 
 
 
-CAUTION: To avoid suprising behavior, do not put a '/' at the end of an URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
+CAUTION: To avoid surprising behavior, do not put a '/' at the end of an URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
 
 
 #### Sending data for POST/PUT requests

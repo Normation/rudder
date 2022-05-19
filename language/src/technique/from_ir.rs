@@ -1,4 +1,11 @@
-use super::*;
+use std::collections::HashMap;
+use std::convert::From;
+use std::str;
+
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
+use uuid::Uuid;
+
 use crate::ir::{
     enums::EnumExpressionPart,
     ir2::IR2,
@@ -6,12 +13,8 @@ use crate::ir::{
     variable::VariableDef,
 };
 use crate::parser::Token;
-use std::collections::HashMap;
-use std::convert::From;
-use std::str;
-use toml::map::Map as TomlMap;
-use toml::Value as TomlValue;
-use uuid::Uuid;
+
+use super::*;
 
 impl<'src> Technique {
     pub fn from_ir(ir: &IR2<'src>) -> Result<Self> {
@@ -140,7 +143,7 @@ fn get_metadatas(
                 TomlValue::String(s) => Ok(s.to_owned()),
                 _ => Err(Error::new(format!("'{}': {}", info_name, "'parameters' metadata must be an array of tables of (String, String) pairs")))
             },
-            None => Err(Error::new(format!("'{}': {}", info_name, "'parameters' metadata content must include the following informations: id, name, description")))
+            None => Err(Error::new(format!("'{}': {}", info_name, "'parameters' metadata content must include the following information: id, name, description")))
         }
     };
 
@@ -447,8 +450,8 @@ fn statement_to_method_call(
                         .to_owned()
                 })
                 .unwrap_or(Uuid::new_v4().to_string());
-            let childs = block
-                .childs
+            let children = block
+                .children
                 .iter()
                 .flat_map(|child| {
                     statement_to_method_call(ir, res_def, state_def, child, String::from(""))
@@ -481,7 +484,7 @@ fn statement_to_method_call(
                 reportingLogic,
                 component,
                 condition,
-                calls: childs,
+                calls: children,
                 id,
             };
 

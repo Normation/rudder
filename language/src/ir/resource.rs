@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+
+use toml::map::Map as TomlMap;
+use toml::Value as TomlValue;
+
+use crate::{error::*, parser::*};
+
 use super::{
     context::{Type, VarContext},
     enums::{EnumExpression, EnumList},
     value::*,
     variable::*,
 };
-use crate::{error::*, parser::*};
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
-use toml::map::Map as TomlMap;
-use toml::Value as TomlValue;
 
 ///! There are 2 kinds of functions return
 ///! - Result: could not return data, fatal to the caller
@@ -369,7 +372,7 @@ pub struct StateDeclaration<'src> {
 pub struct BlockDeclaration<'src> {
     pub source: Token<'src>,
     pub metadata: TomlMap<String, TomlValue>,
-    pub childs: Vec<Statement<'src>>,
+    pub children: Vec<Statement<'src>>,
 }
 
 /// A single statement within a state definition
@@ -454,16 +457,16 @@ impl<'src> Statement<'src> {
             PStatement::BlockDeclaration(PBlockDeclaration {
                 source,
                 metadata,
-                children: childs,
+                children: children2,
             }) => {
                 let (mut _errors, metadata) = create_metadata(metadata);
-                (match map_vec_results(childs.into_iter(), |x| {
+                (match map_vec_results(children2.into_iter(), |x| {
                     Statement::from_pstatement(context, children, x, parameter_defaults, enum_list)
                 }) {
-                    Ok(childs) => Ok(Statement::BlockDeclaration(BlockDeclaration {
+                    Ok(children) => Ok(Statement::BlockDeclaration(BlockDeclaration {
                         source,
                         metadata,
-                        childs,
+                        children,
                     })),
                     Err(err) => Err(err),
                 })?

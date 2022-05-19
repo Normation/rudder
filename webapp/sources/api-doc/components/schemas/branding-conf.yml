@@ -33,11 +33,11 @@ properties:
     $ref: logo.yml
   displayBarLogin:
     type: boolean
-    description: Whether header bar is displayed in loggin page or not
+    description: Whether header bar is displayed in login page or not
   displayMotd:
     type: boolean
-    description: Whether the message of the day is displayed in loggin page or not
+    description: Whether the message of the day is displayed in login page or not
   motd:
     type: string
-    description: Message of the day in loggin page
+    description: Message of the day in login page
     example: "Welcome, please sign in:"

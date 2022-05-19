@@ -4,7 +4,7 @@ type: object
 properties:
   latest:
     type: integer
-    description: Lastest API version available
+    description: Latest API version available
     example: 12
   all:
     type: array

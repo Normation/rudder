@@ -40,7 +40,7 @@ In the future, we may declare some versions as deprecated, in order to remove th
     <tr>
       <td class="code">(none)</td>
       <td class="code">3.2</td>
-      <td>Unversionned API providing remote-run, shared-files and shared-folder</td>
+      <td>Unversioned API providing remote-run, shared-files and shared-folder</td>
     </tr>
     <tr>
       <td class="code">1</td>

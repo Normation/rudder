@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-mod baseparsers;
-mod error;
-mod token;
+use std::collections::HashMap;
+use std::marker::PhantomData;
 
 use lazy_static::lazy_static;
 use nom::{
@@ -11,22 +10,25 @@ use nom::{
     combinator::*, error::*, multi::*, number::complete::*, sequence::*,
 };
 use regex::{Captures, Regex};
-use std::collections::HashMap;
 use toml::Value as TomlValue;
 
-use crate::{error::*, io::output::Backtrace};
-use crate::{sequence, wsequence}; // macros are exported at the root of the crate
+// macros are exported at the root of the crate
 use baseparsers::*;
 use error::*;
-
-// reexport tokens
-pub use token::Token;
-
 #[allow(unused_imports)]
 use token::*;
 // reexport PInput for tests
 #[cfg(test)]
 pub use token::PInput;
+// reexport tokens
+pub use token::Token;
+
+use crate::{error::*, io::output::Backtrace};
+use crate::{sequence, wsequence};
+
+mod baseparsers;
+mod error;
+mod token;
 
 ///! All structures are public to be read directly by other modules.
 ///! Parsing errors must be avoided if possible since they are fatal.
@@ -553,7 +555,6 @@ fn pstruct(i: PInput) -> PResult<HashMap<String, PValue>> {
 
 /// A PType is the type a variable or a parameter can take.
 /// Its only purpose is to be a PValue construction helper
-use std::marker::PhantomData;
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum PType<'src> {
     String,
@@ -700,8 +701,8 @@ fn pmetadata(i: PInput) -> PResult<Option<PMetadata>> {
 
             // update line and column of toml error message.
             let (line, col) = match e.line_col() {
-                // line: file line count must be added to local metadatas line count
-                // col: as toml receieves the string without the preceding `@`, 1 must be added to the offset to have an exact value. + 1 to turn the index into a count
+                // line: file line count must be added to local metadata line count
+                // col: as toml receives the string without the preceding `@`, 1 must be added to the offset to have an exact value. + 1 to turn the index into a count
                 Some((line, col)) => (line + i.location_line() as usize, col + 1 + 1),
                 None => (i.location_line() as usize, i.location_offset()),
             };

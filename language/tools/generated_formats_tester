@@ -326,7 +326,7 @@ def deep_del(haystack, deep_list, delfrom, del_condition, index=0):
 
 # Currently not used, but could be useful
 # checks if a key values pair exists in a given path (and returns the value found)
-# optionnaly takes an array of expected values, if no values given: returns first match
+# optionally takes an array of expected values, if no values given: returns first match
 # USAGE
   # see deep del, similar behavior but returns the matched value rather than deleting a part of the dict
 # ARGUMENTS

@@ -112,3 +112,12 @@ TODO :
 - uuid alias of variable names / outcomes
 - variables de ressource
 - use criterion to detect performance regression
+
+// Questions :
+// - compatibilité avec les techniques définissant des variables globales depuis une GM qui dépend d'une autre ?
+// - usage du '!' -> "macros", enum expr, audit&test ?
+// - sous typage explicite mais pas chiant
+// - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ? quels sont les default intelligents ?
+// - a quoi ressemblent les iterators ?
+// - arguments non ordonnés pour les resources et les states ?
+// - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?

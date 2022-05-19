@@ -14,15 +14,6 @@
 //!
 //!  4- json technique -> technique generate() -> JSON wrapper { dsc + rd + cf }
 
-// Questions :
-// - compatibilité avec les techniques définissant des variables globales depuis une GM qui dépend d'une autre ?
-// - usage du '!' -> "macros", enum expr, audit&test ?
-// - sous typage explicite mais pas chiant
-// - a qui s'applique vraiment les namespace ? variables, resources, enums, fonctions ? quels sont les default intelligents ?
-// - a quoi ressemblent les iterators ?
-// - arguments non ordonnés pour les resources et les states ?
-// - usage des alias: pour les children, pour les (in)compatibilités, pour le générateur?
-
 // TODO a state S on an object A depending on a condition on an object B is invalid if A is a descendant of B
 // TODO except if S is the "absent" state
 
@@ -47,13 +38,15 @@
 
 #![allow(clippy::large_enum_variant)]
 
+use std::process::exit;
+
+use structopt::StructOpt;
+
 use rudderc::{
     command::{self, Command},
     error::Error,
     io::cli_parser::CLI,
 };
-use std::process::exit;
-use structopt::StructOpt;
 
 /// Rudder language compiler
 
