@@ -88,15 +88,15 @@ import com.normation.errors._
 final case class GitRootCategory(
     root: String
 ) {
-  def directoryPath = root + "/"
+  def directoryPath: String = root + "/"
 }
 
 object GitRootCategory {
   def getGitDirectoryPath(rootDirectory: String): GitRootCategory = {
     val root = {
       val p = rootDirectory.trim
-      if(p.size == 0) ""
-      else if(p.endsWith("/")) p.substring(0, p.size-1)
+      if(p.isEmpty) ""
+      else if(p.endsWith("/")) p.substring(0, p.length - 1)
       else p
     }
 
@@ -134,17 +134,17 @@ class GitParseRules(
   , rulesRootDirectory : String //relative name to git root file
 ) extends ParseRules with GitParseCommon[List[Rule]] with RuleRevisionRepository {
 
-  val rulesDirectory = getGitDirectoryPath(rulesRootDirectory)
+  val rulesDirectory: GitRootCategory = getGitDirectoryPath(rulesRootDirectory)
 
   def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[List[Rule]] = {
     for {
       //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
       files <- GitFindUtils.listFiles(repo.db, revTreeId, List(rulesDirectory.root), List(".xml"))
       paths =  files.filter { p =>
-                   p.size > rulesDirectory.directoryPath.size &&
-                   p.startsWith(rulesDirectory.directoryPath) &&
-                   p.endsWith(".xml") &&
-                   UuidRegex.isValid(p.substring(rulesDirectory.directoryPath.size,p.size - 4))
+        p.length > rulesDirectory.directoryPath.length &&
+        p.startsWith(rulesDirectory.directoryPath) &&
+        p.endsWith(".xml") &&
+        UuidRegex.isValid(p.substring(rulesDirectory.directoryPath.length, p.length - 4))
                }
       xmls  <- ZIO.foreach(paths) { crPath =>
                  GitFindUtils.getFileContent(repo.db, revTreeId, crPath){ inputStream =>
@@ -204,9 +204,9 @@ class GitParseGlobalParameters(
     for {
       files  <- GitFindUtils.listFiles(repo.db, revTreeId, List(root.root), List(".xml"))
       paths  =  files.filter { p =>
-                   p.size > root.directoryPath.size &&
-                   p.startsWith(root.directoryPath) &&
-                   p.endsWith(".xml")
+        p.length > root.directoryPath.length &&
+        p.startsWith(root.directoryPath) &&
+        p.endsWith(".xml")
                  }
       xmls   <- ZIO.foreach(paths) { paramPath =>
                   GitFindUtils.getFileContent(repo.db, revTreeId, paramPath){ inputStream =>
@@ -235,7 +235,7 @@ class GitParseRuleCategories(
   , categoryFileName   : String = "category.xml"
 ) extends ParseRuleCategories with GitParseCommon[RuleCategory] {
 
-  def getArchiveForRevTreeId(revTreeId:ObjectId) = {
+  def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[RuleCategory] = {
 
     //directoryPath must end with "/"
     def recParseDirectory(paths: Set[String], directoryPath: String) : IOResult[RuleCategory] = {
@@ -252,8 +252,8 @@ class GitParseRuleCategories(
         subDirs      =  {
                           //we only wants to keep paths that are non-empty directories with a rulecategory filename (category.xml)
                           paths.flatMap { p =>
-                            if(p.size > directoryPath.size && p.startsWith(directoryPath)) {
-                              val split = p.substring(directoryPath.size).split("/")
+                            if(p.length > directoryPath.length && p.startsWith(directoryPath)) {
+                              val split = p.substring(directoryPath.length).split("/")
                               if(split.size == 2 && (split(1) == categoryFileName) ) {
                                 Some(directoryPath + split(0) + "/")
                               } else None
@@ -307,10 +307,10 @@ class GitParseGroupLibrary(
         category     <- categoryUnserialiser.unserialise(categoryXml).toIO.chainError(s"Error when unserializing category for file '${categoryPath}'")
         groupFiles   =  {
                           paths.filter { p =>
-                            p.size > directoryPath.size &&
+                            p.length > directoryPath.length &&
                             p.startsWith(directoryPath) &&
                             p.endsWith(".xml") &&
-                            UuidRegex.isValid(p.substring(directoryPath.size,p.size - 4))
+                            UuidRegex.isValid(p.substring(directoryPath.length, p.length - 4))
                           }
                         }
         groups       <- ZIO.foreach(groupFiles.toSeq) { groupPath =>
@@ -327,8 +327,8 @@ class GitParseGroupLibrary(
         subDirs      =  {
                           //we only wants to keep paths that are non-empty directories with a uptcFileName/uptFileName in them
                           paths.flatMap { p =>
-                            if(p.size > directoryPath.size && p.startsWith(directoryPath)) {
-                              val split = p.substring(directoryPath.size).split("/")
+                            if(p.length > directoryPath.length && p.startsWith(directoryPath)) {
+                              val split = p.substring(directoryPath.length).split("/")
                               if(split.size == 2 && (split(1) == categoryFileName) ) {
                                 Some(directoryPath + split(0) + "/")
                               } else None
@@ -400,7 +400,7 @@ class GitParseTechniqueLibrary(
   def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
     (for {
-      v      <- TechniqueVersion(version, rev).left.map(Inconsistency(_)).toIO
+      v      <- TechniqueVersion(version, rev).left.map(Inconsistency).toIO
       id     =  TechniqueId(name, v)
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
@@ -416,6 +416,7 @@ class GitParseTechniqueLibrary(
                     ConfigurationLoggerPure.trace(s"Technique ${id.debugString} found at path '${path}', loading it'") *>
                     (for {
                       t <- loadTechnique(repo.db, treeId, path, id)
+                      v <- TechniqueVersion(t.id.version.version, rev).toIO
                     } yield {
                       // we need to correct techniqueId revision to the one we just looked-up.
                       // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
@@ -428,9 +429,9 @@ class GitParseTechniqueLibrary(
                  }
     } yield {
       tech
-    }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), _ match {
-      case None     => ConfigurationLoggerPure.revision.debug(s" -> not found")
-      case Some(_)  => ConfigurationLoggerPure.revision.debug(s" -> found it!")
+    }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), {
+      case None    => ConfigurationLoggerPure.revision.debug(s" -> not found")
+      case Some(_) => ConfigurationLoggerPure.revision.debug(s" -> found it!")
     })
   }
 
@@ -449,7 +450,7 @@ class GitParseTechniqueLibrary(
                     case x => Inconsistency(s"Error, more than one technique found in `configuration-repository` for '${name.value}/${version.toVersionString}': ${x.mkString(",")}").fail
                   }
       // any files modified under `technique/version` directory is a revision change for it
-      base     =  path.substring(0, path.size - metadata.size)
+      base     =  path.substring(0, path.length - metadata.size)
       revs     <- GitFindUtils.findRevFromPath(repo.git, base)
     } yield {
       revs.toList
@@ -596,8 +597,8 @@ class GitParseActiveTechniqueLibrary(
             subDirs  =  {
                           //we only wants to keep paths that are non-empty directories with a uptcFileName/uptFileName in them
                           paths.flatMap { p =>
-                            if(p.size > directoryPath.size && p.startsWith(directoryPath)) {
-                              val split = p.substring(directoryPath.size).split("/")
+                            if(p.length > directoryPath.length && p.startsWith(directoryPath)) {
+                              val split = p.substring(directoryPath.length).split("/")
                               if(split.size == 2 && (split(1) == uptcFileName || split(1) == uptFileName) ) {
                                 Some(directoryPath + split(0) + "/")
                               } else None
@@ -631,10 +632,10 @@ class GitParseActiveTechniqueLibrary(
             activeTechnique <- uptUnserialiser.unserialise(uptXml).toIO.chainError(s"Error when unserializing template for file '${template}'")
             piFiles =  {
                          paths.filter { p =>
-                           p.size > directoryPath.size &&
+                           p.length > directoryPath.length &&
                            p.startsWith(directoryPath) &&
                            p.endsWith(".xml") &&
-                           UuidRegex.isValid(p.substring(directoryPath.size, p.size - 4))
+                           UuidRegex.isValid(p.substring(directoryPath.length, p.length - 4))
                          }
                        }
             directives <- ZIO.foreach(piFiles.toSeq) { directivePath =>
