@@ -42,6 +42,72 @@
  */
 
 
+const getOrCreateLegendList = (chart, id) => {
+  const legendContainer = document.getElementById(id);
+  let listContainer = legendContainer.querySelector('ul');
+
+  if (!listContainer) {
+    listContainer = document.createElement('ul');
+    listContainer.classList.add("graph-legend");
+
+    legendContainer.appendChild(listContainer);
+  }
+
+  return listContainer;
+};
+
+const htmlLegendPlugin = {
+  id: 'htmlLegend',
+  afterUpdate(chart, args, options) {
+    const ul = getOrCreateLegendList(chart, options.containerID);
+
+    // Remove old legend items
+    while (ul.firstChild) {
+      ul.firstChild.remove();
+    }
+
+    // Reuse the built-in legendItems generator
+    const items = chart.options.plugins.legend.labels.generateLabels(chart);
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.classList.add("legend");
+
+      li.onclick = () => {
+        const {type} = chart.config;
+        if (type === 'pie' || type === 'doughnut') {
+          // Pie and doughnut charts only have a single dataset and visibility is per item
+          chart.toggleDataVisibility(item.index);
+        } else {
+          chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
+        }
+        chart.update();
+      };
+
+      // Color box
+      const boxSpan = document.createElement('span');
+      boxSpan.classList.add("legend-square")
+      boxSpan.style.background = item.fillStyle;
+      boxSpan.style.borderColor = item.strokeStyle;
+      boxSpan.style.borderWidth = item.lineWidth + 'px';
+
+      // Text
+      const textContainer = document.createElement('p');
+      textContainer.style.color = item.fontColor;
+      textContainer.style.margin = 0;
+      textContainer.style.padding = 0;
+      textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
+
+      const text = document.createTextNode(item.text);
+      textContainer.appendChild(text);
+
+      li.appendChild(boxSpan);
+      li.appendChild(textContainer);
+      ul.appendChild(li);
+    });
+  }
+};
+
 var g_osNames
 
 function homePage (
@@ -135,6 +201,9 @@ var inventoryColors =
   , "#e25c1a"
   ];
 
+
+
+
 function doughnutChart (id,data,count,colors) {
 
   var context = $("#"+id)
@@ -153,60 +222,35 @@ function doughnutChart (id,data,count,colors) {
       type: 'doughnut'
     , data: chartData
     , options: {
-        legend: {
-          display:false
-        }
-      , aspectRatio: 1
-      , legendCallback: function(chart) {
-        var text = [];
-        text.push('<ul class="graph-legend">');
-        for (var i=0; i<chart.data.datasets[0].data.length; i++) {
-          var removeHighlight = ' onmouseout="closeTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
-          var addHighlight    = ' onmouseover="openTooltip(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
-          var hideData        = ' onclick="hideChartData(event, \'' + chart.legend.legendItems[i].index + '\', \'' + id + '\')"';
-          text.push('<li class="legend" ' + hideData+ addHighlight + removeHighlight + '>');
-          text.push('<span class="legend-square"   style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"></span>');
-          if (chart.data.labels[i]) {
-              text.push(chart.data.labels[i]);
+        plugins: {
+          htmlLegend: {
+          // ID of the container to put the legend in
+            containerID: id+"-legend",
+
           }
-          text.push('</li>');
-        }
-        text.push('</ul>');
-        return text.join("");
-      }
-      , tooltips: {
-          enabled: false
-        , custom: function(tooltip) {
-          graphTooltip.call(this,tooltip,true)
-        }
-        ,  callbacks: {
-            label: function(tooltipItem, data) {
-              var label = data.labels[tooltipItem.index];
-              var content = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-              return " " + label + ": " + content + " - "+ (content/count*100).toFixed(0) + "%";
-            }
-          , labelColor : function(tooltipItem,chart) {
-              var color = chartData.datasets[0].backgroundColor[tooltipItem.index];
-              return {
-                backgroundColor: color
-              , borderColor : color
+        , legend: {
+            display: false,
+          }
+        , tooltip: {
+            callbacks: {
+              label : function(context) {
+                return " "  + context.label + ": " + context.formattedValue + " - "+ (context.parsed/count*100).toFixed(0) + "%";
               }
             }
           }
-        , bodyFontSize: 12
-        , bodyFontStyle : "bold"
         }
 
-        // redirects to the corresponding node's information when clicking on a node's diagram
-         , onClick: function(event, data){
-             //check if the user clicks on something relevant
-             if (data[0] !== undefined){
+
+      , events: ['click']
+      , onClick: (e, active, currentChart) => {
+             if (active[0] !== undefined){
+              data = currentChart.data.labels[active[0].index]
               var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
               switch (id) {
                 case 'nodeOs':
                      if (g_osNames == undefined)
                         return ;
-                     var osName = g_osNames[data[0]._model.label];
+                     var osName = data
                      query.query.where = [{
                          objectType: "node"
                        , attribute : "osNAme"
@@ -225,7 +269,7 @@ function doughnutChart (id,data,count,colors) {
                           objectType: "software"
                         , attribute : "softwareVersion"
                         , comparator: "regex"
-                        , value     : data[0]._model.label.replace(/\./g, "(\.|~)") + ".*"
+                        , value     : data.replace(/\./g, "(\.|~)") + ".*"
                       }];
                       break;
                   case 'nodeMachine':
@@ -233,7 +277,7 @@ function doughnutChart (id,data,count,colors) {
                           objectType: "machine"
                         , attribute : "machineType"
                         , comparator: "eq"
-                        , value     : data[0]._model.label
+                        , value     : data
                        }];
                       break;
                   case 'nodeCompliance':
@@ -243,7 +287,7 @@ function doughnutChart (id,data,count,colors) {
                        ,"Good"   : {min: 75,  max: 100}
                        ,"Perfect": {min: 100}
                        };
-                     var interval = compliance[data[0]._model.label.split(' ')[0]];
+                     var interval = compliance[data.split(' ')[0]];
                      var complianceFilter = {complianceFilter:interval};
                      window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(complianceFilter);
                      return;
@@ -255,18 +299,11 @@ function doughnutChart (id,data,count,colors) {
                window.location = url;
             }
          }
-         , hover: {
-             onHover: function(e) {
-                var point = this.getElementAtEvent(e);
-                if (point.length) e.target.style.cursor = 'pointer';
-                else e.target.style.cursor = 'default';
-             }
-          }
-       }
-     }
+      }
+    , plugins: [htmlLegendPlugin],
+    } 
   var chart = new Chart(context, chartOptions);
   window[id] = chart;
-  context.after(chart.generateLegend());
 }
 
 

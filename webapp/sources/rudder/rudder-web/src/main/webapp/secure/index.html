@@ -83,6 +83,7 @@
          <div class="panel-heading">Nodes by overall compliance</div>
            <div class="node-compliance-chart">
              <canvas id="nodeCompliance" ></canvas>
+             <div  id="nodeCompliance-legend"></div>
            </div>
            <div style="clear: both;"></div>
          <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.getAllCompliance"></div> </div>
@@ -96,16 +97,18 @@
              <div class="node-chart">
                <h4 class="text-center">By machine type</h4>
                <canvas id="nodeMachine" > </canvas>
+               <div  id="nodeMachine-legend"></div>
              </div>
              <div class="node-chart">
                <h4 class="text-center">By OS</h4>
                <canvas id="nodeOs"></canvas>
+               <div  id="nodeOs-legend"></div>
                <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.inventoryInfo" > </div></div>
              </div>
              <div class="node-chart">
                <h4 class="text-center">By agent version</h4>
-               <canvas id="nodeAgents" >
-               </canvas>
+               <canvas id="nodeAgents" > </canvas>
+               <div  id="nodeAgents-legend"></div>
                  <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
              </div>
            </div>
