@@ -59,7 +59,7 @@ object RuleId {
 
   // parse a directiveId which was serialize by "id.serialize"
   def parse(s: String) : Either[String, RuleId] = {
-    GitVersion.parseUidRed(s).map { case (id, rev) =>
+    GitVersion.parseUidRev(s).map { case (id, rev) =>
       RuleId(RuleUid(id), rev)
     }
   }

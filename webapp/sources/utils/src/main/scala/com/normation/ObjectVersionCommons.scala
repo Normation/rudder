@@ -95,7 +95,7 @@ final object GitVersion {
   /**
    * A method to parse a standard uid+revision
    */
-  def parseUidRed(s: String): Either[String, (String, Revision)] = {
+  def parseUidRev(s: String): Either[String, (String, Revision)] = {
     s.split("\\+").toList match {
       case id :: Nil        => Right((id, GitVersion.DEFAULT_REV))
       case id :: "" :: Nil  => Right((id, GitVersion.DEFAULT_REV))

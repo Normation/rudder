@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.GitVersion.Revision
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.eventlog.EventActor
 import com.normation.eventlog._
@@ -413,16 +412,20 @@ class RuleApi(
   object LoadRuleRevisionForGeneration extends LiftApiModuleString {
     val schema = API.LoadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.loadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+      (for {
+        rid <- RuleId.parse(id).toIO
+        res <- serviceV14.loadRule(rid, params, authzToken.actor)
+      } yield res).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object UnloadRuleRevisionForGeneration extends LiftApiModuleString {
     val schema = API.UnloadRuleRevisionForGeneration
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.unloadRule(RuleId(RuleUid(id), rev), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.serialize))
+      (for {
+        rid <- RuleId.parse(id).toIO
+        res <- serviceV14.unloadRule(rid, params, authzToken.actor)
+      } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
     }
   }
 }
