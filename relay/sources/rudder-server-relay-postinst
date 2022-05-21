@@ -91,7 +91,7 @@ sed -i '/SSLCertificateKeyFile.*\/opt\/rudder\/etc\/ssl\/rudder.key/d' /etc/${AP
 
 # not used anymore
 if [ -f /opt/rudder/etc/ssl/ca.cert ]; then
-  rm -f /opt/rudder/etc/ssl/ca.cert
+  mv /opt/rudder/etc/ssl/ca.cert "${BACKUP_DIR}/ca-`date +%Y%m%d`.cert"
 fi
 
 if [ ! -f /var/rudder/lib/ssl/nodescerts.pem ]; then
