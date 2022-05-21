@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.GitVersion.Revision
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.cfclerk.domain.Technique
@@ -243,8 +242,10 @@ class DirectiveApi (
   object DirectiveDetailsV14 extends LiftApiModuleString {
     val schema = API.DirectiveDetails
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val rev = req.params.get("revision").flatMap(_.headOption).map(Revision).getOrElse(GitVersion.DEFAULT_REV)
-      serviceV14.directiveDetails(DirectiveId(DirectiveUid(id), rev)).toLiftResponseOne(params, schema, d => Some(d.id))
+      (for {
+        did <- DirectiveId.parse(id).toIO
+        res <- serviceV14.directiveDetails(did)
+      } yield res).toLiftResponseOne(params, schema, d => Some(d.id))
     }
   }
 
