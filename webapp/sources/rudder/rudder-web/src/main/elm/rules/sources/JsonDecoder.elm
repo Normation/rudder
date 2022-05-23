@@ -119,11 +119,13 @@ decodeStatus =
 
 decodeRuleNodesDirective : Decoder RuleNodesDirectives
 decodeRuleNodesDirective =
-  succeed RuleNodesDirectives
-      |> required "id"                 string
-      |> required "numberOfNodes"      int
-      |> required "numberOfDirectives" int
-
+  at [ "data" ](
+      ( succeed RuleNodesDirectives
+          |> required "id"                 string
+          |> required "numberOfNodes"      int
+          |> required "numberOfDirectives" int
+      )
+  )
 -- COMPLIANCE
 decodeGetRulesCompliance : Decoder (List RuleComplianceGlobal)
 decodeGetRulesCompliance =

@@ -364,11 +364,10 @@ class RoLDAPNodeGroupRepository(
   }
 
   def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
-    val attributes = Seq(A_NODE_GROUP_UUID, A_NODE_UUID)
     for {
       con     <- ldap
       //for each directive entry, map it. if one fails, all fails
-      entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP), attributes:_* ) }
+      entries <- groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP)) }
       groups  <- ZIO.foreach(entries)( groupEntry =>
         mapper.entryToGroupNodeIdsChunk(groupEntry).toIO.chainError(s"Error when transforming LDAP entry into a list of nodes. Entry: ${groupEntry}")
       )

@@ -167,7 +167,7 @@ getRuleNodesDirectives ruleId model =
         , headers = []
         , url     = getUrl model [ "rules", "nodesanddirectives", ruleId.value ] []
         , body    = emptyBody
-        , expect  = expectJson GetRuleNodesDirectivesResult decodeRuleNodesDirective
+        , expect  = expectJson ( GetRuleNodesDirectivesResult ruleId ) decodeRuleNodesDirective
         , timeout = Nothing
         , tracker = Nothing
         }

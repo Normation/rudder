@@ -109,7 +109,7 @@ update msg model =
       case res of
         Ok r ->
           let
-            newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI Nothing []) }
+            newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI 0 0 Nothing []) }
             getChanges = case Dict.get r.id.value model.changes of
                            Nothing -> []
                            Just changes ->
@@ -117,7 +117,7 @@ update msg model =
                                Nothing -> []
                                Just lastChanges -> [ getRepairedReports newModel r.id lastChanges.start lastChanges.end ]
           in
-            (newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getChanges) )
+            (newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getRuleNodesDirectives r.id newModel :: getChanges) )
         Err err ->
           processApiError "Getting Rule details" err model
 
@@ -174,10 +174,10 @@ update msg model =
           case model.mode of
             RuleForm details   ->
               let
-                 newDetails = {details | numberOfNodes   =  r.numberOfNodes }
+                 newDetails = {details | numberOfNodes  =  r.numberOfNodes, numberOfDirectives = r.numberOfDirectives }
               in
                  ({model | mode = RuleForm newDetails }, Cmd.none)
-             _ ->
+            _ ->
                (model, Cmd.none)
         Err err ->
          processApiError ("Getting rule nodes and directives of Rule "++ id.value) err model
@@ -272,7 +272,7 @@ update msg model =
     NewRule id ->
       let
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) []
-        ruleDetails = RuleDetails Nothing rule Information {defaultRulesUI | editGroups = True, editDirectives = True} Nothing []
+        ruleDetails = RuleDetails Nothing rule Information {defaultRulesUI | editGroups = True, editDirectives = True} 0 0 Nothing []
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
 
@@ -361,7 +361,7 @@ update msg model =
           RuleForm _ ->
             let
               newRule    = {rule | name = ("Clone of "++rule.name), id = ruleId}
-              newRuleDetails = RuleDetails Nothing newRule Information defaultRulesUI Nothing []
+              newRuleDetails = RuleDetails Nothing newRule Information defaultRulesUI 0 0 Nothing []
             in
               { model | mode = RuleForm newRuleDetails }
           _ -> model
