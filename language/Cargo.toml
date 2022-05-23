@@ -31,8 +31,10 @@ backtrace = "0.3"
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
-test-case = "2"
 pretty_assertions = "1"
+test-generator = "0.3"
+tempfile = "3"
+assert_cmd = "2"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,

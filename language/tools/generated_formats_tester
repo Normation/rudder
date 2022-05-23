@@ -107,7 +107,11 @@ def load_cf(filename):
   env = os.environ.copy()
   env['RES_OPTIONS'] = 'attempts:0'
   try:
-    out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", "./" + filename], env=env)
+    # CFEngine reauires explicitly either a ./ or ab absolute path
+    if filename.startswith("/"):
+      out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", filename], env=env)
+    else:
+      out = check_output([ncf.CFENGINE_PATH, "-pjson", "-f", "./", filename], env=env)
     promises = json.loads(out)
   except Exception as e:
     print_json("compare_cf", filename, 'An error occurred while parsing cf technique: {}'.format(str(e)), True)
@@ -128,7 +132,9 @@ def compare_cf(first, second):
 def load_dsc(filename):
   # Check file exists
   if not os.path.exists(filename):
-    filename = "{}/{}".format(os.getcwd(), filename)
+    if not filename.startswith("/"):
+      filename = "{}/{}".format(os.getcwd(), filename)
+
     if not os.path.exists(filename):
       print_json("compare_dsc", filename, 'No such file', True)
       exit(1)

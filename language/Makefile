@@ -40,23 +40,7 @@ install: build
 test-docs: $(DOC_EXAMPLES)
 
 test: libs
-	# fires rudderc unit / integration tests
 	cargo test --locked
-	# saves a language technique based on a json technique
-	cargo run -- save -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
-	# recreate a JSON technique based on the RL one
-	cargo run -- technique read -c tools/rudderc-dev.conf -i simplest/technique.rd
-	# fires a technique compilation into cfengine format
-	cargo run -- compile -c tools/rudderc-dev.conf -i simplest/technique.rd -o simplest/technique.cf
-	# Same, using a config file, and verbosity. Wrap it in JSON format output
-	cargo run -- compile -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.rd -f cf -l debug -j
-	# fires a technique compilation into dsc format
-	cargo run -- compile -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.rd -f dsc
-	# takes a json to create rd + cf + dsc techniques wrapped into JSON
-	cargo run -- technique generate -c tools/rudderc-dev.conf -i tests/techniques/simplest/technique.json
-	# fires a testing loop (--keep can be added)
-	./tools/test_all_techniques.sh
-
 
 $(DOC_EXAMPLES):
 	cargo run -- compile -c tools/rudderc-dev.conf -i $@ -o $@ -f cf
@@ -65,17 +49,16 @@ $(DOC_EXAMPLES):
 libs:
 	mkdir -p repos
 	[ -d repos/ncf ] || git clone git@github.com:Normation/ncf.git repos/ncf
-	cd repos/ncf && git checkout branches/rudder/7.0 && git pull origin branches/rudder/7.0
+	cd repos/ncf && git checkout master && git pull origin master
 	[ -d repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git repos/dsc \
 	 || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/ repos/dsc/packaging/Files/share/initial-policy/ncf/30_generic_methods/
-	cd repos/dsc && git checkout branches/rudder/7.0 && git pull origin branches/rudder/7.0 || true
+	cd repos/dsc && git checkout master && git pull origin master || true
 	tools/generate_lib tools/rudderc-dev.conf
 
 libs-docs: libs
 	mkdir -p target/docs/std
 	# FIXME replace with proper option
-	cargo run -- save -c tools/rudderc-dev.conf -i simplest/technique.json
-	cargo run -- compile -c tools/rudderc-dev.conf -i simplest/technique.rd -f md
+	cargo run -- compile -c tools/rudderc-dev.conf -i ../simple_technique/technique.rd -f md
 	echo "" > target/docs/std/lib.adoc
 	for resource in $$(ls -1 target/docs/std/*.md); \
 	  do pandoc -t asciidoc -f commonmark $${resource} >> target/docs/std/lib.adoc; \

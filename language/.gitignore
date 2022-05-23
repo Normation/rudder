@@ -3,8 +3,5 @@
 **/*.rs.bk
 *.iml
 /.idea
-/tests/test_files/tmp
-/tests/tmp/
 /repos
 /libs/std
-/tests/techniques/*/technique.rd*

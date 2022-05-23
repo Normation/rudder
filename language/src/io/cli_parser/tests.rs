@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::path::PathBuf;
+
+    use pretty_assertions::assert_eq;
+    use structopt::StructOpt;
+
     use crate::command::Command;
     use crate::error::Error;
     use crate::generator::Format;
@@ -8,9 +12,8 @@ mod tests {
     use crate::io::logs::LogLevel;
     use crate::io::output::LogOutput;
     use crate::io::IOContext;
-    use pretty_assertions::assert_eq;
-    use std::path::PathBuf;
-    use structopt::StructOpt;
+
+    use super::*;
 
     // syntaxic sugar + more accessible error message when useful
     fn opt_new_r(params: &str) -> std::result::Result<CLI, String> {
@@ -212,16 +215,16 @@ mod tests {
             "Commands: no input or input does not match any existing file",
         );
 
-        // real technique path: tests/techniques/simplest/technique.rd.
+        // real technique path: tests/techniques/../simple_technique/technique.rd.
         // conf input folder: tests/techniques
         // input specified so should ignore stdin default
         assert_ok(
-            "rudderc technique read -c ./tools/rudderc-dev.conf -i simplest/technique.rd",
+            "rudderc technique read -c ./tools/rudderc-dev.conf -i ../simple_technique/technique.rd",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/technique.json")), // based on input + updated extension
+                output: Some(PathBuf::from("tests/techniques/../simple_technique/technique.json")), // based on input + updated extension
                 format: Format::JSON,
                 command: Command::ReadTechnique,
             },
@@ -231,12 +234,12 @@ mod tests {
         // specify output, output dir exists, output file does not exist and wrong extension
         // input specified so should ignore stdin default
         assert_ok(
-            "rudderc technique generate -c ./tools/rudderc-dev.conf -i simplest/technique.rd -o simplest/try_technique.randomext",
+            "rudderc technique generate -c ./tools/rudderc-dev.conf -i ../simple_technique/technique.rd -o ../simple_technique/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.json")), // based on input + updated extension
+                output: Some(PathBuf::from("tests/techniques/../simple_technique/try_technique.json")), // based on input + updated extension
                 format: Format::JSON,
                 command: Command::GenerateTechnique,
             },
@@ -245,12 +248,12 @@ mod tests {
 
         // compile format check
         assert_ok(
-            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rd -o simplest/try_technique.randomext",
+            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i ../simple_technique/technique.rd -o ../simple_technique/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.cf")), // updated extension
+                output: Some(PathBuf::from("tests/techniques/../simple_technique/try_technique.cf")), // updated extension
                 format: Format::CFEngine,
                 command: Command::Compile,
             },
@@ -259,12 +262,12 @@ mod tests {
 
         // // compile format check
         assert_ok(
-            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i simplest/technique.rd -o simplest/try_technique.randomext",
+            "rudderc compile -c ./tools/rudderc-dev.conf -f cf -i ../simple_technique/technique.rd -o ../simple_technique/try_technique.randomext",
             IOContext {
                 stdlib: PathBuf::from("libs/"),
                 input: "technique.rd".to_owned(),
                 input_content: "IGNORED FIELD".to_owned(),
-                output: Some(PathBuf::from("tests/techniques/simplest/try_technique.cf")), // updated extension
+                output: Some(PathBuf::from("tests/techniques/../simple_technique/try_technique.cf")), // updated extension
                 format: Format::CFEngine,
                 command: Command::Compile,
             },

@@ -14,7 +14,7 @@ pipeline {
 
     environment {
         // TODO: automate
-        RUDDER_VERSION = "7.1"
+        RUDDER_VERSION = "7.2"
     }
 
     stages {
