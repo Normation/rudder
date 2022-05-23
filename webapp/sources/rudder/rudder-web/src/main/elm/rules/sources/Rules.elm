@@ -167,13 +167,14 @@ update msg model =
         Err err ->
           processApiError "Getting changes" err model
 
+
     GetRuleNodesDirectivesResult id res ->
       case res of
         Ok r ->
           case model.mode of
-            RuleNodesDirectivesCount details   ->
+            RuleForm details   ->
               let
-                 newDetails = {details | numberOfNodes   = Just r}
+                 newDetails = {details | numberOfNodes   =  r.numberOfNodes }
               in
                  ({model | mode = RuleForm newDetails }, Cmd.none)
              _ ->

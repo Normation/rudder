@@ -226,17 +226,16 @@ type alias ComplianceDetails =
 
 type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag, openedRows : Dict String (String, SortOrder)  }
 
-type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, compliance : Maybe RuleCompliance, reports : List RepairedReport }
-
-type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
+type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, numberOfNodes: Int, numberOfDirectives: Int, compliance : Maybe RuleCompliance, reports : List RepairedReport }
 
 type alias RuleNodesDirectives = { id: String, numberOfNodes: Int, numberOfDirectives: Int }
+
+type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
 type Mode
   = Loading
   | RuleTable
   | RuleForm RuleDetails
-  | RuleNodesDirectivesCount RuleNodesDirectives
   | CategoryForm CategoryDetails
 
 type SortBy
@@ -314,8 +313,8 @@ type Msg
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetCategoryDetailsResult (Result Error (Category Rule))
-  | GetRuleNodesDirectivesResult (Result Error RuleNodesDirectives)
   | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
+  | GetRuleNodesDirectivesResult RuleId (Result Error RuleNodesDirectives)
   | GetRuleComplianceResult  RuleId (Result Error RuleCompliance)
   | GetNodesList             (Result Error (List NodeInfo))
   | SaveRuleDetails          (Result Error Rule)

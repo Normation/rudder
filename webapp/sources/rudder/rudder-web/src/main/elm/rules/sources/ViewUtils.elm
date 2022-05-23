@@ -36,7 +36,7 @@ getListCategories r = getAllCats r
 
 getRuleNbNodes : RuleDetails -> Int
 getRuleNbNodes ruleDetails =
-  List.length (Maybe.withDefault [] (Maybe.map .nodes ruleDetails.compliance))
+  ruleDetails.numberOfNodes
 
 getRuleNbGroups : Maybe Rule -> Int
 getRuleNbGroups rule =
