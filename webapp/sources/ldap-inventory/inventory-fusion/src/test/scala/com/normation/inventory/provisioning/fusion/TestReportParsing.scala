@@ -241,9 +241,9 @@ class TestInventoryParsing extends Specification with Loggable {
         inventory.node.softwareUpdates === List(
           SoftwareUpdate(
               name    = "rudder-agent"
-            , version = "7.0.1.release.EL.7"
-            , arch    = "x86_64"
-            , from    = "yum"
+            , version = Some("7.0.1.release.EL.7")
+            , arch    = Some("x86_64")
+            , from    = Some("yum")
             , kind    = SoftwareUpdateKind.None
             , source  = Some("security-backport")
             , Some("Local privilege escalation in pkexec due to incorrect handling of argument vector (CVE-2021-4034)")

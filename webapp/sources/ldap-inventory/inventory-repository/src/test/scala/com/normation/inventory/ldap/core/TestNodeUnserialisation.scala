@@ -266,7 +266,7 @@ class TestNodeUnserialisation extends Specification {
     "correctly unserialize software updates node from 7_0" in {
       val date = JsonSerializers.parseSoftwareUpdateDateTime("2022-01-26T00:00:00Z")
       (date must beRight()) and (node(linux70Ldif).softwareUpdates(0) must beEqualTo(
-        SoftwareUpdate("rudder-agent","7.0.0-realease","x86_64", "yum", SoftwareUpdateKind.None, None, Some("Local privilege escalation in pkexec"),
+        SoftwareUpdate("rudder-agent",Some("7.0.0-realease"),Some("x86_64"), Some("yum"), SoftwareUpdateKind.None, None, Some("Local privilege escalation in pkexec"),
           Some(SoftwareUpdateSeverity.Low), date.toOption, Some(List("RHSA-2020-4566", "CVE-2021-4034") ))
       ))
     }

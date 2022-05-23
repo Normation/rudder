@@ -1241,11 +1241,11 @@ class MockNodes() {
     val id0 = "RHSA-2020-4566"
     val id1 = "CVE-2021-4034"
     List(
-      SoftwareUpdate("s00", "2.15.6~RC1", "x86_64", "yum", SoftwareUpdateKind.Defect, None, Some("Some explanation"),
+      SoftwareUpdate("s00", Some("2.15.6~RC1"), Some("x86_64"), Some("yum"), SoftwareUpdateKind.Defect, None, Some("Some explanation"),
         Some(SoftwareUpdateSeverity.Critical), JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption, Some(List(id0, id1)))
-    , SoftwareUpdate("s01", "1-23-RELEASE-1", "x86_64", "apt", SoftwareUpdateKind.None, Some("default-repo"), None, None, None, None)
+    , SoftwareUpdate("s01", Some("1-23-RELEASE-1"), Some("x86_64"), Some("apt"), SoftwareUpdateKind.None, Some("default-repo"), None, None, None, None)
       // we can have several time the same app
-    , SoftwareUpdate("s01", "1-24-RELEASE-64", "x86_64", "apt", SoftwareUpdateKind.Security, Some("security-backports"), None,
+    , SoftwareUpdate("s01", Some("1-24-RELEASE-64"), Some("x86_64"), Some("apt"), SoftwareUpdateKind.Security, Some("security-backports"), None,
         Some(SoftwareUpdateSeverity.Other("backport")), None, Some(List(id1)))
     )
   }
