@@ -536,11 +536,6 @@ object RuleApi extends ApiModuleProvider[RuleApi] {
     val (action, path)  = GET / "rules" / "nodesanddirectives" / "{id}"
     override def dataContainer = None
   }
-  final case object GetRuleNodesAndDirectivesOld extends RuleApi with OneParam with StartsAtVersion14 with SortIndex { val z = implicitly[Line].value
-    val description = "Get the list of nodes and directives of a rule - old to measure perf difference"
-    val (action, path)  = GET / "rules" / "nodesanddirectivesold" / "{id}"
-    override def dataContainer = None
-  }
   def endpoints = ca.mrvisser.sealerate.values[RuleApi].toList.sortBy( _.z )
 }
 

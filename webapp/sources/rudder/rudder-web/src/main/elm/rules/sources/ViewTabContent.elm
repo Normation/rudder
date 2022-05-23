@@ -285,7 +285,7 @@ directivesTab model details =
     ruleDirectivesId = case details.originRule of
       Just oR -> oR.directives
       Nothing -> []
-    nbDirectives = List.length ruleDirectivesId
+    nbDirectives = details.numberOfDirectives
     fun = byDirectiveCompliance model (nodeValueCompliance model)
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"

@@ -100,7 +100,7 @@ editionTemplate model details =
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
 
     nbDirectives = case originRule of
-      Just oR -> String.fromInt (List.length oR.directives)
+      Just oR -> String.fromInt (details.numberOfDirectives)
       Nothing -> "0"
 
     saveAction =

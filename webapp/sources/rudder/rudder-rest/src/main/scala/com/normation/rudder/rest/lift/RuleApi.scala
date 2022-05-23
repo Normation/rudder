@@ -145,7 +145,6 @@ class RuleApi(
       case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
       case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
       case API.GetRuleNodesAndDirectives => GetRuleNodesAndDirectives
-      case API.GetRuleNodesAndDirectivesOld => GetRuleNodesAndDirectivesOld
     })
   }
 
@@ -435,16 +434,6 @@ class RuleApi(
       (for {
         id <- RuleId.parse(sid).toIO
         r  <- serviceV14.GetRuleNodesAndDirectives(id)
-      } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
-    }
-  }
-
-  object GetRuleNodesAndDirectivesOld  extends LiftApiModuleString {
-    val schema = API.GetRuleNodesAndDirectivesOld
-    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      (for {
-        id <- RuleId.parse(sid).toIO
-        r  <- serviceV14.GetRuleNodesAndDirectivesOld(id)
       } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -1123,29 +1112,4 @@ class RuleApiService14 (
       JRRuleNodesDirectives.fromData(id, nodesIds, rule.directiveIds.size)
     }
   }
-
-  def GetRuleNodesAndDirectivesOld(id: RuleId): IOResult[JRRuleNodesDirectives] = {
-    for {
-      t1            <- currentTimeMillis
-      rule          <- readRule.get(id)
-
-      t2            <- currentTimeMillis
-      allGroups     <- readGroup.getAllNodeIds()
-      t3            <- currentTimeMillis
-      nodeInfos     <- readNodes.getAll()
-      t4            <- currentTimeMillis
-      nodesIds      <- RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, nodeInfos).size.succeed
-      t5            <- currentTimeMillis
-
-      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - readRule in ${t2 - t1} ms")
-      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - getAllNodeIdsChunk in ${t3 - t2} ms")
-      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - readNodes.getAll() in ${t4 - t3} ms")
-      _             <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectivesOld - getNodeIdsChunk in ${t5 - t4} ms")
-
-
-    } yield {
-      JRRuleNodesDirectives.fromData(id, nodesIds, rule.directiveIds.size)
-    }
-  }
-
 }
