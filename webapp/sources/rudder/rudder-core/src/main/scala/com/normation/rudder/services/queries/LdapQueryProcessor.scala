@@ -415,8 +415,22 @@ class InternalLDAPQueryProcessor(
                   case (None   , _) =>
                     None
                   case (Some(a), (_,b)) =>
-                    val intersect = a intersect b
-                    if(intersect.isEmpty) None else Some(intersect)
+                    if (b.isEmpty) {
+                      None
+                    } else {
+                      // DNs may not be the same, we may have on one side ou=nodes and the other ou=accepted inventory
+                      if (a.head.getParent == b.head.getParent) {
+                        val intersect = a intersect b
+                        if(intersect.isEmpty) None else Some(intersect)
+                      } else {
+                        val mapA = a.map(x => (x.getRDN, x)).toMap
+                        val mapB = b.map(x => (x.getRDN, x)).toMap
+
+                        val intersect = mapA.keySet intersect mapB.keySet
+
+                        if (intersect.isEmpty) None else Some(intersect.map(mapA(_)))
+                      }
+                    }
                 }
             }
         }
@@ -501,7 +515,7 @@ class InternalLDAPQueryProcessor(
                         case _ => Seq[NodeInfo]().succeed
                       }
       timefetch      <- currentTimeMillis
-      _              <-  logPure.debug(s"LDAP result: fetching if necessary all nodesInfos in in nodes obtained in ${timefetch-timeStart} ms for query ${query.toString}")
+      _              <-  logPure.debug(s"LDAP result: fetching if necessary all nodesInfos  (${allNodesInfos.size} entries) in nodes obtained in ${timefetch-timeStart} ms for query ${query.toString}.")
 
       // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
       // so we skip the last query
