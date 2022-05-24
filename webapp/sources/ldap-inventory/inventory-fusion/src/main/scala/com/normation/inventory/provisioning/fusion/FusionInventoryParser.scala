@@ -936,9 +936,9 @@ class FusionInventoryParser(
     }
     (for {
       n <- getOrError(e, "NAME")
-      v <- getOrError(e, "VERSION")
-      a <- getOrError(e, "ARCH")
-      f <- getOrError(e, "FROM")
+      v = optText(e \ "VERSION")
+      a = optText(e \ "ARCH")
+      f = optText(e \ "FROM")
       k = optText(e \ "KIND").map(SoftwareUpdateKind.parse(_)).getOrElse(SoftwareUpdateKind.None)
       s = optText(e \ "SOURCE")
       d = optText(e \ "DESCRIPTION")

@@ -393,9 +393,9 @@ final object SoftwareUpdateSeverity {
  */
 final case class SoftwareUpdate(
     name       : String
-  , version    : String
-  , arch       : String
-  , from       : String
+  , version    : Option[String]
+  , arch       : Option[String]
+  , from       : Option[String]
   , kind       : SoftwareUpdateKind
   , source     : Option[String]
   , description: Option[String]
