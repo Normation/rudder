@@ -90,13 +90,12 @@ methodsList model =
                ]
              ]
            ]
-         ]
-       , if (filter.state == FilterOpened) then
-           div [ class "filters-container" ] [-- ng-class="{'hidden':!ui.showMethodsFilter}">
-             label [ class "label-btn-group align-self-center" ] [
-               text "Agent type:"
+         , if (filter.state == FilterOpened) then
+           div [ class "filters-container" ]
+           [ label [ class "label-btn-group align-self-center" ]
+             [ text "Agent type: "
              ]
-           , div [ class "btn-group" ] [
+           , div [ class "btn-group space-left" ] [
                button [ class ("btn btn-default" ++ (if filter.agent == Nothing then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Nothing })  ] [text "All"]
              , button [ class ("btn btn-default" ++ (if filter.agent == Just Cfengine then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Cfengine }) ] [text "Classic"]
              , button [ class ("btn btn-default" ++ (if filter.agent == Just Dsc then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Dsc }) ] [
@@ -116,6 +115,7 @@ methodsList model =
            ]
          else
            text ""
+         ]
 
        , div [ class "sidebar-body" ] [
            div [ class "generic-methods-container" ] [
