@@ -914,7 +914,6 @@ button.btn.clipboard:hover {
   margin-right: 15px;
 }
 .generic-methods-container {
-  border-top: 2px solid #e5e5E5;
   display: flex;
   flex-direction: row;
   height: 100%;
