@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{api::RudderReject, hashing::Hash, JobConfig};
+use std::{io, path::PathBuf, sync::Arc};
+
 use anyhow::Error;
 use serde::Deserialize;
-use std::{io, path::PathBuf, sync::Arc};
 use tokio::fs::read;
-use tracing::{debug, error, span, trace, Level};
+use tracing::{debug, error, instrument, trace};
 use warp::{
     filters::{method, BoxedFilter},
     fs,
     http::StatusCode,
     path, query, Filter, Reply,
 };
+
+use crate::{api::RudderReject, hashing::Hash, JobConfig};
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("shared-folder" / ..);
@@ -34,9 +36,11 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use super::*;
-    use crate::JobConfig;
     use warp::{filters::path::Peek, reject, reply, Rejection, Reply};
+
+    use crate::JobConfig;
+
+    use super::*;
 
     pub async fn head(
         file: Peek,
@@ -75,19 +79,13 @@ impl SharedFolderParams {
     }
 }
 
+#[instrument(name = "shared_folder_head", level = "debug", skip(job_config))]
 pub async fn head(
     params: SharedFolderParams,
     // Relative path
     file: PathBuf,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    let span = span!(
-        Level::INFO,
-        "shared_folder_head",
-        file = %file.display(),
-    );
-    let _enter = span.enter();
-
     let file_path = job_config.cfg.shared_folder.path.join(&file);
     debug!(
         "Received request for {:#} ({:#} locally) with the following parameters: {:?}",

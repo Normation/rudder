@@ -1,16 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{
-    data::shared_file::{Metadata, SharedFile},
-    error::RudderError,
-    JobConfig,
-};
-use anyhow::Error;
-use bytes::{Buf, Bytes};
-use chrono::Utc;
-use humantime::parse_duration;
-use serde::{Deserialize, Serialize};
 use std::{
     io::{BufRead, BufReader, Read},
     str,
@@ -18,13 +8,25 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+
+use anyhow::Error;
+use bytes::{Buf, Bytes};
+use chrono::Utc;
+use humantime::parse_duration;
+use serde::{Deserialize, Serialize};
 use tokio::fs;
-use tracing::{debug, error, span, warn, Level};
+use tracing::{debug, error, instrument, warn};
 use warp::{
     body,
     filters::{method, BoxedFilter},
     http::StatusCode,
     path, query, Filter, Reply,
+};
+
+use crate::{
+    data::shared_file::{Metadata, SharedFile},
+    error::RudderError,
+    JobConfig,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -53,9 +55,11 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use super::*;
-    use crate::JobConfig;
     use warp::{reply, Rejection, Reply};
+
+    use crate::JobConfig;
+
+    use super::*;
 
     pub async fn put(
         target_id: String,
@@ -129,6 +133,7 @@ impl SharedFilesPutParams {
     }
 }
 
+#[instrument(name = "shared_files_put", level = "debug", skip(job_config, body))]
 pub async fn put(
     target_id: String,
     source_id: String,
@@ -137,15 +142,6 @@ pub async fn put(
     job_config: Arc<JobConfig>,
     body: Bytes,
 ) -> Result<StatusCode, Error> {
-    let span = span!(
-        Level::INFO,
-        "shared_files_put",
-        target_id = %target_id,
-        source_id = %source_id,
-        file_id = %file_id,
-    );
-    let _enter = span.enter();
-
     let file = SharedFile::new(source_id, target_id, file_id)?;
 
     if job_config.nodes.read().await.is_subnode(&file.target_id) {
@@ -269,6 +265,7 @@ pub struct SharedFilesHeadParams {
     hash: String,
 }
 
+#[instrument(name = "shared_files_head", level = "debug", skip(job_config))]
 pub async fn head(
     target_id: String,
     source_id: String,
@@ -276,15 +273,6 @@ pub async fn head(
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    let span = span!(
-        Level::INFO,
-        "shared_files_head",
-        target_id = %target_id,
-        source_id = %source_id,
-        file_id = %file_id,
-    );
-    let _enter = span.enter();
-
     let file = SharedFile::new(source_id, target_id, file_id)?;
 
     if job_config.nodes.read().await.is_subnode(&file.target_id) {

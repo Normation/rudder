@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{configuration::Secret, processing::inventory::InventoryType, Error, JobConfig};
-use reqwest::Body;
 use std::{path::PathBuf, sync::Arc};
-use tracing::{debug, span, Level};
 
+use reqwest::Body;
+use tracing::{debug, instrument};
+
+use crate::{configuration::Secret, processing::inventory::InventoryType, Error, JobConfig};
+
+#[instrument(name = "upstream", level = "debug", skip(job_config))]
 pub async fn send_report(job_config: Arc<JobConfig>, path: PathBuf) -> Result<(), Error> {
-    let report_span = span!(Level::TRACE, "upstream");
-    let _report_enter = report_span.enter();
     forward_file(
         job_config.clone(),
         "reports",
@@ -18,13 +19,12 @@ pub async fn send_report(job_config: Arc<JobConfig>, path: PathBuf) -> Result<()
     .await
 }
 
+#[instrument(name = "upstream", level = "debug", skip(job_config))]
 pub async fn send_inventory(
     job_config: Arc<JobConfig>,
     path: PathBuf,
     inventory_type: InventoryType,
 ) -> Result<(), Error> {
-    let report_span = span!(Level::TRACE, "upstream");
-    let _report_enter = report_span.enter();
     forward_file(
         job_config.clone(),
         match inventory_type {

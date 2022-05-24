@@ -1,29 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
+
+use anyhow::Error;
+use bytes::Bytes;
+use futures::{stream::select, Stream, StreamExt, TryStreamExt};
+use hyper::Body;
+use regex::Regex;
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    process::{Child, Command},
+};
+use tokio_stream::wrappers::LinesStream;
+use tracing::{debug, error, instrument, trace, warn};
+use warp::{
+    body,
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
+};
+
 use crate::{
     api::RudderReject,
     configuration::main::RemoteRun as RemoteRunCfg,
     data::node::{Host, NodeId},
     error::RudderError,
     JobConfig,
-};
-use anyhow::Error;
-use bytes::Bytes;
-use futures::{stream::select, Stream, StreamExt, TryStreamExt};
-use hyper::Body;
-use regex::Regex;
-use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    process::{Child, Command},
-};
-use tokio_stream::wrappers::LinesStream;
-use tracing::{debug, error, span, trace, warn, Level};
-use warp::{
-    body,
-    filters::{method, BoxedFilter},
-    path, Filter, Reply,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -65,9 +67,11 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use super::*;
-    use crate::JobConfig;
     use warp::{reject, Rejection, Reply};
+
+    use crate::JobConfig;
+
+    use super::*;
 
     pub async fn node(
         node_id: String,
@@ -146,6 +150,7 @@ impl RemoteRun {
         Ok(())
     }
 
+    #[instrument(name = "remote-run", level = "debug", skip(self, job_config))]
     pub async fn run(
         &self,
         job_config: Arc<JobConfig>,
@@ -252,9 +257,6 @@ impl RemoteRun {
         // Target for the sub relay
         target: RemoteRunTarget,
     ) -> Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin + Send> {
-        let report_span = span!(Level::TRACE, "upstream");
-        let _report_enter = report_span.enter();
-
         debug!(
             "Forwarding remote-run to {}:{} for {:#?}",
             id, hostname, target
