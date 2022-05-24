@@ -42,17 +42,18 @@ import cats.implicits._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import java.nio.charset.StandardCharsets
 
+import java.nio.charset.StandardCharsets
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.GitArchiverUtils
 import com.normation.cfclerk.services.GitRepositoryProvider
+
 import java.io.{File => JFile}
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import better.files.File
+import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -138,40 +139,66 @@ class TechniqueWriter (
       cr1.copy(directives = cr1.directives ++ cr2.directives)
     }
 
-    for {
-      directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
-      technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.toString()}' found in reference library.")
-      categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+    def removeTechnique(techniqueId: TechniqueId, technique: domain.Technique): IOResult[Unit] = {
+      for {
+        directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
+        categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+        // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
+        _          <-  directives match {
+                         case Nil => UIO.unit
+                         case _ =>
+                           if (deleteDirective) {
+                             val wf = workflowLevelService.getWorkflowService()
+                             for {
+                               cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${technique.name}/${techniqueVersion} directives")
+                               _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${technique.name}/${techniqueVersion}")).toIO
+                             } yield ()
+                           } else
+                             Unexpected(s"${directives.size} directives are defined for ${technique.name}/${techniqueVersion} please delete them, or force deletion").fail
+                       }
+        activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+        _          <- activeTech match {
+                        case None =>
+                          // No active technique found, let's delete it
+                          ().succeed
+                        case Some(activeTechnique) =>
+                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                      }
+        _          <- archiver.deleteTechnique(technique.name, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
+        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${technique.name}")).toIO.chainError(
+                        s"An error occurred during technique update after deletion of Technique ${technique.name}"
+                      )
+      } yield {
+        ()
+      }
+    }
 
-      // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-      _          <-  directives match {
-                       case Nil => UIO.unit
-                       case _ =>
-                         if (deleteDirective) {
-                           val wf = workflowLevelService.getWorkflowService()
-                           for {
-                             cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${techniqueName}/${techniqueVersion} directives")
-                             _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${techniqueName}/${techniqueVersion}")).toIO
-                            } yield {
-                             ()
-                            }
-                         } else
-                           Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
-                     }
-      activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
-      _          <- activeTech match {
-                      case None =>
-                        // No active technique found, let's delete it
-                        ().succeed
-                      case Some(activeTechnique) =>
-                        writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
-                    }
-      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
-      _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
-                      s"An error occurred during technique update after deletion of Technique ${techniqueName}"
-                    )
-    } yield {
-      ()
+    def removeInvalidTechnique(basePath: String, techniqueName: String): IOResult[Unit] = {
+      val unknownTechniquesDir = File(s"${basePath}/techniques/").listRecursively.filter(_.isDirectory).filter(_.name == techniqueName).toList
+      unknownTechniquesDir.length match {
+        case 0 =>
+          ApplicationLogger.info(s"No technique `${techniqueName}` found to delete").succeed
+        case _ =>
+          for {
+            _ <- ZIO.foreach(unknownTechniquesDir) { f =>
+                   val cat = f.pathAsString.substring(s"${basePath}/techniques/".length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
+                   for {
+                     _ <-  archiver.deleteTechnique(techniqueName, techniqueVersion, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
+                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in /var/rudder/configuration-repository/techniques: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
+                     )
+                     _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
+                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
+                     )
+                   } yield ()
+                 }
+          } yield ()
+
+      }
+    }
+
+    techniqueRepository.get(techniqueId) match {
+      case Some(technique) => removeTechnique(techniqueId, technique)
+      case None            => removeInvalidTechnique(basePath, techniqueName)
     }
   }
 

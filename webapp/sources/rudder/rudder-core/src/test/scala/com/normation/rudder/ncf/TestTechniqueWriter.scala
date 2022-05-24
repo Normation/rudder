@@ -38,7 +38,6 @@
 package com.normation.rudder.ncf
 
 import java.io.InputStream
-
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.RootTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategory
@@ -82,8 +81,8 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import java.io.File
 
+import java.io.File
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.repository.WoDirectiveRepository

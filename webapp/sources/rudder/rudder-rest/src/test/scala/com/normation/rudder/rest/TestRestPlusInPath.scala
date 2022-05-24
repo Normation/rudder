@@ -49,8 +49,6 @@ import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import org.specs2.specification.BeforeAfterAll
-
-import zio._
 import zio.syntax._
 import com.normation.zio._
 
