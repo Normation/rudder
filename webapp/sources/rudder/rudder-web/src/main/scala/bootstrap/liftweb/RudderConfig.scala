@@ -1169,6 +1169,11 @@ object RudderConfig extends Loggable {
     , softwareService
   )
 
+  val ruleInternalApiService =  new RuleInternalApiService (
+      roRuleRepository
+    , roNodeGroupRepository
+    , nodeInfoService)
+
   private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
@@ -1349,6 +1354,7 @@ object RudderConfig extends Loggable {
       , new InventoryApi(restExtractorService, inventoryProcessor, inventoryWatcher)
       , new PluginApi(restExtractorService, pluginSettingsService)
       , new RecentChangesAPI(recentChangesService, restExtractorService)
+      , new RulesInternalApi(restExtractorService, ruleInternalApiService)
       // info api must be resolved latter, because else it misses plugin apis !
     )
 

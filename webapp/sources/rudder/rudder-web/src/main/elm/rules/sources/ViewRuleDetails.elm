@@ -100,7 +100,7 @@ editionTemplate model details =
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
 
     nbDirectives = case originRule of
-      Just oR -> String.fromInt (List.length oR.directives)
+      Just oR -> Maybe.withDefault "" ( Maybe.map String.fromInt (details.numberOfDirectives) )
       Nothing -> "0"
 
     saveAction =
@@ -155,7 +155,7 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
             [ text "Nodes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbNodes details))]
+              [ span [class "nb-resources"] [ text ( Maybe.withDefault "" (Maybe.map String.fromInt (getRuleNbNodes details) ) ) ]
               ]
             ]
           ]
