@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Call without argument for a dev build
+# Call without option for a dev build
 # Call with --release for an optimized and minified build
+
+# Takes no argument and builds all elm apps
 
 set -e
 
@@ -26,7 +28,8 @@ fi
 build_release() {
   ${ELM} make --optimize sources/${app^}.elm --output=generated/rudder-${app}.js
   terser generated/rudder-${app}.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | terser --mangle --output=generated/rudder-${app}.min.js
-  cp generated/rudder-${app}.min.js ${ELM_DIR}/../webapp/javascript/rudder/elm/
+  # we use the same path for dev and prod so we can't really use .min.js
+  cp generated/rudder-${app}.min.js ${ELM_DIR}/../webapp/javascript/rudder/elm/rudder-${app}.js
 }
 
 build_dev() {
@@ -40,8 +43,8 @@ apps=$(find . -name 'elm.json' -printf "%h\n" | sed "s@\./@@")
 for app in ${apps[*]}; do
   cd ${ELM_DIR}/${app}
   if [ "$1" = "--release" ]; then
-    (set -x; build_release ${app})
+    (set -x; build_release)
   else
-    (set -x; build_dev ${app})
+    (set -x; build_dev)
   fi
 done
