@@ -216,19 +216,19 @@ class NodeGroupForm(
       & "group-static" #> groupStatic.toForm_!
       & "group-showgroup" #> nodes
       & "group-clone" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Write))
-                     SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default")
+                     SHtml.ajaxButton(<span>Clone <i class="fa fa-clone"></i></span>, () => showCloneGroupPopup()) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
                    else NodeSeq.Empty
                  }
       & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
                     <span class="save-tooltip-container">
                       {
-                        SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id" -> saveButtonId) % ("class" -> " btn btn-success")
+                        SHtml.ajaxButton(<span>Save <i class="fa fa-download"></i></span>, onSubmit _)  %  ("id" -> saveButtonId) % ("class" -> " btn btn-success btn-icon")
                       }
                       <span class="save-tooltip bsTooltip" title="Your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes. Please click on 'Search' to enable saving again"></span>
                     </span>
                    else NodeSeq.Empty
                 }
-      & "group-delete" #> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class" -> " btn btn-danger"))
+      & "group-delete" #> SHtml.ajaxButton(<span>Delete <i class="fa fa-times-circle"></i></span>, () => onSubmitDelete(), ("class" -> " btn btn-danger btn-icon"))
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupRuleTabsContent" #> showRulesForTarget(GroupTarget(nodeGroup.id))
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)

@@ -158,7 +158,7 @@ informationTab model details =
               [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput (\s -> UpdateRuleForm {details | ui = {ui | newTag = {newTag | key = s}}} ), value newTag.key][]
               , span [ class "input-group-addon addon-json"][ text "=" ]
               , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateRuleForm {details | ui = {ui | newTag = {newTag | value = s}}}), value newTag.value][]
-              , span [ class "input-group-btn"][ button [ class "btn btn-success", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = newTag :: rule.tags }, ui = {ui | newTag = Tag "" ""}}), disabled (String.isEmpty details.ui.newTag.key || String.isEmpty details.ui.newTag.value) ][ span[class "fa fa-plus"][]] ]
+              , span [ class "input-group-btn"][ button [ class "btn btn-default", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = newTag :: rule.tags }, ui = {ui | newTag = Tag "" ""}}), disabled (String.isEmpty details.ui.newTag.key || String.isEmpty details.ui.newTag.value) ][ span[class "fa fa-plus"][]] ]
               ]
             ]
           , buildTagsContainer rule True details
@@ -327,7 +327,7 @@ directivesTab model details =
       [ div [class "table-title"]
         [ h4 [][text "Compliance by directives"]
         , ( if model.ui.hasWriteRights then
-            button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select ", i[class "fa fa-plus-circle"][]]
+            button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select ", i[class "fa fa-plus-circle"][]]
           else
             text ""
           )
@@ -387,7 +387,7 @@ directivesTab model details =
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
         , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-        , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
+        , button [class "btn btn-default", onCustomClick Ignore][i [class "fa fa-refresh"][]]
         ]
       , div[class "table-container"] [(
         let
@@ -642,7 +642,7 @@ nodesTab model details =
       [ div [class "table-title"]
         [ h4 [][text "Compliance by Nodes"]
         , ( if model.ui.hasWriteRights then
-            button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
+            button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
             [ text "Select groups", i[class "fa fa-plus-circle" ][]]
           else
             text ""
@@ -670,7 +670,7 @@ nodesTab model details =
             in
               UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
           )][]
-        , button [class "btn btn-primary btn-sm"][text "Refresh"]
+        , button [class "btn btn-default btn-sm"][i [class "fa fa-refresh"][]]
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [
@@ -713,7 +713,7 @@ groupsTab model details =
           [ div[class "list-heading"]
             [ h4[][text "Applied to Nodes in any of these Groups"]
             , ( if model.ui.hasWriteRights then
-                button [class "btn btn-primary btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})]
+                button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})]
                 [ text "Select", i[class "fa fa-plus-circle" ][]]
               else
                 text ""

@@ -250,7 +250,7 @@ class RuleDisplayer (
                                      input-changed="updateValue" override-suggestions="true">
                                 </div>
                                 <span class="input-group-btn">
-                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-default btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
                                     <span class="fa fa-plus"></span>
                                   </button>
                                 </span>
@@ -312,7 +312,7 @@ class RuleDisplayer (
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-gears" aria-hidden="true"></i>Rules</h3>
                   <div class="box-tools pull-right">
-                    <button class="btn btn-box-tool btn-blue toggleTabFilter updateTable btn-sm" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
+                    <button class="btn btn-box-tool btn-default toggleTabFilter updateTable btn-sm" id="updateRuleTable">Refresh<span class="fa fa-refresh"></span></button>
                     <lift:authz role="rule_write">
                       {actionButtonRule}
                     </lift:authz>

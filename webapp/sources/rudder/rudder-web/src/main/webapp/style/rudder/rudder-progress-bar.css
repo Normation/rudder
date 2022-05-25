@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2014 Normation SAS
+* Copyright 2022 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,7 +34,10 @@
 *
 *************************************************************************************
 */
-
+.content-wrapper .progress {
+  border-radius: 4px;
+  margin: 3px 5px;
+}
 .content-wrapper .progress .progress-bar{
   color: #fff;
   line-height: 22px;
@@ -45,11 +48,6 @@
 /*
  * Colours for our progress bars
  */
-
-.content-wrapper .progress .progress-bar{
-  color: #fff;
-  line-height: 22px;
-}
 .content-wrapper .progress.progress-flex .progress-bar{
   min-width: 5px;
   white-space: nowrap;
@@ -58,36 +56,36 @@
   border-radius: 4px;
 }
 .content-wrapper .progress-bar-reportsdisabled {
-  background-color: #b4b4b4;
+  background-color: #72829D;
 }
 .content-wrapper .progress-bar-success {
-  background-color: #9bc832;
+  background-color: #13BEB7;
 }
 .content-wrapper .progress-bar-error {
-  background-color: #c9302c;
+  background-color: #DA291C
 }
 .content-wrapper .progress-bar-pending {
-  background-color: #5bc0de;
+  background-color: #14C3DD;
 }
 .content-wrapper .progress-bar-no-report {
   background-color: #B1BBCB;
 }
 .content-wrapper .progress-bar-unknown {
-  background-color: #c9302c;
+  background-color: #DA291C;
 }
 .content-wrapper .progress-bar-missing {
-  background-color: #FF9147;
+  background-color: #F2E27D;
 }
 .content-wrapper .progress-bar-audit-compliant {
-  background-color: #9bc832;
+  background-color: #13BEB7;
 }
 .content-wrapper .progress-bar-audit-noncompliant {
-  background-color: #ff7125;
+  background-color: #EF9600;
 }
 .content-wrapper .progress-bar-audit-notapplicable {
-  background-color: #8dcd8d;
+  background-color: #8DCD8D;
 }
 .content-wrapper .progress-bar-audit-error {
-  background-color: #c9302c;
+  background-color: #DA291C
 }
 

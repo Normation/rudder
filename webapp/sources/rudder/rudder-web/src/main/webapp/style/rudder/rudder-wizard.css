@@ -98,7 +98,7 @@ ul.wizard-timeline > li > .timeline-item .item-title {
   color: #b4b9ca
 }
 ul.wizard-timeline > li.activeSection > .timeline-item .item-title {
-  color: #222D42;
+  color: #041922;
 }
 ul.wizard-timeline > li.activeSection ~ li:last-child > .timeline-item .item-dot,
 ul.wizard-timeline > li.activeSection ~ li > .timeline-connector:before{

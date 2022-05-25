@@ -128,7 +128,7 @@
 }
 
 .rudder-notification .callout-fade.callout-success{
-  border-color: #9bc832;
+  border-color: #13BEB7;
 }
 /* --- INFO --- */
 .rudder-notification .callout-fade.callout-info{
@@ -136,7 +136,7 @@
 }
 /* --- WARNING --- */
 .rudder-notification .callout-fade.callout-warning{
-  border-color: #f08004;
+  border-color: #EF9600;
 }
 
 /* --- DANGER --- */

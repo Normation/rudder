@@ -8,9 +8,9 @@
 .dataTables_wrapper_bottom {
   float            : left;
   width            : 100%;
-  border           : 1px solid #e5e5e5;
-  padding          : 6px;
-  background-color : #f5f6f7;
+  border           : 1px solid #d6deef;
+  padding          : 10px 15px;
+  background-color : #F8F9FC;
 }
 .dataTables_wrapper_top {
   border-bottom    : none;
@@ -46,7 +46,7 @@
   font-weight: initial;
   line-height: 1.5;
   border-radius: 3px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid #d6deef;
   min-width: 250px;
   outline: none !important;
   transition-duration: .2s;
@@ -62,7 +62,7 @@
 /* <TABLE> */
 .dataTable{
   width         : 100%;
-  border        : 1px solid #e5e5e5;
+  border        : 1px solid #d6deef;
   font-size     : 14px;
   margin-bottom : 0px;
 }
@@ -77,7 +77,7 @@
 
 /* <THEAD> */
 .dataTable tr.head{
-  border-bottom : 1px solid #e5e5e5;
+  border-bottom : 1px solid #d6deef;
   font-size: 1.15em;
 }
 /* </THEAD> */
@@ -121,7 +121,7 @@
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: #999;
+  color: #b1bbcb;
   margin-left : 6px;
   font-size: 18px;
   position: relative;
@@ -138,11 +138,11 @@
   font-size: 0.9em;
 }
 .dataTable tr.head th.sorting{
-  color: #3481b9;
+  color: #738195;
 }
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc{
-  color: #222D42;
+  color: #041922;
 }
 .dataTable tr.head th.sorting:hover,
 .dataTable tr.head th.sorting.sorting_desc:hover,
@@ -174,7 +174,7 @@ td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditComplian
 .report-compliance .successAlreadyOK,
 .report-compliance .auditCompliant,
 .report-compliance .auditNotApplicable {
-  background-color:#9bc832;
+  background-color: #13BEB7;
   color: #fff;
 }
 td.AuditNonCompliant,td.NonCompliant,
@@ -205,7 +205,7 @@ td.Disabled, td.NoAnswer,
 td.Repaired,
 .report-compliance .successRepaired {
   background-color: #F5DD4D;
-  color: #333;
+  color: #041922;
 }
 td.eventId{
   position:relative
@@ -253,18 +253,18 @@ td.listclose:after {
   position: relative;
 }
 .dataTable > tbody > tr.color2{
-  background-color: #f2f8ff;
+  background-color: #F8F9FC;
 }
 .dataTable > tbody > tr:hover{
-  background-color: #e2f2ff;
+  background-color: #eef1f9;
 }
 .dataTable > tbody > tr.eventLogDescription {
   border-top: 1px solid transparent;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
   background-color: #FFF !important;
 }
 .dataTable > tbody > tr.opened {
-  border-top: 1px solid #E5E5E5 !important;
+  border-top: 1px solid #d6deef !important;
   border-bottom: 1px solid #c0d4e4;
   background-color: #e2f2ff;
 }
@@ -298,7 +298,7 @@ td.listclose:after {
 }
 .dataTable .innerDetails {
   display: none;
-  background : #f5f6f7;
+  background : #F8F9FC;
   padding-left:50px;
   float: left;
   width: 100%;
@@ -344,9 +344,9 @@ td.listclose:after {
 .dataTables_paginate > span > .paginate_button,
 .dataTables_paginate > span > .ellipsis{
   padding: 2px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid #d6deef;
   cursor: pointer;
-  background-color: #f7f7f7;
+  background-color: #fff;
   transition-property: background-color;
   transition-duration: .2s;
 }
@@ -368,9 +368,9 @@ td.listclose:after {
 }
 .dataTables_paginate .ui-button.ui-state-disabled,
 .dataTables_paginate .paginate_button.disabled{
-  color: #555 !important;
   cursor: default !important;
-  background-color: #e8e8e8 !important;
+  color: #041922 !important;
+  background-color: #ffffff !important;
   opacity: .6;
 }
 .dataTables_paginate > span > .ellipsis{
@@ -406,7 +406,7 @@ td.listclose:after {
 /* </WRAPPER BOTTOM> */
 
 .dataTable > tbody > tr > td.dataTables_empty{
-  color: #777;
+  color: #738195;
   font-style: italic;
   padding: 10px 6px;
 }
@@ -517,7 +517,7 @@ td.listclose:after {
   z-index: 0;
 }
 #nodePropertiesTab .value-container.show-more + span.toggle-icon:after {
-  color: #333;
+  color: #041922;
   content: "\f054";
   display: inline-block;
   font: normal normal normal 14px/1;
@@ -555,19 +555,17 @@ table.dataTable tr.dtrg-group td {
   border-top: 1px #bbb solid;
 }
 td.greyBackground, th.greyBackground {
-  background-color : #eeeeee;
-}
-#first_line_header {
-  margin-bottom: 5px;
+  background-color : #F8F9FC;
 }
 #first_line_header .dataTables_filter {
   margin-right: 15px;
 }
 .dataTable td a.text-danger{
-  color: #a94442;
+  color: #EF9600;
+  margin-left: 4px;
 }
 .dataTable td a.text-danger:hover{
-  color: #881c1a;
+  color: #ffa918;
 }
 
 /* === COLUMNS CONFIGURATION === */
