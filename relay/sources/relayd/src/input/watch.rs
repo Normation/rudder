@@ -1,23 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{
-    configuration::main::{CatchupConfig, CleanupConfig, WatchedDirectory},
-    processing::ReceivedFile,
-};
-use anyhow::Error;
-use futures::{future, StreamExt};
-use inotify::{Inotify, WatchMask};
 use std::{
     path::Path,
     time::{Duration, SystemTime},
 };
+
+use anyhow::Error;
+use futures::{future, StreamExt};
+use inotify::{Inotify, WatchMask};
 use tokio::{
     fs::{read_dir, remove_file},
     sync::mpsc,
     time::interval,
 };
-use tracing::{debug, error, info, span, Level};
+use tracing::{debug, error, info, instrument};
+
+use crate::{
+    configuration::main::{CatchupConfig, CleanupConfig, WatchedDirectory},
+    processing::ReceivedFile,
+};
 
 pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), Error> {
     let mut timer = interval(cfg.frequency);
@@ -69,10 +71,9 @@ pub async fn cleanup(path: WatchedDirectory, cfg: CleanupConfig) -> Result<(), E
     }
 }
 
+#[instrument(name = "watcher", level = "debug", skip(tx))]
 pub fn watch(path: WatchedDirectory, cfg: CatchupConfig, tx: mpsc::Sender<ReceivedFile>) {
     info!("Starting file watcher on {:#?}", &path);
-    let report_span = span!(Level::TRACE, "watcher");
-    let _report_enter = report_span.enter();
     tokio::spawn(list_files(path.clone(), cfg, tx.clone()));
     tokio::spawn(watch_files(path, tx));
 }
@@ -162,13 +163,15 @@ async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) ->
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::{
         fs::{rename, File},
         path::PathBuf,
         str::FromStr,
     };
+
     use tempfile::tempdir;
+
+    use super::*;
 
     #[tokio::test]
     async fn it_watches_files() {

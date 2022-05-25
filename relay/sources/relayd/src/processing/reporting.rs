@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{convert::TryFrom, os::unix::ffi::OsStrExt, sync::Arc};
+
+use anyhow::Error;
+use md5::{Digest, Md5};
+use tokio::{sync::mpsc, task::spawn_blocking};
+use tracing::{debug, error, info, instrument, span, warn, Instrument, Level};
+
 use crate::{
     configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
@@ -13,18 +20,11 @@ use crate::{
     processing::{failure, success, OutputError, ReceivedFile},
     JobConfig,
 };
-use anyhow::Error;
-use md5::{Digest, Md5};
-use std::{convert::TryFrom, os::unix::ffi::OsStrExt, sync::Arc};
-use tokio::{sync::mpsc, task::spawn_blocking};
-use tracing::{debug, error, info, span, warn, Level};
 
 static REPORT_EXTENSIONS: &[&str] = &["gz", "zip", "log"];
 
+#[instrument(name = "reporting", level = "debug", skip(job_config))]
 pub fn start(job_config: &Arc<JobConfig>) {
-    let span = span!(Level::TRACE, "reporting");
-    let _enter = span.enter();
-
     let incoming_path = job_config
         .cfg
         .processing
@@ -75,9 +75,9 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
             "report",
             queue_id = %queue_id,
         );
-        let _enter = span.enter();
 
         // Check run info
+        // FIXME make async
         let info = RunInfo::try_from(file.as_ref()).map_err(|e| warn!("received: {}", e))?;
 
         let node_span = span!(
@@ -85,34 +85,40 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
             "node",
             node_id = %info.node_id,
         );
-        let _node_enter = node_span.enter();
 
-        if !job_config.nodes.read().await.is_subnode(&info.node_id) {
-            REPORTS.with_label_values(&["invalid"]).inc();
-            failure(file, job_config.cfg.processing.reporting.directory.clone())
-                .await
-                .unwrap_or_else(|e| error!("output error: {}", e));
-
-            error!("refused: report from {:?}, unknown id", &info.node_id);
-            // this is actually expected behavior
-            continue;
-        }
-
-        debug!("received: {:?}", file);
-
-        match job_config.cfg.processing.reporting.output {
-            ReportingOutputSelect::Database => {
-                output_report_database(file, info, job_config.clone()).await
-            }
-            ReportingOutputSelect::Upstream => {
-                output_report_upstream(file, job_config.clone()).await
-            }
-            // The job should not be started in this case
-            ReportingOutputSelect::Disabled => unreachable!("Report server should be disabled"),
-        }
-        .unwrap_or_else(|e| error!("output error: {}", e));
+        handle_report(job_config.clone(), info, file)
+            .instrument(span)
+            .instrument(node_span)
+            .await
     }
     Ok(())
+}
+
+async fn handle_report(job_config: Arc<JobConfig>, info: RunInfo, file: ReceivedFile) {
+    if !job_config.nodes.read().await.is_subnode(&info.node_id) {
+        REPORTS.with_label_values(&["invalid"]).inc();
+        failure(file, job_config.cfg.processing.reporting.directory.clone())
+            .await
+            .unwrap_or_else(|e| error!("output error: {}", e));
+
+        error!("refused: report from {:?}, unknown id", &info.node_id);
+        // this is actually expected behavior
+        return;
+    }
+
+    debug!("received: {:?}", file);
+
+    match job_config.cfg.processing.reporting.output {
+        ReportingOutputSelect::Database => {
+            output_report_database(file, info, job_config.clone()).await
+        }
+        ReportingOutputSelect::Upstream => output_report_upstream(file, job_config.clone()).await,
+        // The job should not be started in this case
+        ReportingOutputSelect::Disabled => {
+            unreachable!("Report server should be disabled")
+        }
+    }
+    .unwrap_or_else(|e| error!("output error: {}", e));
 }
 
 async fn output_report_database(

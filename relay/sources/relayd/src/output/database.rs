@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use diesel::{
+    insert_into,
+    pg::PgConnection,
+    prelude::*,
+    r2d2::{ConnectionManager, Pool},
+};
+use tracing::{debug, error, instrument, trace};
+
 use crate::{
     configuration::main::DatabaseConfig,
     data::{
@@ -10,13 +18,6 @@ use crate::{
     },
     Error,
 };
-use diesel::{
-    insert_into,
-    pg::PgConnection,
-    prelude::*,
-    r2d2::{ConnectionManager, Pool},
-};
-use tracing::{debug, error, span, trace, Level};
 
 pub mod schema {
     table! {
@@ -81,13 +82,12 @@ pub fn ping(pool: &PgPool) -> Result<(), Error> {
     Ok(())
 }
 
+#[instrument(name = "database", level = "debug", skip(pool))]
 pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, Error> {
     use self::schema::{
         reportsexecution::dsl::*,
         ruddersysevents::dsl::{nodeid, *},
     };
-    let report_span = span!(Level::TRACE, "database");
-    let _report_enter = report_span.enter();
 
     let connection = &*pool.get()?;
 
@@ -159,13 +159,15 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use diesel::dsl::count;
+
     use crate::{
         configuration::Secret,
         data::report::QueryableReport,
         output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     };
-    use diesel::dsl::count;
+
+    use super::*;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {

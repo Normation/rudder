@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{fmt, fmt::Display, net::ToSocketAddrs, sync::Arc};
+
+use serde::Serialize;
+use tracing::{error, info, instrument};
+use warp::{http::StatusCode, path, reject, reject::Reject, reply, Filter, Rejection, Reply};
+
+use crate::JobConfig;
+
 mod metrics;
 mod remote_run;
 mod shared_files;
 mod shared_folder;
 mod system;
 
-use crate::JobConfig;
-use serde::Serialize;
-use std::{fmt, fmt::Display, net::ToSocketAddrs, sync::Arc};
-use tracing::{error, info, span, Level};
-use warp::{http::StatusCode, path, reject, reject::Reject, reply, Filter, Rejection, Reply};
-
 #[derive(Debug)]
 struct RudderReject {
     reason: String,
 }
 
-impl fmt::Display for RudderReject {
+impl Display for RudderReject {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.reason)
     }
@@ -90,10 +92,8 @@ impl<T: Serialize> ApiResponse<T> {
     }
 }
 
+#[instrument(name = "api", level = "debug", skip(job_config))]
 pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
-    let span = span!(Level::TRACE, "api");
-    let _enter = span.enter();
-
     let routes_1 = path!("rudder" / "relay-api" / "1" / ..)
         .and(
             system::routes_1(job_config.clone())
@@ -151,9 +151,11 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::error::RudderError;
     use anyhow::Error;
+
+    use crate::error::RudderError;
+
+    use super::*;
 
     #[test]
     fn it_serializes_api_response() {

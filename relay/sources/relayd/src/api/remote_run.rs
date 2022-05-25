@@ -13,7 +13,7 @@ use tokio::{
     process::{Child, Command},
 };
 use tokio_stream::wrappers::LinesStream;
-use tracing::{debug, error, span, trace, warn, Level};
+use tracing::{debug, error, instrument, trace, warn};
 use warp::{
     body,
     filters::{method, BoxedFilter},
@@ -150,6 +150,7 @@ impl RemoteRun {
         Ok(())
     }
 
+    #[instrument(name = "remote-run", level = "debug", skip(self, job_config))]
     pub async fn run(
         &self,
         job_config: Arc<JobConfig>,
@@ -256,9 +257,6 @@ impl RemoteRun {
         // Target for the sub relay
         target: RemoteRunTarget,
     ) -> Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin + Send> {
-        let report_span = span!(Level::TRACE, "upstream");
-        let _report_enter = report_span.enter();
-
         debug!(
             "Forwarding remote-run to {}:{} for {:#?}",
             id, hostname, target
