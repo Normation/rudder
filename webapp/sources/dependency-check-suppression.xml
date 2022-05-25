@@ -45,9 +45,16 @@
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: spring-core-5.2.20.jar
+   file name: postgresql-42.2.25.jar 
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.2.20.RELEASE$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.postgresql/postgresql@42.2.25$</packageUrl>
+   <cve>CVE-2022-26520</cve>
+</suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: spring-core-5.2.22.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.2.22.RELEASE$</packageUrl>
    <cve>CVE-2016-1000027</cve>
 </suppress>
 <suppress>
@@ -57,6 +64,7 @@
    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.3.10.RELEASE$</packageUrl>
    <cve>CVE-2016-1000027</cve>
    <cve>CVE-2022-22965</cve>
+   <cve>CVE-2022-22970</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
