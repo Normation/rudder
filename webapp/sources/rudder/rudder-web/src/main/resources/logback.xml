@@ -345,7 +345,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     date/time ok regarding run interval and compliance mode, etc.)
     Trace level is quite verbose.
   -->
-  <logger name="explain_compliance" level="debug" additivity="false">
+  <logger name="explain_compliance" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
@@ -444,7 +444,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Log all non compliant reports in the REPORTLOG defined above
     (by default, /var/log/rudder/compliance/non-compliant-reports.log
   -->
-  <logger name="non-compliant-reports" level="debug" additivity="false">
+  <logger name="non-compliant-reports" level="info" additivity="false">
     <appender-ref ref="REPORTLOG" />
   </logger>
 
