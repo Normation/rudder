@@ -636,10 +636,24 @@ class LDAPEntityMapper(
         (NodeGroupId(id), nodeIds)
       }
     } else {
-      Thread.currentThread().getStackTrace.foreach(println)
-      Left(Err.UnexpectedObject("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e)))
+      Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}'. Entry details: ${e}"))
     }
   }
+
+  // Lightweight implementation, returns only the nodegroupid, and list of nodes
+  def entryToGroupNodeIdsChunk(e:LDAPEntry) : InventoryMappingPure[(NodeGroupId, Chunk[NodeId])] = {
+    if(e.isA(OC_RUDDER_NODE_GROUP)) {
+      for {
+        id <- e.required(A_NODE_GROUP_UUID)
+        nodeIds = e.valuesForChunk(A_NODE_UUID).map(x => NodeId(x))
+      } yield {
+        (NodeGroupId(id), nodeIds)
+      }
+    } else {
+      Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}'. Entry details: ${e}"))
+    }
+  }
+
   def nodeGroupToLdap(group: NodeGroup, parentDN: DN): LDAPEntry = {
     val entry = rudderDit.GROUP.groupModel(
         group.id.value

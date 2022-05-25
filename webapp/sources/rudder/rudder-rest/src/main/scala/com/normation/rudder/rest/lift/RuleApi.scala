@@ -428,6 +428,7 @@ class RuleApi(
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
     }
   }
+
 }
 
 class RuleApiService2 (
@@ -1079,4 +1080,5 @@ class RuleApiService14 (
       category
     }
   }
+
 }

@@ -158,6 +158,22 @@ getRulesCategoryDetails model catId =
   in
     req
 
+getRuleNodesDirectives : RuleId ->  Model -> Cmd Msg
+getRuleNodesDirectives ruleId model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "rulesinternal", "nodesanddirectives", ruleId.value ] []
+        , body    = emptyBody
+        , expect  = expectJson ( GetRuleNodesDirectivesResult ruleId ) decodeRuleNodesDirective
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
 getRulesCompliance : Model -> Cmd Msg
 getRulesCompliance model =
   let

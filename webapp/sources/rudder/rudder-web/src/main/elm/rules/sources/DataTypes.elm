@@ -226,7 +226,9 @@ type alias ComplianceDetails =
 
 type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag, openedRows : Dict String (String, SortOrder)  }
 
-type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, compliance : Maybe RuleCompliance, reports : List RepairedReport }
+type alias RuleDetails = { originRule : Maybe Rule, rule : Rule, tab :  TabMenu, ui : RuleDetailsUI, numberOfNodes: Maybe Int, numberOfDirectives: Maybe Int, compliance : Maybe RuleCompliance, reports : List RepairedReport }
+
+type alias RuleNodesDirectives = { id: String, numberOfNodes: Int, numberOfDirectives: Int }
 
 type alias CategoryDetails = { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab :  TabMenu}
 
@@ -313,6 +315,7 @@ type Msg
   | GetPolicyModeResult      (Result Error String)
   | GetCategoryDetailsResult (Result Error (Category Rule))
   | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
+  | GetRuleNodesDirectivesResult RuleId (Result Error RuleNodesDirectives)
   | GetRuleComplianceResult  RuleId (Result Error RuleCompliance)
   | GetNodesList             (Result Error (List NodeInfo))
   | SaveRuleDetails          (Result Error Rule)

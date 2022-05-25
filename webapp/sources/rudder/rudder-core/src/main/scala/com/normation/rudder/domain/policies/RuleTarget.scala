@@ -44,6 +44,7 @@ import com.normation.utils.Control.sequence
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
+import zio.Chunk
 
 /**
  * A target is either
@@ -209,7 +210,7 @@ object RuleTarget extends Loggable {
 
   /**
    * Return all node ids that match the set of target.
-   * allNodes pair is: (isPolicyServer, serverRoles)
+   * allNodes pair is: (nodeid, isPolicyServer)
    */
   def getNodeIds(
       targets : Set[RuleTarget]
@@ -261,6 +262,75 @@ object RuleTarget extends Loggable {
         val excludedNodes = getNodeIds(Set(excluded), allNodes, groups, allNodesAreThere)
         // Remove excluded nodes from included nodes
         val result = includedNodes -- excludedNodes
+        nodes ++ result
+    } }
+  }
+
+  /**
+   * Return all node ids that match the set of target.
+   * allNodes pair is: (nodeid, isPolicyServer)
+   */
+  def getNodeIdsChunk(
+      targets : Set[RuleTarget]
+    , allNodes: Map[NodeId, Boolean /* isPolicyServer */]
+    , groups  : Map[NodeGroupId, Chunk[NodeId]]
+    , allNodesAreThere: Boolean = true  // if we are working on a subset of node, set to false
+  ) : Chunk[NodeId] = {
+    val result = getNodeIdsChunkRec(Chunk.fromIterable(targets), allNodes, groups, allNodesAreThere)
+    result.distinct
+  }
+
+  def getNodeIdsChunkRec(
+      targets : Chunk[RuleTarget]
+    , allNodes: Map[NodeId, Boolean /* isPolicyServer */]
+    , groups  : Map[NodeGroupId, Chunk[NodeId]]
+    , allNodesAreThere: Boolean = true  // if we are working on a subset of node, set to false
+  ) : Chunk[NodeId] = {
+
+    targets.foldLeft(Chunk[NodeId]()) { case (nodes , target) => target match {
+      case AllTarget => return Chunk.fromIterable(allNodes.keys)
+      case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,isPolicyServer) if(!isPolicyServer) => k }
+      case AllPolicyServers => nodes ++ allNodes.collect{ case(k,isPolicyServer) if(isPolicyServer) => k }
+      case PolicyServerTarget(nodeId) =>
+        if (allNodesAreThere) {
+          nodes :+ nodeId
+        } else {
+          // nodeId may not be in allNodes
+          //allNodes.keys.exists(x => x == nodeId)
+          Chunk.fromIterable(allNodes.keys).contains(nodeId) match {
+            case true => nodes :+ nodeId
+            case _ => nodes
+          }
+        }
+
+      //here, if we don't find the group, we consider it's an error in the
+      //target recording, but don't fail, just log it.
+      case GroupTarget(groupId) =>
+        nodes ++ groups.getOrElse(groupId, Chunk.empty)
+
+      case TargetIntersection(targets) =>
+        val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups, allNodesAreThere))
+        // Compute the intersection of the sets of Nodes
+        val intersection = nodeSets.foldLeft(Chunk.fromIterable(allNodes.keys)) {
+          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
+        }
+        nodes ++ intersection
+
+      case TargetUnion(targets) =>
+        val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups, allNodesAreThere))
+        // Compute the union of the sets of Nodes
+        val union = nodeSets.foldLeft(Chunk[NodeId]()) {
+          case (currentUnion, nodes) => currentUnion.concat(nodes)
+        }
+        nodes ++ union
+
+      case TargetExclusion(included,excluded) =>
+        // Compute the included Nodes
+        val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups, allNodesAreThere)
+        // Compute the excluded Nodes
+        val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups, allNodesAreThere)
+        // Remove excluded nodes from included nodes
+        val result = includedNodes.filterNot( id => excludedNodes.contains(id))
         nodes ++ result
     } }
   }

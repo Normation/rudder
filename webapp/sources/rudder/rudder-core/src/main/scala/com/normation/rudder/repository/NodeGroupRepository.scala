@@ -45,6 +45,7 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
+import zio.Chunk
 
 import scala.collection.immutable.SortedMap
 
@@ -240,6 +241,13 @@ trait RoNodeGroupRepository {
    */
   def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]]
 
+
+  /**
+   * Get all the node group id and the set of ndoes within
+   * Goal is to be more efficient
+   */
+  def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]]
+
   /**
    * Get all pairs of (category details, Set(node groups) )
    * in a map in which keys are the parent category of the groups.
@@ -333,6 +341,11 @@ object RoNodeGroupRepository {
   def getNodeIds(allGroups: Map[NodeGroupId, Set[NodeId]], targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Set[NodeId] = {
     val allNodes = allNodeInfos.view.mapValues { x => (x.isPolicyServer) }
     RuleTarget.getNodeIds(targets, allNodes.toMap, allGroups)
+  }
+
+  def getNodeIdsChunk(allGroups: Map[NodeGroupId, Chunk[NodeId]], targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Chunk[NodeId] = {
+    val allNodes = allNodeInfos.view.mapValues { x => (x.isPolicyServer) }
+    RuleTarget.getNodeIdsChunk(targets, allNodes.toMap, allGroups)
   }
 }
 

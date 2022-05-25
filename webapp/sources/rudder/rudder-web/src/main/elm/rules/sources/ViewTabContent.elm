@@ -285,7 +285,7 @@ directivesTab model details =
     ruleDirectivesId = case details.originRule of
       Just oR -> oR.directives
       Nothing -> []
-    nbDirectives = List.length ruleDirectivesId
+    nbDirectives = details.numberOfDirectives
     fun = byDirectiveCompliance model (nodeValueCompliance model)
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"
@@ -312,7 +312,7 @@ directivesTab model details =
     tableFilters     = directiveFilters.tableFilters
     treeFilters      = directiveFilters.treeFilters
 
-    noNodes = getRuleNbNodes details <= 0
+    noNodes = (Maybe.withDefault 1 (getRuleNbNodes details))  <= 0
     noNodesInfo =
       if noNodes then
         div[ class "callout-fade callout-warning"]
