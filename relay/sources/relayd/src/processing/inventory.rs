@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{os::unix::ffi::OsStrExt, sync::Arc};
+
+use anyhow::Error;
+use md5::{Digest, Md5};
+use tokio::sync::mpsc;
+use tracing::{debug, error, info, instrument, span, Instrument, Level};
+
 use crate::{
     configuration::main::InventoryOutputSelect,
     input::watch::*,
@@ -9,11 +16,6 @@ use crate::{
     processing::{failure, success, OutputError, ReceivedFile},
     JobConfig,
 };
-use anyhow::Error;
-use md5::{Digest, Md5};
-use std::{os::unix::ffi::OsStrExt, sync::Arc};
-use tokio::sync::mpsc;
-use tracing::{debug, error, info, span, Level};
 
 static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "sign"];
 
@@ -23,10 +25,8 @@ pub enum InventoryType {
     Update,
 }
 
+#[instrument(name = "inventory", level = "debug", skip(job_config))]
 pub fn start(job_config: &Arc<JobConfig>) {
-    let span = span!(Level::TRACE, "inventory");
-    let _enter = span.enter();
-
     let (sender, receiver) = mpsc::channel(1_024);
 
     let incoming_path = job_config
@@ -92,18 +92,18 @@ async fn serve(
                     .as_bytes()
             )
         );
+        debug!("received: {:?}", file);
+
         let span = span!(
             Level::INFO,
             "inventory",
             queue_id = %queue_id,
         );
-        let _enter = span.enter();
-
-        debug!("received: {:?}", file);
-
         match job_config.cfg.processing.inventory.output {
             InventoryOutputSelect::Upstream => {
-                output_inventory_upstream(file, inventory_type, job_config.clone()).await
+                output_inventory_upstream(file, inventory_type, job_config.clone())
+                    .instrument(span)
+                    .await
             }
             // The job should not be started in this case
             InventoryOutputSelect::Disabled => unreachable!("Inventory server should be disabled"),
