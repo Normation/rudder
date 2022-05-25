@@ -53,12 +53,14 @@ bundle agent service_started(name)
       "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "start");
       # Use stop result as method result
       "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.report_id}");
       "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
       "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_start");
     pass3.!needs_start::
       # Define success classes is check_running was not kept
       "${report_data.method_id}_${name}" usebundle => _classes_success("${class_prefix}");
-      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.report_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.method_id}");      
     pass3::
       # Report
       "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");

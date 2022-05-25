@@ -194,6 +194,8 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
     pass1:: # need to be guarded by a class, and need an extra parameter to be executed at each call
       "uuid"         string => execresult("/usr/bin/uuidgen #${result_class}", "useshell");
       "c_uuid"       string => canonify("${uuid}");
+      "d_uuid"       string => canonify("d_${uuid}");
+      "r_uuid"       string => canonify("r_${uuid}");
 
   classes:
       "pass3" expression => "pass2";
@@ -225,11 +227,12 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
 
   methods:
     pass1.!pass2::
+      "set_reporting"    usebundle => rudder_reporting_context_v4("${d_uuid}", "${r_uuid}", "default_ncf", "${name}", "${name}", "${uuid}");
       "set_reporting"    usebundle => _method_reporting_context_v4("${name}", "${name}","${uuid}"); # component value is not used for classes
     pass2::
       "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix_${result_class}"),
               comment => "${c_uuid}";
-      "expected_classes" usebundle => define_expected_classes("${c_uuid}", "${status}", "method_id_${result_class}"),
+      "expected_classes" usebundle => define_expected_classes("${c_uuid}_${d_uuid}", "${status}", "method_id_${result_class}"),
               comment => "${c_uuid}";
 
 

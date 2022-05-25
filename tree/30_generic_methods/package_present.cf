@@ -46,7 +46,7 @@ bundle agent package_present(name, version, architecture, provider)
       "${report_data.method_id}" usebundle => call_method("ncf_package");
       "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "present", "");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes("${report_data.report_id}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("ncf_package");
 
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "${ncf_package.message}", "");
