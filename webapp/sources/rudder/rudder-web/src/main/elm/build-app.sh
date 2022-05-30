@@ -21,6 +21,8 @@ PROJECTS=("Notifications" "Healthcheck" "Editor" "Onboarding" "Rules" "Accounts"
 for PROJECT in ${PROJECTS[*]}; do
   lower=$(echo "${PROJECT}" | tr '[:upper:]' '[:lower:]')
   cd ${ELM_DIR}/${lower}
+  # To make sure we build up-to-date stuff and avoid corruption
+  rm -rf elm-stuff
   elm-0.19.1 make --optimize sources/${PROJECT}.elm --output=generated/rudder-${lower}.js
   cp generated/rudder-${lower}.js ${ELM_DIR}/../webapp/javascript/rudder/elm/
 done
