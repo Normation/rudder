@@ -8,6 +8,8 @@ ELM_DIR="$( cd "$( dirname "$0" )" && pwd )"
 PROJECTS=("notifications" "healthcheck")
 for PROJECT in ${PROJECTS[*]}; do
   cd ${ELM_DIR}/${PROJECT}
+  # To make sure we build up-to-date stuff and avoid corruption
+  rm -rf elm-stuff
   elm make --optimize sources/rudder-${PROJECT}.elm --output=generated/rudder-${PROJECT}.js
   cp generated/rudder-${PROJECT}.js ${ELM_DIR}/../webapp/javascript/rudder/elm/
 done
