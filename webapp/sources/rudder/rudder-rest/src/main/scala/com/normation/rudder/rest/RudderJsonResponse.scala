@@ -144,6 +144,10 @@ object RudderJsonResponse {
         generic.success(JsonRudderApiResponse.success(schema, None, Map(key -> objs)))
     }
   }
+  def successZero(schema: ResponseSchema, msg: String)(implicit prettify: Boolean) = {
+    implicit val enc = DeriveJsonEncoder.gen[JsonRudderApiResponse[String]]
+    generic.success(JsonRudderApiResponse.success(schema, None, msg))
+  }
   // errors
   implicit val nothing: JsonEncoder[Option[Unit]] = new JsonEncoder[Option[Unit]] {
     def unsafeEncode(n: Option[Unit], indent: Option[Int], out: zio.json.internal.Write): Unit = out.write("null")
@@ -198,7 +202,19 @@ object RudderJsonResponse {
           }).runNow
       }
     }
-
+    // when you don't have any parameter, just a response
+    implicit class ToLiftResponseZero(result: IOResult[String]) {
+      def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
+        implicit val prettify = params.prettify
+        result.fold(
+          err => internalError(schema, err.fullMsg)
+        , msg => successZero(schema, msg)
+        ).runNow
+      }
+      def toLiftResponseZero(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
+          toLiftResponseZero(params, ResponseSchema.fromSchema(schema))
+      }
+    }
   }
 }
 

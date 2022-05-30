@@ -37,8 +37,8 @@
 package com.normation.rudder.inventory
 
 import java.security.Security
-
 import better.files.Resource
+
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.inventory.domain.CertifiedKey
@@ -52,6 +52,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGeneratorImpl
+
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common._
@@ -60,9 +61,11 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.inventory.provisioning.fusion.FusionInventoryParser
+
 import com.normation.zio._
 import zio._
 import zio.syntax._
+import com.normation.box.IOManaged
 
 @RunWith(classOf[JUnitRunner])
 class TestCertificate extends Specification with Loggable {
@@ -115,10 +118,10 @@ class TestCertificate extends Specification with Loggable {
     override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
   }
 
+
   val processor = new InventoryProcessor(
     parser
   , reportSaver
-  , 1000
   , 2
   , fullInventoryRepo
   , new InventoryDigestServiceV1(fullInventoryRepo)
@@ -132,66 +135,57 @@ class TestCertificate extends Specification with Loggable {
   val windows = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
   val linux = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
 
+  val exist = IOManaged.make(true)(_ => ())
+
+  def asManagedStream(name: String) = IOManaged.make(Resource.getAsStream(name))(_.close())
+
   // LINUX
-  "when a linux node is not in repository, it is not ok anymore to not have a signature with cfkey" in {
-    repository.remove(linux)
-    val res = processor.saveInventory(SaveInventoryInfo(
-        "linux-cfe-sign"
-      , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
-      , None
-      , true.succeed
-    )).either.runNow
-
-    (res must beLeft)
-  }
-
   "when a node is not in repository, it is ok to have a signature with cfe-key" in {
     repository.remove(linux) ; saveDone = false
 
-    val res = processor.saveInventory(SaveInventoryInfo(
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
         "linux-cfe-sign"
-      , () => Resource.getAsStream("certificates/linux-cfe-sign.ocs")
-      , Some(() => Resource.getAsStream("certificates/linux-cfe-sign.ocs.sign"))
-      , true.succeed
+      , asManagedStream("certificates/linux-cfe-sign.ocs")
+      , asManagedStream("certificates/linux-cfe-sign.ocs.sign")
+      , exist
     )).runNow
 
     waitSaveDone
 
-    (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (repository.get(linux) must beSome) and
     (repository(linux).node.agents.head.securityToken.key === Cert.CFE) and
     (repository(linux).node.main.keyStatus == CertifiedKey)
 
   }
+  "when a node is not in repository, invalid signature is an error" in {
+    repository.remove(linux) ; saveDone = false
 
-  // WINDOWS
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
+        "linux-cfe-sign"
+      , asManagedStream("certificates/linux-cfe-sign.ocs")
+      , asManagedStream("certificates/windows-bad-certificate.ocs.sign")
+      , exist
+    )).runNow
 
-  "when a node is not in repository, it is not ok anymore to not have a signature with certificate" in {
-    repository.remove(windows)
-
-    val res = processor.saveInventory(SaveInventoryInfo(
-        "windows-same-certificate"
-      , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
-      , None
-      , true.succeed
-    )).either.runNow
-
-    (res must beLeft)
+    (res must beAnInstanceOf[InventoryProcessStatus.SignatureInvalid]) and
+    (repository.get(linux) must beNone)
   }
 
+  // WINDOWS
   "when a node is not in repository, it is ok to have a signature with certificate" in {
     repository.remove(windows); saveDone = false
 
-    val res = processor.saveInventory(SaveInventoryInfo(
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
         "windows-same-certificate"
-      , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
-      , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
-      , true.succeed
+      , asManagedStream("certificates/windows-same-certificate.ocs")
+      , asManagedStream("certificates/windows-same-certificate.ocs.sign")
+      , exist
     )).runNow
 
     waitSaveDone
 
-    (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (repository.get(windows) must beSome) and
     (repository(windows).node.agents.head.securityToken.key === Cert.OK) and
     (repository(windows).node.main.keyStatus == CertifiedKey)
@@ -202,47 +196,35 @@ class TestCertificate extends Specification with Loggable {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
     saveDone = false
 
-    val res = processor.saveInventory(SaveInventoryInfo(
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
         "windows-same-certificate"
-      , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
-      , Some(() => Resource.getAsStream("certificates/windows-same-certificate.ocs.sign"))
-      , true.succeed
+      , asManagedStream("certificates/windows-same-certificate.ocs")
+      , asManagedStream("certificates/windows-same-certificate.ocs.sign")
+      , exist
     )).runNow
 
     waitSaveDone
 
-    (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (repository.get(windows) must beSome) and
     (start) and
     (repository(windows).node.main.keyStatus == CertifiedKey)
-  }
-
-  "when a node is in repository with a registered key, it is NOK to miss signature" in {
-
-    val res = processor.saveInventory(SaveInventoryInfo(
-        "windows-same-certificate"
-      , () => Resource.getAsStream("certificates/windows-same-certificate.ocs")
-      , None
-      , true.succeed
-    )).either.runNow
-
-    (res must beLeft)
   }
 
   // this one will be used to update certificate: sign new inventory with old key
   "when a node is in repository with a registered key; signature must match existing certificate, not the one in inventory" in {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
     saveDone = false
-    val res = processor.saveInventory(SaveInventoryInfo(
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
         "windows-new-certificate"
-      , () => Resource.getAsStream("certificates/windows-new-certificate.ocs")
-      , Some(() => Resource.getAsStream("certificates/windows-new-certificate.ocs.sign"))
-      , true.succeed
+      , asManagedStream("certificates/windows-new-certificate.ocs")
+      , asManagedStream("certificates/windows-new-certificate.ocs.sign")
+      , exist
     )).runNow
 
     waitSaveDone
 
-    (res must beAnInstanceOf[InventoryProcessStatus.Accepted]) and
+    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
     (repository.get(windows) must beSome) and
     (start) and
     (repository(windows).node.main.keyStatus == CertifiedKey) and
@@ -251,14 +233,17 @@ class TestCertificate extends Specification with Loggable {
 
   "when certificate 'subject' doesn't match node ID, we got an error" in {
     repository.remove(windows)
-    val res = processor.saveInventory(SaveInventoryInfo(
+    val res = processor.saveInventoryInternal(SaveInventoryInfo(
         "windows-bad-certificate"
-      , () => Resource.getAsStream("certificates/windows-bad-certificate.ocs")
-      , Some(() => Resource.getAsStream("certificates/windows-bad-certificate.ocs.sign"))
-      , true.succeed
-    )).mapError(_.fullMsg).either.runNow
+      , asManagedStream("certificates/windows-bad-certificate.ocs")
+      , asManagedStream("certificates/windows-bad-certificate.ocs.sign")
+      , exist
+    )).map{
+      case InventoryProcessStatus.SaveError(_, _, err) => err.fullMsg
+      case x => s"not what was expected: ${x}}"
+    }.runNow
 
-    (res must beLeft(beMatching(".*subject doesn't contain same node ID in 'UID' attribute as inventory node ID.*")))
+    (res must beMatching(".*subject doesn't contain same node ID in 'UID' attribute as inventory node ID.*"))
  }
 
 }
