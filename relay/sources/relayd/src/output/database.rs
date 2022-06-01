@@ -57,8 +57,14 @@ pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
 pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
     let manager = ConnectionManager::<PgConnection>::new(format!(
-        "{}?password={}",
+        "{}{}password={}",
         configuration.url,
+        // Allow options in the provided URL
+        if configuration.url.contains('?') {
+            "&"
+        } else {
+            "?"
+        },
         urlencoding::encode(configuration.password.value())
     ));
     Ok(Pool::builder()
