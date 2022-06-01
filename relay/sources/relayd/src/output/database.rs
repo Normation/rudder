@@ -19,12 +19,6 @@ use crate::{
     Error,
 };
 
-use crate::{
-    configuration::main::DatabaseConfig,
-    data::{report::QueryableReport, RunLog},
-    Error,
-};
-
 pub mod schema {
     table! {
         use diesel::sql_types::*;
