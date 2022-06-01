@@ -1420,6 +1420,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+ "urlencoding",
  "warp",
  "zip",
 ]
