@@ -1,0 +1,40 @@
+<TECHNIQUE name="Desactivate Telnet">
+    <DESCRIPTION>Desactivate telnet servers</DESCRIPTION>
+    <USEMETHODREPORTING>true</USEMETHODREPORTING>
+    <AGENT type="cfengine-community,cfengine-nova">
+        <BUNDLES>
+            <NAME>Desactivate_Telnet</NAME>
+            <NAME>Desactivate_Telnet_rudder_reporting</NAME>
+        </BUNDLES>
+        <FILES>
+            <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/Desactivate_Telnet/Desactivate_Telnet.cf">
+                <INCLUDED>true</INCLUDED>
+            </FILE>
+            <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Desactivate_Telnet/1.0/rudder_reporting.cf">
+                <INCLUDED>true</INCLUDED>
+            </FILE>
+        </FILES>
+    </AGENT>
+    <AGENT type="dsc">
+        <BUNDLES>
+            <NAME>Desactivate-Telnet</NAME>
+        </BUNDLES>
+        <FILES>
+            <FILE name="RUDDER_CONFIGURATION_REPOSITORY/dsc/ncf/50_techniques/Desactivate_Telnet/1.0/Desactivate_Telnet.ps1">
+                <INCLUDED>true</INCLUDED>
+            </FILE>
+        </FILES>
+    </AGENT>
+    <SECTIONS>
+        <SECTION component="true" multivalued="true" name="Package absent">
+            <REPORTKEYS>
+                <VALUE>telnet*</VALUE>
+            </REPORTKEYS>
+        </SECTION>
+        <SECTION component="true" multivalued="true" name="Windows component absent">
+            <REPORTKEYS>
+                <VALUE>telnet-server</VALUE>
+            </REPORTKEYS>
+        </SECTION>
+    </SECTIONS>
+</TECHNIQUE>

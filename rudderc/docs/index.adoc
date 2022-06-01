@@ -1,0 +1,22 @@
+:imagesdir: images/
+:toc: left
+
+= Rudder policies
+
+== Preface
+
+Example:
+
+.ntp.yml
+[source,yaml]
+----
+include::examples/ntp.yml[]
+----
+
+Generates:
+
+.ntp.cf
+[source]
+----
+include::examples/ntp.cf[]
+----

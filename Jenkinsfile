@@ -259,6 +259,41 @@ pipeline {
                         }
                     }
                 }
+                stage('rudderc') {
+                    agent {
+                        dockerfile {
+                            filename 'rudderc/Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            // mount cache
+                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        dir('rudderc') {
+                            dir('repos') {
+                                dir('ncf') {
+                                    git url: 'https://github.com/normation/ncf.git'
+                                }
+                                dir('dsc') {
+                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                }
+                            }
+                            sh script: 'make check', label: 'rudderc tests'
+                            sh script: 'make docs', label: 'rudderc docs'
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'rudderc', name: 'cargo rudderc', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'rudderc/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
+                            script {
+                                new SlackNotifier().notifyResult("rust-team")
+                            }
+                        }
+                    }
+                }
             }
         }
         stage("Compatibility tests") {

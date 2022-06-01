@@ -19,6 +19,9 @@ build: CARGO_INCREMENTAL=0
 build: version
 	cargo build --release --locked
 
+dev-doc:
+	cargo doc --document-private-items --open
+
 lint: version
 	# to be sure clippy is actually run
 	touch src/lib.rs
@@ -36,4 +39,4 @@ veryclean: clean
 
 stats:
 	@ echo -n "TODOS: " && grep -r TODO src | wc -l
-	@ tokei
+	@ tokei -s lines

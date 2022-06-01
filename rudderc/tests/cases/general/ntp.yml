@@ -1,0 +1,19 @@
+---
+format: 0
+name: ntp
+version: "0.1"
+resources:
+  - name: file
+    params:
+      - "/etc/ntp.conf"
+    states:
+      - name: content
+        id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+        condition: "debian"
+        report_component: "Ensure correct ntp configuration"
+        report_parameter: "path"
+        meta:
+          cve: CVE-2022-3456
+        params:
+          - "server ntp.org"
+          - "true"

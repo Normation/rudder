@@ -1,0 +1,9 @@
+.vscode/
+/target/
+**/*.rs.bk
+*.iml
+/.idea
+/repos
+/libs/std
+/docs/examples/*.cf
+/docs/examples/*.ps1
