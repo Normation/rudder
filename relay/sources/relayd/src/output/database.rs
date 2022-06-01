@@ -19,6 +19,12 @@ use crate::{
     Error,
 };
 
+use crate::{
+    configuration::main::DatabaseConfig,
+    data::{report::QueryableReport, RunLog},
+    Error,
+};
+
 pub mod schema {
     table! {
         use diesel::sql_types::*;
@@ -59,7 +65,7 @@ pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
     let manager = ConnectionManager::<PgConnection>::new(format!(
         "{}?password={}",
         configuration.url,
-        configuration.password.value()
+        urlencoding::encode(configuration.password.value())
     ));
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
