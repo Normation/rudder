@@ -34,6 +34,10 @@ pub struct Args {
     /// Quiet
     #[clap(short, long)]
     pub quiet: bool,
+
+    /// Load library from path
+    #[clap(short, long, multiple_occurrences(true))]
+    pub library: Vec<PathBuf>,
 }
 
 impl Args {

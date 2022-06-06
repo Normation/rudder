@@ -1,0 +1,56 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package present
+# @description Enforce the presence of a package
+# @documentation See [package_state](#_package_state) for documentation.
+# Second line of documentation.
+# @parameter            name Name of the package, or path to a local package
+# @parameter            version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
+# @parameter_constraint version "allow_empty_string" : true
+# @parameter_type       version HereString
+# @parameter            architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
+# @parameter_constraint architecture "allow_empty_string" : true
+# @parameter_constraint architecture "regex": "^[a-z]$"
+# @parameter            provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" or "default" for system default package manager (defaults to "default")
+# @parameter_constraint provider "allow_empty_string" : true
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" ]
+#
+# @class_prefix package_present
+# @class_parameter name
+
+bundle agent package_present(name, version, architecture, provider)
+{
+  vars:
+      "class_prefix"                string => "package_present_${name}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "present", "");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "${ncf_package.message}", "");
+}

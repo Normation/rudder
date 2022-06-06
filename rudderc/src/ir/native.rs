@@ -5,3 +5,5 @@
 //!
 //! A yaml that has a native implementation,
 //! and will be handled directly by the generators.
+
+// Native resources should have a version optionnelle

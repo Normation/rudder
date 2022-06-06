@@ -5,27 +5,25 @@
 
 use std::{fs::read_to_string, path::Path};
 
+use anyhow::Result;
 use pretty_assertions::assert_eq;
 use test_generator::test_resources;
 
-use rudderc::backends::Target;
+use rudderc::frontends::ncf::method::Method;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.
-#[test_resources("tests/cases/*/*.yml")]
+#[test_resources("tests/methods/*.yml")]
 fn compile(filename: &str) {
-    compile_file(Path::new(filename), Target::Unix);
-    //compile_file(Path::new(filename), &Format::DSC);
-}
+    let path = Path::new(filename);
+    let result: Result<Method> = read_to_string(path.with_extension("cf")).unwrap().parse();
+    let reference: Method = serde_yaml::from_str(&read_to_string(path).unwrap()).unwrap();
 
-/// Compile the given source file with the given target. Panics if compilation fails.
-fn compile_file(source: &Path, target: Target) {
-    let result = rudderc::compile(&[], source, target);
-    if should_fail(source) {
+    if should_fail(path) {
         assert!(result.is_err());
     } else {
-        let output = result.expect("Test compilation failed");
-        let reference = read_to_string(source.with_extension(target.extension())).unwrap();
-        assert_eq!(output, reference);
+        let parsed = result.unwrap();
+        println!("{}", serde_yaml::to_string(&parsed).unwrap());
+        assert_eq!(parsed, reference)
     }
 }
 

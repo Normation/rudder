@@ -1,0 +1,58 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package install
+# @description Install or update a package in its latest version available
+# @deprecated Use [package_present](#_package_present) instead.
+#
+# @parameter name Name of the package to install
+#
+#
+# @parameter_rename package_name name
+# @action This is an action
+# @class_prefix package_install
+# @class_parameter name
+# @rename package_present
+
+bundle agent package_install(name)
+{
+  vars:
+      "old_class_prefix"        string => canonify("package_install_${name}");
+
+      "args"                     slist => { "${name}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("package_install_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix"  string => canonify("package_install_${report_param}_latest");
+      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                           usebundle => disable_reporting;
+      "install latest"     usebundle => package_install_version("${name}", "latest");
+      "reenable_reporting_${class_prefix}"
+                           usebundle => enable_reporting,
+                          ifvarclass => "should_report";
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+      "report"             usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,16 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
+use crate::frontends::ncf::method::Method;
+use crate::frontends::ncf::reader::read_lib;
 use crate::{backends::Target, frontends::yaml, logs::ok_output};
 
 /// Compute the output of the file
-pub fn compile(input: &Path, target: Target) -> Result<String> {
+pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<String> {
     let policy = yaml::read(input)?;
-    // TODO read stdlib
+
+    let mut methods: Vec<Method> = vec![];
+    for library in libraries {
+        let mut add = read_lib(library)?;
+        let len = add.len();
+        methods.append(&mut add);
+        ok_output("Read", format!("{} methods ({})", len, library.display()))
+    }
 
     ok_output(
         "Compiling",
