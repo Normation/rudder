@@ -589,6 +589,7 @@ class RestTestSetUp {
   val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )
+  val nodeApiService15 = new NodeApiService15(nodeInfo, null, null, null, uuidGen, nodeDit, null, null)
 
   val parameterApiService2 = new ParameterApiService2(
       mockParameters.paramsRepo
@@ -622,7 +623,7 @@ class RestTestSetUp {
     , new TechniqueApi(restExtractorService, techniqueAPIService6, techniqueAPIService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, uuidGen, resourceFileService)
     , new DirectiveApi(mockDirectives.directiveRepo, restExtractorService, zioJsonExtractor, uuidGen, directiveApiService2, directiveApiService14)
     , new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen)
-    , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, null, DeleteMode.Erase)
+    , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, nodeApiService15,null, DeleteMode.Erase)
     , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
     , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
   )
