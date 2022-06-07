@@ -278,7 +278,7 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Ask given node to start a run with the given policy"
     val (action, path)  = POST / "nodes" / "{id}" / "applyPolicy"
   }
-  final case object CreateNode extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion13 with SortIndex { val z = implicitly[Line].value
+  final case object CreateNode extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description    = "Create one of more new nodes"
     val (action, path) = PUT / "nodes"
   }

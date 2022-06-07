@@ -1116,7 +1116,7 @@ object RudderConfig extends Loggable {
     , () => configService.rudder_global_policy_mode().toBox, reportingServiceImpl, roNodeGroupRepository, roLDAPParameterRepository
   )
 
-  val nodeApiService15 = new NodeApiService15(
+  val nodeApiService16 = new NodeApiService16(
       fullInventoryRepository
     , rwLdap
     , ldapEntityMapper
@@ -1358,7 +1358,7 @@ object RudderConfig extends Loggable {
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
       , new DirectiveApi(roDirectiveRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, directiveApiService2, directiveApiService14)
-      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeApiService15, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
+      , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12, nodeApiService13, nodeApiService16, nodeInheritedProperties, RUDDER_DEFAULT_DELETE_NODE_MODE)
       , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
       , new SettingsApi(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator, policyServerManagementService, nodeInfoService)
       , new TechniqueApi(restExtractorService, techniqueApiService6, techniqueApiService14, ncfTechniqueWriter, ncfTechniqueReader, techniqueRepository, techniqueSerializer, stringUuidGenerator, resourceFileService)

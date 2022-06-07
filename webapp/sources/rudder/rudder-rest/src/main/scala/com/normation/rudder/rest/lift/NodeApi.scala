@@ -167,7 +167,7 @@ class NodeApi (
   , apiV8service        : NodeApiService8
   , apiV12              : NodeApiService12
   , apiV13              : NodeApiService13
-  , apiV15              : NodeApiService15
+  , apiV16              : NodeApiService16
   , inheritedProperties : NodeApiInheritedProperties
   , deleteDefaultMode   : DeleteMode
 ) extends LiftApiModuleProvider[API] {
@@ -213,7 +213,7 @@ class NodeApi (
         import com.softwaremill.quicklens._
         nodes.foldLeft(ResultHolder(Nil, Nil)) { case (res, node) =>
           // now, try to save each node
-          ZioRuntime.unsafeRun(apiV15.saveNode(node, authzToken.actor).either) match {
+          ZioRuntime.unsafeRun(apiV16.saveNode(node, authzToken.actor).either) match {
             case Right(id) => res.modify(_.created).using(_ :+ id)
             case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
           }
@@ -607,7 +607,7 @@ class NodeApiService12(
     }
   }
 }
-class NodeApiService15(
+class NodeApiService16(
     inventoryRepos      : LDAPFullInventoryRepository
   , ldapConnection      : LDAPConnectionProvider[RwLDAPConnection]
   , ldapEntityMapper    : LDAPEntityMapper
