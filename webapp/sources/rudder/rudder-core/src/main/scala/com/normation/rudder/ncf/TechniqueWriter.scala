@@ -39,7 +39,6 @@ package com.normation.rudder.ncf
 
 
 import cats.implicits._
-
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -59,7 +58,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.inventory.domain.RuddercTarget
-
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
@@ -68,34 +66,29 @@ import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.user.PersonIdentService
-
 import net.liftweb.common.Full
-
 import zio._
 import zio.syntax._
+
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
-
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.repository.WoDirectiveRepository
-
 import com.normation.box._
 import org.joda.time.DateTime
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.xml.XmlArchiverUtils
-
 import com.normation.zio.currentTimeMillis
 
 sealed trait NcfError extends RudderError {
@@ -219,7 +212,9 @@ class RudderCRunner(
       _      <- TimingDebugLoggerPure.trace(s"compileTechnique: saving technique '${technique.name}' took ${time_1 - time_0}ms")
 
       writtenByRudderWebapp <- writeOne(RuddercTarget.CFEngine, targets, technique, methods, cfengineFallback, outputPath, configFilePath)
+
       _                     <- writeOne(RuddercTarget.DSC     , targets, technique, methods, dscFallback     , outputPath, configFilePath)
+
     } yield {
       writtenByRudderWebapp
     }
@@ -447,7 +442,7 @@ class TechniqueWriter (
   def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       time_0     <- currentTimeMillis
-
+      _          <- TechniqueWriterLoggerPure.debug(s"Writing technique ${technique.name}")
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources              = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
       techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
@@ -456,27 +451,38 @@ class TechniqueWriter (
       time_1     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
       targets    <- ruddercTargets
-      writtenByRudderWebapp <- compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
-        val errorPath : File = root / errorLogPath /  "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
-        for {
-          _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
-          _ <- IOResult.effect {
-                errorPath.createFileIfNotExists(true)
-                errorPath.write(
-                  s"""
-                  |error =>
-                  |  ${e.fullMsg}
-                  |technique data =>
-                  |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique,methods))}""".stripMargin)
-               }.catchAll(e2 =>
-                   TechniqueWriterLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
-                   TechniqueWriterLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
-               )
-          _   <- writeAgentFiles(technique, methods, modId, committer)
-        } yield {
-          true
+      _          <- TechniqueWriterLoggerPure.debug(s"Targets for technique ${technique.name} are ${targets.map(_.name).mkString(",")}")
+      writtenByRudderWebapp <- if (targets.nonEmpty) {
+            // if we have some rudderc target, use them
+            compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
+              val errorPath: File = root / errorLogPath / "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
+              for {
+                _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
+                _ <- IOResult.effect {
+                  errorPath.createFileIfNotExists(true)
+                  errorPath.write(
+                    s"""
+                    |error =>
+                    |  ${e.fullMsg}
+                    |technique data =>
+                    |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique,methods))}""".stripMargin)
+                   }.catchAll(e2 =>
+                       TechniqueWriterLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
+                       TechniqueWriterLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
+                   )
+              _   <- writeAgentFiles(technique, methods, modId, committer)
+            } yield {
+              true
+            }
+          }
+        } else {
+          for {
+            _   <- writeAgentFiles(technique, methods, modId, committer)
+          } yield {
+            true
+          }
         }
-      }
+      _          <- TechniqueWriterLoggerPure.debug(s"Result of writtenByRudderWebapp for ${technique.name} is ${writtenByRudderWebapp}")
       time_2     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms")
 
@@ -497,6 +503,7 @@ class TechniqueWriter (
     for {
       // Create/update agent files, filter None by flattening to list
       files  <- ZIO.foreach(agentSpecific)(_.writeAgentFiles(technique, methods)).map(_.flatten)
+      _      <- TechniqueWriterLoggerPure.debug(s"writeAgentFiles for technique ${technique.name} is ${files.mkString("\n")}")
     } yield {
       files
     }
