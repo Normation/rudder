@@ -5,8 +5,7 @@
 //!
 //! Does not parse .cf policies but only metadata in ncf format.
 
-use std::fs::read_to_string;
-use std::path::Path;
+use std::{fs::read_to_string, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, warn};

@@ -5,7 +5,6 @@ use std::process::exit;
 
 use clap::Parser;
 use log::{debug, error, trace};
-
 use rudderc::{cli::Args, logs};
 
 fn main() {

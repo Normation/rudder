@@ -3,8 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use crate::backends::unix::cfengine::bundle::UNIQUE_ID;
-use crate::backends::unix::cfengine::{quoted, FALSE_CLASSES, TRUE_CLASSES};
+use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted, FALSE_CLASSES, TRUE_CLASSES};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
@@ -271,9 +270,8 @@ impl Promise {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use crate::backends::unix::cfengine::bundle::UNIQUE_ID_LEN;
-
     use super::*;
+    use crate::backends::unix::cfengine::bundle::UNIQUE_ID_LEN;
 
     #[test]
     fn format_promise() {

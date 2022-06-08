@@ -6,9 +6,8 @@
 use std::{fs::read_to_string, path::Path};
 
 use pretty_assertions::assert_eq;
-use test_generator::test_resources;
-
 use rudderc::backends::Target;
+use test_generator::test_resources;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.
 #[test_resources("tests/cases/*/*.yml")]

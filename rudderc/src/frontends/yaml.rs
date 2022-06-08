@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-//! Rudder resource represented in YAML format
+//! Rudder resource_type represented in YAML format
 
 use std::{fs::read_to_string, path::Path};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use log::trace;
 
 use crate::ir::Policy;
@@ -18,7 +18,7 @@ pub fn read(input: &Path) -> Result<Policy> {
 
     // Stop if unknown format
     if policy.format != 0 {
-        return Err(anyhow!("Unknown policy format version: {}", policy.format));
+        bail!("Unknown policy format version: {}", policy.format);
     }
     Ok(policy)
 }

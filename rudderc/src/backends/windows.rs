@@ -3,9 +3,8 @@
 
 use anyhow::Result;
 
-use crate::ir;
-
 use super::Backend;
+use crate::ir;
 
 pub struct Windows;
 

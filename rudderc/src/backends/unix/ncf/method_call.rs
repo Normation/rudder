@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::backends::unix::cfengine::promise::Promise;
-use crate::backends::unix::cfengine::{quoted, TRUE_CLASSES};
+use crate::backends::unix::cfengine::{promise::Promise, quoted, TRUE_CLASSES};
 
 /// Helper for reporting boilerplate (reporting context + na report)
 ///
@@ -219,9 +218,8 @@ impl MethodCall {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use crate::backends::unix::cfengine::bundle::Bundle;
-
     use super::*;
+    use crate::backends::unix::cfengine::bundle::Bundle;
 
     #[test]
     fn format_method() {

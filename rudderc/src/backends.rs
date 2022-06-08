@@ -5,14 +5,13 @@
 
 use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 
+pub use self::{unix::Unix, windows::Windows};
 use crate::ir::Policy;
 
-pub use self::unix::Unix;
-pub use self::windows::Windows;
-
+mod metadata;
 pub mod unix;
 pub mod windows;
 
@@ -24,8 +23,9 @@ pub trait Backend {
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum Target {
-    // FIXME CFEngine or "unix"
-    // It is not actually CFEngine but CFEngine + our patches + our stdlib
+    /// It is not actually CFEngine but CFEngine + our patches + our stdlib
+    ///
+    /// It matches what is called "classic agent" in Rudder.
     Unix,
     Windows,
 }
@@ -83,10 +83,8 @@ impl FromStr for Target {
         match target {
             "cf" | "cfengine" | "CFEngine" | "unix" | "Unix" => Ok(Target::Unix),
             "ps1" | "powershell" | "dsc" | "windows" | "Windows" => Ok(Target::Windows),
-            "yml" | "yaml" => Err(anyhow!(
-                "YAML is not a valid target format but only a source"
-            )),
-            _ => Err(anyhow!("Could not recognize target {:?}", target)),
+            "yml" | "yaml" => bail!("YAML is not a valid target format but only a source"),
+            _ => bail!("Could not recognize target {:?}", target),
         }
     }
 }

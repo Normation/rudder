@@ -14,8 +14,6 @@ pub struct Policy {
     pub resources: Vec<Resource>,
 }
 
-// LeafResource ?
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Resource {

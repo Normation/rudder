@@ -1,0 +1,12 @@
+promise agent directory
+{
+  path => "./target/debug/examples/resource_directory";
+}
+
+bundle agent main
+{
+  directory:
+    "toto"
+      rudder_resource_protocol => "0",
+      data => parsejson("{\"path\": \"/tmp/test-directory\", \"state\": \"present\"}");
+}

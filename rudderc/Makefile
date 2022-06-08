@@ -17,6 +17,10 @@ test:
 	cargo test --locked
 	# Parse lib
 	cargo run -q -- -o /tmp/test.cf tests/cases/general/ntp.yml -l repos/ncf/tree/30_generic_methods/ -l repos/dsc/plugin/src/ncf/30_generic_methods/
+	# Run custom resource
+	@rm -rf /tmp/test-directory
+	@mkdir -p ${HOME}/.cfagent/bin && cp /opt/rudder/bin/cf-* ${HOME}/.cfagent/bin/
+	/opt/rudder/bin/cf-agent -KIf ./examples/resource_directory.cf && [ -e /tmp/test-directory ]
 
 %.cf: %.yml
 	cargo run --quiet -- --quiet --output $@ --target cf $<

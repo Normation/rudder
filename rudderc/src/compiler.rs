@@ -5,9 +5,14 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-use crate::frontends::ncf::method::Method;
-use crate::frontends::ncf::reader::read_lib;
-use crate::{backends::Target, frontends::yaml, logs::ok_output};
+use crate::{
+    backends::Target,
+    frontends::{
+        ncf::{method::Method, reader::read_lib},
+        yaml,
+    },
+    logs::ok_output,
+};
 
 /// Compute the output of the file
 pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<String> {

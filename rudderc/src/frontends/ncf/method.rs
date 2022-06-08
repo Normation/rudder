@@ -12,12 +12,9 @@
 // transformer en "native resources" qui sont aussi définissables
 // à la main
 
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use anyhow::Result;
-use anyhow::{bail, Error};
+use anyhow::{bail, Error, Result};
 use log::debug;
 use serde::{Deserialize, Serialize};
 

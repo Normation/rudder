@@ -15,6 +15,8 @@ pub mod compiler;
 pub mod frontends;
 pub mod ir;
 pub mod logs;
+// TODO make it a separate crate
+pub mod resource_type;
 
 /// Main entry point for rudderc
 ///
@@ -34,8 +36,11 @@ pub fn run(args: Args) -> Result<()> {
 
 // Actions
 pub mod action {
-    use std::path::PathBuf;
-    use std::{fs::File, io::Write, path::Path};
+    use std::{
+        fs::File,
+        io::Write,
+        path::{Path, PathBuf},
+    };
 
     use anyhow::{Context, Result};
 

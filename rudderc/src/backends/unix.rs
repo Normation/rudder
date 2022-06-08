@@ -4,6 +4,7 @@
 use anyhow::Result;
 use log::trace;
 
+use super::Backend;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
@@ -11,8 +12,6 @@ use crate::{
     },
     ir::{self, resource::Resource},
 };
-
-use super::Backend;
 
 // TODO support macros at the policy or bundle level
 // this will allow conditionals on agent version

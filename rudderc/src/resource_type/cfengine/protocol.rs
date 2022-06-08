@@ -1,0 +1,330 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2021 Normation SAS
+
+use std::{path::PathBuf, str::FromStr};
+
+use anyhow::{bail, Error};
+use serde::{Deserialize, Serialize};
+
+use crate::resource_type::Outcome;
+use crate::{
+    resource_type::{
+        cfengine::log::LevelFilter, parameters::Parameters, CheckApplyResult, ProtocolResult,
+        ValidateResult,
+    },
+    rudder_error, rudder_info,
+};
+
+const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(transparent)]
+pub struct Class {
+    inner: String,
+}
+
+impl FromStr for Class {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        for c in s.chars() {
+            if !ALLOWED_CHAR_CLASS.contains(c) {
+                bail!("Unexpected char in class name: '{}' in {}", c, s);
+            }
+        }
+        Ok(Class {
+            inner: s.to_string(),
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+//#[serde(default)]
+pub(crate) enum ActionPolicy {
+    #[serde(alias = "nop")]
+    Warn,
+    Fix,
+}
+
+impl Default for ActionPolicy {
+    fn default() -> Self {
+        ActionPolicy::Fix
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+/// Promise validation outcomes
+pub(crate) enum ValidateOutcome {
+    /// Validation successful
+    Valid,
+    /// Validation failed, error in cfengine policy
+    Invalid,
+    /// Unexpected error
+    Error,
+}
+
+impl From<ValidateResult> for ValidateOutcome {
+    fn from(item: ValidateResult) -> Self {
+        match item {
+            Ok(()) => ValidateOutcome::Valid,
+            Err(e) => {
+                rudder_error!("{}", e);
+                ValidateOutcome::Invalid
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+/// Promise evaluation outcomes
+pub(crate) enum EvaluateOutcome {
+    /// Satisfied already, no change
+    Kept,
+    /// Not satisfied before, but fixed
+    Repaired,
+    /// Not satisfied before, not fixed
+    NotKept,
+    /// Unexpected error
+    Error,
+}
+
+impl From<CheckApplyResult> for EvaluateOutcome {
+    fn from(item: CheckApplyResult) -> Self {
+        match item {
+            Ok(Outcome::Success(m)) => {
+                if let Some(i) = m {
+                    rudder_info!("{}", i);
+                }
+                EvaluateOutcome::Kept
+            }
+            Ok(Outcome::Repaired(m)) => {
+                rudder_info!("{}", m);
+                EvaluateOutcome::Repaired
+            }
+            Err(e) => {
+                rudder_info!("{}", e);
+                EvaluateOutcome::NotKept
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+/// Result for init/terminate
+pub(crate) enum ProtocolOutcome {
+    /// Success
+    Success,
+    /// Error
+    Failure,
+    /// Unexpected error
+    Error,
+}
+
+impl From<ProtocolResult> for ProtocolOutcome {
+    fn from(item: ProtocolResult) -> Self {
+        match item {
+            ProtocolResult::Success => ProtocolOutcome::Success,
+            ProtocolResult::Failure(e) => {
+                rudder_error!("{}", e);
+                ProtocolOutcome::Failure
+            }
+            ProtocolResult::Error(e) => {
+                rudder_error!("{}", e);
+                ProtocolOutcome::Error
+            }
+        }
+    }
+}
+
+// Little hack for constant tags in serialized JSON
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+enum ValidateOperation {
+    ValidatePromise,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+enum EvaluateOperation {
+    EvaluatePromise,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+enum TerminateOperation {
+    Terminate,
+}
+
+// {"operation": "validate_promise", "log_level": "info", "promise_type": "git", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct ValidateRequest {
+    operation: ValidateOperation,
+    pub(crate) log_level: LevelFilter,
+    pub(crate) promiser: String,
+    pub(crate) attributes: Parameters,
+    pub(crate) promise_type: String,
+    pub(crate) filename: PathBuf,
+    pub(crate) line_number: u16,
+}
+
+// {"operation": "evaluate_promise", "log_level": "info", "promise_type": "git", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct EvaluateRequest {
+    operation: EvaluateOperation,
+    pub(crate) log_level: LevelFilter,
+    pub(crate) promiser: String,
+    pub(crate) attributes: Parameters,
+    pub(crate) promise_type: String,
+    pub(crate) filename: PathBuf,
+    pub(crate) line_number: u16,
+}
+
+// {"operation": "terminate", "log_level": "info"}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct TerminateRequest {
+    operation: TerminateOperation,
+}
+
+////////////////////////////////////
+
+// {"operation": "validate_promise", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}, "result": "valid"}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct ValidateResponse {
+    operation: ValidateOperation,
+    promiser: String,
+    attributes: Parameters,
+    result: ValidateOutcome,
+}
+
+impl ValidateResponse {
+    pub(crate) fn new(request: &ValidateRequest, result: ValidateOutcome) -> Self {
+        Self {
+            operation: ValidateOperation::ValidatePromise,
+            promiser: request.promiser.clone(),
+            result,
+            attributes: request.attributes.clone(),
+        }
+    }
+}
+
+// {"operation": "evaluate_promise", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}, "result": "kept"}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct EvaluateResponse {
+    operation: EvaluateOperation,
+    promiser: String,
+    attributes: Parameters,
+    result: EvaluateOutcome,
+    result_classes: Vec<Class>,
+}
+
+impl EvaluateResponse {
+    pub(crate) fn new(
+        request: &EvaluateRequest,
+        result: EvaluateOutcome,
+        classes: Vec<Class>,
+    ) -> Self {
+        Self {
+            operation: EvaluateOperation::EvaluatePromise,
+            promiser: request.promiser.clone(),
+            result,
+            attributes: request.attributes.clone(),
+            result_classes: classes,
+        }
+    }
+}
+
+// {"operation": "terminate", "result": "success"}
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub(crate) struct TerminateResponse {
+    operation: TerminateOperation,
+    result: ProtocolOutcome,
+}
+
+impl TerminateResponse {
+    pub(crate) fn new(result: ProtocolOutcome) -> Self {
+        Self {
+            operation: TerminateOperation::Terminate,
+            result,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+    use serde_json::{Map, Value};
+
+    use crate::resource_type::PolicyMode;
+
+    use super::*;
+
+    #[test]
+    fn it_rejects_wrong_classes() {
+        assert!(Class::from_str("my class").is_err());
+        assert!(Class::from_str("my_class").is_ok());
+    }
+
+    #[test]
+    fn it_parses_validate_requests() {
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
+        let mut data = Map::new();
+        data.insert(
+            "repo".to_string(),
+            Value::String("https://github.com/cfengine/masterfiles".to_string()),
+        );
+        let params = Parameters {
+            data,
+            node_id: None,
+            temporary_dir: "".into(),
+            rudder_resource_protocol: "0".into(),
+            policy_mode: PolicyMode::Enforce,
+        };
+        let ref_val = ValidateRequest {
+            operation: ValidateOperation::ValidatePromise,
+            log_level: LevelFilter::Info,
+            promiser: "/tmp/masterfiles".to_string(),
+            attributes: params,
+            promise_type: "git".to_string(),
+            filename: PathBuf::from("/tmp/test.cf"),
+            line_number: 42,
+        };
+        assert_eq!(
+            serde_json::from_str::<ValidateRequest>(val).unwrap(),
+            ref_val
+        );
+    }
+
+    #[test]
+    fn it_parses_evaluate_requests() {
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
+        let mut data = Map::new();
+        data.insert(
+            "repo".to_string(),
+            Value::String("https://github.com/cfengine/masterfiles".to_string()),
+        );
+        let params = Parameters {
+            data,
+            node_id: None,
+            temporary_dir: "".into(),
+            rudder_resource_protocol: "0".into(),
+            policy_mode: PolicyMode::Enforce,
+        };
+        let ref_val = EvaluateRequest {
+            operation: EvaluateOperation::EvaluatePromise,
+            log_level: LevelFilter::Info,
+            promiser: "/tmp/masterfiles".to_string(),
+            attributes: params,
+            promise_type: "git".to_string(),
+            filename: PathBuf::from("/tmp/test.cf"),
+            line_number: 42,
+        };
+        assert_eq!(
+            serde_json::from_str::<EvaluateRequest>(val).unwrap(),
+            ref_val
+        );
+    }
+}

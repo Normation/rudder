@@ -263,7 +263,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'rudderc/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=7.1-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
