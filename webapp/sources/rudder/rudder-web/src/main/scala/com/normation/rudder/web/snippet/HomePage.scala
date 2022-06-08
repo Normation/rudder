@@ -41,14 +41,12 @@ package com.normation.rudder.web.snippet
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.errors._
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.BsdType
 import com.normation.inventory.domain.LinuxType
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.SolarisOS
-import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
 import com.normation.ldap.sdk.BuildFilter._
@@ -57,19 +55,12 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.reports.ComplianceLevel
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.SearchRequest
 import com.normation.rudder.domain.logger.ComplianceLogger
-import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
-import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js._
-import zio._
-import zio.syntax._
-import com.normation.ldap.sdk.syntax._
 
 import scala.xml._
 
@@ -135,11 +126,9 @@ class HomePage extends Loggable {
 
   private[this] val ldap             = RudderConfig.roLDAPConnectionProvider
   private[this] val pendingNodesDit  = RudderConfig.pendingNodesDit
-  private[this] val acceptedNodesDit = RudderConfig.acceptedNodesDit
   private[this] val nodeDit          = RudderConfig.nodeDit
   private[this] val rudderDit        = RudderConfig.rudderDit
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val mapper           = RudderConfig.ldapInventoryMapper
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
   def pendingNodes(html : NodeSeq) : NodeSeq = {
@@ -376,78 +365,15 @@ final case class ColoredChartType(value: Double) extends ChartType
    * Get the count of agent version name -> size for accepted nodes
    */
   private[this] def getRudderAgentVersion() : Box[Map[String, Int]] = {
-    import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
-    import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
-    import com.normation.inventory.ldap.core.LDAPConstants.A_SOFTWARE_DN
-    import com.normation.ldap.sdk.BuildFilter.OR
-    import com.normation.ldap.sdk.BuildFilter.SUB
-    import com.normation.ldap.sdk._
-
-    val unknown = new Version("Unknown")
-
-    for {
-      con              <- ldap
+     for {
       nodeInfos        <- HomePage.initNodeInfos().toIO
       n2               =  System.currentTimeMillis
-      agentSoftEntries <-  con.searchOne(acceptedNodesDit.SOFTWARE.dn, OR(AgentType.allValues.toList.map(t => SUB(A_NAME, null, Array(t.inventorySoftwareName), null)):_*))
-      agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
-
-      agentSoft        <- ZIO.foreach(agentSoftEntries){ entry =>
-                            (mapper.softwareFromEntry(entry).chainError(s"Error when mapping LDAP entry ${entry} to a software")).map { s =>
-                              //here, we want to use Agent Version display name, not the software one
-                              s.name match {
-                                case None => s
-                                // only keep before first "." because in some case, the distrib reports "rudder-agent.x86-64"
-                                case Some(name) => name.toLowerCase.split("""\.""").head match {
-                                  case AgentType.CfeEnterprise.inventorySoftwareName =>
-                                    s.copy(version = s.version.map(v => new Version(AgentType.CfeEnterprise.toAgentVersionName(v.value))))
-                                  case ag if ag == AgentType.Dsc.inventorySoftwareName.toLowerCase =>
-                                    s.copy(version = s.version.map(v => new Version(AgentType.Dsc.toAgentVersionName(v.value))))
-                                  case _ => s
-                                }
-                              }
-                            }.toIO
-                          }
+      agentSoftware    =  nodeInfos.map(_._2.agentsName).flatten
+      agentVersions    =  agentSoftware.flatMap(_.version)
       n3               =  System.currentTimeMillis
-      _                =  TimingDebugLogger.debug(s"Get agent software entries: ${n3-n2}ms")
-      nodeEntries      <-  {
-                            val sr = new SearchRequest(
-                                acceptedNodesDit.NODES.dn.toString
-                              , One.toUnboundid
-                              , OR(agentSoft.map(x => EQ(A_SOFTWARE_DN, acceptedNodesDit.SOFTWARE.SOFT.dn(x.id).toString)):_*)
-                              , A_NODE_UUID, A_SOFTWARE_DN
-                            )
-                            // Skip if there is no rudder-agent packages in software DN
-                            if (! agentSoftDn.isEmpty) {
-                              //only get interesting entries control - that make a huge difference in perf
-                              sr.addControl(new MatchedValuesRequestControl(agentSoftDn.map(dn => MatchedValuesFilter.createEqualityFilter(A_SOFTWARE_DN, dn)).toSeq:_*))
-                              con.search(sr)
-                            } else {
-                              Seq().succeed
-                            }
-                          }
-      n4               =  System.currentTimeMillis
-      _                =  TimingDebugLogger.debug(s"Get nodes for agent: ${n4-n3}ms")
+      _                =  TimingDebugLogger.debug(s"Get nodes agent: ${n3-n2}ms")
     } yield {
 
-      val agentMap = agentSoft.map(x => (x.id.value, x)).toMap
-
-      val agentVersionByNodeEntries = nodeEntries.map { e =>
-        (
-            NodeId(e.value_!(A_NODE_UUID))
-          , e.valuesFor(A_SOFTWARE_DN).intersect(agentSoftDn).flatMap { x =>
-              acceptedNodesDit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption.flatMap(s => agentMap(s.value).version)
-            }
-        )
-      }.toMap.view.mapValues(_.maxBy(_.value)).toMap // Get the max version available
-
-      // take back the initial set of nodes to be sure to have one agent for each
-      val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.get(nodeId) match {
-        case Some(v) => v
-        case None    =>
-          logger.debug(s"Node with ID '${nodeId.value}' have an unknow agent version")
-          unknown
-      })
 
       // Format different version naming type into one
       def formatVersion (version : String) : String= {
@@ -462,8 +388,8 @@ final case class ColoredChartType(value: Double) extends ChartType
           replace("~", ".")
       }
 
-      val res = allAgents.groupBy(ag => formatVersion(ag.value)).view.mapValues( _.size).toMap
-
+      val res = agentVersions.groupBy(ag => formatVersion(ag.value)).map(x => (x._1, x._2.size))
+      val n4 =  System.currentTimeMillis
       TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis-n4}ms")
       res
     }
