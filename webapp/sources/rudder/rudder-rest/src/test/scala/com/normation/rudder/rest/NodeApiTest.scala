@@ -3,17 +3,14 @@ package com.normation.rudder.rest
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
-
+import com.normation.zio._
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.InMemoryResponse
 import net.liftweb.json.JsonParser
 import net.liftweb.json.compactRender
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-
-import com.normation.zio._
 
 @RunWith(classOf[JUnitRunner])
 class NodeApiTest extends Specification with Loggable {

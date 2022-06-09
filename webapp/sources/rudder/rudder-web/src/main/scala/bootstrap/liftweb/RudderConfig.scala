@@ -37,20 +37,26 @@
 
 package bootstrap.liftweb
 
-import java.io.File
-import java.security.Security
-import java.util.concurrent.TimeUnit
 import better.files.File.root
-import com.normation.rudder.apidata.RestDataSerializerImpl
+import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
+import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
+import bootstrap.liftweb.checks.action.CreateSystemToken
+import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
+import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
+import bootstrap.liftweb.checks.consistency.CheckConnections
+import bootstrap.liftweb.checks.consistency.CheckDIT
+import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
+import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
+import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
+import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 import com.normation.appconfig._
-
 import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -58,8 +64,8 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning.AddIpValues
 import com.normation.inventory.ldap.provisioning.CheckMachineName
 import com.normation.inventory.ldap.provisioning.CheckOsType
-import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
 import com.normation.inventory.ldap.provisioning.DefaultInventorySaver
+import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
 import com.normation.inventory.ldap.provisioning.FromMotherBoardUuidIdFinder
 import com.normation.inventory.ldap.provisioning.LastInventoryDate
 import com.normation.inventory.ldap.provisioning.LogInventoryPreCommit
@@ -74,12 +80,12 @@ import com.normation.inventory.provisioning.fusion.PreInventoryParserCheckConsis
 import com.normation.inventory.services.core._
 import com.normation.inventory.services.provisioning.DefaultInventoryParser
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
+import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.inventory.services.provisioning.MachineDNFinderService
 import com.normation.inventory.services.provisioning.NamedMachineDNFinderAction
 import com.normation.inventory.services.provisioning.NamedNodeInventoryDNFinderAction
 import com.normation.inventory.services.provisioning.NodeInventoryDNFinderService
 import com.normation.inventory.services.provisioning.PreCommit
-import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.ldap.sdk._
 import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
@@ -87,8 +93,15 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
+import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
+import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventRepositoryImpl
+import com.normation.rudder.campaigns.CampaignRepositoryImpl
+import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.JSONReportsAnalyser
+import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
@@ -167,20 +180,6 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
-
-import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
-import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
-import bootstrap.liftweb.checks.action.CreateSystemToken
-import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
-import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
-import bootstrap.liftweb.checks.consistency.CheckConnections
-import bootstrap.liftweb.checks.consistency.CheckDIT
-import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
-import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
-import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
-import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
-import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
-
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -192,14 +191,17 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-
 import zio.IO
-import zio.syntax._
+import zio.Queue
+import zio.Ref
 import zio.duration._
+import zio.syntax._
+
+import java.io.File
+import java.security.Security
+import java.util.concurrent.TimeUnit
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
-
-import zio.Ref
 
 object RUDDER_CHARSET {
   import java.nio.charset.StandardCharsets
@@ -2392,6 +2394,22 @@ object RudderConfig extends Loggable {
   )
 
   lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
+  lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie)
+  lazy val campaignSerializer = new CampaignSerializer()
+  lazy val campaignRepo = new CampaignRepositoryImpl(campaignSerializer)
+
+
+  val mainCampaignService  = MainCampaignService (campaignEventRepo, campaignRepo)
+  ( for {
+      campaignQueue <- Queue.unbounded[CampaignEvent]
+      _ <- mainCampaignService.start(campaignQueue).forkDaemon
+    } yield {
+      ()
+    }
+  ).forkDaemon.runNow
+
+  lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
+  jsonReportsAnalyzer.start().forkDaemon
 
   /**
    * *************************************************

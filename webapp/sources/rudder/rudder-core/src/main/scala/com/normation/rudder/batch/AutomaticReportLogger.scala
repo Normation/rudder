@@ -141,8 +141,8 @@ class AutomaticReportLogger(
             val highest = reportsRepository.getHighestId()
             logger.trace(s"***** highest report id = ${highest} and last processed id = ${lastId}")
             highest match {
-              case Full(currentId) if (currentId > lastId) =>
-                logReportsBetween(lastId, currentId)
+              case Full(currentId) if (currentId > lastId.getOrElse(0L)) =>
+                logReportsBetween(lastId.getOrElse(0L), currentId)
 
               case _ =>
                 logger.trace("***** no reports to log")
@@ -182,7 +182,7 @@ class AutomaticReportLogger(
             , allNodes: Map[NodeId, NodeInfo], rules: Map[RuleId, Rule],  directives: FullActiveTechniqueCategory
       ): Box[Long] = {
         for {
-          reports <- reportsRepository.getReportsByKindBeetween(fromId, maxId, batchSize, reportsKind)
+          reports <- reportsRepository.getReportsByKindBetween(fromId, Some(maxId), batchSize, reportsKind)
         } yield {
           //when we get an empty here, it means that we don't have more non-compliant report
           //in the interval, just return the max id

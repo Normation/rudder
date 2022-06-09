@@ -428,6 +428,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="STDOUT" />
   </logger>
 
+  <logger name="campaign" level="info" additivity="false">
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
+
 
   <!--
     Logs about change requests and validation workflows

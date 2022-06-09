@@ -430,14 +430,7 @@ trait RudderJsonDecoders {
   )
 }
 
-/*
- * This last class provides utility methods to get JsonQuery objects from the request.
- * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
- */
-class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
-  import JsonResponseObjects._
-  import JsonQueryObjects._
-  import implicits._
+object ZioJsonExtractor {
 
   /**
    * Parse request body as JSON, and decode it as type `A`.
@@ -445,11 +438,11 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
    */
   def parseJson[A](req: Req)(implicit decoder: JsonDecoder[A]): PureResult[A] = {
     if(req.json_?) {
-    // copied from `Req.forcedBodyAsJson`
-    def r = """; *charset=(.*)""".r
-    def r2 = """[^=]*$""".r
+      // copied from `Req.forcedBodyAsJson`
+      def r = """; *charset=(.*)""".r
+      def r2 = """[^=]*$""".r
       def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
-    // end copy
+      // end copy
 
       req.body match {
         case eb: EmptyBox => Left(Unexpected((eb ?~! "error when accessing request body").messageChain))
@@ -459,6 +452,17 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       Left(Unexpected("Cannot parse non-JSON request as JSON; please check content-type."))
     }
   }
+}
+
+/*
+ * This last class provides utility methods to get JsonQuery objects from the request.
+ * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
+ */
+class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
+  import JsonResponseObjects._
+  import JsonQueryObjects._
+  import implicits._
+  import ZioJsonExtractor.parseJson
 
   /**
    * Utilities to extract values from params Map

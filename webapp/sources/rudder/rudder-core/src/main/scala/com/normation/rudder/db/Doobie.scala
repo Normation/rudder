@@ -198,12 +198,6 @@ object Doobie {
     Read[R].map( (t: R) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10) )
   }
 
-  implicit val ReportWrite: Write[Reports] = {
-    type R = (DateTime, RuleId, DirectiveId, NodeId, String, String, String, DateTime, String, String)
-    Write[R].contramap(
-        (r: Reports) => Reports.unapply(r).get
-    )
-  }
 
   implicit val NodesConfigVerionRead: Read[NodeConfigVersions] = {
     Read[(NodeId, Option[List[String]])].map(
