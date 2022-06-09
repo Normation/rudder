@@ -165,7 +165,7 @@ object RudderJsonResponse {
     generic.forbiddenError(JsonRudderApiResponse.error(schema, errorMsg))
   }
 
-  //import that to transform a class from JsonResponse into a lift response. An encoder for the JsonResponse classe
+  //import that to transform a class from JsonResponse into a lift response. An encoder for the JsonResponse class
   // must be available.
   trait implicits {
     implicit class ToLiftResponseList[A](result: IOResult[Seq[A]]) {

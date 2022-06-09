@@ -192,7 +192,7 @@ class ReportsTest extends DBCommon {
      * - test case where there is no StartRun/EndRun
      */
     "get reports" in {
-      val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).open
+      val res = repostsRepo.getReportsFromId(0, DateTime.now().plusDays(1)).open
       val expected = Seq(
           AgentRun(AgentRunId(NodeId("n0"),run1),None,109)
         , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),115)

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2022 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,33 +35,59 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
+package com.normation.rudder.campaigns
 
+import better.files.File
 import com.normation.errors.IOResult
-import net.liftweb.common.Box
-
-trait RudderPropertiesRepository {
-
-  /**
-   * Get the last report id processed by the non compliant report Logger.
-   */
-  def getReportLoggerLastId: Box[Option[Long]]
-
-  /**
-   * Update or create (if needed the last id processed by the non compliant report logger
-   */
-  def updateReportLoggerLastId(newId: Long): Box[Long]
+import zio.ZIO
 
 
+trait CampaignRepository {
+  def getAll(): IOResult[List[Campaign]]
+  def get(id : CampaignId) : IOResult[Campaign]
+  def save(c : Campaign): IOResult[Campaign]
+}
 
-  /**
-   * Get the last report id processed by the Report handler.
-   */
-  def getReportHandlerLastId: IOResult[Option[Long]]
 
-  /**
-   * Update or create (if needed the last id processed by the non compliant report logger
-   */
-  def updateReportHandlerLastId(newId: Long): IOResult[Long]
+class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path : File) extends CampaignRepository {
 
+  def getAll(): IOResult[List[Campaign]] = {
+    for {
+      jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ =="json"))}
+      campaigns <- ZIO.foreach(jsonFiles.toList) {
+        json => campaignSerializer.parse(json.contentAsString)
+      }
+    } yield {
+      campaigns
+    }
+  }
+  def get(id : CampaignId) : IOResult[Campaign] = {
+    for {
+      content <- IOResult.effect (s"error when getting campaign file for campain with id '${id.value}'"){
+        val file = path / (s"${id.value}.json")
+        file.createFileIfNotExists(createParents = true)
+        file
+      }
+      campaign <- campaignSerializer.parse(content.contentAsString)
+    } yield {
+      campaign
+    }
+  }
+  def save(c : Campaign): IOResult[Campaign] = {
+    for {
+      file <- IOResult.effect (s"error when creating campaign file for campain with id '${c.info.id.value}'"){
+        val file = path / (s"${c.info.id.value}.json")
+
+        file.createFileIfNotExists(true)
+        file
+      }
+      _ <- CampaignLogger.info(file.pathAsString)
+      content <- campaignSerializer.serialize(c)
+      _ <- IOResult.effect{
+        file.write(content)
+      }
+    } yield {
+      c
+    }
+  }
 }

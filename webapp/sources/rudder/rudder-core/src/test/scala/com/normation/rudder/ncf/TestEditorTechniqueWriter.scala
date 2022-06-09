@@ -37,7 +37,6 @@
 
 package com.normation.rudder.ncf
 
-import java.io.InputStream
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
@@ -52,7 +51,6 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -63,48 +61,45 @@ import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiver
+import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
-
 import com.normation.zio._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-
-import java.io.File
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.DirectiveSaveDiff
-import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.repository.xml.TechniqueArchiver
-import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
-
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-
+import org.specs2.specification.BeforeAfterAll
 import zio._
+
+import java.io.File
+import java.io.InputStream
 import scala.collection.SortedMap
 import scala.collection.SortedSet
-import net.liftweb.common.Loggable
-import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
-
-import org.apache.commons.io.FileUtils
-import org.specs2.specification.BeforeAfterAll
 
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {

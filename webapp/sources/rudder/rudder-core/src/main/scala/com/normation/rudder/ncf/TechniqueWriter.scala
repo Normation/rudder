@@ -38,6 +38,9 @@
 package com.normation.rudder.ncf
 
 
+import better.files.File
+import cats.implicits._
+import com.normation.box._
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
@@ -45,6 +48,9 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
@@ -63,26 +69,18 @@ import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
-
-import better.files.File
-import cats.implicits._
+import com.normation.zio.currentTimeMillis
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
+import zio._
+import zio.syntax._
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
-
-import zio._
-import zio.syntax._
-import com.normation.box._
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
-import com.normation.errors._
-import com.normation.zio.currentTimeMillis
 
 sealed trait NcfError extends RudderError {
   def message : String

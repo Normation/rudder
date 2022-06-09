@@ -395,3 +395,12 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  * end
  *************************************************************************************
  */
+
+
+CREATE TABLE CampaignEvent (
+  campaignId  text
+, eventid     text PRIMARY KEY
+, state       text
+, startDate   timestamp with time zone NOT NULL
+, endDate   timestamp with time zone NOT NULL
+);

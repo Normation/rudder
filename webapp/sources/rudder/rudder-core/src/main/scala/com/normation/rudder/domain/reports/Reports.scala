@@ -385,6 +385,8 @@ object Reports {
 
   val CONTROL         = "control"
 
+  val REPORT_JSON     = "report_json"
+
   // these ones are for enforce mode
   val RESULT_SUCCESS       = "result_success"
   val RESULT_NOTAPPLICABLE = "result_na"

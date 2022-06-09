@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2022 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,33 +35,56 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
+package com.normation.rudder.campaigns
 
 import com.normation.errors.IOResult
-import net.liftweb.common.Box
+import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RudderPropertiesRepository
+import zio.ZIO
+import com.normation.errors._
+import zio.duration.durationInt
 
-trait RudderPropertiesRepository {
+trait JSONReportsHandler {
+  def handle :  PartialFunction[Reports, IOResult[Reports]]
+}
 
-  /**
-   * Get the last report id processed by the non compliant report Logger.
-   */
-  def getReportLoggerLastId: Box[Option[Long]]
+case class JSONReportsAnalyser (reportsRepository: ReportsRepository, propRepo: RudderPropertiesRepository) {
 
-  /**
-   * Update or create (if needed the last id processed by the non compliant report logger
-   */
-  def updateReportLoggerLastId(newId: Long): Box[Long]
+  private[this] var handlers: List[JSONReportsHandler] = Nil
 
+  def addHandler(handler : JSONReportsHandler) = handlers =  handler :: handlers
 
+  def handle(report: Reports) : IOResult[Reports] = {
 
-  /**
-   * Get the last report id processed by the Report handler.
-   */
-  def getReportHandlerLastId: IOResult[Option[Long]]
+    def base: PartialFunction[Reports, IOResult[Reports]] = {
+      case c =>
+        for {
+          _ <- CampaignLogger.warn(s"Could not handle json report with type ${c.component}")
+        } yield {
+          c
+        }
 
-  /**
-   * Update or create (if needed the last id processed by the non compliant report logger
-   */
-  def updateReportHandlerLastId(newId: Long): IOResult[Long]
+    }
+
+    handlers.map(_.handle).fold(base) { case (a, b) => b orElse a }(report)
+  }
+  def loop = {
+    for {
+
+      lowerId <- propRepo.getReportHandlerLastId
+      _ <- CampaignLogger.info(s"lower id is ${lowerId}" )
+      reports <- reportsRepository.getReportsByKindBetween(lowerId.getOrElse(0),None, 1000, List(Reports.REPORT_JSON)).toIO
+      _ <- ZIO.foreach(reports)(r => handle(r._2))
+      _ <- propRepo.updateReportHandlerLastId(reports.maxBy(_._1)._1)
+    } yield {
+      ()
+    }
+  }
+
+  def start() = {
+    loop.delay(5.seconds).forever
+  }
+
 
 }

@@ -352,7 +352,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   /**
    * From an id and an end date, return a list of AgentRun, and the max ID that has been considered
    */
-  override def getReportsfromId(lastProcessedId: Long, endDate: DateTime): Box[(Seq[AgentRun], Long)] = {
+  override def getReportsFromId(lastProcessedId: Long, endDate: DateTime): Box[(Seq[AgentRun], Long)] = {
 
     def getMaxId(fromId: Long, before: DateTime): ConnectionIO[Long] = {
       val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
@@ -528,12 +528,16 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     """).to[Vector].transact(xa))
   }
 
-  override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
-    if (lower>=upper)
-      Full(Nil)
-    else{
-      val q = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-      transactRunBox(xa => query[(Long, Reports)](q).to[Vector].transact(xa)) ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+  override def getReportsByKindBetween(lower: Long, upper: Option[Long], limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
+    upper match {
+      case Some(upper) if lower>=upper =>
+        Full(Nil)
+      case None =>
+        val q = s"${idQuery} and id >= '${lower}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
+        transactRunBox(xa => query[(Long, Reports)](q).to[Vector].transact(xa)) ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
+      case Some(upper) =>
+        val q = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
+        transactRunBox(xa => query[(Long, Reports)](q).to[Vector].transact(xa)) ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
     }
   }
 }
