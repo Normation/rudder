@@ -59,9 +59,9 @@
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: spring-security-core-5.6.3.jar
+   file name: spring-security-core-5.6.5.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.6.3$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.6.5$</packageUrl>
    <cve>CVE-2016-1000027</cve>
 </suppress>
 <suppress>
