@@ -1644,9 +1644,7 @@ form .tooltip-content p {
 .content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
   content: "Error";
 }
-.content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
-  content: "Error";
-}
+.content-wrapper .rudder-label.label-log.label-error:before,
 #select-columns .rudder-label.label-error:before{
   content: "";
 }
