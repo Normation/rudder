@@ -65,13 +65,36 @@ class ReadOnlySoftwareDAOImpl(
 ) extends ReadOnlySoftwareDAO {
 
   private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
+    val NB_BATCH_SOFTWARE = 2000
+
+    // fetching 10 000 software make this method timeout
+    // so we break it in smaller pieces
     for {
-      entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(ids map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*)).map(_.toVector)
-      soft    <- ZIO.foreach(entries) { entry =>
-                   ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
-                 }
+      n0 <- currentTimeMillis
+      _ <- TimingDebugLoggerPure.debug(s"Search software from ${ids.size} ids")
+      result <- ZIO.foreach(ids.grouped(NB_BATCH_SOFTWARE).to(Iterable)) { softIds =>
+        for {
+          n1      <- currentTimeMillis
+          entries <- con.searchOne(inventoryDitService.getSoftwareBaseDN, OR(softIds map {x:SoftwareUuid => EQ(A_SOFTWARE_UUID,x.value) }:_*))
+          n2      <- currentTimeMillis
+
+          _       <- TimingDebugLoggerPure.trace(s"Fetched ${entries.size} entries from LDAP in ${n2-n1} ms")
+
+          soft    <- ZIO.foreach(entries) { entry =>
+            ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn.toString}' to a software. Entry details: ${entry.toLDIFString()}")
+          }
+          n3      <- currentTimeMillis
+
+          _     <- TimingDebugLoggerPure.trace(s"Converting ${soft.size} entries into softwares in ${n3-n2} ms")
+
+        } yield {
+          soft
+        }
+      }
+      n5 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.debug(s"Fetched and converted ${result.size} ids to software in ${n5 - n0} ms")
     } yield {
-      soft
+      result.flatten.toSeq
     }
   }
 
@@ -92,12 +115,14 @@ class ReadOnlySoftwareDAOImpl(
   override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
 
     val dit = inventoryDitService.getDit(status)
-
     val orFilter = BuildFilter.OR(nodeIds.toSeq.map(x => EQ(A_NODE_UUID,x.value)):_*)
-
     (for {
       con            <- ldap
+      n3             <- currentTimeMillis
       nodeEntries    <- con.searchOne(dit.NODES.dn, orFilter, Seq(A_NODE_UUID, A_SOFTWARE_DN):_*)
+      n4             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.debug(s"Fetching ${nodeEntries.size} nodes entries in ${n4 - n3} ms")
+
       softwareByNode =  (for {
                           e  <- nodeEntries
                           id <- e(A_NODE_UUID)
@@ -110,10 +135,21 @@ class ReadOnlySoftwareDAOImpl(
                         } yield {
                           (NodeId(id), vs)
                         }).toMap
+      n5             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.debug(s"Fetching ${softwareByNode.size} software by nodes in ${n5 - n4} ms") //17s
+
       softwareIds    =  softwareByNode.values.flatten.toSeq
+      n6             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.debug(s"Converting softwareByNode to softwareIds in ${n6 - n5} ms")
+
       software       <- search(con, softwareIds)
+      n7             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.debug(s"Searching softwares in ${n7 - n6} ms")
+
     } yield {
-      softwareByNode.view.mapValues { ids => software.filter(s => ids.contains(s.id)) }.toMap
+      softwareByNode.map { case (node, ids) =>
+        (node, software.filter(s => ids.contains(s.id)) )
+      }
     })
   }
 
@@ -158,10 +194,10 @@ class ReadOnlySoftwareDAOImpl(
                                 for {
                                   softwareEntry <- con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
                                 } yield {
-                                  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).toSet.toSeq
+                                  softwareEntry.flatMap(entry => entry.valuesFor(A_SOFTWARE_DN)).distinct
                                 }
                              }
-                             results       <- ZIO.foreach(ids) { id => acceptedDit.SOFTWARE.SOFT.idFromDN(new DN(id)).toIO }.either
+                             results       <- ZIO.foreach(ids) { id => SoftwareUuid.SoftwareUuidFromDnString(id) }.either
                              t3            <- currentTimeMillis
                              _             <- InventoryProcessingLogger.debug(s"Software DNs from ${NB_BATCH_NODES} nodes fetched in ${t3-t2} ms")
                              _             <- results match { // we don't want to return "results" because we need on-site dedup.

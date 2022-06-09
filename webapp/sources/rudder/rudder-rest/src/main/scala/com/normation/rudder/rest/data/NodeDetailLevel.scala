@@ -288,7 +288,7 @@ object NodeDetailLevel {
         if(soft.isEmpty) {
           JNothing
         } else {
-          val softwares = soft.map{
+          val softwares = soft.toList.map{
             software =>
               ( "name"        -> software.name ) ~
               ( "editor"      -> software.editor.map(_.name) ) ~
@@ -296,7 +296,7 @@ object NodeDetailLevel {
               ( "license"     -> software.license.map(licenseJson) ) ~
               ( "description" -> software.description ) ~
               ( "releaseDate" -> software.releaseDate.map(DateFormaterService.serialize) )
-          }.toList
+          }
           JArray(softwares)
         }
     }
