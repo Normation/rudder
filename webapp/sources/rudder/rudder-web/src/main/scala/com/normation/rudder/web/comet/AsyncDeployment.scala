@@ -160,7 +160,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
 
             commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
-            <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
+            <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#DA291C !important;"))}</li>
         }
       case Processing(id, start) => loadingStatement(start)
       case ProcessingAndPendingAuto(asked, current, a, e)      => loadingStatement(current.started)

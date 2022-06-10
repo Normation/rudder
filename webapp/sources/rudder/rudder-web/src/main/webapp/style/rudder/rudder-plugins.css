@@ -11,11 +11,11 @@
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   margin-right: 6px;
-  color: #222D4277;
+  color: #04192277;
 }
 
 .plugin .description{
-  color: #222D42AA;
+  color: #738195;
 }
 
 .license-card{
@@ -53,11 +53,11 @@
 }
 /* === License warning === */
 .license-card.warning{
-  border-left-color: #f08004;
-  background-color: #f080040d;
+  border-left-color: #EF9600;
+  background-color: #EF96000d;
 }
 .license-card.warning .license-info h4{
-  color: #f08004;
+  color: #EF9600;
 }
 .license-card.warning  p.txt-warning {
   color: #ef8004;

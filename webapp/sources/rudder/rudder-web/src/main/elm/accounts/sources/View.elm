@@ -29,11 +29,8 @@ view model =
         [ div[ class "template-main"]
           [ div[ class "main-container"]
             [ div[ class "main-details"]
-              [ div[ class "callout-fade callout-info", style "min-height" "72px"]
-                [ div[ class "marker"]
-                  [ span [class "glyphicon glyphicon-info-sign"][]
-                  ]
-                , div[]
+              [ div[ class "explanation-text"]
+                [ div[]
                   [ p[][ text "Configure accounts allowed to connect to Rudder's REST API." ]
                   , p[][ text "An account is composed of a name, used to identify its action (for example in event logs), an authentication token which is the secret that will allow it to use Rudder's API, and a description to explain the intent of that account."
                     ]
@@ -68,7 +65,7 @@ view model =
                           ]
                         ]
                       , div [class "end"]
-                        [ button [class "btn btn-primary", onClick (CallApi getAccounts)][ i[class "fa fa-refresh"][] ]
+                        [ button [class "btn btn-default", onClick (CallApi getAccounts)][ i[class "fa fa-refresh"][] ]
                         ]
                       ]
                     , displayAccountsTable model

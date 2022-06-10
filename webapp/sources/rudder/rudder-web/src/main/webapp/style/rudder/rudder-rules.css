@@ -182,7 +182,7 @@ h4.list-title{
 }
 
 h4.list-title.except{
-  border-bottom-color: #d43f3a;
+  border-bottom-color: #DA291C;
 }
 
 .section-title > .badge{
@@ -194,11 +194,11 @@ h4.list-title.except{
   background-color: #8fbb2c;
 }
 .section-title > .badge.exclude{
-  background-color: #d43f3a;
+  background-color: #DA291C;
 }
 
 ul.applied-list > li {
-  border: 1px solid #e5e5e5;
+  border: 1px solid #d6deef;
   padding: 10px;
   padding-left: 14px;
   display: block;
@@ -213,11 +213,11 @@ ul.applied-list > li {
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
 }
 ul.applied-list > li.is-disabled{
-  background-color: #F4F4F4;
+  background-color: #F8F9FC;
 }
 
 ul.applied-list > li > .border{
-  background-color: #e5e5e5;
+  background-color: #d6deef;
   position: absolute;
   top: -1px;
   bottom: -1px;
@@ -247,12 +247,12 @@ ul.applied-list > li.new:hover > .border{
   background-color: #deaeab;
 }
 .except + ul.applied-list > li.new:hover > .border{
-  background-color: #d43f3a;
+  background-color: #DA291C;
 }
 
 .applied-list > li.empty {
   border-left: 4px solid #3379b7;
-  color: #777;
+  color: #738195;
   font-style: italic;
 }
 
@@ -284,7 +284,7 @@ ul.applied-list > li .icon-info{
 }
 
 ul.applied-list > li:hover .icon-info{
-  color: #337ab7;
+  color: #1295c2;
 }
 
 ul.applied-list > li > span.target-remove,
@@ -296,8 +296,8 @@ ul.applied-list > li > span.warning-sign{
   width: 40px;
   transition: .2s;
   background-color: #fff;
-  color: #999;
-  border-left: 1px solid #e5e5e5;
+  color: #7f8c9e;
+  border-left: 1px solid #d6deef;
   opacity: .6;
   cursor: pointer;
 }
@@ -345,7 +345,7 @@ ul.applied-list > .add-target > .fa{
   color: #8fba2b;
 }
 .jstree ul > li .action-icon.except{
-  color: #d43f3a;
+  color: #DA291C;
 }
 .jstree ul > li .action-icon:before{
   content: "\f055";
@@ -374,7 +374,7 @@ ul.applied-list > .add-target > .fa{
 #directiveFilters{
   padding: 15px 15px 10px 15px;
   margin: 0 -15px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
   background-color: #F7F8F7;
 }
 #directiveFilters .search-addon > .input-group-btn:first-child .btn{
@@ -435,10 +435,10 @@ form.readonly-form .tags-container{
   margin-bottom: 15px;
 }
 .missing-cat {
-  color: #222D42AA;
+  color: #738195;
 }
 .main-missing-cat {
-  color: #f08004;
+  color: #EF9600;
 }
 .id-label {
   margin-top: 5px;
@@ -455,5 +455,5 @@ form.readonly-form .tags-container{
   color: #0366d6;
 }
 .focused {
-  background-color:#beebff;
+  background-color:#ecf7fa;
 }

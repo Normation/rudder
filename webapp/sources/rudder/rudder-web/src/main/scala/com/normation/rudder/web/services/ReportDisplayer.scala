@@ -350,7 +350,7 @@ class ReportDisplayer(
             </button>
             &emsp;
             <div id="countDown" style="display:inline-block;">
-              <span style="color:#999;"></span>
+              <span style="color:#b1bbcb;"></span>
             </div>
             <div id="report" style="margin-top:10px;" class="collapse">
               <pre></pre>

@@ -132,7 +132,7 @@ function homePage (
 
   } else {
 
-    $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
+    //$("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
     createTooltip();
 
 

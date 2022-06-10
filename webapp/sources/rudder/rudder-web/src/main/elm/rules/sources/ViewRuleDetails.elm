@@ -45,13 +45,13 @@ editionTemplate model details =
               ]
             , ul [ class "dropdown-menu" ]
               [ li []
-                [ a [ class ("action-success"), onClick (GenerateId (\r -> CloneRule or (RuleId r)))]
+                [ a [ onClick (GenerateId (\r -> CloneRule or (RuleId r)))]
                   [ i [ class "fa fa-clone"] []
                   , text "Clone"
                   ]
                 ]
               , li []
-                [ a [ class ("action-primary"), onClick (OpenDeactivationPopup rule)]
+                [ a [ onClick (OpenDeactivationPopup rule)]
                   [ i [ class "fa fa-ban"] []
                   , text txtDisabled
                   ]

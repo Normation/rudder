@@ -37,6 +37,7 @@
 .rudder-template .one-col .main-header{
   border-bottom: none !important;
 }
+
 #queryParameters{
   padding: 0 15px;
 }
@@ -50,7 +51,7 @@
   margin: 0 !important;
   border-bottom: none !important;
   padding: 15px 15px 10px;
-  color: #222D42 !important;
+  color: #041922 !important;
   font-size: 24px !important;
 }
 
@@ -58,7 +59,7 @@
   padding: 0 15px;
   margin-bottom: 8px;
   font-size: 1.2em;
-  color: #222D42aa;
+  color: #738195;
 }
 
 .rudder-ui-tabs ~ .ui-tabs-panel{
@@ -72,7 +73,7 @@
 }
 
 .rudder-ui-tabs {
-  border-bottom: 2px solid #e5e5E5;
+  border-bottom: 2px solid #d6deef;
   margin: 0 0 15px 0;
   position: relative;
   background-color: #fff;
@@ -95,7 +96,7 @@
 }
 #nodeGroups {
   flex: 30;
-  border-left: 2px solid #e5e5e5;
+  border-left: 2px solid #d6deef;
   margin-top: -15px;
 }
 .jstree-anchor > i.jstree-icon.fa.fa-folder,
@@ -104,7 +105,7 @@
   top: 2px;
 }
 #nodeGroups > h3 {
-  color: #222D42;
+  color: #041922;
   padding: 15px 15px 10px !important;
   margin: 0;
   font-size: 20px;
@@ -114,7 +115,7 @@
   float: right;
   text-transform: uppercase;
   font-size: .8em;
-  color: #222D4299;
+  color: #04192299;
   display: inline-block;
   position: relative;
   padding-right: 26px;
@@ -165,7 +166,7 @@
   width: auto;
 }
 .id-card .node-state.preparing-eol:after{
-  background-color: #F08004;
+  background-color: #EF9600;
 }
 
 .machine-info{
@@ -179,7 +180,7 @@
   left: 6px;
   width: 8px;
   height: 8px;
-  background-color: #222D42;
+  background-color: #041922;
   opacity: .5;
   border-radius: 50%;
 }
@@ -207,13 +208,13 @@
 .rudder-info   > h3,
 .status-info   > h3,
 .accounts-info > h3{
-  color: #222d428a;
+  color: #0419228a;
   padding: 5px 0 !important;
   display: block;
   margin-bottom: 10px;
   line-height: inherit;
   border: 0;
-  border-bottom: 2px solid #e5e5e5;
+  border-bottom: 2px solid #d6deef;
   font-size: 18px;
 }
 .rudder-info   > div,

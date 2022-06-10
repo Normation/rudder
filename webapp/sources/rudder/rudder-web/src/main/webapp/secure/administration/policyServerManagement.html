@@ -15,7 +15,7 @@
     .agent-run-form {
       padding-left: 15px;
       margin-left: 15px;
-      border-left: 2px solid #e5e5e5;
+      border-left: 2px solid #d6deef;
       margin-bottom: 20px;
       padding-top: 5px;
       margin-top: -5px;
@@ -55,10 +55,7 @@
             <div role="tabpanel" class="inner-portlet" id="allowed-networks">
               <h3 class="page-title">Allowed networks</h3>
               <div class="portlet-content">
-                <div class="col-xs-12 callout-fade callout-info">
-                  <div class="marker">
-                    <span class="glyphicon glyphicon-info-sign"></span>
-                  </div>
+                <div class="explanation-text">
                   <p>
                     Configure the networks from which nodes are allowed
                     to connect to the Rudder policy servers to get their updated
@@ -167,10 +164,7 @@
 
             <div class="inner-portlet" id="relay-synchronization-method">
               <h3 class="page-title">Relay synchronization</h3>
-              <div class="col-lg-12 callout-fade callout-info">
-                <div class="marker">
-                  <span class="glyphicon glyphicon-info-sign"></span>
-                </div>
+              <div class="explanation-text">
                 <p>
                   Configure the method used to synchronize files between Relay servers and the Rudder server.
                 </p>
@@ -237,17 +231,11 @@
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.unexpectedReportInterpretation" id="unexpectedReportInterpretation">
                   <form class="lift:form.ajax form-horizontal" >
-                    <div class="col-lg-12 callout-fade callout-info">
-                      <div class="marker">
-                        <span class="glyphicon glyphicon-info-sign"></span>
-                      </div>
+                    <div class="explanation-text">
                       The following settings affect the interpretation given to some type of unexpected reports when computing compliance.
                       This option will take effect when the next reports are received from a node or if you "clear caches" below.
                     </div>
-                    <div class="col-lg-12 callout-fade callout-info">
-                      <div class="marker">
-                        <span class="glyphicon glyphicon-info-sign"></span>
-                      </div>
+                    <div class="explanation-text">
                       <p><b>Unbounded reports by elements when a variable is used</b></p>
                       <p>
                         Rudder await exactly one compliance report for each configuration point of control. If it gets more than one,
@@ -303,10 +291,7 @@
               <h3 class="page-title">Default settings for new nodes</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.nodeOnAcceptDefaults" id="nodeOnAcceptDefaults">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p>Configure the default state and policy mode for nodes when they are accepted within Rudder.</p>
                     <p><b>State</b> may be used to classify nodes, in search and groups, and some states have also an impact on the policies generation for the node.
                     </p>
@@ -348,10 +333,7 @@
             <div class="inner-portlet">
               <h3 class="page-title">Modified files backup</h3>
               <div class="portlet-content">
-                <div class="col-xs-12 callout-fade callout-info">
-                  <div class="marker">
-                    <span class="glyphicon glyphicon-info-sign"></span>
-                  </div>
+                <div class="explanation-text">
                   <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a <strong>backup</strong> is created on the agent under <i><strong>/var/rudder/modified-files/</strong></i>.</p>
                 </div>
                 <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
@@ -372,10 +354,7 @@
               <h3 class="page-title">Logging</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
                     <p>
                       Also, the full output from each agent run is stored in a file under <i><strong>/var/rudder/cfengine-community/outputs/</strong></i>.
@@ -399,10 +378,7 @@
               <h3 class="page-title">Audit logs</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p>
                       If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
                       These messages will be stored in each <a href="/secure/utilities/eventLogs" target="_blank">Event log</a> and as the commit message for the underlying git repository in
@@ -466,10 +442,7 @@
               <h3 class="page-title">Compliance display</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p>In Rules table, we display a graph for each Rule showing its activity (number of repaired reports).</p>
                     <p>Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.</p>
                     <p>If you experience slow loading of Rules pages, you can disable this feature here.</p>
@@ -491,10 +464,7 @@
                         </div>
                       </li>
                     </ul>
-                    <div class="col-xs-12 callout-fade callout-info">
-                      <div class="marker">
-                        <span class="glyphicon glyphicon-info-sign"></span>
-                      </div>
+                    <div class="explanation-text">
                       <div>
                         In directive configuration page, we have the possibility to choose rules for the directive. The rule
                         are presented in a summary table which look alike the one in rule page. For performance on aesthetic
@@ -531,10 +501,7 @@
               <h3 class="page-title">Script evaluation in Directives</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     If enabled, all Directive fields can contain a JavaScript expression.
                     These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
                     Read the <a href="/rudder-doc/reference/current/usage/advanced_configuration_management.html#_javascript_evaluation_in_directives" target="_blank">script documentation</a> for more information.
@@ -568,10 +535,7 @@
               <h3 class="page-title">Policy generation system hooks</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.generationHookCfpromise" id="generationHookCfpromise">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p><b>Development Policy Check</b></p>
                     <p>Rudder can check generated policies syntax after generation to ensure that only syntactically valid policies are deployed on node..</p>
                     <p>
@@ -608,10 +572,7 @@
                 </div>
                 <br />
                 <div class="lift:administration.PropertiesManagement.generationHookTriggerNodeUpdate" id="generationHookTriggerNodeUpdate">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p><b>Trigger immediate update of nodes when their configuration changes</b></p>
                     <p>When new policies are generated, you have to wait for the next scheduled run of a node to have it apply them.</p>
                     <p>
@@ -688,10 +649,7 @@
             <div class="inner-portlet">
               <h3 class="page-title">Debug information</h3>
               <div class="portlet-content">
-                <div class="col-xs-12 callout-fade callout-info">
-                  <div class="marker">
-                    <span class="glyphicon glyphicon-info-sign"></span>
-                  </div>
+                <div class="explanation-text">
                   <p>Launch the debug script (<i><strong>/opt/rudder/bin/rudder-debug-info</strong></i>) to get information about your setup.</p>
                   <p>The provided information are used to troubleshoot Rudder.</p>
                   <p>Data includes various commands about your install (package version ...), your system and useful logs</p>
@@ -711,10 +669,7 @@
               <h3 class="page-title">Usage survey</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
-                  <div class="col-xs-12 callout-fade callout-info">
-                    <div class="marker">
-                      <span class="glyphicon glyphicon-info-sign"></span>
-                    </div>
+                  <div class="explanation-text">
                     <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
                     <p>These statistics are submitted <b>anonymously</b>, and include overall statistics about your instance of Rudder
                       (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
@@ -755,10 +710,7 @@
             <div class="inner-portlet">
               <h3 class="page-title">Reload groups</h3>
               <div class="portlet-content">
-                <div class="col-xs-12 callout-fade callout-info">
-                  <div class="marker">
-                    <span class="glyphicon glyphicon-info-sign"></span>
-                  </div>
+                <div class="explanation-text">
                   <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).</p>
                   <p>To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.</p>
                   <p>Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
@@ -777,10 +729,7 @@
             <div class="inner-portlet">
               <h3 class="page-title">Reload techniques</h3>
               <div class="portlet-content">
-                <div class="col-xs-12 callout-fade callout-info">
-                  <div class="marker">
-                    <span class="glyphicon glyphicon-info-sign"></span>
-                  </div>
+                <div class="explanation-text">
                   <p>Techniques in Rudder are read from the filesystem (in <i><strong>/var/rudder/configuration-repository/techniques</strong></i>).</p>
                   <p>To take into account new Techniques and changes, the Technique library must be updated regularly.</p>
                   <p>Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>

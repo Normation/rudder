@@ -1191,7 +1191,7 @@ var allColumns = {
         } else if (oData.globalModeOverride === "none") {
           explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p>"
         }
-        $(nTd).prepend(createTextAgentPolicyMode(true,oData.policyMode,explanation));
+        $(nTd).prepend(createBadgeAgentPolicyMode('node',oData.policyMode,explanation, "body"));
       }
     }
   , "IP addresses" :
@@ -1452,10 +1452,10 @@ function createNodeTable(gridId, refresh) {
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
     var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
     var textBtn    = editOpen ? confirmTxt : editTxt;
-    var classBtn   = editOpen ? "btn-blue" : "btn-success";
+    var classBtn   = editOpen ? "btn-success" : "btn-default";
     var editColBtn = $("<button class='btn btn-icon " + classBtn + "' id='edit-col-btn'>" + textBtn + "</button>").click(function(){
       $("#select-columns").toggle();
-      $(this).toggleClass("btn-success").toggleClass("btn-blue").toggleHtml(confirmTxt, editTxt)
+      $(this).toggleClass("btn-success").toggleClass("btn-default").toggleHtml(confirmTxt, editTxt)
     });
     $("#edit-columns").append(editColBtn)
     var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-control'>"
@@ -1463,7 +1463,7 @@ function createNodeTable(gridId, refresh) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-blue btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
+    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
@@ -2255,7 +2255,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
-    var refreshBtn = $("<button class='btn btn-sm btn-blue'><i class='fa fa-refresh'></i></button>");
+    var refreshBtn = $("<button class='btn btn-default'><i class='fa fa-refresh'></i></button>");
     refreshBtn.button();
     refreshBtn.attr("title","Refresh");
     refreshBtn.click( function() { refresh(); } );

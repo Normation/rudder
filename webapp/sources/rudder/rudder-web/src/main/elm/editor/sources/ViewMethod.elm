@@ -137,8 +137,6 @@ checkConstraint call constraint =
   DISPLAY ONE METHOD EXTENDED
 -}
 
-
-
 showMethodTab: Model -> Method -> Maybe CallId ->  MethodCall -> MethodCallUiInfo -> Html Msg
 showMethodTab model method parentId call uiInfo=
   case uiInfo.tab of

@@ -38,12 +38,12 @@
 .tab-filter .input-group label {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  background-color: #f4f4f4;
+  background-color: #F8F9FC;
   padding: 2px 8px 0px 8px;
   font-size: 16px;
 }
 .content-wrapper .btn.updateTable:focus{
-  background-color: #f4f4f4;
+  background-color: #F8F9FC;
   border-color:#ccc;
   color:#3694d1;
 }
@@ -53,8 +53,8 @@
   border-color: #adadad;
 }
 .content-wrapper .btn-success[disabled]:hover{
-  background-color: #9bc832;
-  border-color: #8fb92a;
+  background-color: #13beb7;
+  border-color: #109f9a;
 }
 .panel-footer .tags-container{
   padding: 5px 1px 2px 1px;
@@ -125,7 +125,7 @@
 .input-group-addon.addon-json{
   border-left: none;
   border-right: none;
-  background: #f4f4f4;
+  background: #F8F9FC;
   font-weight: bold;
   cursor:default;
 }
@@ -195,7 +195,7 @@
 .tags-container .btn-group .btn.btn-default.search:hover,
 .tags-container .btn-group .btn.btn-default.search:focus,
 .tags-container .btn-group .btn.btn-default.search:active {
-  background-color: #f4f4f4;
+  background-color: #F8F9FC;
   box-shadow: none;
 }
 
@@ -232,7 +232,7 @@
   opacity : 1;
 }
 .tags-container .btn-group .btn.btn-default:hover .fa-times{
-  color: #a94442;
+  color: #DA291C;
 }
 
 .tags-container .btn-group .btn.btn-default .fa.fa-tag{
@@ -252,7 +252,7 @@
   line-height: 22px;
   width: 27px;
   text-align: center;
-  background-color: #f4f4f4;
+  background-color: #F8F9FC;
   border-top-left-radius:50%;
   border-bottom-left-radius:50%;
   padding-top: 2px;
@@ -314,7 +314,7 @@
   font-weight:bold;
 }
 .only-tags a:hover{
-  color: #333;
+  color: #041922;
 }
 .only-tags > .btn-xs{
   margin-bottom: 5px;
@@ -363,16 +363,16 @@ hr.separator-filter-tree{
   padding-bottom:0;
 }
 .content-wrapper .nav-tabs-filter > li > a.toggleTabFilter{
-  background-color: #f4f4f4 !important;
-  border:1px solid #cccccc !important;
-  color:#555 !important;
+  background-color: #F8F9FC !important;
+  border:1px solid #d6deef !important;
+  color:#738195 !important;
   cursor:pointer !important;
   padding: 4px 25px 4px 10px;
   position: relative;
   margin-right: 5px;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter:hover{
-  color:#333 !important;
+  color:#041922 !important;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter >span.fa{
   position: absolute;
@@ -386,8 +386,8 @@ hr.separator-filter-tree{
   margin: 0;
   padding: 8px 10px;
   font-size: 14px;
-  color: #222D42;
-  background-color: #f9f9f9;
+  color: #041922;
+  background-color: #F8F9FC;
 }
 .tooltip .tooltip-inner > div.tags-list,
 .tooltip .tooltip-inner > div.tooltip-inner-content {
@@ -398,8 +398,8 @@ hr.separator-filter-tree{
 .tooltip > .tooltip-inner .tags-label{
   padding: 4px 8px;
   border-radius : 20px;
-  background-color: #222D4215;
-  color: #222D42AA;
+  background-color: #04192215;
+  color: #738195;
   display: inline-block;
   cursor: default;
   transition-duration: .2s;
@@ -430,8 +430,8 @@ hr.separator-filter-tree{
 }
 
 .tags-label:hover{
-  background-color: #222D4233;
-  color: #222D42DD;
+  background-color: #04192233;
+  color: #041922DD;
 }
 .tags-table table{
   margin-bottom: 0 !important;
@@ -487,7 +487,7 @@ hr.separator-filter-tree{
 
 .angucomplete-dropdown .angucomplete-title {
   clear: both;
-  color: #333;
+  color: #041922;
   display: block;
   font-weight: 400;
   line-height: 1.42857;
@@ -504,7 +504,7 @@ hr.separator-filter-tree{
 
 .angucomplete-searching{
   padding: 6px 10px;
-  color: #777;
+  color: #738195;
   font-style: italic;
   cursor: default;
 }

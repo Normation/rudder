@@ -251,7 +251,7 @@ view model =
               , span [class "input-group-btn"]
                 [ button
                   [ type_ "button"
-                  , class "btn btn-success"
+                  , class "btn btn-default"
                   , onClick ( UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | tags = ( Tag (String.trim newTag.key) (String.trim newTag.value) ) :: treeFilters.tags , newTag = Tag "" ""}})
                   , disabled ((String.isEmpty newTag.key && String.isEmpty newTag.value) || List.member newTag treeFilters.tags)
                   ] [ span[class "fa fa-plus"][]] ]

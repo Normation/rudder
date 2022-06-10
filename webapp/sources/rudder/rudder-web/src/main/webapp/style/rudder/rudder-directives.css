@@ -242,7 +242,7 @@
   display: none !important;
 }
 .toggle-doc > i.fa{
-  color: #222D42;
+  color: #041922;
   opacity: .4;
   margin-left : 6px;
   transition : opacity .2s;
@@ -267,7 +267,7 @@
 }
 .policymode-group input:checked + span > span.global-btn{
   background-color: #efefef;
-  color: #333;
+  color: #041922;
 }
 .policymode-group .global-mode.audit:before{
   content: "audit";

@@ -52,7 +52,7 @@
 }
 .deprecated-icon{
   font-size: .9em;
-  color: #f08004 !important;
+  color: #EF9600 !important;
   opacity: 1 !important;
 }
 .ion.ion-edit {
@@ -90,7 +90,7 @@ ul.dropdown-menu > li > a{
   transition-duration: .2s;
 }
 .btn.btn-outline-success{
-  color: #9bc832;
+  color: #13BEB7;
 }
 .btn.btn-outline-success:hover{
   background-color: #85b711;
@@ -130,12 +130,12 @@ ul.dropdown-menu > li > a{
   word-break: break-all
 }
 .popover .description + .deprecated-info{
-  border-top: 1px solid #e5e5E5;
+  border-top: 1px solid #d6deef;
   margin-top: 8px;
   padding-top: 6px;
 }
 .btn.btn-danger.btn-outline{
-  color: #d9534f;
+  color: #DA291C;
 }
 .btn.btn-danger.btn-outline:hover{
   background-color: #c9302c;
@@ -166,7 +166,7 @@ body > .container-fluid {
   overflow: hidden;
 }
 .label-checkbox{
-  color: #222D42;
+  color: #041922;
   cursor: pointer;
 }
 
@@ -288,10 +288,10 @@ body > .ng-toast {
 .dndPlaceholder{
   margin: 10px 0;
   padding: 15px;
-  border: 2px dashed #e5e5e5;
+  border: 2px dashed #d6deef;
   border-radius: 4px;
   height: 58px;
-  background-color: #f9f9f9;
+  background-color: #F8F9FC;
 }
 /* ===== TECHNIQUES ===== */
 .col-techniques{
@@ -310,13 +310,13 @@ body > .ng-toast {
 }
 .sidebar-body .empty{
   padding: 15px;
-  border-bottom: 1px solid #e5E5E5;
+  border-bottom: 1px solid #d6deef;
   font-style: italic;
   color: #999;
   height: fit-content;
 }
 .techniques-list-container > ul > li {
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
   transition-duration: .2s;
   display: flex;
 }
@@ -330,7 +330,7 @@ body > .ng-toast {
 }
 .techniques-list-container > ul > li > div.item{
   padding: 6px 8px;
-  border-left: 8px solid #e5e5e5;
+  border-left: 8px solid #d6deef;
   cursor: pointer;
   transition-duration: .2s;
   flex: 1;
@@ -394,10 +394,10 @@ ul.tabs-list > li:before{
   transition-duration: .2s;
 }
 ul.tabs-list > li:hover:before{
-  background-color: #e5e5e5;
+  background-color: #d6deef;
 }
 ul.tabs-list > li.active{
-	color: #222D42;
+	color: #041922;
 }
 ul.tabs-list > li.active:before{
   background-color: #337ab7 !important;
@@ -416,7 +416,7 @@ ul.tabs-list > li > .badge.empty{
 }
 
 #technique-editor .main-details h5{
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
   padding-bottom: 4px;
   text-transform: uppercase;
   font-size: 1.2em;
@@ -442,7 +442,7 @@ ul.tabs-list > li > .badge.empty{
 }
 #no-methods{
   padding: 15px;
-  border: 2px dashed #e5e5e5;
+  border: 2px dashed #d6deef;
   border-radius: 4px;
   color: #0519258c;
   background-color: #f3f8ff;
@@ -538,7 +538,7 @@ ul.tabs-list > li > .badge.empty{
   background-image: none;
 }
 .filemanager-container table > tbody > tr.item-list:nth-child(odd) {
-  background-color: #f2f8ff;
+  background-color: #F8F9FC;
 }
 .filemanager-container table > tbody > tr.item-list:hover,
 .filemanager-container table.table-files .selected {
@@ -595,7 +595,7 @@ ul.tabs-list > li > .badge.empty{
   border-color: #fff;
   color: #ccc;
   box-shadow: none;
-  border-left-color: #e5e5e5;
+  border-left-color: #d6deef;
 }
 .upload-list .list-group li.list-group-item .btn:hover{
   color: #fff;
@@ -621,7 +621,7 @@ ul.files-list .form-control{
   box-shadow: none !important;
 }
 ul.files-list > li {
-  border: 1px solid #e5e5e5;
+  border: 1px solid #d6deef;
   padding: 10px;
   padding-left: 14px;
   display: block;
@@ -654,7 +654,7 @@ ul.files-list > li > .border{
   transition-duration: .2s;
 }
 ul.files-list > li.state-new > .border{
-  background-color: #9bc832;
+  background-color: #13BEB7;
 }
 ul.files-list > li.state-modified > .border{
   background-color: #3379bc;
@@ -672,7 +672,7 @@ ul.files-list > li.state-deleted:before{
 }
 ul.files-list > li.state-new:before{
   content:"NEW";
-  color: #9bc832;
+  color: #13BEB7;
 }
 ul.files-list > li.state-modified:before{
   content:"MODIFIED";
@@ -690,7 +690,7 @@ ul.files-list > li > .target-remove:hover + .border{
 }
 .files-list > li.empty {
   border-left: 4px solid #3379b7;
-  color: #777;
+  color: #738195;
   font-style: italic;
   padding: 14px 10px !important;
   border-top-right-radius: 4px;
@@ -724,7 +724,7 @@ ul.files-list > li > span.warning-sign{
   transition: .2s;
   background-color: #fff;
   color: #999;
-  border-left: 1px solid #e5e5e5;
+  border-left: 1px solid #d6deef;
   opacity: .6;
   cursor: pointer;
 }
@@ -781,7 +781,7 @@ ul.files-list > li > .remove-item{
   display: flex;
   padding-right: 15px;
   padding-left: 15px;
-  border-left: 1px solid #e5e5e5;
+  border-left: 1px solid #d6deef;
   align-items: center;
   color: #f3a6a6;
   background-color: #fff;
@@ -793,7 +793,7 @@ ul.files-list > li > .remove-item{
 }
 ul.files-list > li > .remove-item:hover{
   color: #fff;
-  background-color: #d9534f;
+  background-color: #DA291C;
 }
 
 .resources-uncommitted {
@@ -802,7 +802,7 @@ ul.files-list > li > .remove-item:hover{
   text-align: center;
   margin-bottom: 20px;
   text-align: left;
-  color: #222D42CC;
+  color: #041922CC;
 }
 .resources-uncommitted > span{
   background-color: #e2f2ff;
@@ -821,7 +821,7 @@ ul.files-list > li > .remove-item:hover{
   color: #3379b7 !important;
 }
 .missingParameters .method .edit-method{
-  color: #f08004 !important;
+  color: #EF9600 !important;
 }
 .errorParameters .method .edit-method {
   color: #c63d3a !important;
@@ -888,7 +888,7 @@ button.btn.clipboard:hover {
   font-size: 12px;
 }
 .method-details .tabs-list{
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
   margin: 10px 0px 15px 0px;
   width: 100% ;
 }
@@ -977,7 +977,7 @@ button.btn.clipboard:hover {
   display: flex;
   justify-content: flex-end;
   padding: 10px 0;
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid #d6deef;
 }
 .main-footer .btn{
   margin-right: 15px;
@@ -997,7 +997,7 @@ ul.list-unstyled > li{
   max-height:100000px
 }
 .method-elmt {
-  border: 1px solid #e5e5e5;
+  border: 1px solid #d6deef;
 }
 ul li.hide-method {
   margin-bottom : 0px !important;
@@ -1061,7 +1061,7 @@ ul li.hide-method {
 .method .cursorMove {
   background-color: #ededed;
   padding: 0 10px;
-  color: #222d4299;
+  color: #04192299;
   display: flex;
   align-items: center;
   cursor: grab;
@@ -1149,7 +1149,7 @@ ul li.hide-method {
 }
 .method-param > label{
   display: inline-block;
-  color: #777;
+  color: #738195;
   cursor: pointer;
 }
 .label-value {
@@ -1178,7 +1178,7 @@ ul li.hide-method {
   display: flex;
   align-items: center;
   color: #337ab7;
-  border-left: 1px solid #e5e5e5;
+  border-left: 1px solid #d6deef;
   cursor: pointer;
   padding: 10px;
 }
@@ -1248,7 +1248,7 @@ ul li.hide-method {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border: 1px solid #a7d0f1;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d6deef;
 }
 .method + .markdown{
   font-size: .9em;
@@ -1309,7 +1309,7 @@ ul li.hide-method {
 }
 .missingParameters .warn-param.warning {
   display: inline-flex;
-  background-color: #F08004;
+  background-color: #EF9600;
 }
 .warn-param.error{
   background-color: #dd4b39;
@@ -1355,7 +1355,7 @@ ul li.hide-method {
   min-width: 160px;
   margin-top: 20px;
   margin-bottom: 10px;
-  border: 1px solid #e5e5E5;
+  border: 1px solid #d6deef;
   text-align: left;
   position: relative;
   padding-right: 25px;
@@ -1364,8 +1364,8 @@ ul li.hide-method {
   background-color: #fff;
 }
 .btn.toggle-diff .badge{
-  background-color: #222D4220;
-  color: #222D42BB;
+  background-color: #04192220;
+  color: #041922BB;
   margin-left: 4px;
   border-radius: 20px;
   padding: 4px 10px;
@@ -1376,8 +1376,8 @@ ul li.hide-method {
   transition-duration: .2s;
 }
 .btn.toggle-diff:hover .badge{
-  background-color: #222D4225;
-  color: #222D42CC;
+  background-color: #04192225;
+  color: #041922CC;
 }
 .show-diff table{
   border-left: 1px solid #dee2e6;
@@ -1564,12 +1564,12 @@ ul li.hide-method {
   width: 15px;
 }
 .fa-edit {
-  color: #3c8dbc;
+  color: #1295c2;
 }
 .error{
   animation: shake 0.2s ease-in-out 0s 2;
   box-shadow: 0 0 0.5em;
-  border-color: #a94442 !important;
+  border-color: #DA291C !important;
 }
 @keyframes shake {
   0% { margin-left: 0rem; }
