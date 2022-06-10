@@ -35,22 +35,30 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.nodes
+package com.normation.rudder.rest.data
 
-import cats.data._
-import cats.implicits._
+import cats.data.*
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.Dsc
-import com.normation.inventory.domain._
-import com.normation.rudder.domain.nodes.Creation.CreationError
-import com.normation.rudder.domain.nodes.NodeTemplate.AcceptedNodeTemplate
-import com.normation.rudder.domain.nodes.NodeTemplate.PendingNodeTemplate
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.data.Creation.CreationError
+import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
+import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.typesafe.config.ConfigValue
+import net.liftweb.common.Full
+import net.liftweb.json.JArray
+import net.liftweb.json.JField
+import net.liftweb.json.JObject
+import net.liftweb.json.JString
+import net.liftweb.json.JValue
 
 /**
  * Applicative log of interest for Rudder ops.
@@ -85,8 +93,10 @@ object Rest {
     , offset: String
   )
 
+  final case class NodeProp(name: String, value: ConfigValue)
+
   final case class NodeDetails(
-    id              : String
+      id              : String
     , hostname        : String
     , status          : String
     , os              : OS
@@ -95,7 +105,7 @@ object Rest {
     , state           : Option[String]
     , policyMode      : Option[String]
     , agentKey        : Option[AgentKey]
-    , properties      : Map[String, ConfigValue]
+    , properties      : List[NodeProp]
     , ipAddresses     : List[String]
     , timezone        : Option[Timezone]
   )
@@ -139,42 +149,24 @@ object NodeTemplate {
   ) extends NodeTemplate
 }
 
-object Serialize {
-  import net.liftweb.json._
 
-  implicit val formats = DefaultFormats + new ConfigValueSerializer
-
-  class ConfigValueSerializer extends Serializer[ConfigValue] {
-    private val ConfigValueClass = classOf[ConfigValue]
-
-    def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ConfigValue] = {
-      case (TypeInfo(ConfigValueClass, _), json) => GenericProperty.fromJsonValue(json)
-    }
-
-    def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case x: ConfigValue => net.liftweb.json.parse(GenericProperty.serializeToJson(x))
-    }
-  }
-
-  def parseAll(json: JValue): IOResult[List[Rest.NodeDetails]] = {
-    IOResult.effect(s"Error when deserializing a nodes for creation API")(json.extract[List[Rest.NodeDetails]])
-  }
-
-  /*
-   * for each will-be-created node, we want to store if the result is success
-   * of error. We will decide what to return from the API based on thatm.
-   */
-  final case class ResultHolder(
-    //lists because we want to be able to have several time the same id
-    created: List[NodeId]
+/*
+ * for each will-be-created node, we want to store if the result is success
+ * of error. We will decide what to return from the API based on that.
+ */
+final case class ResultHolder(
+  //lists because we want to be able to have several time the same id
+  created: List[NodeId]
   , failed : List[(String, CreationError)] // string because perhaps it's not yet a nodeId
-  )
+)
 
+
+object ResultHolder {
 
   implicit class ResultHolderToJson(res: ResultHolder) {
 
     def toJson(): JValue = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       (
         ("created" -> JArray(res.created.map(id => JString(id.value))))
           ~ ("failed"  -> JArray(res.failed.map { case (id, error) =>
@@ -193,7 +185,30 @@ object Serialize {
       }
     }
   }
+}
 
+class NodeDetailsSerialize(
+  restExtractorService: RestExtractorService
+) {
+  import net.liftweb.json.*
+
+  implicit val formats = DefaultFormats + new ConfigValueSerializer
+
+  class ConfigValueSerializer extends Serializer[ConfigValue] {
+    private val ConfigValueClass = classOf[ConfigValue]
+
+    def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ConfigValue] = {
+      case (TypeInfo(ConfigValueClass, _), json) => GenericProperty.fromJsonValue(json)
+    }
+
+    def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+      case x: ConfigValue => net.liftweb.json.parse(GenericProperty.serializeToJson(x))
+    }
+  }
+
+  def parseAll(json: JValue): IOResult[List[Rest.NodeDetails]] = {
+    IOResult.effect(s"Error when deserializing a nodes for creation API")(json.extract[List[Rest.NodeDetails]])
+  }
 }
 
 object Creation {
@@ -211,11 +226,11 @@ object Creation {
 }
 
 object Validation {
-  import Rest._
-  import Validated._
+  import Rest.*
+  import Validated.*
   import com.normation.inventory.domain.AcceptedInventory
   import com.normation.inventory.domain.PendingInventory
-  import com.normation.rudder.domain.policies.{PolicyMode => PM}
+  import com.normation.rudder.domain.policies.PolicyMode as PM
 
   type Validation[T] = ValidatedNel[NodeValidationError, T]
 
@@ -244,11 +259,11 @@ object Validation {
       , checkState(status, nodeDetails.state)
       ).mapN { case(summary, agent, mode, state) =>
         val inventory = FullInventory(NodeInventory(summary, agents = Seq(agent), machineId = Some((machine.id, PendingInventory))), Some(machine))
-        val properties = nodeDetails.properties.map {case (k,v) => NodeProperty(k, v, None, None) }.toList
+        val properties = nodeDetails.properties
         if(status == PendingInventory) {
-          PendingNodeTemplate(inventory, properties)
+          PendingNodeTemplate(inventory, properties.map(p => NodeProperty(p.name, p.value, None, None)))
         } else {
-          AcceptedNodeTemplate(inventory, properties, mode, state)
+          AcceptedNodeTemplate(inventory, properties.map(p => NodeProperty(p.name, p.value, None, None)), mode, state)
         }
       }
     }
@@ -337,7 +352,7 @@ object Validation {
 
   def checkAgent(osType: OsType, agent: AgentKey): Validation[AgentInfo] = {
     def checkSecurityToken(agent: AgentType, token: String) : Validation[SecurityToken] = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       val tpe = if(token.contains("BEGIN CERTIFICATE")) Certificate.kind else PublicKey.kind
       AgentInfoSerialisation.parseSecurityToken(agent, ("type" -> tpe) ~ ("value" -> token), None) match {
         case Left(err) => NodeValidationError.SecurityVal(err.fullMsg).invalidNel

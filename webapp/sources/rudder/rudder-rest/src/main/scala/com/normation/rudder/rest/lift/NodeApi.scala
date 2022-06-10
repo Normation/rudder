@@ -40,12 +40,12 @@ package com.normation.rudder.rest.lift
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
@@ -62,19 +62,13 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.nodes.Creation.CreationError
+import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeSetup
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.domain.nodes.NodeTemplate
-import com.normation.rudder.domain.nodes.NodeTemplate.AcceptedNodeTemplate
-import com.normation.rudder.domain.nodes.NodeTemplate.PendingNodeTemplate
-import com.normation.rudder.domain.nodes.Rest
-import com.normation.rudder.domain.nodes.Serialize
-import com.normation.rudder.domain.nodes.Serialize.ResultHolder
-import com.normation.rudder.domain.nodes.Validation
-import com.normation.rudder.domain.nodes.Validation.NodeValidationError
+import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
+import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
+import com.normation.rudder.rest.data.Validation.NodeValidationError
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
@@ -100,19 +94,24 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.{NodeApi => API}
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.NodeApi as API
+import com.normation.rudder.rest.data.NodeSetup
+import com.normation.rudder.rest.data.NodeTemplate
+import com.normation.rudder.rest.data.Rest
+import com.normation.rudder.rest.data.NodeDetailsSerialize
+import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.queries._
+import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -130,15 +129,15 @@ import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import org.joda.time.DateTime
 import scalaj.http.Http
 import scalaj.http.HttpOptions
-import zio._
-import zio.duration._
-import zio.syntax._
+import zio.*
+import zio.duration.*
+import zio.syntax.*
 
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -171,6 +170,8 @@ class NodeApi (
   , inheritedProperties : NodeApiInheritedProperties
   , deleteDefaultMode   : DeleteMode
 ) extends LiftApiModuleProvider[API] {
+
+  val serializeNodeDetails = new NodeDetailsSerialize(restExtractorService)
 
   def schemas = API
 
@@ -205,10 +206,12 @@ class NodeApi (
     val schema        = API.CreateNode
     val restExtractor = restExtractorService
 
+    import ResultHolder._
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         json <- (req.json ?~! "This API only Accept JSON request").toIO
-        nodes <- Serialize.parseAll(json)
+        nodes <- serializeNodeDetails.parseAll(json)
       } yield {
         import com.softwaremill.quicklens._
         nodes.foldLeft(ResultHolder(Nil, Nil)) { case (res, node) =>
@@ -220,7 +223,7 @@ class NodeApi (
         }
       }).toBox match {
         case Full(resultHolder) =>
-          // if all succes, return success.
+          // if all success, return success.
           // Or if at least one is not failed, return success ?
           if (resultHolder.failed.isEmpty) {
             RestUtils.toJsonResponse(None, resultHolder.toJson())(schema.name, params.prettify)
@@ -581,10 +584,6 @@ class NodeApiInheritedProperties(
       ) :: Nil)
     }
   }
-
-
-
-
 }
 
 class NodeApiService12(
@@ -824,7 +823,7 @@ class NodeApiService13 (
       ~  ("os"                  -> nodeInfo.osDetails.fullName)
       ~  ("state"               -> nodeInfo.state.name)
       ~  ("compliance"          -> userCompliance )
-      ~ ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
+      ~  ("systemError"         -> sysCompliance.map(_.computePercent().compliance < 100 ).getOrElse(true))
       ~  ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
       ~  ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
       ~  ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
