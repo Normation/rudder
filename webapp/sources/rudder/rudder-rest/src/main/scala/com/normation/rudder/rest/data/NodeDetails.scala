@@ -37,11 +37,11 @@
 
 package com.normation.rudder.rest.data
 
-import cats.data.*
-import cats.implicits.*
+import cats.data._
+import cats.implicits._
 import com.normation.NamedZioLogger
-import com.normation.errors.*
-import com.normation.inventory.domain.*
+import com.normation.errors._
+import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.Dsc
 import com.normation.rudder.domain.nodes.NodeState
@@ -53,7 +53,6 @@ import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.typesafe.config.ConfigValue
-import net.liftweb.common.Full
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
