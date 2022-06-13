@@ -29,6 +29,7 @@ pub struct BlockResource {
     pub condition: String,
     pub name: String,
     pub params: HashMap<String, String>,
+    #[serde(rename = "type")]
     pub resource_type: String,
     // contains either states or resources
     pub resources: Vec<Resource>,
@@ -40,6 +41,7 @@ pub struct BlockResource {
 pub struct LeafResource {
     pub name: String,
     pub params: HashMap<String, String>,
+    #[serde(rename = "type")]
     pub resource_type: String,
     // contains either states or resources
     pub states: Vec<State>,
@@ -58,6 +60,7 @@ pub struct State {
     pub params: HashMap<String, String>,
     // comes from stdlib
     pub report_parameter: String,
+    #[serde(rename = "type")]
     pub state_type: String,
     pub reporting: Option<ReportingPolicy>
 }
@@ -71,9 +74,9 @@ pub struct ReportingPolicy {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ReportingCompute {
-    #[serde(rename = "worst-weighted-sum")]
+    #[serde(rename = "worst-case-weighted-sum")]
     WorstCaseWeightedSum,
-    #[serde(rename = "worst-one")]
+    #[serde(rename = "worst-case-weighted-one")]
     WorstCaseWeightedOne,
     #[serde(rename = "focus")]
     Focus(String),

@@ -20,7 +20,7 @@ bundle agent ntp {
     #   content: server ntp.org
     #   enforce: "true"
     # report_parameter: path
-    # state_type: content
+    # type: content
     # reporting: ~
     # 
     # 
