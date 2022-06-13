@@ -16,8 +16,28 @@ pub struct Policy {
 
 // LeafResource ?
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Resource {
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Resource {
+    BlockResource(BlockResource),
+    LeafResource(LeafResource)
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BlockResource {
+    pub condition: String,
+    pub name: String,
+    pub params: HashMap<String, String>,
+    pub resource_type: String,
+    // contains either states or resources
+    pub resources: Vec<Resource>,
+    pub id: String,
+    pub reporting: Option<ReportingPolicy>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LeafResource {
     pub name: String,
     pub params: HashMap<String, String>,
     pub resource_type: String,
@@ -27,7 +47,7 @@ pub struct Resource {
     pub reporting: Option<ReportingPolicy>
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct State {
     // TODO specific type with custom deserializer that check validity
     // class regex or variables
@@ -42,14 +62,14 @@ pub struct State {
     pub reporting: Option<ReportingPolicy>
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportingPolicy {
     pub enabled: bool,
     #[serde(default)]
     pub compute: ReportingCompute
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ReportingCompute {
     #[serde(rename = "worst-weighted-sum")]
     WorstCaseWeightedSum,

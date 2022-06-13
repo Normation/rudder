@@ -26,10 +26,10 @@ bundle agent ntp {
     # 
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _method_reporting_context_v4("Ensure correct ntp configuration", "path", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907");
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => file_content("server ntp.org", "true"),
-                                             if => concat("debian");
+                                             if => concat("(any).(debian)");
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _classes_noop(canonify("${class_prefix}_file_content_path")),
-                                         unless => concat("debian");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => log_rudder("Skipping method 'Ensure correct ntp configuration' with key parameter 'path' since condition 'debian' is not reached", "path", canonify("${class_prefix}_file_content_path"), canonify("${class_prefix}_file_content_path"), @{args}),
-                                         unless => concat("debian");
+                                         unless => concat("(any).(debian)");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => log_rudder("Skipping method 'Ensure correct ntp configuration' with key parameter 'path' since condition '(any).(debian)' is not reached", "path", canonify("${class_prefix}_file_content_path"), canonify("${class_prefix}_file_content_path"), @{args}),
+                                         unless => concat("(any).(debian)");
 
 }
