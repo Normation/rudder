@@ -114,7 +114,7 @@ object ZipUtils {
   /**
    * Create the seq of zippable from a directory or file.
    * If it's a directory, all children are added recursively,
-   * and there name are relative to the root.
+   * and their names are relative to the root.
    * For a file, only its basename is added.
    *
    * The returned Zippable are ordered from root to children (deep first),
@@ -127,6 +127,8 @@ object ZipUtils {
    * root/dir-b/file-a
    * root/dir-b/file-b
    * etc
+   *
+   * root name itself is not used.
    */
   def toZippable(file: File): Seq[Zippable] = {
     if (file.getParent == null) {

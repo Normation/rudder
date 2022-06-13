@@ -885,6 +885,25 @@ object UserApi extends ApiModuleProvider[UserApi] {
 }
 
 /*
+ * An API for import & export of archives of objects with their dependencies
+ */
+sealed trait ArchiveApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
+object ArchiveApi extends ApiModuleProvider[ArchiveApi] {
+  final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+    val description    = "Export the list of objects with their dependencies"
+    val (action, path) = GET / "archive" / "export"
+  }
+  final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+    val description    = "Import an archive"
+    val (action, path) = POST / "archive" / "import"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[ArchiveApi].toList.sortBy( _.z )
+}
+
+/*
  * All API.
  */
 object AllApi {
@@ -899,6 +918,7 @@ object AllApi {
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
     InventoryApi.endpoints :::
+    ArchiveApi.endpoints :::
     InfoApi.endpoints :::
     HookApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin

@@ -48,7 +48,7 @@ import com.normation.rudder.rest.lift.DefaultParams
 
 /*
  * This class deals with everything serialisation related for API.
- * Change things with care! Everything must be versionned!
+ * Change things with care! Everything must be versioned!
  * Even changing a field name can lead to an API incompatible change and
  * so will need a new API version number (and be sure that old behavior is kept
  * for previous versions).
@@ -58,7 +58,7 @@ import com.normation.rudder.rest.lift.DefaultParams
 /*
  * Rudder standard response.
  * We normalize response format to look like what is detailed here: https://docs.rudder.io/api/v/13/#section/Introduction/Response-format
- * Data are always name-spaced, so that theorically an answer can mixe several type of data. For example, for node details:
+ * Data are always name-spaced, so that theoretically an answer can mixe several type of data. For example, for node details:
  *     "data": { "nodes": [ ... list of nodes ... ] }
  * And for globalCompliance:
  *     "data": { "globalCompliance": { ... } }
