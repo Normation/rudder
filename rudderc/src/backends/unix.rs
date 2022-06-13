@@ -44,13 +44,22 @@ impl Backend for Unix {
 
         for resource in policy.resources {
             for state in resource.states {
+                // sort the params in arbitrary order to make the tests more determinist
+                // must be removed when we the parameters ordering will be implemented
+                // Add quotes around the parameters as the bundle call expects them.
+                let method_params = {
+                    let mut vec = state.params.values().cloned().collect::<Vec<String>>();
+                    vec = vec.iter().map(|x| format!("\"{}\"", x)).collect::<Vec<String>>();
+                    vec.sort();
+                    vec
+                };
                 let method = MethodCall::new()
                     .id(state.id.clone())
-                    .resource(resource.name.clone())
-                    .state(state.name.clone())
-                    .parameters(state.params.clone())
+                    .resource(resource.resource_type.clone())
+                    .state(state.state_type.clone())
+                    .parameters(method_params)
                     .report_parameter(state.report_parameter.clone())
-                    .report_component(state.report_component.clone())
+                    .report_component(state.name.clone())
                     .condition(state.condition.clone())
                     // assume everything is supported
                     .supported(true)
