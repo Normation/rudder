@@ -16,12 +16,11 @@ pub struct Policy {
 
 // LeafResource ?
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Resource {
     BlockResource(BlockResource),
-    LeafResource(LeafResource)
+    LeafResource(LeafResource),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -46,7 +45,7 @@ pub struct LeafResource {
     // contains either states or resources
     pub states: Vec<State>,
     pub id: String,
-    pub reporting: Option<ReportingPolicy>
+    pub reporting: Option<ReportingPolicy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,14 +61,14 @@ pub struct State {
     pub report_parameter: String,
     #[serde(rename = "type")]
     pub state_type: String,
-    pub reporting: Option<ReportingPolicy>
+    pub reporting: Option<ReportingPolicy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportingPolicy {
     pub enabled: bool,
     #[serde(default)]
-    pub compute: ReportingCompute
+    pub compute: ReportingCompute,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -81,20 +80,20 @@ pub enum ReportingCompute {
     #[serde(rename = "focus")]
     Focus(String),
     #[serde(rename = "weighted")]
-    Weighted
+    Weighted,
 }
 
 impl Default for ReportingPolicy {
     fn default() -> Self {
         ReportingPolicy {
             enabled: true,
-            compute: ReportingCompute::default()
+            compute: ReportingCompute::default(),
         }
     }
-  }
+}
 
 impl Default for ReportingCompute {
     fn default() -> Self {
-      ReportingCompute::Weighted
+        ReportingCompute::Weighted
     }
-  }
+}

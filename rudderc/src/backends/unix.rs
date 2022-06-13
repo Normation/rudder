@@ -9,7 +9,7 @@ use crate::{
         cfengine::{bundle::Bundle, promise::Promise},
         ncf::{method_call::MethodCall, technique::Technique},
     },
-    ir::{self, resource::{Resource}},
+    ir::{self, resource::Resource},
 };
 
 use super::Backend;
@@ -45,21 +45,27 @@ impl Backend for Unix {
         fn resolve_resource(r: Resource, context: &str) -> Result<Vec<MethodCall>> {
             match r {
                 Resource::BlockResource(r) => {
-                    let mut result:Vec<MethodCall> = vec!();
+                    let mut result: Vec<MethodCall> = vec![];
                     for inner in r.resources {
-                        result.extend(resolve_resource(inner, format!("({}).({})", r.condition, context).as_ref())?);
+                        result.extend(resolve_resource(
+                            inner,
+                            format!("({}).({})", r.condition, context).as_ref(),
+                        )?);
                     }
                     Ok(result)
-                },
+                }
                 Resource::LeafResource(r) => {
-                    let mut branch_result:Vec<MethodCall> = vec!();
+                    let mut branch_result: Vec<MethodCall> = vec![];
                     for state in r.states {
                         // sort the params in arbitrary order to make the tests more determinist
                         // must be removed when we the parameters ordering will be implemented
                         // Add quotes around the parameters as the bundle call expects them.
                         let method_params = {
                             let mut vec = state.params.values().cloned().collect::<Vec<String>>();
-                            vec = vec.iter().map(|x| format!("\"{}\"", x)).collect::<Vec<String>>();
+                            vec = vec
+                                .iter()
+                                .map(|x| format!("\"{}\"", x))
+                                .collect::<Vec<String>>();
                             vec.sort();
                             vec
                         };
@@ -84,7 +90,10 @@ impl Backend for Unix {
 
         for resource in policy.resources {
             bundle.add_promise_group(
-                resolve_resource(resource, "any")?.into_iter().flat_map(|x| -> Vec<Promise> {x.build()}).collect()
+                resolve_resource(resource, "any")?
+                    .into_iter()
+                    .flat_map(|x| -> Vec<Promise> { x.build() })
+                    .collect(),
             )
         }
 
