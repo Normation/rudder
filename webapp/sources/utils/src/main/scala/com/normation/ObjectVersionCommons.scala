@@ -100,7 +100,7 @@ final object GitVersion {
       case id :: Nil        => Right((id, GitVersion.DEFAULT_REV))
       case id :: "" :: Nil  => Right((id, GitVersion.DEFAULT_REV))
       case id :: rev :: Nil => Right((id, Revision(rev)))
-      case _                => Left(s"Error when parsing '${s}' as a directive id. At most one '+' is authorized.")
+      case _                => Left(s"Error when parsing '${s}' as a rudder id. At most one '+' is authorized.")
     }
   }
 

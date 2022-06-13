@@ -105,8 +105,6 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.web.services.ComputePolicyMode
 
-import scala.annotation.tailrec
-
 class RuleApi(
     restExtractorService: RestExtractorService
   , zioJsonExtractor    : ZioJsonExtractor

@@ -6,7 +6,6 @@ import com.normation.inventory.domain.PendingInventory
 
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.InMemoryResponse
 import net.liftweb.json.JsonParser
 import net.liftweb.json.compactRender
 import org.junit.runner.RunWith

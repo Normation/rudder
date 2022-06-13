@@ -63,6 +63,14 @@ final case class Tags(tags : Set[Tag]) extends AnyVal {
   }
 }
 
+object Tags {
+  // get tags from a list of key/value embodied by a Map with one elements (but
+  // also works with several elements in map)
+  def fromMaps(tags: List[Map[String, String]]) = {
+    Tags(tags.flatMap(_.map { case (k, v) => Tag(TagName(k), TagValue(v))}).toSet)
+  }
+}
+
 object JsonTagSerialisation {
 
   import net.liftweb.json._

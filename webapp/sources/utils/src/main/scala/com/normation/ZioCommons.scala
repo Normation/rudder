@@ -73,11 +73,11 @@ object errors {
   }
 
   /*
-   * Our result types are isomorphique to a disjoint RudderError | A
+   * Our result types are isomorphic to a disjoint RudderError | A
    * one. We have two case: one for which we are sure that all
-   * operation are pure and don't modelize effects (that can be fully
-   * reiffied at compule time), and one for effect encapsulation (that need to
-   * be runned to know the result).
+   * operation are pure and don't model effects (that can be fully
+   * reified at compile time), and one for effect encapsulation (that need to
+   * be ran to know the result).
    */
   type PureResult[A] = Either[RudderError, A]
   type IOResult[A] = ZIO[Any, RudderError, A]
@@ -86,7 +86,7 @@ object errors {
    * An object that provides utility methods to import effectful
    * methods into rudder IOResult type.
    * By default, we consider that all imports have blocking
-   * effects, and need to be run on an according threadpool.
+   * effects, and need to be run on an according thread-pool.
    * If you want to import non blocking effects (but really, in
    * that case, you should just use `PureResult`), you can
    * use `IOResult.effectTotal`).
@@ -96,13 +96,13 @@ object errors {
       IO.effect(effect).mapError(ex => SystemError(error, ex))
     }
     def effectNonBlocking[A](effect: => A): IO[SystemError, A] = {
-      this.effectNonBlocking("An error occured")(effect)
+      this.effectNonBlocking("An error occurred")(effect)
     }
     def effect[A](error: String)(effect: => A): IO[SystemError, A] = {
       ZioRuntime.effectBlocking(effect).mapError(ex => SystemError(error, ex))
     }
     def effect[A](effect: => A): IO[SystemError, A] = {
-      this.effect("An error occured")(effect)
+      this.effect("An error occurred")(effect)
     }
     def effectM[A](error: String)(ioeffect: => IOResult[A]): IOResult[A] = {
       IO.effect(ioeffect).foldM(
@@ -111,7 +111,7 @@ object errors {
       )
     }
     def effectM[A](ioeffect: => IOResult[A]): IOResult[A] = {
-      effectM("An error occured")(ioeffect)
+      effectM("An error occurred")(ioeffect)
     }
   }
 
@@ -125,7 +125,7 @@ object errors {
       }
     }
     def effect[A](effect: => A): Either[SystemError, A] = {
-      this.effect("An error occured")(effect)
+      this.effect("An error occurred")(effect)
     }
     def effectM[A](error: String)(effect: => PureResult[A]): PureResult[A] = {
       PureResult.effect(error)(effect) match {
@@ -134,14 +134,14 @@ object errors {
       }
     }
     def effectM[A](effect: => PureResult[A]): PureResult[A] = {
-      this.effectM("An error occured")(effect)
+      this.effectM("An error occurred")(effect)
     }
   }
 
   object RudderError {
 
     /*
-     * Display information about an exception of interest for the developpers without being
+     * Display information about an exception of interest for the developers without being
      * too nasty for users.
      */
     def formatException(cause: Throwable): String = {
@@ -163,7 +163,7 @@ object errors {
     def fullMsg = this.getClass.getSimpleName + ": " + msg
   }
 
-  // a common error for system error not specificaly bound to
+  // a common error for system error not specifically bound to
   // a domain context.
   final case class SystemError(msg: String, cause: Throwable) extends RudderError {
     override def fullMsg: String = super.fullMsg + s"; cause was: ${RudderError.formatException(cause)}"
@@ -190,7 +190,7 @@ object errors {
       override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
     }
     def msg = all.map(_.fullMsg).toList.mkString(" ; ")
-    // only uniq error
+    // only unique error
     def deduplicate = {
       Accumulated(all.distinct)
     }
@@ -251,8 +251,8 @@ object errors {
      */
     def checkOptional(predicate: A => Boolean, msg: String => String): IOResult[Unit] = {
       res match {
-        case None    => UIO.unit
-        case Some(x) => if(predicate(x)) UIO.unit else Inconsistency(msg(x.toString)).fail
+        case None    => ZIO.unit
+        case Some(x) => if(predicate(x)) ZIO.unit else Inconsistency(msg(x.toString)).fail
       }
     }
     /*
@@ -277,11 +277,10 @@ object errors {
    */
   implicit class AccumulateErrorsNEL[A, Col[+X] <: Iterable[X]](val in: Col[A]) extends AnyVal {
 
-
-    private def transform[R, E, B](seq: ZIO[R, Nothing, List[Either[E, B]]]) = {
-      seq.flatMap { list =>
-        val accumulated = list.traverse( _.toValidatedNel)
-        ZIO.fromEither(accumulated.toEither)
+    private def toNEL[E, B](tuple: (Iterable[E], Iterable[B])): ZIO[Any, NonEmptyList[E], List[B]]  = {
+      (tuple._1.toList, tuple._2.toList) match {
+        case ((h::t), _) => NonEmptyList.of(h,t:_*).fail
+        case (Nil, res ) => res.succeed
       }
     }
 
@@ -289,7 +288,7 @@ object errors {
      * Execute sequentially and accumulate errors
      */
     def accumulateNEL[R, E, B](f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreach(in.toList){ x => f(x).either }).untraced
+      ZIO.partition(in)(f).flatMap(toNEL)
     }
 
     def accumulateNELPure[R, E, B](f: A => Either[E, B]): Either[NonEmptyList[E], List[B]] = {
@@ -301,7 +300,7 @@ object errors {
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
-      transform(ZIO.foreachParN(n)(in.toList){ x => f(x).either }).untraced
+      ZIO.partitionParN(n)(in)(f).flatMap(toNEL)
     }
   }
 
@@ -328,7 +327,21 @@ object errors {
      * Execute in parallel, non ordered, and accumulate error, using at max N fibers
      */
     def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
-      in.accumulateParNELN(n)(f).mapError(errors => Accumulated(errors))
+      in.accumulateParNELN(n)(f).mapError(Accumulated(_))
+    }
+  }
+
+  /*
+   * Transform an Iterable[Either[IOResult, A]]] into it's accumulated PureResult[Iterable[A]]
+   */
+  implicit class AccumulatedEither[A](val in: Iterable[PureResult[A]]) extends AnyVal {
+    def accumulateEither: PureResult[List[A]] = in.toList.traverse(_.toValidatedNel).toEither match {
+      case Left(err)  => Left(Accumulated(err))
+      case Right(res) => Right(res)
+    }
+    def accumulateEitherDiscard: PureResult[Unit] = in.collect { case Left(e) => e }.toList match {
+      case err::t => Left(Accumulated(NonEmptyList.of(err, t:_*)))
+      case Nil    => Right(())
     }
   }
 

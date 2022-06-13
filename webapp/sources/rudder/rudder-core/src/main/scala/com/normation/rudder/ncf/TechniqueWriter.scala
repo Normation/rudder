@@ -38,10 +38,6 @@
 package com.normation.rudder.ncf
 
 
-import better.files.File
-import better.files.File.root
-import cats.implicits._
-import com.normation.box._
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
@@ -49,9 +45,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
-import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
@@ -61,34 +54,35 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.git.GitConfigItemRepository
-import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.hooks.Cmd
-import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.repository.xml.XmlArchiverUtils
+import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
-import com.normation.zio.currentTimeMillis
+
+import better.files.File
+import cats.implicits._
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import org.joda.time.DateTime
-import zio._
-import zio.syntax._
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
+
+import zio._
+import zio.syntax._
+import com.normation.box._
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.errors._
+import com.normation.zio.currentTimeMillis
 
 sealed trait NcfError extends RudderError {
   def message : String
@@ -100,7 +94,24 @@ final case class IOError(message : String, exception : Option[Throwable]) extend
 final case class TechniqueUpdateError(message : String, exception : Option[Throwable]) extends NcfError
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
 
-class TechniqueWriter (
+/*
+ * This service is in charge of writing an editor technique and it's related files.
+ * This is a higher level api, that works at EditorTechnique level, and is able to generate all the low level stuff (calling rudderc if needed) like
+ * metadata.xml, agent related files, etc
+ */
+trait TechniqueWriter {
+
+  def deleteTechnique(techniqueName: String, techniqueVersion: String, deleteDirective: Boolean, modId: ModificationId, committer: EventActor): IOResult[Unit]
+
+  def writeTechniqueAndUpdateLib(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor): IOResult[EditorTechnique]
+
+  // Write and commit all techniques files
+  def writeTechnique(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor): IOResult[EditorTechnique]
+}
+
+
+
+class TechniqueWriterImpl (
     archiver            : TechniqueArchiver
   , techLibUpdate       : UpdateTechniqueLibrary
   , translater          : InterpolatedValueCompiler
@@ -109,31 +120,34 @@ class TechniqueWriter (
   , techniqueRepository : TechniqueRepository
   , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter    : RudderPrettyPrinter
-  , basePath            : String
+  , baseConfigRepoPath  : String // root of config repos
   , parameterTypeService: ParameterTypeService
   , techniqueSerializer : TechniqueSerializer
-) {
+) extends TechniqueWriter {
 
 
-  private[this] val cfengineTechniqueWriter = new ClassicTechniqueWriter(basePath, parameterTypeService)
-  private[this] val dscTechniqueWriter = new DSCTechniqueWriter(basePath, translater, parameterTypeService)
+  private[this] val cfengineTechniqueWriter = new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService)
+  private[this] val dscTechniqueWriter = new DSCTechniqueWriter(baseConfigRepoPath, translater, parameterTypeService)
   private[this] val agentSpecific = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
 
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
+  // root of technique repository
+  val techniquesDir = File(baseConfigRepoPath) / "techniques"
+
+  override def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
 
     def createCr(directive : Directive, rootSection : SectionSpec ) ={
-        val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
-        ChangeRequestService.createChangeRequestFromDirective(
-          s"Deleting technique ${techniqueName}/${techniqueVersion}"
-          , ""
-          , TechniqueName(techniqueName)
-          , Some(rootSection)
-          , directive.id
-          , Some(directive)
-          , diff
-          , committer
-          , None
-        )
+      val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
+      ChangeRequestService.createChangeRequestFromDirective(
+        s"Deleting technique ${techniqueName}/${techniqueVersion}"
+        , ""
+        , TechniqueName(techniqueName)
+        , Some(rootSection)
+        , directive.id
+        , Some(directive)
+        , diff
+        , committer
+        , None
+      )
     }
 
     def mergeCrs(cr1 : ConfigurationChangeRequest, cr2 : ConfigurationChangeRequest) = {
@@ -145,63 +159,64 @@ class TechniqueWriter (
         directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
         categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
         // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-        _          <-  directives match {
-                         case Nil => UIO.unit
-                         case _ =>
-                           if (deleteDirective) {
-                             val wf = workflowLevelService.getWorkflowService()
-                             for {
-                               cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${technique.name}/${techniqueVersion} directives")
-                               _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${technique.name}/${techniqueVersion}")).toIO
-                             } yield ()
-                           } else
-                             Unexpected(s"${directives.size} directives are defined for ${technique.name}/${techniqueVersion} please delete them, or force deletion").fail
-                       }
-        activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+        _          <- directives match {
+                        case Nil => UIO.unit
+                        case _ =>
+                          if (deleteDirective) {
+                            val wf = workflowLevelService.getWorkflowService()
+                            for {
+                              cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
+                              _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique '${techniqueId.serialize}'")).toIO
+                            } yield ()
+                          } else
+                              Unexpected(s"${directives.size} directives are defined for '${techniqueId.serialize}': please delete them, or force deletion").fail
+                      }
+        activeTech <- readDirectives.getActiveTechnique(techniqueId.name)
         _          <- activeTech match {
                         case None =>
                           // No active technique found, let's delete it
                           ().succeed
                         case Some(activeTechnique) =>
-                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique '${techniqueId.name.value}'"))
                       }
-        _          <- archiver.deleteTechnique(technique.name, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
-        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${technique.name}")).toIO.chainError(
+        _          <- archiver.deleteTechnique(techniqueId, categories.map(_.id.name.value), modId, committer, s"Deleting technique '${techniqueId}'")
+        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of technique '${technique.name}'")).toIO.chainError(
                         s"An error occurred during technique update after deletion of Technique ${technique.name}"
                       )
       } yield ()
     }
 
-    def removeInvalidTechnique(basePath: String, techniqueName: String): IOResult[Unit] = {
-      val unknownTechniquesDir = File(s"${basePath}/techniques/").listRecursively.filter(_.isDirectory).filter(_.name == techniqueName).toList
+    def removeInvalidTechnique(techniquesDir: File, techniqueId: TechniqueId): IOResult[Unit] = {
+      val unknownTechniquesDir = techniquesDir.listRecursively.filter(_.isDirectory).filter(_.name == techniqueId.name.value).toList
       unknownTechniquesDir.length match {
         case 0 =>
-          ApplicationLogger.info(s"No technique `${techniqueName}` found to delete").succeed
+          ApplicationLogger.debug(s"No technique `${techniqueId.debugString}` found to delete").succeed
         case _ =>
           for {
             _ <- ZIO.foreach(unknownTechniquesDir) { f =>
-                   val cat = f.pathAsString.substring(s"${basePath}/techniques/".length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
-                   for {
-                     _ <-  archiver.deleteTechnique(techniqueName, techniqueVersion, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
-                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in /var/rudder/configuration-repository/techniques: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
+              val cat = f.pathAsString.substring((techniquesDir.pathAsString + "/").length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
+              for {
+                _ <- archiver.deleteTechnique(techniqueId, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
+                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in " +
+                       s"${techniquesDir.pathAsString}: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
                      )
-                     _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
-                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
-                     )
-                   } yield ()
-                 }
+                _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
+                  s"An error occurred during technique update after deletion of Technique ${techniqueName}"
+                )
+              } yield ()
+            }
           } yield ()
       }
     }
 
     for {
-      techVers    <- ZIO.fromEither(TechniqueVersion.parse(techniqueVersion)).mapError(Unexpected)
-      techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
+      techVersion <- TechniqueVersion.parse(techniqueVersion).toIO
+      techniqueId =  TechniqueId(TechniqueName(techniqueName), techVersion)
       _           <- techniqueRepository.get(techniqueId) match {
                        case Some(technique) => removeTechnique(techniqueId, technique)
-                       case None            => removeInvalidTechnique(basePath, techniqueName)
+                       case None            => removeInvalidTechnique(techniquesDir, techniqueId)
                      }
-   } yield ()
+    } yield ()
   }
 
   def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
@@ -306,14 +321,14 @@ class TechniqueWriter (
     for {
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate        <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
-                            toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
+        toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
       updatedTechnique
     }
   }
 
   // Write and commit all techniques files
-  def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
+  override def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       time_0     <- currentTimeMillis
       _          <- TechniqueWriterLoggerPure.debug(s"Writing technique ${technique.name}")
@@ -331,7 +346,10 @@ class TechniqueWriter (
       metadata   <- writeMetadata(technique, methods)
       time_3     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_3 - time_2}ms")
-      commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
+      id         <- TechniqueVersion.parse(technique.version.value).toIO.map(v =>  TechniqueId(TechniqueName(technique.bundleName.value), v))
+                    // resources files are missing the the "resources/" prefix
+      resources  =  technique.ressources.map(r => ResourceFile("resources/" + r.path, r.state))
+      commit     <- archiver.saveTechnique(id, technique.category.split('/').toIndexedSeq, Chunk.fromIterable(resources), modId, committer, s"Committing technique ${technique.name}")
       time_4     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
       _          <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
@@ -341,7 +359,10 @@ class TechniqueWriter (
     }
   }
 
-  def writeAgentFiles(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
+
+  ///// utility methods /////
+
+  def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor) : IOResult[Seq[String]] = {
     for {
       // Create/update agent files, filter None by flattening to list
       files  <- ZIO.foreach(agentSpecific)(_.writeAgentFiles(technique, methods)).map(_.flatten)
@@ -355,23 +376,23 @@ class TechniqueWriter (
 
     val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
-    val path = s"${basePath}/${metadataPath}"
+    val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
       content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
       _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
-                   implicit val charSet = StandardCharsets.UTF_8
-                   val file = File (path).createFileIfNotExists (true)
-                   file.write (content)
-                 }
+        implicit val charSet = StandardCharsets.UTF_8
+        val file = File (path).createFileIfNotExists (true)
+        file.write (content)
+      }
     } yield {
       metadataPath
     }
   }
 
-  def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
+  def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
     val metadataPath = s"${technique.path}/technique.json"
 
-    val path = s"${basePath}/${metadataPath}"
+    val path = s"${baseConfigRepoPath}/${metadataPath}"
 
     val content = techniqueSerializer.serializeTechniqueMetadata(technique, methods)
     for {
@@ -916,72 +937,4 @@ class DSCTechniqueWriter(
 
 }
 
-trait TechniqueArchiver {
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-}
 
-class TechniqueArchiverImpl (
-    override val gitRepo                   : GitRepositoryProvider
-  , override val xmlPrettyPrinter          : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , personIdentservice                     : PersonIdentService
-  , override val groupOwner                : String
-) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
-
-  override val encoding : String = "UTF-8"
-
-  // we can't use "techniques" for relative path because of ncf and dsc files. This is an architecture smell, we need to clean it.
-  override val relativePath = "/"
-
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String],  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
-    (for {
-      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
-      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
-      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}").call())
-
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield {
-      s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}"
-    }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
-  }
-
-  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
-
-    val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
-    val filesToAdd = (
-      "metadata.xml" +:
-      "rudder_reporting.cf" +:
-      "technique.cf" +:
-      "technique.ps1" +:
-      "technique.json" +:
-      "technique.rd" +:
-      technique.ressources.collect {
-      case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified =>
-        s"resources/${path}"
-      }
-    ).map(file =>  s"${techniqueGitPath}/$file")
-
-    // appart resources, additionnal files to delete are for migration purpose.
-    val filesToDelete =
-      s"ncf/50_techniques/${technique.bundleName.value}" +:
-      s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
-      technique.ressources.collect {
-        case ResourceFile(path, ResourceFileState.Deleted) =>
-          s"${techniqueGitPath}/resources/${path}"
-      }
-    (for {
-      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-
-      added <- ZIO.foreach(filesToAdd) { f =>
-        IOResult.effect(gitRepo.git.add.addFilepattern(f).call())
-      }
-      removed <- ZIO.foreach(filesToDelete) { f =>
-        IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
-      }
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield ()).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
-  }
-
-}

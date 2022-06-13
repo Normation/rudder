@@ -49,9 +49,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.rudder._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
@@ -59,8 +56,6 @@ import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
-import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -69,28 +64,19 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.queries.DitQueryData
-import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -121,14 +107,10 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigurations
 import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
-import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
-import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
@@ -146,8 +128,6 @@ import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -176,6 +156,20 @@ import zio.duration._
 import zio.syntax._
 import com.normation.box._
 import com.normation.errors.IOResult
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueReader
+import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
+
+import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
+import org.apache.commons.httpclient.methods.multipart.FilePart
+import org.apache.commons.httpclient.params.HttpMethodParams
+import org.apache.commons.io.output.ByteArrayOutputStream
+
 import com.normation.zio._
 
 /*
@@ -215,32 +209,17 @@ class RestTestSetUp {
     }
 
 
-  ///// query parsing ////
-  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
-  val LDAP_BASEDN = new DN("cn=rudder-configuration")
-  val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
-  val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
-
-  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
-  val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
-  val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
-  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
-  val nodeDit = new NodeDit(LDAP_BASEDN)
-  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
-  val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed)
-  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
-  }
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules = new MockRules()
-  val mockConfigRepo = new MockConfigRepo(mockTechniques, mockDirectives, mockRules)
   val mockNodes = new MockNodes()
   val mockParameters = new MockGlobalParam()
   val mockNodeGroups = new MockNodeGroups(mockNodes)
+  val mockLdapQueryParsing = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen = new StringUuidGeneratorImpl()
+  val mockConfigRepo = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
 
   val dynGroupUpdaterService = new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
 
@@ -355,14 +334,14 @@ class RestTestSetUp {
     , mockDirectives.directiveRepo
     , null //roNodeGroupRepository
     , mockTechniques.techniqueRepo
-    , queryParser //queryParser
+    , mockLdapQueryParsing.queryParser //queryParser
     , new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
     , workflowLevelService
     , uuidGen
     , null
   )
 
-  val zioJsonExtractor = new ZioJsonExtractor(queryParser)
+  val zioJsonExtractor = new ZioJsonExtractor(mockLdapQueryParsing.queryParser)
 
   val restDataSerializer = RestDataSerializerImpl(
       mockTechniques.techniqueRepo
@@ -640,7 +619,7 @@ class RestTestSetUp {
 
   val groupService2  = new GroupApiService2( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockNodes.queryProcessor, restDataSerializer)
   val groupService6  = new GroupApiService6( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
-  val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, queryParser, mockNodes.queryProcessor, restDataSerializer)
+  val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockLdapQueryParsing.queryParser, mockNodes.queryProcessor, restDataSerializer)
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
   val ncfTechniqueWriter : TechniqueWriter = null
   val ncfTechniqueReader : TechniqueReader = null
@@ -648,6 +627,25 @@ class RestTestSetUp {
   val techniqueSerializer : TechniqueSerializer = null
   val resourceFileService : ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
+
+  object archiveAPIModule {
+    val archiveBuilderService = new ZipArchiveBuilderService(new FileArchiveNameService(), mockConfigRepo.configurationRepository, mockTechniques.techniqueRevisionRepo)
+    val featureSwitchState = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
+    // archive name in a Ref to make it simple to change in tests
+    val rootDirName = Ref.make("archive").runNow
+    val zipArchiveReader = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
+    // a mock save archive that stores result in a ref
+    object archiveSaver extends SaveArchiveService {
+      val base = Ref.make(Option.empty[PolicyArchive]).runNow
+
+      override def check(archive: PolicyArchive): IOResult[Unit] = ZIO.unit
+
+      override def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit] = {
+        base.set(Some(archive)).unit
+      }
+    }
+    val api = new ArchiveApi(archiveBuilderService, featureSwitchState.get, rootDirName.get, zipArchiveReader, archiveSaver)
+  }
 
   val apiModules = List(
       systemApi
@@ -658,6 +656,7 @@ class RestTestSetUp {
     , new NodeApi(restExtractorService, restDataSerializer, nodeApiService2, nodeApiService4, nodeApiService6, nodeApiService8, nodeApiService12,  nodeApiService13, nodeApiService16, null, DeleteMode.Erase)
     , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
     , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
+    , archiveAPIModule.api
   )
 
   val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: ApiVersion(15 , false) :: Nil
@@ -779,6 +778,24 @@ class RestTest(liftRules: LiftRules) {
     mockJsonRequest(path,"POST", json)
   }
 
+  // url encode the data for param name
+  def binaryPOST(path: String, paramName: String, filename: String, data: Array[Byte]) = {
+    import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity
+    val mockReq = mockRequest(path, "POST")
+    val filePart = new FilePart(paramName, new ByteArrayPartSource(filename, data), null, StandardCharsets.UTF_8.name())
+    val parts = new MultipartRequestEntity(Array(filePart), new HttpMethodParams())
+    val out = new ByteArrayOutputStream()
+    parts.writeRequest(out)
+    // be careful, liftweb does not parse header, you need to put content type in the variable
+    mockReq.headers = Map(
+        "Content-Type" -> List(parts.getContentType)
+      , "Content-Length" -> List(parts.getContentLength.toString)
+    )
+    mockReq.contentType = parts.getContentType
+    mockReq.body = out.toByteArray
+    mockReq
+  }
+
   // high level methods. Directly manipulate response
   def testGETResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]) = {
     execRequestResponse(GET(path))(tests)
@@ -792,6 +809,9 @@ class RestTest(liftRules: LiftRules) {
   }
   def testPOSTResponse[T](path: String, json : JValue)(tests: Box[LiftResponse] => MatchResult[T]) = {
     execRequestResponse(jsonPOST(path, json))(tests)
+  }
+  def testBinaryPOSTResponse[T](path: String, paramName: String, filename: String, data: Array[Byte])(tests: Box[LiftResponse] => MatchResult[T]) = {
+    execRequestResponse(binaryPOST(path, paramName, filename, data))(tests)
   }
   def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     execRequestResponse(POST(path))(tests)

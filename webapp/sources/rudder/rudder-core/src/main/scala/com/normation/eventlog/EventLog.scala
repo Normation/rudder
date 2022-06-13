@@ -20,11 +20,33 @@
 
 package com.normation.eventlog
 
+import com.normation.utils.StringUuidGeneratorImpl
+
 import org.joda.time.DateTime
+
 import scala.xml._
 
 
 final case class EventActor(name:String) extends AnyVal
+
+/*
+ * Some data to hold common information about an event, and that will likely be used
+ * in (git) commit.
+ */
+final case class EventMetadata(
+    modId: ModificationId
+  , actor: EventActor
+  , msg  : Option[String]
+)
+
+object EventMetadata {
+  // this mainly use here. It removes the possibility to switch easily implementation,
+  // but it was never used in 10 y of rudder
+  val uuidGen = new StringUuidGeneratorImpl()
+  def withNewId(actor: EventActor, msg: Option[String] = None) = {
+    EventMetadata(ModificationId(uuidGen.newUuid), actor, msg)
+  }
+}
 
 /**
  * A type that describe on what category an event belongs to.

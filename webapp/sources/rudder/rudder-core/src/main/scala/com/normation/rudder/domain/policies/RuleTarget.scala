@@ -208,6 +208,19 @@ final case class TargetExclusion(
 
 object RuleTarget extends Loggable {
 
+  // get only the node group from these target. Include all node group, be it
+  // included or excluded.
+  // All special target are ignored
+  def getNodeGroupIds(targets: Set[RuleTarget]): Chunk[NodeGroupId] = {
+    targets.foldLeft(Chunk[NodeGroupId]()) { case (groups , target) => target match {
+      case GroupTarget(groupId)        => groups :+ groupId
+      case TargetIntersection(targets) => groups ++ getNodeGroupIds(targets)
+      case TargetUnion(targets)        => groups ++ getNodeGroupIds(targets)
+      case TargetExclusion(x,y)        => groups ++ getNodeGroupIds(Set(x)) ++ getNodeGroupIds(Set(y))
+      case _                           => groups
+    } }
+  }
+
   /**
    * Return all node ids that match the set of target.
    * allNodes pair is: (nodeid, isPolicyServer)

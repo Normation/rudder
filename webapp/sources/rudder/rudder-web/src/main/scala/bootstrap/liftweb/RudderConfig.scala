@@ -49,6 +49,7 @@ import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -88,6 +89,7 @@ import com.normation.rudder.api._
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
@@ -111,9 +113,9 @@ import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
@@ -189,13 +191,12 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-import zio.IO
+import zio._
 import zio.syntax._
 import zio.duration._
 
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
-import zio.Ref
 
 object RUDDER_CHARSET {
   import java.nio.charset.StandardCharsets
@@ -1263,8 +1264,15 @@ object RudderConfig extends Loggable {
         , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
-  val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  val ncfTechniqueWriter = new TechniqueWriter(
+  val techniqueArchiver = new TechniqueArchiverImpl(
+      gitConfigRepo
+    , prettyPrinter
+    , gitModificationRepository
+    , personIdentService
+    , techniqueParser
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
+  )
+  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver
     , updateTechniqueLibrary
     , interpolationCompiler
@@ -1362,7 +1370,7 @@ object RudderConfig extends Loggable {
     val maxParallel = try {
       val user = if(MAX_PARSE_PARALLEL.endsWith("x")) {
         val xx = MAX_PARSE_PARALLEL.substring(0, MAX_PARSE_PARALLEL.size-1)
-        java.lang.Double.parseDouble(xx) * Runtime.getRuntime.availableProcessors()
+        java.lang.Double.parseDouble(xx) * java.lang.Runtime.getRuntime.availableProcessors()
       } else {
         java.lang.Double.parseDouble(MAX_PARSE_PARALLEL)
       }
@@ -1373,7 +1381,7 @@ object RudderConfig extends Loggable {
         println(s"ERROR Error when parsing configuration properties for the parallelization of inventory processing. " +
                 s"Expecting a positive integer or number of time the available processors. Default to '0.5x': " +
                 s"inventory.parse.parallelization=${MAX_PARSE_PARALLEL}")
-        Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
+        Math.max(1, Math.ceil(java.lang.Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
     }
     new InventoryProcessor(
         pipelinedInventoryParser
@@ -1409,6 +1417,20 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val archiveApi = {
+    val archiveBuilderService = new ZipArchiveBuilderService(new FileArchiveNameService(), configurationRepository, gitParseTechniqueLibrary)
+    // fixe archive name to make it simple to test
+    val rootDirName = "archive".succeed
+    new com.normation.rudder.rest.lift.ArchiveApi(
+        archiveBuilderService
+      , configService.rudder_featureSwitch_archiveApi()
+      , rootDirName
+      , new ZipArchiveReaderImpl(queryParser, techniqueParser)
+      , new SaveArchiveServiceImpl(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
+                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository)
+    )
+  }
+
   /*
    * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
    * of an existing endpoint, if done in a purely compatible way, don't change api version).
@@ -1424,7 +1446,7 @@ object RudderConfig extends Loggable {
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
-    ApiVersion(15 , false) :: // rudder 7.2
+    ApiVersion(15 , false) :: // rudder 7.1
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1452,6 +1474,7 @@ object RudderConfig extends Loggable {
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       , new RulesInternalApi(restExtractorService, ruleInternalApiService)
       , new HookApi(hookApiService)
+      , archiveApi
       // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -1534,9 +1557,11 @@ object RudderConfig extends Loggable {
       roLdapDirectiveRepository
     , techniqueRepository
     , roLdapRuleRepository
+    , roNodeGroupRepository
     , parseActiveTechniqueLibrary
     , gitParseTechniqueLibrary
     , parseRules
+    , parseGroupLibrary
   )
 
   private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
@@ -2313,7 +2338,7 @@ object RudderConfig extends Loggable {
    , ldapEntityMapper
    , uptLibReadWriteMutex
   )
-  private[this] lazy val parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
+  private[this] lazy val parseGroupLibrary : ParseGroupLibrary with GroupRevisionRepository = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
     , gitConfigRepo

@@ -133,6 +133,7 @@ class SettingsApi(
       RestNodeAcceptDuplicatedHostname ::
       RestComputeDynGroupMaxParallelism ::
       RestSetupDone ::
+      ArchiveApiFeatureSwitch ::
       Nil
 
   val allSettings_v12 =   RestReportProtocolDefault :: allSettings_v10
@@ -596,7 +597,7 @@ final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
   def set = configService.set_send_server_metrics _
 }
 
-final case object RestJSEngine extends RestSetting[FeatureSwitch] {
+  final case object RestJSEngine extends RestSetting[FeatureSwitch] {
     val startPolicyGeneration = true
     def toJson(value : FeatureSwitch) : JValue = value.name
     def parseJson(json: JValue) = {
@@ -613,7 +614,24 @@ final case object RestJSEngine extends RestSetting[FeatureSwitch] {
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
   }
 
-final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
+  final case object ArchiveApiFeatureSwitch extends RestSetting[FeatureSwitch] {
+    val startPolicyGeneration = false
+    def toJson(value : FeatureSwitch) : JValue = value.name
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => FeatureSwitch.parse(value)
+        case x              => Failure("Invalid value "+x)
+      }
+    }
+    def parseParam(param : String) = {
+      FeatureSwitch.parse(param)
+    }
+    val key = "rudder_featureSwitch_archiveApi"
+    def get = configService.rudder_featureSwitch_archiveApi()
+    def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_archiveApi(value)
+  }
+
+  final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[Option[PolicyMode]] = {
       Full(PolicyMode.allModes.find( _.name == value))
@@ -629,7 +647,8 @@ final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]]
     def get = configService.rudder_node_onaccept_default_policy_mode()
     def set = (value : Option[PolicyMode], _, _) => configService.set_rudder_node_onaccept_default_policy_mode(value)
   }
-final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
+
+  final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[NodeState] = {
       Full(NodeState.values.find( _.name == value).getOrElse(NodeState.Enabled))

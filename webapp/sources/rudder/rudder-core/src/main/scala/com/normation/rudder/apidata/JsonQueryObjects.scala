@@ -365,10 +365,7 @@ trait RudderJsonDecoders {
 
   // tags
   implicit val tagsDecoder: JsonDecoder[Tags] = JsonDecoder[List[Map[String, String]]].map { list =>
-    val res = list.flatMap { _.map {
-      case (k, v) => com.normation.rudder.domain.policies.Tag(TagName(k), TagValue(v))
-    } }
-    Tags(res.toSet)
+    Tags.fromMaps(list)
   }
   // PolicyMode
   implicit val policyModeDecoder: JsonDecoder[Option[PolicyMode]] = JsonDecoder[Option[String]].mapOrFail(opt => opt match {

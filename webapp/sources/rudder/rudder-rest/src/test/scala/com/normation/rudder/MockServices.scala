@@ -50,13 +50,20 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.inventory.ldap.core.InventoryDitServiceImpl
+
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
-import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
+import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.archives.RuleArchiveId
@@ -84,10 +91,13 @@ import com.normation.rudder.reports._
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.repository._
+import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category._
+import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
+import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfiguration
@@ -109,6 +119,8 @@ import com.normation.utils.StringUuidGeneratorImpl
 
 import better.files._
 import com.typesafe.config.ConfigFactory
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -157,6 +169,11 @@ object Diff {
   def apply[A](old: A, current: A) = new DiffBetween(old, current)
 }
 
+// a global test actor
+object TestActor {
+  val actor = EventActor("test user")
+  def get = actor
+}
 
 object revisionRepo {
   import GitVersion._
@@ -198,7 +215,7 @@ class MockGitConfigRepo(prefixTestResources: String = "") {
 
   val gitRepo = GitRepositoryProviderImpl.make(configurationRepositoryRoot.pathAsString).runNow
 
-  // alway return HEAD on master
+  // always return HEAD on master
   val revisionProvider = new GitRevisionProvider() {
     val refPath = "refs/heads/master"
 
@@ -435,7 +452,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       , "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "", None, ""
     )
     val fileTemplateVariables2 = Directive(
-        DirectiveId(DirectiveUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f"), GitVersion.DEFAULT_REV)
+        DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc"), GitVersion.DEFAULT_REV)
       , TV("1.0")
       , Map(
            ("FILE_TEMPLATE_RAW_OR_NOT", Seq("Raw"))
@@ -449,7 +466,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
          , ("FILE_TEMPLATE_PERSISTENT_POST_HOOK", Seq("true"))
          , ("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND", Seq("/bin/true"))
        )
-      , "directive ff44fb97-b65e-43c4-b8c2-0df8d5e8549f", "", None, ""
+      , "directive 99f4ef91-537b-4e03-97bc-e65b447514cc", "", None, "", _isEnabled = true
     )
 
     val ncf1Technique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("Create_file"), TV("1.0")))
@@ -771,14 +788,13 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   {
     val modId = ModificationId(s"init directives in lib")
-    val actor = EventActor("test user")
     ZIO.foreach_(directives.all) { case (t, list) =>
       val at = ActiveTechniqueId(t.id.name.value)
       ZIO.foreach_(list) { d =>
         if(d.isSystem) {
-          directiveRepo.saveSystemDirective(at, d, modId, actor, None)
+          directiveRepo.saveSystemDirective(at, d, modId, TestActor.get, None)
         } else {
-          directiveRepo.saveDirective(at, d, modId, actor, None)
+          directiveRepo.saveDirective(at, d, modId, TestActor.get, None)
         }
       }
     }.runNow
@@ -1116,14 +1132,16 @@ class MockRules() {
   }
 }
 
-class MockConfigRepo(mockTechniques: MockTechniques, mockDirectives: MockDirectives, mockRules: MockRules) {
+class MockConfigRepo(mockTechniques: MockTechniques, mockDirectives: MockDirectives, mockRules: MockRules, mockNodeGroups: MockNodeGroups, mockLdapQueryParsing: MockLdapQueryParsing) {
     val configurationRepository = new ConfigurationRepositoryImpl(
       mockDirectives.directiveRepo
     , mockTechniques.techniqueRepo
     , mockRules.ruleRepo
+    , mockNodeGroups.groupsRepo
     , mockDirectives.directiveRepo
     , mockTechniques.techniqueRevisionRepo
     , mockTechniques.ruleRevisionRepo
+    , mockLdapQueryParsing.groupRevisionRepo
   )
 }
 
@@ -1816,110 +1834,16 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
 class MockNodeGroups(nodesRepo: MockNodes) {
 
-  val g0props = List(
-    GroupProperty(
-        "stringParam"  // inherited from global param
-      , GitVersion.DEFAULT_REV
-      , "string".toConfigValue
-      , Some(InheritMode.parseString("map").getOrElse(null))
-      , Some(PropertyProvider("datasources"))
-    )
-  , GroupProperty.parse(
-        "jsonParam"
-      , GitVersion.DEFAULT_REV
-      , """{ "group":"string", "array": [5,6], "json": { "g1":"g1"} }"""
-      , None
-      , None
-    ).getOrElse(null) // for test
-  )
-
-  val g0 = NodeGroup (NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")), "Real nodes"           , "", g0props, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
-  val g1 = NodeGroup (NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")), "Empty group"          , "", Nil    , None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId(NodeGroupUid("2222f5d3-8c61-4d20-88a7-bb947705ba8a")), "only root"            , "", Nil    , None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")), "Even nodes"           , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
-  val g4 = NodeGroup (NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")), "Odd nodes"            , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
-  val g5 = NodeGroup (NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 3", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
-  val g6 = NodeGroup (NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 5", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
-  val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
-
-  val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
-
-  val groupsTargetInfos = (groupsTargets.map(gt =>
-    ( gt._1.groupId
-    , FullRuleTargetInfo(
-          FullGroupTarget(gt._1,gt._2)
-        , ""
-        , ""
-        , true
-        , false
-      )
-    )
-  )).toMap
-
-  val groupLib = FullNodeGroupCategory(
-      NodeGroupCategoryId("GroupRoot")
-    , "GroupRoot"
-    , "root of group categories"
-    , List(
-        FullNodeGroupCategory(
-            NodeGroupCategoryId("category1")
-          , "category 1"
-          , "the first category"
-          , Nil
-          , Nil
-          , false
-        )
-      )
-    , List(
-          FullRuleTargetInfo(
-              FullGroupTarget(
-                  GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only")))
-                , NodeGroup(NodeGroupId(NodeGroupUid("a-group-for-root-only"))
-                    , "Serveurs [€ðŋ] cassés"
-                    , "Liste de l'ensemble de serveurs cassés à réparer"
-                    , Nil
-                    , None
-                    , true
-                    , Set(NodeId("root"))
-                    , true
-                    , false
-                  )
-              )
-              , "Serveurs [€ðŋ] cassés"
-              , "Liste de l'ensemble de serveurs cassés à réparer"
-              , true
-              , false
-            )
-        , FullRuleTargetInfo(
-              FullOtherTarget(PolicyServerTarget(NodeId("root")))
-            , "special:policyServer_root"
-            , "The root policy server"
-            , true
-            , true
-          )
-        , FullRuleTargetInfo(
-            FullOtherTarget(AllTargetExceptPolicyServers)
-            , "special:all_exceptPolicyServers"
-            , "All groups without policy servers"
-            , true
-            , true
-          )
-        , FullRuleTargetInfo(
-            FullOtherTarget(AllTarget)
-            , "special:all"
-            , "All nodes"
-            , true
-            , true
-          )
-      ) ++ groupsTargetInfos.valuesIterator
-    , true
-  )
 
   object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
 
     implicit val ordering = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
-    val categories = RefM.make(groupLib).runNow
+    val categories = RefM.make(FullNodeGroupCategory(
+      NodeGroupCategoryId("GroupRoot")
+    , "GroupRoot"
+    , "root of group categories"
+    , Nil, Nil, true)).runNow
 
     override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
 
@@ -2179,6 +2103,167 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       ).map(_ => category)
     }
   }
+
+
+
+
+  // data
+  val g0props = List(
+    GroupProperty(
+        "stringParam"  // inherited from global param
+      , GitVersion.DEFAULT_REV
+      , "string".toConfigValue
+      , Some(InheritMode.parseString("map").getOrElse(null))
+      , Some(PropertyProvider("datasources"))
+    )
+  , GroupProperty.parse(
+        "jsonParam"
+      , GitVersion.DEFAULT_REV
+      , """{ "group":"string", "array": [5,6], "json": { "g1":"g1"} }"""
+      , None
+      , None
+    ).getOrElse(null) // for test
+  )
+
+  val g0 = NodeGroup (NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")), "Real nodes"           , "", g0props, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
+  val g1 = NodeGroup (NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")), "Empty group"          , "", Nil    , None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId(NodeGroupUid("2222f5d3-8c61-4d20-88a7-bb947705ba8a")), "only root"            , "", Nil    , None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")), "Even nodes"           , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
+  val g4 = NodeGroup (NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")), "Odd nodes"            , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
+  val g5 = NodeGroup (NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 3", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
+  val g6 = NodeGroup (NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 5", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
+  val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
+
+  val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
+
+  val groupsTargetInfos = (groupsTargets.map(gt =>
+    ( gt._1.groupId
+    , FullRuleTargetInfo(
+          FullGroupTarget(gt._1,gt._2)
+        , ""
+        , ""
+        , true
+        , false
+      )
+    )
+  )).toMap
+
+  val groupLib = FullNodeGroupCategory(
+      NodeGroupCategoryId("GroupRoot")
+    , "GroupRoot"
+    , "root of group categories"
+    , List(
+        FullNodeGroupCategory(
+            NodeGroupCategoryId("category1")
+          , "category 1"
+          , "the first category"
+          , Nil
+          , Nil
+          , false
+        )
+      )
+    , List(
+          FullRuleTargetInfo(
+              FullGroupTarget(
+                  GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only")))
+                , NodeGroup(NodeGroupId(NodeGroupUid("a-group-for-root-only"))
+                    , "Serveurs [€ðŋ] cassés"
+                    , "Liste de l'ensemble de serveurs cassés à réparer"
+                    , Nil
+                    , None
+                    , true
+                    , Set(NodeId("root"))
+                    , true
+                    , false
+                  )
+              )
+              , "Serveurs [€ðŋ] cassés"
+              , "Liste de l'ensemble de serveurs cassés à réparer"
+              , true
+              , false
+            )
+        , FullRuleTargetInfo(
+              FullOtherTarget(PolicyServerTarget(NodeId("root")))
+            , "special:policyServer_root"
+            , "The root policy server"
+            , true
+            , true
+          )
+        , FullRuleTargetInfo(
+            FullOtherTarget(AllTargetExceptPolicyServers)
+            , "special:all_exceptPolicyServers"
+            , "All groups without policy servers"
+            , true
+            , true
+          )
+        , FullRuleTargetInfo(
+            FullOtherTarget(AllTarget)
+            , "special:all"
+            , "All nodes"
+            , true
+            , true
+          )
+      ) ++ groupsTargetInfos.valuesIterator
+    , true
+  )
+
+  // init with full lib
+  groupsRepo.categories.set(groupLib).runNow
+
+}
+
+class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
+  ///// query parsing ////
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
+  val LDAP_BASEDN = new DN("cn=rudder-configuration")
+  val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
+  val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
+
+  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
+  val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
+  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  val nodeDit = new NodeDit(LDAP_BASEDN)
+  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val getSubGroupChoices = () => mockNodeGroups.groupsRepo.getAll().map( seq => seq.map(g => SubGroupChoice(g.id, g.name)))
+  val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
+  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
+  }
+
+  val xmlEntityMigration = new XmlEntityMigration {
+    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
+  }
+  val groupRevisionRepo: GroupRevisionRepository = new GitParseGroupLibrary(
+      new NodeGroupCategoryUnserialisationImpl()
+    , new NodeGroupUnserialisationImpl(new CmdbQueryParser {
+      override def parse(query: StringQuery): Box[QueryTrait] = ???
+      override def lex(query: String): Box[StringQuery] = ???
+    })
+    , mockGit.gitRepo
+    , xmlEntityMigration
+    , "groups"
+  )
+
+
+  // update g0 (0000f5d3-8c61-4d20-88a7-bb947705ba8a) with a real query
+  val qs =
+    """
+      |{"select":"nodeAndPolicyServer",
+      |"composition":"Or",
+      |"where":[
+      | {"objectType":"node","attribute":"nodeId","comparator":"eq","value":"node1"},
+      | {"objectType":"node","attribute":"nodeId","comparator":"eq","value":"node2"},
+      | {"objectType":"node","attribute":"nodeId","comparator":"eq","value":"root"}
+      |]}""".stripMargin
+  (for {
+    res <- mockNodeGroups.groupsRepo.getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
+    (g0, cat) = res
+    q   <- queryParser.apply(qs).toIO
+    g   =  g0.copy(query = Some(q))
+    _   <- mockNodeGroups.groupsRepo.update(g, ModificationId("init query of g0"), TestActor.get, None)
+  } yield ()).runNow
+
 }
 
 class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) {
@@ -2226,23 +2311,3 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 
 }
 
-object TEST {
-  import com.normation.zio._
-
-  val mock = new MockNodeGroups(new MockNodes)
-  val repo = mock.groupsRepo
-
-  val prog = for {
-    pair      <- repo.getNodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")))
-    (g,catId) =  pair
-    nodes     =  Set(NodeId("node1"))
-    g1        =  g.copy(serverList = nodes)
-    _         <- repo.update(g1, ModificationId("plop"), EventActor("plop"), None)
-    pair2     <- repo.getNodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")))
-    res       =  if(pair2._1.serverList == nodes) "ok" else s"oups, list=${pair2._1.serverList}"
-  } yield (res)
-
-  def main(args: Array[String]): Unit = prog.runNow
-
-
-}

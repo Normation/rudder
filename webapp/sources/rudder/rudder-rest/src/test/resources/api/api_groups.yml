@@ -16,7 +16,31 @@ response:
             "displayName":"Real nodes",
             "description":"",
             "category":"GroupRoot",
-            "nodeIds":[
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
+           "nodeIds":[
               "node1",
               "node2",
               "root"
@@ -222,6 +246,30 @@ response:
             "displayName":"Real nodes",
             "description":"",
             "category":"GroupRoot",
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
             "nodeIds":["node1","node2","root"],
             "dynamic":false,
             "enabled":true,

@@ -93,6 +93,8 @@ object  ResourceFileState {
   }
 }
 
+// a resource file for technique. Be careful, sometime path is given relative to technique (should be always that)
+// be sometime relative to a sub-directory named "resources"
 case class ResourceFile(
     path  : String
   , state : ResourceFileState

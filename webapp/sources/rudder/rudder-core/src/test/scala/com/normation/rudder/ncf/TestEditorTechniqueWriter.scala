@@ -90,6 +90,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 
 import org.specs2.matcher.ContentMatchers
@@ -97,7 +98,6 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 import zio._
-import zio.syntax._
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import net.liftweb.common.Loggable
@@ -123,8 +123,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   val expectedPath = "src/test/resources/configuration-repository"
   object TestTechniqueArchiver extends TechniqueArchiver {
-    def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = UIO.unit
-    def deleteTechnique(techniqueName: String, techniqueVersion: String, categories : Seq[String], modId: ModificationId, commiter: EventActor, msg: String): IOResult[Unit] = UIO.unit
+    override def deleteTechnique(techniqueId: TechniqueId, categories: Seq[String], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = UIO.unit
+    override def saveTechnique(techniqueId: TechniqueId, categories: Seq[String], resourcesStatus: Chunk[ResourceFile], modId: ModificationId, committer: EventActor, msg: String): IOResult[Unit] = UIO.unit
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -229,7 +229,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val writer = new TechniqueWriter(
+  val writer = new TechniqueWriterImpl(
       TestTechniqueArchiver
     , TestLibUpdater
     , valueCompiler

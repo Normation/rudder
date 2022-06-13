@@ -41,13 +41,18 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.rudder.configuration.DirectiveRevisionRepository
+import com.normation.rudder.configuration.GroupAndCat
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
@@ -57,6 +62,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.git.FileTreeFilter
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
@@ -78,11 +84,14 @@ import com.normation.utils.Version
 import com.softwaremill.quicklens._
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.treewalk.TreeWalk
 
+import java.io.InputStream
 import java.nio.file.Paths
 
 import zio._
 import zio.syntax._
+import com.normation.box.IOManaged
 import com.normation.errors._
 
 final case class GitRootCategory(
@@ -287,7 +296,9 @@ class GitParseGroupLibrary(
   , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , categoryFileName    : String = "category.xml"
-) extends ParseGroupLibrary with GitParseCommon[NodeGroupCategoryContent] {
+) extends ParseGroupLibrary with GitParseCommon[NodeGroupCategoryContent] with GroupRevisionRepository {
+
+  val groupsDirectory: GitRootCategory = getGitDirectoryPath(libRootDirectory)
 
   def getArchiveForRevTreeId(revTreeId:ObjectId): IOResult[NodeGroupCategoryContent] = {
 
@@ -369,6 +380,38 @@ class GitParseGroupLibrary(
       res
     }
   }
+
+  override def getGroupRevision(uid: NodeGroupUid, rev: Revision): IOResult[Option[GroupAndCat]] = {
+    for {
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
+      // nodegroups are any where in the subtree with parent directory name == uuid of the group category.
+      // So we need to find the group by name, and split path to get its category. Be careful, the name of root
+      // category is not "groups" but "GroupRoot"
+      groups <- GitFindUtils.listFiles(repo.db, treeId, List(groupsDirectory.directoryPath), uid.value + ".xml" :: Nil)
+      res    <- groups.toList match {
+        case Nil => None.succeed
+        case h :: Nil => for {
+                          xml      <- GitFindUtils.getFileContent(repo.db, treeId, h) { is =>
+                                         ParseXml(is, Some(h))
+                                       }
+                          groupXml <- xmlMigration.getUpToDateXml(xml).toIO
+                          group    <- groupUnserialiser.unserialise(groupXml).toIO
+                          // h is path relative to config-repo, so may contains only one "/" (rules/ruleId.xml)
+                          catId    = h.split('/').toList.reverse match {
+                            case Nil | _ :: Nil => // assume root category even if Nil
+                              NodeGroupCategoryId("GroupRoot")
+                            case group :: catId :: _ =>
+                              NodeGroupCategoryId(catId)
+                          }
+                          // we need to correct ID revision to the one we just looked-up.
+                          // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
+                        } yield Some(GroupAndCat(group.modify(_.id.rev).setTo(rev), catId))
+        case _ => Unexpected(s"Several groups with id '${uid.value}' found under '${groupsDirectory.directoryPath}' directory for revision '${rev.value}'").fail
+      }
+    } yield {
+      res
+    }
+  }
 }
 
 
@@ -377,12 +420,21 @@ trait TechniqueRevisionRepository {
    * Get the technique with given name, version and revision from history
    * (todo: what about head?)
    */
-  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]]
+  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]]
 
   /*
    * Get the list of valid revisions for given technique
    */
   def getTechniqueRevision(name: TechniqueName, version: Version): IOResult[List[RevisionInfo]]
+
+  /*
+   * Always use git, does not look at what is on the FS even when revision is default.
+   * Retrieve all files as input streams related to the technique.
+   * Path are relative to technique version directory, so that for ex,
+   * technique/1.0/metadata.xml has path "metadata.xml"
+   * Directories are added at the beginning
+   */
+  def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOManaged[InputStream]])]]]
 }
 
 
@@ -397,7 +449,7 @@ class GitParseTechniqueLibrary(
   /**
    * Get a technique for the specific given revision;
    */
-  def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[Technique]] = {
+  override def getTechnique(name: TechniqueName, version: Version, rev: Revision): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
     (for {
       v      <- TechniqueVersion(version, rev).left.map(Inconsistency).toIO
@@ -407,20 +459,20 @@ class GitParseTechniqueLibrary(
       _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
       paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.withDefaultRev.serialize}/${techniqueMetadata}"))
       _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
-      tech   <- paths.size match {
+      tuple  <- paths.size match {
                   case 0 =>
-                    ConfigurationLoggerPure.debug(s"Technique ${id.debugString} not found") *>
+                    ConfigurationLoggerPure.revision.debug(s"Technique ${id.debugString} not found") *>
                     None.succeed
                   case 1 =>
                     val path = paths.head
-                    ConfigurationLoggerPure.trace(s"Technique ${id.debugString} found at path '${path}', loading it'") *>
+                    ConfigurationLoggerPure.revision.trace(s"Technique ${id.debugString} found at path '${path}', loading it'") *>
                     (for {
-                      t <- loadTechnique(repo.db, treeId, path, id)
-                      v <- TechniqueVersion(t.id.version.version, rev).toIO
+                      t <- loadTechnique(repo.db, treeId, path, id) // load correctly set technique revision
                     } yield {
-                      // we need to correct techniqueId revision to the one we just looked-up.
-                      // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
-                      Some(t.modify(_.id.version).using(_.withRevision(rev)))
+                      val endToRemove = "/" + name.value + "/" + version.toVersionString + "/metadata.xml"
+                      val relativePath = path.replaceFirst(root + "/", "").replaceAll(endToRemove, "")
+                      val cats = Chunk.fromIterable(relativePath.split('/')).map(TechniqueCategoryName(_))
+                      Some((cats, t))
                     }).tapError(err =>
                       ConfigurationLoggerPure.revision.debug(s"Impossible to find technique with id/revision: '${id.debugString}': ${err.fullMsg}.")
                     )
@@ -428,7 +480,7 @@ class GitParseTechniqueLibrary(
                     Unexpected(s"There is more than one technique with ID '${id}' in git: ${paths.mkString(",")}").fail
                  }
     } yield {
-      tech
+      tuple
     }).tapBoth(err => ConfigurationLoggerPure.error(err.fullMsg), {
       case None    => ConfigurationLoggerPure.revision.debug(s" -> not found")
       case Some(_) => ConfigurationLoggerPure.revision.debug(s" -> found it!")
@@ -455,8 +507,73 @@ class GitParseTechniqueLibrary(
     } yield {
       revs.toList
     }
+  }
+
+  /*
+   * Always use git, does not look at what is on the FS even when revision is default.
+   * Retrieve all files as input streams related to the technique.
+   * Path are relative to technique version directory, so that for ex,
+   * technique/1.0/metadata.xml has path "metadata.xml"
+   * Directories are added at the beginning
+   */
+  override def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOManaged[InputStream]])]]] = {
+    val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
+
+    /*
+     * find the path of the technique version
+     */
+    def getFilePath(db: Repository, revTreeId: ObjectId, techniqueId: TechniqueId) = {
+      IOResult.effect {
+        //a first walk to find categories
+        val tw = new TreeWalk(db)
+        // there is no directory in git, only files
+        val filter = new FileTreeFilter(List(root + "/"), List(techniqueId.withDefaultRev.serialize + "/" + techniqueMetadata))
+        tw.setFilter(filter)
+        tw.setRecursive(true)
+        tw.reset(revTreeId)
+
+        var path = Option.empty[String]
+        while(tw.next && path.isEmpty) {
+          path = Some(tw.getPathString)
+          tw.close()
+        }
+        path.map(_.replaceAll("/" + techniqueMetadata, ""))
+      }
+    }
+
+    for {
+      _       <- ConfigurationLoggerPure.revision.debug(s"Looking for files for technique: ${id.debugString}")
+      treeId  <- GitFindUtils.findRevTreeFromRevision(repo.db, id.version.rev, revisionProvider.currentRevTreeId)
+      _       <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${id.version.rev.value}: ${treeId.toString}")
+      optPath <- getFilePath(repo.db, treeId, id)
+      _       <- ConfigurationLoggerPure.revision.trace(s"Found path for technique ${id.serialize}: ${optPath}")
+      all     <- optPath match {
+                   case None       => None.succeed
+                   case Some(path) =>
+                     for {
+                       all <- GitFindUtils.getStreamForFiles(repo.db, treeId, List(path))
+                       // we need to correct paths to be relative to path
+                       res <- (ZIO.foreach(all) { case (p, opt) =>
+                                val newPath = p.replaceAll("^"+path, "")
+                                newPath.strip() match {
+                                  case "" | "/" =>
+                                    None.succeed
+                                  case x =>
+                                    val relativePath = if(x.startsWith("/")) x.tail else x
+                                    ConfigurationLoggerPure.revision.trace(s"Add technique ${opt.fold("sub-directory")(_ =>"file")}: '${relativePath}'") *>
+                                    Some((relativePath, opt)).succeed
+                                }
+                              }).map(_.flatten)
+                     } yield {
+                       Some(res)
+                     }
+                 }
+    } yield {
+      all
+    }
 
   }
+
 
   def loadTechnique(db: Repository, revTreeId: ObjectId, gitPath: String, id: TechniqueId): IOResult[Technique] = {
     for {
