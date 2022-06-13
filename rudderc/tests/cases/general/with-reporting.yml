@@ -8,9 +8,6 @@ resources:
     params:
       path: "/etc/ntp.conf"
     id: b07e7496-a8f2-4a2e-b0a9-6ea0b9e08221
-    reporting:
-      enabled: true
-      compute: worst-weighted-sum
     states:
       - state_type: content
         id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
@@ -22,3 +19,5 @@ resources:
         params:
           content: "server ntp.org"
           enforce: "true"
+        reporting:
+          enabled: true

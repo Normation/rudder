@@ -39,13 +39,14 @@ pub struct State {
     // comes from stdlib
     pub report_parameter: String,
     pub state_type: String,
+    pub reporting: Option<ReportingPolicy>
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReportingPolicy {
-    pub enabled: Option<bool>,
-    pub compute: Option<ReportingCompute>
-
+    pub enabled: bool,
+    #[serde(default)]
+    pub compute: ReportingCompute
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -56,6 +57,21 @@ pub enum ReportingCompute {
     WorstCaseWeightedOne,
     #[serde(rename = "focus")]
     Focus(String),
-    #[serde(rename = "default")]
+    #[serde(rename = "weighted")]
     Weighted
 }
+
+impl Default for ReportingPolicy {
+    fn default() -> Self {
+        ReportingPolicy {
+            enabled: true,
+            compute: ReportingCompute::default()
+        }
+    }
+  }
+
+impl Default for ReportingCompute {
+    fn default() -> Self {
+      ReportingCompute::Weighted
+    }
+  }
