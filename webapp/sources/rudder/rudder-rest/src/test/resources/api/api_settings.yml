@@ -49,6 +49,7 @@ response:
           "require_time_synchronization":true,
           "rudder_compute_changes":true,
           "rudder_compute_dyngroups_max_parallelism":"1",
+          "rudder_featureSwitch_archiveApi":"disabled",
           "rudder_generation_compute_dyngroups":true,
           "rudder_generation_continue_on_error":false,
           "rudder_generation_delay":"0 seconds",

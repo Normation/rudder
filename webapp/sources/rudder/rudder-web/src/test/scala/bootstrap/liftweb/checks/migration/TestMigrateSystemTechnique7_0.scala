@@ -55,6 +55,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.configuration.GroupAndCat
 import com.normation.rudder.domain.NodeDit
 
 import org.junit.runner._
@@ -62,6 +63,7 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -257,6 +259,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = ???
     override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[GitVersion.RevisionInfo]] = ???
     override def getRule(id: RuleId): IOResult[Option[Rule]] = ???
+    override def getGroup(id: NodeGroupId): IOResult[Option[GroupAndCat]] = ???
   }
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDit, roLdap, ldapEntityMapper, testEnv.techniqueRepository, uptLibReadWriteMutex

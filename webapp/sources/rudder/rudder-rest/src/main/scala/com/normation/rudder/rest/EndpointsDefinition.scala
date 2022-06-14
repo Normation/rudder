@@ -891,13 +891,23 @@ sealed trait ArchiveApi extends EndpointSchema with GeneralApi with SortIndex {
   override def dataContainer: Option[String] = None
 }
 object ArchiveApi extends ApiModuleProvider[ArchiveApi] {
+  /*
+   * Request format:
+   *   ../archives/export/rules=rule_ids&directives=dir_ids&techniques=tech_ids&groups=group_ids&include=scope
+   * Where:
+   * - rule_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - dir_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - group_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - tech_ids = techniqueName/1.0[,other tech ids]
+   * - scope = all (default), none, directives, techniques (implies directive), groups
+   */
   final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
     val description    = "Export the list of objects with their dependencies"
-    val (action, path) = GET / "archive" / "export"
+    val (action, path) = GET / "archives" / "export"
   }
   final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
     val description    = "Import an archive"
-    val (action, path) = POST / "archive" / "import"
+    val (action, path) = POST / "archives" / "import"
   }
 
   def endpoints = ca.mrvisser.sealerate.values[ArchiveApi].toList.sortBy( _.z )

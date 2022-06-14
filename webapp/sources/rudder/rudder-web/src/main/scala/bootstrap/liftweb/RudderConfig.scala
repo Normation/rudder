@@ -90,6 +90,7 @@ import com.normation.rudder.api._
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
@@ -1327,6 +1328,17 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val archiveApi = {
+    val archiveBuilderService = new ZipArchiveBuilderService(new FileArchiveNameService(), configurationRepository, gitParseTechniqueLibrary)
+    // fixe archive name to make it simple to test
+    val rootDirName = "archive".succeed
+    new com.normation.rudder.rest.lift.ArchiveApi(
+        archiveBuilderService
+      , configService.rudder_featureSwitch_archiveApi()
+      , rootDirName
+    )
+  }
+
   val ApiVersions =
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
@@ -1359,7 +1371,7 @@ object RudderConfig extends Loggable {
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       , new RulesInternalApi(restExtractorService, ruleInternalApiService)
       , new HookApi(hookApiService)
-      , new ArchiveApi(configService.rudder_featureSwitch_archiveApi())
+      , archiveApi
       // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -1442,9 +1454,11 @@ object RudderConfig extends Loggable {
       roLdapDirectiveRepository
     , techniqueRepository
     , roLdapRuleRepository
+    , roNodeGroupRepository
     , parseActiveTechniqueLibrary
     , gitParseTechniqueLibrary
     , parseRules
+    , parseGroupLibrary
   )
 
   private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
@@ -2221,7 +2235,7 @@ object RudderConfig extends Loggable {
    , ldapEntityMapper
    , uptLibReadWriteMutex
   )
-  private[this] lazy val parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
+  private[this] lazy val parseGroupLibrary : ParseGroupLibrary with GroupRevisionRepository = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
     , gitConfigRepo

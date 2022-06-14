@@ -72,6 +72,9 @@ import zio.{Tag => _, _}
 import zio.syntax._
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType.CfeCommunity
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 
 import com.normation.zio._
 import com.normation.rudder.domain.archives.RuleArchiveId
@@ -94,8 +97,11 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.eventlog
@@ -113,9 +119,12 @@ import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
+import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
@@ -126,6 +135,8 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.DateFormaterService
 
 import com.typesafe.config.ConfigFactory
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 import org.eclipse.jgit.lib.ObjectId
 
@@ -201,7 +212,7 @@ class MockGitConfigRepo(prefixTestResources: String = "") {
 
   val gitRepo = GitRepositoryProviderImpl.make(configurationRepositoryRoot.pathAsString).runNow
 
-  // alway return HEAD on master
+  // always return HEAD on master
   val revisionProvider = new GitRevisionProvider() {
     val refPath = "refs/heads/master"
 
@@ -950,7 +961,7 @@ class MockRules() {
       , Set(
           DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")) // pkg
         , DirectiveId(DirectiveUid("e9a1a909-2490-4fc9-95c3-9d0aa01717c9")) // fileTemplate1
-        , DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
+        , DirectiveId(DirectiveUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")) // fileTemplate2
       )
       , "default rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
@@ -962,7 +973,7 @@ class MockRules() {
       , rootRuleCategory.id
       , Set(AllTarget)
       , Set(
-          DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc")) // fileTemplate2
+          DirectiveId(DirectiveUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")) // fileTemplate2
       )
       , "updated copy of default rule"
       , "", true, false, NoTags() //long desc / enabled / system / tags
@@ -1119,14 +1130,16 @@ class MockRules() {
   }
 }
 
-class MockConfigRepo(mockTechniques: MockTechniques, mockDirectives: MockDirectives, mockRules: MockRules) {
+class MockConfigRepo(mockTechniques: MockTechniques, mockDirectives: MockDirectives, mockRules: MockRules, mockNodeGroups: MockNodeGroups, mockLdapQueryParsing: MockLdapQueryParsing) {
     val configurationRepository = new ConfigurationRepositoryImpl(
       mockDirectives.directiveRepo
     , mockTechniques.techniqueRepo
     , mockRules.ruleRepo
+    , mockNodeGroups.groupsRepo
     , mockDirectives.directiveRepo
     , mockTechniques.techniqueRevisionRepo
     , mockTechniques.ruleRevisionRepo
+    , mockLdapQueryParsing.groupRevisionRepo
   )
 }
 
@@ -2098,6 +2111,40 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       ).map(_ => category)
     }
   }
+}
+
+class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
+  ///// query parsing ////
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
+  val LDAP_BASEDN = new DN("cn=rudder-configuration")
+  val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
+  val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
+
+  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
+  val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
+  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  val nodeDit = new NodeDit(LDAP_BASEDN)
+  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val getSubGroupChoices = () => mockNodeGroups.groupsRepo.getAll().map( seq => seq.map(g => SubGroupChoice(g.id, g.name)))
+  val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
+  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
+  }
+
+  val xmlEntityMigration = new XmlEntityMigration {
+    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
+  }
+  val groupRevisionRepo: GroupRevisionRepository = new GitParseGroupLibrary(
+      new NodeGroupCategoryUnserialisationImpl()
+    , new NodeGroupUnserialisationImpl(new CmdbQueryParser {
+      override def parse(query: StringQuery): Box[QueryTrait] = ???
+      override def lex(query: String): Box[StringQuery] = ???
+    })
+    , mockGit.gitRepo
+    , xmlEntityMigration
+    , "groups"
+  )
 }
 
 class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) {

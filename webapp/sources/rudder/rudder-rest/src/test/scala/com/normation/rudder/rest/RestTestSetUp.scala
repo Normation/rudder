@@ -47,9 +47,6 @@ import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.rudder._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
@@ -57,8 +54,6 @@ import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
-import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -71,8 +66,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.queries.DitQueryData
-import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -110,11 +103,8 @@ import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
-import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
@@ -132,8 +122,6 @@ import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.RDN
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -213,32 +201,17 @@ class RestTestSetUp {
     }
 
 
-  ///// query parsing ////
-  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn),  parent)
-  val LDAP_BASEDN = new DN("cn=rudder-configuration")
-  val LDAP_INVENTORIES_BASEDN = DN("ou=Inventories", LDAP_BASEDN)
-  val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
-
-  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
-  val pendingNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Pending Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
-  val removedNodesDitImpl = new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
-  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
-  val nodeDit = new NodeDit(LDAP_BASEDN)
-  val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
-  val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed)
-  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
-  }
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules = new MockRules()
-  val mockConfigRepo = new MockConfigRepo(mockTechniques, mockDirectives, mockRules)
   val mockNodes = new MockNodes()
   val mockParameters = new MockGlobalParam()
   val mockNodeGroups = new MockNodeGroups(mockNodes)
+  val mockLdapQueryParsing = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen = new StringUuidGeneratorImpl()
+  val mockConfigRepo = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
 
   val dynGroupUpdaterService = new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
 
@@ -353,14 +326,14 @@ class RestTestSetUp {
     , mockDirectives.directiveRepo
     , null //roNodeGroupRepository
     , mockTechniques.techniqueRepo
-    , queryParser //queryParser
+    , mockLdapQueryParsing.queryParser //queryParser
     , new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
     , workflowLevelService
     , uuidGen
     , null
   )
 
-  val zioJsonExtractor = new ZioJsonExtractor(queryParser)
+  val zioJsonExtractor = new ZioJsonExtractor(mockLdapQueryParsing.queryParser)
 
   val restDataSerializer = RestDataSerializerImpl(
       mockTechniques.techniqueRepo
@@ -607,7 +580,7 @@ class RestTestSetUp {
 
   val groupService2  = new GroupApiService2( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockNodes.queryProcessor, restDataSerializer)
   val groupService6  = new GroupApiService6( mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
-  val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, queryParser, mockNodes.queryProcessor, restDataSerializer)
+  val groupService14 = new GroupApiService14(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo, uuidGen, asyncDeploymentAgent, workflowLevelService, restExtractorService, mockLdapQueryParsing.queryParser, mockNodes.queryProcessor, restDataSerializer)
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
   val ncfTechniqueWriter : TechniqueWriter = null
   val ncfTechniqueReader : TechniqueReader = null
@@ -617,8 +590,11 @@ class RestTestSetUp {
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
+    val archiveBuilderService = new ZipArchiveBuilderService(new FileArchiveNameService(), mockConfigRepo.configurationRepository, mockTechniques.techniqueRevisionRepo)
     val featureSwitchState = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
-    val api = new ArchiveApi(featureSwitchState.get)
+    // fixe archive name to make it simple to test
+    val rootDirName = Ref.make("archive").runNow
+    val api = new ArchiveApi(archiveBuilderService, featureSwitchState.get, rootDirName.get)
   }
 
   val apiModules = List(

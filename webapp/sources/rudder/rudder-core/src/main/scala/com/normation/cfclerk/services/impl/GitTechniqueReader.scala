@@ -385,15 +385,12 @@ class GitTechniqueReader(
       }
     }
 
-    //has package id are unique among the whole tree, we are able to find a
-    //template only base on the techniqueId + name.
+    // since package id are unique among the whole tree, we are able to find a
+    // template only base on the techniqueId + name.
 
     val managed = Managed.make(
       for {
-        currentId <- rev match {
-                       case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
-                       case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
-                     }
+        currentId <- GitFindUtils.findRevTreeFromRevision(repo.db, rev, revisionProvider.currentRevTreeId)
         optStream <- IOResult.effect {
                        try {
                          //now, the treeWalk

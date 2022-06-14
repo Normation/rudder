@@ -43,6 +43,10 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -54,6 +58,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 
@@ -64,6 +69,7 @@ import zio.syntax._
  * Easier te manage data
  */
 final case class ActiveDirective(activeTechnique: ActiveTechnique, directive: Directive)
+final case class GroupAndCat(group: NodeGroup, categoryId: NodeGroupCategoryId)
 
 /*
  * This class is in charge of loading and updating configuration objects in rudder.
@@ -83,6 +89,7 @@ trait RoConfigurationRepository {
   def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
   def getRule(id: RuleId): IOResult[Option[Rule]]
+  def getGroup(id: NodeGroupId): IOResult[Option[GroupAndCat]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 
@@ -104,15 +111,21 @@ trait RuleRevisionRepository {
   def getRuleRevision(uid: RuleUid, rev: Revision): IOResult[Option[Rule]]
 }
 
+trait GroupRevisionRepository {
+  def getGroupRevision(uid: NodeGroupUid, rev: Revision): IOResult[Option[GroupAndCat]]
+}
+
 /****************************************************************************************/
 
 class ConfigurationRepositoryImpl(
     roDirectiveRepository: RoDirectiveRepository
   , techniqueRepository  : TechniqueRepository
   , roRuleRepository     : RoRuleRepository
+  , roNodeGroupRepository: RoNodeGroupRepository
   , directiveRevisionRepo: DirectiveRevisionRepository
   , techniqueRevisionRepo: TechniqueRevisionRepository
   , ruleRevisionRepo     : RuleRevisionRepository
+  , groupRevisionRepo    : GroupRevisionRepository
 ) extends ConfigurationRepository {
 
   override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
@@ -133,13 +146,21 @@ class ConfigurationRepositoryImpl(
     }
   }
 
-
   override def getRule(id: RuleId): IOResult[Option[Rule]] = {
     id.rev match {
       case GitVersion.DEFAULT_REV =>
         roRuleRepository.getOpt(id)
       case r                      =>
         ruleRevisionRepo.getRuleRevision(id.uid, id.rev)
+    }
+  }
+
+  override def getGroup(id: NodeGroupId): IOResult[Option[GroupAndCat]] = {
+    id.rev match {
+      case GitVersion.DEFAULT_REV =>
+        roNodeGroupRepository.getNodeGroupOpt(id).map(_.map { case (g, c) => GroupAndCat(g, c)})
+      case r                      =>
+        groupRevisionRepo.getGroupRevision(id.uid, id.rev)
     }
   }
 

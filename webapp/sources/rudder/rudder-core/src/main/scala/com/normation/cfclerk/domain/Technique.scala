@@ -45,7 +45,7 @@ import com.normation.inventory.domain.AgentType
  * A name, used as an identifier, for a policy.
  * The name must be unique among all policies!
  *
- * TODO : check case sensivity and allowed chars.
+ * TODO : check case sensitivity and allowed chars.
  *
  */
 final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
@@ -63,7 +63,7 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  * among all policies, and a version for that policy.
  */
 final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
-  // intented for debug/log, not serialization
+  // intended for debug/log, not serialization
   def debugString = serialize
   // a technique
   def serialize = name.value + "/" + version.serialize
@@ -79,6 +79,17 @@ final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) ext
   @silent("method toString overrides concrete, non-deprecated symbol")
   @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
   override def toString: String = serialize
+}
+
+object TechniqueId {
+  def parse(s: String): Either[String, TechniqueId] = {
+    s.split("/").toList match {
+      case n :: v :: Nil =>
+        TechniqueVersion.parse(v).map(x => TechniqueId(TechniqueName(n), x))
+      case _ =>
+        Left(s"Error when parsing '${s}' as a technique id. It should have format 'techniqueName/version+rev' (with +rev optional)")
+    }
+  }
 }
 
 object RunHook {
