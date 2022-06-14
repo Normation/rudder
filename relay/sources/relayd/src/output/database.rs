@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{
-    configuration::main::DatabaseConfig,
-    data::{report::QueryableReport, RunLog},
-    Error,
-};
 use diesel::{
     insert_into,
     pg::PgConnection,
@@ -13,6 +8,12 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 use tracing::{debug, error, span, trace, Level};
+
+use crate::{
+    configuration::main::DatabaseConfig,
+    data::{report::QueryableReport, RunLog},
+    Error,
+};
 
 pub mod schema {
     table! {
@@ -42,7 +43,7 @@ pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
     let manager = ConnectionManager::<PgConnection>::new(format!(
         "{}?password={}",
         configuration.url,
-        configuration.password.value()
+        urlencoding::encode(configuration.password.value())
     ));
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
@@ -133,12 +134,14 @@ pub fn insert_runlog(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use diesel;
+
     use crate::{
         configuration::Secret, data::report::QueryableReport,
         output::database::schema::ruddersysevents::dsl::*,
     };
-    use diesel;
+
+    use super::*;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
