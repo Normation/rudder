@@ -10,18 +10,6 @@ bundle agent ntp {
     # Ensure correct ntp configuration
     # 
     # source:
-    # ---
-    # condition: debian
-    # id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
-    # meta:
-    #   cve: CVE-2022-3456
-    # name: Ensure correct ntp configuration
-    # params:
-    #   content: server ntp.org
-    #   enforce: "true"
-    # report_parameter: path
-    # type: content
-    # reporting: ~
     # 
     # 
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _method_reporting_context_v4("Ensure correct ntp configuration", "path", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907");

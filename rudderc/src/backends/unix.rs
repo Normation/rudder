@@ -78,9 +78,10 @@ impl Backend for Unix {
                             .report_component(state.name.clone())
                             .condition(format!("({}).({})", context, state.condition.clone()))
                             // assume everything is supported
-                            .supported(true)
-                            // serialize state source as yaml in comment
-                            .source(serde_yaml::to_string(&state)?);
+                            .supported(true);
+                        // serialize state source as yaml in comment
+                        // TODO need to order output
+                        //.source(serde_yaml::to_string(&state)?);
                         branch_result.push(method);
                     }
                     Ok(branch_result)
