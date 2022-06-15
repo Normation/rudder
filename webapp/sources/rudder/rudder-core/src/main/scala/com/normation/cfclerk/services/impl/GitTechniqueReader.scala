@@ -328,13 +328,16 @@ class GitTechniqueReader(
 
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => IOResult[T]) : IOResult[T] = {
     //build a treewalk with the path, given by metadata.xml
-    val path = techniqueId.serialize + "/" + techniqueDescriptorName
+    val path = techniqueId.withDefaultRev.serialize + "/" + techniqueDescriptorName
     //has package id are unique among the whole tree, we are able to find a
     //template only base on the packageId + name.
 
     val managed = Managed.make(
       for {
-        currentId <- revisionProvider.currentRevTreeId
+        currentId <- techniqueId.version.rev match {
+                       case GitVersion.DEFAULT_REV => revisionProvider.currentRevTreeId
+                       case r                      => GitFindUtils.findRevTreeFromRevString(repo.db, r.value)
+                     }
         optStream <- IOResult.effect {
                        try {
                          val tw = new TreeWalk(repo.db)
