@@ -41,7 +41,6 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.NodeSummary
 import com.normation.rudder.NodeDetails
-
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
@@ -49,7 +48,6 @@ import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import org.specs2.specification.BeforeAfterAll
-
 import zio.syntax._
 import com.normation.zio._
 

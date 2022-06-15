@@ -40,8 +40,8 @@ package com.normation.cfclerk.services
 import com.normation.cfclerk.domain._
 import java.io.InputStream
 import scala.collection.SortedSet
-
 import com.normation.errors._
+
 
 /**
  * A service that provides information about the policy packages

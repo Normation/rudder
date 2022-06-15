@@ -38,58 +38,58 @@
 package com.normation.rudder.ncf
 
 
-import cats.implicits._
-import com.normation.errors._
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-
-import java.nio.charset.StandardCharsets
-import com.normation.inventory.domain.AgentType
-import com.normation.rudder.repository.GitModificationRepository
-
-import java.nio.file.Files
-import java.nio.file.Paths
 import better.files.File
 import better.files.File.root
+import cats.implicits._
+import com.normation.box._
+import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.RuddercTarget
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.services.user.PersonIdentService
-import net.liftweb.common.Full
-import zio._
-import zio.syntax._
-
-import scala.xml.NodeSeq
-import scala.xml.{Node => XmlNode}
+import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
+import com.normation.zio.currentTimeMillis
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
-import com.normation.rudder.hooks.Cmd
-import com.normation.rudder.hooks.RunNuCommand
-import com.normation.errors.RudderError
-import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.box._
+import net.liftweb.common.Full
 import org.joda.time.DateTime
-import com.normation.rudder.git.GitConfigItemRepository
-import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.repository.xml.XmlArchiverUtils
-import com.normation.zio.currentTimeMillis
+import zio._
+import zio.syntax._
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
+import scala.xml.NodeSeq
+import scala.xml.{Node => XmlNode}
 
 sealed trait NcfError extends RudderError {
   def message : String
@@ -268,44 +268,68 @@ class TechniqueWriter (
       cr1.copy(directives = cr1.directives ++ cr2.directives)
     }
 
-    for {
-      techVers   <- ZIO.fromEither(TechniqueVersion.parse(techniqueVersion)).mapError(Unexpected)
-      techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
-      directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
-
-      technique  <- techniqueRepository.get(techniqueId).notOptional(s"No Technique with ID '${techniqueId.debugString}' found in reference library.")
-      categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
-
-      // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-      _          <-  directives match {
-                       case Nil => UIO.unit
-                       case _ =>
-                         if (deleteDirective) {
-                           val wf = workflowLevelService.getWorkflowService()
-                           for {
-                             cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${techniqueName}/${techniqueVersion} directives")
-                             _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${techniqueName}/${techniqueVersion}")).toIO
-                            } yield {
-                             ()
-                            }
-                         } else
-                           Unexpected(s"${directives.size} directives are defined for ${techniqueName}/${techniqueVersion} please delete them, or force deletion").fail
-                     }
-      activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
-      _          <- activeTech match {
-                      case None =>
-                        // No active technique found, let's delete it
-                        ().succeed
-                      case Some(activeTechnique) =>
-                        writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
-                    }
-      _          <- archiver.deleteTechnique(techniqueName,techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${techniqueName}/${techniqueVersion}")
-      _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${techniqueName}")).toIO.chainError(
-                      s"An error occurred during technique update after deletion of Technique ${techniqueName}"
-                    )
-    } yield {
-      ()
+    def removeTechnique(techniqueId: TechniqueId, technique: domain.Technique): IOResult[Unit] = {
+      for {
+        directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
+        categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+        // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
+        _          <-  directives match {
+                         case Nil => UIO.unit
+                         case _ =>
+                           if (deleteDirective) {
+                             val wf = workflowLevelService.getWorkflowService()
+                             for {
+                               cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${technique.name}/${techniqueVersion} directives")
+                               _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${technique.name}/${techniqueVersion}")).toIO
+                             } yield ()
+                           } else
+                             Unexpected(s"${directives.size} directives are defined for ${technique.name}/${techniqueVersion} please delete them, or force deletion").fail
+                       }
+        activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+        _          <- activeTech match {
+                        case None =>
+                          // No active technique found, let's delete it
+                          ().succeed
+                        case Some(activeTechnique) =>
+                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                      }
+        _          <- archiver.deleteTechnique(technique.name, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
+        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${technique.name}")).toIO.chainError(
+                        s"An error occurred during technique update after deletion of Technique ${technique.name}"
+                      )
+      } yield ()
     }
+
+    def removeInvalidTechnique(basePath: String, techniqueName: String): IOResult[Unit] = {
+      val unknownTechniquesDir = File(s"${basePath}/techniques/").listRecursively.filter(_.isDirectory).filter(_.name == techniqueName).toList
+      unknownTechniquesDir.length match {
+        case 0 =>
+          ApplicationLogger.info(s"No technique `${techniqueName}` found to delete").succeed
+        case _ =>
+          for {
+            _ <- ZIO.foreach(unknownTechniquesDir) { f =>
+                   val cat = f.pathAsString.substring(s"${basePath}/techniques/".length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
+                   for {
+                     _ <-  archiver.deleteTechnique(techniqueName, techniqueVersion, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
+                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in /var/rudder/configuration-repository/techniques: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
+                     )
+                     _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
+                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
+                     )
+                   } yield ()
+                 }
+          } yield ()
+      }
+    }
+
+    for {
+      techVers    <- ZIO.fromEither(TechniqueVersion.parse(techniqueVersion)).mapError(Unexpected)
+      techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
+      _           <- techniqueRepository.get(techniqueId) match {
+                       case Some(technique) => removeTechnique(techniqueId, technique)
+                       case None            => removeInvalidTechnique(basePath, techniqueName)
+                     }
+   } yield ()
   }
 
   def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : PureResult[XmlNode] = {
@@ -646,8 +670,8 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("")
 
     val content = {
-      import net.liftweb.json._
       import net.liftweb.json.JsonDSL._
+      import net.liftweb.json._
 
       s"""# @name ${technique.name}
          |# @description ${technique.description.replaceAll("\\R", "\n# ")}
@@ -798,8 +822,6 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   }
 
 }
-
-import ParameterType.ParameterTypeService
 class DSCTechniqueWriter(
     basePath   : String
   , translater : InterpolatedValueCompiler
