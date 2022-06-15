@@ -68,14 +68,11 @@ import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.XmlArchiverUtils
+import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.user.PersonIdentService
-import net.liftweb.common.Full
-import zio._
-import zio.syntax._
-
-import scala.xml.NodeSeq
-import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
@@ -83,8 +80,16 @@ import com.normation.utils.Control
 import com.normation.zio.currentTimeMillis
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import org.joda.time.DateTime
+import zio._
+import zio.syntax._
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
+import scala.xml.NodeSeq
+import scala.xml.{Node => XmlNode}
 
 sealed trait NcfError extends RudderError {
   def message : String
