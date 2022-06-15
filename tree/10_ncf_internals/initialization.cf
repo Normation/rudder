@@ -46,12 +46,6 @@ bundle agent initialization
   reports:
     info::
       "${configuration.info} Starting CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
-    debug::
-      "${configuration.debug} File read from 10_ncf_internals: ${inputs.ncf_internals_files}";
-      "${configuration.debug} File read from 20_cfe_basics, 30_generic_methods, 40_it_ops_knowledge: ${inputs.generic_framework_files}";
-      "${configuration.debug} File read from 50_techiques: ${inputs.techniques_files}";
-      "${configuration.debug} File read from 60_services: ${inputs.services_files}";
-
 }
 
 # Copy additional modules from custom path

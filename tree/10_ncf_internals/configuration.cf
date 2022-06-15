@@ -16,9 +16,7 @@
 #
 #####################################################################################
 
-# Config
-# This bundle will read the ncf specific configuration and expose it as CFEngine variables
-# Conventions:
+# Global Config
 #   The variables will be usable in the context configuration.variablename
 bundle common configuration
 {

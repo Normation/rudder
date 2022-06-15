@@ -16,6 +16,28 @@
 #
 #####################################################################################
 
+bundle common service_knowledge
+{
+  classes:
+      "systemctl_utility_present"  expression => fileexists("${paths.path[systemctl]}");
+      "service_utility_present"    expression => fileexists("${paths.path[service]}");
+      "chkconfig_utility_present"  expression => fileexists("${paths.path[chkconfig]}");
+      "update_rcd_utility_present" expression => fileexists("${paths.path[update_rc_d]}");
+      "initctl_utility_present"    expression => fileexists("/sbin/initctl");
+
+      # AIX service management utilities
+      "startsrc_utility_present"   expression => fileexists("/usr/bin/startsrc");
+      "lssrc_utility_present"      expression => fileexists("/usr/bin/lssrc");
+      "lsitab_utility_present"     expression => fileexists("/usr/sbin/lsitab");
+      "chitab_utility_present"     expression => fileexists("/usr/sbin/chitab");
+
+      # Solaris service management utilities
+      "svcadm_utility_present"     expression => fileexists("${paths.path[svcadm]}");
+      "svcs_utility_present"       expression => fileexists("${paths.path[svcs]}");
+
+      "init_d_directory_present"   expression => isdir("/etc/init.d");
+}
+
 # defines ncf_services_${service}_${action}
 #
 # Standard actions are:

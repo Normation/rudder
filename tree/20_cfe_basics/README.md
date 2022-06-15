@@ -1,8 +1,6 @@
-# NCF
-
 ## 20_cfe_basics
 
-This directory contains librairies with utility bodies that can be reused. Most notably, it contains the cfengine standard librairy.
+This directory contains libraries with utility bodies that can be reused. Most notably, it contains the cfengine standard library.
 
 The `cfengine` folder contains the CFEngine stdlib from 3.15.1.
 

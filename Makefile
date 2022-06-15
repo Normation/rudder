@@ -64,4 +64,4 @@ clean:
 
 distclean: clean
 
-.PHONY: all test doc clean distclean depend localdepend install
+.PHONY: all test clean distclean depend localdepend install
