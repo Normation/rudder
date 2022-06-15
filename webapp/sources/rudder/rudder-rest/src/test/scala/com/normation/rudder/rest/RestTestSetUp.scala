@@ -711,8 +711,21 @@ class RestTest(liftRules: LiftRules) {
 
   private[this] def mockRequest (path : String, method : String) = {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
+
+    val (p, queryString) = {
+      path.split('?').toList match {
+        case Nil       => (path, "") // should not happen since we have at least path
+        case h :: Nil  => (h, "")
+        case h :: tail => (h, tail.mkString("&"))
+      }
+    }
+
     mockReq.method = method
-    mockReq.path = path
+    // parse
+    mockReq.path = p
+    if(method == "GET") {
+      mockReq.queryString = queryString
+    }
     mockReq
   }
   def GET(path: String) = mockRequest(path,"GET")
@@ -732,6 +745,27 @@ class RestTest(liftRules: LiftRules) {
   def jsonPOST(path: String, json : JValue) = {
     mockJsonRequest(path,"POST", json)
   }
+
+  // high level methods. Directly manipulate response
+  def testGETResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]) = {
+    execRequestResponse(GET(path))(tests)
+  }
+  def testDELETEResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]) = {
+    execRequestResponse(DELETE(path))(tests)
+  }
+
+  def testPUTResponse[T](path: String, json : JValue)(tests: Box[LiftResponse] => MatchResult[T]) = {
+    execRequestResponse(jsonPUT(path, json))(tests)
+  }
+  def testPOSTResponse[T](path: String, json : JValue)(tests: Box[LiftResponse] => MatchResult[T]) = {
+    execRequestResponse(jsonPOST(path, json))(tests)
+  }
+  def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
+    execRequestResponse(POST(path))(tests)
+  }
+
+
+  // Low level methods. You can build the answer by hand from there
 
   def testGET[T](path: String)(tests: Req => MatchResult[T]) = {
     doReq(GET(path))(tests)
