@@ -1,0 +1,30 @@
+= F# dev environment
+
+== General information
+
+=== Compatibility
+
+While our F# code only runs on Windows for now, we strive to keep it compatible with Linux systems
+both for ease of development/testing and future abilities.
+
+The development environment should always work on both Windows and Linux, and try to maintain
+the broadest compatibility possible (especially for agent parts).
+
+Out builds should all target `netstandard2.0` target (with `<TargetFramework>netstandard2.0</TargetFramework>` in `fsproj` files).
+
+== Development environment
+
+We work with the latest LTS .NET toolchain.
+Install the .NET toolchain by following the https://docs.microsoft.com/en-us/dotnet/core/install/[official docs].
+
+For example, on Fedora:
+
+```
+sudo dnf install dotnet
+```
+
+Will install the latest version from the repositories.
+
+=== IDE/Editor
+
+VS Code with the **Ionide for F#** plugin is a good option.
