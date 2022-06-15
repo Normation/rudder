@@ -111,6 +111,34 @@ final case class EditorTechnique(
   val path = s"techniques/${category}/${bundleName.value}/${version.value}"
 }
 
+object EditorTechnique {
+  def upgradeEditorTechnique(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) : EditorTechnique = {
+
+    def updateMethod(method: MethodElem): MethodElem = {
+      method match {
+        case c: MethodCall => updateMethodCall(c)
+        case b: MethodBlock => updateMethodBlock(b)
+      }
+    }
+
+    def updateMethodCall(call: MethodCall): MethodCall = {
+      val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil)
+
+      call.copy(parameters = call.parameters.map {
+        case (parameterName, value) => (renameParam.find(_._1 == parameterName.value).map(x => ParameterId(x._2)).getOrElse(parameterName), value)
+      })
+    }
+
+    def updateMethodBlock(block: MethodBlock): MethodBlock = {
+      block.copy(calls = block.calls.map(updateMethod))
+    }
+
+
+    technique.copy(methodCalls = technique.methodCalls.map(updateMethod))
+
+  }
+}
+
 sealed trait MethodElem
 
 final case class MethodBlock(

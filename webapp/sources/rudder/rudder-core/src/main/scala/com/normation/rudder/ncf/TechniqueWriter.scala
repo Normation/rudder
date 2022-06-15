@@ -37,7 +37,17 @@
 
 package com.normation.rudder.ncf
 
+import cats.implicits._
+import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
+import java.nio.charset.StandardCharsets
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.repository.GitModificationRepository
+
+import java.nio.file.Files
+import java.nio.file.Paths
 import better.files.File
 import better.files.File.root
 import cats.implicits._
@@ -49,6 +59,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.inventory.domain.RuddercTarget
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.errors._
@@ -71,7 +82,13 @@ import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.repository.xml.XmlArchiverUtils
+import com.normation.rudder.services.user.PersonIdentService
+import net.liftweb.common.Full
+import zio._
+import zio.syntax._
+
+import scala.xml.NodeSeq
+import scala.xml.{Node => XmlNode}
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -90,6 +107,9 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import scala.xml.NodeSeq
 import scala.xml.{Node => XmlNode}
+
+
+import scala.tools.nsc.Properties.scalacDir.files
 
 sealed trait NcfError extends RudderError {
   def message : String
@@ -470,7 +490,6 @@ class TechniqueWriter (
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources              = technique.ressources.collect{case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched) }
       techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
-
       json       <- writeJson(techniqueWithResourceUpdated, methods)
       time_1     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
@@ -618,7 +637,6 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
-
     val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
 
     def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
@@ -626,6 +644,11 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
         case call : MethodCall =>
           (for {
             method_info <- methods.get(call.methodId)
+            _ = println(s" ****     call.methodId = ${call.methodId}")
+            _ = println(s" ****     method        = ${method}")
+            _ = println(s" ****     method_info.classParameter = ${method_info.classParameter}")
+            _ = println(s" ****     call.parameters= ${call.parameters}")
+            _ = println(s" ****     find = ${call.parameters.find( _._1 == method_info.classParameter)}")
             (_, classParameterValue) <- call.parameters.find( _._1 == method_info.classParameter)
 
             params <- Control.sequence(method_info.parameters) {
@@ -835,7 +858,6 @@ class DSCTechniqueWriter(
     s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
   def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
-
     def toDscFormat(parentBlocks: List[MethodBlock])(method : MethodElem) : PureResult[List[String]] = {
       method match {
         case call : MethodCall =>
@@ -948,7 +970,6 @@ class DSCTechniqueWriter(
     for {
 
       calls <- technique.methodCalls.toList.flatTraverse(toDscFormat(Nil)).toIO
-
       content =
         s"""|function ${technique.bundleName.validDscName} {
             |  [CmdletBinding()]

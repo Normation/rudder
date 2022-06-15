@@ -41,11 +41,8 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.{EditorTechnique, ResourceFileService, ResourceFileState, TechniqueReader, TechniqueWriter}
 import com.normation.rudder.ncf.ResourceFileState.Untouched
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
 
@@ -107,7 +104,7 @@ class CheckNcfTechniqueUpdate(
           ZIO.foreach(techniques) {
             technique =>
               // Keep only non New Resources
-              resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched))))
+              resourceFileService.getResources(technique).map(r => technique.copy(ressources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched)))).map(EditorTechnique.upgradeEditorTechnique(_, methods))
           }
         // Actually write techniques
         written    <- ZIO.foreach(techniquesWithResources) { t =>
@@ -128,6 +125,6 @@ class CheckNcfTechniqueUpdate(
       _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag.pathAsString}' does not exist, do not regenerate ncf Techniques")
     } yield ())
 
-    ZioRuntime.runNowLogError(err => BootstrapLogger.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
+    ZioRuntime.runNowLogError(err => BootstrapLogger.logEffect.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
   }
 }
