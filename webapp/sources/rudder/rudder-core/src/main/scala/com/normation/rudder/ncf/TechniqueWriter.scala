@@ -708,7 +708,8 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
 
       def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
         method match {
-          case call : MethodCall =>
+          case c : MethodCall =>
+            val call = MethodCall.renameParams(c,methods)
             (for {
               method_info <- methods.get(call.methodId)
               // Skip that method if name starts with _
@@ -838,7 +839,8 @@ class DSCTechniqueWriter(
 
     def toDscFormat(parentBlocks: List[MethodBlock])(method : MethodElem) : PureResult[List[String]] = {
       method match {
-        case call : MethodCall =>
+        case c : MethodCall =>
+          val call = MethodCall.renameParams(c,methods)
           if (call.methodId.value.startsWith("_")) {
             Right(Nil)
           } else {
