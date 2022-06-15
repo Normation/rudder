@@ -112,6 +112,9 @@ final case class EditorTechnique(
 }
 
 object EditorTechnique {
+
+  // Method to upgrade a the technique method call with the new methods
+  // when their parameters have been renamed
   def upgradeEditorTechnique(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) : EditorTechnique = {
 
     def updateMethod(method: MethodElem): MethodElem = {
@@ -133,9 +136,7 @@ object EditorTechnique {
       block.copy(calls = block.calls.map(updateMethod))
     }
 
-
     technique.copy(methodCalls = technique.methodCalls.map(updateMethod))
-
   }
 }
 
