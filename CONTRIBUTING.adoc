@@ -8,9 +8,7 @@ Rudder is open to all kinds of contribution:
 * New features
 
 If you want to contribute, the best way to start is to come and chat with us
-on https://chat.rudder.io[chat.rudder.io]. You can also communicate by email
-using the  https://www.rudder-project.org/mailman/listinfo/rudder-dev[rudder-dev]
-mailing list.
+on https://chat.rudder.io[chat.rudder.io].
 
 NOTE: Large contributions on Rudder may require a https://www.rudder.io/en/expand/contribute/#panel-2422-8-0-1[CLA/CCLA].
 
@@ -33,8 +31,8 @@ Version status is visible on https://docs.rudder.io/version.
 Don't hesitate to ask us on the https://chat.rudder.io[chat room] if you are unsure about which
 branch you should work on.
 
-We have an internal CI tooling, that we are intend to integrate to Github pull
-requests status.
+We have an internal CI platform running Jenkins, integrated to Github pull requests.
+CI configuration is mostly done trough `Jenkinsfile` files in the repositories.
 
 === Issue tracker
 
@@ -69,14 +67,14 @@ rudder-dev update
 === Setup
 
 At its first start, `rudder-dev` will create its configuration script in `~/.rudder-dev`.
-You need to edit it to provide your Gtihub and redmine token:
+You need to edit it to provide your Github and bug tracker token:
 
 ```
 [default]
 ## Uncomment and set your own values
 ## To manage your tokens, click here https://github.com/settings/tokens
 github_token =
-## Redmine personal access token, (create one here http://www.rudder-project.org/redmine/my/account)
+## Redmine personal access token, (create one here http://issues.rudder.io/my/account)
 redmine_token =
 ```
 
@@ -106,6 +104,10 @@ allowing you to test your changes.
 === Rust
 
 Follow the link:contributing/rust.adoc[dedicated doc].
+
+=== F#
+
+Follow the link:contributing/fsharp.adoc[dedicated doc].
 
 === Shell
 
