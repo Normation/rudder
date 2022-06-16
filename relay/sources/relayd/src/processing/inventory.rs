@@ -17,7 +17,7 @@ use crate::{
     JobConfig,
 };
 
-static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "sign"];
+static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "ocs", "sign"];
 
 #[derive(Debug, Copy, Clone)]
 pub enum InventoryType {
