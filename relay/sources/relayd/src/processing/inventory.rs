@@ -15,7 +15,7 @@ use std::{os::unix::ffi::OsStrExt, sync::Arc};
 use tokio::prelude::*;
 use tracing::{debug, error, info, span, Level};
 
-static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "sign"];
+static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "ocs", "sign"];
 
 #[derive(Debug, Copy, Clone)]
 pub enum InventoryType {
