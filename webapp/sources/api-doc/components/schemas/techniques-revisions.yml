@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+type: array
+items:
+  type: object
+  required:
+    - revision
+    - date
+    - author
+    - message
+  properties:
+    revision:
+      type: string
+      description: Revision ID
+      example: 6faf7e9c47f2c3a41784598b5acf2883bd4e1e08
+    date:
+      type: string
+      description: Commit's date
+      example: 2022-06-14T16:20:40+02:00
+    author:
+      type: string
+      description: Commit's author
+      example: admin
+    message:
+      type: string
+      description: Commit's message
+      example: Committing technique bar

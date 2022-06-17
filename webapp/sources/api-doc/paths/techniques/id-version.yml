@@ -1,0 +1,161 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+post:
+  summary: Update technique
+  description: Update technique created with technique editor
+  operationId: updateTechnique
+  parameters:
+    - $ref: ../../components/parameters/technique-id.yml
+    - $ref: ../../components/parameters/technique-version.yml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/techniques.yml
+  responses:
+    "200":
+      description: Verions information
+      content:
+        application/json:
+          schema:
+            type: array
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniques
+              data:
+                type: object
+                required:
+                  - techniques
+                properties:
+                  techniques:
+                    type: object
+                    required:
+                      - technique
+                    properties:
+                      technique:
+                        $ref: ../../components/schemas/techniques.yml
+
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/update.sh
+delete:
+  summary: Delete technique
+  description: Delete a technique from technique editor
+  operationId: deleteTechnique
+  parameters:
+    - $ref: ../../components/parameters/technique-id.yml
+    - $ref: ../../components/parameters/technique-version.yml
+  responses:
+    "200":
+      description: Deletion information
+      content:
+        application/json:
+          schema:
+            type: array
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniques
+              data:
+                type: object
+                required:
+                  - resources
+                properties:
+                  techniques:
+                    type: object
+                    required:
+                      - id
+                      - version
+                    properties:
+                      id:
+                        type: string
+                        description: Deleted technique ID
+                        example: foo
+                      version:
+                        type: string
+                        description: Deleted technique version
+                        example: 1.0
+
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/delete.sh
+get:
+  summary: Technique metadata
+  description: Get all Technique versions with their metadata
+  operationId: getTechniqueAllVersionId
+  parameters:
+    - $ref: ../../components/parameters/technique-id.yml
+    - $ref: ../../components/parameters/technique-version.yml
+  responses:
+    "200":
+      description: Techniques information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniques
+              data:
+                type: object
+                required:
+                  - techniques
+                properties:
+                  techniques:
+                    type: object
+                    required:
+                      - JREditorTechnique
+                    properties:
+                      JREditorTechnique:
+                        $ref: ../../components/schemas/techniques.yml
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/id.sh

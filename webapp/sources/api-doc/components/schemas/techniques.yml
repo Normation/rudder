@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
-response:
-  type: array
-  items:
-    oneOf:
-      - $ref: '#/definitions/editorTechnique'
-      - $ref: '#/definitions/builtInTechnique'
+type: array
+items:
+  oneOf:
+    - $ref: '#/definitions/editorTechnique'
+#    - $ref: '#/definitions/builtInTechnique'
 definitions:
   editorTechnique:
     type: object
@@ -50,7 +49,7 @@ definitions:
         items:
           oneOf:
             - $ref: '#/definitions/techniqueMethodCall'
-            - $ref: '#/definitions/techniqueMethodBlock'
+            - $ref: '#/definitions/techniqueBlock'
   techniqueParameter:
     type: object
     properties:
@@ -139,7 +138,7 @@ definitions:
         items:
           oneOf:
             - $ref: '#/definitions/techniqueMethodCall'
-            - $ref: '#/definitions/techniqueMethodBlock'
+            - $ref: '#/definitions/techniqueBlock'
         example: []
       reportingLogic:
         type: object

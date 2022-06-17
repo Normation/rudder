@@ -6,7 +6,7 @@ get:
   # FIXME same as name.yml
   operationId: listTechniqueVersionDirectives
   parameters:
-    - $ref: ../../components/parameters/technique-name.yml
+    - $ref: ../../components/parameters/technique-id.yml
     - $ref: ../../components/parameters/technique-version.yml
   responses:
     "200":

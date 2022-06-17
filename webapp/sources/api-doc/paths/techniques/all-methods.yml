@@ -1,18 +1,16 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
 get:
-  summary: List all directives based on a technique
-  description: List all directives based on all version of a technique
-  operationId: listTechniquesDirectives
-  parameters:
-    - $ref: ../../components/parameters/technique-id.yml
+  summary: List methods
+  description: Get all methods metadata
+  operationId: methods
   responses:
     "200":
-      description: Techniques information
+      description: Methods information
       content:
         application/json:
           schema:
-            type: object
+            type: array
             required:
               - result
               - action
@@ -28,19 +26,17 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - listTechniquesDirectives
+                  - listTechniques
               data:
                 type: object
                 required:
-                  - directives
+                  - methods
                 properties:
-                  directives:
-                    type: array
-                    items:
-                      $ref: ../../components/schemas/directive.yml
+                  methods:
+                    $ref: ../../components/schemas/methods.yml
   tags:
     - Techniques
   x-code-samples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/techniques/name.sh
+        $ref: ../../code_samples/curl/techniques/categories.sh
