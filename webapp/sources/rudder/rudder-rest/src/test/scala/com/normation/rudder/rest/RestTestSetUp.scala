@@ -628,7 +628,7 @@ class RestTestSetUp {
     , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
   )
 
-  val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: Nil
+  val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: ApiVersion(16 , false) :: Nil
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)
