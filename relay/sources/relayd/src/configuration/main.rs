@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{configuration::Secret, data::node::NodeId};
-use anyhow::{anyhow, Error};
-use serde::{
-    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
-    Deserialize,
-};
 use std::{
     collections::HashSet,
     convert::TryFrom,
@@ -16,7 +10,15 @@ use std::{
     str::FromStr,
     time::Duration,
 };
+
+use anyhow::{anyhow, Context, Error};
+use serde::{
+    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
+    Deserialize,
+};
 use tracing::{debug, warn};
+
+use crate::{configuration::Secret, data::node::NodeId};
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -77,7 +79,14 @@ pub struct Configuration {
 impl Configuration {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         // parse (checks types)
-        let res = read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>();
+        let res = read_to_string(path.as_ref().join("main.conf"))
+            .with_context(|| {
+                format!(
+                    "Could not read main configuration file from {}",
+                    path.as_ref().join("main.conf").display()
+                )
+            })?
+            .parse::<Self>();
         // check logic
         let res = res.and_then(|c| c.validate());
         if let Ok(ref cfg) = res {
@@ -616,8 +625,9 @@ impl Default for UpstreamConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_parses_listen_with_hostname() {

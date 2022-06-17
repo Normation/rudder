@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use anyhow::Error;
-use serde::Deserialize;
 use std::{fmt, fs::read_to_string, path::Path, str::FromStr};
+
+use anyhow::{Context, Error};
+use serde::Deserialize;
 use tracing::debug;
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -22,7 +23,14 @@ impl FromStr for LogConfig {
 
 impl LogConfig {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let res = read_to_string(path.as_ref().join("logging.conf"))?.parse::<Self>();
+        let res = read_to_string(path.as_ref().join("logging.conf"))
+            .with_context(|| {
+                format!(
+                    "Could not read logging configuration file from {}",
+                    path.as_ref().join("main.conf").display()
+                )
+            })?
+            .parse::<Self>();
         if let Ok(ref cfg) = res {
             debug!("Parsed logging configuration:\n{:#?}", &cfg);
         }

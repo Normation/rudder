@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{error::RudderError, hashing::Hash};
-use anyhow::Error;
-use openssl::{stack::Stack, x509::X509};
-use serde::{Deserialize, Deserializer};
 use std::{
     collections::{HashMap, HashSet},
     fs::{read, read_to_string},
     path::Path,
     str::FromStr,
 };
+
+use anyhow::{Context, Error};
+use openssl::{stack::Stack, x509::X509};
+use serde::{Deserialize, Deserializer};
 use tracing::{debug, error, info, trace, warn};
+
+use crate::{error::RudderError, hashing::Hash};
 
 pub type NodeId = String;
 pub type NodeIdRef = str;
@@ -111,7 +113,14 @@ impl NodesList {
         info!("Parsing nodes list from {:#?}", nodes_file.as_ref());
 
         let mut nodes = if nodes_file.as_ref().exists() {
-            read_to_string(nodes_file)?.parse::<RawNodesList>()?
+            read_to_string(nodes_file.as_ref())
+                .with_context(|| {
+                    format!(
+                        "Could not read nodes list from {}",
+                        nodes_file.as_ref().display()
+                    )
+                })?
+                .parse::<RawNodesList>()?
         } else {
             info!("Nodes list file does not exist, considering it as empty");
             RawNodesList::new()
@@ -121,7 +130,14 @@ impl NodesList {
             if certificates_file.as_ref().exists() {
                 // TODO PERF: stack_from_pem is mono threaded, could be parallelized if necessary,
                 // by splitting the file before calling it
-                for cert in X509::stack_from_pem(&read(certificates_file.as_ref())?)? {
+                for cert in
+                    X509::stack_from_pem(&read(certificates_file.as_ref()).with_context(|| {
+                        format!(
+                            "Could not read certificate file from {}",
+                            certificates_file.as_ref().display()
+                        )
+                    })?)?
+                {
                     Self::id_from_cert(&cert)
                         .and_then(|id| nodes.add_certificate(&id, cert))
                         .map_err(|e| warn!("{}", e))
@@ -354,8 +370,9 @@ impl FromStr for RawNodesList {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_parses_nodeslist() {
