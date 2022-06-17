@@ -1274,7 +1274,8 @@ final case class RestExtractorService (
                                    }
                     }
     } yield {
-      MethodCall(methodId, id, parameters, condition, component, disableReporting)
+      val call = MethodCall(methodId, id, parameters, condition, component, disableReporting)
+      MethodCall.renameParams(call,methods)
     }
   }
 
