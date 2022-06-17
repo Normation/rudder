@@ -224,53 +224,18 @@ pipeline {
                         }
                     }
                 }
-                /*stage('language') {
-                    agent {
-                        dockerfile { 
-                            filename 'language/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
-                            // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
-                        }
-                    }
-                    steps {
-                        dir('language') {
-                            dir('repos') {
-                                dir('ncf') {
-                                    git url: 'https://github.com/normation/ncf.git'
-                                }
-                                dir('dsc') {
-                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                }
-                            }
-                            sh script: 'make check', label: 'language tests'
-                            sh script: 'make docs', label: 'language docs'
-                        }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
-                            }
-                        }
-                    }
-                }*/
-                stage('rudderc') {
+                stage('policies') {
                     agent {
                         dockerfile {
-                            filename 'rudderc/Dockerfile'
+                            filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=7.1-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
                     steps {
-                        dir('rudderc') {
-                            dir('repos') {
+                        dir('policies') {
+                            dir('rudderc/repos') {
                                 dir('ncf') {
                                     git url: 'https://github.com/normation/ncf.git'
                                 }
@@ -279,15 +244,15 @@ pipeline {
                                         credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                 }
                             }
-                            sh script: 'make check', label: 'rudderc tests'
-                            sh script: 'make docs', label: 'rudderc docs'
+                            sh script: 'make check', label: 'policies tests'
+                            sh script: 'make docs', label: 'policies docs'
                         }
                     }
                     post {
                         always {
                             // linters results
-                            recordIssues enabledForFailure: true, id: 'rudderc', name: 'cargo rudderc', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'rudderc/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
+                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }

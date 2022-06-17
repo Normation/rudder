@@ -1,0 +1,18 @@
+= Rudder language
+
+== Tests
+
+== Doc
+
+To build the doc:
+
+====
+make docs
+====
+
+To run doc tests:
+
+====
+make test-docs
+====
+

@@ -1,0 +1,30 @@
+[package]
+name = "rudderc"
+version = "0.0.0-dev"
+description = "Rudder configuration policies compiler"
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "3", features = ["derive"] }
+colored = "2"
+quick-xml = { version = "0.23", features = ["serialize"] }
+regex = "1"
+fancy-regex = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.8"
+serde_json = "1"
+log = "0.4"
+env_logger = "0.9"
+walkdir = "2"
+once_cell = "1"
+rudder_commons = { path = "../rudder-commons" }
+
+[dev-dependencies]
+pretty_assertions = "1"
+# Fix for workspace not merged yet
+test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }

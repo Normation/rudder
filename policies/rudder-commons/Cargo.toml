@@ -1,0 +1,15 @@
+[package]
+name = "rudder_commons"
+version = "0.0.0-dev"
+description = "Shared types between agent libraries and policy compiler"
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+readme = "README.adoc"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+fancy-regex = "0.10"

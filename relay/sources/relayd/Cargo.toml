@@ -1,9 +1,9 @@
 [package]
 name = "rudder-relayd"
 version = "0.0.0-dev"
+description = "Service handling communication between Rudder agents and server"
 authors = ["Rudder developers <dev@rudder.io>"]
 edition = "2021"
-description = "Rudder relay component"
 readme = "README.md"
 homepage = "https://www.rudder.io"
 repository = "https://github.com/Normation/rudder"

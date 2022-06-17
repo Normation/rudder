@@ -1,0 +1,25 @@
+[package]
+name = "rudder_resource_type"
+version = "0.0.0-dev"
+description = "Implement configuration resource types for Rudder"
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+readme = "README.adoc"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+# more permissive?
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.8"
+serde_json = "1"
+gumdrop = "0.8"
+rudder_commons = { path = "../rudder-commons" }
+
+[dev-dependencies]
+pretty_assertions = "1"
+# Fix for workspace not merged yet
+test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
+

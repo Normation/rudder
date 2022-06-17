@@ -1,0 +1,8 @@
+.vscode/
+/target/
+**/*.rs.bk
+*.iml
+.idea
+/rudderc/repos
+/rudderc/docs/examples/*.cf
+/rudderc/docs/examples/*.ps1
