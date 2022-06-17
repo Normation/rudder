@@ -49,7 +49,7 @@ fn it_correctly_replies_to_status_api() {
     )
     .unwrap();
 
-    let reference: serde_json::Value = serde_json::from_str("{\"data\":{\"database\":{\"status\":\"success\"},\"configuration\":{\"status\":\"error\", \"details\": \"No such file or directory (os error 2)\"}},\"result\":\"success\",\"action\":\"getStatus\"}").unwrap();
+    let reference: serde_json::Value = serde_json::from_str("{\"data\":{\"database\":{\"status\":\"success\"},\"configuration\":{\"status\":\"error\", \"details\": \"Could not read main configuration file from tests/files/config/main.conf\"}},\"result\":\"success\",\"action\":\"getStatus\"}").unwrap();
 
     assert_eq!(reference, response);
 }

@@ -79,7 +79,14 @@ pub struct Configuration {
 impl Configuration {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         // parse (checks types)
-        let res = read_to_string(path.as_ref().join("main.conf"))?.parse::<Self>();
+        let res = read_to_string(path.as_ref().join("main.conf"))
+            .with_context(|| {
+                format!(
+                    "Could not read main configuration file from {}",
+                    path.as_ref().join("main.conf").display()
+                )
+            })?
+            .parse::<Self>();
         // check logic
         let res = res.and_then(|c| c.validate());
         if let Ok(ref cfg) = res {
