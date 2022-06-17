@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+method_name:
+  type: object
+  required:
+    - id
+    - name
+    - description
+    - condition
+    - agents
+    - parameters
+    - documentation
+  properties:
+    id:
+      type: string
+      description: Method's ID
+      example: audit_from_osquery
+    name:
+      type: string
+      description: Method's name
+      example: Audit from osquery
+    description:
+      type: string
+      description: Describe what the method does
+      example: Audit a system property through osquery
+    condition:
+      type: object
+      required:
+        - prefix
+        - parameter
+      properties:
+        prefix:
+          type: string
+          description: Method's prefix
+          example: audit_from_osquer
+        parameter:
+          type: string
+          description: Method's parameter
+          example: query
+    agents:
+      type: array
+      items:
+        type: string
+        example: cfengine-community
+    parameters:
+      type: array
+      items:
+        type: object
+        required:
+          - name
+          - description
+          - constraints
+          - type
+        properties:
+          name:
+            type: string
+            description: Parameter's name
+            example: query
+        description:
+          type: string
+          description: Describe the parameter
+          example: The query to execute (ending with a semicolon)
+        constraints:
+          type: object
+          required:
+            - allow_empty_string
+            - allow_whitespace_string
+            - max_length
+          properties:
+            allow_empty_string:
+              type: boolean
+              example: false
+            allow_whitespace_string:
+              type: boolean
+              example: false
+            max_length:
+              type: integer
+              example: 16384
+        _type:
+          type: string
+          example: string

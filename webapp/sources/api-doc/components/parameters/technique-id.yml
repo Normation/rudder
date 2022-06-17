@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+name: techniqueId
+in: path
+description: Technique ID
+required: true
+schema:
+  type: string
+  example: userManagement
+  description: Technique ID

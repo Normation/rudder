@@ -225,10 +225,28 @@ paths:
     $ref: paths/nodes/apply-policy-id.yml
   "/techniques":
     $ref: paths/techniques/all.yml
-  "/techniques/{techniqueName}/directives":
+  "/techniques/{techniqueId}/directives":
     $ref: paths/techniques/name.yml
-  "/techniques/{techniqueName}/{techniqueVersion}/directives":
+  "/techniques/{techniqueId}/{techniqueVersion}/directives":
     $ref: paths/techniques/name-version.yml
+  "/techniques/reload":
+    $ref: paths/techniques/reload-technique.yml
+  "/techniques/categories":
+    $ref: paths/techniques/categories.yml
+  "/techniques/versions":
+    $ref: paths/techniques/versions.yml
+  "/techniques/{techniqueId}/{techniqueVersion}/revisions":
+    $ref: paths/techniques/revisions.yml
+  "/techniques/{techniqueId}/{techniqueVersion}/resources":
+    $ref: paths/techniques/resources.yml
+  "/techniques/{techniqueId}":
+    $ref: paths/techniques/id.yml
+  "/techniques/{techniqueId}/{techniqueVersion}":
+    $ref: paths/techniques/id-version.yml
+  "/methods":
+    $ref: paths/techniques/all-methods.yml
+  "/methods/reload":
+    $ref: paths/techniques/methods-reload.yml
   "/groups":
     $ref: paths/groups/all.yml
   "/groups/{groupId}":
