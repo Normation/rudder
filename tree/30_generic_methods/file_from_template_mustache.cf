@@ -26,6 +26,7 @@
 # Mustache is a logic-less templating language, available in a lot of languages, and
 # used for file templating in Rudder.
 # The mustache syntax reference is [https://mustache.github.io/mustache.5.html](https://mustache.github.io/mustache.5.html).
+# The Windows implementation follows the standard, the Unix one is a bit richer as describe below.
 #
 # We will here describe the way to get agent data into a template. Ass explained in the general templating
 # documentation, we can access various data in a mustache template.
@@ -95,7 +96,7 @@
 # c is the current iterator_name value
 # ```
 #
-# To iterate over a container defined by the following json file, loaded with 
+# To iterate over a container defined by the following json file, loaded with
 # `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
 #
 # ```json
@@ -124,12 +125,12 @@
 #
 # # will display the name and path of the current file
 # {{#vars.variable_prefix.dict_name.files}}
-# {{{.name}}}: {{{.path}}}
+# {{{name}}}: {{{path}}}
 # {{/vars.variable_prefix.dict_name.files}}
-#
+# # Lines below will only be properly rendered in unix Nodes
 # # will display the users list of each file
 # {{#vars.variable_prefix.dict_name.files}}
-# {{{.name}}}:{{#users}} {{{.}}}{{/users}}
+# {{{name}}}:{{#users}} {{{.}}}{{/users}}
 # {{/vars.variable_prefix.dict_name.files}}
 #
 #
@@ -150,6 +151,7 @@
 # file1: /path1
 # file2: /path2
 #
+# # Lines below will only be properly rendered in unix Nodes
 # # will display the users list of each file
 # file1: user1 user11
 # file2: user2
