@@ -130,6 +130,16 @@ final case class MethodCall(
   , disabledReporting  : Boolean
 ) extends  MethodElem
 
+object MethodCall {
+  def renameParams(call : MethodCall,methods : Map[BundleName,GenericMethod]) : MethodCall = {
+
+    val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil).toMap
+    val newParams = call.parameters.map{ case (parameterId: ParameterId, value) => (renameParam.get(parameterId.value).map(ParameterId).getOrElse(parameterId),value)}
+    call.copy(parameters = newParams)
+
+  }
+}
+
 final case class GenericMethod(
     id             : BundleName
   , name           : String
@@ -364,10 +374,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     }
 
     def serializeMethodCall(call: MethodCall): JValue = {
-      val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil)
-      val params: JValue = call.parameters.map {
+      val newCall = MethodCall.renameParams(call,methods)
+      val params: JValue = newCall.parameters.map {
         case (parameterName, value) =>
-          ( ("name" -> renameParam.find(_._1 == parameterName.value).map(_._2).getOrElse(parameterName.value))
+          ( ("name" -> parameterName.value)
           ~ ("value" -> value)
           )
       }

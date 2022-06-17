@@ -128,6 +128,6 @@ class CheckNcfTechniqueUpdate(
       _ <- if (flagExists) updateNcfTechniques else BootstrapLogger.info(s"Flag file '${ncfTechniqueUpdateFlag.pathAsString}' does not exist, do not regenerate ncf Techniques")
     } yield ())
 
-    ZioRuntime.runNowLogError(err => BootstrapLogger.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
+    ZioRuntime.runNowLogError(err => BootstrapLogger.logEffect.error(s"An error occurred while updating techniques based on ncf; error message is: ${err.fullMsg}"))(prog)
   }
 }
