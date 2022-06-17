@@ -40,3 +40,55 @@ get:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/all.sh
+put:
+  summary: Create technique
+  description: Create a new technique in Rudder from a technique in the technique editor
+  operationId: CreateTechnique
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/techniques.yml
+  responses:
+    "200":
+      description: Verions information
+      content:
+        application/json:
+          schema:
+            type: array
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listTechniques
+              data:
+                type: object
+                required:
+                  - techniques
+                properties:
+                  techniques:
+                    type: object
+                    required:
+                      - technique
+                    properties:
+                      technique:
+                        $ref: ../../components/schemas/techniques.yml
+
+  tags:
+    - Techniques
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/techniques/create.sh
