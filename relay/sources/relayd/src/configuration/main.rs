@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, Context, Error};
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,

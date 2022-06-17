@@ -224,7 +224,7 @@ pipeline {
                         }
                     }
                 }
-                stage('language') {
+                /*stage('language') {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
@@ -258,7 +258,7 @@ pipeline {
                             }
                         }
                     }
-                }
+                }*/
                 stage('rudderc') {
                     agent {
                         dockerfile {
@@ -436,7 +436,7 @@ pipeline {
                         }
                     }
                 }
-                stage('language') {
+                /*stage('language') {
                     agent {
                         dockerfile { 
                             filename 'language/Dockerfile'
@@ -469,7 +469,7 @@ pipeline {
                             }
                         }
                     }
-                }
+                }*/
             }
         }
     }
