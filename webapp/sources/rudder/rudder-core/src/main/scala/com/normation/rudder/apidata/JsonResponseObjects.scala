@@ -238,11 +238,11 @@ object JsonResponseObjects {
     def from (elem : MethodElem, methods : Map[BundleName,GenericMethod]): JRTechniqueElem = {
        elem match {
          case c : MethodCall =>
-           val renameParam = methods.get(c.methodId).map(_.renameParam).getOrElse(Nil)
+           val newCall = MethodCall.renameParams(c,methods)
            val params: List[JRMethodCallValue] = c.parameters.map {
              case (parameterName, value) =>
                JRMethodCallValue(
-                   renameParam.find(_._1 == parameterName.value).map(_._2).getOrElse(parameterName.value)
+                   parameterName.value
                  , value
                )
            }
