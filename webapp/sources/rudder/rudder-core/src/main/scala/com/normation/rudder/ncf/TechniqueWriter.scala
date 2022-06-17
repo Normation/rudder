@@ -593,13 +593,114 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     s"""_method_reporting_context_v4("${component}", "${value}","${methodCall.id}")"""
   }
 
+  def reportingContextInBundle(args: Seq[String]) = {
+    s"_method_reporting_context_v4(${convertArgsToBundleCall(args)})"
+  }
+
+
+  def convertArgsToBundleCall(args:Seq[String]) : String = {
+    args.map(escapeCFEngineString(_)).map(""""${""" + _ + """}"""").mkString(",")
+  }
 
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
 
+    // increment of the bundle number in the technique, used by createCallingBundle
+    var bundleIncrement = 0
+
     val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
 
-    def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+    // generate a bundle which encapsulate the method_reporting_context + the actual method call
+    // and the method to call this bundle
+    // Params are:
+    // * condition when to call this bundle
+    // * the methodCall itself from the technique editor
+    // * the class parameter _value_
+    // * all the parameters already converted to cfengine format
+    // * if it's for the NAReports bundle (reverse the condition from if to unless)
+    // Returns the bundle agent, and the "promised_" usebundle => bundle_created
+    def createCallingBundle(condition          : String
+                          , call               : MethodCall
+                          , classParameterValue: String
+                          , params             : Seq[String]
+                          , forNaReport        : Boolean) = {
+      val promiser = call.id + "_${report_data.directive_id}"
+
+      val filterOnMethod = forNaReport match {
+        case false => "if"
+        case true  => "unless"
+      }
+
+
+      // Reporting argument
+      val reportingValues = escapeCFEngineString(call.component) ::
+                          escapeCFEngineString(classParameterValue) ::
+                          call.id :: Nil
+      // create the bundle arguments:
+      // there are 3 arguments corresponding to the reportingValues, (need to be quoted)
+      // the rest is for the methodArgs.
+      val allValues = reportingValues.map( x  => s""""${x}"""")  ::: params.toList
+
+      val method = methods.get(call.methodId)
+
+      // Get all bundle argument names
+      val bundleName = (technique.bundleName.value + "_gm_" + bundleIncrement).replaceAll("-", "_")
+      bundleIncrement = bundleIncrement + 1
+
+      val reportingArgs = "c_name" :: "c_key" :: "report_id" :: Nil
+
+      val (bundleArgs, bundleNameAndArg) = forNaReport match {
+        case false =>
+          val args = params.toList.zipWithIndex.map {
+          case (_, id) =>
+            method.flatMap(_.parameters.get(id).map(_.id.value)).getOrElse("arg_" + id)
+          }
+          (args, s"""${call.methodId.value}(${convertArgsToBundleCall(args)});""")
+
+        case true =>
+          // special case for log_na_rudder; args muse be called with @
+          val args = "message" :: "class_parameter" :: "unique_prefix" :: "args" :: Nil
+          (args, """log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});""")
+      }
+
+      val allArgs = reportingArgs ::: bundleArgs
+
+      // The bundle that will effectively act
+      val bundleActing = {
+        val bundleCall =
+          s"""    "${promiser}" usebundle => ${reportingContextInBundle(reportingArgs)};
+             |    "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
+
+        val bundleCallWithReportOption =
+          if (call.disabledReporting) {
+            s"""    "${promiser}" usebundle => disable_reporting;
+               |${bundleCall}
+               |    "${promiser}" usebundle => enable_reporting;""".stripMargin('|')
+          } else {
+            bundleCall
+          }
+
+
+        s"""bundle agent ${bundleName}(${allArgs.mkString(", ")}) {
+             |  methods:
+             |${bundleCallWithReportOption}
+             |}
+             |""".stripMargin('|')
+      }
+
+      // the call to the bundle
+      val callBundle = {
+          s"""    "${promiser}" usebundle => ${bundleName}(${allValues.mkString(", ")}),
+             |     ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");
+             |""".stripMargin('|')
+
+
+      }
+      (bundleActing, callBundle)
+    }
+
+    // returns the bundle acting, and the method to call the bundle
+    def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[(String, String)] = {
       method match {
         case call : MethodCall =>
           (for {
@@ -617,35 +718,18 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             }
           }  yield {
             val condition = canonifyCondition(call, parentBlocks)
-            val promiser = call.id + "_${report_data.directive_id}"
-            // Check constraint and missing value
-            val args = params.mkString(", ")
-            val bundleCall =
-            s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
-               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-               |    "${promiser}" usebundle => ${call.methodId.value}(${args}),
-               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-               |""".stripMargin('|')
-
-            if (call.disabledReporting) {
-              s"""    "${promiser}" usebundle => disable_reporting,
-                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-                 |""" ++
-                 bundleCall ++
-              s"""    "${promiser}" usebundle => enable_reporting,
-                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-                 |""".stripMargin('|')
-            } else {
-              bundleCall
-            }
-
-
+            createCallingBundle(condition, call, classParameterValue, params, false)
           }).toList
         case block : MethodBlock =>
           block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
       }
     }
-    val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("")
+    val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+
+    val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
+    val methodsCalls = bundleAndMethodCallsList.map(_._2).mkString("")
+
+
 
     val content = {
       import net.liftweb.json.JsonDSL._
@@ -668,8 +752,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
          |    "pass2" expression => "pass1";
          |    "pass1" expression => "any";
          |  methods:
-         |${methodCalls}
-         |}""".stripMargin('|')
+         |${methodsCalls}
+         |}
+         |
+         |${bundleActings}""".stripMargin('|')
     }
 
     implicit val charset = StandardCharsets.UTF_8
@@ -688,39 +774,26 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
       val args = technique.parameters.map(p => s"$${${p.name.canonify}}").mkString(", ")
 
-      def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+      def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[(String, String)] = {
         method match {
           case c : MethodCall =>
-            val call = MethodCall.renameParams(c,methods)
+            val call = MethodCall.renameParams(c,methods).copy(methodId = BundleName("log_na_rudder"))
             (for {
-              method_info <- methods.get(call.methodId)
+              method_info <- methods.get(c.methodId)
               // Skip that method if name starts with _
-              if ! call.methodId.value.startsWith("_")
+              if ! c.methodId.value.startsWith("_")
               (_, classParameterValue) <- call.parameters.find( _._1 == method_info.classParameter)
 
               escapedClassParameterValue = escapeCFEngineString(classParameterValue)
               classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
 
             }  yield {
-              val promiser = call.id
               def naReport(condition : String, message : String) = {
-                val bundleCall =
-                s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
-                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
-                   |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
-                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
 
-                if (call.disabledReporting) {
-                  s"""    "${promiser}" usebundle => disable_reporting,
-                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
-                     |${bundleCall}
-                     |    "${promiser}" usebundle => enable_reporting,
-                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
-                } else {
-                  bundleCall
-                }
+                val params = s""""${message}"""" :: s""""${escapedClassParameterValue}"""" :: s""""${classPrefix}"""" :: "@{args}" :: Nil
+
+                createCallingBundle(condition, call, classParameterValue, params, true)
               }
-
 
               // Write report if the method does not support CFEngine ...
               (if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
@@ -729,7 +802,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                 Some((condition,message))
               } else {
                 // ... or if the condition needs rudder_reporting
-                if (methodCallNeedReporting(methods, parentBlocks)(call)) {
+                if (methodCallNeedReporting(methods, parentBlocks)(c)) {
                   val message = s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
                   val condition = s"${canonifyCondition(call, parentBlocks)}"
                   Some((condition, message))
@@ -742,7 +815,11 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
         }
       }
-      val methodsReporting = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("\n")
+      val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+
+      val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
+      val methodsCalls = bundleAndMethodCallsList.map(_._2).mkString("")
+
       val content =
         s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
            |{
@@ -753,8 +830,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
            |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
            |
            |  methods:
-           |${methodsReporting}
-           |}"""
+           |${methodsCalls}
+           |}
+           |
+           |${bundleActings}"""
 
       val reportingFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
       IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
