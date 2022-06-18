@@ -6,7 +6,7 @@ get:
   operationId: listTechniquesVersions
   responses:
     "200":
-      description: Verions information
+      description: Versions information
       content:
         application/json:
           schema:

@@ -9,7 +9,7 @@ get:
     - $ref: ../../components/parameters/technique-version.yml
   responses:
     "200":
-      description: Verions information
+      description: Versions information
       content:
         application/json:
           schema:

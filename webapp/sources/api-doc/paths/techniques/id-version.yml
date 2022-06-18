@@ -15,7 +15,7 @@ post:
           $ref: ../../components/schemas/techniques.yml
   responses:
     "200":
-      description: Verions information
+      description: Versions information
       content:
         application/json:
           schema:
