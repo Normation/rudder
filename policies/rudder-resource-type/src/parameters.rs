@@ -12,18 +12,21 @@ use crate::PolicyMode;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Parameters {
-    /// Where to store temporary files for the promise
+    /// Where to store temporary files
     #[serde(default = "Parameters::default_temporary_dir")]
     pub temporary_dir: PathBuf,
+    /// Where to store file backups
+    #[serde(default = "Parameters::default_backup_dir")]
+    pub backup_dir: PathBuf,
     /// Unique node identifier
     pub node_id: Option<String>,
     /// Policy mode
     ///
     /// Default is enforce.
     #[serde(default)]
-    pub policy_mode: PolicyMode,
+    pub(crate) policy_mode: PolicyMode,
     /// Version of the Rudder resource protocol
-    pub rudder_resource_protocol: String,
+    pub(crate) rudder_resource_protocol: String,
     /// Resource type parameters
     pub data: Map<String, Value>,
 }
@@ -33,7 +36,15 @@ impl Parameters {
         #[cfg(target_family = "unix")]
         let r = PathBuf::from("/var/rudder/tmp/");
         #[cfg(target_family = "windows")]
-        let r = PathBuf::from(r"C:\Program Files\Rudder\tmp");
+        let r = PathBuf::from(r"C:\Program Files\Rudder\tmp\");
+        r
+    }
+
+    fn default_backup_dir() -> PathBuf {
+        #[cfg(target_family = "unix")]
+        let r = PathBuf::from("/var/rudder/modified-files/");
+        #[cfg(target_family = "windows")]
+        let r = PathBuf::from(r"C:\Program Files\Rudder\modified-files\");
         r
     }
 }

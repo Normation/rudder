@@ -5,10 +5,10 @@
 #![allow(dead_code)]
 
 use anyhow::Result;
+use rudder_commons::Target;
 
 use crate::cli::Args;
 pub use crate::compiler::compile;
-use rudder_commons::Target;
 
 pub mod backends;
 pub mod cli;
@@ -42,10 +42,10 @@ pub mod action {
     };
 
     use anyhow::{Context, Result};
+    use rudder_commons::Target;
 
     pub use crate::compiler::compile;
     use crate::logs::ok_output;
-    use rudder_commons::Target;
 
     /// Linter mode
     pub fn check(libraries: &[PathBuf], input: &Path, target: Target) -> Result<()> {

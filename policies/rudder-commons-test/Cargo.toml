@@ -1,0 +1,16 @@
+[package]
+name = "rudder_commons_test"
+version = "0.0.0-dev"
+description = "Shared implementation for tests"
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+readme = "README.adoc"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+assert_cmd = "2"
+tempfile = "3"
+predicates = "2"
+rudder_resource_type = { path = "../rudder-resource-type" }

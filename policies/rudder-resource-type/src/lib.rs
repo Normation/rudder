@@ -3,18 +3,17 @@
 
 //! Agent-side implementation of base resource_type types
 
+use std::fmt;
 use std::process::exit;
 
 use anyhow::{Error, Result};
 use gumdrop::Options;
 use serde::{Deserialize, Serialize};
 
-use crate::cfengine::CfengineRunner;
-use crate::parameters::Parameters;
+use crate::{cfengine::CfengineRunner, parameters::Parameters};
 
 pub mod cfengine;
 pub mod parameters;
-mod specification;
 
 /// Information about the resource type to pass to the library
 ///
@@ -31,12 +30,21 @@ pub struct ResourceTypeMetadata {
 }
 
 impl ResourceTypeMetadata {
+    /// Load metadata from yaml content
     pub fn from_metadata(metadata: &'static str) -> Result<Self> {
         let parsed: Self = serde_yaml::from_str(metadata)?;
         Ok(ResourceTypeMetadata {
             metadata: Some(metadata.to_string()),
             ..parsed
         })
+    }
+
+    /// Override documentation
+    pub fn documentation(self, docs: &'static str) -> Self {
+        ResourceTypeMetadata {
+            documentation: Some(docs.to_string()),
+            ..self
+        }
     }
 }
 
@@ -67,15 +75,8 @@ impl ResourceTypeMetadata {
 ///
 /// The module is able to generate documentation from the given metadata.
 pub trait ResourceType0 {
-    /// Load metadata from default `rudder_resource.yml` file
-    fn metadata(&self) -> ResourceTypeMetadata {
-        let raw = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/",
-            "rudder_resource.yml"
-        ));
-        ResourceTypeMetadata::from_metadata(raw).expect("invalid metadata")
-    }
+    /// Load metadata from default `rudder_resource_type.yml` and `README.md` files
+    fn metadata(&self) -> ResourceTypeMetadata;
 
     /// Executed before any promise
     ///
@@ -119,9 +120,23 @@ pub trait ResourceType0 {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
 pub enum PolicyMode {
     Enforce,
     Audit,
+}
+
+impl fmt::Display for PolicyMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PolicyMode::Enforce => "enforce",
+                PolicyMode::Audit => "audit",
+            }
+        )
+    }
 }
 
 impl Default for PolicyMode {
@@ -144,7 +159,7 @@ pub enum Outcome {
 }
 
 impl Outcome {
-    pub fn repaired(message: &str) -> Self {
+    pub fn repaired<S: Into<String>>(message: S) -> Self {
         Self::Repaired(message.into())
     }
 
@@ -152,7 +167,7 @@ impl Outcome {
         Self::Success(None)
     }
 
-    pub fn success_with(message: &str) -> Self {
+    pub fn success_with<S: Into<String>>(message: S) -> Self {
         Self::Success(Some(message.into()))
     }
 }
@@ -228,4 +243,77 @@ pub struct CliConfiguration {
     pub version: bool,
     #[options(help = "verbose", short = "v")]
     pub verbose: bool,
+}
+
+#[cfg(feature = "backup")]
+pub mod backup {
+    //! Helper to produce Rudder-compatible backup files
+    //!
+    //! The output file name format is taken from our Unix agent.
+    //!
+    //! Dates are all localtime.
+
+    use std::fmt;
+    use std::path::{Path, PathBuf};
+
+    use chrono::prelude::*;
+
+    use rudder_commons::canonify;
+
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub enum Backup {
+        BeforeEdit,
+        Moved,
+    }
+
+    impl fmt::Display for Backup {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(
+                f,
+                "{}",
+                match self {
+                    // TODO remove _cf_ prefix?
+                    Self::BeforeEdit => "cf_before_edit",
+                    Self::Moved => "cf_moved",
+                }
+            )
+        }
+    }
+
+    impl Backup {
+        pub fn backup_file(self, source: &Path) -> PathBuf {
+            let now: DateTime<Utc> = Utc::now();
+            self.backup_file_timestamp(source, now.timestamp())
+        }
+
+        pub fn backup_file_timestamp(self, source: &Path, timestamp: i64) -> PathBuf {
+            let now: DateTime<Utc> = Utc.timestamp(timestamp, 0);
+            let file = format!(
+                "{}_{}_{}_{}",
+                source.to_string_lossy(),
+                now.timestamp(),
+                now.to_rfc3339(),
+                // ctime as used by CFEngine, but it is locale-dependant
+                //now.format("%c"),
+                self
+            );
+            PathBuf::from(canonify(&file))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use pretty_assertions::assert_eq;
+
+        use super::*;
+
+        #[test]
+        fn it_generates_backup_file_names() {
+            let backup = Backup::BeforeEdit
+                .backup_file_timestamp(Path::new("/opt/rudder/etc/relayd/main.conf"), 1653943305);
+            // CFEngine format
+            //assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_Mon_May_30_22_41_59_2022_cf_before_edit");
+            assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_2022_05_30T20_41_45_00_00_cf_before_edit");
+        }
+    }
 }

@@ -11,7 +11,7 @@
 //! The second example beyond generic methods could be custom promise types generated directly as CFEngine
 //! promises.
 //!
-//! Custom promise type could use rudder-specific additionnal arguments in promise parameters.
+//! Custom promise type could use rudder-specific additional arguments in promise parameters.
 //!
 //! eg:
 //! rudder version
@@ -21,9 +21,8 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use serde::{Deserialize, Serialize};
-
 use rudder_commons::{Constraints, ParameterType, Target};
+use serde::{Deserialize, Serialize};
 
 pub struct Lib {
     data: HashMap<String, State>,

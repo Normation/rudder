@@ -4,7 +4,6 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-
 use rudder_commons::Target;
 
 use crate::{

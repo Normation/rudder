@@ -1,0 +1,37 @@
+promise agent test_type {
+  # needs to be replaced
+  path => "BINARY";
+}
+
+bundle common test {
+  vars:
+      # Read JSON data
+      "data" string => getenv("TEST_DATA", "2048");
+      "policy_mode" string => getenv("TEST_POLICY_MODE", "2048");
+}
+
+bundle agent main {
+  test_type:
+      "test"
+        rudder_resource_protocol => "0",
+        data => parsejson("${test.data}"),
+        policy_mode => "${test.policy_mode}",
+        classes => test_classes;
+
+  reports:
+    # Allow testing outcome
+    test_repaired::
+      "TEST=repaired";
+    test_error::
+      "TEST=error";
+    test_kept::
+      "TEST=kept";
+}
+
+body classes test_classes {
+      promise_repaired => { "test_repaired" };
+      repair_failed => { "test_error" };
+      repair_denied => { "test_error" };
+      repair_timeout => { "test_error" };
+      promise_kept => { "test_kept" };
+}

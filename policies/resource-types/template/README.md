@@ -1,0 +1,3 @@
+= Directory
+
+Directory resource type.

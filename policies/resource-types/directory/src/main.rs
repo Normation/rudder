@@ -41,8 +41,11 @@ struct Directory {}
 
 impl ResourceType0 for Directory {
     fn metadata(&self) -> ResourceTypeMetadata {
-        let raw = include_str!("./resource_directory.yml");
-        ResourceTypeMetadata::from_metadata(raw).expect("invalid metadata")
+        let meta = include_str!("../rudder_resource_type.yml");
+        let docs = include_str!("../README.md");
+        ResourceTypeMetadata::from_metadata(meta)
+            .expect("invalid metadata")
+            .documentation(docs)
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
@@ -53,6 +56,7 @@ impl ResourceType0 for Directory {
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+        assert!(self.validate(parameters).is_ok());
         let parameters: DirectoryParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let directory = parameters.path.as_path();
@@ -70,11 +74,11 @@ impl ResourceType0 for Directory {
             // Enforce
             (PolicyMode::Enforce, State::Present, State::Absent) => {
                 fs::create_dir(directory).with_context(|| "Creating directory {dir}")?;
-                Outcome::repaired("Created directory {dir}")
+                Outcome::repaired(format!("Created directory {dir}"))
             }
             (PolicyMode::Enforce, State::Absent, State::Present) => {
                 fs::remove_dir(directory).with_context(|| "Removing directory {dir}")?;
-                Outcome::repaired("Removed directory {dir}")
+                Outcome::repaired(format!("Removed directory {dir}"))
             }
             // Audit
             (PolicyMode::Audit, State::Present, State::Absent) => {

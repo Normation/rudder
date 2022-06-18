@@ -157,7 +157,6 @@ impl CfengineRunner {
                 )?
             } else if let Ok(req) = serde_json::from_str::<EvaluateRequest>(&line) {
                 set_max_level(req.log_level);
-
                 let result: EvaluateOutcome = promise
                     .check_apply(req.attributes.policy_mode, &req.attributes)
                     .into();

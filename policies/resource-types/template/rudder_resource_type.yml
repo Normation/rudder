@@ -1,0 +1,22 @@
+---
+name: Directory
+description: Ensure the state of a directory
+version: "0.1"
+supported_targets: ["unix", "windows"]
+parameters:
+  path:
+    description: "Directory to manage"
+    constraints:
+      allow_empty_string: false
+      allow_whitespace_string: false
+    p_type: Path
+  state:
+    description: "Expected state"
+    constraints:
+      allow_empty_string: true
+      allow_whitespace_string: false
+      select:
+        - "present"
+        - "absent"
+      default: "present"
+    p_type: Bool

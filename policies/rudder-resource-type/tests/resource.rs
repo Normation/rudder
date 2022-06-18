@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+// Minimal resource type
+
 use rudder_resource_type::{
     parameters::Parameters, run, CheckApplyResult, Outcome, PolicyMode, ResourceType0,
     ResourceTypeMetadata,
@@ -10,7 +12,7 @@ struct Test {}
 
 impl ResourceType0 for Test {
     fn metadata(&self) -> ResourceTypeMetadata {
-        let raw = include_str!("../rudder_resource.yml");
+        let raw = include_str!("rudder_resource_type.yml");
         ResourceTypeMetadata::from_metadata(raw).expect("invalid metadata")
     }
 

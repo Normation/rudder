@@ -176,6 +176,24 @@ impl Default for Constraints {
     }
 }
 
+/// Canonify a string the same way unix does
+pub fn canonify(input: &str) -> String {
+    let s = input
+        .as_bytes()
+        .iter()
+        .map(|x| {
+            if x.is_ascii_alphanumeric() || *x == b'_' {
+                *x
+            } else {
+                b'_'
+            }
+        })
+        .collect::<Vec<u8>>();
+    std::str::from_utf8(&s)
+        .unwrap_or_else(|_| panic!("Canonify failed on {}", input))
+        .to_owned()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

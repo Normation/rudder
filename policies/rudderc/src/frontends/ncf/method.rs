@@ -7,7 +7,7 @@
 
 // Parseur de metadata à partir d'un .cf
 // C'est quoi l'interface d'une generic method ?
-// Faire la conversion vers une ressource
+// Faire la conversion vers une resource
 
 // transformer en "native resources" qui sont aussi définissables
 // à la main
@@ -16,8 +16,7 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
-use rudder_commons::Target;
-use rudder_commons::{Constraint, Constraints, ParameterType};
+use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
 
 pub type MethodName = String;

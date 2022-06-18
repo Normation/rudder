@@ -4,7 +4,6 @@
 //! Target != Backend, we could have different target compiled by the same backend
 
 use anyhow::Result;
-
 use rudder_commons::Target;
 
 pub use self::{unix::Unix, windows::Windows};

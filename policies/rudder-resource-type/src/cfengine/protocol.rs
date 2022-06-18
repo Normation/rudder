@@ -6,13 +6,9 @@ use std::{path::PathBuf, str::FromStr};
 use anyhow::{bail, Error};
 use serde::{Deserialize, Serialize};
 
-use crate::Outcome;
 use crate::{
-    rudder_error, rudder_info,
-    {
-        cfengine::log::LevelFilter, parameters::Parameters, CheckApplyResult, ProtocolResult,
-        ValidateResult,
-    },
+    cfengine::log::LevelFilter, parameters::Parameters, rudder_error, rudder_info,
+    CheckApplyResult, Outcome, ProtocolResult, ValidateResult,
 };
 
 const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -105,7 +101,8 @@ impl From<CheckApplyResult> for EvaluateOutcome {
                 EvaluateOutcome::Repaired
             }
             Err(e) => {
-                rudder_info!("{}", e);
+                // returning a non kept requires an error log
+                rudder_error!("{}", e);
                 EvaluateOutcome::NotKept
             }
         }
@@ -270,7 +267,7 @@ mod tests {
 
     #[test]
     fn it_parses_validate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -280,6 +277,7 @@ mod tests {
             data,
             node_id: None,
             temporary_dir: "".into(),
+            backup_dir: "/backup".into(),
             rudder_resource_protocol: "0".into(),
             policy_mode: PolicyMode::Enforce,
         };
@@ -296,11 +294,14 @@ mod tests {
             serde_json::from_str::<ValidateRequest>(val).unwrap(),
             ref_val
         );
+
+        let val = "{\"attributes\":{\"data\":{\"path\":\"/tmp/.tmpEX81Uv/test\",\"state\":\"present\"},\"rudder_resource_protocol\":\"0\"},\"filename\":\"./tests/test.cf\",\"line_number\":15,\"log_level\":\"notice\",\"operation\":\"validate_promise\",\"promise_type\":\"directory\",\"promiser\":\"test\"}";
+        serde_json::from_str::<ValidateRequest>(val).unwrap();
     }
 
     #[test]
     fn it_parses_evaluate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -310,6 +311,7 @@ mod tests {
             data,
             node_id: None,
             temporary_dir: "".into(),
+            backup_dir: "/backup".into(),
             rudder_resource_protocol: "0".into(),
             policy_mode: PolicyMode::Enforce,
         };

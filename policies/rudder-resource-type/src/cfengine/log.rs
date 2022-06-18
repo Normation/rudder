@@ -5,12 +5,14 @@
 
 use std::{
     cmp, fmt, mem,
+    str::FromStr,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use serde::{Deserialize, Serialize};
+use anyhow::{bail, Error};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq)]
+#[derive(Debug, Serialize, Clone, Copy, Eq)]
 #[serde(rename_all = "lowercase")]
 /// Here we don't use the basic levels of the `log` crate as we want to
 /// match CFEngine's levels as well as converge with our Windows implementation.
@@ -18,8 +20,8 @@ pub enum Level {
     Critical, // alias Fatal
     Error,
     Warning,
-    // We don't produce "notice" level logs
-    Info,  // notice = info
+    // We don't expose "notice" level logs
+    Info,  // info = notice
     Debug, // -> Verbose
     Trace, // -> Debug
 }
@@ -42,7 +44,7 @@ impl fmt::Display for Level {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Eq)]
+#[derive(Debug, PartialEq, Serialize, Clone, Copy, Eq)]
 #[repr(usize)]
 #[serde(rename_all = "lowercase")]
 pub enum LevelFilter {
@@ -52,6 +54,33 @@ pub enum LevelFilter {
     Info,
     Debug,
     Trace,
+}
+
+impl FromStr for LevelFilter {
+    type Err = Error;
+
+    fn from_str(level: &str) -> anyhow::Result<Self> {
+        Ok(match level {
+            "critical" => LevelFilter::Critical,
+            "error" => LevelFilter::Error,
+            "warning" => LevelFilter::Warning,
+            "notice" => LevelFilter::Info,
+            "info" => LevelFilter::Info,
+            "verbose" => LevelFilter::Debug,
+            "debug" => LevelFilter::Trace,
+            _ => bail!("Could not recognize log level {:?}", level),
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for LevelFilter {
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let fmt = String::deserialize(deserializer)?;
+        LevelFilter::from_str(&fmt).map_err(serde::de::Error::custom)
+    }
 }
 
 impl Ord for Level {

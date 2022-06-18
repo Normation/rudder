@@ -1,3 +1,0 @@
-= Directory
-
-Same type.

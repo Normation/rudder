@@ -23,8 +23,6 @@ dev-doc:
 	cargo doc --document-private-items --open
 
 lint: version
-	# to be sure clippy is actually run
-	touch src/lib.rs
 	mkdir -p target
 	cargo fmt --all -- --check
 	cargo clippy --message-format json --all-targets --examples --tests -- --deny warnings > target/cargo-clippy.json

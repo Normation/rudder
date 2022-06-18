@@ -3,13 +3,12 @@
 
 //! Specification of the resource type.
 //!
-//! To be serialized to `rudder_resource.yml`.
+//! To be serialized to `rudder_resource_type.yml`.
 
 use std::{collections::HashMap, path::PathBuf};
 
-use serde::{Deserialize, Serialize};
-
 use rudder_commons::{Constraints, ParameterType, Target};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ResourceTypeSpecs {
