@@ -9,7 +9,7 @@ DOC_EXAMPLES_CF := $(DOC_EXAMPLES:.yml=.cf)
 install: build
 	mkdir -p $(DESTDIR)/opt/rudder/bin
 	# Install executable
-	install -m 755 target/release/rudderc $(DESTDIR)/opt/rudder/bin/rudderc
+	install -m 755 ../target/release/rudderc $(DESTDIR)/opt/rudder/bin/rudderc
 
 test-docs: $(DOC_EXAMPLES_CF)
 
