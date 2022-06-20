@@ -178,9 +178,9 @@ view model =
                   text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")
                 ]
               , div [ class "modal-footer" ] [
-                  button [ class "btn btn-primary btn-outline pull-left", onClick (ClosePopup Ignore) ]
-                  [ text "Cancel "
-                  , i [ class "fa fa-arrow-left" ] []
+                  button [ class "btn btn-default pull-left", onClick (ClosePopup Ignore) ]
+                  [ i [ class "fa fa-arrow-left space-right" ] []
+                  , text "Cancel "
                   ]
                 , button [ class "btn btn-primary", onClick (ClosePopup DisableRule) ]
                   [ text (txtDisable ++ " ")
