@@ -21,7 +21,7 @@ get:
             example: OK\\n          
   tags:
     - Status
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/unauthenticated/status.sh

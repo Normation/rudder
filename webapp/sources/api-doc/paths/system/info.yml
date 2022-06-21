@@ -53,7 +53,7 @@ get:
                         example: 2019-03-25T10:11:23Z
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/info.sh

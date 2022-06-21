@@ -40,7 +40,7 @@ get:
                       $ref: ../../components/schemas/rule.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/get.sh
@@ -90,7 +90,7 @@ post:
                       $ref: ../../components/schemas/rule-with-category.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/update.sh
@@ -134,7 +134,7 @@ delete:
                       $ref: ../../components/schemas/rule.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/delete.sh

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
 type: array
 items:
   type: object
@@ -7,11 +7,12 @@ items:
     name:
       type: string
       description: Technique name
-      example: userManagement
     versions:
       type: array
       description: Available versions for this technique
       items:
         type: string
         description: Technique version
-        example: "6.0"
+  example:
+    name: userManagement
+    version: ["1.0", "1.2", "3.0"]

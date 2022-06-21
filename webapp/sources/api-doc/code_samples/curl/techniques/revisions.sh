@@ -1,1 +1,1 @@
-curl --header "X-API-Token: yourToken" --request GET https://rudder.example.com/rudder/api/latest/techniques/bar/revisions
+curl --header "X-API-Token: yourToken" --request GET https://rudder.example.com/rudder/api/latest/techniques/foo/1.0/revisions

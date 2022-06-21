@@ -60,7 +60,7 @@ get:
                           example: "2019-09-17_16-06-15.255"
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/list-archives.sh
@@ -122,7 +122,7 @@ post:
                         example: "2019-09-17_16-06-15.255"
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/create-archive.sh
@@ -198,7 +198,7 @@ post:
 #                    example: Started
 #  tags:
 #    - System
-#  x-code-samples:
+#  x-codeSamples:
 #    - lang: curl
 #      source:
 #        $ref: ../../code_samples/curl/system/create-archive.sh
@@ -220,7 +220,7 @@ post:
 #            format: binary
 #  tags:
 #    - System
-#  x-code-samples:
+#  x-codeSamples:
 #    - lang: curl
 #      source:
 #        $ref: ../../code_samples/curl/system/create-archive.sh

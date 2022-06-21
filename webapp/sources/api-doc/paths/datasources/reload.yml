@@ -32,7 +32,7 @@ post:
                 example: Data for all nodes, for all configured data sources are going to be updated
   tags:
     - "🧩 Data sources"
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/datasources/reload.sh

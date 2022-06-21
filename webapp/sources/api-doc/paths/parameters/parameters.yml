@@ -39,7 +39,7 @@ get:
                       $ref: ../../components/schemas/parameter.yml
   tags:
     - Parameters
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/parameters/list-parameters.sh
@@ -93,7 +93,7 @@ put:
                       $ref: ../../components/schemas/parameter.yml
   tags:
     - Parameters
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/parameters/create-parameter.sh

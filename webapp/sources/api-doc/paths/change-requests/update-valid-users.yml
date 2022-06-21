@@ -47,7 +47,7 @@ post:
                 $ref: ../../components/schemas/validated-user.yml
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/update-valid-users.sh

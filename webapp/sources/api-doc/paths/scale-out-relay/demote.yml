@@ -35,7 +35,7 @@ post:
                 example: 17dadf50-6056-4c8b-a935-6b97d14b89a7
   tags:
     - 🧩 Scale out Relay
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/scale-out-relay/promote.sh

@@ -42,7 +42,7 @@ get:
                       $ref: ../../components/schemas/node-full.yml
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/id.sh
@@ -92,7 +92,7 @@ post:
                       $ref: ../../components/schemas/node-full.yml
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/id-update.sh
@@ -138,7 +138,7 @@ delete:
                       $ref: ../../components/schemas/node-full.yml
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/delete.sh

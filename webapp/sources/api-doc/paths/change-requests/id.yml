@@ -40,7 +40,7 @@ get:
                       $ref: ../../components/schemas/change-request.yml
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/all.sh
@@ -84,7 +84,7 @@ delete:
                       $ref: ../../components/schemas/change-request.yml
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/refuse.sh
@@ -141,7 +141,7 @@ post:
                       $ref: ../../components/schemas/change-request.yml
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/update.sh

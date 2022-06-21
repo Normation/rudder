@@ -11,7 +11,7 @@ post:
       $ref: "../../components/responses/agent-output.yml"
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/id.sh
