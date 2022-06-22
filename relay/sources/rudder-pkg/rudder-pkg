@@ -5,7 +5,7 @@ Rudder package manager
 
 Usage:
     rudder package [--debug] install-file <package.rpkg>...
-    rudder package [--debug] install <package> [--exact-version][--nightly] [--quiet]
+    rudder package [--debug] install <package>... [--exact-version][--nightly] [--quiet]
     rudder package [--debug] upgrade-all [--nightly] [--quiet]
     rudder package [--debug] show <package> [--exact-version] [--nightly]
     rudder package [--debug] remove <package>...
