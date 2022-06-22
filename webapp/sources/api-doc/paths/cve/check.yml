@@ -38,7 +38,7 @@ post:
                       $ref: ../../components/schemas/cveCheck.yml
   tags:
     - 🧩 CVE
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/cve/check.sh

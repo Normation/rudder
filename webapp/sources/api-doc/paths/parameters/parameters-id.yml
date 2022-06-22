@@ -46,7 +46,7 @@ get:
                       $ref: ../../components/schemas/parameter.yml
   tags:
     - Parameters
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/parameters/get-parameter.sh
@@ -96,7 +96,7 @@ post:
                       $ref: ../../components/schemas/parameter.yml
   tags:
     - Parameters
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/parameters/modify-parameter.sh
@@ -176,7 +176,7 @@ delete:
                       $ref: ../../components/schemas/parameter.yml
   tags:
     - Parameters
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/parameters/delete-parameter.sh

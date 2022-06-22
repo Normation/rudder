@@ -32,7 +32,7 @@ post:
                 example: "Incoming inventory watcher started"
   tags:
     - Inventories
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/inventories/start.sh

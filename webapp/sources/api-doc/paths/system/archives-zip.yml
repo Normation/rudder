@@ -22,7 +22,7 @@ get:
             format: binary
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/get-archive-zip.sh

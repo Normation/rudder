@@ -36,7 +36,7 @@ get:
                   $ref: ../../components/schemas/node-inherited-properties.yml
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/node-inherited-properties.sh

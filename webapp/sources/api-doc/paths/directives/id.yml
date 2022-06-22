@@ -40,7 +40,7 @@ get:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/get.sh
@@ -84,7 +84,7 @@ delete:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/delete.sh
@@ -134,7 +134,7 @@ post:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/update.sh

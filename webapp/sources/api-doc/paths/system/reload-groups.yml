@@ -38,7 +38,7 @@ post:
                       - Started
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/system/reload-groups.sh

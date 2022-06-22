@@ -38,7 +38,7 @@ get:
                       $ref: ../../components/schemas/rule.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/all.sh
@@ -85,7 +85,7 @@ put:
                       $ref: ../../components/schemas/rule.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/create.sh

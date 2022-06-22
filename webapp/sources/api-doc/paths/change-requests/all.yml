@@ -38,7 +38,7 @@ get:
                       $ref: ../../components/schemas/change-request.yml
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/all.sh

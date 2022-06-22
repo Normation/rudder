@@ -44,7 +44,7 @@ put:
                       $ref: ../../components/schemas/rule-category.yml
   tags:
     - Rules
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/rules/category-id-new.sh

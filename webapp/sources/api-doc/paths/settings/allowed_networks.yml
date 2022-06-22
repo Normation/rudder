@@ -51,7 +51,7 @@ get:
                         description: Array of allowed networks
   tags:
     - Settings
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/settings/get-allowed-networks.sh
@@ -110,7 +110,7 @@ post:
                     description: Array of allowed networks
   tags:
     - Settings
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/settings/set-allowed-networks.sh
