@@ -40,7 +40,7 @@ get:
                       $ref: ../../components/schemas/datasource.yml
   tags:
     - "🧩 Data sources"
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/datasources/get.sh
@@ -89,7 +89,7 @@ post:
                       $ref: ../../components/schemas/datasource.yml
   tags:
     - "🧩 Data sources"
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/datasources/update.sh
@@ -134,7 +134,7 @@ delete:
                       $ref: ../../components/schemas/datasource.yml
   tags:
     - "🧩 Data sources"
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/datasources/delete.sh

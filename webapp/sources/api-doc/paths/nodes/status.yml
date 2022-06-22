@@ -59,7 +59,7 @@ get:
                             - unknown
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/status.sh

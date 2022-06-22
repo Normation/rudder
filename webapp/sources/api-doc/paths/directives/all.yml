@@ -38,7 +38,7 @@ get:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/all.sh
@@ -85,7 +85,7 @@ put:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/create.sh

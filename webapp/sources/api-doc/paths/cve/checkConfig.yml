@@ -39,7 +39,7 @@ get:
                     description: Token used by to contact the API to check CVE  
   tags:
     - 🧩 CVE
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/cve/getConfig.sh
@@ -98,7 +98,7 @@ post:
                     description: Token used by to contact the API to check CVE  
   tags:
     - 🧩 CVE
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/cve/updateConfig.sh

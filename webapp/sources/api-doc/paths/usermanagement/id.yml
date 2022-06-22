@@ -45,7 +45,7 @@ delete:
                         example: Toto
   tags:
     - 🧩 User Management
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/usermanagement/delete.sh

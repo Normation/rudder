@@ -1,7 +1,31 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
+type: object
+required:
+  - name
+  - path
+  - id
+  - subcategories
+properties:
+  name:
+    type: string
+    description: Category's name
+    example: "/"
+  path:
+    type: string
+    description: Categorie's path
+    example: ""
+  id:
+    type: string
+    description: Categorie ID
+    example: "/"
+  subcategories:
+    type: array
+    description: List of sub categories
+    items:
+      - $ref: '#/definitions/category'
 definitions:
-  categorie:
+  category:
     type: object
     required:
       - name
@@ -11,11 +35,11 @@ definitions:
     properties:
       name:
         type: string
-        description: Technique name
-        example: Security Policy
+        description: Category's name
+        example: User Techniques
       path:
         type: string
-        description: categorie's path
+        description: Categorie's path
         example: systemSettings/systemManagement
       id:
         type: string
@@ -24,5 +48,6 @@ definitions:
       subcategories:
         type: array
         description: List of sub categories
+        example: []
         items:
-          - $ref: '#/definitions/categorie'
+          - $ref: '#/definitions/category'

@@ -19,7 +19,7 @@ post:
       content:
         application/json:
           schema:
-            type: array
+            type: object
             required:
               - result
               - action
@@ -47,11 +47,11 @@ post:
                       - technique
                     properties:
                       technique:
-                        $ref: ../../components/schemas/techniques.yml
+                        $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
 
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/update.sh
@@ -68,7 +68,7 @@ delete:
       content:
         application/json:
           schema:
-            type: array
+            type: object
             required:
               - result
               - action
@@ -107,13 +107,13 @@ delete:
 
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/delete.sh
 get:
-  summary: Technique metadata
-  description: Get all Technique versions with their metadata
+  summary: Technique metadata by version and ID
+  description: Get Technique metadata
   operationId: getTechniqueAllVersionId
   parameters:
     - $ref: ../../components/parameters/technique-id.yml
@@ -147,15 +147,17 @@ get:
                   - techniques
                 properties:
                   techniques:
-                    type: object
-                    required:
-                      - JREditorTechnique
-                    properties:
-                      JREditorTechnique:
-                        $ref: ../../components/schemas/techniques.yml
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - JREditorTechnique
+                      properties:
+                        JREditorTechnique:
+                          $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/techniques/id.sh
+        $ref: ../../code_samples/curl/techniques/id-version.sh

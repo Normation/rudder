@@ -47,7 +47,7 @@ post:
                       example: Started
   tags:
     - Nodes
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/nodes/apply-all.sh

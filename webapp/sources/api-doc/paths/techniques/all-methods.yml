@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
 get:
   summary: List methods
-  description: Get all methods metadata
+  description: Get all generic methods metadata
   operationId: methods
   responses:
     "200":
@@ -10,7 +10,7 @@ get:
       content:
         application/json:
           schema:
-            type: array
+            type: object
             required:
               - result
               - action
@@ -36,7 +36,7 @@ get:
                     $ref: ../../components/schemas/methods.yml
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/techniques/categories.sh
+        $ref: ../../code_samples/curl/techniques/methods.sh

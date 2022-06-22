@@ -36,7 +36,7 @@ get:
                     $ref: ../../components/schemas/techniques.yml
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/all.sh
@@ -56,7 +56,7 @@ put:
       content:
         application/json:
           schema:
-            type: array
+            type: object
             required:
               - result
               - action
@@ -84,11 +84,11 @@ put:
                       - technique
                     properties:
                       technique:
-                        $ref: ../../components/schemas/techniques.yml
+                        $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
 
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/create.sh
