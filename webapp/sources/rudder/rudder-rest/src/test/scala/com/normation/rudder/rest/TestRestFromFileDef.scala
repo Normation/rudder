@@ -91,8 +91,10 @@ class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
   org.slf4j.LoggerFactory.getLogger("com.normation.rudder.rest.RestUtils").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
 
 
-  doTest()
-
+  // you can pass a list of file to test exclusively if you don't want to test all .yml
+  // files in src/test/resource/${yamlSourceDirectory}
+//  doTest(Nil)
+  doTest("api_groups.yml" :: Nil)
 
 }
 

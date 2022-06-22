@@ -39,6 +39,7 @@ package com.normation.rudder.rest.internal
 
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.UserService
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
@@ -206,7 +207,7 @@ class RestQuicksearch (
         case QRNodeId(v)      => nodeLink(NodeId(v))
         case QRRuleId(v)      => ruleLink(RuleId(RuleUid(v)))
         case QRDirectiveId(v) => directiveLink(DirectiveUid(v))
-        case QRGroupId(v)     => groupLink(NodeGroupId(v))
+        case QRGroupId(v)     => groupLink(NodeGroupId(NodeGroupUid(v)))
         case QRParameterId(v) => globalParameterLink(v)
       }
 

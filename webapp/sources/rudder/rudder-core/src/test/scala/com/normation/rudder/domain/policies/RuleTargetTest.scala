@@ -2,9 +2,11 @@ package com.normation.rudder.domain.policies
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
+
 import org.joda.time.DateTime
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -17,6 +19,7 @@ import com.normation.inventory.domain.Debian
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.UndefinedKey
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeState
 
 @RunWith(classOf[JUnitRunner])
@@ -48,22 +51,22 @@ class RuleTargetTest extends Specification with Loggable {
   }.toMap
 
   val g1 = NodeGroup (
-    NodeGroupId("1"), "Empty group", "", Nil, None, false, Set(), true
+    NodeGroupId(NodeGroupUid("1")), "Empty group", "", Nil, None, false, Set(), true
   )
   val g2 = NodeGroup (
-    NodeGroupId("2"), "only root", "", Nil, None, false, Set(NodeId("root")), true
+    NodeGroupId(NodeGroupUid("2")), "only root", "", Nil, None, false, Set(NodeId("root")), true
   )
   val g3 = NodeGroup (
-    NodeGroupId("3"), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true
+    NodeGroupId(NodeGroupUid("3")), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true
   )
   val g4 = NodeGroup (
-    NodeGroupId("4"), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true
+    NodeGroupId(NodeGroupUid("4")), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true
   )
   val g5 = NodeGroup (
-    NodeGroupId("5"), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true
+    NodeGroupId(NodeGroupUid("5")), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true
   )
   val g6 = NodeGroup (
-    NodeGroupId("6"), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true
+    NodeGroupId(NodeGroupUid("6")), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true
   )
 
   val groups = Set(g1, g2, g3, g4, g5, g6 )

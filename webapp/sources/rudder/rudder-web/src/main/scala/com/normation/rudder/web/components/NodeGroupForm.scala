@@ -202,12 +202,12 @@ class NodeGroupForm(
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group row">
                       <label class="wbBaseFieldLabel">Rudder ID</label>
-                      <input readonly="" class="form-control" value={nodeGroup.id.value}/>
+                      <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
                     </div>
       & "group-cfeclasses" #> <div class="form-group row">
                           <label class="wbBaseFieldLabel toggle-cond cond-hidden" onclick="$(this).toggleClass('cond-hidden')"><span class="text-fit">Agent conditions</span><i class="fa fa-chevron-down"></i></label>
-                          <div class="well" id={s"cfe-${nodeGroup.id.value}"}>
-                            {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
+                          <div class="well" id={s"cfe-${nodeGroup.id.serialize}"}>
+                            {RuleTarget.toCFEngineClassName(nodeGroup.id.serialize)}<br/>
                             {RuleTarget.toCFEngineClassName(nodeGroup.name)}
                           </div>
                         </div>
@@ -271,7 +271,7 @@ class NodeGroupForm(
   def showGroupProperties(group: NodeGroup): NodeSeq = {
     import com.normation.rudder.AuthorizationType
 
-    val groupId = group.id.value
+    val groupId = group.id.serialize
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
 
     val intro = (<div class="info">
@@ -398,7 +398,7 @@ class NodeGroupForm(
           case Right(g)  => g._1
           case Left(err) =>
             formTracker.addFormError(Text("Error when saving group"))
-            logger.error(s"Error when looking for group with id '${ng.id.value}': ${err.fullMsg}")
+            logger.error(s"Error when looking for group with id '${ng.id.serialize}': ${err.fullMsg}")
             ng
         }
         if(ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
@@ -554,7 +554,7 @@ class NodeGroupForm(
   private[this] def showGroupSection(group: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) : JsCmd = {
     val js = group match {
       case Left(target) => s"'target':'${target.target}"
-      case Right(g)     => s"'groupId':'${g.id.value}'"
+      case Right(g)     => s"'groupId':'${g.id.serialize}'"
     }
     //update UI
     onSuccessCallback(Left((group, parentCategoryId)))&

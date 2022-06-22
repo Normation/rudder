@@ -126,7 +126,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \ "nodeGroup" \ "displayName").text
       Text("Group ") ++ {
         if(id.size < 1) Text(name)
-        else <a href={groupLink(NodeGroupId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={groupLink(NodeGroupId(NodeGroupUid(id)))} onclick="noBubble(event);">{name}</a> ++ actionName
       }
     }
 
@@ -449,7 +449,7 @@ class EventLogDetailsGenerator(
                 { generatedByChangeRequest }
                 <h4>Group overview:</h4>
                 <ul class="evlogviewpad">
-                  <li><b>Node Group ID:</b> { modDiff.id.value }</li>
+                  <li><b>Node Group ID:</b> { modDiff.id.withDefaultRev.serialize }</li>
                   <li><b>Name:</b> {
                     modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
                     }</li>
@@ -1168,7 +1168,7 @@ class EventLogDetailsGenerator(
     )(xml)
 
   private[this] def groupDetails(xml:NodeSeq, group: NodeGroup) = (
-    "#groupID" #> group.id.value &
+    "#groupID" #> group.id.withDefaultRev.serialize &
       "#groupName" #> group.name &
       "#shortDescription" #> group.description &
       "#shortDescription" #> group.description &

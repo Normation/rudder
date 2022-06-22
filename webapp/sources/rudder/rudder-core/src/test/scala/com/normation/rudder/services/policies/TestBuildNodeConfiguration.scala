@@ -42,6 +42,7 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.FullGroupTarget
@@ -95,7 +96,7 @@ class TestBuildNodeConfiguration extends Specification {
 
   val allNodes                  = ((1 to 1000).map(newNode) :+ root).map(n => (n.id, n)).toMap
   // only one group with all nodes
-  val group                     = NodeGroup (NodeGroupId("allnodes"), "allnodes", "", Nil, None, false, allNodes.keySet, true)
+  val group                     = NodeGroup (NodeGroupId(NodeGroupUid("allnodes")), "allnodes", "", Nil, None, false, allNodes.keySet, true)
   val groupLib                  = FullNodeGroupCategory (
                                       NodeGroupCategoryId("test_root"), "", "", Nil
                                     , List(FullRuleTargetInfo(FullGroupTarget(GroupTarget(group.id), group), "", "", true, false))

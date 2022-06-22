@@ -6,16 +6,13 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRRuleNodesDirectives
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.{RoNodeGroupRepository, RoRuleRepository}
-import com.normation.rudder.rest.{ApiPath, AuthzToken, RestExtractorService, RestUtils, RuleInternalApi => API}
+import com.normation.rudder.rest.{ApiPath, AuthzToken, RestExtractorService, RuleInternalApi => API}
 import com.normation.rudder.rest.lift.{DefaultParams, LiftApiModule, LiftApiModuleProvider, LiftApiModuleString}
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
-import net.liftweb.common.Box
 import net.liftweb.http.{LiftResponse, Req}
 import com.normation.rudder.rest.implicits._
-import net.liftweb.json.JValue
 import com.normation.rudder.apidata.implicits._
-import zio._
 import zio.syntax._
 
 class RulesInternalApi(

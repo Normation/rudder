@@ -231,7 +231,7 @@ final case class RestDataSerializerImpl (
     val query = group.query.map(query => query.toJSON)
     (
         ("changeRequestId" -> crId.map(_.value.toString))
-      ~ ("id"              -> group.id.value)
+      ~ ("id"              -> group.id.serialize)
       ~ ("displayName"     -> group.name)
       ~ ("description"     -> group.description)
       ~ ("category"        -> cat.map(_.value))
@@ -239,7 +239,7 @@ final case class RestDataSerializerImpl (
       ~ ("nodeIds"         -> group.serverList.toSeq.map(_.value).sorted)
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled)
-      ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _).sorted)
+      ~ ("groupClass"      -> List(group.id.serialize, group.name).map(RuleTarget.toCFEngineClassName _).sorted)
       ~ ("properties"      -> group.properties.toApiJson)
       ~ ("system"          -> group.isSystem)
       ~ ("target"          -> GroupTarget(group.id).target)
@@ -247,7 +247,7 @@ final case class RestDataSerializerImpl (
   }
 
   override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
-    val groupList = category.ownGroups.values.toSeq.sortBy(_.nodeGroup.id.value)
+    val groupList = category.ownGroups.values.toSeq.sortBy(_.nodeGroup.id.serialize)
     val subCat = category.subCategories.sortBy(_.id.value)
 
     def serializeTarget (target: FullRuleTargetInfo): JValue = {
@@ -266,7 +266,7 @@ final case class RestDataSerializerImpl (
         , subCat.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
         )
       case MinimalDetails =>
-        ( groupList.map(g => JString(g.nodeGroup.id.value) )
+        ( groupList.map(g => JString(g.nodeGroup.id.serialize) )
         , subCat.map(cat => JString(cat.id.value))
         )
     }
@@ -449,7 +449,7 @@ final case class RestDataSerializerImpl (
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
       val properties: JValue  = diff.modProperties.map(displaySimpleDiff(_)).getOrElse(initialState.properties.toApiJson)
       val category: JValue    = diff.modCategory.map(displaySimpleDiff(_)(_.value))
-      ( ("id"          -> initialState.id.value)
+      ( ("id"          -> initialState.id.serialize)
       ~ ("displayName" -> name)
       ~ ("description" -> description)
       ~ ("category"    -> category)

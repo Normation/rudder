@@ -45,6 +45,7 @@ import com.normation.rudder.MockTechniques
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
 import com.normation.utils.StringUuidGeneratorImpl
+
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
@@ -53,6 +54,7 @@ import com.normation.rudder.apidata.JsonQueryObjects._
 import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.JsonResponseObjects.JRRuleTarget._
 import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.domain.nodes.NodeGroupUid
 
 @RunWith(classOf[JUnitRunner])
 class RestDataExtractorTest extends Specification {
@@ -77,10 +79,10 @@ class RestDataExtractorTest extends Specification {
   "extract RuleTarget" >> {
     val tests = List(
       ("""group:3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"""
-      , JRRuleTarget(GroupTarget(NodeGroupId("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52")))
+      , JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"))))
       )
     , ("""group:hasPolicyServer-root"""
-      , JRRuleTarget(GroupTarget(NodeGroupId("hasPolicyServer-root")))
+      , JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("hasPolicyServer-root"))))
       )
     , ("""policyServer:root"""
       , JRRuleTarget(PolicyServerTarget(NodeId("root")))
@@ -89,7 +91,7 @@ class RestDataExtractorTest extends Specification {
       , JRRuleTarget(AllTarget)
       )
     , ("""{"include":{"or":["special:all"]},"exclude":{"or":["group:all-nodes-with-dsc-agent"]}}"""
-      , JRRuleTarget(TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set(GroupTarget(NodeGroupId("all-nodes-with-dsc-agent"))))))
+      , JRRuleTarget(TargetExclusion(TargetUnion(Set(AllTarget)), TargetUnion(Set(GroupTarget(NodeGroupId(NodeGroupUid("all-nodes-with-dsc-agent")))))))
       )
     , ("""{"include":{"or":[]},"exclude":{"or":[]}}"""
       , JRRuleTarget(TargetExclusion(TargetUnion(Set()), TargetUnion(Set())))

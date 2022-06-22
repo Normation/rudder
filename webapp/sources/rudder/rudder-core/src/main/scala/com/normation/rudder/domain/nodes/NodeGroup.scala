@@ -37,6 +37,8 @@
 
 package com.normation.rudder.domain.nodes
 
+import com.normation.GitVersion
+import com.normation.GitVersion.Revision
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.And
@@ -48,8 +50,29 @@ import com.normation.rudder.domain.queries.SubGroupComparator
  * UUId type for Node Groups, so that they
  * can be uniquely identified in our world.
  */
-final case class NodeGroupId(value:String) extends AnyVal
+final case class NodeGroupUid(value:String) extends AnyVal {
+  def debugString: String = value
+  def serialize: String = value
+}
+final case class NodeGroupId(uid: NodeGroupUid, rev: Revision = GitVersion.DEFAULT_REV) {
+  def debugString: String = serialize
 
+  def serialize: String = rev match {
+    case GitVersion.DEFAULT_REV => uid.value
+    case rev                    => s"${uid.value}+${rev.value}"
+  }
+
+  def withDefaultRev: NodeGroupId = this.copy(rev = GitVersion.DEFAULT_REV)
+}
+object NodeGroupId {
+
+  // parse a directiveId which was serialize by "id.serialize"
+  def parse(s: String) : Either[String, NodeGroupId] = {
+    GitVersion.parseUidRev(s).map { case (id, rev) =>
+      NodeGroupId(NodeGroupUid(id), rev)
+    }
+  }
+}
 
 object NodeGroup {
   /*
@@ -86,7 +109,7 @@ object NodeGroup {
   def isSubgroupByCriterion(subgroup: Seq[CriterionLine], group: NodeGroupId): Boolean = {
     subgroup.exists(line =>
       line.attribute.cType.isInstanceOf[SubGroupComparator] &&
-      line.value == group.value
+      line.value == group.serialize
     )
   }
 

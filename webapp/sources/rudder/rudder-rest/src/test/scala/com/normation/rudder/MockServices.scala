@@ -134,7 +134,7 @@ import scala.util.control.NonFatal
 import scala.xml.Elem
 
 /*
- * Mock services for test, especially reposositories, and provides
+ * Mock services for test, especially repositories, and provides
  * test data (nodes, directives, etc)
  */
 
@@ -1752,13 +1752,13 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     ).getOrElse(null) // for test
   )
 
-  val g0 = NodeGroup (NodeGroupId("0000f5d3-8c61-4d20-88a7-bb947705ba8a"), "Real nodes"           , "", g0props, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
-  val g1 = NodeGroup (NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"), "Empty group"          , "", Nil    , None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId("2222f5d3-8c61-4d20-88a7-bb947705ba8a"), "only root"            , "", Nil    , None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId("3333f5d3-8c61-4d20-88a7-bb947705ba8a"), "Even nodes"           , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
-  val g4 = NodeGroup (NodeGroupId("4444f5d3-8c61-4d20-88a7-bb947705ba8a"), "Odd nodes"            , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
-  val g5 = NodeGroup (NodeGroupId("5555f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 3", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
-  val g6 = NodeGroup (NodeGroupId("6666f5d3-8c61-4d20-88a7-bb947705ba8a"), "Nodes id divided by 5", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
+  val g0 = NodeGroup (NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")), "Real nodes"           , "", g0props, None, false, Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id), true)
+  val g1 = NodeGroup (NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")), "Empty group"          , "", Nil    , None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId(NodeGroupUid("2222f5d3-8c61-4d20-88a7-bb947705ba8a")), "only root"            , "", Nil    , None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")), "Even nodes"           , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 == 0), true)
+  val g4 = NodeGroup (NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")), "Odd nodes"            , "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%2 != 0), true)
+  val g5 = NodeGroup (NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 3", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%3 == 0), true)
+  val g6 = NodeGroup (NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")), "Nodes id divided by 5", "", Nil    , None, false, nodesRepo.nodeIds.filter(_.value.toInt%5 == 0), true)
   val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
   val groupsTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
@@ -1792,8 +1792,8 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     , List(
           FullRuleTargetInfo(
               FullGroupTarget(
-                  GroupTarget(NodeGroupId("a-group-for-root-only"))
-                , NodeGroup(NodeGroupId("a-group-for-root-only")
+                  GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only")))
+                , NodeGroup(NodeGroupId(NodeGroupUid("a-group-for-root-only"))
                     , "Serveurs [€ðŋ] cassés"
                     , "Liste de l'ensemble de serveurs cassés à réparer"
                     , Nil
@@ -1853,7 +1853,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
       for {
         root <- categories.get
-        cid  <- root.categoryByGroupId.get(id).notOptional(s"Category for group '${id.value}' not found")
+        cid  <- root.categoryByGroupId.get(id).notOptional(s"Category for group '${id.serialize}' not found")
         cat  <- root.allCategories.get(cid).map(_.toNodeGroupCategory).notOptional(s"Category '${cid.value}' not found")
       } yield cat
     }
@@ -1971,11 +1971,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         for {
           catId <- into match {
                      case Some(catId) => root.allGroups.get(group.id) match {
-                       case Some(n) => Inconsistency(s"Group with id '${n.nodeGroup.id.value}' already exists'").fail
+                       case Some(n) => Inconsistency(s"Group with id '${n.nodeGroup.id.serialize}' already exists'").fail
                        case None    => catId.succeed
                      }
                      case None => root.categoryByGroupId.get(group.id) match {
-                       case None     => Inconsistency(s"Group '${group.id.value}' not found").fail
+                       case None     => Inconsistency(s"Group '${group.id.serialize}' not found").fail
                        case Some(id) => id.succeed
                      }
                    }
@@ -1998,13 +1998,13 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     override def create(group: NodeGroup, into: NodeGroupCategoryId, modId: ModificationId, actor: EventActor, why: Option[String]): IOResult[AddNodeGroupDiff] = {
       createOrUpdate(group, Some(into)).flatMap {
         case None    => AddNodeGroupDiff(group).succeed
-        case Some(_) => Inconsistency(s"Group '${group.id.value}' was present'").fail
+        case Some(_) => Inconsistency(s"Group '${group.id.serialize}' was present'").fail
       }
     }
 
     override def update(group: NodeGroup, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[Option[ModifyNodeGroupDiff]] = {
       createOrUpdate(group, None).flatMap {
-        case None      => Inconsistency(s"Group '${group.id.value}' was missing").fail
+        case None      => Inconsistency(s"Group '${group.id.serialize}' was missing").fail
         case Some(old) =>
           val diff = Diff(old, group)
           Some(ModifyNodeGroupDiff(group.id, group.name
@@ -2023,7 +2023,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     override def delete(id: NodeGroupId, modId: ModificationId, actor: EventActor, whyDescription: Option[String]): IOResult[DeleteNodeGroupDiff] = {
        def recDelete(id: NodeGroupId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
          current.copy(
-             targetInfos = current.targetInfos.filterNot(_.toTargetInfo.target.target == s"group:${id.value}")
+             targetInfos = current.targetInfos.filterNot(_.toTargetInfo.target.target == s"group:${id.serialize}")
            , subCategories = current.subCategories.map(recDelete(id, _))
          )
        }
@@ -2152,12 +2152,12 @@ object TEST {
   val repo = mock.groupsRepo
 
   val prog = for {
-    pair      <- repo.getNodeGroup(NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"))
+    pair      <- repo.getNodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")))
     (g,catId) =  pair
     nodes     =  Set(NodeId("node1"))
     g1        =  g.copy(serverList = nodes)
     _         <- repo.update(g1, ModificationId("plop"), EventActor("plop"), None)
-    pair2     <- repo.getNodeGroup(NodeGroupId("1111f5d3-8c61-4d20-88a7-bb947705ba8a"))
+    pair2     <- repo.getNodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")))
     res       =  if(pair2._1.serverList == nodes) "ok" else s"oups, list=${pair2._1.serverList}"
   } yield (res)
 

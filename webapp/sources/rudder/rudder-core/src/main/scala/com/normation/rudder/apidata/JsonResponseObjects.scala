@@ -593,7 +593,7 @@ object JsonResponseObjects {
     def fromParentProperty(p: ParentProperty) = {
       p match {
         case ParentProperty.Group(name, id, value) =>
-          JRParentGroup(name, id.value, value)
+          JRParentGroup(name, id.serialize, value)
         case _                                     =>
           JRParentGlobal(p.value)
       }
@@ -613,7 +613,7 @@ object JsonResponseObjects {
 
   object JRGroupInheritedProperties {
     def fromGroup(groupId: NodeGroupId, properties: List[NodePropertyHierarchy], renderInHtml: RenderInheritedProperties) = {
-      JRGroupInheritedProperties(groupId.value, properties.sortBy(_.prop.name).map(JRProperty.fromNodePropertyHierarchy(_, renderInHtml)))
+      JRGroupInheritedProperties(groupId.serialize, properties.sortBy(_.prop.name).map(JRProperty.fromNodePropertyHierarchy(_, renderInHtml)))
     }
   }
 
@@ -677,12 +677,12 @@ object JsonResponseObjects {
       group.into[JRGroup]
         .enableBeanGetters
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.value)
+        .withFieldComputed(_.id, _.id.serialize)
         .withFieldRenamed(_.name, _.displayName)
         .withFieldConst(_.category, catId.value)
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
-        .withFieldComputed(_.groupClass, x => List(x.id.value, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
+        .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
         .withFieldComputed(_.properties, _.properties.map(JRProperty.fromGroupProp(_)))
         .withFieldComputed(_.target, x => GroupTarget(x.id).target)
         .withFieldComputed(_.system, _.isSystem)

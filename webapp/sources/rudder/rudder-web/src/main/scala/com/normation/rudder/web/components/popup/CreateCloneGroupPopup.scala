@@ -119,7 +119,7 @@ class CreateCloneGroupPopup(
         val parentCategoryId = NodeGroupCategoryId(groupContainer.get)
         val isDynamic = isStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
-        val nodeId = NodeGroupId(uuidGen.newUuid)
+        val nodeId = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
         val clone = NodeGroup(
             nodeId
           , groupName.get
@@ -140,7 +140,7 @@ class CreateCloneGroupPopup(
         ).toBox match {
           case Full(x) =>
             closePopup() &
-            onSuccessCallback(x.group.id.value) &
+            onSuccessCallback(x.group.id.serialize) &
             onSuccessGroup(Right(x.group), parentCategoryId)
           case Empty =>
             logger.error("An error occurred while saving the group")

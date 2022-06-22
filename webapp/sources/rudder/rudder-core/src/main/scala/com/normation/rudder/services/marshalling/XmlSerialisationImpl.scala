@@ -234,7 +234,7 @@ class NodeGroupCategorySerialisationImpl(xmlVersion:String) extends NodeGroupCat
 class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisation {
   def serialise(group:NodeGroup):  Elem = {
     createTrimedElem(XML_TAG_NODE_GROUP, xmlVersion) (
-        <id>{group.id.value}</id>
+        <id>{group.id.withDefaultRev.serialize}</id>
         <displayName>{group.name}</displayName>
         <description>{group.description}</description>
         <query>{ group.query.map( _.toJSONString ).getOrElse("") }</query>
@@ -382,7 +382,7 @@ class ChangeRequestChangesSerialisationImpl(
 
       case changeRequest : ConfigurationChangeRequest =>
         val groups = changeRequest.nodeGroups.map{ case (nodeGroupId,group) =>
-          <group id={nodeGroupId.value}>
+          <group id={nodeGroupId.withDefaultRev.serialize}>
             <initialState>
               {group.changes.initialState.map(nodeGroupSerializer.serialise(_)).getOrElse(NodeSeq.Empty)}
             </initialState>

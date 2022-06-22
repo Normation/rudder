@@ -270,7 +270,7 @@ class CreateCategoryOrGroupPopup(
         val query = Some(groupGenerator.flatMap(_.query).getOrElse(NewQuery(NodeReturnType,And,ResultTransformation.Identity,List(defaultLine))))
         val isDynamic = piStatic.get match { case "dynamic" => true ; case _ => false }
         val srvList =  groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
-        val nodeId = NodeGroupId(uuidGen.newUuid)
+        val nodeId = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
         val nodeGroup = NodeGroup(nodeId,piName.get,piDescription.get, Nil, query,isDynamic,srvList,true)
         woNodeGroupRepository.create(
             nodeGroup
@@ -281,7 +281,7 @@ class CreateCategoryOrGroupPopup(
         ).toBox match {
           case Full(x) =>
             closePopup() &
-            onSuccessCallback(x.group.id.value) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get)) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();"""))
+            onSuccessCallback(x.group.id.serialize) & onSuccessGroup(Right(x.group), NodeGroupCategoryId(piContainer.get)) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();"""))
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))

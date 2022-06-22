@@ -873,7 +873,7 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
       (for {
         res <- getGroups()
       } yield {
-        val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.value, name) }
+        val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
         // if current value is defined but not in the list, add it with a "missing group" label
         if(value != "") {
           g.find( _.value == value ) match {
