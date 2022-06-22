@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
 get:
-  summary: Technique metadata
-  description: Get all Technique versions with their metadata
+  summary: Technique metadata by ID
+  description: Get each Technique's versions with their metadata by ID
   operationId: getTechniqueAllVersion
   parameters:
     - $ref: ../../components/parameters/technique-id.yml
@@ -35,15 +35,17 @@ get:
                   - techniques
                 properties:
                   techniques:
-                    type: object
-                    required:
-                      - JREditorTechnique
-                    properties:
-                      JREditorTechnique:
-                        $ref: ../../components/schemas/techniques.yml
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - JREditorTechnique
+                      properties:
+                        JREditorTechnique:
+                          $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/id.sh

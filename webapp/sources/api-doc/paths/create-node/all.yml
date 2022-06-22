@@ -48,7 +48,7 @@ put:
                       description: failed nodes ID
   tags:
     - 🧩 Create Node
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/create-node/all.sh

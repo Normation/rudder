@@ -54,7 +54,7 @@ get:
 
   tags:
     - 🧩 User Management
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/usermanagement/roles.sh

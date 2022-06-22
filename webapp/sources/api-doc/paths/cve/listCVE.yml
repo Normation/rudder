@@ -52,7 +52,7 @@ post:
                       $ref: ../../components/schemas/cveDetails.yml
   tags:
     - 🧩 CVE
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/cve/listCVE.sh

@@ -37,7 +37,7 @@ post:
                     example: 12345
   tags:
     - 🧩 CVE
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/cve/updateCVEFS.sh

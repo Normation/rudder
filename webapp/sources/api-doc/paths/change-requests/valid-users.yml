@@ -34,7 +34,7 @@ get:
 
   tags:
     - 🧩 Change requests
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/change-requests/valid-users.sh

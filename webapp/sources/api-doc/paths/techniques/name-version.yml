@@ -42,7 +42,7 @@ get:
                       $ref: ../../components/schemas/directive.yml
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/name-version.sh

@@ -32,7 +32,7 @@ post:
                 example: "Incoming inventory watcher stopped"
   tags:
     - Inventories
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/inventories/stop.sh

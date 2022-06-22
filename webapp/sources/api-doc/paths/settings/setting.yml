@@ -46,7 +46,7 @@ get:
                     description: Id and value of the property
   tags:
     - Settings
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/settings/get-setting.sh
@@ -107,7 +107,7 @@ post:
                     description: Id and value of the property
   tags:
     - Settings
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/settings/set-setting.sh
