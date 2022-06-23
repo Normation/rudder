@@ -775,7 +775,7 @@ object ParentProperty {
     override def displayName: String = s"${name} (${id.value})"
   }
   final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends ParentProperty {
-    override def displayName: String = s"${name} (${id.value})"
+    override def displayName: String = s"${name} (${id.serialize})"
   }
   // a global parameter has the same name as property so no need to be specific for name
   final case class Global(value: ConfigValue) extends ParentProperty {
@@ -804,7 +804,7 @@ object JsonPropertySerialisation {
           (
             ( "kind"  -> "group" )
           ~ ( "name"  -> name    )
-          ~ ( "id"    -> id.value)
+          ~ ( "id"    -> id.serialize)
           ~ ( "value" -> GenericProperty.toJsonValue(value))
           )
         case _ => JNothing

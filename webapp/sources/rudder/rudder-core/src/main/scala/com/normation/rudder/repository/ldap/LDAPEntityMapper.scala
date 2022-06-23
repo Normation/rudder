@@ -48,6 +48,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.inventory.ldap.core.InventoryMappingRudderError
+import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -68,17 +69,21 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
+
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
+
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.logger.ApplicationLogger
+
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 
 import scala.util.control.NonFatal
+
 import com.normation.errors._
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -421,8 +426,11 @@ class LDAPEntityMapper(
   def dn2NodeGroupId(dn:DN) : NodeGroupId = {
     import net.liftweb.common._
     rudderDit.GROUP.getGroupId(dn) match {
-      case Full(value) => NodeGroupId(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Node Group ID. Error was: %s".format(dn,e.toString))
+      case Full(value) => NodeGroupId.parse(value) match {
+        case Left(err) => throw new RuntimeException(s"The dn ${dn} is not a valid Node Group ID. Error was: ${err}")
+        case Right(id) => id
+      }
+      case e:EmptyBox => throw new RuntimeException(s"The dn ${dn} is not a valid Node Group UID. Error was: ${e.toString}")
     }
   }
 
@@ -441,7 +449,7 @@ class LDAPEntityMapper(
     import net.liftweb.common._
     rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPDirectiveUid(dn) match {
       case Full(value) => DirectiveUid(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Directive ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Directive UID. Error was: %s".format(dn,e.toString))
     }
   }
 
@@ -449,7 +457,7 @@ class LDAPEntityMapper(
     import net.liftweb.common._
     rudderDit.RULES.getRuleUid(dn) match {
       case Full(value) => RuleUid(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule UID. Error was: %s".format(dn,e.toString))
     }
   }
 
@@ -592,7 +600,7 @@ class LDAPEntityMapper(
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
       //OK, translate
       for {
-        id      <- e.required(A_NODE_GROUP_UUID)
+        id      <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
         name    <- e.required(A_NAME)
         query   =  e(A_QUERY_NODE_GROUP)
         nodeIds =  e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
@@ -618,7 +626,7 @@ class LDAPEntityMapper(
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {
-         NodeGroup(NodeGroupId(id), name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem)
+         NodeGroup(id, name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem)
       }
     } else {
       Thread.currentThread().getStackTrace.foreach(println)
@@ -630,10 +638,10 @@ class LDAPEntityMapper(
   def entryToGroupNodeIds(e:LDAPEntry) : InventoryMappingPure[(NodeGroupId, Set[NodeId])] = {
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id <- e.required(A_NODE_GROUP_UUID)
+        id <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
         nodeIds = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
       } yield {
-        (NodeGroupId(id), nodeIds)
+        (id, nodeIds)
       }
     } else {
       Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}'. Entry details: ${e}"))
@@ -644,10 +652,10 @@ class LDAPEntityMapper(
   def entryToGroupNodeIdsChunk(e:LDAPEntry) : InventoryMappingPure[(NodeGroupId, Chunk[NodeId])] = {
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id <- e.required(A_NODE_GROUP_UUID)
+        id <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
         nodeIds = e.valuesForChunk(A_NODE_UUID).map(x => NodeId(x))
       } yield {
-        (NodeGroupId(id), nodeIds)
+        (id, nodeIds)
       }
     } else {
       Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RUDDER_NODE_GROUP}'. Entry details: ${e}"))
@@ -656,7 +664,7 @@ class LDAPEntityMapper(
 
   def nodeGroupToLdap(group: NodeGroup, parentDN: DN): LDAPEntry = {
     val entry = rudderDit.GROUP.groupModel(
-        group.id.value
+        group.id.serialize
       , parentDN
       , group.name
       , group.description
@@ -669,7 +677,7 @@ class LDAPEntityMapper(
     // we never ever want to save a property with a blank name
     val props = group.properties.collect { case p if(!p.name.trim.isEmpty) => p.toData }
     if(ApplicationLogger.isDebugEnabled && props.size != group.properties.size) {
-      ApplicationLogger.debug(s"Some properties from group '${group.name}' (${group.id.value}) were ignored because their name was blank and it's forbidden")
+      ApplicationLogger.debug(s"Some properties from group '${group.name}' (${group.id.serialize}) were ignored because their name was blank and it's forbidden")
     }
     entry.resetValuesTo(A_JSON_PROPERTY, props:_* )
     entry

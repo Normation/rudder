@@ -69,6 +69,7 @@ import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -546,7 +547,7 @@ object PolicyServerConfigurationObjects {
   def groupHasPolicyServer(nodeId: NodeId) = {
     val objectType = ObjectCriterion("node", Seq(Criterion("policyServerId", StringComparator, None),Criterion("agentName", AgentComparator, None)))
     NodeGroup(
-        NodeGroupId(s"hasPolicyServer-${nodeId.value}")
+        NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}"))
       , s"All nodes managed by '${nodeId.value}' policy server"
       , s"All nodes known by Rudder directly connected to the '${nodeId.value}' server. This group exists only as internal purpose and should not be used to configure Nodes."
       , Nil
@@ -572,7 +573,7 @@ object PolicyServerConfigurationObjects {
         RuleId(RuleUid(s"hasPolicyServer-${nodeId.value}"))
       , s"Rudder system policy: basic setup (common) - ${nodeId.value}"
       , RuleCategoryId("rootRuleCategory")
-      , Set(GroupTarget(NodeGroupId(s"hasPolicyServer-${nodeId.value}")))
+      , Set(GroupTarget(NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}"))))
       , Set(DirectiveId(DirectiveUid(s"common-hasPolicyServer-${nodeId.value}")))
       , "Common - Technical"
       , "This is the basic system rule which all nodes must have."

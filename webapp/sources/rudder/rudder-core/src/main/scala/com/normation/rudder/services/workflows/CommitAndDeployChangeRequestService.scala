@@ -78,7 +78,7 @@ trait CommitAndDeployChangeRequestService {
   /**
    * Save and deploy a change request.
    * That method must ensure that the change request
-   * is only commited if there is no conflict between
+   * is only committed if there is no conflict between
    * the changes it contains and the actual current
    * state of configuration.
    */
@@ -164,7 +164,7 @@ class CommitAndDeployChangeRequestServiceImpl(
        * In a string, we don't want to take care of a difference in the number of spaces
        * in names / description.
        * We also remove space in the end.
-       * Do not use it in a place where space may be significative, like a template.
+       * Do not use it in a place where space may be significant, like a template.
        */
     def normalizeString(text: String) : String = {
       text.replaceAll("""\s+""", " ").trim
@@ -228,7 +228,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
 
     // For now we only check the Directive, not the SectionSpec and the TechniqueName.
-    // The SectionSpec could be a problem (ie : A mono valued param was chanegd to multi valued without changing the technique version).
+    // The SectionSpec could be a problem (ie : A mono valued param was changed to multi valued without changing the technique version).
     final case class CheckDirective(changes : DirectiveChanges) extends CheckChanges[Directive]  {
       // used in serialisation
       val directiveContext = {
@@ -253,7 +253,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     final case object CheckGroup extends CheckChanges[NodeGroup]  {
-      def failureMessage(group : NodeGroup)  = s"Group ${group.name} (id: ${group.id.value})"
+      def failureMessage(group : NodeGroup)  = s"Group ${group.name} (id: ${group.id.serialize})"
       def getCurrentValue(group : NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial:NodeGroup, current:NodeGroup) = compareGroups(initial,current)
       def xmlSerialize(group : NodeGroup) = Full(xmlSerializer.group.serialise(group))
@@ -309,7 +309,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
         def displayTarget(target : RuleTarget) = {
           target match {
-            case GroupTarget(groupId) => s"group: ${groupId.value}"
+            case GroupTarget(groupId) => s"group: ${groupId.serialize}"
             case PolicyServerTarget(nodeId) => s"policyServer: ${nodeId.value}"
             case _ => target.target
           }
@@ -384,7 +384,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           currVal = currentFixed.parameters.get(key)
         } yield {
           if ( currVal != initVal) {
-            debugLog(s"Directive ID ${initialFixed.id.uid.value} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is mising")}, current value: ${currVal.getOrElse("value is mising")}")
+            debugLog(s"Directive ID ${initialFixed.id.uid.value} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is missing")}, current value: ${currVal.getOrElse("value is missing")}")
           }
         }
 
@@ -420,32 +420,32 @@ class CommitAndDeployChangeRequestServiceImpl(
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Group ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.description != currentFixed.description) {
-          debugLog(s"Group ID ${initialFixed.id.value} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
         }
 
         if ( initialFixed.query != currentFixed.query) {
-          debugLog(s"Group ID ${initialFixed.id.value} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}")
         }
 
         if ( initialFixed.isDynamic != currentFixed.isDynamic) {
-          debugLog(s"Group ID ${initialFixed.id.value} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}")
         }
 
         if ( initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(s"Group ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
         }
 
         // we compare nodes only for static group, not dynamic ones
         if (!(initialFixed.isDynamic && currentFixed.isDynamic) && initialFixed.serverList != currentFixed.serverList) {
-          debugLog(s"Group ID ${initialFixed.id.value} nodes list has changed: original state from CR: ${initialFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} nodes list has changed: original state from CR: ${initialFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}")
         }
 
         if( initialFixed.properties != currentFixed.properties ) {
-          debugLog(s"Group ID ${initialFixed.id.value} properties changed: original state from CR: ${initialFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Group ID ${initialFixed.id.serialize} properties changed: original state from CR: ${initialFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}")
         }
 
         //return
@@ -629,7 +629,7 @@ class CommitAndDeployChangeRequestServiceImpl(
      * Logic to commit Change request with multiple changes:
      *
      * - such a change request is NOT atomic, each change is
-     *   commited independently to other
+     *   committed independently to other
      * - from previous point, it may happen that a erroneous commit
      *   in a beginner element leads to other errors
      * - the commit order is DEFINED and FIXE

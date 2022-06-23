@@ -57,6 +57,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
@@ -154,7 +155,7 @@ class RuleValServiceTest extends Specification {
           ruleId
         , "Rule Name"
         , RuleCategoryId("cat1")
-        , Set(GroupTarget(NodeGroupId("nodeGroupId")))
+        , Set(GroupTarget(NodeGroupId(NodeGroupUid("nodeGroupId"))))
         , Set(DirectiveId(directiveId))
         , ""
         , ""

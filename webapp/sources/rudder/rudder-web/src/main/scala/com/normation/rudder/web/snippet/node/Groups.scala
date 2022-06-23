@@ -148,7 +148,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    */
   private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory]) : JsCmd = {
     def displayDetailsGroup(groupId:String) = {
-      val gid = NodeGroupId(groupId)
+      val gid = NodeGroupId(NodeGroupUid(groupId))
       rootCategory match {
         case eb: EmptyBox => Noop
         case Full(lib) => lib.allGroups.get(gid) match {
@@ -213,7 +213,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 case Left((newGroup,newParentId)) =>
                   refreshGroupLib()
                   val newPanel = GroupForm(newGroup, newParentId)
-                  refreshTree(htmlTreeNodeId(newGroup.fold(_.target, _.id.value))) &
+                  refreshTree(htmlTreeNodeId(newGroup.fold(_.target, _.id.serialize))) &
                   refreshRightPanel(newPanel)
                 case Right(crId) =>
                   linkUtil.redirectToChangeRequestLink(crId)
@@ -344,15 +344,15 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
        }) match {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
-            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Group moved by user")).toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
-            group  <- Box(lib.allGroups.get(NodeGroupId(sourceGroupId))) ?~! s"No such group: ${sourceGroupId}"
+            result <- woNodeGroupRepository.move(NodeGroupId(NodeGroupUid(sourceGroupId)), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Group moved by user")).toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            group  <- Box(lib.allGroups.get(NodeGroupId(NodeGroupUid(sourceGroupId)))) ?~! s"No such group: ${sourceGroupId}"
           } yield {
             (group.nodeGroup, lib.categoryByGroupId(group.nodeGroup.id))
           }) match {
             case Full((ng,cat)) =>
               refreshGroupLib()
               (
-                  refreshTree(htmlTreeNodeId(ng.id.value))
+                  refreshTree(htmlTreeNodeId(ng.id.serialize))
                 & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId))
                 & refreshRightPanel(GroupForm(Right(ng),cat))
               )
@@ -429,7 +429,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   private[this] def showGroupSection(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
     val js = g match {
       case Left(target) => s"'target':'${target.target}'"
-      case Right(ng)    => s"'groupId':'${ng.id.value}'"
+      case Right(ng)    => s"'groupId':'${ng.id.serialize}'"
     }
     refreshRightPanel(GroupForm(g, parentCategoryId))&
     JsRaw(s"""

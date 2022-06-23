@@ -286,7 +286,7 @@ object JsonQueryObjects {
   )
 
   final case class JQGroup(
-      id          : Option[String]              = None
+      id          : Option[NodeGroupId]         = None
     , displayName : Option[String]              = None
     , description : Option[String]              = None
     , properties  : Option[List[GroupProperty]] = None
@@ -294,8 +294,7 @@ object JsonQueryObjects {
     , dynamic     : Option[Boolean]             = None
     , enabled     : Option[Boolean]             = None
     , category    : Option[NodeGroupCategoryId] = None
-    , source      : Option[String]              = None
-    , sourceRevision : Option[String]              = None
+    , source      : Option[NodeGroupId]         = None
   ) {
 
     val onlyName = displayName.isDefined &&
@@ -315,7 +314,8 @@ object JsonQueryObjects {
         p <- CompareProperties.updateProperties(group.properties, properties)
       } yield {
         group.patchUsing(GroupPatch(
-            id.map(NodeGroupId)
+            // we can't change id, but revision yes
+            Some(NodeGroupId(group.id.uid, id.map(_.rev).getOrElse(group.id.rev)))
           , displayName
           , description
           , Some(p)
@@ -392,7 +392,7 @@ trait RudderJsonDecoders {
     import cats.implicits._
     JsonDecoder[List[String]].mapOrFail(list => list.traverse(x => DirectiveId.parse(x)).map(_.toSet))
   }
-  implicit val ruleIdIdDecoder: JsonDecoder[RuleId]  = JsonDecoder[String].mapOrFail(x => RuleId.parse(x))
+  implicit val ruleIdIdDecoder: JsonDecoder[RuleId] = JsonDecoder[String].mapOrFail(x => RuleId.parse(x))
   implicit val directiveIdDecoder: JsonDecoder[DirectiveId]  = JsonDecoder[String].mapOrFail(x => DirectiveId.parse(x))
 
   // RestRule
@@ -420,6 +420,7 @@ trait RudderJsonDecoders {
   implicit val queryDecoder: JsonDecoder[StringQuery] = DeriveJsonDecoder.gen[JQStringQuery].map(_.toQueryString)
   implicit val groupPropertyDecoder: JsonDecoder[JQGroupProperty] = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2: JsonDecoder[GroupProperty] = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
+  implicit val nodeGroupIdDecoder: JsonDecoder[NodeGroupId] = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
   implicit val groupDecoder: JsonDecoder[JQGroup] = DeriveJsonDecoder.gen
 
   implicit val ruddercTargetDecoder: JsonDecoder[RuddercTarget] = JsonDecoder[String].mapOrFail(s =>
@@ -604,9 +605,11 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       dynamic     <- params.parse ("dynamic"   , JsonDecoder[Boolean])
       query       <- params.parse2("query"     , queryParser.lex(_).toPureResult)
       properties  <- params.parse ("properties", JsonDecoder[List[GroupProperty]])
+      id          <- params.parseString("id", NodeGroupId.parse)
+      source      <- params.parseString("source", NodeGroupId.parse)
     } yield {
       JQGroup(
-          params.optGet("id")
+          id
         , params.optGet("displayName")
         , params.optGet("description")
         , properties
@@ -614,7 +617,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         , dynamic
         , enabled
         , params.optGet("category").map(NodeGroupCategoryId)
-        , params.optGet("source")
+        , source
       )
     }
   }

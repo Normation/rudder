@@ -43,6 +43,7 @@ import com.normation.inventory.ldap.core.LDAPConstants.OC_MACHINE
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.Criterion
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
@@ -105,7 +106,7 @@ class TestPendingNodePolicies extends Specification {
   ))
 
   //a query line for sub group
-  def sub(g: NodeGroup) = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.value)
+  def sub(g: NodeGroup) = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
   // a random query that will be added as dummy content - query checker will returns pre-defined things
   val cl = CriterionLine(
       ObjectCriterion(OC_MACHINE, Seq(Criterion(A_MACHINE_UUID, StringComparator)))
@@ -124,7 +125,7 @@ class TestPendingNodePolicies extends Specification {
   val dummyQuery1 = NewQuery(null, Or , Identity, List(cl)) // will return 1 node
 
   def ng(id: String, q: QueryTrait, dyn: Boolean = true) =
-    NodeGroup(NodeGroupId(id), id, id, Nil, Some(q), dyn, Set(), true, false)
+    NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, Some(q), dyn, Set(), true, false)
 
   // groups
   val c = ng("c", dummyQuery1) // ok
@@ -190,7 +191,7 @@ class TestPendingNodePolicies extends Specification {
           e.rootExceptionCause.foreach(ex => ex.printStackTrace())
           throw new RuntimeException(e.messageChain)
         case Full(res) =>
-          res.apply(node).map(_.value).sorted
+          res.apply(node).map(_.serialize).sorted
       }
       groups must containTheSameElementsAs(List("a", "b", "c", "d", "i", "j", "k", "m", "n", "o", "p"))
     }

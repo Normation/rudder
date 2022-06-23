@@ -122,6 +122,7 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.VMWare
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -437,14 +438,14 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
    *   ************************************************************************
    */
 
-  val g0id = NodeGroupId("0")
+  val g0id = NodeGroupId(NodeGroupUid("0"))
   val g0 = NodeGroup (g0id, "Real nodes", "", Nil, None, false, Set(rootId, node1.id, node2.id), true)
-  val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", Nil, None, false, Set(), true)
-  val g2 = NodeGroup (NodeGroupId("2"), "only root", "", Nil, None, false, Set(NodeId("root")), true)
-  val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true)
-  val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true)
-  val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true)
-  val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true)
+  val g1 = NodeGroup (NodeGroupId(NodeGroupUid("1")), "Empty group", "", Nil, None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId(NodeGroupUid("2")), "only root", "", Nil, None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId(NodeGroupUid("3")), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true)
+  val g4 = NodeGroup (NodeGroupId(NodeGroupUid("4")), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true)
+  val g5 = NodeGroup (NodeGroupId(NodeGroupUid("5")), "Nodes id divided by 3", "", Nil, None, false, nodeIds.filter(_.value.toInt == 3), true)
+  val g6 = NodeGroup (NodeGroupId(NodeGroupUid("6")), "Nodes id divided by 5", "", Nil, None, false, nodeIds.filter(_.value.toInt == 5), true)
   val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
   val groupTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
@@ -681,8 +682,8 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       targetInfos = List(
           FullRuleTargetInfo(
               FullGroupTarget(
-                  GroupTarget(NodeGroupId("a-group-for-root-only"))
-                , NodeGroup(NodeGroupId("a-group-for-root-only")
+                  GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only")))
+                , NodeGroup(NodeGroupId(NodeGroupUid("a-group-for-root-only"))
                     , "Serveurs [€ðŋ] cassés"
                     , "Liste de l'ensemble de serveurs cassés à réparer"
                     , Nil

@@ -77,7 +77,7 @@ class TestMergeGroupProperties extends Specification {
 
   implicit class ToTarget(g: NodeGroup) {
     def toTarget = FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", true, true)
-    def toCriterion = CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.value)
+    def toCriterion = CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.serialize)
   }
 
   implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {
@@ -130,20 +130,20 @@ class TestMergeGroupProperties extends Specification {
    *    node
    */
 
-  val parent1   = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+  val parent1   = NodeGroup(NodeGroupId(NodeGroupUid("parent1")), "parent1", "",
       List(GroupProperty("foo", GitVersion.DEFAULT_REV, "bar1".toConfigValue, None, None))
     , Some(NewQuery(NodeReturnType, And, Identity, List()))
     , true, Set(), true
   )
   val parent2Prop = GroupProperty("foo", GitVersion.DEFAULT_REV, "bar2".toConfigValue, None, None)
-  val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+  val parent2   = NodeGroup(NodeGroupId(NodeGroupUid("parent2")), "parent2", "",
       List(parent2Prop)
     , Some(NewQuery(NodeReturnType, And, Identity, List()))
     , true, Set(), true
   )
   val childProp = GroupProperty("foo", GitVersion.DEFAULT_REV, "baz".toConfigValue, None, None)
   val query = NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion))
-  val child = NodeGroup(NodeGroupId("child"), "child", "",
+  val child = NodeGroup(NodeGroupId(NodeGroupUid("child")), "child", "",
       List(childProp)
     , Some(query)
     , true, Set(), true
@@ -178,12 +178,12 @@ class TestMergeGroupProperties extends Specification {
   "when looking for a node property, we" should {
 
     "be able to detect conflict" in {
-      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+      val parent1 = NodeGroup(NodeGroupId(NodeGroupUid("parent1")), "parent1", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+      val parent2   = NodeGroup(NodeGroupId(NodeGroupUid("parent2")), "parent2", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
@@ -197,17 +197,17 @@ class TestMergeGroupProperties extends Specification {
     }
 
     "be able to correct conflict" in {
-      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+      val parent1 = NodeGroup(NodeGroupId(NodeGroupUid("parent1")), "parent1", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+      val parent2   = NodeGroup(NodeGroupId(NodeGroupUid("parent2")), "parent2", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
+      val priorize   = NodeGroup(NodeGroupId(NodeGroupUid("parent3")), "parent3", "",
           Nil
         , Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion)))
         , true, Set(), true
@@ -227,22 +227,22 @@ class TestMergeGroupProperties extends Specification {
      * node in p4 and p3
      */
     "one can solve conflicts at parent level" in {
-      val parent1 = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+      val parent1 = NodeGroup(NodeGroupId(NodeGroupUid("parent1")), "parent1", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val parent2   = NodeGroup(NodeGroupId("parent2"), "parent2", "",
+      val parent2   = NodeGroup(NodeGroupId(NodeGroupUid("parent2")), "parent2", "",
           List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None))
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val priorize   = NodeGroup(NodeGroupId("parent3"), "parent3", "",
+      val priorize   = NodeGroup(NodeGroupId(NodeGroupUid("parent3")), "parent3", "",
           Nil
         , Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion)))
         , true, Set(), true
       )
-      val parent4   = NodeGroup(NodeGroupId("parent4"), "parent4", "",
+      val parent4   = NodeGroup(NodeGroupId(NodeGroupUid("parent4")), "parent4", "",
           Nil
         , Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion)))
         , true, Set(), true
@@ -284,12 +284,12 @@ class TestMergeGroupProperties extends Specification {
         , res => res
         )
       }.toList
-      val parent = NodeGroup(NodeGroupId("parent1"), "parent1", "",
+      val parent = NodeGroup(NodeGroupId(NodeGroupUid("parent1")), "parent1", "",
           toProps(parentProps)
         , Some(NewQuery(NodeReturnType, And, Identity, List()))
         , true, Set(), true
       )
-      val child = NodeGroup(NodeGroupId("child"), "child", "",
+      val child = NodeGroup(NodeGroupId(NodeGroupUid("child")), "child", "",
           toProps(childProps)
         , Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion)))
         , true, Set(), true

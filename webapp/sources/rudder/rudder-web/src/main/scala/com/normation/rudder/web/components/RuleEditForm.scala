@@ -51,10 +51,13 @@ import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
+
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -71,6 +74,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.web.ChooseTemplate
+
 import com.normation.box._
 
 object RuleEditForm {
@@ -254,7 +258,7 @@ class RuleEditForm(
       } yield {
         val checkLinkType =
           if(gt.target.startsWith("group:")){
-            linkUtil.groupLink(NodeGroupId(gt.target.replaceFirst("group:", "")))
+            linkUtil.groupLink(NodeGroupId(NodeGroupUid(gt.target.replaceFirst("group:", ""))))
           }else{
             linkUtil.targetLink(gt)
           }

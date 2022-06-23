@@ -476,7 +476,8 @@ class EventLogDetailsServiceImpl(
                             else Failure("NodeGroup attribute does not have changeType=modify: " + entry.toString())
                           }
       fileFormatOk    <- TestFileFormat(group)
-      id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry.toString())
+      sid             <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry.toString())
+      id              <- NodeGroupId.parse(sid).toBox
       displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry.toString())
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
@@ -493,7 +494,7 @@ class EventLogDetailsServiceImpl(
       isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
     } yield {
       ModifyNodeGroupDiff(
-          id = NodeGroupId(id)
+          id = id
         , name = displayName
         , modName = name
         , modDescription = description

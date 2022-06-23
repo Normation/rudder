@@ -96,10 +96,10 @@ class DynGroupUpdaterServiceImpl(
     for {
       _                <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
       timePreCompute   =  System.currentTimeMillis
-      query            <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.value})"
-      newMembers       <- queryProcessor.processOnlyId(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.value})"
+      query            <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.serialize})"
+      newMembers       <- queryProcessor.processOnlyId(query) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupCompute = (System.currentTimeMillis - timePreCompute)
-      _                = logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} computed in ${timeGroupCompute} ms")
+      _                = logger.debug(s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms")
     } yield {
       group.copy(serverList = newMembers)
     }
@@ -113,7 +113,7 @@ class DynGroupUpdaterServiceImpl(
         group =>
           for {
             newGroup   <- computeDynGroup(group)
-            savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+            savedGroup <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
           } yield {
             DynGroupDiff(newGroup, group)
           }
@@ -128,9 +128,9 @@ class DynGroupUpdaterServiceImpl(
     for {
       (group,_)        <- roNodeGroupRepository.getNodeGroup(dynGroupId).toBox
       newGroup         <- computeDynGroup(group)
-      savedGroup       <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
+      savedGroup       <- woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason).toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupUpdate  =  (System.currentTimeMillis - timePreUpdate)
-      _                =  logger.debug(s"Dynamic group ${group.id.value} with name ${group.name} updated in ${timeGroupUpdate} ms")
+      _                =  logger.debug(s"Dynamic group ${group.id.serialize} with name ${group.name} updated in ${timeGroupUpdate} ms")
     } yield {
       DynGroupDiff(newGroup, group)
     }

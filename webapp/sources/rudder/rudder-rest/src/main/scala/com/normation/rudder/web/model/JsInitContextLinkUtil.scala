@@ -69,7 +69,7 @@ class LinkUtil (
   , nodeInfoService       : NodeInfoService
 ) extends Loggable {
   def baseGroupLink(id:NodeGroupId) =
-    s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
+    s"""/secure/nodeManager/groups#{"groupId":"${id.serialize}"}"""
 
   def baseTargetLink(target: RuleTarget) =
     s"""/secure/nodeManager/groups#{"target":"${target.target}"}"""
@@ -142,10 +142,10 @@ class LinkUtil (
 
   def createGroupLink(id:NodeGroupId) = {
     roGroupRepository.getNodeGroup(id).either.runNow match {
-      case Right((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.value})</span>
+      case Right((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.serialize})</span>
       case Left(err)        =>
-        logger.error(s"Could not find NodeGroup with Id ${id.value}. Error was: ${err.fullMsg}")
-        <span> {id.value} </span>
+        logger.error(s"Could not find NodeGroup with Id ${id.serialize}. Error was: ${err.fullMsg}")
+        <span> {id.serialize} </span>
     }
   }
 
