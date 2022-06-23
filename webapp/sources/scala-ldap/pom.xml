@@ -19,7 +19,7 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>6.2.14</version>
+    <version>6.2.14-backports-21322</version>
   </parent>
 
   <artifactId>scala-ldap</artifactId>
