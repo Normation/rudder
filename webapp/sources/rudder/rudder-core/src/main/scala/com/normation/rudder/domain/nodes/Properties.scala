@@ -372,6 +372,9 @@ object GenericProperty {
         s"""{"x":
             ${value}
             }""").getValue("x")
+
+    }.orElse {
+      PureResult.effect(s"Error: value is not parsable as a property: ${value}"){ConfigValueFactory.fromAnyRef(value)}
     }
   }
 
