@@ -508,7 +508,7 @@ object RestTestSetUp {
   val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
   val nodeApiService4  = new NodeApiService4(nodeInfo, nodeInfo, softDao, uuidGen, restExtractorService, restDataSerializer, roReportsExecutionRepository)
   val nodeApiService6  = new NodeApiService6(nodeInfo, nodeInfo, softDao, restExtractorService, restDataSerializer, mockNodes.queryProcessor, null, roReportsExecutionRepository)
-  val nodeApiService8  = new NodeApiService8(null, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", null)
+  val nodeApiService8  = new NodeApiService8(nodeInfo, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", userService)
   val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
   val nodeApiService13 = new NodeApiService13(nodeInfo, roReportsExecutionRepository, softDao,restExtractorService, () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),null, null, null )
 

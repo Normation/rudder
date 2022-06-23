@@ -74,6 +74,7 @@ import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -90,6 +91,7 @@ import net.liftweb.json.JsonDSL.string2jvalue
 import scalaj.http.Http
 import scalaj.http.HttpOptions
 import com.normation.rudder.domain.nodes.NodeProperty
+
 import com.normation.box._
 import com.normation.zio._
 import com.normation.errors._
@@ -114,6 +116,7 @@ import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.utils.DateFormaterService
+
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.JDouble
@@ -121,6 +124,7 @@ import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
+
 import zio.ZIO
 import zio.duration._
 
@@ -254,7 +258,8 @@ class NodeApi (
 
       (for {
         restNode <- if(req.json_?) {
-                      req.json.flatMap(body => restExtractor.extractNodeFromJSON(body))
+                      req.json.flatMap{ body =>
+                        restExtractor.extractNodeFromJSON(body)}
                     } else {
                       restExtractor.extractNode(req.params)
                     }

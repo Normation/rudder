@@ -184,7 +184,7 @@ object NodeDetailLevel {
     val runDate      : INFO => JValue = (info:INFO) => info._2.map(d => JString(serializeDate(info._3, d))).getOrElse(JNothing)
     // this date should have had a timezone in it
     val inventoryDate: INFO => JValue = (info:INFO) => serializeDate(info._3, info._1.inventoryDate)
-    val properties   : INFO => JValue = (info:INFO) => info._1.properties.toApiJson
+    val properties   : INFO => JValue = (info:INFO) => info._1.properties.sortBy(_.name).toApiJson
     val policyMode   : INFO => JValue = (info:INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
     val timezone     : INFO => JValue = (info:INFO) => info._1.timezone.map( t => ("name" -> t.name) ~ ("offset" -> t.offset) )
 
