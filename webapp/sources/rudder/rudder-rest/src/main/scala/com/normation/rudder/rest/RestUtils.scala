@@ -42,6 +42,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -49,11 +50,23 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.Req
 import net.liftweb.http._
-import net.liftweb.http.js.JsExp
+import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST.RenderSettings
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo
+
+
+/*
+ * A JsonResponse able to keep pretty format is asked to.
+ * It's basically a copy/post of lift JsonResponse
+ */
+case class JsonResponsePrettify(json: JValue, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int, prettify: Boolean) extends LiftResponse {
+  def toResponse = {
+    val bytes = (if(prettify) RestUtils.render(json) else compactRender(json)).getBytes("UTF-8")
+    InMemoryResponse(bytes, ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json; charset=utf-8") :: headers, cookies, code)
+  }
+}
 
 /**
  */
@@ -145,12 +158,8 @@ object RestUtils extends Loggable {
                   ( "id"     -> id ) ~
                   ( "result" -> status.status ) ~
                   ( status.container   ->  message )
-    val content : JsExp = new JsExp {
-      lazy val toJsCmd = if(prettify) render(json) else compactRender(json)
-    }
 
-    JsonResponse(content,List(),List(), status.code)
-
+    JsonResponsePrettify(json, List(), List(), status.code, prettify)
   }
 
   def toJsonResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) : LiftResponse = {

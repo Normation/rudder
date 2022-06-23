@@ -276,8 +276,16 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Parsing Windows 2012" should {
     "parse as windows 2012" in {
-      val os = parseRun("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
-      os === Windows2012
+      val os = parseRun("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails
+      os match {
+        case Windows(osType, _, _, _, _, ud, rc, pk, pid) =>
+          (osType === Windows2012) and
+          (ud === None) and
+          (rc === Some("Amazon.com")) and
+          (pk === Some("T3VD8-82QFK-QCFB9-WV3TF-QGJ3F")) and
+          (pid === Some("00184-30000-00001-AA420"))
+        case x => ko(s"I was expecting a windows 2012, got: ${x}")
+      }
     }
     "parse as windows 2012" in {
       val os = parseRun("fusion-inventories/windows2012r2.ocs").node.main.osDetails.os

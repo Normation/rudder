@@ -76,12 +76,6 @@ tags:
 
 
       Manage relays.
-  - name: "🧩 Create Node"
-    description: >-
-      **Requires that the `create-node` plugin is installed on the server.**
-
-
-      Add new nodes.
   - name: "🧩 User Management"
     description: >-
       **Requires that the `user-management` plugin is installed on the server.**
@@ -109,8 +103,6 @@ paths:
     $ref: paths/info/endpoint-id.yml
   "/status":
     $ref: paths/unauthenticated/status.yml
-  "/createnodes":
-    $ref: paths/create-node/all.yml
   "/usermanagement/users":
     $ref: paths/usermanagement/all.yml
   "/usermanagement/{username}":

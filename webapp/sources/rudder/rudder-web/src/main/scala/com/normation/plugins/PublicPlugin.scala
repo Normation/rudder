@@ -133,33 +133,33 @@ trait DefaultPluginDef extends RudderPluginDef {
    * "Plugins" menu. Override that method if you want a more potent
    * interaction with Rudder menu (at the risk of breaking it).
    */
-  def pluginMenuEntry: Option[Menu] = None
-  def pluginMenuParent: Option[Menu] = None
+  def pluginMenuEntry: List[(Menu, Option[String])] = Nil
+  def pluginMenuParent: List[Menu] = Nil
 
   override def updateSiteMap(menus:List[Menu]) : List[Menu] = {
 
-    pluginMenuEntry match {
-      case None       => menus
-      case Some(menu@Menu(loc,_*)) =>
-        val (parentName, updatedMenu) = pluginMenuParent match {
-          case None => (MenuUtils.pluginsMenu, menus)
-          case Some(parentMenu) =>
-            val menu = if (menus.exists (_.loc.name == parentMenu.loc.name )) {
-               menus
-            } else {
-              ( parentMenu :: menus).sortBy(_.loc.name)
-            }
-            (parentMenu.loc.name,menu)
-        }
 
-        updatedMenu.map {
-          case m@Menu(l, _* ) if(l.name == parentName) =>
+    val updatedMenu = pluginMenuParent.foldRight(menus) {
+      case(newParent,menu) =>
+        if (menu.exists (_.loc.name == newParent.loc.name )) {
+          menu
+        } else {
+          newParent :: menu
+        }
+    }.sortBy(_.loc.name)
+
+    pluginMenuEntry.foldRight(updatedMenu){
+      case((newMenu,optParent),menu) =>
+        val parent = optParent.getOrElse(MenuUtils.pluginsMenu)
+
+        menu.map {
+          case m@Menu(l, _* ) if(l.name == parent) =>
             // We need to avoid collision on name/loc
-            if (m.kids.exists (_.loc.name == loc.name)) {
-              PluginLogger.error(s"There is already a menu with id (${loc.name}, please contact Plugin team")
+            if (m.kids.exists (_.loc.name == newMenu.loc.name)) {
+              PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
               m
             } else {
-              Menu(l , (m.kids :+ menu).sortBy(_.loc.name):_* )
+              Menu(l , (m.kids :+ newMenu).sortBy(_.loc.name):_* )
             }
           case m => m
         }
