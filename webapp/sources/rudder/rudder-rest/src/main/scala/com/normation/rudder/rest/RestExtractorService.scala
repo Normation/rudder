@@ -694,9 +694,8 @@ final case class RestExtractorService (
         }
         (for {
           _ <- PropertyParser.validPropertyName(nameValue)
-          p <- NodeProperty.parse(nameValue, GenericProperty.serializeJson(value), inheritMode, provider)
         } yield {
-          p
+          NodeProperty(nameValue, GenericProperty.fromJsonValue(value), inheritMode, provider)
         }).toBox
 
       case (a, b)  =>

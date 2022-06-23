@@ -128,7 +128,7 @@ final case class RestDataSerializerImpl (
 
   def serializeNode(node : Node) : JValue = {
     (   ("id"         -> node.id.value)
-      ~ ("properties" -> node.properties.toApiJson)
+      ~ ("properties" -> node.properties.sortBy(_.name).toApiJson)
       ~ ("policyMode" -> node.policyMode.map(_.name).getOrElse("default"))
       ~ ("state"      -> node.state.name)
     )
@@ -226,7 +226,7 @@ final case class RestDataSerializerImpl (
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled )
       ~ ("groupClass"      -> List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _).sorted)
-      ~ ("properties"      -> group.properties.toApiJson)
+      ~ ("properties"      -> group.properties.sortBy(_.name).toApiJson)
     )
   }
 
