@@ -26,6 +26,12 @@ import VirtualDom
   CONDITION
 -}
 
+checkConstraintOnCondition: Condition -> ValidationState MethodCallConditionError
+checkConstraintOnCondition condition =
+  if(String.contains "\n" condition.advanced) then
+    InvalidState [ReturnCarrigeForbidden]
+  else
+    ValidState
 
 -- /END VERSION in the condition part --
 
@@ -102,15 +108,15 @@ accumulateValidationState validations base =
 
 accumulateErrorConstraint: CallParameter -> List Constraint -> ValidationState MethodCallParamError -> ValidationState MethodCallParamError
 accumulateErrorConstraint call constraints base =
-  accumulateValidationState (List.map  (checkConstraint call) constraints ) base
+  accumulateValidationState (List.map  (checkConstraintOnParameter call) constraints ) base
 
-checkConstraint: CallParameter -> Constraint -> ValidationState MethodCallParamError
-checkConstraint call constraint =
+checkConstraintOnParameter: CallParameter -> Constraint -> ValidationState MethodCallParamError
+checkConstraintOnParameter call constraint =
   case constraint of
-    AllowEmpty True -> ValidState
-    AllowEmpty False -> if (isEmptyValue call.value) then InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' is empty")}] else ValidState
-    AllowWhiteSpace True -> ValidState
-    AllowWhiteSpace False -> case Regex.fromString "(^\\s)|(\\s$)" of
+    AllowEmpty          True -> ValidState
+    AllowEmpty          False -> if (isEmptyValue call.value) then InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' is empty")}] else ValidState
+    AllowWhiteSpace     True -> ValidState
+    AllowWhiteSpace     False -> case Regex.fromString "(^\\s)|(\\s$)" of
                                Nothing -> ValidState
                                Just r -> if Regex.contains r (displayValue call.value) then InvalidState [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else ValidState
     MaxLength max -> if lengthValue call.value >= max then  InvalidState [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long" ) } ]else ValidState
@@ -154,7 +160,11 @@ showMethodTab model method parentId call uiInfo=
     CallConditions ->
       let
         condition = call.condition
-
+        errorOnConditionInput =
+          if(String.contains "\n" call.condition.advanced) then
+            ul [ class "list-unstyled" ] [ li [ class "text-danger" ] [ text "Return carriage is forbidden in condition" ] ]
+          else
+            div[][]
         ubuntuLi = List.map (\ubuntuMinor ->
                      let
                        updatedCall = Call parentId { call | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
@@ -244,11 +254,22 @@ showMethodTab model method parentId call uiInfo=
         ]
       , div [ class "form-group condition-form" ] [
           label [ for "advanced"] [ text "Other conditions:" ]
-        , textarea [  readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)),  onFocus DisableDragDrop, name "advanced", class "form-control", rows 1, id "advanced", value condition.advanced, onInput (\s ->
+        , textarea [  readonly (not model.hasWriteRights)
+                   , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                   , onFocus DisableDragDrop
+                   , name "advanced"
+                   , class "form-control"
+                   , rows 1
+                   , id "advanced"
+                   , value condition.advanced
+                   , attribute "onkeypress" "if (event.keyCode == 13) alert('You pressed the return button.'); return false;"
+                   , onInput (\s ->
                      let
                        updatedCondition = {condition | advanced = s }
                        updatedCall = Call parentId {call | condition = updatedCondition }
-                     in MethodCallModified updatedCall)  ] []
+                     in MethodCallModified updatedCall)
+                   ] []
+        , errorOnConditionInput
        ]
       , div [ class "form-group condition-form" ] [
           label [ for "class_context" ] [ text "Applied condition expression:" ]
@@ -535,11 +556,5 @@ callBody model ui techniqueUi call pid =
 
                         ) (ui.mode == Opened)
 
-        ]
-       {-, element "div"
-         |> addAttributeList [ class "edit-method popover-bs", onClick editAction
-                 , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-placement" "left"
-                 --, attribute "data-template" "{{getStatusTooltipMessage(method_call)}}", attribute "data-container" "body"
-                 , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'""" ]
-         |> appendChild (element "i" |> addClass "ion ion-edit" ) -}
-     ]
+         ]
+    ]
