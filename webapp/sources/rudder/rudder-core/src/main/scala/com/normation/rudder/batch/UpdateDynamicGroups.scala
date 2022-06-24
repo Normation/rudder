@@ -235,15 +235,15 @@ class UpdateDynamicGroups(
         } {
           eitherRes match {
             case Left(e) =>
-              val error = (e.fullMsg + s" Error when updating dynamic group '${id.value}'")
+              val error = (e.fullMsg + s" Error when updating dynamic group '${id.serialize}'")
               logger.error(error)
             case Right(diff) =>
               val addedNodes = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
-              logger.debug(s"Group ${id.value}: adding ${addedNodes}, removing ${removedNodes}")
+              logger.debug(s"Group ${id.serialize}: adding ${addedNodes}, removing ${removedNodes}")
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
-                logger.info(s"Dynamic group ${id.value}: added node with id: ${addedNodes}, removed: ${removedNodes}")
+                logger.info(s"Dynamic group ${id.serialize}: added node with id: ${addedNodes}, removed: ${removedNodes}")
                 // we need to trigger a deployment in this case
                 needDeployment = true
               }

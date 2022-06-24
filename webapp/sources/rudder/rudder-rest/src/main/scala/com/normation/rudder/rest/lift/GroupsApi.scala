@@ -120,8 +120,11 @@ class GroupsApi(
   }
   object Get extends LiftApiModuleString {
     val schema = API.GroupDetails
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        id  <- NodeGroupId.parse(sid).toIO
+        res <- serviceV14.groupDetails(id)
+      } yield res).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -129,7 +132,7 @@ class GroupsApi(
     val schema = API.GroupInheritedProperties
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).either.runNow match {
+      inheritedProperties.getNodePropertiesTree(NodeGroupId(NodeGroupUid(id)), RenderInheritedProperties.JSON).either.runNow match {
         case Right(value) =>
           toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
         case Left(err)    =>
@@ -142,7 +145,7 @@ class GroupsApi(
     val schema = API.GroupDisplayInheritedProperties
     val restExtractor = restExtractorService
     def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).either.runNow match {
+      inheritedProperties.getNodePropertiesTree(NodeGroupId(NodeGroupUid(id)), RenderInheritedProperties.HTML).either.runNow match {
         case Right(value) =>
           toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
         case Left(err)    =>
@@ -332,29 +335,37 @@ class GroupsApi(
   }
   object GetV14 extends LiftApiModuleString {
     val schema = API.GroupDetails
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      NodeGroupId.parse(sid).toIO.flatMap(id =>
+        serviceV14.groupDetails(id)
+      ).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object GroupInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupInheritedProperties
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).toLiftResponseOne(params, schema, s => Some(s.groupId))
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      NodeGroupId.parse(sid).toIO.flatMap(id =>
+        serviceV14.getNodePropertiesTree(id, RenderInheritedProperties.JSON)
+      ).toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object GroupDisplayInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupDisplayInheritedProperties
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).toLiftResponseOne(params, schema, s => Some(s.groupId))
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      NodeGroupId.parse(sid).toIO.flatMap(id =>
+        serviceV14.getNodePropertiesTree(id, RenderInheritedProperties.HTML)
+      ).toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object DeleteV14 extends LiftApiModuleString {
     val schema = API.DeleteGroup
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.deleteGroup(NodeGroupId(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      NodeGroupId.parse(sid).toIO.flatMap(id =>
+        serviceV14.deleteGroup(id, params, authzToken.actor)
+      ).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -363,7 +374,7 @@ class GroupsApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         restGroup  <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
-        result     <- serviceV14.createGroup(restGroup, NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid)), restGroup.source.map(NodeGroupId), params, authzToken.actor)
+        result     <- serviceV14.createGroup(restGroup, restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))), restGroup.source, params, authzToken.actor)
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
@@ -373,9 +384,10 @@ class GroupsApi(
 
   object UpdateV14 extends LiftApiModuleString {
     val schema = API.UpdateGroup
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(version: ApiVersion, path: ApiPath, sid: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract a group from request.").toIO
+        id        <- NodeGroupId.parse(sid).toIO
         res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.actor)
       } yield {
         res
@@ -515,7 +527,7 @@ class GroupApiInheritedProperties(
         case RenderInheritedProperties.JSON => properties.toApiJson
       }
       JArray((
-        ("groupId"    -> groupId.value)
+        ("groupId"    -> groupId.serialize)
       ~ ("properties" -> rendered     )
       ) :: Nil)
     }
@@ -585,7 +597,7 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll().toBox match {
       case Full(groups) =>
-        toJsonResponse(None, ( "groups" -> JArray(groups.sortBy(_.id.value).map(g => serializeGroup(g, None, None)).toList)))
+        toJsonResponse(None, ( "groups" -> JArray(groups.sortBy(_.id.serialize).map(g => serializeGroup(g, None, None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).messageChain
         toJsonError(None, message)
@@ -596,7 +608,7 @@ class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
-    val groupIdBox = restExtractor.extractId(req)(x => Full(NodeGroupId(x))).map(_.getOrElse(NodeGroupId(uuidGen.newUuid)))
+    val groupIdBox = restExtractor.extractId(req)(x => Full(NodeGroupId(NodeGroupUid(x)))).map(_.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))))
 
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId, isClone: Boolean) = {
       ( for {
@@ -615,12 +627,12 @@ class GroupApiService2 (
           val jsonGroup = List(serializeGroup(change.newGroup, Some(cat), None))
           implicit val action = if(isClone) "cloneGroup" else "createGroup"
 
-          toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
+          toJsonResponse(Some(groupId.serialize), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
-          val fail = eb ?~ (s"Could not save group '${groupId.value}''" )
-          val message = s"Could not create group '${change.newGroup.name}' (id:${groupId.value}), cause is: ${fail.messageChain}."
-          toJsonError(Some(groupId.value), message)
+          val fail = eb ?~ (s"Could not save group '${groupId.serialize}''" )
+          val message = s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}), cause is: ${fail.messageChain}."
+          toJsonError(Some(groupId.serialize), message)
       }
     }
 
@@ -632,8 +644,8 @@ class GroupApiService2 (
           // clone existing group
           for {
             (group, cat) <- readGroup.getNodeGroup(sourceId).toBox ?~!
-              s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')"
-            id           =  NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
+              s"Could not create group '${name}' (id:${groupId.serialize}) by cloning group '${sourceId.serialize}')"
+            id           =  NodeGroupId(NodeGroupUid(restGroup.id.getOrElse(uuidGen.newUuid)))
             updated      <- restGroup.updateGroup(group).toBox
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
@@ -670,14 +682,14 @@ class GroupApiService2 (
           }
 
         case _                     =>
-          Failure(s"Could not create group '${name}' (id:${groupId.value}) based on an already existing group, cause is: too many values for source parameter.")
+          Failure(s"Could not create group '${name}' (id:${groupId.serialize}) based on an already existing group, cause is: too many values for source parameter.")
       }
     }
 
     (for {
       group   <- restGroup ?~! s"Could extract values from request"
       name    <- Box(group.name) ?~! "Missing mandatory value for group name"
-      source  <- restExtractor.extractString("source")(req)(x => Full(NodeGroupId(x)))
+      source  <- restExtractor.extractString("source")(req)(x => NodeGroupId.parse(x).toBox)
       _       <- (group.query, source) match {
                    case (None, None) => Failure("Cannot create a group with an empty query")
                    case _            => Full(())
@@ -691,80 +703,80 @@ class GroupApiService2 (
         resp
       case eb: EmptyBox =>
         val fail = eb ?~ (s"Error when creating new group" )
-          toJsonError(groupIdBox.toOption.map(_.value), fail.messageChain)
+          toJsonError(groupIdBox.toOption.map(_.serialize), fail.messageChain)
         }
   }
 
-  def groupDetails(id:String, req:Req, apiVersion: ApiVersion) = {
+  def groupDetails(sid:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
+
+    NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).toBox match {
       case Full((group, cat)) =>
         val jsonGroup = List(serializeGroup(group,Some(cat), None))
-        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
+        toJsonResponse(Some(sid), ("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
-        val fail = eb ?~!(s"Could not find Group ${id}" )
-        val message=  s"Could not get Group ${id} details cause is: ${fail.msg}."
-        toJsonError(Some(id), message)
+        val fail = eb ?~! (s"Could not find Group ${sid}")
+        val message=  s"Could not get Group ${sid} details cause is: ${fail.msg}."
+        toJsonError(Some(sid), message)
     }
   }
 
-  def reloadGroup(id:String, req:Req, apiVersion: ApiVersion) = {
+  def reloadGroup(sid:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "reloadGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
 
-    readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
+    NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).toBox match {
       case Full((group, cat)) =>
         group.query match {
           case Some(query) => queryProcessor.processOnlyId(query) match {
             case Full(nodeIds) =>
               val updatedGroup = group.copy(serverList = nodeIds.toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
-              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), None, actor, req, DGModAction.Update, apiVersion)
+              createChangeRequestAndAnswer(sid, reloadGroupDiff, group, Some(group), None, actor, req, DGModAction.Update, apiVersion)
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
-              val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
-              toJsonError(Some(id), message)
+              val message=  s"Could not reload Group ${sid} details cause is: ${fail.msg}."
+              toJsonError(Some(sid), message)
           }
           case None =>
             val jsonGroup = List(serializeGroup(group, Some(cat), None))
-            toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
+            toJsonResponse(Some(sid), ("groups" -> JArray(jsonGroup)))
         }
         val jsonGroup = List(serializeGroup(group, Some(cat), None))
-        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
+        toJsonResponse(Some(sid), ("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Group ${id}" )
-        val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
-        toJsonError(Some(id), message)
+        val fail = eb ?~ (s"Could not find Group ${sid}")
+        val message=  s"Could not reload Group ${sid} details cause is: ${fail.msg}."
+        toJsonError(Some(sid), message)
     }
   }
 
-  def deleteGroup(id:String, req:Req, apiVersion: ApiVersion) = {
+  def deleteGroup(sid:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "deleteGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
-    val groupId = NodeGroupId(id)
 
-    readGroup.getNodeGroup(groupId).toBox match {
+    NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).toBox match {
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
+        createChangeRequestAndAnswer(sid, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
 
       case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
-        val message = s"Could not delete Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonError(Some(groupId.value), message)
+        val fail = eb ?~ (s"Could not find Group ${sid}")
+        val message = s"Could not delete Group ${sid} cause is: ${fail.msg}."
+        toJsonError(Some(sid), message)
     }
   }
 
-  def updateGroup(id: String, req: Req, restValues : Box[RestGroup], apiVersion: ApiVersion) = {
+  def updateGroup(sid: String, req: Req, restValues : Box[RestGroup], apiVersion: ApiVersion) = {
     implicit val action = "updateGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = getActor(req)
-    val groupId = NodeGroupId(id)
 
     (for {
+      groupId      <- NodeGroupId.parse(sid).toBox
       (group, cat) <- readGroup.getNodeGroup(groupId).toBox
       restGroup    <- restValues
       updated      <- restGroup.updateGroup(group).toBox
@@ -772,10 +784,10 @@ class GroupApiService2 (
       (group, updated, restGroup.category.orElse(Some(cat)), ModifyToNodeGroupDiff(updated))
     }) match {
       case Full((group, updated, optCategory, diff)) =>
-        createChangeRequestAndAnswer(id, diff, updated, Some(group), optCategory, actor, req, DGModAction.Update, apiVersion)
+        createChangeRequestAndAnswer(sid, diff, updated, Some(group), optCategory, actor, req, DGModAction.Update, apiVersion)
       case eb : EmptyBox =>
-            val fail = eb ?~ s"Could not modify Group ${groupId.value}"
-            toJsonError(Some(groupId.value), fail.messageChain)
+            val fail = eb ?~ s"Could not modify Group ${sid}"
+            toJsonError(Some(sid), fail.messageChain)
     }
   }
 
@@ -899,7 +911,7 @@ class GroupApiService14 (
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
         }
         JRGroup.fromGroup(saveDiff.group, cat, None)
-      } ).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.value}).")
+      } ).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
     }
 
     // decide if we should create a new group or clone an existing one
@@ -909,8 +921,8 @@ class GroupApiService14 (
         case Some(sourceId) =>
           // clone existing group
           for {
-            pair    <- readGroup.getNodeGroup(sourceId).chainError(s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')")
-            id      =  NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
+            pair    <- readGroup.getNodeGroup(sourceId).chainError(s"Could not create group '${name}' (id:${groupId.serialize}) by cloning group '${sourceId.serialize}')")
+            id      =  restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid)))
             updated <- restGroup.updateGroup(pair._1, queryParser).toIO
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
@@ -963,8 +975,9 @@ class GroupApiService14 (
     }
   }
 
-  def reloadGroup(id:String, params: DefaultParams, actor: EventActor): IOResult[JRGroup] = {
-    readGroup.getNodeGroup(NodeGroupId(id)).flatMap { case (group, cat) =>
+  def reloadGroup(sid: String, params: DefaultParams, actor: EventActor): IOResult[JRGroup] = {
+
+    NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).flatMap { case (group, cat) =>
       group.query match {
         case Some(query) =>
           queryProcessor.processOnlyId(query).toIO.flatMap { nodeIds =>
@@ -972,7 +985,7 @@ class GroupApiService14 (
             val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
             val change = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
             createChangeRequest(reloadGroupDiff, change, params, actor).toIO
-          }.chainError(s"Could not reload Group ${id} details")
+          }.chainError(s"Could not reload Group ${sid} details")
 
         case None =>
           JRGroup.fromGroup(group, cat, None).succeed
@@ -988,14 +1001,14 @@ class GroupApiService14 (
         createChangeRequest(deleteGroupDiff, change, params, actor).toIO
 
       case None =>
-        JRGroup.empty(id.value).succeed
+        JRGroup.empty(id.serialize).succeed
     }
   }
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams, actor: EventActor): IOResult[JRGroup] = {
     for {
       id      <- restGroup.id.notOptional(s"You must specify the ID of the group that you want to update")
-      pair    <- readGroup.getNodeGroup(NodeGroupId(id))
+      pair    <- readGroup.getNodeGroup(id)
       updated <- restGroup.updateGroup(pair._1, queryParser).toIO
       diff    =  ModifyToNodeGroupDiff(updated)
       optCat  =  restGroup.category.orElse(Some(pair._2))

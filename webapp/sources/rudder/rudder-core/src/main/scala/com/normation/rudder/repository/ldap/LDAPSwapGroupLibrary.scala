@@ -254,7 +254,7 @@ class ImportGroupLibraryImpl(
         } else nodeGroupNames.get(nodeGroup.name) match {
           case Some(id) =>
             logEffect.error("Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'".format(
-                nodeGroup.id.value, nodeGroup.name, id.value
+                nodeGroup.id.serialize, nodeGroup.name, id.serialize
             ))
             None
           case None =>

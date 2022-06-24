@@ -703,8 +703,8 @@ class GitNodeGroupArchiverImpl(
 
   private[this] def newNgFile(ngId:NodeGroupId, parents: List[NodeGroupCategoryId]) = {
     parents match {
-      case h :: t => new File(newCategoryDirectory(h, t), ngId.value + ".xml").succeed
-      case Nil    => Inconsistency("The given parent category list for node group with id '%s' is empty, what is forbiden".format(ngId.value)).fail
+      case h :: t => new File(newCategoryDirectory(h, t), ngId.withDefaultRev.serialize + ".xml").succeed
+      case Nil    => Inconsistency("The given parent category list for node group with id '%s' is empty, what is forbidden".format(ngId.withDefaultRev.serialize)).fail
     }
   }
 
@@ -717,7 +717,7 @@ class GitNodeGroupArchiverImpl(
                       , "Archived node group: " + ngFile.getPath
                     )
       commit     <- gitCommit match {
-                      case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, toGitPath(ngFile), "Archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
+                      case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, toGitPath(ngFile), "Archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize,GET(reason)))
                       case None => UIO.unit
                     }
     } yield {
@@ -737,7 +737,7 @@ class GitNodeGroupArchiverImpl(
                      _        <- logPure.debug(s"Deleted archived node group: ${ngFile.getPath}")
                      commited <- gitCommit match {
                                    case Some((modId, commiter, reason)) =>
-                                     commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of node group with ID '${ngId.value}'${GET(reason)}")
+                                     commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of node group with ID '${ngId.withDefaultRev.serialize}'${GET(reason)}")
                                    case None => UIO.unit
                                  }
                    } yield {
@@ -767,7 +767,7 @@ class GitNodeGroupArchiverImpl(
                            IOResult.effect(FileUtils.deleteQuietly(oldNgXmlFile))
                          }
         commit       <- gitCommit match {
-                          case Some((modId, commiter, reason)) => commitMvDirectoryWithModId(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
+                          case Some((modId, commiter, reason)) => commitMvDirectoryWithModId(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize,GET(reason)))
                           case None => UIO.unit
                         }
       } yield {

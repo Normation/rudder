@@ -124,11 +124,11 @@ class RoLDAPNodeGroupRepository(
   }
 
   def getSGEntry(con:RoLDAPConnection, id:NodeGroupId, attributes:String*) : IOResult[Option[LDAPEntry]] = {
-    con.searchSub(rudderDit.GROUP.dn, EQ(A_NODE_GROUP_UUID, id.value), attributes:_*).flatMap { srvEntries  =>
+    con.searchSub(rudderDit.GROUP.dn, EQ(A_NODE_GROUP_UUID, id.serialize), attributes:_*).flatMap { srvEntries  =>
       srvEntries.size match {
         case 0 => None.succeed
         case 1 => Some(srvEntries(0)).succeed
-        case _ => Inconsistency(s"Error, the directory contains multiple occurrence of the server group with ID '${id.value}'. DNs involved: ${srvEntries.map( _.dn).mkString("; ")}").fail
+        case _ => Inconsistency(s"Error, the directory contains multiple occurrence of the server group with ID '${id.serialize}'. DNs involved: ${srvEntries.map( _.dn).mkString("; ")}").fail
       }
     }
   }
@@ -329,8 +329,8 @@ class RoLDAPNodeGroupRepository(
   def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
     groupLibMutex.readLock { for {
       con                 <- ldap
-      groupEntry          <- getSGEntry(con, id, "1.1").notOptional(s"Entry with ID '${id.value}' was not found")
-      parentCategoryEntry <- con.get(groupEntry.dn.getParent).notOptional(s"Parent category of entry with ID '${id.value}' was not found")
+      groupEntry          <- getSGEntry(con, id, "1.1").notOptional(s"Entry with ID '${id.serialize}' was not found")
+      parentCategoryEntry <- con.get(groupEntry.dn.getParent).notOptional(s"Parent category of entry with ID '${id.serialize}' was not found")
       parentCategory      <- mapper.entry2NodeGroupCategory(parentCategoryEntry).toIO.chainError("Error when transforming LDAP entry %s into an active technique category".format(parentCategoryEntry))
     } yield {
       parentCategory
@@ -383,8 +383,9 @@ class RoLDAPNodeGroupRepository(
       groupIds <- ZIO.foreach(entries) { entry =>
                     rudderDit.GROUP.getGroupId(entry.dn).toIO.chainError("DN '%s' seems to not be a valid group DN".format(entry.dn))
                   }
+      gids     <- ZIO.foreach(groupIds)(NodeGroupId.parse(_).toIO)
     } yield {
-      groupIds.map(id => NodeGroupId(id))
+      gids
     } }
   }
 
@@ -547,10 +548,10 @@ class WoLDAPNodeGroupRepository(
    * Check if a nodeGroup exists(id already exists) and name is unique
    */
   private[this] def checkNodeGroupExists(con:RoLDAPConnection, group : NodeGroup) : IOResult[Boolean] = {
-    groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), OR(EQ(A_NODE_GROUP_UUID, group.id.value),EQ(A_NAME, group.name))), A_NODE_GROUP_UUID).flatMap(_.size match {
+    groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), OR(EQ(A_NODE_GROUP_UUID, group.id.serialize),EQ(A_NAME, group.name))), A_NODE_GROUP_UUID).flatMap(_.size match {
       case 0 => false.succeed
       case 1 => true.succeed
-      case _ => logPure.error(s"There is more than one node group with id '${group.id.value}' or name '${group.name}'") *> true.succeed
+      case _ => logPure.error(s"There is more than one node group with id '${group.id.serialize}' or name '${group.name}'") *> true.succeed
     }))
   }
 
@@ -558,7 +559,7 @@ class WoLDAPNodeGroupRepository(
    * Check if another nodeGroup exist with the given name
    */
   private[this] def checkNameAlreadyInUse(con:RoLDAPConnection, name : String, id: NodeGroupId) : IOResult[Boolean] = {
-    groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_NODE_GROUP_UUID, id.value)), AND(EQ(A_OC, OC_RUDDER_NODE_GROUP), EQ(A_NAME, name))), A_NODE_GROUP_UUID).flatMap(_.size match {
+    groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_NODE_GROUP_UUID, id.serialize)), AND(EQ(A_OC, OC_RUDDER_NODE_GROUP), EQ(A_NAME, name))), A_NODE_GROUP_UUID).flatMap(_.size match {
       case 0 => false.succeed
       case 1 => true.succeed
       case _ => logPure.error(s"More than one node group has '${name}' name") *> true.succeed
@@ -721,7 +722,7 @@ class WoLDAPNodeGroupRepository(
       con           <- ldap
       exists        <- checkNodeGroupExists(con, nodeGroup)
       exists        <- if(exists) {
-                         Inconsistency(s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.value}) or name already exists").fail
+                         Inconsistency(s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.serialize}) or name already exists").fail
                        } else UIO.unit
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
       entry         =  mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
@@ -776,7 +777,7 @@ class WoLDAPNodeGroupRepository(
       for {
         con          <- ldap
         existing     <- getSGEntry(con, nodeGroup.id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id))
-        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.value))
+        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to check for the group %s".format(nodeGroup.id.serialize))
         // check if old group is the same as new group
         result       <- if (oldGroup.equals(nodeGroup)) {
                           None.succeed
@@ -785,7 +786,7 @@ class WoLDAPNodeGroupRepository(
             systemCheck <- if (onlyUpdateNodes) {
               oldGroup.succeed
             } else (oldGroup.isSystem, systemCall) match {
-              case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value).fail
+              case (true, false) => "System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.serialize).fail
               case (false, true) => "You can not modify a non system group (%s) with that method".format(oldGroup.name).fail
               case _ => oldGroup.succeed
             }
@@ -856,8 +857,8 @@ class WoLDAPNodeGroupRepository(
     groupLibMutex.writeLock(
       for {
         con          <- ldap
-        existing     <- getSGEntry(con, nodeGroupId).notOptional(s"Error when trying to check for existence of group with id '${nodeGroupId.value}'. Can not update")
-        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.value}'")
+        existing     <- getSGEntry(con, nodeGroupId).notOptional(s"Error when trying to check for existence of group with id '${nodeGroupId.serialize}'. Can not update")
+        oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.serialize}'")
         newGroup     =  oldGroup.copy(serverList = (oldGroup.serverList -- delete) ++ add)
         result       <- saveModifyNodeGroupDiff(existing, con, newGroup, modId, actor, reason)
       } yield {
@@ -876,11 +877,11 @@ class WoLDAPNodeGroupRepository(
                           parents  <- getParents_NodeGroupCategory(parent.id)
                         } yield (parent::parents).map( _.id ))
                       } else Nil.succeed
-      existing     <- getSGEntry(con, nodeGroupId).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.value))
-      oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.value))
+      existing     <- getSGEntry(con, nodeGroupId).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize))
+      oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
       systemCheck  <- if(oldGroup.isSystem) "You can not move system group".fail else UIO.unit
 
-      groupRDN     <- existing.rdn.notOptional("Error when retrieving RDN for an exising group - seems like a bug")
+      groupRDN     <- existing.rdn.notOptional("Error when retrieving RDN for an existing group - seems like a bug")
       name         <- checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId)
       exists       <- ZIO.when(name) {
                         s"Cannot change the group name to ${oldGroup.name}: there is already a group with the same name".fail

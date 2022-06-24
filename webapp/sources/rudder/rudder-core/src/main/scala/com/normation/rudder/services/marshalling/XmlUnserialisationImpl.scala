@@ -219,7 +219,8 @@ class NodeGroupUnserialisationImpl(
                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry))
                          }
       fileFormatOk    <- TestFileFormat(group)
-      id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
+      sid             <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
+      id              <- NodeGroupId.parse(sid).toBox
       name            <- (group \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       description     <- (group \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
       query           <- (group \ "query").headOption match {
@@ -254,7 +255,7 @@ class NodeGroupUnserialisationImpl(
                          }
     } yield {
       NodeGroup(
-          id = NodeGroupId(id)
+          id = id
         , name = name
         , description = description
         , properties = properties.toList
@@ -458,8 +459,9 @@ class ChangeRequestChangesUnserialisationImpl (
       } yield {
         (groupsNode \ "group").iterator.flatMap { group =>
           for {
-            nodeGroupId  <- group.attribute("id").map(id => NodeGroupId(id.text)) ?~!
+            sid          <- group.attribute("id").map(id => id.text) ?~!
                              s"Missing attribute 'id' in entry type changeRequest group changes  : ${group}"
+            nodeGroupId  <- NodeGroupId.parse(sid).toBox
             initialNode  <- (group \ "initialState").headOption
             initialState <- (initialNode \ "nodeGroup").headOption match {
               case Some(initialState) => nodeGroupUnserialiser.unserialise(initialState) match {

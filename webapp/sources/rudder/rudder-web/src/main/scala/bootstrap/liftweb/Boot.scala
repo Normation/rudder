@@ -39,7 +39,7 @@ package bootstrap.liftweb
 
 import net.liftweb.http._
 import net.liftweb.common._
-import net.liftweb.sitemap._
+import net.liftweb.sitemap.{Menu, _}
 import net.liftweb.sitemap.Loc._
 import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.domain.eventlog.ApplicationStarted
@@ -50,13 +50,13 @@ import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
-
 import java.util.Locale
+
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
-
 import java.net.URLConnection
+
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
 import com.normation.plugins.RudderPluginModule
@@ -70,12 +70,11 @@ import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
-
 import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
-
 import com.normation.zio._
+
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -463,6 +462,11 @@ class Boot extends Loggable {
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",AuthorizationType.Administration.Write) )
+
+        , Menu("760-hooks", <span>Hooks</span>) /
+            "secure" / "administration" / "hooksManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess( () => userIsAllowed("/secure/index",AuthorizationType.Administration.Read ) )
       )
 
     def pluginsMenu = {

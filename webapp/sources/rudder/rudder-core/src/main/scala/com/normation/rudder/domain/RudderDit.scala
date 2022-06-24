@@ -421,7 +421,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       system =>
 
       def targetDN(target:RuleTarget) : DN = target match {
-        case GroupTarget(groupId) => group.groupDN(groupId.value, system.dn)
+        case GroupTarget(groupId) => group.groupDN(groupId.serialize, system.dn)
         case t => new DN(new RDN(A_RULE_TARGET, target.target), system.dn)
       }
     }

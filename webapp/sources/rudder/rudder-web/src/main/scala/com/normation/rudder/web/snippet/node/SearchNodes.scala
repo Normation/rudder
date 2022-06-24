@@ -44,9 +44,12 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
+
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
+
 import net.liftweb.common._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
@@ -56,6 +59,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
+
 import com.normation.box._
 import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.Query
@@ -126,7 +130,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       creationPopup.set(Full(new CreateCategoryOrGroupPopup(
           // create a totally invalid group
           Some(new NodeGroup(
-              NodeGroupId("temporary"),
+              NodeGroupId(NodeGroupUid("temporary")),
               null,
               null,
               Nil,

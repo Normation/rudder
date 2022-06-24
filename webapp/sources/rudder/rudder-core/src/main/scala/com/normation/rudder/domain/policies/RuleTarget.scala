@@ -62,7 +62,7 @@ sealed trait SimpleTarget extends RuleTarget //simple as opposed to composed
 
 object GroupTarget { def r = "group:(.+)".r }
 final case class GroupTarget(groupId:NodeGroupId) extends SimpleTarget {
-  override def target = "group:"+groupId.value
+  override def target = "group:"+groupId.serialize
 }
 
 //object NodeTarget { def r = "node:(.+)".r }
@@ -394,7 +394,7 @@ object RuleTarget extends Loggable {
   def unserOne(s: String): Option[SimpleTarget] = {
     s match {
       case GroupTarget.r(g) =>
-        Some(GroupTarget(NodeGroupId(g)))
+        NodeGroupId.parse(g).toOption.map(GroupTarget(_))
       case PolicyServerTarget.r(s) =>
         Some(PolicyServerTarget(NodeId(s)))
       case AllTarget.r() =>

@@ -71,6 +71,7 @@ import zio.syntax._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryTrait
@@ -216,12 +217,12 @@ object CheckPendingNodeInDynGroups {
   // for debuging message
   implicit class DynGroupsToString(val gs: List[(NodeGroupId, Set[NodeId])]) extends AnyVal {
     def debugString: String = gs.map { case (id, nodes) =>
-      id.value + ":" + nodes.map(_.value).mkString(",")
+      id.serialize + ":" + nodes.map(_.value).mkString(",")
     }.mkString("[", "][", "]")
   }
   implicit class ResToString(val gs: List[DynGroup]) extends AnyVal {
     def debugString: String = gs.map { case DynGroup(id, dep, nodes, q, inc) =>
-      id.value + ":" + nodes.size + "{"+dep.map(_.value).mkString(",")+"}"
+      id.serialize + ":" + nodes.size + "{"+dep.map(_.serialize).mkString(",")+"}"
     }.mkString("[", "][", "]")
   }
 }
@@ -283,7 +284,7 @@ class CheckPendingNodeInDynGroups(
   def processDynGroups(groups: List[NodeGroup], nodeIds: Set[NodeId]): IOResult[List[(NodeGroupId, Set[NodeId])]] = {
     // a data structure to keep a group ID, set of nodes, dependencies, query and composition/
     // the query does not contain group anymore.
-    NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.value}: ${g.name}").sorted.mkString("{", "}{", "}")}")
+    NodeLogger.PendingNode.Policies.debug(s"Checking dyn-groups belonging for nodes [${nodeIds.map(_.value).mkString(", ")}]:${groups.map(g => s"${g.id.serialize}: ${g.name}").sorted.mkString("{", "}{", "}")}")
 
 
 
@@ -307,10 +308,10 @@ class CheckPendingNodeInDynGroups(
           NodeLogger.PendingNode.Policies.trace("==> unblock things")
           val (newTodo, newRes) = b.foldLeft((List.empty[DynGroup], res)) { case ( (t, r), next ) =>
             if(next.query.composition == CAnd) { // the group has zero node b/c intersect with 0 => new result
-              NodeLogger.PendingNode.Policies.trace(" -> evicting " + next.id.value)
+              NodeLogger.PendingNode.Policies.trace(" -> evicting " + next.id.serialize)
               (t, (next.id, Set.empty[NodeId])::r )
             } else { // we can just ignore the dependencies and proceed the remaining group as a normal dyn group
-              NodeLogger.PendingNode.Policies.trace(" -> process back" + next.id.value)
+              NodeLogger.PendingNode.Policies.trace(" -> process back" + next.id.serialize)
               (next :: t, r)
             }
           }
@@ -319,7 +320,7 @@ class CheckPendingNodeInDynGroups(
 
 
         case (h::tail, b, res) => // standard step: takes the group and deals with it
-          NodeLogger.PendingNode.Policies.trace("==> process " + h.id.value)
+          NodeLogger.PendingNode.Policies.trace("==> process " + h.id.serialize)
           (queryChecker.check(h.query, Some(h.testNodes.toSeq)).flatMap { nIds =>
             // node matching that group - also include the one from "include" coming from "or" dep
             val setNodeIds = nIds.toSet ++ h.includeNodes
@@ -341,8 +342,8 @@ class CheckPendingNodeInDynGroups(
             // for these case, we keep all the node that are coming from the subgroup and that are looked for
             val (alreadyDone, remainingNewTodos) = newTodos.partition( _.query.criteria.isEmpty )
 
-            NodeLogger.PendingNode.Policies.trace(" -> unblock     : " + remainingNewTodos.map(_.id.value).mkString(", "))
-            NodeLogger.PendingNode.Policies.trace(" -> already done: " + alreadyDone.map(_.id.value).mkString(", "))
+            NodeLogger.PendingNode.Policies.trace(" -> unblock     : " + remainingNewTodos.map(_.id.serialize).mkString(", "))
+            NodeLogger.PendingNode.Policies.trace(" -> already done: " + alreadyDone.map(_.id.serialize).mkString(", "))
 
             val newRes =  alreadyDone.map(x => (x.id, x.includeNodes.union(x.testNodes)) ) ::: ((h.id, setNodeIds) :: res)
             recProcess(tail ::: remainingNewTodos, stillBlocked, newRes)
@@ -362,7 +363,7 @@ class CheckPendingNodeInDynGroups(
               // we only know how to process the comparator "exact string match" for group
               next.comparator match {
                 case Equals =>
-                  ( g + NodeGroupId(next.value), q)
+                  ( g + NodeGroupId(NodeGroupUid(next.value)), q)
                 case _      =>
                   NodeLogger.PendingNode.Policies.warn("Warning: group criteria use something else than exact string match comparator: " + next)
                   (g, q)

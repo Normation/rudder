@@ -483,7 +483,7 @@ class RemoveNodeServiceImpl(
       deleted      <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
                         val msg = Some("Automatic update of group due to deletion of node " + nodeId.value)
                         woNodeGroupRepository.updateDiffNodes(nodeGroupId, add = Nil, delete = List(nodeId), modId, actor, msg).chainError(
-                          s"Could not update group '${nodeGroupId.value}' to remove node '${nodeId.value}'"
+                          s"Could not update group '${nodeGroupId.serialize}' to remove node '${nodeId.value}'"
                         )
                       }
     } yield {

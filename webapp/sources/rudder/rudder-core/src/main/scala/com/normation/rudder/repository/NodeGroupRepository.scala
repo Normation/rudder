@@ -214,7 +214,7 @@ trait RoNodeGroupRepository {
    * @return
    */
   def getNodeGroup(id: NodeGroupId) : IOResult[(NodeGroup,NodeGroupCategoryId)] = {
-    getNodeGroupOpt(id).notOptional(s"Group with id '${id.value}' was not found'")
+    getNodeGroupOpt(id).notOptional(s"Group with id '${id.serialize}' was not found'")
   }
 
   /**

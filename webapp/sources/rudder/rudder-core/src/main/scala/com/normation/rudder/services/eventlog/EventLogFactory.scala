@@ -602,7 +602,7 @@ class EventLogFactoryImpl(
   ) : ModifyNodeGroup = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <id>{modifyDiff.id.value}</id>
+        <id>{modifyDiff.id.withDefaultRev.serialize}</id>
         <displayName>{modifyDiff.name}</displayName>{
           modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
           modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++

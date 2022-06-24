@@ -39,11 +39,13 @@ package com.normation.rudder.services.nodes
 
 import cats.implicits._
 import com.normation.GitVersion
+
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -57,6 +59,7 @@ import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.nodes.GroupProp._
+
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigParseOptions
 import org.jgrapht.alg.connectivity.ConnectivityInspector
@@ -174,7 +177,7 @@ object GroupProp {
         case FullOtherTarget(t) => //taget:all nodes, only root, only managed node, etc
           Right(GroupProp(
               Nil   // they don't have properties for now
-            , NodeGroupId(t.target)
+            , NodeGroupId(NodeGroupUid(t.target))
             , And   // for simplification, since they don't have properties it doesn't matter
             , true  // these special targets behave as dynamic groups
             , Nil   // terminal leaf
@@ -221,12 +224,13 @@ object MergeNodeProperties {
                 for {
                   prop    <- g.nodeGroup.toGroupProp
                   parents <- prop.parentGroups.traverse { parentId =>
-                               val pId = NodeGroupId(parentId)
-                               if(acc.isDefinedAt(pId)) Right(Nil)
-                               else allGroups.get(pId) match {
-                                 case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.value})"))
-                                 case Some(p) => Right(p :: Nil)
-                               }
+                               NodeGroupId.parse(parentId).left.map(Inconsistency).flatMap(pId =>
+                                 if(acc.isDefinedAt(pId)) Right(Nil)
+                                 else allGroups.get(pId) match {
+                                   case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.serialize})"))
+                                   case Some(p) => Right(p :: Nil)
+                                 }
+                               )
                              }
                   rec     <- withParents(parents.flatten, allGroups, acc + (g.nodeGroup.id -> g))
                 } yield {
@@ -238,13 +242,13 @@ object MergeNodeProperties {
       }
     }
     for {
-      group       <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.value}' was not found.")
+      group       <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.serialize}' was not found.")
       hierarchy   <- withParents(group::Nil, allGroups, Map())
       parents     =  (hierarchy-group.nodeGroup.id).values.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
       hierarchies <- checkPropertyMerge(parents.toList, globalParams)
     } yield {
       val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
-      mergeDefault(groupId.value, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
+      mergeDefault(groupId.serialize, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
     }
   }
 
@@ -264,7 +268,7 @@ object MergeNodeProperties {
       val mergedProp = NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)
       val obj = p match {
         case x: NodeProperty    => ParentProperty.Node  ("this node" , NodeId(objectId)     , p.value)
-        case x: GroupProperty   => ParentProperty.Group ("this group", NodeGroupId(objectId), p.value)
+        case x: GroupProperty   => ParentProperty.Group ("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)
         case x: GlobalParameter => ParentProperty.Global(                                     p.value)
       }
       (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
@@ -363,7 +367,7 @@ object MergeNodeProperties {
     }
 
     for {
-      groups    <- targets.traverse (_.toGroupProp.map(g => (g.groupId.value, g))).map(_.toMap)
+      groups    <- targets.traverse (_.toGroupProp.map(g => (g.groupId.serialize, g))).map(_.toMap)
       sorted    <- sortGroups(groups)
       // add global values as the most default NodePropertyHierarchy
       overridden =  sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy)))
@@ -411,7 +415,7 @@ object MergeNodeProperties {
                } catch {
                  case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
                    Left(SystemError(s"Error when trying to build group hierarchy of group '${child.groupName}' " +
-                                    s"(${child.groupId.value}) for parent '${p.groupName}' (${p.groupId.value})", ex))
+                                    s"(${child.groupId.serialize}) for parent '${p.groupName}' (${p.groupId.serialize})", ex))
                }
              }
         g <- parents match {
@@ -432,7 +436,7 @@ object MergeNodeProperties {
                     Right(graph.addVertex(group))
                   } catch {
                     case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
-                      Left(SystemError(s"Error when trying to build group hierarchy of group '${group.groupName}' ${group.groupId.value})", ex))
+                      Left(SystemError(s"Error when trying to build group hierarchy of group '${group.groupName}' ${group.groupId.serialize})", ex))
                   }
                 }
       // add edges
@@ -442,7 +446,7 @@ object MergeNodeProperties {
                                  groups.get(p) match {
                                    case None    =>
                                      Left(Inconsistency(s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
-                                                        s"[${group.groupId.value}]. Please check criterium for that group."))
+                                                        s"[${group.groupId.serialize}]. Please check criterium for that group."))
                                    case Some(g) =>
                                      Right(g)
                                  }

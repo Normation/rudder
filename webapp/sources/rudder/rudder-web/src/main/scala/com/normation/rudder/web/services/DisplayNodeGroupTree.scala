@@ -43,6 +43,7 @@ import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.model.JsTreeNode
+
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js._
@@ -50,7 +51,9 @@ import net.liftweb.util.Helpers
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeInfo
+
 import bootstrap.liftweb.RudderConfig
 
 /**
@@ -126,7 +129,7 @@ object DisplayNodeGroupTree extends Loggable {
       val groupId = {
         targetInfo.target match {
           case g:FullGroupTarget =>
-            g.nodeGroup.id.value
+            g.nodeGroup.id.serialize
           case o:FullRuleTarget =>
             o.target.target
         }
@@ -157,7 +160,7 @@ object DisplayNodeGroupTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <span class="fa fa-pencil" tooltipid={tooltipId} title=""
-                onclick={linkUtil.redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
+                onclick={linkUtil.redirectToGroupLink(NodeGroupId(NodeGroupUid(groupId))).toJsCmd}
               ></span>
               <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>

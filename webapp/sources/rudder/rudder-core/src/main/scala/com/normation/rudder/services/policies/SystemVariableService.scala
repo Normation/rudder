@@ -465,7 +465,7 @@ class SystemVariableServiceImpl(
     //build the list of nodeId -> names, taking care of special nodeIds for special target
     val nodeGroups = nodeTargets.map { info =>
       val id = info.target.target match {
-        case GroupTarget(id) => id.value
+        case GroupTarget(id) => id.serialize
         case t => t.target
       }
       (id, info.name)
