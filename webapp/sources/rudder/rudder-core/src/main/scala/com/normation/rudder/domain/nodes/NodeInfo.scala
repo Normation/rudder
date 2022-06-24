@@ -146,7 +146,7 @@ final case class NodeInfo(
         formatDigest(NodeKeyHash.getCfengineSHA256CertDigest(cert).toBox, "SHA", cert)
 
       case Some((AgentType.Dsc, _)) =>
-        PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
+        PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) is a Windows node and a we do not know how to generate a hash yet")
         ""
 
       case Some((_, _)) =>

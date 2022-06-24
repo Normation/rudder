@@ -142,8 +142,8 @@ isSystem: TRUE
 dn: nodeGroupId=all-nodes-with-cfengine-agent,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
-cn: All classic Nodes
-description: All classic Nodes known by Rudder (Using a CFEngine based agent)
+cn: All Linux Nodes
+description: All Linux Nodes known by Rudder (Using a CFEngine based agent)
 isDynamic: TRUE
 nodeGroupId: all-nodes-with-cfengine-agent
 nodeId: root

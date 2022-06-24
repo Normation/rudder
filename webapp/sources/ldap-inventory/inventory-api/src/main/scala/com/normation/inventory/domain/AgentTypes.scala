@@ -161,10 +161,10 @@ object AgentType {
   final case object Dsc extends AgentType {
     override def id           = "dsc"
     override def oldShortName = "dsc"
-    override def displayName  = "Rudder (Windows DSC)"
+    override def displayName  = "Rudder Windows"
     override def toRulesPath  = "/dsc"
     override def inventoryAgentNames   = Set("dsc")
-    override val inventorySoftwareName = "Rudder agent (DSC)"
+    override val inventorySoftwareName = "Rudder agent (Windows)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
     override val defaultPolicyExtension ="" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
     override def ruddercTarget: Option[RuddercTarget] = Some(RuddercTarget.DSC)

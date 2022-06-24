@@ -100,8 +100,8 @@ rudderServerRole: rudder-webapp
 dn: nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
-cn: All classic Nodes managed by root policy server
-description: All classic Nodes known by Rudder directly connected to the root server. This group exists only as internal purpose and should not be used to configure nodes.
+cn: All Linux Nodes managed by root policy server
+description: All Linux Nodes known by Rudder directly connected to the root server. This group exists only as internal purpose and should not be used to configure nodes.
 isDynamic: TRUE
 nodeGroupId: hasPolicyServer-root
 nodeId: root
