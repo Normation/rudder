@@ -678,7 +678,7 @@ object RudderConfig extends Loggable {
   }
 
   val RUDDER_DEFAULT_DELETE_NODE_MODE = {
-    val default = DeleteMode.MoveToRemoved
+    val default = DeleteMode.Erase
     val mode = try {
       config.getString("rudder.nodes.delete.defaultMode")
     } catch {

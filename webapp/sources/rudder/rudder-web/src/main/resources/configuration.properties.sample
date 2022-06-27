@@ -74,7 +74,7 @@ ldap.maxPoolSize=2
 # Password used to connect to the OpenLDAP server.
 # On a standard Rudder installation, the password is managed in
 # "/opt/rudder/etc/rudder-passwords.conf" and the value below
-# will be overriden.
+# will be overridden.
 #
 ldap.authpw=secret
 
@@ -103,7 +103,7 @@ rudder.postgresql.local=true
 # Login and password used to connect to the PostgreSQL server.
 # On a standard Rudder installation, the password is managed in
 # "/opt/rudder/etc/rudder-passwords.conf" and the value below
-# will be overriden. In case of authentication problem, check that
+# will be overridden. In case of authentication problem, check that
 # the passwords matches.
 #
 rudder.jdbc.username=rudder
@@ -161,7 +161,7 @@ rudder.batch.reportsCleaner.deleteLogReport.TTL=2x
 
 #
 # Automatic compliance levels cleaning.
-# This allows you to define the periode of time during which
+# This allows you to define the period of time during which
 # compliance level data for nodes, by run, up to directive
 # granularity are kept.
 # The tables grow at ~150kB / node / directive / day
@@ -443,6 +443,17 @@ rudder.batch.dyngroup.updateInterval=5
 #
 history.inventories.rootdir=/var/rudder/inventories/historical
 
+#
+# Rudder used to store deleted node inventories in a dedicated LDAP branch:
+# ou=Nodes,ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+# As of Rudder 7.2, this feature is deprecated and node inventories are totally erased
+# when a node is deleted, either by API or UI.
+# Until Rudder 8.0, you can override that behaviour:
+# - locally for API deletion with the corresponding parameter, see
+#   https://docs.rudder.io/api/v/15/#tag/Nodes/operation/deleteNode
+# - globally by changing the parameter of the following property from `erase` to `move`
+rudder.nodes.delete.defaultMode=erase
+
 ###############################
 # Non compliant reports logger #################################################
 ###############################
@@ -472,7 +483,7 @@ rudder.batch.reports.logInterval=1
 # will only take reports from catchup time from now
 # This is mainly used on the first Run, when the process has to catch on old reports,
 # and build execution history.
-# Set by two fields, maxDays in days, and maxMinutes in minuts
+# Set by two fields, maxDays in days, and maxMinutes in minutes
 
 rudder.batch.storeAgentRunTimes.maxDays=0
 rudder.batch.storeAgentRunTimes.maxMinutes=30
@@ -501,9 +512,9 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 
 #
 # Rudder has a root admin account, with full rights on the
-# application, and whose authentication is independant from
+# application, and whose authentication is independent from
 # the authentication provider chosen (file, LDAP, etc).
-# By default, the accound is disabled (either by letting the
+# By default, the account is disabled (either by letting the
 # the login or the password empty, or by commenting it).
 #
 # The password is a bcrypt hash, you can create it for example with the following command:
@@ -558,7 +569,7 @@ rudder.relayd.reload=/opt/rudder/bin/rudder relay reload -p
 #
 # This is a list of unhandled exception that should cause rudder to stop.
 # When they happen, something went clearly wrong and even if rudder continues
-# to work, it is most likely in an inconsistant state, so people should know
+# to work, it is most likely in an inconsistent state, so people should know
 # it and not discover it at random when something else start go crazy.
 # Subclasses of java.lang.Error always lead to termination.
 #
@@ -569,7 +580,7 @@ rudder.jvm.fatal.exceptions=
 ###################
 
 #
-# Rudder lang is the new rudder configuration langage. We are ramping it up, and
+# Rudder lang is the new rudder configuration language. We are ramping it up, and
 # for now only testing its output in a side generation chanel.
 # You can disable that test if needed.
 #
