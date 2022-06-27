@@ -1476,7 +1476,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
   // both nodeInfoService and repo, since we deal with the same underlying node objects
-  object nodeInfoService extends NodeInfoService with LDAPFullInventoryRepository {
+  object nodeInfoService extends NodeInfoService with LDAPFullInventoryRepository with WoNodeRepository {
 
     // node status is in inventory.main.
     val nodeBase = RefM.make(Map(
@@ -1534,6 +1534,24 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
     override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
     override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+
+    override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+      nodeBase.modify { nodes =>
+        nodes.get(node.id) match {
+          case None    => Inconsistency(s"Node ${node.id.value} does not exists").fail
+          case Some(n) =>
+            import com.softwaremill.quicklens._
+            val newN = n.modify(_.info.node).setTo(node)
+            (node, (nodes + ((node.id, newN)))).succeed
+        }
+      }
+    }
+
+    override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
+
+    override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
+
+    override def updateNodeKeyInfo(nodeId: NodeId, agentKey: Option[SecurityToken], agentKeyStatus: Option[KeyStatus], modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
   }
 
   val defaultModesConfig = NodeModeConfig(
