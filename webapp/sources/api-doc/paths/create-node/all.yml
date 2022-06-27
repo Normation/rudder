@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2022 Normation SAS
-get:
-  summary: Technique metadata by ID
-  description: Get each Technique's versions with their metadata by ID
-  operationId: getTechniqueAllVersion
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+put:
+  summary: Create a new node
+  description: Create a new node
+  operationId: createNodes
   parameters:
-    - $ref: ../../components/parameters/technique-id.yml
+    - $ref: ../../components/parameters/node-info.yml
   responses:
     "200":
-      description: Techniques information
+      description: Creation informations
       content:
         application/json:
           schema:
@@ -28,24 +28,27 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - listTechniques
+                  - createNodes
               data:
                 type: object
                 required:
-                  - techniques
+                  - created
+                  - failed
                 properties:
-                  techniques:
+                  created:
                     type: array
                     items:
-                      type: object
-                      required:
-                        - JREditorTechnique
-                      properties:
-                        JREditorTechnique:
-                          $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
+                      type: string
+                      description: created nodes ID
+                      example: 378740d3-c4a9-4474-8485-478e7e52db52
+                  failed:
+                    type: array
+                    items:
+                      type: string
+                      description: failed nodes ID
   tags:
-    - Techniques
+    - 🧩 Create Node
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/techniques/id.sh
+        $ref: ../../code_samples/curl/create-node/all.sh

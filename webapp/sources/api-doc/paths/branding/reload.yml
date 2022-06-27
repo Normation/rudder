@@ -36,7 +36,7 @@ post:
                     $ref: ../../components/schemas/branding-conf.yml
   tags:
     - 🧩 Branding
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/branding/reload.sh

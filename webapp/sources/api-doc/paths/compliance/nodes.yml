@@ -95,7 +95,7 @@ get:
                               example: 2.63
   tags:
     - Compliance
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/compliance/nodes.sh

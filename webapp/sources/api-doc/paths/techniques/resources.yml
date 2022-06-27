@@ -13,7 +13,7 @@ get:
       content:
         application/json:
           schema:
-            type: array
+            type: object
             required:
               - result
               - action
@@ -33,14 +33,14 @@ get:
               data:
                 type: object
                 required:
-                  - techniques
+                  - resources
                 properties:
-                  techniques:
+                  resources:
                     $ref: ../../components/schemas/techniques-resources.yml
 
   tags:
     - Techniques
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/techniques/resources.sh

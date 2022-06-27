@@ -44,7 +44,7 @@ put:
                       $ref: ../../components/schemas/group-category.yml
   tags:
     - Groups
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/groups/category-id-new.sh

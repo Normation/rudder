@@ -47,7 +47,7 @@ get:
                       $ref: ../../components/schemas/directiveTree.yml
   tags:
     - Directives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/directives/tree.sh

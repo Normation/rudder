@@ -55,7 +55,7 @@ get:
                       $ref: ../../components/schemas/api-endpoints.yml
   tags:
     - API Info
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/info/get-section.sh
