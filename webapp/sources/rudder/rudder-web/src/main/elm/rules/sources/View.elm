@@ -60,7 +60,7 @@ view model =
         rules = item.elems
           |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
           |> List.filter (\r -> filterTags r.tags model.ui.ruleFilters.treeFilters.tags)
-          |> List.sortBy .name
+          |> List.sortWith (getSortFunction model)
           |> List.map ruleTreeElem
 
         childsList  = ul[class "jstree-children"] (List.concat [categories, rules, missingCat] )
