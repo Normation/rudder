@@ -940,11 +940,12 @@ class RuleApiService14 (
   }
 
   private def listCategoriesId(cat: RuleCategory) : Set[RuleCategoryId] = {
-    @tailrec
     def listCatAcc(categories: List[RuleCategory], acc: List[RuleCategoryId]) : List[RuleCategoryId] = {
       categories match {
-        case Nil => acc
-        case c :: t => listCatAcc(t, c.id :: acc)
+        case Nil    => acc
+        case c :: t =>
+          val children = listCatAcc(c.childs, c.id :: acc)
+          listCatAcc(t, children)
       }
     }
     listCatAcc(cat.childs, List(RuleCategoryId("rootRuleCategory"))).toSet
