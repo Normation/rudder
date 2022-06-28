@@ -62,7 +62,7 @@ response:
           { "name":"stringQuoted"         , "value": "\"quotedString\""  },
           { "name":"stringSimple"         , "value": "simple string"     }
         ],
-        "policyMode":"default","state":"enabled"
+        "policyMode":"enforce","state":"enabled"
       }
     }
 ---
@@ -127,6 +127,6 @@ response:
       "data":{
         "id":"node1",
         "properties":[],
-        "policyMode":"default","state":"enabled"
+        "policyMode":"enforce","state":"enabled"
       }
     }
