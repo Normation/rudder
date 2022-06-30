@@ -1130,14 +1130,14 @@ final case class ContextForNoAnswer(
                 val (r, nbDup) = if (dropDuplicated(value, report)) {
                   val msg = s"Following report is duplicated and will be ignored because of Rudder setting choice: ${report.toString}"
                   if (value.numberDuplicates <= 0) { //first time is an info
-                    logger.info(msg)
+                    logger.debug(msg)
                     (value.matchingReports, 1)
                   } else if (value.numberDuplicates == 1) { //second time is a warning
-                    logger.warn(msg)
+                    logger.debug(msg)
                     (value.matchingReports, 2)
                   } else { // more than two times: log error and let the report leads to an unexpected
                     val n = value.numberDuplicates + 1
-                    logger.error(s"Following report is duplicated ${n} times. This is spurious and should be investigated. The message is kept as unexpected despite Rudder setting.")
+                    logger.debug(s"Following report is duplicated ${n} times. If you are in syslog, this may be spurious and should be investigated. The message is kept as unexpected despite Rudder setting.")
                     (report :: value.matchingReports, n)
                   }
                 } else {
