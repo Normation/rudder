@@ -77,8 +77,8 @@ isValid ui =
      ]
    }
 -}
-listAllMethodWithMissingParameters: List MethodCall -> Dict String Method -> Dict String (List (ValidationState MethodCallParamError))
-listAllMethodWithMissingParameters methodCallList libMethods =
+listAllMethodWithErrorOnParameters: List MethodCall -> Dict String Method -> Dict String (List (ValidationState MethodCallParamError))
+listAllMethodWithErrorOnParameters methodCallList libMethods =
   let
     errorsOnParamByCallId =
       List.map ( \mCall ->
@@ -109,6 +109,28 @@ listAllMethodWithMissingParameters methodCallList libMethods =
   in
   Dict.fromList (List.filter (\(_, errors) -> if (List.isEmpty errors) then False else True) errorsOnParamByCallId)
 
+listAllMethodWithErrorOnCondition: List MethodCall -> Dict String Method -> Dict String (ValidationState MethodCallConditionError)
+listAllMethodWithErrorOnCondition methodCallList libMethods =
+  let
+    errorsOnParamByCallId =
+      List.map ( \mCall ->
+        case (Dict.get mCall.methodName.value libMethods) of
+          Just method ->
+            let
+              conditionErrors = checkConstraintOnCondition mCall.condition
+            in
+            ( mCall.id.value
+            , conditionErrors
+            )
+          _      -> (mCall.methodName.value, ValidState)
+      ) methodCallList
+  in
+  Dict.fromList (List.filter ( \(_, error) ->
+    case error of
+      InvalidState err -> True
+      _ -> False
+  ) errorsOnParamByCallId)
+
 checkBlocksOnError: List MethodElem -> Dict String (ValidationState BlockError)
 checkBlocksOnError methodElems =
   let
@@ -134,9 +156,11 @@ showTechnique model technique origin ui =
                  Clone _ _ -> True
                  Edit _ -> False
     methodCallList = List.concatMap getAllCalls technique.elems
-    statesByMethodId = listAllMethodWithMissingParameters methodCallList model.methods
+    statesByMethodIdParameter = listAllMethodWithErrorOnParameters methodCallList model.methods
+    statesByMethodIdCondition = listAllMethodWithErrorOnCondition methodCallList model.methods
     -- Keep the ID of the method in the UI if it contains invalid parameters value
-    areMethodsMissingParameters = List.isEmpty (Dict.keys statesByMethodId)
+    areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
+    areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -256,7 +280,7 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
-          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areMethodsMissingParameters || not areBlockOnError), onClick StartSaving] [
+          , button [ class "btn btn-success btn-save", disabled (isUnchanged || (not (isValid ui)) || ui.saving || String.isEmpty technique.name || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError), onClick StartSaving] [
               text "Save "
             , i [ class ("fa fa-download " ++ (if ui.saving then "glyphicon glyphicon-cog fa-spin" else "")) ] []
             ]

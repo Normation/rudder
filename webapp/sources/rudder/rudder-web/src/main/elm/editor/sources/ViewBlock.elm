@@ -101,6 +101,11 @@ showBlockTab model parentId block uiInfo techniqueUi =
                        li [ onClick (MethodCallModified updatedCall) ] [ a [href "#" ] [ text (showUbuntuMinor ubuntuMinor) ] ]
                    ) [All, ZeroFour, Ten]
         condition = block.condition
+        errorOnConditionInput =
+          if(String.contains "\n" block.condition.advanced) then
+            ul [ class "list-unstyled" ] [ li [ class "text-danger" ] [ text "Return carriage is forbidden in condition" ] ]
+          else
+            div[][]
         updateConditionVersion = \f s ->
                       let
                         updatedCall = Block parentId { block | condition = {condition | os =  f  (String.toInt s) condition.os } }
@@ -211,6 +216,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                            in MethodCallModified updatedCall
                                          )
                              ] []
+                          , errorOnConditionInput
                           ]
         result =
           div [ class "form-group condition-form" ] [
