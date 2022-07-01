@@ -94,7 +94,7 @@ rudder.jdbc.driver=org.postgresql.Driver
 # that passwords is well configured, that the service is up and running and restarted
 # when needed, etc. If you want to use that option, don't change URL below.
 # If you want to use a dedicated remote server for PostgreSQL, set its connection
-# URL here, and set parameter `rudder.`
+# URL here, and set parameter `rudder.postgresql.local` to false
 #
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.postgresql.local=true
