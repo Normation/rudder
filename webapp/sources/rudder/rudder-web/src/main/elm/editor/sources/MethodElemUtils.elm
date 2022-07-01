@@ -101,6 +101,7 @@ checkBlockConstraint block =
     checkFocusNotSet = case block.reportingLogic of
                          FocusReport "" -> InvalidState [ NoFocusError ]
                          _ -> ValidState
+    checkCondition = if String.contains "\n" block.condition.advanced then InvalidState [ ConditionError ] else ValidState
     fold = \acc h -> case (acc,h) of
                        (InvalidState err1, InvalidState err2) -> InvalidState (List.concat [err1, err2])
                        (InvalidState err, _) -> acc
@@ -108,4 +109,4 @@ checkBlockConstraint block =
                        (_,_) -> acc
 
   in
-    List.foldl  fold checkEmptyComponent [ checkFocusNotSet]
+    List.foldl  fold checkEmptyComponent [ checkFocusNotSet, checkCondition ]
