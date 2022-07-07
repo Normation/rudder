@@ -42,7 +42,6 @@ import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.inventory.domain.RuddercTarget
 
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
@@ -327,9 +326,6 @@ object JsonQueryObjects {
     }
   }
 
-  // RuddercTargets are serialized as a json array in rudder settings
-  final case class JQRuddercTargets(values: Set[RuddercTarget])
-
   // policy servers are serialized in their output format
 }
 
@@ -423,12 +419,6 @@ trait RudderJsonDecoders {
   implicit val nodeGroupIdDecoder: JsonDecoder[NodeGroupId] = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
   implicit val groupDecoder: JsonDecoder[JQGroup] = DeriveJsonDecoder.gen
 
-  implicit val ruddercTargetDecoder: JsonDecoder[RuddercTarget] = JsonDecoder[String].mapOrFail(s =>
-    RuddercTarget.parse(s)
-  )
-  implicit val ruddercTargetsDecoder: JsonDecoder[JQRuddercTargets] = JsonDecoder[List[String]].mapOrFail(list =>
-    list.accumulatePure(s => ruddercTargetDecoder.decodeJson(s).left.map(Inconsistency) ).left.map(_.fullMsg).map(x => JQRuddercTargets(x.toSet))
-  )
 }
 
 /*

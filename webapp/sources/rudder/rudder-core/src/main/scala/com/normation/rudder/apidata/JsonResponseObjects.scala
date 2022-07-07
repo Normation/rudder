@@ -41,7 +41,6 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.cfclerk.domain.Technique
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.rule.category.RuleCategory
@@ -690,9 +689,6 @@ object JsonResponseObjects {
     }
   }
 
-  // used to encode RuddercTargets in settings into an json array of strings
-  final case class JRRuddercTargets(values: Set[RuddercTarget])
-
   final case class JRRuleNodesDirectives(
       id              : String // id is in format uid+rev
     , numberOfNodes   : Int
@@ -821,7 +817,5 @@ trait RudderJsonEncoders {
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
-
-  implicit val ruddercTargetsEncoder: JsonEncoder[JRRuddercTargets] = JsonEncoder[List[String]].contramap[JRRuddercTargets](_.values.map(_.name).toList.sorted)
 }
 

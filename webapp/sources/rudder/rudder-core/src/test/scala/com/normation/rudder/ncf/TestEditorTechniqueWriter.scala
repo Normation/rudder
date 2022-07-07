@@ -229,7 +229,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService : PlugableParameterTypeService = new PlugableParameterTypeService
-  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/bin/true", basePath)
   val writer = new TechniqueWriter(
       TestTechniqueArchiver
     , TestLibUpdater
@@ -242,9 +241,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , basePath
     , parameterTypeService
     , new TechniqueSerializer(parameterTypeService)
-    , techniqueCompiler
-    , basePath
-    , Set().succeed
   )
   val dscWriter = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
@@ -395,7 +391,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique, methods, true).either.runNow must beRight( expectedMetadataPath )
+      writer.writeMetadata(technique, methods).either.runNow must beRight( expectedMetadataPath )
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -459,7 +455,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.bundleName.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_any, methods, true).either.runNow must beRight( expectedMetadataPath_any )
+      writer.writeMetadata(technique_any, methods).either.runNow must beRight( expectedMetadataPath_any )
     }
 
     "Should generate expected metadata content for our technique" in {

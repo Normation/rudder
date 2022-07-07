@@ -55,7 +55,6 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -101,126 +100,6 @@ final case class IOError(message : String, exception : Option[Throwable]) extend
 final case class TechniqueUpdateError(message : String, exception : Option[Throwable]) extends NcfError
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
 
-/*
- * get the full line of arguments for rudderc for the given kind of target,
- * with the given input file and config file
- */
-trait RuddercOptionsForTarget[T <: RuddercTarget] {
-  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String]
-  def targetName: String
-}
-
-object RuddercOptionsForTarget {
-  // the compile line is common to both target, only the file extension type for agent changes
-  def buildOptions(extension: String, techniquePath: String)(implicit ruddercConfig: RuddercConfig) = {
-    "compile" :: "--json-logs" :: "--format" :: extension ::
-    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.rd""" ::
-    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
-  }
-
-  implicit val cfengineRuddercOption = new RuddercOptionsForTarget[RuddercTarget.CFEngine.type] {
-    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-      buildOptions("cf", techniquePath)
-    }
-    override def targetName: String = "CFEngine"
-  }
-
-  implicit val dscRuddercOption = new RuddercOptionsForTarget[RuddercTarget.DSC.type] {
-    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-      buildOptions("dsc", techniquePath)
-    }
-    override def targetName: String = "DSC"
-  }
-}
-
-object RuddercOptionForSave {
-  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-    "save" :: "--json-logs" ::
-    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.json""" ::
-    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
-  }
-}
-
-final case class RuddercConfig(
-    configFilePath : String
-  , rudderCPath    : String
-  , outputPath     : String
-)
-
-class RudderCRunner(
-    configFilePath : String
-  , rudderCPath    : String
-  , outputPath     : String
-) {
-
-  implicit val config = RuddercConfig(configFilePath, rudderCPath, outputPath)
-  import RuddercOptionsForTarget._
-
-  /*
-   * `techniquePath` is the relative path of the technique.
-   */
-  def compileForTarget[T <: RuddercTarget](techniquePath: String)(implicit ruddercOptionsForTarget: RuddercOptionsForTarget[T]) = {
-    for {
-      time_1 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, ruddercOptionsForTarget.options(techniquePath), Map.empty))
-      res    <- r.await
-      _      <- ZIO.when(res.code != 0) {
-                  Inconsistency(
-                    s"An error occurred when compiling technique.rd file into ${ruddercOptionsForTarget.targetName}\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-                  ).fail
-                }
-      time_2 <- currentTimeMillis
-      _      <- TimingDebugLoggerPure.trace(s"compileTechnique: compiling technique '${techniquePath}' into ${ruddercOptionsForTarget.targetName} took ${time_2 - time_1}ms")
-    } yield ()
-  }
-
-  // returns whether the fallback was applied
-  def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique,
-                                   methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter,
-                                   outputPath: String, configFilePath: String): ZIO[Any, RudderError, Boolean] = {
-    if(ruddercTargets.contains(target)) {
-      TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
-        target match {
-          case RuddercTarget.DSC      => compileForTarget[RuddercTarget.DSC.type](technique.path)
-          // no need for na reporting file when succeeds
-          case RuddercTarget.CFEngine => compileForTarget[RuddercTarget.CFEngine.type](technique.path)
-        }
-      }.map(_ => false)
-    } else {
-      for {
-        _ <- TechniqueWriterLoggerPure.debug(s"Using fallback technique generation in place of rudderc for technique '${technique.path}' because target '${target.name}' not enabled in settings")
-        _ <- fallback.writeAgentFiles(technique, methods)
-      } yield {
-        true
-      }
-    }
-  }
-
-  def compileTechnique(technique : EditorTechnique, targets: Set[RuddercTarget], methods: Map[BundleName, GenericMethod],
-                       cfengineFallback: AgentSpecificTechniqueWriter, dscFallback: AgentSpecificTechniqueWriter) = {
-
-    for {
-      time_0 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, RuddercOptionForSave.options(technique.path), Map.empty))
-      res    <- r.await
-      _      <- ZIO.when(res.code != 0) {
-                  Inconsistency(
-                    s"An error occurred when translating ${technique.path}/technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-                  ).fail
-                }
-      time_1 <- currentTimeMillis
-      _      <- TimingDebugLoggerPure.trace(s"compileTechnique: saving technique '${technique.name}' took ${time_1 - time_0}ms")
-
-      writtenByRudderWebapp <- writeOne(RuddercTarget.CFEngine, targets, technique, methods, cfengineFallback, outputPath, configFilePath)
-
-      _                     <- writeOne(RuddercTarget.DSC     , targets, technique, methods, dscFallback     , outputPath, configFilePath)
-
-    } yield {
-      writtenByRudderWebapp
-    }
-  }
-}
-
 class TechniqueWriter (
     archiver            : TechniqueArchiver
   , techLibUpdate       : UpdateTechniqueLibrary
@@ -233,19 +112,12 @@ class TechniqueWriter (
   , basePath            : String
   , parameterTypeService: ParameterTypeService
   , techniqueSerializer : TechniqueSerializer
-  , compiler            : RudderCRunner
-  , errorLogPath        : String
-  , ruddercTargets      : IOResult[Set[RuddercTarget]]
 ) {
 
-  /*
-   * This is the pre-rudderc writers. Still used as a fallback when rudderc is not configured for a target,
-   * or as a fallback on error.
-   * Plus, as of Rudder 7.0, rudderc does not know how to write metadata yet.
-   */
-  private[this] val cfengineFallbackTechniqueWriter = new ClassicTechniqueWriter(basePath, parameterTypeService)
-  private[this] val dscFallbackTechniqueWriter = new DSCTechniqueWriter(basePath, translater, parameterTypeService)
-  private[this] val agentSpecific = cfengineFallbackTechniqueWriter :: dscFallbackTechniqueWriter :: Nil
+
+  private[this] val cfengineTechniqueWriter = new ClassicTechniqueWriter(basePath, parameterTypeService)
+  private[this] val dscTechniqueWriter = new DSCTechniqueWriter(basePath, translater, parameterTypeService)
+  private[this] val agentSpecific = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
 
   def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
 
@@ -332,7 +204,7 @@ class TechniqueWriter (
    } yield ()
   }
 
-  def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : PureResult[XmlNode] = {
+  def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
     def reportingValuePerBlock (block : MethodBlock) : PureResult[NodeSeq] = {
 
@@ -405,7 +277,7 @@ class TechniqueWriter (
 
     for {
       reportingSection <- reportingSections(technique.methodCalls.toList)
-      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods, writtenByRudderWebapp))
+      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
         { if (technique.parameters.nonEmpty) {
@@ -452,43 +324,11 @@ class TechniqueWriter (
       json       <- writeJson(techniqueWithResourceUpdated, methods)
       time_1     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
-      targets    <- ruddercTargets
-      _          <- TechniqueWriterLoggerPure.debug(s"Targets for technique ${technique.name} are ${targets.map(_.name).mkString(",")}")
-      writtenByRudderWebapp <- if (targets.nonEmpty) {
-            // if we have some rudderc target, use them
-            compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
-              val errorPath: File = root / errorLogPath / "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
-              for {
-                _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
-                _ <- IOResult.effect {
-                  errorPath.createFileIfNotExists(true)
-                  errorPath.write(
-                    s"""
-                    |error =>
-                    |  ${e.fullMsg}
-                    |technique data =>
-                    |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique,methods))}""".stripMargin)
-                   }.catchAll(e2 =>
-                       TechniqueWriterLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
-                       TechniqueWriterLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
-                   )
-              _   <- writeAgentFiles(technique, methods, modId, committer)
-            } yield {
-              true
-            }
-          }
-        } else {
-          for {
-            _   <- writeAgentFiles(technique, methods, modId, committer)
-          } yield {
-            true
-          }
-        }
-      _          <- TechniqueWriterLoggerPure.debug(s"Result of writtenByRudderWebapp for ${technique.name} is ${writtenByRudderWebapp}")
+      _          <- writeAgentFiles(technique, methods, modId, committer)
       time_2     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms")
 
-      metadata   <- writeMetadata(technique, methods, writtenByRudderWebapp)
+      metadata   <- writeMetadata(technique, methods)
       time_3     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_3 - time_2}ms")
       commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
@@ -511,13 +351,13 @@ class TechniqueWriter (
     }
   }
 
-  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : IOResult[String] = {
+  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : IOResult[String] = {
 
     val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
     val path = s"${basePath}/${metadataPath}"
     for {
-      content <- techniqueMetadataContent(technique, methods, writtenByRudderWebapp).map(n => xmlPrettyPrinter.format(n)).toIO
+      content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
       _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
                    val file = File (path).createFileIfNotExists (true)
@@ -550,7 +390,7 @@ trait AgentSpecificTechniqueWriter {
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) : PureResult[NodeSeq]
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
@@ -771,10 +611,9 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     }
   }
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean )  : PureResult[NodeSeq] = {
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
 
-    // Rudderc manages directly na reporting in bundle. so we only need to do rudder reporting only if it was written by Rudder
-    val needReporting =  writtenByRudderWebapp && needReportingBundle(technique, methods)
+    val needReporting =  needReportingBundle(technique, methods)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
@@ -972,7 +811,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) = {
+  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.bundleName.validDscName}</NAME>

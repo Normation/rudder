@@ -111,7 +111,6 @@ import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.RudderCRunner
 import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -176,6 +175,7 @@ import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
 import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
+import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 import com.normation.zio._
@@ -1264,7 +1264,6 @@ object RudderConfig extends Loggable {
       )
 
   val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_GIT_ROOT_CONFIG_REPO)
   val ncfTechniqueWriter = new TechniqueWriter(
       techniqueArchiver
     , updateTechniqueLibrary
@@ -1277,9 +1276,6 @@ object RudderConfig extends Loggable {
     , RUDDER_GIT_ROOT_CONFIG_REPO
     , typeParameterService
     , techniqueSerializer
-    , techniqueCompiler
-    , "/var/log/rudder"
-    , configService.rudder_generation_rudderc_enabled_targets()
   )
 
   lazy val pipelinedInventoryParser: InventoryParser = {
@@ -2482,6 +2478,7 @@ object RudderConfig extends Loggable {
     , new CheckAddSpecialTargetAllPolicyServers(rwLdap)
     , new CheckAddSpecialNodeGroupsDescription(rwLdap)
     , new CheckMigratedSystemTechniques(policyServerManagementService, gitConfigRepo, nodeInfoService, rwLdap, techniqueRepository, techniqueRepositoryImpl, uuidGen, woDirectiveRepository, woRuleRepository)
+    , new CheckRemoveRuddercSetting(rwLdap)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,

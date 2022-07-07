@@ -42,38 +42,6 @@ import zio._
 import zio.syntax._
 
 
-
-
-/**
- * Supported target language/agent for rudderc.
- * For now, it is either dsc or cfengine
- * (case insensitive)
- * rudder_generation_rudderc_enabled_targets = ["cfengine", "dsc"]
- */
-sealed trait RuddercTarget { val name: String }
-object RuddercTarget {
-
-  final case object DSC      extends RuddercTarget { val name = "dsc" }
-  final case object CFEngine extends RuddercTarget { val name = "cfengine" }
-
-
-  val all = ca.mrvisser.sealerate.values[RuddercTarget]
-
-  def parse(name: String): Either[String, RuddercTarget] = {
-    val n = name.toLowerCase
-    all.find(_.name == n) match {
-      case Some(x) =>
-        Right(x)
-      case None    =>
-        Left(s"Error when parsing '${name}' as a valid rudderc target. Only accepted values: " +
-             s"'${all.map(_.name).toList.sorted.mkString("', '")}'")
-    }
-  }
-
-
-  val defaultTargets: Set[RuddercTarget] = Set(CFEngine)
-}
-
 /**
  * The enumeration holding the values for the agent
  */
@@ -126,10 +94,6 @@ sealed trait AgentType {
 
   // default policy file extension
   def defaultPolicyExtension: String
-
-  // What is the rudderc target for that agent ?
-  // It can be "none", but in that case, generation will need to be ad-hoc.
-  def ruddercTarget: Option[RuddercTarget]
 }
 
 object AgentType {
@@ -143,7 +107,6 @@ object AgentType {
     override val inventorySoftwareName = "cfengine nova"
     override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
     override val defaultPolicyExtension =".cf"
-    override def ruddercTarget: Option[RuddercTarget] = Some(RuddercTarget.CFEngine)
   }
 
   final case object CfeCommunity extends AgentType {
@@ -155,7 +118,6 @@ object AgentType {
     override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
     override val defaultPolicyExtension =".cf"
-    override def ruddercTarget: Option[RuddercTarget] = Some(RuddercTarget.CFEngine)
   }
 
   final case object Dsc extends AgentType {
@@ -167,7 +129,6 @@ object AgentType {
     override val inventorySoftwareName = "Rudder agent (Windows)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
     override val defaultPolicyExtension ="" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
-    override def ruddercTarget: Option[RuddercTarget] = Some(RuddercTarget.DSC)
   }
 
   def allValues = ca.mrvisser.sealerate.values[AgentType]
