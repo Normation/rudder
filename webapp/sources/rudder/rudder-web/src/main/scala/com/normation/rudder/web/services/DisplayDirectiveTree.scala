@@ -74,20 +74,20 @@ sealed trait AgentCompat {
 }
 
 object AgentCompat {
-final case object Dsc     extends AgentCompat {
-    def icon : NodeSeq = dscIcon
-    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b class="dsc">DSC</b> agent.</p>
-    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b class="dsc">DSC agent</b>.</p>
+final case object Windows     extends AgentCompat {
+    def icon : NodeSeq = windowsIcon
+    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b class="dsc">Windows</b> agent.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b class="dsc">Windows agent</b>.</p>
   }
-final case object Classic extends AgentCompat {
-    def icon : NodeSeq = classicIcon
-    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b>Classic</b> agent.</p>
-    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b>Classic agent</b>.</p>
+final case object Linux extends AgentCompat {
+    def icon : NodeSeq = linuxIcon
+    def techniqueText : NodeSeq = <p>This Technique is only compatible with <b>Linux</b> agent.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with <b>Linux agent</b>.</p>
   }
 final case object All     extends AgentCompat {
-    def icon : NodeSeq = classicIcon ++ dscIcon
-    def techniqueText : NodeSeq = <p>This Technique has at least a version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
-    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with both <b>Classic</b> and <b class="dsc">DSC</b> agents.</p>
+    def icon : NodeSeq = linuxIcon ++ windowsIcon
+    def techniqueText : NodeSeq = <p>This Technique has at least a version compatible with both <b>Linux</b> and <b class="dsc">Windows</b> agents.</p>
+    def directiveText : NodeSeq = <p>This Directive is based on a Technique version compatible with both <b>Linux</b> and <b class="dsc">Windows</b> agents.</p>
   }
 final case object NoAgent extends AgentCompat {
     def icon : NodeSeq = NodeSeq.Empty
@@ -97,17 +97,17 @@ final case object NoAgent extends AgentCompat {
 
   def apply (agentTypes: Iterable[AgentType]) : AgentCompat = {
     agentTypes.foldRight(NoAgent : AgentCompat) {
-      case (_, All) => All
-      case (AgentType.Dsc, NoAgent) => Dsc
-      case (_, NoAgent) => Classic
-      case (AgentType.Dsc, Classic) => All
-      case (_, Dsc) => All
-      case (_, x) => x
+      case (_, All)                 => All
+      case (AgentType.Dsc, NoAgent) => Windows
+      case (_, NoAgent)             => Linux
+      case (AgentType.Dsc, Linux)   => All
+      case (_, Windows)             => All
+      case (_, x)                   => x
     }
   }
 
-  val dscIcon = <i class="dsc-icon tree-icon"></i>
-  val classicIcon = <i class="fa fa-gear tree-icon"></i>
+  val windowsIcon = <i class="dsc-icon tree-icon"></i>
+  val linuxIcon   = <i class="fa fa-gear tree-icon"></i>
 }
 
 object DisplayDirectiveTree extends Loggable {

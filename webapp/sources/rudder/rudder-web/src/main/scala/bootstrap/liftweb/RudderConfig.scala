@@ -43,14 +43,12 @@ import java.util.concurrent.TimeUnit
 import better.files.File.root
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.appconfig._
-
 import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -167,7 +165,6 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
-
 import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
 import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
 import bootstrap.liftweb.checks.action.CreateSystemToken
@@ -176,11 +173,11 @@ import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
 import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
-
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -192,13 +189,12 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-
 import zio.IO
 import zio.syntax._
 import zio.duration._
+
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
-
 import zio.Ref
 
 object RUDDER_CHARSET {
@@ -222,7 +218,18 @@ final case class FileSystemResource(file: File) extends AnyVal with ConfigResour
  */
 object RudderProperties {
 
+  // extension used in overriding files
+  val configFileExtensions = Set("properties", "prop", "config")
+
+  // by default, used and configured to /opt/rudder/etc/rudder-web.properties
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
+
+  // We have config overrides in a directory whose named is based on JVM_CONFIG_FILE_KEY
+  // if defined, with a ".d" after it. It can be overridden with that key.
+  // File in dir are sorted by name and the latter override the former.
+  // Default: ${JVM_CONFIG_FILE_KEY}.d
+  val JVM_CONFIG_DIR_KEY = "rudder.configDir"
+
   val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
 
   // Set security provider with bouncy castle one
@@ -231,31 +238,98 @@ object RudderProperties {
   /**
    * Where to go to look for properties
    */
-  val configResource = System.getProperty(JVM_CONFIG_FILE_KEY) match {
+  val (configResource, overrideDir) = System.getProperty(JVM_CONFIG_FILE_KEY) match {
       case null | "" => //use default location in classpath
-        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file in classpath".format(JVM_CONFIG_FILE_KEY))
-        ClassPathResource(DEFAULT_CONFIG_FILE_NAME)
+        ApplicationLogger.info(s"JVM property -D${JVM_CONFIG_FILE_KEY} is not defined, use configuration file in classpath")
+        (ClassPathResource(DEFAULT_CONFIG_FILE_NAME), None)
+
       case x => //so, it should be a full path, check it
         val config = new File(x)
         if(config.exists && config.canRead) {
-          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_CONFIG_FILE_KEY, config.getPath))
-          FileSystemResource(config)
+          ApplicationLogger.info(s"Rudder application parameters are read from file defined by JVM property -D${JVM_CONFIG_FILE_KEY}: ${config.getPath}")
+          val configFile = FileSystemResource(config)
+
+          val overrideDir = System.getProperty(JVM_CONFIG_DIR_KEY) match {
+            case null | "" =>
+              val path = configFile.file.getPath + ".d"
+              ApplicationLogger.info(s"-> files for overriding configuration parameters are read from directory ${path} (that path can be overridden with JVM property -D${JVM_CONFIG_DIR_KEY})")
+              Some(path)
+            case x =>
+              val d = better.files.File(x)
+              if(d.exists) {
+                if(d.isDirectory) {
+                  Some(d.pathAsString)
+                } else {
+                  ApplicationLogger.warn(s"JVM property -D${JVM_CONFIG_DIR_KEY} is defined to '${d.pathAsString}' which is not a directory: ignoring directory for overriding configurations")
+                  None
+                }
+              } else {
+                // we will create it
+                Some(d.pathAsString)
+              }
+          }
+          (configFile, overrideDir)
         } else {
-          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_CONFIG_FILE_KEY, config.getPath))
-          throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
+          ApplicationLogger.error(s"Can not find configuration file specified by JVM property '${JVM_CONFIG_FILE_KEY}': '${config.getPath}' ; abort")
+          throw new javax.servlet.UnavailableException(s"Configuration file not found: ${config.getPath}")
         }
     }
+
+  // Sorting is done here for meaningful debug log, but we need to reverse it
+  // because in typesafe Config, we have "withDefault" (ie the opposite of overrides)
+  val overrideConfigs = overrideDir match {
+    case None => // no additional config to add
+      Nil
+    case Some(x) =>
+      val d = better.files.File(x)
+      try {
+        d.createDirectoryIfNotExists(true)
+      } catch {
+        case ex: Exception =>
+          ApplicationLogger.error(s"The configuration directory '${d.pathAsString}' for overriding file config can't be created: ${ex.getMessage}")
+      }
+      val overrides = d.children.collect {
+        case f if(configFileExtensions.contains(f.extension(false, false).getOrElse(""))) => FileSystemResource(f.toJava)
+      }.toList.sortBy(_.file.getPath)
+      ApplicationLogger.debug(s"Overriding configuration files in '${d.pathAsString}': ${overrides.map(_.file.getName).mkString(", ")}")
+      overrides
+  }
 
   // some value used as defaults for migration
   val migrationConfig =
     s"""rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
     """
 
+  // the Config lib does not define overriding but fallback, so we are starting with the directory, sorted last first
+  // then default file, then migration things.
+  val empty = ConfigFactory.empty()
+
   val config : Config = {
-    (configResource match {
-      case ClassPathResource(name) => ConfigFactory.load(name)
-      case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
-    }).withFallback(ConfigFactory.parseString(migrationConfig))
+    (
+      (overrideConfigs.reverse :+ configResource).foldLeft(ConfigFactory.empty()) { case (current, fallback) =>
+        ApplicationLogger.debug(s"loading configuration from " + fallback)
+        val conf = fallback match {
+          case ClassPathResource(name) => ConfigFactory.load(name)
+          case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
+        }
+        current.withFallback(conf)
+      }
+    ).withFallback(ConfigFactory.parseString(migrationConfig))
+  }
+
+  if(ApplicationLogger.isDebugEnabled) {
+    // if override Dir is non empty, add the resolved config file with debug info in it
+    overrideDir.foreach { d =>
+      val dest = better.files.File(d) / "rudder-web.properties-resolved-debug"
+      ApplicationLogger.debug(s"Writing resolved configuration file to ${dest.pathAsString}")
+      import java.nio.file.attribute.PosixFilePermission._
+      try {
+        dest.setPermissions(Set(OWNER_READ, GROUP_READ)).writeText(config.root().render())
+      } catch {
+        case ex: Exception =>
+          ApplicationLogger.error(s"The debug file for configuration resolution '${dest.pathAsString}' can't be created: ${ex.getMessage}")
+      }
+    }
   }
 
   def splitProperty(s: String): List[String] = {
@@ -678,7 +752,7 @@ object RudderConfig extends Loggable {
   }
 
   val RUDDER_DEFAULT_DELETE_NODE_MODE = {
-    val default = DeleteMode.MoveToRemoved
+    val default = DeleteMode.Erase
     val mode = try {
       config.getString("rudder.nodes.delete.defaultMode")
     } catch {
@@ -2406,6 +2480,7 @@ object RudderConfig extends Loggable {
       , uuidGen
     )
     , new CheckAddSpecialTargetAllPolicyServers(rwLdap)
+    , new CheckAddSpecialNodeGroupsDescription(rwLdap)
     , new CheckMigratedSystemTechniques(policyServerManagementService, gitConfigRepo, nodeInfoService, rwLdap, techniqueRepository, techniqueRepositoryImpl, uuidGen, woDirectiveRepository, woRuleRepository)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(

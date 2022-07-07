@@ -1,0 +1,132 @@
+---
+description: Get node (minimal)
+method: GET
+url: /api/latest/nodes/node1?include=minimal,properties
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "properties":[]
+          }
+        ]
+      }
+    }
+---
+description: Add Json property
+method: POST
+url: /api/latest/nodes/node1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "properties": [
+      { "name":"jsonArray"            , "value": [ "one", 2, true]   },
+      { "name":"jsonProp"             , "value": {"jsonObject":"ok"} },
+      { "name":"stringArray"          , "value": "[array]"           },
+      { "name":"stringNonMatching"    , "value": "{paren]"           },
+      { "name":"stringParen"          , "value": "{paren}"           },
+      { "name":"stringParenEscaped2"  , "value": "\\{paren\\}"       },
+      { "name":"stringParenIncomplete", "value": "{paren"            },
+      { "name":"stringQuoted"         , "value": "\"quotedString\""  },
+      { "name":"stringSimple"         , "value": "simple string"     }
+    ]
+  }
+response:
+  code: 200
+  note: >-
+    One backslash has not a very defined behavior in front of anything but " and \. The rule: if you want a \, you escape it.
+  content: >-
+    {
+      "action":"updateNode",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "id":"node1",
+        "properties":[
+          { "name":"jsonArray"            , "value": [ "one", 2, true]   },
+          { "name":"jsonProp"             , "value": {"jsonObject":"ok"} },
+          { "name":"stringArray"          , "value": "[array]"           },
+          { "name":"stringNonMatching"    , "value": "{paren]"           },
+          { "name":"stringParen"          , "value": "{paren}"           },
+          { "name":"stringParenEscaped2"  , "value": "\\{paren\\}"       },
+          { "name":"stringParenIncomplete", "value": "{paren"            },
+          { "name":"stringQuoted"         , "value": "\"quotedString\""  },
+          { "name":"stringSimple"         , "value": "simple string"     }
+        ],
+        "policyMode":"enforce","state":"enabled"
+      }
+    }
+---
+description: Get node (minimal)
+method: GET
+url: /api/latest/nodes/node1?include=minimal,properties
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "properties":[
+              { "name":"jsonArray"            , "value": [ "one", 2, true]   },
+              { "name":"jsonProp"             , "value": {"jsonObject":"ok"} },
+              { "name":"stringArray"          , "value": "[array]"           },
+              { "name":"stringNonMatching"    , "value": "{paren]"           },
+              { "name":"stringParen"          , "value": "{paren}"           },
+              { "name":"stringParenEscaped2"  , "value": "\\{paren\\}"       },
+              { "name":"stringParenIncomplete", "value": "{paren"            },
+              { "name":"stringQuoted"         , "value": "\"quotedString\""  },
+              { "name":"stringSimple"         , "value": "simple string"     }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Delete Json property
+method: POST
+url: /api/latest/nodes/node1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "properties": [
+          { "name":"jsonArray"            , "value": "" },
+          { "name":"jsonProp"             , "value": "" },
+          { "name":"stringArray"          , "value": "" },
+          { "name":"stringNonMatching"    , "value": "" },
+          { "name":"stringParen"          , "value": "" },
+          { "name":"stringParenEscaped2"  , "value": "" },
+          { "name":"stringParenIncomplete", "value": "" },
+          { "name":"stringQuoted"         , "value": "" },
+          { "name":"stringSimple"         , "value": "" }
+    ]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateNode",
+      "id":"node1",
+      "result":"success",
+      "data":{
+        "id":"node1",
+        "properties":[],
+        "policyMode":"enforce","state":"enabled"
+      }
+    }

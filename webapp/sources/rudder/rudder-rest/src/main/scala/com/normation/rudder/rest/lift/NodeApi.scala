@@ -107,6 +107,7 @@ import com.normation.utils.Control._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 
+
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
@@ -317,7 +318,8 @@ class NodeApi (
 
       (for {
         restNode <- if(req.json_?) {
-                      req.json.flatMap(body => restExtractor.extractNodeFromJSON(body))
+                      req.json.flatMap{ body =>
+                        restExtractor.extractNodeFromJSON(body)}
                     } else {
                       restExtractor.extractNode(req.params)
                     }

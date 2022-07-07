@@ -174,9 +174,10 @@ type alias TreeFilters =
 type MethodFilterState = FilterOpened | FilterClosed
 type ValidationState error = Unchanged | ValidState | InvalidState (List error)
 type TechniqueNameError = EmptyName | AlreadyTakenName
-type BlockError = EmptyComponent | NoFocusError
+type BlockError = EmptyComponent  | NoFocusError | ConditionError
 type TechniqueIdError = TooLongId | AlreadyTakenId | InvalidStartId
 type MethodCallParamError = ConstraintError { id : ParameterId , message: String }
+type MethodCallConditionError = ReturnCarrigeForbidden
 
 type alias MethodCallUiInfo =
   { mode       : MethodCallMode

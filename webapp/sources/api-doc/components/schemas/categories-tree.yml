@@ -13,11 +13,11 @@ properties:
     example: "/"
   path:
     type: string
-    description: Categorie's path
+    description: Category's path
     example: ""
   id:
     type: string
-    description: Categorie ID
+    description: Category ID
     example: "/"
   subcategories:
     type: array

@@ -56,7 +56,6 @@ import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.NodeDit
-
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -107,10 +106,10 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.servers.PolicyServerManagementServiceImpl
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.utils.StringUuidGeneratorImpl
-
 import com.unboundid.ldap.sdk.DN
-
 import com.normation.errors.IOResult
+import com.normation.inventory.ldap.core.LDAPConstants.A_DESCRIPTION
+import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import zio.syntax._
 import zio._
 import com.normation.zio._
@@ -131,7 +130,7 @@ import scala.util.Try
  */
 @RunWith(classOf[JUnitRunner])
 class TestMigrateSystemTechniques7_0 extends Specification {
-
+  sequential
   // initialize test environnement - long and painful //
 
   val schema = (
@@ -315,6 +314,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
   )
 
   val addSpecialTargetAllPolicyServer = new CheckAddSpecialTargetAllPolicyServers(ldap)
+  val modifyNameAndDescForClassicGroup = new CheckAddSpecialNodeGroupsDescription(ldap)
 
 
   // now, mv new-techniques in place of technique, git commit, update technique lib
@@ -369,6 +369,40 @@ class TestMigrateSystemTechniques7_0 extends Specification {
       ldap.server.countEntries === numEntries + 6
     }
 
+  }
+
+  "After updating to 7.2, migration of group names and description is required" in {
+    (modifyNameAndDescForClassicGroup.checkMigrationNeeded().runNow must beTrue)
+  }
+
+  "If we migrate to new name and description of group 'all-nodes-with-cfengine-agent' and 'hasPolicyServer-root' should still be present" in {
+    modifyNameAndDescForClassicGroup.checks()
+    ldap.server.entryExists(modifyNameAndDescForClassicGroup.all_nodeGroupDN.toString()) must beTrue
+    ldap.server.entryExists(modifyNameAndDescForClassicGroup.all_nodeGroupPolicyServerDN.toString()) must beTrue
+  }
+
+  "Group name of 'all-nodes-with-cfengine-agent' should have been modified" in {
+    (Option(ldap.server.getEntry(s"nodeGroupId=all-nodes-with-cfengine-agent,${groupDn}")).map(_.getAttribute(A_NAME).getValue))
+      .getOrElse(Nil) mustEqual modifyNameAndDescForClassicGroup.allNodeGroupNewName
+  }
+
+  "Group name of 'hasPolicyServer-root' should have been modified" in {
+    (Option(ldap.server.getEntry(s"nodeGroupId=hasPolicyServer-root,${groupDn}")).map(_.getAttribute(A_NAME).getValue))
+      .getOrElse(Nil) mustEqual modifyNameAndDescForClassicGroup.allNodeGroupPolicyServerNewName
+  }
+
+  "Group description of 'all-nodes-with-cfengine-agent' should have been modified" in {
+    (Option(ldap.server.getEntry(s"nodeGroupId=all-nodes-with-cfengine-agent,${groupDn}")).map(_.getAttribute(A_DESCRIPTION).getValue))
+      .getOrElse(Nil) mustEqual modifyNameAndDescForClassicGroup.allNodeGroupNewDescription
+  }
+
+  "Group description of 'hasPolicyServer-root' should have been modified" in {
+    (Option(ldap.server.getEntry(s"nodeGroupId=hasPolicyServer-root,${groupDn}")).map(_.getAttribute(A_DESCRIPTION).getValue))
+      .getOrElse(Nil) mustEqual modifyNameAndDescForClassicGroup.allNodeGroupPolicyServerNewDescription
+  }
+
+  "After migration, groups name and description should not be modified" in {
+    (modifyNameAndDescForClassicGroup.checkMigrationNeeded().runNow must beFalse)
   }
 
   "When initialized with 6.2 data, we don't have the new special target" in {

@@ -372,9 +372,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       val acceptationDate    = DateFormaterService.getDisplayDate(timeStamp)
       val agentTypes         = t.agentConfigs.map(_.agentType).toSet
       val (dscSupport,classicSupport) = AgentCompat(agentTypes) match {
-        case AgentCompat.Dsc => (true,false)
-        case AgentCompat.Classic => (false,true)
-        case AgentCompat.All => (true,true)
+        case AgentCompat.Windows => (true,false)
+        case AgentCompat.Linux   => (false,true)
+        case AgentCompat.All   => (true,true)
         case AgentCompat.NoAgent => (false,false)
       }
       val (multiVersionSupport,mvsMessage) = (t.generationMode, t.isMultiInstance) match{

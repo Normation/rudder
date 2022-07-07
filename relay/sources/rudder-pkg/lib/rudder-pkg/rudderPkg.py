@@ -224,17 +224,21 @@ def package_install_specific_version(name, longVersion, mode='release'):
 """
 
 
-def package_install_latest(name, mode='release', exact_version=True, exit_on_error=True):
-    pkgs = plugin.Plugin(name[0])
-    pkgs.getAvailablePackages()
-    rpkg = pkgs.getLatestCompatible(mode, exact_version)
-    if rpkg is not None:
+def package_install_latest(names, mode='release', exact_version=True, exit_on_error=True):
+    rpaths = []
+    for name in names:
+        pkg = plugin.Plugin(name)
+        pkg.getAvailablePackages()
+        rpkg = pkg.getLatestCompatible(mode, exact_version)
+        if rpkg is None:
+            utils.fail(
+                'Could not find any compatible %s for %s' % (mode, name),
+                exit_on_error=exit_on_error,
+            )
         rpkgPath = utils.downloadByRpkg(rpkg)
-        install_file([rpkgPath], exact_version, exit_on_error=exit_on_error)
-    else:
-        utils.fail(
-            'Could not find any compatible %s for %s' % (mode, name), exit_on_error=exit_on_error
-        )
+        rpaths.append(rpkgPath)
+
+    install_file(rpaths, exact_version, exit_on_error=exit_on_error)
 
 
 """Remove a given plugin. Expect a list of name as parameter."""
