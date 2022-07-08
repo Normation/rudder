@@ -342,3 +342,4 @@ type Msg
   | UpdateGroupFilters     Filters
   | GoTo                   String
   | FoldAllCategories      Filters
+  | ReloadTable RuleId

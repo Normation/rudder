@@ -387,7 +387,7 @@ directivesTab model details =
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
         , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-        , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
+        , button [class "btn btn-primary btn-sm", onClick (ReloadTable details.rule.id)][text "Refresh"]
         ]
       , div[class "table-container"] [(
         let

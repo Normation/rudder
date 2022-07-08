@@ -2,6 +2,7 @@ port module Rules exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Debug exposing (log)
 import Dict
 import Dict.Extra
 import DataTypes exposing (..)
@@ -60,6 +61,8 @@ update msg model =
     CallApi call ->
       (model, call model)
     -- neutral element
+    ReloadTable ruleId->
+      (model, Cmd.batch [getRuleDetails model ruleId,getRuleNodesDirectives ruleId model, getRulesComplianceDetails ruleId model ])
     Ignore ->
       ( model , Cmd.none)
 
@@ -284,16 +287,16 @@ update msg model =
         ({model | mode = CategoryForm categoryDetails}, Cmd.none )
 
     SaveRuleDetails (Ok ruleDetails) ->
-      case model.mode of
+      case (log "mode"  model.mode) of
         RuleForm details ->
           let
-            action = case details.originRule of
+            action = case (log "originRUle" details.originRule) of
               Just _ -> "saved"
               Nothing -> "created"
             ui = details.ui
-            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
+            newModel = {model | mode = RuleForm {details | originRule = Just (log "ruleDetail" ruleDetails), rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
           in
-            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action))  , (getRulesTree newModel)])
+            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action))  , (getRulesTree newModel), (getRuleNodesDirectives ruleDetails.id model), (getRuleDetails model ruleDetails.id)])
         _   -> (model, Cmd.none )
 
 
