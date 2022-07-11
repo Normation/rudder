@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit
 import better.files.File.root
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.appconfig._
+
 import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
@@ -166,6 +167,7 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
+
 import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
 import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
 import bootstrap.liftweb.checks.action.CreateSystemToken
@@ -180,6 +182,7 @@ import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
+
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -191,10 +194,12 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+
+import java.nio.file.attribute.PosixFilePermission
+
 import zio._
 import zio.syntax._
 import zio.duration._
-
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 
@@ -285,6 +290,7 @@ object RudderProperties {
       val d = better.files.File(x)
       try {
         d.createDirectoryIfNotExists(true)
+        d.setPermissions(Set(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE))
       } catch {
         case ex: Exception =>
           ApplicationLogger.error(s"The configuration directory '${d.pathAsString}' for overriding file config can't be created: ${ex.getMessage}")
@@ -325,10 +331,10 @@ object RudderProperties {
       ApplicationLogger.debug(s"Writing resolved configuration file to ${dest.pathAsString}")
       import java.nio.file.attribute.PosixFilePermission._
       try {
-        dest.setPermissions(Set(OWNER_READ, GROUP_READ)).writeText(config.root().render())
+        dest.writeText(config.root().render()).setPermissions(Set(OWNER_READ))
       } catch {
         case ex: Exception =>
-          ApplicationLogger.error(s"The debug file for configuration resolution '${dest.pathAsString}' can't be created: ${ex.getMessage}")
+          ApplicationLogger.error(s"The debug file for configuration resolution '${dest.pathAsString}' can't be created: ${ex.getClass.getName}: ${ex.getMessage}")
       }
     }
   }
