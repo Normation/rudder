@@ -48,6 +48,8 @@ tags:
     description: Inventory processing service
   - name: Parameters
     description: Global parameters
+  - name: Archives
+    description: Import and export zip of policies
   - name: Settings
     description: Server configuration
   - name: System
@@ -141,6 +143,8 @@ paths:
     $ref: paths/compliance/nodes.yml
   "/compliance/nodes/{nodeId}":
     $ref: paths/compliance/node.yml
+  "/archives/export":
+    $ref: paths/archives/export.yml
   "/system/status":
     $ref: paths/system/status.yml
   "/system/info":

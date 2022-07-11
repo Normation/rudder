@@ -906,11 +906,11 @@ object ArchiveApi extends ApiModuleProvider[ArchiveApi] {
    * - scope = all (default), none, directives, techniques (implies directive), groups
    */
   final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
-    val description    = "Export the list of objects with their dependencies"
+    val description    = "Export the list of objects with their dependencies in a policy archive"
     val (action, path) = GET / "archives" / "export"
   }
   final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
-    val description    = "Import an archive"
+    val description    = "Import policy archive"
     val (action, path) = POST / "archives" / "import"
   }
 

@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+post:
+  summary: Import a ZIP archive of policies into Rudder
+  description: Import a ZIP archive of techniques, directives, groups and rules in a saved in a normalized format into Rudder
+  operationId: import
+  requestBody:
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          properties:
+            archive:
+              type: string
+              format: binary
+              description: The ZIP archive file containing policies in a conventional layout and serialization format
+  responses:
+    "200":
+      description: Archive imported
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - import
+              data:
+                type: object
+                description: Details about archive import process
+                properties:
+                  archiveImported:
+                    type: boolean
+  tags:
+    - Archives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/archives/import.sh

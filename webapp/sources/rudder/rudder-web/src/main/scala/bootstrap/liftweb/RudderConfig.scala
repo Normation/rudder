@@ -1426,8 +1426,9 @@ object RudderConfig extends Loggable {
       , configService.rudder_featureSwitch_archiveApi()
       , rootDirName
       , new ZipArchiveReaderImpl(queryParser, techniqueParser)
-      , new SaveArchiveServiceImpl(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
+      , new SaveArchiveServicebyRepo(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
                                    , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository)
+      , new CheckArchiveServiceImpl(techniqueRepository)
     )
   }
 

@@ -514,7 +514,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
         case false =>
           val args = params.toList.zipWithIndex.map {
           case (_, id) =>
-            method.flatMap(_.parameters.get(id).map(_.id.value)).getOrElse("arg_" + id)
+            method.flatMap(_.parameters.get(id.toLong).map(_.id.value)).getOrElse("arg_" + id)
           }
           (args, s"""${call.methodId.value}(${convertArgsToBundleCall(args)});""")
 

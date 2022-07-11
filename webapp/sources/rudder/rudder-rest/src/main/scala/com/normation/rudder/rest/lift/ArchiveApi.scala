@@ -152,6 +152,7 @@ class ArchiveApi(
   , getArchiveName       : IOResult[String]
   , zipArchiveReader     : ZipArchiveReader
   , saveArchiveService   : SaveArchiveService
+  , checkArchiveService  : CheckArchiveService
 ) extends LiftApiModuleProvider[API] {
 
 
@@ -290,7 +291,7 @@ class ArchiveApi(
           for {
             _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${zip.fileName}', processing")
             archive <- parseArchive(zip)
-            _       <- saveArchiveService.check(archive)
+            _       <- checkArchiveService.check(archive)
             _       <- saveArchiveService.save(archive, authzToken.actor)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
           } yield JRArchiveImported(true)
@@ -780,7 +781,11 @@ class ZipArchiveReaderImpl(
 }
 
 
-trait SaveArchiveService {
+/*
+ * A service in charge of assessing the consistency of an archive before saving it, and trying
+ * to pack problems so that an user has as much information as he can in one round.
+ */
+trait CheckArchiveService {
   /*
    * Check if archive might be saved. The goal here is to provide as many insights as possible to
    * user, and not only just the first one.
@@ -789,33 +794,15 @@ trait SaveArchiveService {
    */
   def check(archive: PolicyArchive): IOResult[Unit]
 
-  /*
-   * Save archive, as atomically as possible. We don't do revert on error, because import is not
-   * a system property, and we may have no human overlooking that no other changes are reverted.
-   * In case of error, provides as many insight as possible to user:
-   * - what was committed,
-   * - what was not
-   * - what may be partially
-   */
-  def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit]
 }
 
 /*
- * This implementation does not check for possible conflicts and just
- * overwrite existing policies if updates are available in the archive.
+ * Default implementation:
+ * - check that a technique is in the same category as the existing one
  */
-class SaveArchiveServiceImpl(
-    techniqueArchiver: TechniqueArchiverImpl
-  , techniqueReader  : TechniqueReader
-  , techniqueRepos   : TechniqueRepository
-  , roDirectiveRepos : RoDirectiveRepository
-  , woDirectiveRepos : WoDirectiveRepository
-  , roGroupRepos     : RoNodeGroupRepository
-  , woGroupRepos     : WoNodeGroupRepository
-  , roRuleRepos      : RoRuleRepository
-  , woRuleRepos      : WoRuleRepository
-) extends SaveArchiveService {
-
+class CheckArchiveServiceImpl(
+  techniqueRepos: TechniqueRepository
+) extends CheckArchiveService {
 
   def checkTechnique(techInfo: TechniquesInfo, techArchive: TechniqueArchive): IOResult[Unit] = {
 
@@ -852,6 +839,38 @@ class SaveArchiveServiceImpl(
       _   <- (tRes ++ dRes ++ gRes ++ rRes).accumulateEitherDiscard.toIO
     } yield ()
   }
+}
+
+trait SaveArchiveService {
+
+  /*
+   * Save archive, as atomically as possible. We don't do revert on error, because import is not
+   * a system property, and we may have no human overlooking that no other changes are reverted.
+   * In case of error, provides as many insight as possible to user:
+   * - what was committed,
+   * - what was not
+   * - what may be partially
+   */
+  def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit]
+}
+
+/*
+ * This implementation does not check for possible conflicts and just
+ * overwrite existing policies if updates are available in the archive.
+ */
+class SaveArchiveServicebyRepo(
+    techniqueArchiver: TechniqueArchiverImpl
+  , techniqueReader  : TechniqueReader
+  , techniqueRepos   : TechniqueRepository
+  , roDirectiveRepos : RoDirectiveRepository
+  , woDirectiveRepos : WoDirectiveRepository
+  , roGroupRepos     : RoNodeGroupRepository
+  , woGroupRepos     : WoNodeGroupRepository
+  , roRuleRepos      : RoRuleRepository
+  , woRuleRepos      : WoRuleRepository
+) extends SaveArchiveService {
+
+
 
 
   /*

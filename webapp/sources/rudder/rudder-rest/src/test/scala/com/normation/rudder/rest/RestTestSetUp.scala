@@ -637,14 +637,14 @@ class RestTestSetUp {
     // a mock save archive that stores result in a ref
     object archiveSaver extends SaveArchiveService {
       val base = Ref.make(Option.empty[PolicyArchive]).runNow
-
-      override def check(archive: PolicyArchive): IOResult[Unit] = ZIO.unit
-
       override def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit] = {
         base.set(Some(archive)).unit
       }
     }
-    val api = new ArchiveApi(archiveBuilderService, featureSwitchState.get, rootDirName.get, zipArchiveReader, archiveSaver)
+    object archiveChecker extends CheckArchiveService {
+      override def check(archive: PolicyArchive): IOResult[Unit] = ZIO.unit
+    }
+    val api = new ArchiveApi(archiveBuilderService, featureSwitchState.get, rootDirName.get, zipArchiveReader, archiveSaver, archiveChecker)
   }
 
   val apiModules = List(
