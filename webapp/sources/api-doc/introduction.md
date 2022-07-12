@@ -91,6 +91,14 @@ period of time to allow migration from previous versions.
         <li>Package updates in nodes</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">16</td>
+      <td class="code">7.2</td>
+      <td><ul>
+        <li>Create node API included from plugin</li>
+        <li>Configuration archive import/export</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
