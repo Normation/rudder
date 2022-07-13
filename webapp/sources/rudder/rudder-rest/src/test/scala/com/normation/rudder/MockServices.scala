@@ -53,12 +53,25 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
-
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.batch.AsyncWorkflowInfo
+import com.normation.rudder.campaigns.Campaign
+import com.normation.rudder.campaigns.CampaignDetails
+import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventId
+import com.normation.rudder.campaigns.CampaignEventRepository
+import com.normation.rudder.campaigns.CampaignEventState
+import com.normation.rudder.campaigns.CampaignId
+import com.normation.rudder.campaigns.CampaignInfo
+import com.normation.rudder.campaigns.CampaignRepository
+import com.normation.rudder.campaigns.Enabled
+import com.normation.rudder.campaigns.JSONTranslateCampaign
+import com.normation.rudder.campaigns.MainCampaignService
+import com.normation.rudder.campaigns.Monday
+import com.normation.rudder.campaigns.WeeklySchedule
 import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.domain.Constants
@@ -116,7 +129,6 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
-
 import better.files._
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
@@ -132,15 +144,19 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import scala.collection.immutable
+import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.xml.Elem
-
 import zio.syntax._
-import zio.{Tag => _, _}
+import zio.{Tag as _, *}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._
+import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.CampaignType
 import com.normation.zio._
+import zio.json.jsonDiscriminator
+import zio.json.jsonHint
 
 /*
  * Mock services for test, especially repositories, and provides
@@ -2311,3 +2327,111 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 
 }
 
+// It would be much simpler if the root classes were concrete, parameterized with a A type:
+// case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
+case object DumbCampaignType extends CampaignType {
+  val value = "dumb-campaign"
+}
+final case class DumbCampaignDetails(name: String) extends CampaignDetails
+@jsonDiscriminator("campaignType")
+sealed trait DumbCampaignTrait extends Campaign
+@jsonHint(DumbCampaignType.value)
+final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
+  val campaignType = DumbCampaignType
+
+  def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
+}
+
+class MockCampaign() {
+
+  val campaignSerializer = new CampaignSerializer()
+
+  // init item: one campaign, with a finished event, one running, one scheduled
+  val c0 = DumbCampaign(CampaignInfo(
+      CampaignId("c0")
+    , "first campaign"
+    , "a test campaign present when rudder boot"
+    , Enabled
+    , WeeklySchedule(Monday, 3, 42)
+    , Duration("1 hour")
+  ), DumbCampaignDetails("campaign #0"))
+  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,CampaignEventState.Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+
+
+  object repo extends CampaignRepository {
+    val items = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow
+
+    override def getAll(): IOResult[List[Campaign]] = items.get.map(_.valuesIterator.toList)
+    override def get(id: CampaignId): IOResult[Campaign] = items.get.map(_.get(id)).notOptional(s"Missing campaign with id '${id.serialize}''")
+    override def save(c: Campaign): IOResult[Campaign] = {
+      c match {
+        case x:DumbCampaignTrait => items.update (_ + (x.info.id -> x)) *> c.succeed
+        case _ => Inconsistency("Unknown campaign type").fail
+      }
+    }
+  }
+
+  object dumbCampaignTranslator extends JSONTranslateCampaign {
+    import zio.json._
+    import campaignSerializer._
+    implicit val dumbCampaignDetailsDecoder : JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
+    implicit val dumbCampaignDecoder : JsonDecoder[DumbCampaignTrait] = DeriveJsonDecoder.gen
+    implicit val dumbCampaignDetailsEncoder : JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
+    implicit val dumbCampaignEncoder : JsonEncoder[DumbCampaignTrait] = DeriveJsonEncoder.gen
+
+    def handle(): PartialFunction[Campaign, IOResult[String]] = {
+      case c : DumbCampaignTrait => c.toJson.succeed
+    }
+
+    def read(): PartialFunction[String, IOResult[Campaign]] = {
+      case s => s.fromJson[DumbCampaignTrait].toIO
+    }
+
+    def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = {
+      case c: DumbCampaignTrait => c.toJsonAST.toIO
+    }
+
+    def campaignType(): PartialFunction[String, CampaignType] = {
+      case DumbCampaignType.value => DumbCampaignType
+    }
+  }
+
+
+  object dumbCampaignEventRepository extends CampaignEventRepository {
+    val items = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
+
+    def isActive(e: CampaignEvent) = {
+      e.state == CampaignEventState.Scheduled || e.state == CampaignEventState.Running
+    }
+
+
+    def get(id: CampaignEventId) : IOResult[CampaignEvent] = {
+      items.get.map(_.get(id)).notOptional(s"Campaign event not found: ${id.value}")
+    }
+    def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent] = {
+      items.update(_ + (c.id -> c)) *> c.succeed
+    }
+
+    def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId]): IOResult[List[CampaignEvent]] = {
+
+      val allEvents = items.get.map(_.values.toList)
+      val campaignIdFiltered = campaignId match {
+        case None => allEvents
+        case Some(id) => allEvents.map(_.filter(_.campaignId == id))
+      }
+      val campaignTypeFiltered = campaignType match {
+        case None => campaignIdFiltered
+        case Some(id) => campaignIdFiltered.map(_.filter(_.campaignType == id))
+      }
+      states match {
+        case Nil => campaignTypeFiltered
+        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state)))
+      }
+    }
+
+  }
+
+  val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl())
+
+
+}

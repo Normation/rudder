@@ -55,7 +55,16 @@ trait CampaignHandler{
   def handle(mainCampaignService: MainCampaignService, event :CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]]
 }
 
-case class MainCampaignService(repo : CampaignEventRepository, campaignRepo: CampaignRepository, uuidGen: StringUuidGenerator) {
+object MainCampaignService {
+  def start(mainCampaignService: MainCampaignService) = {
+    for {
+      campaignQueue <- Queue.unbounded[CampaignEvent]
+      _ <- mainCampaignService.start(campaignQueue).forkDaemon
+    } yield ()
+  }
+}
+
+class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignRepository, uuidGen: StringUuidGenerator) {
 
   private[this] var services : List[CampaignHandler] = Nil
   def registerService(s : CampaignHandler) = {
@@ -162,7 +171,7 @@ case class MainCampaignService(repo : CampaignEventRepository, campaignRepo: Cam
 
     def start() = {
       for {
-        init <- repo.getAllActiveCampaignEvents()
+        init <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
         _ <- queue.offerAll(init)
         _ <- loop().forever.forkDaemon
       } yield {
@@ -180,20 +189,25 @@ case class MainCampaignService(repo : CampaignEventRepository, campaignRepo: Cam
         } else {
           Inconsistency("Cannot schedule").fail
         }
-      case WeeklySchedule(day,startHour) =>
+      case WeeklySchedule(day,startHour, startMinute) =>
         val realHour = startHour % 24
+        val realMinutes = startMinute % 60
         for {
-          d <- (if (date.getDayOfWeek > day.value ||  ( date.getDayOfWeek == day.value && date.getHourOfDay >= realHour)) {
-            date.plusWeeks(1)
-          } else {
-            date
-          }).withDayOfWeek(day.value).withHourOfDay(realHour).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).succeed
+          d <- (if ( date.getDayOfWeek > day.value
+                || ( date.getDayOfWeek == day.value && date.getHourOfDay >= realHour)
+                || ( date.getDayOfWeek == day.value && date.getHourOfDay == realHour && date.getMinuteOfHour >= realMinutes)
+                ) {
+                  date.plusWeeks(1)
+                } else {
+                  date
+                }).withDayOfWeek(day.value).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0).succeed
         } yield {
           d
         }
-      case MonthlySchedule(position, day, startHour) =>
+      case MonthlySchedule(position, day, startHour, startMinute) =>
         val realHour = startHour % 24
-        (position match {
+        val realMinutes = startMinute % 60
+        val d = (position match {
           case First =>
             val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
             if (t.getMonthOfYear < date.getMonthOfYear) {
@@ -229,21 +243,26 @@ case class MainCampaignService(repo : CampaignEventRepository, campaignRepo: Cam
             } else {
               t.minusWeeks(1)
             }
-        }).withHourOfDay(realHour).withMinuteOfHour(0).withSecondOfMinute(0).withMillisOfSecond(0).succeed
+        }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
+        (if (date.isAfter(d)) {
+          d.plusMonths(1)
+        } else {
+          d
+        }).plusMonths(1).succeed
     }
   }
 
   def scheduleCampaignEvent(campaign: Campaign) : IOResult[CampaignEvent] = {
 
     for {
-      events <- repo.getEventsForCampaign(campaign.info.id, None)
+      events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id))
       lastEventDate = events match {
         case Nil => DateTime.now()
         case _ => events.maxBy(_.start.getMillis).start
       }
       newEventDate <- nextCampaignDate(campaign.info.schedule, lastEventDate)
       end = newEventDate.plus(campaign.info.duration.toMillis)
-      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,Scheduled,newEventDate,end)
+      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,Scheduled,newEventDate,end,campaign.campaignType)
       _ <- repo.saveCampaignEvent(newCampaign)
       _ <- queueCampaign(newCampaign)
     } yield {
@@ -251,10 +270,43 @@ case class MainCampaignService(repo : CampaignEventRepository, campaignRepo: Cam
     }
   }
 
+
+  def init() = {
+    inner match {
+      case None => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
+      case Some(s) =>
+        for {
+          alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+          campaigns <- campaignRepo.getAll()
+          _ <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
+          newEvents <- ZIO.foreach(campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))) {
+            c =>
+              scheduleCampaignEvent(c)
+          }
+          _ <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
+          _ <- ZIO.foreach(newEvents) { ev => s.queueCampaign(ev) }
+        } yield {
+          ()
+        }
+    }
+  }
   def start(initQueue: Queue[CampaignEvent]) = {
     val s = CampaignScheduler(this, initQueue, ZioRuntime.environment)
     inner = Some(s)
-    s.start()
+    for {
+      _ <- CampaignLogger.debug("Starting campaign scheduler")
+      _ <- s.start().forkDaemon
+
+      _ <- CampaignLogger.debug("Starting campaign forked, now getting already created events")
+      alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+      _ <- CampaignLogger.debug("Got events, queue them")
+      _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
+      _ <- CampaignLogger.debug("queued events, check campaigns")
+      _ <- init()
+
+    } yield {
+      ()
+    }
   }
 
 }
