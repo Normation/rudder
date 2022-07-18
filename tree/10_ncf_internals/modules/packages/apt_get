@@ -39,7 +39,8 @@ apt_get_options = ["-o", "Dpkg::Options::=--force-confold",
                    "-o", "Dpkg::Options::=--force-confdef",
                    "-y"]
 
-if LooseVersion(apt_version) < LooseVersion("1.1"):
+# compare only the first two digits of the version so versions like 1.1.1ubuntu2 work
+if [int(x) for x in apt_version.split(".")[0:2]] < [1, 1]:
     apt_get_options.append("--force-yes")
 
 else:
@@ -50,8 +51,8 @@ else:
 
 apt_get_list_update_options = []
 
-# assume apt-get -v returns faily simple version with integers separated by dots
-if [int(x) for x in apt_version.split(".")] < [1, 1]:
+# compare only the first two digits of the version so versions like 1.1.1ubuntu2 work
+if [int(x) for x in apt_version.split(".")[0:2]] < [1, 0]:
   apt_get_list_update_options.append("--with-new-pkgs")
 
 os.environ['DEBIAN_FRONTEND'] = "noninteractive"
