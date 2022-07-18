@@ -278,7 +278,7 @@ object Watchers {
  * This event assume the file if fully written and avoid the inotify event queue.
  */
 trait HandleIncomingInventoryFile {
-  def addFilePure(file: File): UIO[Unit]
+  def addFilePure(file: File): IOResult[Unit]
 
   def addFile(file: File): Unit
 }
@@ -313,7 +313,9 @@ class ProcessOldFiles(
   }
 
   def addFiles(files: List[File]): UIO[Unit] = {
-    ZIO.foreach_(files)(fileProcessor.addFilePure)
+    ZIO.foreach_(files)(file => fileProcessor.addFilePure(file).catchAll(err =>
+      InventoryProcessingLogger.error(s"Error when processing old inventory file '${file.path}': ${err.fullMsg}")
+    ))
   }
 
   def deleteFiles(files: List[ToClean]): UIO[Unit] = {
@@ -533,12 +535,14 @@ class ProcessFile(
   //start the process
   ZioRuntime.internal.unsafeRunSync(processMessage().forever.forkDaemon)
 
-  def addFilePure(file: File): UIO[Unit] = {
-    processFile(file).catchAll(err => InventoryProcessingLogger.error(s"Error when adding file '${file.path}' to direct processing"))
+  def addFilePure(file: File): IOResult[Unit] = {
+    processFile(file)
   }
 
   def addFile(file: File): Unit = {
-    ZioRuntime.internal.unsafeRunSync(addFilePure(file))
+    ZioRuntime.internal.unsafeRunSync(addFilePure(file).catchAll(err =>
+      InventoryProcessingLogger.error(s"Error when adding new inventory file '${file.path}' to processing: ${err.fullMsg}")
+    ))
   }
 
   /*
