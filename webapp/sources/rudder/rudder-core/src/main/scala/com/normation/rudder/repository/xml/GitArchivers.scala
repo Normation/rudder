@@ -243,16 +243,16 @@ class TechniqueArchiverImpl (
    */
   def getFilesToCommit(technique: Technique, gitTechniquePath: String, resourcesStatus: Chunk[ResourceFile]): TechniqueFilesToCommit = {
     // parse metadata.xml and find what files need to be added
-    val filesToAdd = (
-      "metadata.xml" +:           // standard technique API, used for policy generation pipeline
-      "technique.json" +:         // high-level API between technique editor and rudder. Will evolve to .yml
-      "technique.rd" +:           // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+    val filesToAdd = (Chunk(
+        "metadata.xml"             // standard technique API, used for policy generation pipeline
+      , "technique.json"           // high-level API between technique editor and rudder. Will evolve to .yml
+      , "technique.rd" ) ++        // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
       (if(technique.agentConfigs.collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise).nonEmpty) {
         Chunk("rudder_reporting.cf", "technique.cf")
-      } else Chunk()) +:
+      } else Chunk()) ++
       (if(technique.agentConfigs.collectFirst(_.agentType == AgentType.Dsc).nonEmpty) {
         Chunk("technique.ps1")
-      } else Chunk()) +:
+      } else Chunk()) ++
       resourcesStatus.collect {
         case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified => path
       }
