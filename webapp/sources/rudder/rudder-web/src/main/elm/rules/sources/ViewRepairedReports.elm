@@ -45,7 +45,7 @@ showTab model details =
             in
               UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
           )][]
-        , button [class "btn btn-primary btn-sm"][text "Refresh"]
+        , button [class "btn btn-primary btn-sm", onClick (RefreshReportsTable details.rule.id) ][text "Refresh"]
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [
