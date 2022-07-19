@@ -289,6 +289,19 @@ final case class RudderControlReport(
   val severity = Reports.CONTROL
 }
 
+final case class RudderJsonReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , reportId           : String
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends LogReports {
+  val severity = Reports.REPORT_JSON
+}
 object Reports {
 
   val logger = LoggerFactory.getLogger(classOf[Reports])
@@ -349,6 +362,8 @@ object Reports {
       case CONTROL => new RudderControlReport(executionDate, ruleId, directiveId, nodeId,
               reportId, component, componentValue, executionTimestamp, message )
 
+      case REPORT_JSON => new RudderJsonReport(executionDate, ruleId, directiveId, nodeId,
+        reportId, component, componentValue, executionTimestamp, message )
       case _ =>
         logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
         new UnknownReport(executionDate, ruleId, directiveId, nodeId,
