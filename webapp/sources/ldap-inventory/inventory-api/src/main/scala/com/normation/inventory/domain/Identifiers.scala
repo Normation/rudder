@@ -37,6 +37,9 @@
 
 package com.normation.inventory.domain
 
+import com.normation.errors.{IOResult, Inconsistency}
+import zio.syntax.ToZio
+
 import java.security.MessageDigest
 
 trait Uuid extends Any {
@@ -49,6 +52,16 @@ final case class MachineUuid(val value:String) extends AnyVal with Uuid
 
 final case class SoftwareUuid(val value:String) extends AnyVal with Uuid
 
+object SoftwareUuid {
+  val pattern = "softwareId=(.*),ou=Software,.*".r
+
+  def SoftwareUuidFromDnString(dnString: String): IOResult[SoftwareUuid] = {
+    dnString match {
+      case pattern(uuid) => SoftwareUuid(uuid).succeed
+      case _ => Inconsistency(s"String ${dnString} doesn't match the expected format for software").fail
+    }
+  }
+}
 final case class MotherBoardUuid(val value:String) extends AnyVal with Uuid
 
 object IdGenerator {
