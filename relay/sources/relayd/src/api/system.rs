@@ -108,12 +108,8 @@ struct Status {
 impl Status {
     pub fn poll(job_config: Arc<JobConfig>) -> Self {
         Self {
-            database: job_config
-                .pool
-                .clone()
-                .map(|p| ping(&p).map_err(|e| e).into()),
+            database: job_config.pool.clone().map(|p| ping(&p).into()),
             configuration: check_configuration(&job_config.cli_cfg.config)
-                .map_err(|e| e)
                 .map(|_| ())
                 .into(),
         }

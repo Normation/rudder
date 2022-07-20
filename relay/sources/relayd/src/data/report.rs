@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+// Prevent warning with diesel::Insertable
+#![allow(clippy::extra_unused_lifetimes)]
+
 use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
 use chrono::prelude::*;
 use nom::{
