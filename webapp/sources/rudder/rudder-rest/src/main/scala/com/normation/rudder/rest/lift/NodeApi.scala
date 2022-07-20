@@ -1025,7 +1025,7 @@ class NodeApiService6 (
                        Map[NodeId, FullInventory]().succeed
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                       softwareRepository.getSoftwareByNode(nodeIds, state)
                      } else {
                        Map[NodeId, Seq[Software]]().succeed
                      }
