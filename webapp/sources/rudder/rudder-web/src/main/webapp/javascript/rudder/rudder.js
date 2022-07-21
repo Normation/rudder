@@ -749,7 +749,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
         $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
-        $("#report").html('<pre>' + response + '</pre>');
+        $("#report").add('<pre>').text(response);
         $("#report").addClass("border-success");
         $("#visibilityOutput").show();
         showOrHideBtn();
