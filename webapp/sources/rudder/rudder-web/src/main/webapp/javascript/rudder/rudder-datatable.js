@@ -1320,10 +1320,15 @@ function createNodeTable(gridId, refresh) {
     , "language": {
         "search": ""
     }
-    , columnDefs : {
-       "target" : 0
+    , columnDefs : [
+      {
+        "targets": "_all"
+      , "render": $.fn.dataTable.render.text() // escape HTML by default for columns value. 
+      },{
+         "target" : 0
        , "visible" : true
-    }
+      }
+    ]
     , "ajax" : {
     "url" : contextPath + "/secure/api/nodes/details"
     , "type" : "POST"
