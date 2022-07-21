@@ -20,7 +20,7 @@
             "elm/random": "1.0.0",
             "elm/regex": "1.0.0",
             "elm/time": "1.0.0",
-            "elm/virtual-dom": "1.0.2",
+            "elm/virtual-dom": "1.0.3",
             "elm-community/dict-extra": "2.4.0",
             "elm-community/html-extra": "3.4.0",
             "elm-community/list-extra": "8.2.4",
