@@ -1924,9 +1924,9 @@ function displayTags(element, tagsArray){
   for(var t in tagsArray){
     tmp  =
       [ "<span class='tags-label'><i class='fa fa-tag'></i>"
-      , "<span class='tag-key'> " + tagsArray[t].key + " </span>"
+      , $("<span class='tag-key'></span>").text(tagsArray[t].key).html()
       , "<span class='tag-separator'> = </span>"
-      , "<span class='tag-value'> " + tagsArray[t].value + " </span>"
+      , $("<span class='tag-value'></span>").text(tagsArray[t].value).html()
       , "</span>"
       ].join('');
     listTags.push(tmp);
