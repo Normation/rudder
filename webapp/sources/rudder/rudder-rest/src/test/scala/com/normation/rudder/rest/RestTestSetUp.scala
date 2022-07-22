@@ -37,11 +37,13 @@
 
 package com.normation.rudder.rest
 
+import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
@@ -56,6 +58,7 @@ import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.batch._
+import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -64,7 +67,9 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
@@ -72,11 +77,16 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueReader
+import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -107,6 +117,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigurations
 import com.normation.rudder.services.policies.NodesContextResult
 import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.queries.DynGroupService
@@ -127,7 +138,7 @@ import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
-
+import com.normation.zio._
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -141,36 +152,22 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
 import net.liftweb.util.NamedPF
+import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
+import org.apache.commons.httpclient.methods.multipart.FilePart
+import org.apache.commons.httpclient.params.HttpMethodParams
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
+import zio._
+import zio.duration._
+import zio.syntax._
 
 import java.nio.charset.StandardCharsets
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
-
-import zio._
-import zio.duration._
-import zio.syntax._
-import com.normation.box._
-import com.normation.errors.IOResult
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
-
-import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
-import org.apache.commons.httpclient.methods.multipart.FilePart
-import org.apache.commons.httpclient.params.HttpMethodParams
-import org.apache.commons.io.output.ByteArrayOutputStream
-
-import com.normation.zio._
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -647,6 +644,15 @@ class RestTestSetUp {
     val api = new ArchiveApi(archiveBuilderService, featureSwitchState.get, rootDirName.get, zipArchiveReader, archiveSaver, archiveChecker)
   }
 
+  val mockCampaign = new MockCampaign()
+  object campaignApiModule {
+
+    val translator = new CampaignSerializer()
+    translator.addJsonTranslater(mockCampaign.dumbCampaignTranslator)
+    import mockCampaign._
+    val api = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
+  }
+
   val apiModules = List(
       systemApi
     , new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14)
@@ -657,6 +663,7 @@ class RestTestSetUp {
     , new GroupsApi(mockNodeGroups.groupsRepo, restExtractorService, zioJsonExtractor, uuidGen, groupService2, groupService6, groupService14, groupApiInheritedProperties)
     , new SettingsApi(restExtractorService, settingsService.configService, asyncDeploymentAgent, uuidGen, settingsService.policyServerManagementService, nodeInfo)
     , archiveAPIModule.api
+    , campaignApiModule.api
   )
 
   val apiVersions = ApiVersion(13 , true) :: ApiVersion(14 , false) :: ApiVersion(15 , false) :: Nil

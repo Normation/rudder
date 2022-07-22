@@ -41,19 +41,22 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
 import org.joda.time.DateTime
+import zio.json.jsonDiscriminator
+import zio.json.jsonField
+import zio.json.jsonHint
 
 import scala.concurrent.duration.Duration
-import zio.json.jsonDiscriminator
-import zio.json.jsonHint
 
 
 trait Campaign {
   def info : CampaignInfo
   def details : CampaignDetails
+  def campaignType : CampaignType
+  def copyWithId(newId : CampaignId) : Campaign
 }
 
 case class CampaignInfo (
-  id : CampaignId
+    id : CampaignId
   , name : String
   , description : String
   , status : CampaignStatus
@@ -61,7 +64,22 @@ case class CampaignInfo (
   , duration: Duration
 )
 
-case class CampaignId (value : String, rev: Revision = GitVersion.DEFAULT_REV)
+case class CampaignId (value : String, rev: Revision = GitVersion.DEFAULT_REV) {
+  def serialize: String = rev match {
+    case GitVersion.DEFAULT_REV => value
+    case rev                    => s"${value}+${rev.value}"
+  }
+
+  def withDefaultRev: CampaignId = this.copy(rev = GitVersion.DEFAULT_REV)
+}
+object CampaignId {
+  // parse a directiveId which was serialize by "id.serialize"
+  def parse(s: String) : Either[String, CampaignId] = {
+    GitVersion.parseUidRev(s).map { case (id, rev) =>
+      CampaignId(id, rev)
+    }
+  }
+}
 
 @jsonDiscriminator("value")
 sealed trait CampaignStatus
@@ -76,6 +94,7 @@ case class Archived(date : DateTime) extends CampaignStatus
 sealed trait CampaignSchedule
 
 sealed trait MonthlySchedulePosition
+// they need to be encapsulated in MonthlySchedulePosition object
 case object First extends MonthlySchedulePosition
 case object Second extends MonthlySchedulePosition
 case object Third extends  MonthlySchedulePosition
@@ -85,6 +104,7 @@ case object SecondLast extends MonthlySchedulePosition
 sealed trait DayOfWeek {
   def value : Int
 }
+// they need to be encapsulated in DayOfWeek object
 case object Monday extends DayOfWeek {
   val value = 1
 }
@@ -108,15 +128,27 @@ case object Sunday extends DayOfWeek{
 }
 
 @jsonHint("monthly")
-case class MonthlySchedule(monthlySchedulePosition: MonthlySchedulePosition, day : DayOfWeek, startHour : Int) extends CampaignSchedule
-@jsonHint("weekly")
-case class WeeklySchedule(day : DayOfWeek, startHour : Int) extends CampaignSchedule
+case class MonthlySchedule(
+    @jsonField("position")
+    monthlySchedulePosition: MonthlySchedulePosition
+  , day : DayOfWeek
+  , startHour : Int
+  , startMinute : Int) extends CampaignSchedule
+@jsonHint("weekly") // TODO: we need start minutes too
+case class WeeklySchedule(
+    day : DayOfWeek
+  , startHour : Int
+  , startMinute : Int
+) extends CampaignSchedule
 @jsonHint("one-shot")
 case class OneShot(start : DateTime) extends CampaignSchedule
 
 trait CampaignDetails
+trait CampaignType {
+  def value : String
+}
 
-case class CampaignEvent(id : CampaignEventId, campaignId : CampaignId, state : CampaignEventState, start : DateTime, end : DateTime )
+case class CampaignEvent(id : CampaignEventId, campaignId : CampaignId, state : CampaignEventState, start : DateTime, end : DateTime, campaignType : CampaignType )
 case class CampaignEventId(value : String)
 
 sealed trait CampaignEventState{

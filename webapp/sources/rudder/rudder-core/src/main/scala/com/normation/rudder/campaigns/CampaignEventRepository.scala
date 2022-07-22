@@ -40,6 +40,8 @@ package com.normation.rudder.campaigns
 import com.normation.errors.IOResult
 import com.normation.rudder.campaigns.CampaignEventState.Scheduled
 import com.normation.rudder.db.Doobie
+import doobie.Fragments
+import doobie.LogHandler
 import doobie.Read
 import doobie.Write
 import doobie.implicits._
@@ -52,62 +54,62 @@ import java.sql.Timestamp
 
 
 trait CampaignEventRepository {
-  def getAllActiveCampaignEvents() : IOResult[List[CampaignEvent]]
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
-  def getEventsForCampaign(campaignId: CampaignId, state: Option[CampaignEventState]) : IOResult[List[CampaignEvent]]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
+  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]]
 }
 
-class CampaignEventRepositoryImpl(doobie: Doobie) extends CampaignEventRepository {
+class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
   import doobie._
-
 
   implicit  val stateWrite : Write[CampaignEventState] = Write[String].contramap(_.value)
 
   implicit val eventWrite: Write[CampaignEvent] =
-    Write[(String,String,CampaignEventState,Timestamp,Timestamp)].contramap{
-      case event => (event.id.value,event.campaignId.value, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis))
+    Write[(String,String,CampaignEventState,Timestamp,Timestamp, String)].contramap{
+      case event => (event.id.value,event.campaignId.value, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis), event.campaignType.value)
     }
 
   implicit val eventRead : Read[CampaignEvent] =
-    Read[(String,String,String,Timestamp,Timestamp)].map {
-      d : (String,String,String,Timestamp,Timestamp) =>
+    Read[(String,String,String,Timestamp,Timestamp,String)].map {
+      d : (String,String,String,Timestamp,Timestamp,String) =>
         CampaignEvent(
             CampaignEventId(d._1)
           , CampaignId(d._2)
           , CampaignEventState.parse(d._3).getOrElse(Scheduled)
           , new DateTime(d._4.getTime())
           , new DateTime(d._5.getTime())
+          , campaignSerializer.campaignType(d._6)
         )
     }
 
-  def getAllActiveCampaignEvents(): IOResult[List[CampaignEvent]] = {
-    val q = sql"select eventId, campaignId, state, startDate, endDate from  CampaignEvent where state != 'finished' and state != 'skipped'"
-    transactIOResult(s"error when getting active campaign events")(xa => q.query[CampaignEvent].to[List].transact(xa))
-  }
-
-
   def get(id : CampaignEventId): IOResult[CampaignEvent] = {
-    val q = sql"select eventId, campaignId, state, startDate, endDate from  CampaignEvent where eventId = '${id.value}'"
+    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents where eventId = '${id.value}'"
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
+  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]] = {
 
+    import cats.syntax.list._
+    val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
+    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state", s.map(_.value)))
+    val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery)
+
+
+    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents " ++ where
+
+    transactIOResult(s"error when getting campaign events")(xa => q.queryWithLogHandler[CampaignEvent](LogHandler.jdkLogHandler).to[List].transact(xa))
+  }
 
   def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
     import doobie._
     val query =
-      sql"""insert into campaignEvent  (eventId, campaignId, state, startDate, endDate) values (${c})
+      sql"""insert into CampaignEvents  (eventId, campaignId, state, startDate, endDate, campaignType) values (${c})
            |  ON CONFLICT (eventId) DO UPDATE
            |  SET state = ${c.state}; """.stripMargin
 
     transactIOResult(s"error when inserting event with id ${c.campaignId.value}")(xa => query.update.run.transact(xa)).map(_ => c)
-  }
-
-  def getEventsForCampaign(campaignId: CampaignId, state: Option[CampaignEventState]): IOResult[List[CampaignEvent]] = {
-    val q = sql"select eventId, campaignId, state, startDate, endDate from CampaignEvent where campaignId = ${campaignId.value}"
-    transactIOResult(s"error when getting campaign events for campaign ${campaignId.value}")(xa => q.query.to[List].transact(xa))
   }
 
 }

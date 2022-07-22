@@ -66,7 +66,7 @@ sealed trait CampaignApi extends EndpointSchema with InternalApi with SortIndex
 object CampaignApi extends ApiModuleProvider[CampaignApi] {
   final case object GetCampaigns extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Get all campaigns model"
-    val (action, path)  = GET / "campaigns" / "model"
+    val (action, path)  = GET / "campaigns"
     val dataContainer = Some("campaigns")
   }
   final case object GetCampaignEvents extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
@@ -91,12 +91,12 @@ object CampaignApi extends ApiModuleProvider[CampaignApi] {
   }
   final case object GetCampaignDetails extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Get a campaign model"
-    val (action, path)  = GET / "campaigns" / "model" / "{id}"
+    val (action, path)  = GET / "campaigns" / "{id}"
     val dataContainer = Some("campaigns")
   }
   final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Get a campaign model"
-    val (action, path)  = GET / "campaigns" / "model" / "{id}" / "events"
+    val (action, path)  = GET / "campaigns"  / "{id}" / "events"
     val dataContainer = Some("campaignEvents")
   }
   final case object SaveCampaignEvent extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
