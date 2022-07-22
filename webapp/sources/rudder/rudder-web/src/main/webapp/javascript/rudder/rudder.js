@@ -709,6 +709,21 @@ function checkIPaddress(address) {
   return (/^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|(0|([1-2][0-9]))|(3[0-2])))?)|(([0-9a-f]|:){1,4}(:([0-9a-f]{0,4})*){1,7}(\/([0-9]{1,2}|1[01][0-9]|12[0-8]))?)|(0.0.0.0))$/i).test(address);
 }
 
+// Sanitize HTML for remote run
+var tagsToReplace = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;'
+};
+
+function replaceTag(tag) {
+    return tagsToReplace[tag] || tag;
+}
+
+function safeTagsReplace(str) {
+    return str.replace(/[&<>]/g, replaceTag);
+}
+
 function callRemoteRun(nodeId, refreshCompliance) {
   var $textAction = $( "#triggerBtn" ).find("span").first();
   var $iconButton = $( "#triggerBtn" ).find("i");
@@ -749,7 +764,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
         $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
-        $("#report").add('<pre>').text(response);
+        $("#report").html('<pre>' + safeTagsReplace(response) + '</pre>');
         $("#report").addClass("border-success");
         $("#visibilityOutput").show();
         showOrHideBtn();
