@@ -138,6 +138,7 @@ object DisplayDirectiveTree extends Loggable {
     , keepTechnique   : FullActiveTechnique => Boolean = _ => true
     , keepDirective   : Directive => Boolean = _ => true
   ) : NodeSeq =  {
+    import scala.xml.Utility.{ escape => escapeHTML }
 
     def displayCategory(
         category: FullActiveTechniqueCategory
@@ -313,7 +314,7 @@ object DisplayDirectiveTree extends Loggable {
           }
         }
 
-        val directiveTagsListHtml = <div>{directive.tags.tags.map(tag => <span class="tags-label"><i class="fa fa-tag"></i> <span class="tag-key">{tag.name.value}</span><span class="tag-separator"> = </span><span class="tag-value">{tag.value.value}</span></span>)}</div>
+        val directiveTagsListHtml = <div>{directive.tags.tags.map(tag => <span class="tags-label"><i class="fa fa-tag"></i> <span class="tag-key">{escapeHTML(tag.name.value)}</span><span class="tag-separator"> = </span><span class="tag-value">{escapeHTML(tag.value.value)}</span></span>)}</div>
         val tagsTooltipContent    = s"""
           <h4 class='tags-tooltip-title'>Tags <span class='tags-label'><i class='fa fa-tag'></i> ${directive.tags.tags.size}</span></h4>
           <div class='tags-list'>
