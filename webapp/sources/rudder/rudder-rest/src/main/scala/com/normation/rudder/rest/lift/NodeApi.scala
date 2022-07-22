@@ -1324,7 +1324,9 @@ class NodeApiService8 (
       Nil
     // We currently bypass verification on certificate
     // We should add an option to allow the user to define a certificate in configuration file
-    val options = HttpOptions.allowUnsafeSSL :: Nil
+    //
+    // We set a 5 minutes timeout (in milliseconds) as remote-runs can be long
+    val options = HttpOptions.allowUnsafeSSL :: HttpOptions.readTimeout(5 * 60 * 1000) :: Nil
 
     Http(url).params(params).options(options).copy(headers = List(("User-Agent", s"rudder/remote run query for node ${nodeId.value}"))).postForm
   }
