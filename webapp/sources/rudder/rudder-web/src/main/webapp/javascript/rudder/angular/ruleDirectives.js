@@ -167,8 +167,8 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', '$timeout', function($scop
       tagHead = "<span class='tags-label' ng-repeat='t in directive.tags'><i class='fa fa-tag' aria-hidden='true'></i>";
       tagSep  = "<span class='tag-separator'> = </span>";
       for(var t=limit ; t<tags.length ; t++){
-        tagKey = '<span class="tag-key"  > '+ tags[t].key   +' </span>';
-        tagVal = '<span class="tag-value"> '+ tags[t].value +' </span>';
+        tagKey = $('<span class="tag-key"></span>').text(tags[t].key).html();
+        tagVal = $('<span class="tag-value"></span>').text(tags[t].value).html();
         tag = tagHead + tagKey + tagSep + tagVal + '</span>';
         list.push(tag);
       }
