@@ -5,16 +5,17 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
+import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.JSONTranslateCampaign._
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.implicits._
 import com.normation.rudder.rest.{CampaignApi => API}
+import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
@@ -28,7 +29,9 @@ class CampaignApi (
   , campaignEventRepository: CampaignEventRepository
   , mainCampaignService: MainCampaignService
   , restExtractorService: RestExtractorService
+  , stringUuidGenerator: StringUuidGenerator
 )  extends LiftApiModuleProvider[API] {
+  import campaignSerializer._
 
   def schemas = API
 
@@ -48,6 +51,7 @@ class CampaignApi (
     val schema = API.GetCampaigns
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      println(s"****** get campaigns")
       val res = (for {
         campaigns <- campaignRepository.getAll()
         serialized <- ZIO.foreach(campaigns)(campaignSerializer.getJson)
@@ -78,7 +82,7 @@ class CampaignApi (
 
 
   object ScheduleCampaign extends LiftApiModule {
-    val schema = API.GetCampaignDetails
+    val schema = API.ScheduleCampaign
 
     def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val res =
@@ -95,7 +99,7 @@ class CampaignApi (
   }
 
   object SaveCampaignEvent extends LiftApiModule0 {
-    val schema = API.SaveCampaign
+    val schema = API.SaveCampaignEvent
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       (for {
@@ -124,8 +128,8 @@ class CampaignApi (
             case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
             case Full(bytes)  => campaignSerializer.parse(new String(bytes, charset))
           }
-
-        saved <- campaignRepository.save(campaign)
+        withId = if (campaign.info.id.value.isEmpty) campaign.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else campaign
+        saved <- campaignRepository.save(withId)
         serialized <-  campaignSerializer.getJson(saved)
       } yield {
         serialized
@@ -139,8 +143,10 @@ class CampaignApi (
     val schema = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-
-      campaignEventRepository.getAllActiveCampaignEvents().toLiftResponseList(params,schema )
+      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      val campaignId = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
+      campaignEventRepository.getWithCriteria(states,campaignType,campaignId).toLiftResponseList(params,schema )
 
     }
   }
@@ -159,7 +165,9 @@ class CampaignApi (
   object GetAllEventsForCampaign extends LiftApiModule {
     val schema = API.GetCampaignEventsForModel
     def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      campaignEventRepository.getEventsForCampaign(CampaignId(resources),None).toLiftResponseList(params,schema)
+      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      campaignEventRepository.getWithCriteria(states, campaignType, Some(CampaignId(resources))).toLiftResponseList(params,schema)
 
     }
   }

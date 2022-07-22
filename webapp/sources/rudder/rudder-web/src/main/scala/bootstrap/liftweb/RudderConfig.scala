@@ -98,7 +98,6 @@ import com.normation.rudder.api._
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
-import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventRepositoryImpl
 import com.normation.rudder.campaigns.CampaignRepositoryImpl
 import com.normation.rudder.campaigns.CampaignSerializer
@@ -145,6 +144,7 @@ import com.normation.rudder.repository.xml._
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.internal._
+import com.normation.rudder.rest.lift
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
@@ -194,7 +194,6 @@ import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import zio.IO
-import zio.Queue
 import zio.Ref
 import zio.duration._
 import zio.syntax._
@@ -1469,6 +1468,7 @@ object RudderConfig extends Loggable {
     val nodeInheritedProperties = new NodeApiInheritedProperties(nodeInfoService, roNodeGroupRepository, roLDAPParameterRepository)
     val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
 
+    val campaignApi = new lift.CampaignApi(campaignRepo, campaignSerializer, campaignEventRepo, mainCampaignService , restExtractorService, stringUuidGenerator)
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
@@ -1483,6 +1483,7 @@ object RudderConfig extends Loggable {
       , new PluginApi(restExtractorService, pluginSettingsService)
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       , new RulesInternalApi(restExtractorService, ruleInternalApiService)
+      , campaignApi
       , new HookApi(hookApiService)
       , archiveApi
       // info api must be resolved latter, because else it misses plugin apis !
@@ -1508,6 +1509,7 @@ object RudderConfig extends Loggable {
       , workflowLevelService
     )
   }
+
 
   lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository), () => configService.rudder_compute_changes().toBox)
 
@@ -2497,20 +2499,14 @@ object RudderConfig extends Loggable {
   )
 
   lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
-  lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie)
   lazy val campaignSerializer = new CampaignSerializer()
+  lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie, campaignSerializer)
   val campaignPath = root / "var" / "rudder" / "configuration-repository" / "campaigns"
   lazy val campaignRepo = new CampaignRepositoryImpl(campaignSerializer, campaignPath)
 
 
-  val mainCampaignService  = MainCampaignService (campaignEventRepo, campaignRepo, uuidGen)
-  ( for {
-      campaignQueue <- Queue.unbounded[CampaignEvent]
-      _ <- mainCampaignService.start(campaignQueue).forkDaemon
-    } yield {
-      ()
-    }
-  ).forkDaemon.runNow
+  val mainCampaignService  = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen)
+  MainCampaignService.start(mainCampaignService).runNow
 
   lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
   jsonReportsAnalyzer.start().forkDaemon

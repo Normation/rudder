@@ -39,6 +39,8 @@ package com.normation.rudder.campaigns
 
 import better.files.File
 import com.normation.errors.IOResult
+import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import zio.ZIO
 
 
@@ -52,13 +54,23 @@ trait CampaignRepository {
 class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path : File) extends CampaignRepository {
 
   def getAll(): IOResult[List[Campaign]] = {
+    import zio.syntax._
     for {
-      jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ =="json"))}
-      campaigns <- ZIO.foreach(jsonFiles.toList) {
-        json => campaignSerializer.parse(json.contentAsString)
-      }
+      _ <- CampaignLogger.info(path.children.toList.map(_.extension).mkString(", "))
+      jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ ==".json"))}
+      campaigns <- (ZIO.foreach(jsonFiles.toList) {
+
+        json =>
+          (for {
+            _ <- CampaignLogger.info(json.pathAsString)
+            c <-
+              campaignSerializer.parse(json.contentAsString)
+          } yield {
+            c
+          }).either.chainError("yo")
+      })
     } yield {
-      campaigns
+      campaigns.partitionMap(identity)._2
     }
   }
   def get(id : CampaignId) : IOResult[Campaign] = {
