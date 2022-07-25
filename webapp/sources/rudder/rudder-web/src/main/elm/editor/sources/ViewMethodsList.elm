@@ -23,12 +23,21 @@ getTooltipContent method =
   let
     description = case method.description of
         "" -> ""
-        d  -> "<div class='description'>"++d++"</div>"
+        d  -> "<div class='description'>"++ htmlEscape d ++"</div>"
     deprecation = case method.deprecated of
       Nothing -> ""
-      Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++m++"</div></div>"
+      Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++ htmlEscape m ++"</div></div>"
   in
-    "<div>Method '<b style=\"color:#444;\">"++ method.name ++"</b>'.<br/>" ++ description ++ deprecation ++ "</div>"
+    "<div>Method '<b style=\"color:#444;\">"++ htmlEscape method.name ++"</b>'.<br/>" ++ description ++ deprecation ++ "</div>"
+
+htmlEscape : String -> String
+htmlEscape s =
+  String.replace "&" "&amp;" s
+    |> String.replace ">" "&gt;"
+    |> String.replace "<" "&lt;"
+    |> String.replace "\"" "&quot;"
+    |> String.replace "'" "&#x27;"
+    |> String.replace "\\" "&#x2F;"
 
 methodsList: Model -> Html Msg
 methodsList model =
