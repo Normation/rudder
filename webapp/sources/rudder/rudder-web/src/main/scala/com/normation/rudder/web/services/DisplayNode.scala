@@ -424,9 +424,9 @@ object DisplayNode extends Loggable {
               ).getOrElse("unknown"))}
             </li>
             <li>
-              ${escape(sm.machine.map( _.id.value).map( machineId =>
-                "<b>Machine ID:</b> " ++ {machineId}
-              ).getOrElse("""<span class="error">Machine Information are missing for that node</span>"""))}
+              ${sm.machine.map( _.id.value).map( machineId =>
+                "<b>Machine ID:</b> " ++ {escape(machineId)}
+              ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")}
             </li>
           </ul>
         </div>
