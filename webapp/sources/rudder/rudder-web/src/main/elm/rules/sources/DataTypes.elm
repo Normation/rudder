@@ -342,3 +342,5 @@ type Msg
   | UpdateGroupFilters     Filters
   | GoTo                   String
   | FoldAllCategories      Filters
+  | RefreshComplianceTable RuleId
+  | RefreshReportsTable    RuleId
