@@ -16,7 +16,6 @@ import Tuple3
 import ViewRepairedReports
 import ViewUtils exposing (..)
 
-
 --
 -- This file contains all methods to display the details of the selected rule.
 --
@@ -387,7 +386,7 @@ directivesTab model details =
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
         , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-        , button [class "btn btn-primary btn-sm", onCustomClick Ignore][text "Refresh"]
+        , button [class "btn btn-primary btn-sm", onCustomClick (RefreshComplianceTable rule.id)][text "Refresh"]
         ]
       , div[class "table-container"] [(
         let
@@ -670,7 +669,7 @@ nodesTab model details =
             in
               UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
           )][]
-        , button [class "btn btn-primary btn-sm"][text "Refresh"]
+        , button [class "btn btn-primary btn-sm", onCustomClick (RefreshComplianceTable details.rule.id)][text "Refresh"]
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [
