@@ -1339,7 +1339,7 @@ function createNodeTable(gridId, refresh) {
     , columnDefs : [
       {
         "targets": "_all"
-      , "render": $.fn.dataTable.render.text() // escape HTML by default for columns value. 
+      , "render": $.fn.dataTable.render.text() // escape HTML by default for columns value.
       },{
          "target" : 0
        , "visible" : true
@@ -1387,15 +1387,16 @@ function createNodeTable(gridId, refresh) {
   }
 
   function addColumn(columnName, value, checked) {
+    var escapedValue = escapeHTML(value);
     var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
     if (columnName =="Property" || columnName =="Software" ) {
-      columns.push(allColumns[columnName](value, checked))
+      columns.push(allColumns[columnName](escapedValue, checked))
       localStorage.setItem(cacheId, JSON.stringify(columns))
       params["ajax"] = {
-          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
+          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+escapedValue
         , "type" : "POST"
         , "contentType": "application/json"
         , "data" : function(d) {
@@ -1416,7 +1417,7 @@ function createNodeTable(gridId, refresh) {
                           if (node[dataName] === undefined) {
                             node[dataName] = {}
                           }
-                          node[dataName][value] = d[node.id]
+                          node[dataName][escapedValue] = d[node.id]
                         }
                         return data2
                       }
