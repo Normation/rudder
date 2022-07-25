@@ -293,8 +293,14 @@ update msg model =
             ui = details.ui
             newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
           in
-            (newModel, Cmd.batch [(successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action))  , (getRulesTree newModel)])
-        _   -> (model, Cmd.none )
+            (newModel, Cmd.batch
+              [ successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action)
+              , getRulesTree newModel
+              , getRulesComplianceDetails ruleDetails.id newModel
+              , getRuleNodesDirectives ruleDetails.id newModel
+              ]
+            )
+        _   -> (model, Cmd.none)
 
 
     SaveRuleDetails (Err err) ->
@@ -472,6 +478,20 @@ update msg model =
             (model, Cmd.none)
 
     GoTo link -> (model, Nav.load link)
+
+    RefreshComplianceTable ruleId ->
+      (model, Cmd.batch [ getRulesComplianceDetails ruleId model, getRuleNodesDirectives ruleId model])
+
+    RefreshReportsTable ruleId ->
+      let
+        getChanges = case Dict.get ruleId.value model.changes of
+          Nothing -> []
+          Just changes ->
+            case List.Extra.last changes of
+              Nothing -> []
+              Just lastChanges -> [ getRepairedReports model ruleId lastChanges.start lastChanges.end ]
+      in
+        (model, Cmd.batch getChanges)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
