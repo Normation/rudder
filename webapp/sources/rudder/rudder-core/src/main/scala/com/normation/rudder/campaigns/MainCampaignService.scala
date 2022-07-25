@@ -73,7 +73,14 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
 
   private[this] var inner : Option[CampaignScheduler] = None
 
-
+  def saveCampaign(c : Campaign) = {
+    for {
+      _ <- campaignRepo.save(c)
+      _ <- scheduleCampaignEvent(c)
+    } yield {
+      c
+    }
+  }
   def queueCampaign(c: CampaignEvent) = {
     inner match {
       case Some(s) => s.queueCampaign(c)
@@ -194,8 +201,8 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
         val realMinutes = startMinute % 60
         for {
           d <- (if ( date.getDayOfWeek > day.value
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay >= realHour)
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay == realHour && date.getMinuteOfHour >= realMinutes)
+                || ( date.getDayOfWeek == day.value && date.getHourOfDay > realHour)
+                || ( date.getDayOfWeek == day.value && date.getHourOfDay == realHour && date.getMinuteOfHour > realMinutes)
                 ) {
                   date.plusWeeks(1)
                 } else {
