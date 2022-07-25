@@ -1,20 +1,5 @@
-#####################################################################################
-# Copyright 2013 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 # This file contain the Global Parameters, to be available within all
 # promises, in the form ${rudder_parameters.parameterName}
@@ -33,7 +18,7 @@ bundle common rudder_parameters {
 #
 # Parameters are available using the rudder.parameters container that contains the values
 # Those values are read from /var/rudder/cfengine-community/inputs/rudder-parameters.json
-# 
+#
 # The file must contain at least a 2 levels JSON content, the first level is the namespace level
 # (namely parameters) and the second level is the key level.
 # The namespace name must comply with CFEngine variable names rules (ie [a-zA-Z_]+)

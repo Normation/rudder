@@ -1,20 +1,5 @@
-#####################################################################################
-# Copyright 2011 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 #
 # This file launch a fusion-inventory agent
@@ -30,36 +15,23 @@ bundle agent computeInventoryTime
   vars:
       "run_interval"             int   => "&AGENT_RUN_INTERVAL&";
 
-      "inventory_time_hours"     slist => { "Hr00", "Hr01", "Hr02", "Hr03", "Hr04", "Hr05" };
-      "inventory_time_selection" slist => maplist("${this}_select", "inventory_time_hours");
-
   classes:
-      "splaying"                   expression => splayclass("${sys.host}${sys.ipv4}","hourly");
-
-      "inventory_run_selection" select_class => { "@{computeInventoryTime.inventory_time_selection}"};
-
-      # If this is the default 5 minute schedule, this is the standart case
-      "default_schedule" expression => isgreaterthan("6", "${run_interval}");
-
-      # If the interval is between 6 and 59 minutes, then we "splay" by the select_class, so between Midnight and 5 am
-      "less_than_one_hour_interval" expression => isgreaterthan("59", "${run_interval}");
-
-      # Compute if we are currently in the hour where the inventory should be done
-      "inventory_hour_selection" expression => "${inventory_time_hours}.${inventory_time_hours}_select";
-
-       # Inventory will be during the night, at the hour selected, with a splay is this is the default schedule, else at the first run during the selected hour
-       # if the interval is less than one hour, else at the first run of the night
-       "inventory_time" expression => "Night.((splaying.default_schedule.inventory_hour_selection)|(!default_schedule.less_than_one_hour_interval.inventory_hour_selection)|(!less_than_one_hour_interval))",
+       "inventory_time" expression => "schedule_simple_rudder_run_inventory_repaired",
                              scope => "namespace";
+
+  methods:
+      # Inventory will be during the 6 hours after midnight, every day
+      "splay_inventory" usebundle => _method_reporting_context("Compute inventory splay", "None");
+      "splay_inventory" usebundle => schedule_simple("rudder_run_inventory", "${run_interval}", "0", "6", "0", "0", "0", "0", "0", "1", "catchup");
 }
 
 bundle agent doInventory
 {
   vars:
     resend_inventory::
-      "cant_send_inventory" string => "undefine", 
+      "cant_send_inventory" string => "undefine",
                             classes => cancel_all_classes("cant_send_inventory");
-      
+
   classes:
       "disable_inventory" expression => fileexists("${g.rudder_disable_inventory_file}");
 
@@ -71,14 +43,14 @@ bundle agent doInventory
     ignore_disable_inventory|!disable_inventory::
       "any" usebundle => doInventory_always;
     !(ignore_disable_inventory|!disable_inventory)::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "&TRACKINGKEY&", "inventory", "None", "The file ${g.rudder_disable_inventory_file} is present, so Rudder will not send an inventory. Use 'rudder agent inventory -f' to override this temporarily");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "&TRACKINGKEY&", "Inventory", "None", "The file ${g.rudder_disable_inventory_file} is present, so Rudder will not send an inventory. Use 'rudder agent inventory -f' to override this temporarily");
 }
 bundle agent doInventory_always
 {
 
   vars:
 
-    uuid_succesfully_downloaded::
+    uuid_successfully_downloaded::
       "policy_server_uuid" string => readfile("${sys.workdir}/rudder-server-uuid.txt", 50);
 
   classes:
@@ -86,7 +58,7 @@ bundle agent doInventory_always
       "force_inventory" expression => fileexists("${g.rudder_base}/etc/force_inventory"),
                              scope => "namespace";
 
-    uuid_succesfully_downloaded::
+    uuid_successfully_downloaded::
       "uuid_valid" expression => regcmp("[a-z0-9-]+","${policy_server_uuid}");
       "uuid_validity_checked"
         expression => "any",
@@ -122,37 +94,38 @@ bundle agent doInventory_always
       "any" usebundle => sendInventory;
       "any" usebundle => cleanForceInventoryFlagFile;
 
-    pass3.uuid_succesfully_downloaded.uuid_validity_checked.!uuid_valid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Could not retrieve a valid UUID from the policy server");
+    pass3.uuid_successfully_downloaded.uuid_validity_checked.!uuid_valid::
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "Inventory", "None", "Could not retrieve a valid UUID from the policy server");
 
     # Send reports to confirm this technique success even if we don't need to send an inventory
     pass3.inventory_sent::
-      "any" usebundle => rudder_common_report("Inventory", "log_info", "&TRACKINGKEY&", "inventory", "None", "An inventory was already sent less than 8 hours ago");
+      "any" usebundle => rudder_common_report("Inventory", "log_info", "&TRACKINGKEY&", "Inventory", "None", "An inventory was already sent less than 8 hours ago");
 
     pass3.!inventory_time.!force_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "result_success", "&TRACKINGKEY&", "inventory", "None", "Next inventory scheduled between 00:00 and 06:00");
+      "any" usebundle => rudder_common_report("Inventory", "result_success", "&TRACKINGKEY&", "Inventory", "None", "Next inventory scheduled between 00:00 and 06:00");
 
 }
 
 bundle agent download_server_uuid
 {
-  vars:
-
-    # curl should always be available now
-      "download_command"   string => "${g.rudder_curl} --tlsv1.2 --location --insecure --silent --fail --proxy '' --output \"${sys.workdir}/rudder-server-uuid.txt\" https://${server_info.policy_server}/uuid";
+  classes:
+      "have_client" expression => fileexists("/opt/rudder/bin/rudder-client");
 
   methods:
     could_not_download_uuid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Could not retrieve the UUID of the policy server. Please check that the defined Policy Server exists, and that this Node IP address is in the Allowed Networks of its policy server.");
-
-    !curl_installed::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Could not use curl to retrieve server UUID because it is not installed");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "Inventory", "None", "Could not retrieve the UUID of the policy server. Please check that the defined Policy Server exists, and that this Node IP address is in the Allowed Networks of its policy server.");
 
   commands:
-
-      "${download_command}"
+    !have_client::
+      # remove this when 6.2 agent are not supported anymore
+      "${g.rudder_curl} --tlsv1.2 --location ${g.rudder_verify_certs_option} --silent --fail --proxy '' --output \"${sys.workdir}/rudder-server-uuid.txt\" https://${server_info.policy_server}/uuid"
         comment => "Getting the uuid from the server",
-        classes => if_else("uuid_succesfully_downloaded","could_not_download_uuid");
+        classes => if_else("uuid_successfully_downloaded","could_not_download_uuid");
+
+    have_client::
+      "/opt/rudder/bin/rudder-client -e /uuid -- --output \"${sys.workdir}/rudder-server-uuid.txt\""
+        comment => "Getting the uuid from the server",
+        classes => if_else("uuid_successfully_downloaded","could_not_download_uuid");
 
 }
 
@@ -161,17 +134,9 @@ bundle agent fusionAgent
   vars:
     any::
       "inventory_name"           string => "${sys.uqhost}-${g.uuid}.ocs";
-
-    # guarding execresult to save a lot of time during policy validation
-    force_inventory|inventory_time|initial_promises::
-      "fusion_inventory_version" string => execresult("${g.rudder_base}/bin/run-inventory --version | ${paths.path[grep]} '[0-9]\.[0-9]' | ${paths.path[sed]} 's%.*(\([0-9]\+\)\.\([0-9]\+\).*).*%\1\2%'", "useshell");
-
-    any::
       "inventory_path"           string => "${g.rudder_var_tmp}/inventory/${inventory_name}";
 
   classes:
-      "fusion_inventory_version_22_or_earlier" expression => islessthan("${fusion_inventory_version}", "23");
-
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -187,16 +152,20 @@ bundle agent fusionAgent
 
   methods:
     pass3.run_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "log_debug", "&TRACKINGKEY&", "inventory", "None", "Running inventory");
+      "any" usebundle => rudder_common_report("Inventory", "log_debug", "&TRACKINGKEY&", "Inventory", "None", "Running inventory");
 
-    pass3.fusion_inventory_version_22_or_earlier::
-      # FusionInventory 2.3+ permits to specify the exact inventory file name we want which is now mandatory
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Fusion inventory version not supported");
     pass3.inventory_failed::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Could not execute the inventory");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "Inventory", "None", "Could not execute the inventory");
+
+    pass3.!rudder_inventory_not_running::
+      "any" usebundle => rudder_common_report("Inventory", "result_na", "&TRACKINGKEY&", "Inventory", "None", "Skipped the inventory as another is running");
+
+  processes:
+      "${g.rudder_base}/bin/run-inventory .*"
+        restart_class => "rudder_inventory_not_running";
 
   commands:
-    inventoryfoldercreated::
+    inventoryfoldercreated.rudder_inventory_not_running::
       "${g.rudder_base}/bin/run-inventory --local=${inventory_path}"
         classes => cf2_if_else("run_inventory", "inventory_failed"),
         comment => "Generating inventory, in the temporary folder";
@@ -212,6 +181,7 @@ bundle agent checkInventoryFile
       "perl_command" string => "/usr/bin/perl -I /opt/rudder/lib/perl5";
 
   classes:
+    rudder_inventory_not_running::
       "inventory_file_exist" expression => fileexists("${fusionAgent.inventory_path}");
       "has_rudder_perl" expression => fileexists("/opt/rudder/bin/perl");
     pass1.inventory_file_exist::
@@ -224,7 +194,7 @@ bundle agent checkInventoryFile
 
   methods:
     pass2.inventory_file_exist.!inventory_valid::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Generated inventory has been detected as invalid");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "Inventory", "None", "Generated inventory has been detected as invalid");
 
   reports:
     pass2.inventory_file_exist.!inventory_valid::
@@ -279,32 +249,45 @@ bundle agent sendInventory
   vars:
     initial_promises::
       "download_endpoint"         string => "https://${server_info.policy_server}/inventories/";
+      "endpoint"                  string => "/inventories/";
       "min_resend_delay"          string => "15";
     !initial_promises::
       "download_endpoint"         string => "https://${server_info.policy_server}/inventory-updates/";
+      "endpoint"                  string => "/inventory-updates/";
       "min_resend_delay"          string => "480";
-
-    any::
-    # curl is always available now
-      "download_command_prefix"   string => "${g.rudder_curl} --tlsv1.2 --location --insecure --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file";
-      "download_command_suffix"   string => "${download_endpoint}";
 
   classes:
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+      "have_client" expression => fileexists("/opt/rudder/bin/rudder-client");
 
   files:
-    any::
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}\..*"
-        transformer => "${download_command_prefix} ${this.promiser} ${download_command_suffix}",
+    !root_server.!have_client::
+      # remove this when 6.2 agent are not supported anymore
+      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
+        transformer => "${g.rudder_curl} --tlsv1.2 --location ${g.rudder_verify_certs_option} --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file ${this.promiser} ${download_endpoint}",
         classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
         comment      => "Sending the inventory to the server";
 
+    !root_server.have_client::
+      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
+        transformer => "/opt/rudder/bin/rudder-client -e ${endpoint} -- --upload-file ${this.promiser}",
+        classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
+        comment      => "Sending the inventory to the server";
+
+    root_server::
+      # minimal change to copy inventories to accepted node updates on root server
+      "${g.rudder_inventories}/${fusionAgent.inventory_name}\..*"
+        transformer => "${g.rudder_cp} ${this.promiser} ${g.rudder_inventories}/accepted-nodes-updates",
+        classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
+        comment      => "Copying the inventory on root server";
+
+
   # Once we've successfully sent all inventories, remove them
     inventory_sent.!cant_send_inventory::
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}\..*"
+      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
         transformer  => "${g.rudder_rm} -f ${this.promiser}",
         classes      => if_else("inventory_file_deleted", "cant_delete_inventory_file"),
         comment      => "Cleaning up inventory files already sent to the server";
@@ -323,13 +306,13 @@ bundle agent sendInventory
 
   methods:
     pass3.inventory_sent::
-      "any" usebundle => rudder_common_report("Inventory", "result_success", "&TRACKINGKEY&", "inventory", "None", "The inventory has been successfully sent");
+      "any" usebundle => rudder_common_report("Inventory", "result_success", "&TRACKINGKEY&", "Inventory", "None", "The inventory has been successfully sent");
 
     pass3.cant_send_inventory::
-      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "inventory", "None", "Could not send the inventory");
+      "any" usebundle => rudder_common_report("Inventory", "result_error", "&TRACKINGKEY&", "Inventory", "None", "Could not send the inventory");
 
     pass3.cant_delete_inventory_file::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "&TRACKINGKEY&", "inventory", "None", "Could not delete inventory file after sending to server");
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "&TRACKINGKEY&", "Inventory", "None", "Could not delete inventory file after sending to server");
 
 }
 body file_select fusion_by_name_old(names,days)
@@ -348,3 +331,4 @@ bundle agent cleanForceInventoryFlagFile
         ifvarclass => "inventory_sent"; # if the force inventory file was present, and we successfully sent an inventory, clean up the flag file
 
 }
+

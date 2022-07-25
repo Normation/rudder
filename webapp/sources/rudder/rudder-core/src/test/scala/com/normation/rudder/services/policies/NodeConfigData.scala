@@ -38,6 +38,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.GitVersion
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
@@ -95,7 +96,6 @@ import com.normation.inventory.domain.Windows2012
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
@@ -107,6 +107,7 @@ import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import java.io.File
 import java.nio.file.{Files, Paths}
 import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.cfclerk.domain.VariableSpec
 
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -738,28 +739,12 @@ class TestNodeConfiguration(prefixTestResources: String = ""
     def unsafeGet(id: TechniqueId) = repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.serialize}' not found"))
   }
 
-  val commonTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("common"), TechniqueVersionHelper("1.0")))
-  def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable
-  ] = {
-     val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-     Seq(
-       spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
-     , spec("UUID").toVariable(Seq(nodeId.value))
-     , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
-     , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
-     , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
-     ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap // None because no reportId for old var
-  }
-
   def draft (
       id            : PolicyId
     , ruleName      : String
     , directiveName : String
     , technique     : Technique
     , variableMap   : Map[ComponentId, Variable]
-    , tracker       : TrackerVariable
-    , ruleOrder     : BundleOrder
-    , directiveOrder: BundleOrder
     , system        : Boolean = true
     , policyMode    : Option[PolicyMode] = None
   ) = {
@@ -771,24 +756,41 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , DateTime.now
       , variableMap
       , variableMap
-      , tracker
+      , technique.trackerVariableSpec.toVariable(Seq(id.getReportId))
       , 0
       , system
       , policyMode
-      , ruleOrder
-      , directiveOrder
+      , BundleOrder(ruleName)
+      , BundleOrder(directiveName)
       , Set()
     )
   }
 
+  /*
+   * NOTICE:
+   * Changes here are likely to need to be replicated in rudder-rest: MockService.scala,
+   * in class MockDirectives
+   */
+
+  val commonTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("common"), TechniqueVersionHelper("1.0")))
+  def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable] = {
+     val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+       spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
+     , spec("UUID").toVariable(Seq(nodeId.value))
+     , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
+     , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
+     , spec("ALLOWEDNETWORK").toVariable(Seq(""))
+     ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap // None because no reportId for old var
+  }
+
   val commonDirective = Directive(
-      DirectiveId(DirectiveUid("common-root"), GitVersion.DEFAULT_REV)
+      DirectiveId(DirectiveUid("common-hasPolicyServer-root"), GitVersion.DEFAULT_REV)
     , TechniqueVersionHelper("1.0")
     , Map(
         ("OWNER", Seq("${rudder.node.admin}"))
       , ("UUID", Seq("${rudder.node.id}"))
       , ("POLICYSERVER_ID", Seq("${rudder.node.id}"))
-      , ("POLICYSERVER", Seq("${rudder.node.hostname}"))
       , ("POLICYSERVER_ADMIN", Seq("${rudder.node.admin}"))
       )
     , "common-root"
@@ -796,61 +798,80 @@ class TestNodeConfiguration(prefixTestResources: String = ""
   )
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
-    val id = PolicyId(RuleId("hasPolicyServer-root"), DirectiveId(DirectiveUid ("common-root")), TechniqueVersionHelper("1.0"))
+    val id = PolicyId(RuleId("hasPolicyServer-root"), commonDirective.id, TechniqueVersionHelper("1.0"))
     draft(
         id
       , "Rudder system policy: basic setup (common)"
       , "Common"
       , commonTechnique
       , commonVariables(nodeId, allNodeInfos)
-      , commonTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId)) //card = 1 because unique
-      , BundleOrder("Rudder system policy: basic setup (common)")
-      , BundleOrder("Common")
     )
   }
 
-  val rolesTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("server-roles"), TechniqueVersionHelper("1.0")))
-  val rolesVariables = {
-     Map[ComponentId, Variable]()
+  // we have one rule with several system technique for root server config
+
+  // get variable's values based on the kind of spec for that: if the values are provided, use them.
+  def getVariables(techiqueDebugId: String, spec: Map[String, VariableSpec], variables: List[String]): Map[ComponentId, Variable] = {
+    variables.map(name =>
+    spec.get(name).getOrElse(throw new RuntimeException(s"Missing variable spec '${name}' in technique ${techiqueDebugId} in test")) match {
+      case p:PredefinedValuesVariableSpec => p.toVariable(p.providedValues._1 :: p.providedValues._2.toList)
+      case s                              => s.toVariable(Seq(s"value for '${name}'"))
+    }
+    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
   }
 
-  val serverRole = {
-    val id = PolicyId(RuleId("server-roles"), DirectiveId(DirectiveUid("server-roles-directive")), TechniqueVersionHelper("1.0"))
-    draft(
-        id
-      , "Rudder system policy: Server roles"
-      , "Server Roles"
-      , rolesTechnique
-      , rolesVariables
-      , rolesTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("Rudder system policy: Server roles")
-      , BundleOrder("Server Roles")
-    )
+  def simpleServerPolicy(name: String, variables: List[String] = List()) = {
+    val technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName(s"${name}"), TechniqueVersionHelper("1.0")))
+    val spec = technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+    val vars = getVariables(technique.id.serialize, spec, variables)
+    val policy = {
+      val id = PolicyId(RuleId("policy-server-root"), DirectiveId(DirectiveUid(s"${name}-root")), TechniqueVersionHelper("1.0"))
+      draft(
+          id
+        , "Rule for policy server root"
+        , s"Server ${name} - root"
+        , technique
+        , vars
+      )
+    }
+    (technique, policy)
   }
 
-  val distributeTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersionHelper("1.0")))
-  val distributeVariables = {
-     Map[ComponentId, Variable]()
-  }
+  val (serverCommonTechnique, serverCommon) = simpleServerPolicy("server-common")
+  val apacheVariables = List(
+       "expectedReportKey Apache service"
+     , "expectedReportKey Apache configuration"
+     , "expectedReportKey Configure apache certificate"
+  )
+  val (serverApacheTechnique, serverApache) = simpleServerPolicy("rudder-service-apache", apacheVariables)
+  val postgresqlVariables = List(
+    "expectedReportKey Postgresql service"
+  , "expectedReportKey Postgresql configuration"
+  )
+  val (serverPostgresqlTechnique, serverPostgresql) = simpleServerPolicy("rudder-service-postgresql", postgresqlVariables)
+  val relaydVariables = List(
+    "expectedReportKey Rudder-relayd service"
+  )
+  val (serverRelaydTechnique, serverRelayd) = simpleServerPolicy("rudder-service-relayd", relaydVariables)
+  val slapdVariables = List(
+    "expectedReportKey Rudder slapd service"
+  , "expectedReportKey Rudder slapd configuration"
+  )
+  val (serverSlapdTechnique, serverSlapd) = simpleServerPolicy("rudder-service-slapd", slapdVariables)
+  val webappVariables = List(
+    "expectedReportKey Rudder-jetty service"
+  , "expectedReportKey Check configuration-repository"
+  , "expectedReportKey Check webapp configuration"
+  )
+  val (serverWebappTechnique, serverWebapp) = simpleServerPolicy("rudder-service-webapp", webappVariables)
 
-  val distributePolicy = {
-    val id = PolicyId(RuleId("root-DP"), DirectiveId(DirectiveUid("root-distributePolicy")), TechniqueVersionHelper("1.0"))
-    draft(
-        id
-      , "distributePolicy"
-      , "Distribute Policy"
-      , distributeTechnique
-      , distributeVariables
-      , distributeTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("distributePolicy")
-      , BundleOrder("Distribute Policy")
-    )
-  }
 
   val inventoryTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("inventory"), TechniqueVersionHelper("1.0")))
-  val inventoryVariables = {
-     Map[ComponentId, Variable]()
+  val inventoryVariables: Map[ComponentId, Variable] = {
+    val spec = inventoryTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+    getVariables(inventoryTechnique.id.serialize, spec, List("expectedReportKey Inventory"))
   }
+
   val inventoryAll = {
     val id = PolicyId(RuleId("inventory-all"), DirectiveId(DirectiveUid("inventory-all")), TechniqueVersionHelper("1.0"))
       draft(
@@ -859,11 +880,10 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "Inventory"
       , inventoryTechnique
       , inventoryVariables
-      , inventoryTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("Rudder system policy: daily inventory")
-      , BundleOrder("Inventory")
     )
   }
+
+  val allRootPolicies = List(serverCommon, serverApache, serverPostgresql, serverRelayd, serverSlapd, serverWebapp, inventoryAll)
 
   //
   // 4 user directives: clock management, rpm, package, a multi-policiy: fileTemplate, and a ncf one: Create_file
@@ -887,9 +907,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "10. Clock Configuration"
       , clockTechnique
       , clockVariables
-      , clockTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("10. Global configuration for all nodes")
-      , BundleOrder("10. Clock Configuration")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -938,9 +955,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "20. Install PLOP STACK main rpm"
       , rpmTechnique
       , rpmVariables
-      , rpmTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("50. Deploy PLOP STACK")
-      , BundleOrder("20. Install PLOP STACK main rpm")
       , false
       , Some(PolicyMode.Audit)
     )
@@ -968,9 +982,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "Package management."
       , pkgTechnique
       , pkgVariables
-      , pkgTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("60-rule-technique-std-lib")
-      , BundleOrder("Package management.")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1000,9 +1011,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "10-File template 1"
       , fileTemplateTechnique
       , fileTemplateVariables1
-      , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("60-rule-technique-std-lib")
-      , BundleOrder("10-File template 1")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1030,9 +1038,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "20-File template 2"
       , fileTemplateTechnique
       , fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2))
-      , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("60-rule-technique-std-lib")
-      , BundleOrder("20-File template 2")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1047,9 +1052,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "20-File template 2"
       , fileTemplateTechnique
       , fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2))
-      , fileTemplateTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("99-rule-technique-std-lib")
-      , BundleOrder("20-File template 2")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1073,9 +1075,21 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "Create a file"
       , ncf1Technique
       , ncf1Variables.map(a => (ComponentId(a._1, Nil, Some(s"reportId_${a._1}")), a._2))
-      , ncf1Technique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("50-rule-technique-ncf")
-      , BundleOrder("Create a file")
+      , false
+      , Some(PolicyMode.Enforce)
+    )
+  }
+
+  // test ticket 18205
+  lazy val test18205Technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("test_18205"), TechniqueVersionHelper("1.0")))
+  lazy val test18205 = {
+    val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
+    draft(
+        id
+      , "10. Global configuration for all nodes"
+      , "10. test18205"
+      , test18205Technique
+      , Map()
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1115,9 +1129,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "Copy git file"
       , copyGitFileTechnique
       , copyGitFileVariable(i).map(a => (ComponentId(a._1, Nil, None), a._2))
-      , copyGitFileTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("90-copy-git-file")
-      , BundleOrder("Copy git file")
       , false
       , Some(PolicyMode.Enforce)
     )
@@ -1187,9 +1198,6 @@ class TestNodeConfiguration(prefixTestResources: String = ""
       , "99. Generic Variable Def #1"
       , gvdTechnique
       , gvdVariables1.map(a => (ComponentId(a._1, Nil, None), a._2))
-      , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("10. Global configuration for all nodes")
-      , BundleOrder("99. Generic Variable Def #1") // the sort name tell that it comes after directive 2
       , false
       , Some(PolicyMode.Enforce)
     ).copy(
@@ -1208,12 +1216,9 @@ class TestNodeConfiguration(prefixTestResources: String = ""
     draft(
         id
       , "10. Global configuration for all nodes"
-      , "00. Generic Variable Def #2"
+      , "00. Generic Variable Def #2" // sort name comes before sort name of directive 1
       , gvdTechnique
       , gvdVariables2.map(a => (ComponentId(a._1, Nil, None), a._2))
-      , gvdTechnique.trackerVariableSpec.toVariable(Seq(id.getReportId))
-      , BundleOrder("10. Global configuration for all nodes")
-      , BundleOrder("00. Generic Variable Def #2") // sort name comes before sort name of directive 1
       , false
       , Some(PolicyMode.Enforce)
     ).copy (

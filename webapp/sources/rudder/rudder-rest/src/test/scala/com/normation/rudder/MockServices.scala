@@ -307,15 +307,21 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   object directives {
 
+    /*
+     * NOTICE:
+     * Changes here are likely to need to be replicated in rudder-core: NodeCondigData.scala,
+     * in class TestNodeConfiguration
+     */
+
     val commonTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
     def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]) = {
        val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-       Seq(
-         spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
-       , spec("UUID").toVariable(Seq(nodeId.value))
-       , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
-       , spec("POLICYSERVER").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).hostname))
-       , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
+         Seq(
+           spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName))
+         , spec("UUID").toVariable(Seq(nodeId.value))
+         , spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value))
+         , spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName))
+         , spec("ALLOWEDNETWORK").toVariable(Seq(""))
        ).map(v => (v.spec.name, v)).toMap
     }
     val commonDirective = Directive(
@@ -325,30 +331,33 @@ class MockDirectives(mockTechniques: MockTechniques) {
           ("OWNER", Seq("${rudder.node.admin}"))
         , ("UUID", Seq("${rudder.node.id}"))
         , ("POLICYSERVER_ID", Seq("${rudder.node.id}"))
-        , ("POLICYSERVER", Seq("${rudder.node.hostname}"))
         , ("POLICYSERVER_ADMIN", Seq("${rudder.node.admin}"))
         )
       , "common-root"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
     )
 
-    val rolesTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("server-roles"), TV("1.0")))
-    val rolesDirective = Directive(
-        DirectiveId(DirectiveUid("Server Roles"), GitVersion.DEFAULT_REV)
-      , TV("1.0")
-      , Map()
-      , "Server Roles"
-      , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
-    )
 
-    val distributeTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("distributePolicy"), TV("1.0")))
-    val distributeDirective = Directive(
-        DirectiveId(DirectiveUid("Distribute Policy"), GitVersion.DEFAULT_REV)
+  // we have one rule with several system technique for root server config
+
+  def simpleServerPolicy(name: String) = {
+    val technique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName(s"${name}"), TV("1.0")))
+    val directive = Directive(
+        DirectiveId(DirectiveUid(s"${name}-root"), GitVersion.DEFAULT_REV)
       , TV("1.0")
       , Map()
-      , "Distribute Policy"
+      , s"${name}-root"
       , "", None, "", 5, true, true // short desc / policyMode / long desc / prio / enabled / system
     )
+    (technique, directive)
+  }
+
+    val (serverCommonTechnique, serverCommonDirective) = simpleServerPolicy("server-common")
+    val (serverApacheTechnique, serverApacheDirective) = simpleServerPolicy("rudder-service-apache")
+    val (serverPostgresqlTechnique, serverPostgresqlDirective) = simpleServerPolicy("rudder-service-postgresql")
+    val (serverRelaydTechnique, serverRelaydDirective) = simpleServerPolicy("rudder-service-relayd")
+    val (serverSlapdTechnique, serverSlapdDirective) = simpleServerPolicy("rudder-service-slapd")
+    val (serverWebappTechnique, serverWebappDirective) = simpleServerPolicy("rudder-service-webapp")
 
     val inventoryTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("inventory"), TV("1.0")))
     val inventoryDirective = Directive(
@@ -532,16 +541,21 @@ class MockDirectives(mockTechniques: MockTechniques) {
     )
 
     val all = Map(
-        (clockTechnique, clockDirective :: Nil)
+        (commonTechnique, commonDirective :: Nil)
+      , (inventoryTechnique, inventoryDirective :: Nil)
+      , (serverCommonTechnique, serverCommonDirective :: Nil)
+      , (serverApacheTechnique, serverApacheDirective :: Nil)
+      , (serverPostgresqlTechnique, serverPostgresqlDirective :: Nil)
+      , (serverRelaydTechnique, serverRelaydDirective :: Nil)
+      , (serverSlapdTechnique, serverSlapdDirective :: Nil)
+      , (serverWebappTechnique, serverWebappDirective :: Nil)
+      , (clockTechnique, clockDirective :: Nil)
       , (commonTechnique, commonDirective :: Nil)
       , (copyGitFileTechnique, copyGitFileDirective :: Nil)
-      , (distributeTechnique, distributeDirective :: Nil)
       , (fileTemplateTechnique, fileTemplateDirecive1 :: fileTemplateVariables2 :: Nil)
       , (gvdTechnique, gvdDirective1 :: gvdDirective2 :: Nil)
-      , (inventoryTechnique, inventoryDirective :: Nil)
       , (ncf1Technique, ncf1Directive :: Nil)
       , (pkgTechnique, pkgDirective :: Nil)
-      , (rolesTechnique, rolesDirective :: Nil)
       , (rpmTechnique, rpmDirective :: Nil)
     )
   }

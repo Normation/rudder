@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+# Used only for bootstrapping Rudder server
+bundle agent bootstrap_server_rudder {
+  vars:
+      # we need a var here, otherwise the bundle name will be checked, and it fails
+      # with external postgresql
+      "postgres_bundle" string => "system_rudder_postgresql_configuration";
+
+  classes:
+      "is_rudder_bootstrap" expression => "any",
+                                 scope => "namespace";
+
+  methods:
+  
+    "system_rudder_postgresql_configuration" usebundle => "${postgres_bundle}";
+    "system_rudder_slapd_configuration"      usebundle => "system_rudder_slapd_configuration";
+    "system_rudder_webapp"                   usebundle => "system_rudder_webapp";
+    "system_rudder_relay_configuration"      usebundle => "system_rudder_relay_configuration";
+    "system_reload_rudder_services"          usebundle => "system_reload_rudder_services";
+
+}

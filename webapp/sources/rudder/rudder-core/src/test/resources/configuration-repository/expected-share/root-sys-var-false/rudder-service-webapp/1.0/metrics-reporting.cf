@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_metrics_reporting(trackingkey, technique_name)
+{
+  vars:
+      "component"      string => "Send metrics to rudder-project";
+
+      "metrics_cmd"    string => "${g.rudder_bin}/rudder-metrics-reporting -s";
+      "inner_prefix"   string => canonify("command_execution_result_${metrics_cmd}");
+
+  classes:
+      "metrics_sent"   expression => "${inner_prefix}_repaired",
+                      persistence => "10080";
+
+      "accept_metrics" expression => strcmp("${server_roles_common.send_metrics}", "yes");
+      "run_metrics"    expression => "accept_metrics";
+
+
+  methods:
+    run_metrics.!metrics_sent::
+      "any" usebundle => _method_reporting_context("${component}", "None");
+      "any" usebundle => command_execution_result("${metrics_cmd}", "0", "1,255");
+    run_metrics.metrics_sent::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "${component}", "None", "Metrics already sent.");
+    !run_metrics::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "${component}", "None", "Sending metrics to rudder-project.org is not enabled. Skipping.");
+}
