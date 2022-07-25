@@ -66,6 +66,7 @@ import com.normation.rudder.services.reports.{NoReportInInterval, Pending}
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import org.joda.time.format.ISODateTimeFormat
+import xml.Utility.escape
 
 /**
  * A service used to display details about a server
@@ -92,6 +93,9 @@ object DisplayNode extends Loggable {
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
 
+  private def escapeJs(in: String): JsExp = Str(escape(in))
+  private def escapeHTML(in: String): NodeSeq = Text(escape(in))
+  private def ?(in:Option[String]) : NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
   private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
     for {
@@ -395,12 +399,12 @@ object DisplayNode extends Loggable {
         <h4>Operating system details</h4>
         <div class="tooltip-content">
           <ul>
-            <li><b>Type:</b> ${sm.node.main.osDetails.os.kernelName}</li>
-            <li><b>Name:</b> ${S.?("os.name." + sm.node.main.osDetails.os.name)}</li>
-            <li><b>Version:</b> ${sm.node.main.osDetails.version.value}</li>
-            <li><b>Service Pack:</b> ${sm.node.main.osDetails.servicePack.getOrElse("None")}</li>
-            <li><b>Architecture:</b> ${sm.node.archDescription.getOrElse("None")}</li>
-            <li><b>Kernel version:</b> ${sm.node.main.osDetails.kernelVersion.value}</li>
+            <li><b>Type:</b> ${escape(sm.node.main.osDetails.os.kernelName)}</li>
+            <li><b>Name:</b> ${escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
+            <li><b>Version:</b> ${escape(sm.node.main.osDetails.version.value)}</li>
+            <li><b>Service Pack:</b> ${escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
+            <li><b>Architecture:</b> ${escape(sm.node.archDescription.getOrElse("None"))}</li>
+            <li><b>Kernel version:</b> ${escape(sm.node.main.osDetails.kernelVersion.value)}</li>
           </ul>
         </div>
       """
@@ -410,19 +414,19 @@ object DisplayNode extends Loggable {
         <h4>Operating system details</h4>
         <div class="tooltip-content">
           <ul>
-            <li><b>Total physical memory (RAM):</b> ${sm.node.ram.map(_.toStringMo).getOrElse("-")}</li>
-            <li><b>Manufacturer:</b> ${sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}</li>
-            <li><b>Total swap space:</b> ${sm.node.swap.map( _.toStringMo).getOrElse("-")}</li>
-            <li><b>System Serial Number:</b> ${sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}</li>
+            <li><b>Total physical memory (RAM):</b> ${escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))}</li>
+            <li><b>Manufacturer:</b> ${escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))}</li>
+            <li><b>Total swap space:</b> ${escape(sm.node.swap.map( _.toStringMo).getOrElse("-"))}</li>
+            <li><b>System Serial Number:</b> ${escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))}</li>
             <li><b>Time Zone:</b>
-              ${sm.node.timezone.map(x =>
+              ${escape(sm.node.timezone.map(x =>
                 if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
-              ).getOrElse("unknown")}
+              ).getOrElse("unknown"))}
             </li>
             <li>
-              ${ sm.machine.map( _.id.value).map( machineId =>
+              ${escape(sm.machine.map( _.id.value).map( machineId =>
                 "<b>Machine ID:</b> " ++ {machineId}
-              ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")}
+              ).getOrElse("""<span class="error">Machine Information are missing for that node</span>"""))}
             </li>
           </ul>
         </div>
@@ -441,7 +445,7 @@ object DisplayNode extends Loggable {
               } }
           </div>
           <div><label>Node ID:          </label> {sm.node.main.id.value}</div>
-          <div><label>Operating system: </label> {sm.node.main.osDetails.fullName}<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={osTooltip}></span></div>
+          <div><label>Operating system: </label> {escape(sm.node.main.osDetails.fullName)}<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={osTooltip}></span></div>
           <div>
             <label>Machine:             </label>
             {displayMachineType(sm.machine)}
@@ -562,9 +566,7 @@ object DisplayNode extends Loggable {
   private def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
   private def htmlId_#(jsId:JsNodeId, prefix:String) : String = "#" + prefix + jsId.toString
 
-  private def escapeJs(in: String): JsExp = Str(xml.Utility.escape(in))
-  private def escapeHTML(in: String): NodeSeq = Text(xml.Utility.escape(in))
-  private def ?(in:Option[String]) : NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
+
 
   // Display the role of the node
   private def displayServerRole(sm:FullInventory, inventoryStatus : InventoryStatus) : NodeSeq = {
@@ -601,11 +603,11 @@ object DisplayNode extends Loggable {
   private def displayPolicyServerInfos(sm:FullInventory) : NodeSeq = {
     nodeInfoService.getNodeInfo(sm.node.main.policyServerId).either.runNow match {
       case Left(err) =>
-        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
+        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escape(sm.node.main.hostname)}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
         logger.error(e)
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
       case Right(Some(policyServerDetails)) =>
-        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{policyServerDetails.hostname}</a></div>
+        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{escape(policyServerDetails.hostname)}</a></div>
       case Right(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
@@ -627,7 +629,7 @@ object DisplayNode extends Loggable {
   //show a comma separated list with description in tooltip
 
   private def displayAccounts(node:NodeInventory) : NodeSeq = {
-    Text{if(node.accounts.isEmpty) {
+    escapeHTML { if(node.accounts.isEmpty) {
         "None"
       } else {
         node.accounts.sortWith(_ < _).mkString(", ")
