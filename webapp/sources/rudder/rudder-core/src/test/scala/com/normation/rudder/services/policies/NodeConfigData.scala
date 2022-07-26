@@ -137,6 +137,14 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 
+import java.nio.file.FileSystemNotFoundException
+import java.nio.file.FileSystems
+import java.nio.file.FileVisitResult
+import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.StandardCopyOption
+import java.nio.file.attribute.BasicFileAttributes
+
 import com.normation.zio._
 import zio.syntax._
 
@@ -146,6 +154,59 @@ import zio.syntax._
  * can be share among tests.
  */
 object NodeConfigData {
+
+  // recursively copy a directory from classpath to target
+  def copyFromClasspath(classpathSource: Path, target: Path): Unit = {
+    try {
+      Files.walkFileTree(classpathSource, new SimpleFileVisitor[Path]() {
+          private var currentTarget: Path = null
+          override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            currentTarget = target.resolve(classpathSource.relativize(dir).toString)
+            Files.createDirectories(currentTarget)
+            FileVisitResult.CONTINUE
+          }
+
+          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            Files.copy(file, target.resolve(classpathSource.relativize(file).toString), StandardCopyOption.REPLACE_EXISTING)
+            FileVisitResult.CONTINUE
+          }
+        }
+      )
+    } catch {
+      case ex: Exception =>
+        println(s"ERROR when trying to copy from classpath '${classpathSource}' into '${target.toString}'")
+        throw ex
+    }
+  }
+  /*
+   * An utility method to be able to copy `configuration-repository` from any project, either directly when
+   * tests are from rudder-core, or by looking in the classpath when they use the test jar `rudder-core-test`
+   */
+  def copyConfigurationRepository(source: String, dest: File): Unit = {
+    // copy from classpath. We assume that le test sources are loaded into classpath here
+    val name = source.replaceAll(""".*src/test/resources/""", "")
+    // we need to get the reference to the classloader that holds config-repo source. It's
+    // the same that the one that holds this class, so start with that.
+    val uri = this.getClass.getClassLoader.getResource(name).toURI
+    val path = uri.getScheme match {
+      case "jar" =>
+        import scala.jdk.CollectionConverters._
+        // yes, pur side effecting
+        try {
+          FileSystems.getFileSystem(uri)
+        } catch {
+          case _: FileSystemNotFoundException =>
+            FileSystems.newFileSystem(uri, Map(("create", "true")).asJava)
+        }
+        Paths.get(uri)
+      case "file" =>
+        Paths.get(uri)
+      case other =>
+        throw new RuntimeException(s"Unsupported URI scheme for configuration-repository at: ${uri.toString}")
+    }
+    copyFromClasspath(path, Path.of(dest.getAbsolutePath))
+  }
+
 
   // a logger for timing information
   val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
@@ -516,6 +577,8 @@ class TestTechniqueRepo(prefixTestResources: String = ""
   , optGitRevisionProvider: Option[GitRepositoryProviderImpl => GitRevisionProvider] = None
 ) {
 
+
+
   implicit class PathString(root: String) {
     def /(child: String) = new File(root, child)
   }
@@ -540,7 +603,9 @@ class TestTechniqueRepo(prefixTestResources: String = ""
   val configurationRepositoryRoot = abstractRoot/"configuration-repository"
   //initialize config-repo content from our test/resources source
 
-  FileUtils.copyDirectory( new File(prefixTestResources + "src/test/resources/configuration-repository") , configurationRepositoryRoot)
+  // Since we want to have only one `configuration-repository`, and it's in `rudder-core`, the source can be in the
+  // FS (for tests in rudder-core) or in the test jar for rudder-core.
+  NodeConfigData.copyConfigurationRepository(prefixTestResources + "src/test/resources/configuration-repository", configurationRepositoryRoot)
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
   val t1 = System.currentTimeMillis()
