@@ -70,6 +70,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.NoSuchFileException
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import com.normation.rudder.hooks.HookReturnCode
@@ -89,6 +90,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
 import org.apache.commons.io.FileUtils
+
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -1007,7 +1009,11 @@ class PolicyWriterServiceImpl(
           if (nodeFolder.isDirectory()) {
             if (d.isDirectory) {
               // force deletion of previous backup
-              d.delete(false, File.LinkOptions.noFollow)
+              try {
+                d.delete(false, File.LinkOptions.noFollow)
+              } catch {
+                case _: NoSuchFileException => // ok, deleted elsewhere
+              }
             }
             PolicyGenerationLogger.trace(s"Backup old '${nodeFolder}' into ${backupFolder}")
             d.parent.createDirectoryIfNotExists(true)
