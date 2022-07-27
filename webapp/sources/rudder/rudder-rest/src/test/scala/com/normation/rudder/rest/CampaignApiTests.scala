@@ -37,8 +37,6 @@
 
 package com.normation.rudder.rest
 
-import com.normation.rudder.DumbCampaign
-import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
@@ -94,8 +92,8 @@ class CampaignApiTests extends Specification with AfterAll with Loggable {
       val resp = s"""[$c0json]"""
 
       restTest.testGETResponse("/secure/api/campaigns/models") {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map: Map[String, List[zio.json.ast.Json]]), _), _, _)) =>
-          map("campaigns").toJson must beEqualTo(resp)
+        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
+          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
         case err => ko(s"I got an error in test: ${err}")
       }
     }
@@ -109,8 +107,8 @@ class CampaignApiTests extends Specification with AfterAll with Loggable {
       val resp = s"""[$c0json,$c0json]"""
 
       restTest.testGETResponse("/secure/api/campaigns/models") {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map: Map[String, List[zio.json.ast.Json]]), _), _, _)) =>
-          map("campaigns").toJson must beEqualTo(resp)
+        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
+          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
         case err => ko(s"I got an error in test: ${err}")
       }
 
