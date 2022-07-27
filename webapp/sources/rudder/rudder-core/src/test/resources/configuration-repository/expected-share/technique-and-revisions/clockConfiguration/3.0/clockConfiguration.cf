@@ -225,124 +225,124 @@ bundle agent check_clock_configuration
 
     # Global report for the "Time synchronization (NTP)" component - Linux
     pass3.((ntp_install_kept|(!linux.!windows)).ntpconf_kept.!ntpd_down)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntp daemon installed, configured and running");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntp daemon installed, configured and running");
 
     pass3.(ntp_installed|repaired_ntpconf|service_restart_ntp_repaired|service_restart_ntpd_repaired)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntp service (package, configuration and/or process) repaired");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntp service (package, configuration and/or process) repaired");
 
     # Global report for the "Time synchronization (NTP)" component - Windows
     pass3.ntp_regkept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service configured and running");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service configured and running");
 
     pass3.(ntp_regset.ntp_win32time_started)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service repaired, it is now configured and running");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service repaired, it is now configured and running");
 
     # Individual reports for the "Time synchronization (NTP)" component's parts
     pass3.cant_install_ntp::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntp package could not be installed");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntp package could not be installed");
 
     pass3.ntp_installed::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntp package installed");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntp package installed");
 
     pass3.ntp_install_kept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntp package already installed");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntp package already installed");
 
     pass3.(!linux.!windows)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "Support to check if ntp is installed not available on this platform");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "Support to check if ntp is installed not available on this platform");
 
     pass3.repaired_ntpconf::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntpd configuration updated");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntpd configuration updated");
 
     pass3.not_repaired_ntpconf::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntpd configuration could not be changed");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntpd configuration could not be changed");
 
     pass3.ntpd_down::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntpd process was not running");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntpd process was not running");
 
     pass3.(service_restart_ntp_repaired|service_restart_ntpd_repaired)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntpd process restarted");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntpd process restarted");
 
     pass3.(service_restart_ntp_not_ok|service_restart_ntpd_not_ok)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "ntpd process could not be restarted");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "ntpd process could not be restarted");
 
     pass3.ntp_regset::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service configured in the Windows registry. W32Time will restart");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service configured in the Windows registry. W32Time will restart");
 
     pass3.ntp_regfail::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service could not be configured in the Windows registry");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service could not be configured in the Windows registry");
 
     pass3.ntp_regkept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service was already configured in the Windows registry");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service was already configured in the Windows registry");
 
     pass3.ntp_win32time_started::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time synchronization (NTP)", "None", "NTP service (W32Time) restarted");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time synchronization (NTP)", "None", "NTP service (W32Time) restarted");
 
 
     # Global reports for the "Time zone" component's parts
     pass3.(repaired_localtime|repaired_redhattz|repaired_debiantz|repaired_susetz)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1@@0", "Time zone", "None", "Time zone was reset");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_repaired", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone was reset");
 
     pass3.(localtime_kept.((redhat.redhattz_kept)|(debian.debiantz_kept)|(SuSE.susetz_kept)))::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Time zone", "None", "Time zone was already correctly configured");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone was already correctly configured");
 
     pass3.clock_timezone_noedit::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Time zone", "None", "Time zone edition disabled");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone edition disabled");
 
     # Individual reports for the "Time zone" component's parts
     pass3.((windows.!clock_timezone_noedit).clock_vardef.!need_to_change_timezone)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Time zone", "None", "Time zone was already correctly configured");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone was already correctly configured");
 
     pass3.(timezone_change_repaired|repaired_localtime)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time zone", "None", "Time zone was reset (localtime file changed)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone was reset (localtime file changed)");
 
     pass3.(not_repaired_localtime|timezone_change_failed)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time zone", "None", "Time zone could not be set (localtime file could not be changed)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone could not be set (localtime file could not be changed)");
 
     pass3.localtime_kept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time zone", "None", "Time zone was already set (localtime file didn't need changing)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time zone", "None", "Time zone was already set (localtime file didn't need changing)");
 
     pass3.repaired_redhattz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time zone", "None", "Red Hat-style specific time zone parameters updated (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time zone", "None", "Red Hat-style specific time zone parameters updated (/etc/sysconfig/clock)");
 
     pass3.not_repaired_redhattz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time zone", "None", "Could not update Red Hat-style time zone parameters (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time zone", "None", "Could not update Red Hat-style time zone parameters (/etc/sysconfig/clock)");
 
     pass3.redhattz_kept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time zone", "None", "Red Hat-style time zone parameters already correct (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time zone", "None", "Red Hat-style time zone parameters already correct (/etc/sysconfig/clock)");
 
     pass3.repaired_debiantz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time zone", "None", "Debian-style time zone parameters updated (/etc/timezone)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time zone", "None", "Debian-style time zone parameters updated (/etc/timezone)");
 
     pass3.not_repaired_debiantz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time zone", "None", "Could not update Debian-style time zone parameters (/etc/timezone)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time zone", "None", "Could not update Debian-style time zone parameters (/etc/timezone)");
 
     pass3.debiantz_kept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time zone", "None", "Debian-style time zone parameters already correct (/etc/timezone)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time zone", "None", "Debian-style time zone parameters already correct (/etc/timezone)");
 
     pass3.repaired_susetz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1@@0", "Time zone", "None", "SuSE-style time zone parameters updated (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_repaired", "rule1@@directive1+rev1@@0", "Time zone", "None", "SuSE-style time zone parameters updated (/etc/sysconfig/clock)");
 
     pass3.not_repaired_susetz::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Time zone", "None", "Could not update SuSE-style time zone parameters (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Time zone", "None", "Could not update SuSE-style time zone parameters (/etc/sysconfig/clock)");
 
     pass3.susetz_kept::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1@@0", "Time zone", "None", "SuSE-style time zone parameters already correct (/etc/sysconfig/clock)");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "log_info", "rule1@@directive1+rev1@@0", "Time zone", "None", "SuSE-style time zone parameters already correct (/etc/sysconfig/clock)");
 
     # Global reports for the "Hardware clock (RTC)" component
     pass3.(!windows.!ntp_hwclock_sync_error.!ntp_hwclock_synced.clock_hwclock_sync)::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Hardware clock (RTC)", "None", "It is not yet time to synchronize the hardware clock with the NTP time. Skipping...");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Hardware clock (RTC)", "None", "It is not yet time to synchronize the hardware clock with the NTP time. Skipping...");
 
     pass3.ntp_hwclock_synced::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Hardware clock (RTC)", "None", "The hardware clock has been synchronized with the NTP time");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Hardware clock (RTC)", "None", "The hardware clock has been synchronized with the NTP time");
 
     pass3.ntp_hwclock_sync_error::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1@@0", "Hardware clock (RTC)", "None", "The hardware clock could not be synchronized with the NTP time");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_error", "rule1@@directive1+rev1@@0", "Hardware clock (RTC)", "None", "The hardware clock could not be synchronized with the NTP time");
 
     pass3.windows::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Hardware clock (RTC)", "None", "The hardware clock is automatically synchronized with the NTP time on Windows");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Hardware clock (RTC)", "None", "The hardware clock is automatically synchronized with the NTP time on Windows");
 
     pass3.!clock_hwclock_sync.!windows::
-      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1@@0", "Hardware clock (RTC)", "None", "No synchronization with the hardware clock was requested");
+      "any" usebundle => rudder_common_report("ntpConfiguration", "result_success", "rule1@@directive1+rev1@@0", "Hardware clock (RTC)", "None", "No synchronization with the hardware clock was requested");
 
   processes:
 

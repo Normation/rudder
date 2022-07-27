@@ -1,20 +1,5 @@
-#####################################################################################
-# Copyright 2016 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 # Read node properties and put them into the node namespace
 #
@@ -23,7 +8,7 @@
 # /var/rudder/local/properties.d/*.json
 # All files are taken in order and overrides the previous one, the last one wins, with the local
 # defined properties overriding the one in /var/rudder/cfengine-community/inputs/properties/
-# 
+#
 # Each file must contain at least a 2 levels JSON content, the first level is the namespace level
 # and the second level is the key level.
 # The namespace name must comply with CFEngine variable names rules (ie [a-zA-Z_]+)
@@ -31,9 +16,9 @@
 # The merge is a first level merge done at the namespace level.
 # This means that:
 # - a key in a namespace is fully overridden by the same key in the same namespace in a later file.
-# - a key in a namespace is never overriden by the same key in a different namespace
-# - a key that is overriden never retain original data even if it is a data container itself
-# 
+# - a key in a namespace is never overridden by the same key in a different namespace
+# - a key that is overridden never retain original data even if it is a data container itself
+#
 
 # The result key is available in the node.<namespace> data variable
 # usage example: ${node.properties[my_key]}
@@ -41,7 +26,7 @@
 # To get the original data (for debug only) there is the properties.property_<fileid> variable
 # usage example: ${properties.property__var_rudder_cfengine_community_inputs_properties_properties_json[properties][my_key]}
 #
-bundle agent properties
+bundle common properties
 {
   vars:
     # The files to read
@@ -77,11 +62,11 @@ bundle agent properties
     "node.${namespace[${sorted_files}]}" data => mergedata("node.${namespace[${sorted_files}]}",
                                                            "property_${file_id[${sorted_files}]}[${namespace[${sorted_files}]}]");
 
-    # That's all, now we have a node.namespace data that contains the overriden values
+    # That's all, now we have a node.namespace data that contains the overridden values
 }
 
 # Read the inventories variables from Rudder
-bundle agent rudder_node_inventory {
+bundle common rudder_node_inventory {
   vars:
     "node.inventory" data => readjson("${this.promise_dirname}/../../rudder-vars.json");
 }

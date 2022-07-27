@@ -1,0 +1,65 @@
+####################################################################################
+# Copyright 2021 Normation SAS
+####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+bundle agent system_rudder_apache_webdav_configuration {
+  vars:
+    suse::
+      "htpasswd_bin"     string => "/usr/bin/htpasswd2";
+
+    !suse::
+      "htpasswd_bin"     string => "/usr/bin/htpasswd";
+
+    root_server::
+      "pwd"                 int => getfields("RUDDER_WEBDAV_PASSWORD:.*","${g.rudder_base}/etc/rudder-passwords.conf",":","dav_password");
+      "webdav_password"  string => "${dav_password[2]}";
+      
+    policy_server.!root_server::
+      "webdav_password"  string => "${system_common.davpw}";
+      
+    any::
+      "report_string"    string => "Apache WebDAV user and password";
+
+      "webdav_pwd_cmd"   string => "${htpasswd_bin} -b ${g.rudder_base}/etc/htpasswd-webdav ${system_common.davuser} ${webdav_password}";
+      "args"             slist  => { "${webdav_pwd_cmd}" };
+      "pwd_class_prefix" string => canonify("command_execution_${webdav_pwd_cmd}");
+      "component"        string => "Apache configuration";
+
+  classes:
+      "dav_cant_connect" not => returnszero("${g.rudder_curl} --tlsv1.2 --proxy '' ${g.rudder_verify_certs_option} --silent --fail --output /dev/null --user ${system_common.davuser}:${webdav_password} --upload-file ${g.rudder_base}/etc/uuid.hive https://localhost:${system_rudder_apache_configuration.https_port}/inventory-updates/uuid.hive","noshell");
+
+      "rudder_server_system_reload_apache"     expression => "${pwd_class_prefix}_repaired",
+                                                    scope => "namespace";
+      # we need to reload cf_serverd if the networks are changed
+      "rudder_server_system_reload_cf_serverd" expression => "${pwd_class_prefix}_repaired",
+                                                    scope => "namespace";
+
+  methods:
+      "any" usebundle => _method_reporting_context("${component}", "Webdav permissions");
+      "any" usebundle => permissions("${g.rudder_base}/etc/htpasswd-webdav", "640", "root", "${rudder_apache.group_name}");
+
+      "any" usebundle => _method_reporting_context("${component}", "Webdav configuration");
+
+    dav_cant_connect::
+      "any" usebundle => disable_reporting;
+      "any" usebundle => command_execution("${webdav_pwd_cmd}");
+      "any" usebundle => enable_reporting;
+
+    !dav_cant_connect::
+      "any" usebundle => _classes_success("${pwd_class_prefix}");
+    any::
+      "any" usebundle => _log_v3("Setting Apache webdav password", "${webdav_pwd_cmd}", "${pwd_class_prefix}", "${pwd_class_prefix}", @{args});
+}

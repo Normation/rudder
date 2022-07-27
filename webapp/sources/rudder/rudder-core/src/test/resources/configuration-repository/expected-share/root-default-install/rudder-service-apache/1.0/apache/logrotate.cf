@@ -1,0 +1,30 @@
+bundle agent system_apache_logrotate {
+  vars:
+    pass1.!duration_configured::
+      "logrotate_duration" string => "30";
+    pass1.duration_configured::
+      "logrotate_duration" string => "${rudder_parameters.log_duration}";
+
+    pass1::
+      "apache_logs"  data => parsejson('{
+                               "name": "${g.rudder_log}/apache2/*.log",
+                               "duration": "${logrotate_duration}",
+                               "create": "${rudder_syslog.file_mode} ${rudder_syslog.user_name} ${rudder_syslog.group_name}"
+                               "postrotate": "systemctl ${rudder_apache.service_name} reload > /dev/null || true"
+                             }');
+
+  classes:
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "duration_configured" expression => isvariable("rudder_parameters.log_duration");
+
+  files:
+      "/etc/logrotate.d/rudder"
+        delete  => tidy,
+        comment => "Removing logrotate file from 6.x";
+
+  methods:
+    pass2::
+      "any" usebundle => _method_reporting_context("Apache configuration", "Logrotate");
+      "any" usebundle => file_from_template_mustache("${sys.workdir}/inputs/rudder-service-apache/1.0/apache/apache-logrotate.mustache", "/etc/logrotate.d/rudder-apache");
+}

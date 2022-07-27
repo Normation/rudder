@@ -1,18 +1,3 @@
-<!--
-Copyright 2011 Normation SAS
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, Version 3.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
--->
 
 <TECHNIQUE  name="Common policies">
   <DESCRIPTION>Has a policy server</DESCRIPTION>
@@ -21,6 +6,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <TMLS>
     <TML name="common"/>
     <TML name="cf-serverd"/>
+    <TML name="update"/>
     <TML name="failsafe">
       <OUTPATH>failsafe.cf</OUTPATH>
       <INCLUDED>false</INCLUDED>
@@ -65,9 +51,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <FILE name="site.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
-    <FILE name="update.cf">
-      <INCLUDED>true</INCLUDED>
-    </FILE>
     <FILE name="monitoring.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
@@ -90,9 +73,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
       <OUTPATH>common/cron/rudder-agent-community-cron</OUTPATH>
       <INCLUDED>false</INCLUDED>
     </FILE>
-    <FILE name="check-rsyslog-version">
-      <INCLUDED>false</INCLUDED>
-    </FILE>
   </FILES>
 
   <SYSTEMVARS>
@@ -103,7 +83,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>RUDDER_DIRECTIVES_INPUTS</NAME>
     <NAME>RUDDER_SYSTEM_DIRECTIVES_SEQUENCE</NAME>
     <NAME>RUDDER_SYSTEM_DIRECTIVES_INPUTS</NAME>
-    <NAME>NOVA</NAME>
     <NAME>COMMUNITY</NAME>
     <NAME>COMMUNITYPORT</NAME>
     <NAME>SHARED_FILES_FOLDER</NAME>
@@ -119,15 +98,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>AGENT_RUN_SCHEDULE</NAME>
     <NAME>MODIFIED_FILES_TTL</NAME>
     <NAME>CFENGINE_OUTPUTS_TTL</NAME>
+    <NAME>RUDDER_NODE_KIND</NAME>
     <NAME>RUDDER_NODE_CONFIG_ID</NAME>
     <NAME>RUDDER_REPORT_MODE</NAME>
     <NAME>RUDDER_HEARTBEAT_INTERVAL</NAME>
     <NAME>CONFIGURATION_REPOSITORY_FOLDER</NAME>
     <NAME>RUDDER_NODE_GROUPS_VARS</NAME>
     <NAME>RUDDER_NODE_GROUPS_CLASSES</NAME>
-    <NAME>REPORTING_PROTOCOL</NAME>
     <NAME>RUDDER_INVENTORY_VARS</NAME>
     <NAME>RUDDER_COMPLIANCE_MODE</NAME>
+    <NAME>RUDDER_VERIFY_CERTIFICATES</NAME>
+    <NAME>POLICY_SERVER_KEY</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>
@@ -154,13 +135,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <DESCRIPTION>UUID of the machine</DESCRIPTION>
       </INPUT>
       <INPUT>
-        <NAME>POLICYSERVER</NAME>
-        <DESCRIPTION>Promises server hostname</DESCRIPTION>
-      </INPUT>
-      <INPUT>
         <NAME>POLICYSERVER_ID</NAME>
         <DESCRIPTION>UUID of the policy server</DESCRIPTION>
       </INPUT>
+      <SECTION name="authorizedNetworkSection" multivalued="true">
+      <INPUT>
+        <NAME>ALLOWEDNETWORK</NAME>
+        <DESCRIPTION>The network(s) allowed to connect to the server (can use the / parameter)</DESCRIPTION>
+        <CONSTRAINT>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+      </SECTION>
     </SECTION>
   </SECTIONS>
 

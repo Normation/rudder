@@ -11,60 +11,120 @@ response:
       "data":{
         "techniques":[
           {
+            "name":"rudder-service-postgresql",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
             "name":"inventory",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"technique_with_blocks",
-            "versions":["1.0"]
-          },
-          {
-            "name":"server-roles",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"technique_by_Rudder",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"technique_any",
-            "versions":["1.0","2.0"]
+            "versions":[
+              "1.0",
+              "2.0"
+            ]
           },
           {
-            "name":"rpmPackageInstallation",
-            "versions":["7.0"]
+            "name":"server-common",
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"packageManagement",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"common",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
-            "name":"distributePolicy",
-            "versions":["1.0"]
+            "name":"rudder-service-relayd",
+            "versions":[
+              "1.0"
+            ]
           },
           {
-            "name":"genericVariableDefinition",
-            "versions":["1.0", "2.0"]
+            "name":"rudder-service-webapp",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"rudder-service-apache",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"rpmPackageInstallation",
+            "versions":[
+              "7.0"
+            ]
+          },
+          {
+            "name":"test_18205",
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"copyGitFile",
-            "versions":["2.3"]
+            "versions":[
+              "2.3"
+            ]
           },
           {
             "name":"clockConfiguration",
-            "versions":["3.0"]
+            "versions":[
+              "3.0"
+            ]
           },
           {
             "name":"Create_file",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
           },
           {
             "name":"fileTemplate",
-            "versions":["1.0"]
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"rudder-service-slapd",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"genericVariableDefinition",
+            "versions":[
+              "1.0",
+              "2.0"
+            ]
           }
         ]
       }
