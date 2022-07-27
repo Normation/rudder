@@ -47,7 +47,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
+      <artifactId>bcpkix-${bouncycastle-compat}</artifactId>
     </dependency>
   </dependencies>
 </project>
