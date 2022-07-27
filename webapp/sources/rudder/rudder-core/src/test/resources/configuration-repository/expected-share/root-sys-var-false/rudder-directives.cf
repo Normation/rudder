@@ -1,29 +1,15 @@
-#####################################################################################
-# Copyright 2015 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
-# This file is the main entry points for the bundle sequence for 
+# This file is the main entry points for the bundle sequence for
 # Rudder user directives. It is actually a list of method calls, and not
-# a bundle sequence, which allows to add the technique or directives 
-# names as promiser. 
+# a bundle sequence, which allows to add the technique or directives
+# names as promiser.
 
 body file control {
 
   inputs => {
+    "test_18205/1.0/test_18205.cf",
   };
 
 }
@@ -32,6 +18,17 @@ body file control {
 bundle agent rudder_directives {
   # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
+      "10. Global configuration for all nodes/10. test18205" usebundle => set_dry_run_mode("false");
+      "10. Global configuration for all nodes/10. test18205" usebundle => run_directive1;
+      "clean_mode"                                           usebundle => set_dry_run_mode("false");
+}
+bundle agent run_directive1
+{
+  methods:
+      "10. Global configuration for all nodes/10. test18205" usebundle => rudder_reporting_context_v4("directive1","rule1","test_18205","","","directive1rule1");
+      "10. Global configuration for all nodes/10. test18205" usebundle => disable_reporting;
+      "10. Global configuration for all nodes/10. test18205" usebundle => test_18205;
+      "10. Global configuration for all nodes/10. test18205" usebundle => clean_reporting_context;
 
 }
 

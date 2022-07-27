@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_rudder_relayd_configuration {
+  vars:
+      "config_class_prefix"      string => canonify("file_from_template_${rudder_relayd.config_file}");
+      "policy_cert_class_prefix" string => canonify("file_copy_from_local_source_${sys.policy_entry_dirname}/certs/policy-server.pem");
+      "root_cert_class_prefix"   string => canonify("file_copy_from_local_source_${sys.policy_entry_dirname}/certs/root.pem");
+      "component"                string => "Rudder-relayd service";
+
+  classes:
+      # Restart relayd at the end of the technique if needed
+      "rudder_server_system_restart_relayd" or => { "${config_class_prefix}_repaired" },
+                                         scope => "namespace";
+      "rudder_server_system_reload_relayd"  or => { "${policy_cert_class_prefix}_repaired",
+                                                    "${root_cert_class_prefix}_repaired" },
+                                         scope => "namespace";
+
+  methods:
+    # Log rotation
+      "any" usebundle => system_relay_logrotate;
+
+      "any" usebundle => _method_reporting_context("${component}", "Policy-server certificate");
+      "any" usebundle => file_copy_from_local_source("${sys.policy_entry_dirname}/certs/policy-server.pem", "${g.rudder_var}/lib/ssl/policy_server.pem");
+
+      "any" usebundle => _method_reporting_context("${component}", "Policy server certificate permissions");
+      "any" usebundle => permissions("${g.rudder_var}/lib/ssl/policy_server.pem", "640", "root", "rudder");
+
+      "any" usebundle => _method_reporting_context("${component}", "Root server certificate");
+      "any" usebundle => file_copy_from_local_source("${sys.policy_entry_dirname}/certs/root.pem", "${g.rudder_var}/lib/ssl/root.pem");
+
+      "any" usebundle => _method_reporting_context("${component}", "Root certificate permissions");
+      "any" usebundle => permissions("${g.rudder_var}/lib/ssl/root.pem", "640", "root", "rudder");
+
+      "any" usebundle => _method_reporting_context("${component}", "Configuration");
+      "any" usebundle => file_from_template_mustache("${this.promise_dirname}/relayd.conf.tpl", "${rudder_relayd.config_file}");
+
+      "any" usebundle => _method_reporting_context("${component}", "Configuration permissions");
+      "any" usebundle => permissions_recursive("${rudder_relayd.config_dir}", "640", "root", "rudder");
+
+      "any" usebundle => _method_reporting_context_v4("${component}", "Started", "${component}_started");
+      "any" usebundle => service_started("${rudder_relayd.service_name}");
+
+      "any" usebundle => _method_reporting_context_v4("${component}", "Enabled", "${component}_enabled");
+      "any" usebundle => service_enabled("${rudder_relayd.service_name}");
+
+}
+

@@ -1,25 +1,26 @@
-#####################################################################################
-# Copyright 2011 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 #
 # Define what an agent has to do when it updates
 # its promises
 #
+
+bundle common rudder_update_conf
+{
+  vars:
+      "policy_server_hash_file" string => "${sys.workdir}/ppkeys/policy_server_hash";
+    have_policy_server_hash::
+      "policy_server_hash" string => readfile("${policy_server_hash_file}");
+
+  classes:
+      "have_policy_server_hash" expression => fileexists("${policy_server_hash_file}");
+    have_policy_server_hash::
+      "known_policy_server"     expression => fileexists("${sys.workdir}/ppkeys/root-${policy_server_hash}.pub"),
+                                     scope => "namespace";
+    !have_policy_server_hash|(have_policy_server_hash.!known_policy_server)::
+      "trust_new_server"             scope => "namespace";
+}
 
 # Use for sensitive files
 body copy_from remote(server, path)
@@ -27,7 +28,6 @@ body copy_from remote(server, path)
         servers    => {
           "${server}"
         };
-        trustkey   => "true";
         source     => "${path}";
         compare    => "digest";
         preserve   => "false"; #do not preserve permissions
@@ -35,6 +35,7 @@ body copy_from remote(server, path)
         purge      => "true";
         copy_backup => "false";
         portnumber => "${system_common.community_port}";
+
 }
 
 # Local copy
@@ -60,9 +61,17 @@ bundle common server_info
     #This part work, because for some reason, the evaluation converge in one pass, and allows to have
     # the correct value in policy_server value. In verbose output, policy_server_file_exists is defined first
     policy_server_file_exists::
-      "policy_server_temp" string => readfile("${policy_server_file}", 2048);
-       # trim space in poilcy_server.dat
-      "policy_server"      string => regex_replace("${policy_server_temp}", " ", "", "g");
+      "policy_server_temp"   string => readfile("${policy_server_file}", 2048);
+      # trim space in policy_server.dat
+      "policy_server_temp2"  string => regex_replace("${policy_server_temp}", " ", "", "g");
+      # separate host and port
+      "policy_server_temp3"  slist  => string_split("${policy_server_temp2}", ":", "2");
+      "policy_server"        string => nth("policy_server_temp3", "0");
+    # pass3 is needed otherwise system_common.community_port is evaluated during pass2 where policy_server_has_port is always false
+    server_info_pass3.policy_server_has_port::
+      "policy_server_port"   string => nth("policy_server_temp3", "1");
+    server_info_pass3.!policy_server_has_port::
+      "policy_server_port"   string => "${system_common.cf_serverd_port}";
 
 
     !policy_server_file_exists::
@@ -74,9 +83,10 @@ bundle common server_info
       "cfserved"      string => "${policy_server}";
 
   classes:
-      "should_disable_server"     expression => fileexists("${g.rudder_disable_server_file}");
-
       "policy_server_file_exists" expression => fileexists("${policy_server_file}");
+      "policy_server_has_port"    expression => strcmp(length("policy_server_temp3"), "2");
+      "server_info_pass3" expression => "server_info_pass2";
+      "server_info_pass2" expression => "any";
 }
 
 # The update is now split in two parts
@@ -138,6 +148,11 @@ bundle agent update_action
 
   files:
 
+    # establish trust for policy download
+    "${rudder_update_conf.policy_server_hash_file}"
+        create        => "true",
+        edit_line     => u_rudder_update_lines_present("MD5=eec3a3c2cf41b2736b7a0a9dece02142"),
+        edit_defaults => u_rudder_empty;
     any::
       "${g.rudder_ncf}/."
         create  => "true",
@@ -163,7 +178,7 @@ bundle agent update_action
         classes           => success("config", "no_update", "config_ok");
 
 
-    !initial_promises.root_server::
+    root_server::
       "${g.rudder_ncf}/common"
         copy_from         => copy_digest_without_perms("${g.rudder_ncf_origin_common}"),
         depth_search      => recurse_ignore("inf", @{g.ncf_excludedreps}),
@@ -182,7 +197,7 @@ bundle agent update_action
         classes           => success("rudder_ncf_local_updated", "rudder_ncf_local_update_error", "rudder_ncf_local_updated_ok"),
         comment           => "Update the local Rudder ncf instance";
 
-    # do not copy potentialy incompatible ncf if inputs are not up to date
+    # do not copy potentially incompatible ncf if inputs are not up to date
     !root_server.(availability_checked.!no_update)::
       # Check if the hashes of ncf changed
       "${g.rudder_ncf}/common/${g.rudder_ncf_hash_file}"
@@ -242,18 +257,20 @@ bundle agent update_action
   reports:
     # We want to have always reports if something goes bad
     rudder_ncf_hash_update_error::
-      "*********************************************************************************
+      "******************************************************************************
 * rudder-agent could not get an updated configuration from the policy server.   *
 * This can be caused by:                                                        *
 *   * a networking issue                                                        *
 *   * an unavailable server                                                     *
-*   * if the node's IP in not if the allowed networks of its policy server.     *
+*   * the node changed policy server without running                            *
+*     'rudder agent server-keys-reset'                                          *
+*   * if the node's IP is not in the allowed networks of its policy server.     *
 * Any existing configuration policy will continue to be applied without change. *
 *********************************************************************************"
       action => immediate;
 
      !rudder_ncf_hash_update_error.(rudder_promises_generated_error|no_update|rudder_promises_generated_tmp_file_error).!ncf_only::
-       "*********************************************************************************
+       "******************************************************************************
 * rudder-agent could not get an updated configuration from the policy server.   *
 * This can be caused by:                                                        *
 *   * an agent key that has been changed                                        *
@@ -272,7 +289,6 @@ bundle agent check_uuid
   classes:
       # Abort if no uuid is defined
       "should_not_continue" expression => "wrong_uuid|no_uuid";
-    community_edition::
       "no_uuid" not => fileexists("${g.uuid_file}");
     !initial_promises.!no_uuid::
       "wrong_uuid" not => strcmp("${system_common.uuid}", "${g.uuid}");
@@ -307,4 +323,17 @@ body perms u_mog(mode,user,group)
   mode   => "${mode}";
   owners => { "${user}" };
   groups => { "${group}" };
+}
+
+
+bundle edit_line u_rudder_update_lines_present(lines)
+{
+  insert_lines:
+      "${lines}";
+}
+
+body edit_defaults u_rudder_empty
+{
+      empty_file_before_editing => "true";
+      edit_backup => "false";
 }

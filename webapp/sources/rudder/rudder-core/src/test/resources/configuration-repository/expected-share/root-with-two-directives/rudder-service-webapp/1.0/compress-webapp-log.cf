@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2014 Normation SAS
+# SPDX-FileCopyrightText: 2016 Janos Mattyasovszky
+
+bundle agent system_compress_webapp_log
+{
+  vars:
+    # compress files older than 2 days
+    "log_compress_delay"  int  => "2";
+
+    # compres file.log and file.log.1
+    "logs_patern" slist => { ".*\.log", ".*\.log\.\d+" };
+
+  files:
+    "${g.rudder_log}/webapp"
+      file_select => date_pattern("${log_compress_delay}", "@{logs_patern}"),
+      depth_search => recurse("0"),
+      transformer => "${g.gzip} -fq \"${this.promiser}\"";
+
+}

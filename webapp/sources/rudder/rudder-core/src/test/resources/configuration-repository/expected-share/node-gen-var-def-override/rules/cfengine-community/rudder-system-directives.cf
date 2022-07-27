@@ -1,31 +1,17 @@
-#####################################################################################
-# Copyright 2015 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
-# This file is the main entry points for the bundle sequence for 
+# This file is the main entry points for the bundle sequence for
 # Rudder system directives. It is actually a list of method calls, and not
-# a bundle sequence, which allows to add the technique or directives 
-# names as promiser. 
+# a bundle sequence, which allows to add the technique or directives
+# names as promiser.
 
 body file control {
 
   inputs => {
     "common/1.0/common.cf",
     "common/1.0/cf-serverd.cf",
+    "common/1.0/update.cf",
     "rudder-directives.cf",
     "rudder-system-directives.cf",
     "common/1.0/rudder-parameters.cf",
@@ -33,7 +19,6 @@ body file control {
     "common/1.0/hooks.cf",
     "common/1.0/cron-setup.cf",
     "common/1.0/site.cf",
-    "common/1.0/update.cf",
     "common/1.0/monitoring.cf",
     "common/1.0/restart-services.cf",
     "common/1.0/internal-security.cf",

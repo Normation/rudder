@@ -1,35 +1,17 @@
-#####################################################################################
-# Copyright 2015 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
-# This file is the main entry points for the bundle sequence for 
+# This file is the main entry points for the bundle sequence for
 # Rudder system directives. It is actually a list of method calls, and not
-# a bundle sequence, which allows to add the technique or directives 
-# names as promiser. 
+# a bundle sequence, which allows to add the technique or directives
+# names as promiser.
 
 body file control {
 
   inputs => {
-    "distributePolicy/1.0/common.cf",
-    "distributePolicy/1.0/rsyslogConf.cf",
-    "distributePolicy/1.0/propagatePromises.cf",
-    "distributePolicy/1.0/apache-acl.cf",
     "common/1.0/common.cf",
     "common/1.0/cf-serverd.cf",
+    "common/1.0/update.cf",
     "rudder-directives.cf",
     "rudder-system-directives.cf",
     "common/1.0/rudder-parameters.cf",
@@ -37,7 +19,6 @@ body file control {
     "common/1.0/hooks.cf",
     "common/1.0/cron-setup.cf",
     "common/1.0/site.cf",
-    "common/1.0/update.cf",
     "common/1.0/monitoring.cf",
     "common/1.0/restart-services.cf",
     "common/1.0/internal-security.cf",
@@ -45,21 +26,30 @@ body file control {
     "common/1.0/properties.cf",
     "common/1.0/reporting-http.cf",
     "inventory/1.0/fusionAgent.cf",
-    "server-roles/1.0/common.cf",
-    "server-roles/1.0/metrics-reporting.cf",
-    "server-roles/1.0/component-check.cf",
-    "server-roles/1.0/alive-check.cf",
-    "server-roles/1.0/service-check.cf",
-    "server-roles/1.0/integrity-check.cf",
-    "server-roles/1.0/network-check.cf",
-    "server-roles/1.0/password-check.cf",
-    "server-roles/1.0/postgres-check.cf",
-    "server-roles/1.0/logrotate-check.cf",
-    "server-roles/1.0/technique-reload.cf",
-    "server-roles/1.0/compress-webapp-log.cf",
-    "server-roles/1.0/compress-ldap-backups.cf",
-    "server-roles/1.0/servers-by-role.cf",
-    "server-roles/1.0/relayd.cf",
+    "rudder-service-apache/1.0/apache/main.cf",
+    "rudder-service-apache/1.0/apache/apache-certificate.cf",
+    "rudder-service-apache/1.0/apache/system_rudder_apache_networks_configuration.cf",
+    "rudder-service-apache/1.0/apache/system_rudder_apache_webdav_configuration.cf",
+    "rudder-service-apache/1.0/apache/logrotate.cf",
+    "rudder-service-postgresql/1.0/password-check.cf",
+    "rudder-service-postgresql/1.0/main.cf",
+    "rudder-service-relayd/1.0/main.cf",
+    "rudder-service-relayd/1.0/common/relayd.cf",
+    "rudder-service-relayd/1.0/common/logrotate.cf",
+    "rudder-service-relayd/1.0/relay/propagatePromises.cf",
+    "rudder-service-relayd/1.0/root/rudderRelayRootNa.cf",
+    "rudder-service-slapd/1.0/main.cf",
+    "rudder-service-slapd/1.0/logrotate.cf",
+    "rudder-service-webapp/1.0/main.cf",
+    "rudder-service-webapp/1.0/alive-check.cf",
+    "rudder-service-webapp/1.0/compress-webapp-log.cf",
+    "rudder-service-webapp/1.0/integrity-check.cf",
+    "rudder-service-webapp/1.0/metrics-reporting.cf",
+    "rudder-service-webapp/1.0/password-check.cf",
+    "rudder-service-webapp/1.0/updateNcfHash.cf",
+    "rudder-service-webapp/1.0/bootstrapRudderServer.cf",
+    "server-common/1.0/reloadRudderServices.cf",
+    "server-common/1.0/rudder_syslog.cf",
   };
 
 }
@@ -69,23 +59,20 @@ bundle agent rudder_system_directives {
   # fully generated in bundle common va for iinitial promises
   # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
-      "distributePolicy/Distribute Policy"              usebundle => set_dry_run_mode("false");
-      "distributePolicy/Distribute Policy"              usebundle => run_root_distributePolicy;
-      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
-      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
-      "Rudder system policy: Server roles/Server Roles" usebundle => set_dry_run_mode("false");
-      "Rudder system policy: Server roles/Server Roles" usebundle => run_server_roles_directive;
-}
-bundle agent run_root_distributePolicy
-{
-  methods:
-      "distributePolicy/Distribute Policy" usebundle => rudder_reporting_context_v4("root-distributePolicy","root-DP","distributePolicy","","","root-distributePolicyroot-DP");
-      "distributePolicy/Distribute Policy" usebundle => disable_reporting;
-      "distributePolicy/Distribute Policy" usebundle => install_rsyslogd;
-      "distributePolicy/Distribute Policy" usebundle => propagatePromises;
-      "distributePolicy/Distribute Policy" usebundle => sendInventoryToCmdb;
-      "distributePolicy/Distribute Policy" usebundle => apache_acl;
-      "distributePolicy/Distribute Policy" usebundle => clean_reporting_context;
+      "Rudder system policy: daily inventory/Inventory"                     usebundle => set_dry_run_mode("false");
+      "Rudder system policy: daily inventory/Inventory"                     usebundle => run_inventory_all;
+      "Rule for policy server root/Server rudder-service-apache - root"     usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server rudder-service-apache - root"     usebundle => run_rudder_service_apache_root;
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => run_rudder_service_postgresql_root;
+      "Rule for policy server root/Server rudder-service-relayd - root"     usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server rudder-service-relayd - root"     usebundle => run_rudder_service_relayd_root;
+      "Rule for policy server root/Server rudder-service-slapd - root"      usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server rudder-service-slapd - root"      usebundle => run_rudder_service_slapd_root;
+      "Rule for policy server root/Server rudder-service-webapp - root"     usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server rudder-service-webapp - root"     usebundle => run_rudder_service_webapp_root;
+      "Rule for policy server root/Server server-common - root"             usebundle => set_dry_run_mode("false");
+      "Rule for policy server root/Server server-common - root"             usebundle => run_server_common_root;
 }
 bundle agent run_inventory_all
 {
@@ -95,14 +82,53 @@ bundle agent run_inventory_all
       "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
       "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
 }
-bundle agent run_server_roles_directive
+bundle agent run_rudder_service_apache_root
 {
   methods:
-      "Rudder system policy: Server roles/Server Roles" usebundle => rudder_reporting_context_v4("server-roles-directive","server-roles","server-roles","","","server-roles-directiveserver-roles");
-      "Rudder system policy: Server roles/Server Roles" usebundle => disable_reporting;
-      "Rudder system policy: Server roles/Server Roles" usebundle => root_component_check;
-      "Rudder system policy: Server roles/Server Roles" usebundle => metrics_reporting;
-      "Rudder system policy: Server roles/Server Roles" usebundle => clean_reporting_context;
+      "Rule for policy server root/Server rudder-service-apache - root" usebundle => rudder_reporting_context_v4("rudder-service-apache-root","policy-server-root","rudder-service-apache","","","rudder-service-apache-rootpolicy-server-root");
+      "Rule for policy server root/Server rudder-service-apache - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server rudder-service-apache - root" usebundle => system_rudder_apache_configuration;
+      "Rule for policy server root/Server rudder-service-apache - root" usebundle => clean_reporting_context;
+}
+bundle agent run_rudder_service_postgresql_root
+{
+  methods:
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => rudder_reporting_context_v4("rudder-service-postgresql-root","policy-server-root","rudder-service-postgresql","","","rudder-service-postgresql-rootpolicy-server-root");
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => system_rudder_postgresql_configuration;
+      "Rule for policy server root/Server rudder-service-postgresql - root" usebundle => clean_reporting_context;
+}
+bundle agent run_rudder_service_relayd_root
+{
+  methods:
+      "Rule for policy server root/Server rudder-service-relayd - root" usebundle => rudder_reporting_context_v4("rudder-service-relayd-root","policy-server-root","rudder-service-relayd","","","rudder-service-relayd-rootpolicy-server-root");
+      "Rule for policy server root/Server rudder-service-relayd - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server rudder-service-relayd - root" usebundle => system_rudder_relay_configuration;
+      "Rule for policy server root/Server rudder-service-relayd - root" usebundle => clean_reporting_context;
+}
+bundle agent run_rudder_service_slapd_root
+{
+  methods:
+      "Rule for policy server root/Server rudder-service-slapd - root" usebundle => rudder_reporting_context_v4("rudder-service-slapd-root","policy-server-root","rudder-service-slapd","","","rudder-service-slapd-rootpolicy-server-root");
+      "Rule for policy server root/Server rudder-service-slapd - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server rudder-service-slapd - root" usebundle => system_rudder_slapd_configuration;
+      "Rule for policy server root/Server rudder-service-slapd - root" usebundle => clean_reporting_context;
+}
+bundle agent run_rudder_service_webapp_root
+{
+  methods:
+      "Rule for policy server root/Server rudder-service-webapp - root" usebundle => rudder_reporting_context_v4("rudder-service-webapp-root","policy-server-root","rudder-service-webapp","","","rudder-service-webapp-rootpolicy-server-root");
+      "Rule for policy server root/Server rudder-service-webapp - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server rudder-service-webapp - root" usebundle => system_rudder_webapp;
+      "Rule for policy server root/Server rudder-service-webapp - root" usebundle => clean_reporting_context;
+}
+bundle agent run_server_common_root
+{
+  methods:
+      "Rule for policy server root/Server server-common - root" usebundle => rudder_reporting_context_v4("server-common-root","policy-server-root","server-common","","","server-common-rootpolicy-server-root");
+      "Rule for policy server root/Server server-common - root" usebundle => enable_reporting;
+      "Rule for policy server root/Server server-common - root" usebundle => system_reload_rudder_services;
+      "Rule for policy server root/Server server-common - root" usebundle => clean_reporting_context;
 
 }
 
