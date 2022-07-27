@@ -386,7 +386,9 @@ limitations under the License.
     <jgit-version>6.1.0.202203080745-r</jgit-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.3</asm-version>
-    <bcpkix-jdk15on-version>1.70</bcpkix-jdk15on-version>
+    <!-- Level of Java compatibility, here 1.8+ -->
+    <bouncycastle-compat>jdk18on</bouncycastle-compat>
+    <bouncycastle-version>1.71</bouncycastle-version>
     <better-files-version>3.9.1</better-files-version>
     <sourcecode-version>0.2.8</sourcecode-version>
     <quicklens-version>1.8.8</quicklens-version>
@@ -577,18 +579,18 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
-        <version>${bcpkix-jdk15on-version}</version>
+        <artifactId>bcprov-${bouncycastle-compat}</artifactId>
+        <version>${bouncycastle-version}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk15on</artifactId>
-        <version>${bcpkix-jdk15on-version}</version>
+        <artifactId>bcpkix-${bouncycastle-compat}</artifactId>
+        <version>${bouncycastle-version}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpg-jdk15on</artifactId>
-        <version>${bcpkix-jdk15on-version}</version>
+        <artifactId>bcpg-${bouncycastle-compat}</artifactId>
+        <version>${bouncycastle-version}</version>
       </dependency>
       <dependency>
         <groupId>com.github.alonsodomin.cron4s</groupId>
