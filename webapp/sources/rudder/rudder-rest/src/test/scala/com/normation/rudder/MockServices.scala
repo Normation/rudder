@@ -117,6 +117,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
+import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.NewNodeManager
@@ -225,9 +226,9 @@ class MockGitConfigRepo(prefixTestResources: String = "") {
 
   // config-repo will also be the git root, as a normal rudder
   val configurationRepositoryRoot = abstractRoot / "configuration-repository"
-  //initialize config-repo content from our test/resources source
+  //initialize config-repo content from our rudder-code test/resources source
 
-  FileUtils.copyDirectory( File(prefixTestResources + "src/test/resources/configuration-repository").toJava, configurationRepositoryRoot.toJava)
+  NodeConfigData.copyConfigurationRepository(prefixTestResources + "src/test/resources/configuration-repository", configurationRepositoryRoot.toJava)
 
   val gitRepo = GitRepositoryProviderImpl.make(configurationRepositoryRoot.pathAsString).runNow
 
