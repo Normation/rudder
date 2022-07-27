@@ -68,6 +68,7 @@ import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.NoSuchFileException
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import com.normation.rudder.hooks.HookReturnCode
@@ -1139,7 +1140,11 @@ class PolicyWriterServiceImpl(
           if (nodeFolder.isDirectory()) {
             if (d.isDirectory) {
               // force deletion of previous backup
-              d.delete(false, File.LinkOptions.noFollow)
+              try {
+                d.delete(false, File.LinkOptions.noFollow)
+              } catch {
+                case _: NoSuchFileException => // ok, deleted elsewhere
+              }
             }
             PolicyGenerationLogger.trace(s"Backup old '${nodeFolder}' into ${backupFolder}")
             moveFile(nodeFolder, d, mvOptions, Some(perms), optGroupOwner)
