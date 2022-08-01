@@ -301,6 +301,7 @@ final case class NodeStringComparator(access: NodeInfo => String) extends NodeCr
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
+      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
       case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => access(node) != value )
       case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => access(node).matches(value) )
       case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !access(node).matches(value) )

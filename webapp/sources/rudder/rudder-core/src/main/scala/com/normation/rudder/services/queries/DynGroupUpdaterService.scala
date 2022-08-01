@@ -101,7 +101,7 @@ class DynGroupUpdaterServiceImpl(
       timeGroupCompute = (System.currentTimeMillis - timePreCompute)
       _                = logger.debug(s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms")
     } yield {
-      group.copy(serverList = newMembers)
+      group.copy(serverList = newMembers.toSet)
     }
   }
 
