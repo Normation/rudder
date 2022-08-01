@@ -1859,6 +1859,7 @@ object RudderConfig extends Loggable {
     , queryProcessor
     , ditQueryDataImpl
     , psMngtService
+    , nodeInfoServiceImpl
     , configService.node_accept_duplicated_hostname()
   )
 

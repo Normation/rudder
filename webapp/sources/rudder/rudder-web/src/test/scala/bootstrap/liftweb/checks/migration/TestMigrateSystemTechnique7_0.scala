@@ -165,6 +165,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getAll(): IOResult[Map[NodeId, NodeInfo]] = List(root, relay1).map(x => (x.id, x)).toMap.succeed
     override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     override def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = ???
+    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def getAllNodesIds(): IOResult[Set[NodeId]] = ???
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = ???
