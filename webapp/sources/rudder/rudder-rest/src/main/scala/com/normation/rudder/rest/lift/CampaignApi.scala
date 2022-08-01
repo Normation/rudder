@@ -51,7 +51,6 @@ class CampaignApi (
     val schema = API.GetCampaigns
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      println(s"****** get campaigns")
       val res = (for {
         campaigns <- campaignRepository.getAll()
         serialized <- ZIO.foreach(campaigns)(campaignSerializer.getJson)
@@ -129,7 +128,7 @@ class CampaignApi (
             case Full(bytes)  => campaignSerializer.parse(new String(bytes, charset))
           }
         withId = if (campaign.info.id.value.isEmpty) campaign.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else campaign
-        saved <- campaignRepository.save(withId)
+        saved <- mainCampaignService.saveCampaign(withId)
         serialized <-  campaignSerializer.getJson(saved)
       } yield {
         serialized
