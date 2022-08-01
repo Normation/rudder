@@ -207,7 +207,8 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   // technique repos & all
   val testEnv =  new TestTechniqueRepo(
-      optGitRevisionProvider = Some((repo: GitRepositoryProvider) => new LDAPGitRevisionProvider(ldap, rudderDit, repo, "refs/heads/master"))
+      configRepoName = "configuration-repository-test-new-system-tech-7_0"
+    , optGitRevisionProvider = Some((repo: GitRepositoryProvider) => new LDAPGitRevisionProvider(ldap, rudderDit, repo, "refs/heads/master"))
   )
 
   private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")

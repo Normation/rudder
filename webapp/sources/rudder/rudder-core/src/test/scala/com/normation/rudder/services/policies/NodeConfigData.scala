@@ -573,6 +573,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
  */
 
 class TestTechniqueRepo(prefixTestResources: String = ""
+  , configRepoName: String
   // service you want to override with other
   , optGitRevisionProvider: Option[GitRepositoryProviderImpl => GitRevisionProvider] = None
 ) {
@@ -605,7 +606,7 @@ class TestTechniqueRepo(prefixTestResources: String = ""
 
   // Since we want to have only one `configuration-repository`, and it's in `rudder-core`, the source can be in the
   // FS (for tests in rudder-core) or in the test jar for rudder-core.
-  NodeConfigData.copyConfigurationRepository(prefixTestResources + "src/test/resources/configuration-repository", configurationRepositoryRoot)
+  NodeConfigData.copyConfigurationRepository(prefixTestResources + "src/test/resources/" + configRepoName, configurationRepositoryRoot)
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
   val t1 = System.currentTimeMillis()
@@ -662,7 +663,7 @@ class TestNodeConfiguration(prefixTestResources: String = ""
 
   // technique repository + expose services & vars
 
-  val testTechRepoEnv = new TestTechniqueRepo(prefixTestResources, gitRevisionProvider)
+  val testTechRepoEnv = new TestTechniqueRepo(prefixTestResources, "configuration-repository", gitRevisionProvider)
   val abstractRoot = testTechRepoEnv.abstractRoot
 
   val configurationRepositoryRoot = testTechRepoEnv.configurationRepositoryRoot
