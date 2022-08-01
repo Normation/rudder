@@ -114,6 +114,7 @@ trait NodeInfoService {
 
   def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]]
 
+  def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]
 
   /**
    * Return the number of managed (ie non policy server, no rudder role nodes.
@@ -874,6 +875,10 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
   def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = withUpToDateCache(s"${nodeIds.size} nodes infos") { cache =>
     cache.filter(x => nodeIds.contains(x._1)).values.map( _._2).toSet.succeed
+  }
+
+  def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]] = withUpToDateCache(s"${nodeIds.size} nodes infos") { cache =>
+    nodeIds.map(id => cache.get(id).map(_._2)).flatten.succeed
   }
 }
 

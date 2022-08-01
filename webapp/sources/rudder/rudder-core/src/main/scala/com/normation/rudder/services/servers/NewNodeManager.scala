@@ -820,6 +820,7 @@ class AcceptHostnameAndIp(
   , queryProcessor          : QueryProcessor
   , ditQueryData            : DitQueryData
   , policyServerNet         : PolicyServerManagementService
+  , nodeInfoService         : NodeInfoService
   , acceptDuplicateHostnames: IOResult[Boolean]
 ) extends UnitAcceptInventory {
 
@@ -854,13 +855,19 @@ class AcceptHostnameAndIp(
     }
 
     for {
-      duplicatesH    <- queryProcessor.process(NewQuery(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion)).map { nodesInfo =>
+      duplicatesH    <- queryProcessor.process(NewQuery(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion))
                           //here, all nodes found are duplicate-in-being. They should be unique, but
-                          //if not, we will don't group them that the duplicate appears in the list
-                          nodesInfo.map( ni => ni.hostname)
-                        }
+                          //if not, we don't group them that the duplicate appears in the list
       noDuplicatesH  <- if(duplicatesH.isEmpty) Full({})
-                        else failure(duplicatesH.toSeq, "Hostname")
+                        else {
+                          // get the hostname from nodeInfoService
+                          for {
+                            nodesInfo <- nodeInfoService.getNodeInfosSeq(duplicatesH).toBox
+                            hostnames = nodesInfo.map (ni => ni.hostname)
+                          } yield {
+                            failure(hostnames, "Hostname")
+                          }
+                        }
     } yield {
       {}
     }

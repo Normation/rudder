@@ -1517,7 +1517,9 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def getNodeInfos(nodesId: Set[NodeId]): IOResult[Set[NodeInfo]] = ZIO.foreach(nodesId) { nodeId =>
       getGenericOne(nodeId, AcceptedInventory, _info).map(x => x.get)
     }
-
+    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ZIO.foreach(nodeIds) { nodeId =>
+      getGenericOne(nodeId, AcceptedInventory, _info).map(x => x.get)
+    }.map(_.toSeq)
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
     override def getAllNodesIds(): IOResult[Set[NodeId]] = getAllNodes().map(_.keySet)
     override def getAllNodeInfos():IOResult[Seq[NodeInfo]] = getAll().map(_.values.toSeq)
@@ -1753,16 +1755,16 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }
 
-    override def process(query: QueryTrait): Box[Seq[NodeInfo]] = {
+    override def process(query: QueryTrait): Box[Seq[NodeId]] = {
       for {
         nodes    <- nodeInfoService.nodeBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
       } yield {
-        matching.map(_.info)
+        matching.map(_.info.id).toSeq
       }
     }.toBox
 
-    override def processOnlyId(query: QueryTrait): Box[Set[NodeId]] = process(query).map(_.map(_.id).toSet)
+    override def processOnlyId(query: QueryTrait): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 }
 
