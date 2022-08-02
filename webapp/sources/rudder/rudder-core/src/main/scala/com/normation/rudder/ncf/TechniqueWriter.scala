@@ -285,7 +285,7 @@ class TechniqueWriter (
                            } else
                              Unexpected(s"${directives.size} directives are defined for ${technique.name}/${techniqueVersion} please delete them, or force deletion").fail
                        }
-        activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+        activeTech <- readDirectives.getActiveTechnique(technique.id.name)
         _          <- activeTech match {
                         case None =>
                           // No active technique found, let's delete it
@@ -293,7 +293,7 @@ class TechniqueWriter (
                         case Some(activeTechnique) =>
                           writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
                       }
-        _          <- archiver.deleteTechnique(technique.name, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
+        _          <- archiver.deleteTechnique(technique.id.name.value, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
         _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${technique.name}")).toIO.chainError(
                         s"An error occurred during technique update after deletion of Technique ${technique.name}"
                       )
