@@ -38,9 +38,11 @@
 package com.normation.rudder.campaigns
 
 import better.files.File
-import com.normation.errors.IOResult
-import zio.ZIO
 
+import com.normation.errors.IOResult
+import zio.*
+import zio.syntax.*
+import com.normation.errors.Unexpected
 
 trait CampaignRepository {
   def getAll(): IOResult[List[Campaign]]
@@ -48,8 +50,22 @@ trait CampaignRepository {
   def save(c : Campaign): IOResult[Campaign]
 }
 
+object CampaignRepositoryImpl {
+  def make(campaignSerializer: CampaignSerializer, path: File): IOResult[CampaignRepositoryImpl] = {
+    IOResult.effectM {
+      if(path.exists) {
+        if(!path.isDirectory|| !path.isWritable) {
+          Unexpected(s"Campaign configuration repository is not a writable directory: " + path.pathAsString).fail
+        } else UIO.unit
+      } else {
+        path.createDirectoryIfNotExists(createParents = true).succeed
+      }
+    } *>
+    new CampaignRepositoryImpl(campaignSerializer, path).succeed
+  }
+}
 
-class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path : File) extends CampaignRepository {
+class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File) extends CampaignRepository {
 
   def getAll(): IOResult[List[Campaign]] = {
     for {
@@ -72,7 +88,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path : File
   }
   def get(id : CampaignId) : IOResult[Campaign] = {
     for {
-      content <- IOResult.effect (s"error when getting campaign file for campain with id '${id.value}'"){
+      content <- IOResult.effect (s"error when getting campaign file for campaign with id '${id.value}'"){
         val file = path / (s"${id.value}.json")
         file.createFileIfNotExists(createParents = true)
         file
@@ -82,19 +98,16 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path : File
       campaign
     }
   }
-  def save(c : Campaign): IOResult[Campaign] = {
+  def   save(c : Campaign): IOResult[Campaign] = {
     for {
-      file <- IOResult.effect (s"error when creating campaign file for campain with id '${c.info.id.value}'"){
-        val file = path / (s"${c.info.id.value}.json")
-
-        file.createFileIfNotExists(true)
-        file
-      }
-      _ <- CampaignLogger.info(file.pathAsString)
+      file <- IOResult.effect (s"error when creating campaign file for campaign with id '${c.info.id.value}'"){
+                val file = path / (s"${c.info.id.value}.json")
+                file.createFileIfNotExists(true)
+                file
+              }
+      _       <- CampaignLogger.info(file.pathAsString)
       content <- campaignSerializer.serialize(c)
-      _ <- IOResult.effect{
-        file.write(content)
-      }
+      _       <- IOResult.effect { file.write(content) }
     } yield {
       c
     }

@@ -1336,11 +1336,15 @@ object RudderConfig extends Loggable {
   )
   )
 
-  lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runNow
+  lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runOrDie(err =>
+    new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg)
+  )
   private[this] lazy val gitFactRepoGC = new GitGC(gitFactRepo, RUDDER_GIT_GC)
   gitFactRepoGC.start()
   lazy val factRepo = new GitNodeFactRepository(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  factRepo.checkInit().runNow
+  factRepo.checkInit().runOrDie(err =>
+    new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg)
+  )
 
   lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
   lazy val inventorySaver      = new DefaultInventorySaver(
@@ -1745,7 +1749,9 @@ object RudderConfig extends Loggable {
     eventLogRepo
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-  private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runNow
+  private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runOrDie(err =>
+    new RuntimeException(s"Error when creating git configuration repository: " + err.fullMsg)
+  )
   private[this] lazy val gitConfigRepoGC = new GitGC(gitConfigRepo, RUDDER_GIT_GC)
   gitConfigRepoGC.start()
   private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
@@ -2229,7 +2235,6 @@ object RudderConfig extends Loggable {
       , POSTGRESQL_IS_LOCAL
   )}
 
-
   lazy val policyGenerationBootGuard = zio.Promise.make[Nothing, Unit].runNow
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {
@@ -2503,14 +2508,18 @@ object RudderConfig extends Loggable {
   lazy val campaignSerializer = new CampaignSerializer()
   lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie, campaignSerializer)
   val campaignPath = root / "var" / "rudder" / "configuration-repository" / "campaigns"
-  lazy val campaignRepo = new CampaignRepositoryImpl(campaignSerializer, campaignPath)
 
+  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath).runOrDie(err =>
+    new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg)
+  )
 
   val mainCampaignService  = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen)
-  MainCampaignService.start(mainCampaignService).runNow
-
   lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
-  jsonReportsAnalyzer.start().forkDaemon
+
+  // todo: scheduler interval should be a property
+  ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
+
+  ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
 
   /**
    * *************************************************
@@ -2621,7 +2630,9 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
     val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeInfoServiceImpl)
-    cached.init().runNow
+    cached.init().runOrDie(err =>
+      new RuntimeException(s"Error when initializing node configuration cache: " + err)
+    )
     cached
   }
 

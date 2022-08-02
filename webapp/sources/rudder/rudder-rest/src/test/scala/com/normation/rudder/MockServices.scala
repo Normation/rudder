@@ -2396,8 +2396,8 @@ class MockCampaign() {
     implicit val dumbCampaignDetailsEncoder : JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
     implicit val dumbCampaignEncoder : JsonEncoder[DumbCampaignTrait] = DeriveJsonEncoder.gen
 
-    def handle(): PartialFunction[Campaign, IOResult[String]] = {
-      case c : DumbCampaignTrait => c.toJson.succeed
+    def handle(pretty: Boolean): PartialFunction[Campaign, IOResult[String]] = {
+      case c : DumbCampaignTrait => (if(pretty) c.toJsonPretty else c.toJson).succeed
     }
 
     def read(): PartialFunction[String, IOResult[Campaign]] = {

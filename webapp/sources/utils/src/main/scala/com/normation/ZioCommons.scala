@@ -450,6 +450,10 @@ object zio {
   implicit class UnsafeRun[A](io: IOResult[A]) {
     def runNow: A = ZioRuntime.runNow(io)
     def runNowLogError(logger: RudderError => Unit): Unit = ZioRuntime.runNowLogError(logger)(io)
+    def runOrDie(throwEx: RudderError => Throwable): A = ZioRuntime.runNow(io.either) match {
+      case Right(a)  => a
+      case Left(err) => throw throwEx(err)
+    }
   }
 }
 

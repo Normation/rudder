@@ -54,7 +54,8 @@ trait JSONTranslateCampaign{
 
   def getRawJson(): PartialFunction[Campaign, IOResult[Json]]
 
-  def handle(): PartialFunction[Campaign, IOResult[String]]
+  // serialize the campaign based on its campaignType
+  def handle(pretty: Boolean): PartialFunction[Campaign, IOResult[String]]
 
   def read(): PartialFunction[String, IOResult[Campaign]]
 
@@ -90,7 +91,7 @@ class CampaignSerializer {
 
   def addJsonTranslater(c : JSONTranslateCampaign ) = tranlaters = c :: tranlaters
 
-  def serialize(campaign: Campaign) : IOResult[String] = tranlaters.map(_.handle()).fold(base) { case (a, b) => b orElse a }(campaign)
+  def serialize(campaign: Campaign) : IOResult[String] = tranlaters.map(_.handle(pretty = true)).fold(base) { case (a, b) => b orElse a }(campaign)
   def parse(string : String) : IOResult[Campaign] = tranlaters.map(_.read()).fold(readBase) { case (a, b) => b orElse a }(string)
   def campaignType (string : String) : CampaignType = tranlaters.map(_.campaignType()).fold(campaignTypeBase) { case (a, b) => b orElse a }(string)
 
@@ -152,7 +153,6 @@ class CampaignSerializer {
   implicit val scheduleDecoder : JsonDecoder[CampaignSchedule]= DeriveJsonDecoder.gen
   implicit val typeDecoder     : JsonDecoder[CampaignType] = JsonDecoder[String].map(campaignType)
   implicit val campaignInfoDecoder : JsonDecoder[CampaignInfo]= DeriveJsonDecoder.gen
-
 
   implicit val campaignEventIdDecoder : JsonDecoder[CampaignEventId] = JsonDecoder[String].map(CampaignEventId)
   implicit val campaignEventStateDecoder : JsonDecoder[CampaignEventState] =  JsonDecoder[String].mapOrFail(CampaignEventState.parse)

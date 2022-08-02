@@ -49,10 +49,15 @@ object ApplicationLogger extends Logger {
 }
 
 object ApplicationLoggerPure extends NamedZioLogger {
+  parent =>
   def loggerName = "application"
 
   object Archive extends NamedZioLogger {
-    def loggerName = "application.archive"
+    def loggerName = parent.loggerName + ".archive"
+  }
+
+  object Plugin extends NamedZioLogger {
+    def loggerName = parent.loggerName + ".plugin"
   }
 
 }
