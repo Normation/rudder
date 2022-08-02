@@ -742,120 +742,141 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   }
 
 }
+
+
 class DSCTechniqueWriter(
     basePath   : String
   , translater : InterpolatedValueCompiler
   , parameterTypeService : ParameterTypeService
 ) extends AgentSpecificTechniqueWriter{
+  implicit class IndentString(s: String) {
+    // indent all lines EXCLUDING THE FIRST by the given number of spaces
+    def indent(spaces:Int) = s.linesIterator.mkString("\n" + " " * spaces)
+  }
 
-  val genericParams =
-    "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
+  // we use the same class prefix construction as for CFEngine.
+  // If it's really the same thing, it should either be given by technique editor or common to both
+  def computeClassPrefix(gm: GenericMethod, classParameter: String): String = {
+    // the canonification must be done commonly with other canon
+    s"""[Rudder.Condition]::canonify("${gm.classPrefix}_" + ${classParameter})"""
+  }
+
+  // WARNING: this is extremely likely false, it MUST be done in the technique editor or
+  // via a full fledge parser of conditions
+  def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]) = {
+    formatCondition(methodCall, parentBlocks).replaceAll("""(\$\{[^\}]*})""", """" + ([Rudder.Condition]::canonify(\$componentKey)) + """")
+  }
+
+  def truthyCondition(condition: String) = condition.isEmpty || condition == "any"
+
+  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
+    (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
+      case (Nil, true)   => "any"
+      case (list, true)  => list.mkString("(", ").(", ")")
+      case (Nil, false)  => methodCall.condition
+      case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
+    }
+  }
 
   def computeTechniqueFilePath(technique : EditorTechnique) =
     s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
-  def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
-
-    def toDscFormat(parentBlocks: List[MethodBlock])(method : MethodElem) : PureResult[List[String]] = {
-      method match {
-        case c : MethodCall =>
-          val call = MethodCall.renameParams(c,methods)
-          if (call.methodId.value.startsWith("_")) {
-            Right(Nil)
-          } else {
-            val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
-            val disableReporting =
-              s"""-Report:$$${if (call.disabledReporting) {"false" } else { "true" }}"""
+  def formatDscMethodBlock(techniqueName: String, methods : Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(method: MethodElem): PureResult[List[String]] = {
+    method match {
+      case c : MethodCall =>
+        val call = MethodCall.renameParams(c,methods)
+        if (call.methodId.value.startsWith("_")) {
+          Right(Nil)
+        } else {
+          val componentName = call.component.replaceAll("\"", "`\"")
+          val disableReporting = if (call.disabledReporting) { "true" } else { "false" }
 
 
-            def truthyCondition(condition : String) = condition.isEmpty || condition == "any"
-            def formatCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) =  {
-              (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
-                case (Nil, true) => "any"
-                case (list, true) => list.mkString("(",").(",")")
-                case (Nil, false) => methodCall.condition
-                case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
-              }
-            }
-            def canonifyCondition(methodCall: MethodCall) = {
-              formatCondition(methodCall, parentBlocks).replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
-            }
 
-            def naReport(method : GenericMethod, expectedReportingValue : String) =
-              s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${disableReporting} ${genericParams}"""
+          (for {
+
+            // First translate parameters to Dsc values
+            params    <- ((call.parameters.toList).traverse {
+                            case (id, arg) =>
+                              translater.translateToAgent(arg, AgentType.Dsc) match {
+                                case Full(dscValue) =>
+                                  parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
+
+                                case eb : EmptyBox =>
+                                  val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                                  Left(IOError(fail.messageChain,None))
+                              }
+                         }).map(_.toMap)
+
+            // Translate condition
+            condition <- translater.translateToAgent(canonifyCondition(call, parentBlocks), AgentType.Dsc) match {
+                           case Full(c) => Right(c)
+                           case eb : EmptyBox =>
+                             val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                             Left(IOError(fail.messageChain,None))
+                         }
+
+            // Check if method exists
+            method <- methods.get(call.methodId) match {
+                        case Some(method) =>
+                          Right(method)
+                        case None =>
+                          Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${techniqueName}' methods calls", None))
+                      }
+            // Check if class parameter is correctly defined
+            classParameter <- params.get(method.classParameter) match {
+                                case Some(classParameter) =>
+                                  Right(classParameter)
+                                case None =>
+                                  Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${techniqueName}' methods calls",None))
+                              }
+
+            methodParams = params.map { case(id, arg) => s"""-${id.validDscName} ${arg}""" }.mkString(" ")
+            effectiveCall =
+              s"""$$call = ${call.methodId.validDscName} ${methodParams} -PolicyMode $$policyMode
+                 |$$methodContext = Compute-Method-Call @reportParams -MethodCall $$call
+                 |$$localContext.merge($$methodContext)
+                 |""".stripMargin
 
 
-            (for {
-
-              // First translate parameters to Dsc values
-              params    <- ((call.parameters.toList).traverse {
-                              case (id, arg) =>
-                                translater.translateToAgent(arg, AgentType.Dsc) match {
-                                  case Full(dscValue) =>
-                                    parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
-
-                                  case eb : EmptyBox =>
-                                    val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
-                                    Left(IOError(fail.messageChain,None))
-                                }
-                           }).map(_.toMap)
-
-              // Translate condition
-              condition <- translater.translateToAgent(canonifyCondition(call), AgentType.Dsc) match {
-                             case Full(c) => Right(c)
-                             case eb : EmptyBox =>
-                               val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
-                               Left(IOError(fail.messageChain,None))
-                           }
-
-              methodParams =
-                ( for {
-                  (id, arg) <- params
-                } yield {
-                s"""-${id.validDscName} ${arg}"""
-                }).mkString(" ")
-
-              effectiveCall =
-                s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${disableReporting} ${genericParams}).get_item("classes")"""
-
-              // Check if method exists
-              method <- methods.get(call.methodId) match {
-                          case Some(method) =>
-                            Right(method)
-                          case None =>
-                            Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
-                        }
-              // Check if class parameter is correctly defined
-              classParameter <- params.get(method.classParameter) match {
-                                  case Some(classParameter) =>
-                                    Right(classParameter)
-                                  case None =>
-                                    Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
-                                }
-
-            } yield {
-              if (method.agentSupport.contains(AgentType.Dsc)) {
-                if (condition == "any" ) {
-                  s"  ${effectiveCall}" :: Nil
-                } else {
-                  s"""|  $$class = "${condition}"
-                      |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
-                      |    ${effectiveCall}
-                      |  } else {
-                      |    ${naReport(method,classParameter)}
-                      |  }""".stripMargin('|') :: Nil
-                }
+          } yield {
+            val methodCall = if (method.agentSupport.contains(AgentType.Dsc)) {
+              if (condition == "any" ) {
+                s"""${effectiveCall.indent(2)}"""
               } else {
-                s"  ${naReport(method,classParameter)}" :: Nil
+                s"""$$class = "${condition}"
+                   |if ($$localContext.Evaluate($$class)) {
+                   |  ${effectiveCall.indent(2)}
+                   |} else {
+                   |  Rudder-Report-NA @reportParams
+                   |}""".stripMargin('|').indent(2)
               }
-           }).map(s"""  $$reportId=$$reportIdBase+"${call.id}"""" :: _)
-         }
+            } else {
+              s"Rudder-Report-NA @reportParams"
+            }
 
-      case block : MethodBlock =>
-        block.calls.flatTraverse(toDscFormat(block :: parentBlocks))
-      }
+            s"""|  $$reportId=$$reportIdBase+"${call.id}"
+                |  $$componentKey = ${classParameter}
+                |  $$reportParams = @{
+                |    ClassPrefix = ([Rudder.Condition]::canonify(("${method.classPrefix}_" + $$componentKey)))
+                |    ComponentKey = $$componentKey
+                |    ComponentName = "${componentName}"
+                |    PolicyMode = $$policyMode
+                |    ReportId = $$reportId
+                |    DisableReporting = $$${disableReporting}
+                |    TechniqueName = $$techniqueName
+                |  }
+                |  ${methodCall}""".stripMargin('|') :: Nil
+
+          })
+       }
+
+    case block : MethodBlock =>
+      block.calls.flatTraverse(formatDscMethodBlock(techniqueName, methods, block :: parentBlocks))
     }
+  }
 
+  def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
 
     val parameters = technique.parameters match {
       case Nil => ""
@@ -870,7 +891,7 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- technique.methodCalls.toList.flatTraverse(toDscFormat(Nil)).toIO
+      calls <- technique.methodCalls.toList.flatTraverse(formatDscMethodBlock(technique.name, methods, Nil)).toIO
 
       content =
         s"""|function ${technique.bundleName.validDscName} {
@@ -880,14 +901,14 @@ class DSCTechniqueWriter(
             |      [string]$$reportId,
             |      [parameter(Mandatory=$$true)]
             |      [string]$$techniqueName,${parameters}
-            |      [switch]$$auditOnly
+            |      [Rudder.PolicyMode]$$policyMode
             |  )
             |  $$reportIdBase = $$reportId.Substring(0,$$reportId.Length-1)
-            |  $$local_classes = New-ClassContext
+            |  $$localContext = [Rudder.Context]::new()
+            |  $$localContext.Merge($$system_classes)
             |  $$resources_dir = $$PSScriptRoot + "\\resources"
             |
             |${calls.mkString("\n\n")}
-            |
             |}""".stripMargin('|')
 
       path  <-  IOResult.effect(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
@@ -895,10 +916,8 @@ class DSCTechniqueWriter(
                 )
       // Powershell files needs to have a BOM added at the beginning of all files when using UTF8 enoding
       // See https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks
-      contentWithBom : List[Byte] =
-        // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
-        239.toByte :: 187.toByte :: 191.toByte  ::
-        content.getBytes(StandardCharsets.UTF_8).toList
+      // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
+      contentWithBom = Array(239.toByte, 187.toByte, 191.toByte) ++ content.getBytes(StandardCharsets.UTF_8)
 
       files <-  IOResult.effect(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}") {
                   Files.createDirectories(path.getParent)
