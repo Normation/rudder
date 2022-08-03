@@ -205,7 +205,7 @@ object NodeConfigData {
       case other =>
         throw new RuntimeException(s"Unsupported URI scheme for configuration-repository at: ${uri.toString}")
     }
-    copyFromClasspath(path, Path.of(dest.getAbsolutePath))
+    copyFromClasspath(path, Paths.get(dest.getAbsolutePath))
   }
 
 
