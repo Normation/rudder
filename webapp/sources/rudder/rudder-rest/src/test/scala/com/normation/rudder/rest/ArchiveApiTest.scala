@@ -75,7 +75,7 @@ import com.normation.errors.effectUioUnit
 import com.normation.zio._
 
 @RunWith(classOf[JUnitRunner])
-class ArchiveApiTests extends Specification with AfterAll with Loggable {
+class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest = new RestTest(restTestSetUp.liftRules)

@@ -51,7 +51,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-import net.liftweb.http.JsonResponse
 import net.liftweb.http.PlainTextResponse
 
 @RunWith(classOf[JUnitRunner])
@@ -521,7 +520,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
         def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
         testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
           .withFilter(filterGeneratedFile _)
-      case Full(JsonResponse(json, headers, cookies, code)) =>
+      case Full(JsonResponsePrettify(json, _, _, code, _)) =>
+        import net.liftweb.http.js.JsExp._
         (code must beEqualTo(500)) and
         (json.toJsCmd must beMatching(".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"))
       case _ => ko
