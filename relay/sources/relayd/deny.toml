@@ -25,4 +25,6 @@ ignore = [
     "RUSTSEC-2020-0159",
     # We don't use oneshot channels
     "RUSTSEC-2021-0124",
+    # Only unsoundness, no vulnerability, and no simple update
+    "RUSTSEC-2022-0040",
 ]
