@@ -23,7 +23,7 @@ canonifyHelper : AgentValue -> String
 canonifyHelper value =
   case value of
     Value s -> Regex.replace ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") (always "_") s
-    Variable v -> "${" ++ (canonify v) ++ "}"
+    Variable v -> "${" ++ (displayValue v) ++ "}"
 
 isEmptyValue: List AgentValue -> Bool
 isEmptyValue v =
