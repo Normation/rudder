@@ -59,7 +59,7 @@ object MainCampaignService {
   def start(mainCampaignService: MainCampaignService) = {
     for {
       campaignQueue <- Queue.unbounded[CampaignEvent]
-      _ <- mainCampaignService.start(campaignQueue).forkDaemon
+      _             <- mainCampaignService.start(campaignQueue).forkDaemon
     } yield ()
   }
 }
@@ -297,6 +297,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
         }
     }
   }
+
   def start(initQueue: Queue[CampaignEvent]) = {
     val s = CampaignScheduler(this, initQueue, ZioRuntime.environment)
     inner = Some(s)

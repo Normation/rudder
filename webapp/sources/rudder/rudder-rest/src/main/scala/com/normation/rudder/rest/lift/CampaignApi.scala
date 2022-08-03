@@ -7,21 +7,24 @@ import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
 import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
+import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rest.{CampaignApi => API}
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.CampaignApi as API
 import com.normation.utils.StringUuidGenerator
+
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 class CampaignApi (
     campaignRepository: CampaignRepository
@@ -132,7 +135,7 @@ class CampaignApi (
         serialized <-  campaignSerializer.getJson(saved)
       } yield {
         serialized
-      }).toLiftResponseOne(params,schema, _ => None)
+      }).tapError(err => CampaignLogger.error(s"Error when saving campaign: " + err.fullMsg)).toLiftResponseOne(params,schema, _ => None)
 
     }
   }
