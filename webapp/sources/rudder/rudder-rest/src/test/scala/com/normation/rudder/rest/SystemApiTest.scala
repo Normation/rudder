@@ -55,7 +55,7 @@ import net.liftweb.http.JsonResponse
 import net.liftweb.http.PlainTextResponse
 
 @RunWith(classOf[JUnitRunner])
-class SystemApiTests extends Specification with AfterAll with Loggable {
+class SystemApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest = new RestTest(restTestSetUp.liftRules)
