@@ -56,6 +56,12 @@ import java.sql.Timestamp
 trait CampaignEventRepository {
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
+
+  /*
+   * Semantic is:
+   * - if Nil or None, clause is ignored
+   * - if a value is provided, then it is use to filter things accordingly
+   */
   def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]]
 }
 

@@ -37,6 +37,11 @@
 
 package com.normation.rudder.rest
 
+import com.normation.rudder.DumbCampaignType
+import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventId
+import com.normation.rudder.campaigns.CampaignEventState
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
@@ -52,8 +57,11 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 
+import zio.json._
+import com.normation.zio._
+
 @RunWith(classOf[JUnitRunner])
-class CampaignApiTests extends Specification with AfterAll with Loggable {
+class CampaignApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest = new RestTest(restTestSetUp.liftRules)
@@ -72,7 +80,7 @@ class CampaignApiTests extends Specification with AfterAll with Loggable {
 
   def children(f: File) = f.children.toList.map(_.name)
 
- // org.slf4j.LoggerFactory.getLogger("api-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   sequential
 
@@ -83,32 +91,59 @@ class CampaignApiTests extends Specification with AfterAll with Loggable {
             |"name":"first campaign",
             |"description":"a test campaign present when rudder boot",
             |"status":{"value":"enabled"},
-            |"schedule":{"day":1,"startHour":3,"type":"weekly"},
+            |"schedule":{"day":1,"startHour":3,"startMinute":42,"type":"weekly"},
             |"duration":3600000},
-          |"details":{"name":"campaign #0"}
+          |"details":{"name":"campaign #0"},
+          |"campaignType":"dumb-campaign"
           |}""".stripMargin.replaceAll("""\n""","")
+
+    // init in mock
+    val ce0 = CampaignEvent(
+        CampaignEventId("e0")
+      , CampaignId("c0")
+      , CampaignEventState.Finished
+      , new DateTime(0)
+      , new DateTime(1)
+      , DumbCampaignType
+    )
 
     "have one campaign" in {
       val resp = s"""[$c0json]"""
 
-      restTest.testGETResponse("/secure/api/campaigns/models") {
+      restTest.testGETResponse("/secure/api/campaigns") {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
           map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
         case err => ko(s"I got an error in test: ${err}")
       }
     }
 
-    // THIS TEST IS BROKEN FOR NOW
-
-    "have a second one when we trigger a scheduling check" in {
-      MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService)
-
-      // the second one won't be C0, but for now, it is not even generated
-      val resp = s"""[$c0json,$c0json]"""
-
-      restTest.testGETResponse("/secure/api/campaigns/models") {
+    "and its json format is stable" in {
+      restTest.testGETResponse("/secure/api/campaigns/events") {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
-          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
+          map.asInstanceOf[Map[String, List[CampaignEvent]]]("campaignEvents") must beEqualTo(List(ce0))
+        case err                                                                        => ko(s"I got an error in test: ${err}")
+      }
+    }
+
+
+    "have one more campaign event when we trigger a scheduling check" in {
+      ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
+
+      Thread.sleep(50) // this is needed because the start is async and takes a bit of time
+
+      restTest.testGETResponse("/secure/api/campaigns/events") {
+        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
+          val events = map.asInstanceOf[Map[String, List[CampaignEvent]]]("campaignEvents")
+
+          (events.size must beEqualTo(2)) and
+          {
+            val next = events.collectFirst { case x if x.id != ce0.id => x }.getOrElse(throw new IllegalArgumentException(s"Missing test value"))
+            // it's in the future
+            (next.start.getMillis must be_>(System.currentTimeMillis())) and
+            (next.state must beEqualTo(CampaignEventState.Scheduled)) and
+            (next.campaignId must beEqualTo(ce0.campaignId))
+          }
+
         case err => ko(s"I got an error in test: ${err}")
       }
 

@@ -49,9 +49,9 @@ import scala.concurrent.duration.Duration
 
 
 trait Campaign {
-  def info : CampaignInfo
-  def details : CampaignDetails
-  def campaignType : CampaignType
+  def info        : CampaignInfo
+  def details     : CampaignDetails
+  def campaignType: CampaignType
   def copyWithId(newId : CampaignId) : Campaign
 }
 
@@ -144,11 +144,17 @@ case class WeeklySchedule(
 case class OneShot(start : DateTime) extends CampaignSchedule
 
 trait CampaignDetails
-trait CampaignType {
-  def value : String
-}
 
-case class CampaignEvent(id : CampaignEventId, campaignId : CampaignId, state : CampaignEventState, start : DateTime, end : DateTime, campaignType : CampaignType )
+case class CampaignType(value : String)
+
+case class CampaignEvent(
+    id          : CampaignEventId
+  , campaignId  : CampaignId
+  , state       : CampaignEventState
+  , start       : DateTime
+  , end         : DateTime
+  , campaignType: CampaignType
+)
 case class CampaignEventId(value : String)
 
 sealed trait CampaignEventState{

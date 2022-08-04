@@ -42,9 +42,10 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.v1.RestStatus
-import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{InMemoryResponse, Req}
-import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.common._
+import net.liftweb.http.InMemoryResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
@@ -524,7 +525,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
         import net.liftweb.http.js.JsExp._
         (code must beEqualTo(500)) and
         (json.toJsCmd must beMatching(".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"))
-      case _ => ko
+      case x =>
+        ko
     }
   }
 

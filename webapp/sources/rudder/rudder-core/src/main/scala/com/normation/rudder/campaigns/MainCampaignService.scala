@@ -38,12 +38,15 @@
 package com.normation.rudder.campaigns
 
 import cats.implicits._
+
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.rudder.campaigns.CampaignEventState._
 import com.normation.utils.StringUuidGenerator
+
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
+
 import zio.Queue
 import zio.ZIO
 import zio.clock.Clock
@@ -286,10 +289,10 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
           campaigns <- campaignRepo.getAll()
           _ <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
-          newEvents <- ZIO.foreach(campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))) {
-            c =>
-              scheduleCampaignEvent(c)
-          }
+          toStart = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
+          newEvents <- ZIO.foreach(toStart) { c =>
+                         scheduleCampaignEvent(c)
+                       }
           _ <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
           _ <- ZIO.foreach(newEvents) { ev => s.queueCampaign(ev) }
         } yield {
@@ -304,7 +307,6 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     for {
       _ <- CampaignLogger.debug("Starting campaign scheduler")
       _ <- s.start().forkDaemon
-
       _ <- CampaignLogger.debug("Starting campaign forked, now getting already created events")
       alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
       _ <- CampaignLogger.debug("Got events, queue them")

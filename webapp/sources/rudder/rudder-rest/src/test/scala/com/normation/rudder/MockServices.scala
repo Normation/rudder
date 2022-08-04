@@ -149,7 +149,7 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.xml.Elem
 import zio.syntax._
-import zio.{Tag as _, *}
+import zio.{Tag => _, _}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._
@@ -193,7 +193,7 @@ object TestActor {
 }
 
 object revisionRepo {
-  import GitVersion._
+  import com.normation.GitVersion._
 
   val revisionsMap = RefM.make(Map[Revision, RevisionInfo]()).runNow
 
@@ -2346,12 +2346,13 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 
 // It would be much simpler if the root classes were concrete, parameterized with a A type:
 // case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
-case object DumbCampaignType extends CampaignType {
-  val value = "dumb-campaign"
-}
+final object DumbCampaignType extends CampaignType("dumb-campaign")
+
 final case class DumbCampaignDetails(name: String) extends CampaignDetails
+
 @jsonDiscriminator("campaignType")
 sealed trait DumbCampaignTrait extends Campaign
+
 @jsonHint(DumbCampaignType.value)
 final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
   val campaignType = DumbCampaignType
@@ -2390,7 +2391,7 @@ class MockCampaign() {
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
     import zio.json._
-    import campaignSerializer._
+    import com.normation.rudder.campaigns.CampaignSerializer._
     implicit val dumbCampaignDetailsDecoder : JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
     implicit val dumbCampaignDecoder : JsonDecoder[DumbCampaignTrait] = DeriveJsonDecoder.gen
     implicit val dumbCampaignDetailsEncoder : JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
@@ -2426,7 +2427,9 @@ class MockCampaign() {
       items.get.map(_.get(id)).notOptional(s"Campaign event not found: ${id.value}")
     }
     def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent] = {
-      items.update(_ + (c.id -> c)) *> c.succeed
+      for {
+        _ <- items.update(map => map + ((c.id, c)))
+      } yield c
     }
 
     def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId]): IOResult[List[CampaignEvent]] = {
