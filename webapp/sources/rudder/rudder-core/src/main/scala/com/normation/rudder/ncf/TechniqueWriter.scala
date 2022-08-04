@@ -903,12 +903,14 @@ class DSCTechniqueWriter(
             |      [string]$$techniqueName,${parameters}
             |      [Rudder.PolicyMode]$$policyMode
             |  )
+            |  BeginTechniqueCall -Name $$techniqueName
             |  $$reportIdBase = $$reportId.Substring(0,$$reportId.Length-1)
-            |  $$localContext = [Rudder.Context]::new()
+            |  $$localContext = [Rudder.Context]::new($$techniqueName)
             |  $$localContext.Merge($$system_classes)
             |  $$resources_dir = $$PSScriptRoot + "\\resources"
             |
             |${calls.mkString("\n\n")}
+            |  EndTechniqueCall -Name $$techniqueName
             |}""".stripMargin('|')
 
       path  <-  IOResult.effect(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
