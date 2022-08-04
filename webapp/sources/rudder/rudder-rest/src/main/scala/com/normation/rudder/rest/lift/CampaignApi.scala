@@ -1,5 +1,4 @@
 package com.normation.rudder.rest.lift
-import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.CampaignEvent
@@ -10,12 +9,13 @@ import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.CampaignSerializer._
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.implicits.*
-import com.normation.rudder.rest.CampaignApi as API
+import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.{CampaignApi => API}
 import com.normation.utils.StringUuidGenerator
 
 import net.liftweb.common.EmptyBox
@@ -24,7 +24,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 
 import zio.ZIO
-import zio.syntax.*
+import zio.syntax._
+import com.normation.errors.Unexpected
 
 class CampaignApi (
     campaignRepository: CampaignRepository
@@ -34,7 +35,6 @@ class CampaignApi (
   , restExtractorService: RestExtractorService
   , stringUuidGenerator: StringUuidGenerator
 )  extends LiftApiModuleProvider[API] {
-  import campaignSerializer._
 
   def schemas = API
 
@@ -149,7 +149,6 @@ class CampaignApi (
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
       val campaignId = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       campaignEventRepository.getWithCriteria(states,campaignType,campaignId).toLiftResponseList(params,schema )
-
     }
   }
 
