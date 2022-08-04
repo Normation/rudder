@@ -9,8 +9,9 @@
       [string]$Version,
       [Rudder.PolicyMode]$policyMode
   )
+  BeginTechniqueCall -Name $techniqueName
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $localContext = [Rudder.Context]::new()
+  $localContext = [Rudder.Context]::new($techniqueName)
   $localContext.Merge($system_classes)
   $resources_dir = $PSScriptRoot + "\resources"
 
@@ -28,4 +29,5 @@
   $call = Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -PolicyMode $policyMode
   $methodContext = Compute-Method-Call @reportParams -MethodCall $call
   $localContext.merge($methodContext)
+  EndTechniqueCall -Name $techniqueName
 }

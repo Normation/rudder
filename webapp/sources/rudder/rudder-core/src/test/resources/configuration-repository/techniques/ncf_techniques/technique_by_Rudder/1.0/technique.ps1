@@ -9,8 +9,9 @@
       [string]$TechniqueParameter,
       [Rudder.PolicyMode]$policyMode
   )
+  BeginTechniqueCall -Name $techniqueName
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $localContext = [Rudder.Context]::new()
+  $localContext = [Rudder.Context]::new($techniqueName)
   $localContext.Merge($system_classes)
   $resources_dir = $PSScriptRoot + "\resources"
 
@@ -106,4 +107,5 @@
   } else {
     Rudder-Report-NA @reportParams
   }
+  EndTechniqueCall -Name $techniqueName
 }
