@@ -145,6 +145,8 @@ paths:
     $ref: paths/compliance/node.yml
   "/archives/export":
     $ref: paths/archives/export.yml
+  "/archives/import":
+    $ref: paths/archives/import.yml
   "/system/status":
     $ref: paths/system/status.yml
   "/system/info":
