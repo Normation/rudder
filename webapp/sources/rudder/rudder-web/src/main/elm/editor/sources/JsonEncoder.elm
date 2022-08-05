@@ -60,6 +60,7 @@ encodeTechniqueParameters param =
     ("id"         , string param.id.value)
   , ("name"       , string param.name)
   , ("description", string param.description)
+  , ("mayBeEmpty" , bool   param.mayBeEmpty)
   ]
 
 encodeMethodElem: MethodElem -> Value
