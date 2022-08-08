@@ -1,20 +1,5 @@
-#####################################################################################
-# Copyright 2011 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 #
 # Failsafe file
@@ -29,27 +14,34 @@ body common control
 
         protocol_version   => "2";
 
-        # force tls1.2
         tls_min_version => "1.2";
 }
+
+
+@if feature(copyfrom_restrict_keys)
+body agent control
+{
+    copyfrom_restrict_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
+}
+@endif
 
 bundle common g
 {
   vars:
       "rudder_base"              string => "/opt/rudder";
       "rudder_var"               string => "/var/rudder";
+      "rudder_log"               string => "/var/log/rudder";
       "rudder_bin"               string => "${rudder_base}/bin";
       "rudder_sbin"              string => "${rudder_base}/sbin";
       "rudder_base_sbin"         string => "${rudder_base}/sbin"; #folder where tools are installed
       "rudder_ncf"               string => "${rudder_var}/ncf";
       "uuid_file"                string => "${rudder_base}/etc/uuid.hive";
-      "rudder_disable_server_file" string => "${rudder_base}/etc/disable-policy-distribution";
 
     any::
       "uuid"                     string => readfile("${g.uuid_file}", 60);
       "ncf_excludedreps"          slist => { "50_techniques" };
       "rudder_ncf_origin_common" string => "/usr/share/ncf/tree";
-      "rudder_ncf_origin_local"  string => "/tmp/test-rudder-config-repo-2019-08-13T15:43:57.745+02:00/configuration-repository/ncf";
+      "rudder_ncf_origin_local"  string => "/tmp/test-rudder-config-repo-2022-07-26T00:12:24.487+02:00/configuration-repository/ncf";
 
       "rudder_ncf_hash_file"          string => "ncf_hash_file";
       "rudder_ncf_origin_common_hash" string => "${rudder_ncf_origin_common}/${rudder_ncf_hash_file}";
@@ -60,16 +52,11 @@ bundle common g
 
   classes:
       # OS classes for compatibility
-      "SUSE" expression => "sles";
-      "SuSE" expression => "sles";
-      "suse" expression => "sles";
-}
+      "SUSE" expression => "sles|sled|opensuse";
+      "SuSE" expression => "sles|sled|opensuse";
+      "suse" expression => "sles|sled|opensuse";
+      "redhat" expression => "amzn|amazon_linux";
 
-bundle common rudder_roles
-{
-  classes:
-      # Policy Server is a machine which delivers promises
-      "policy_server"       expression => strcmp("root","${g.uuid}");
       # Root Server is the top policy server machine
       "root_server"         expression => strcmp("root","${g.uuid}");
 
@@ -96,8 +83,7 @@ body copy_from cp(from,server)
         servers     => { "${server}" };
         source      => "${from}";
         compare     => "digest";
-    community_edition::
-        portnumber => "5309";
+        portnumber => "${system_common.community_port}";
 
 }
 

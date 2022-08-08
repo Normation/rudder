@@ -57,6 +57,8 @@ object DateFormaterService {
     .appendLiteral(' ')
     .append(DateTimeFormat.forPattern("HH:mm:ssZ")).toFormatter
 
+  val rfcDateformat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+
   /*
    * Display date must be used only for the user facing date in non serialized form
    * (for ex: in a web page).

@@ -382,18 +382,33 @@ filterTags ruleTags tags =
           True
         )
 
+-- WARNING:
+--
+-- Here we are building an html snippet that will be placed inside an attribute, so
+-- we can't easily use the Html type as there is no built-in way to serialize it manually.
+-- This means it will be vulnerable to XSS on its parameters (here the description).
+--
+-- We resort to escaping it manually here.
 buildHtmlStringTag : Tag -> String
 buildHtmlStringTag tag =
   let
     tagOpen  = "<span class='tags-label'>"
     tagIcon  = "<i class='fa fa-tag'></i>"
-    tagKey   = "<span class='tag-key'>"   ++ tag.key   ++ "</span>"
+    tagKey   = "<span class='tag-key'>"   ++ htmlEscape tag.key   ++ "</span>"
     tagSep   = "<span class='tag-separator'>=</span>"
-    tagVal   = "<span class='tag-value'>" ++ tag.value ++ "</span>"
+    tagVal   = "<span class='tag-value'>" ++ htmlEscape tag.value ++ "</span>"
     tagClose = "</span>"
   in
     tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
 
+htmlEscape : String -> String
+htmlEscape s =
+  String.replace "&" "&amp;" s
+    |> String.replace ">" "&gt;"
+    |> String.replace "<" "&lt;"
+    |> String.replace "\"" "&quot;"
+    |> String.replace "'" "&#x27;"
+    |> String.replace "\\" "&#x2F;"
 
 buildTagsTree : List Tag -> Html Msg
 buildTagsTree tags =
@@ -466,6 +481,9 @@ badgePolicyMode globalPolicyMode policyMode =
   in
     span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Policy mode" msg)][]
 
+-- WARNING:
+--
+-- Here the content is an HTML so it need to be already escaped.
 buildTooltipContent : String -> String -> String
 buildTooltipContent title content =
   let
@@ -474,6 +492,7 @@ buildTooltipContent title content =
     closeTag   = "</div>"
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
+
 
 buildIncludeList : Maybe Rule -> Category Group -> Model -> Bool -> Bool -> RuleTarget -> Html Msg
 buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =

@@ -39,7 +39,6 @@ package com.normation.rudder.ncf
 
 
 import better.files.File
-import better.files.File.root
 import cats.implicits._
 import com.normation.box._
 import com.normation.cfclerk.domain
@@ -55,25 +54,18 @@ import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.git.GitConfigItemRepository
-import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.hooks.Cmd
-import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.repository.xml.XmlArchiverUtils
+import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.Control
@@ -81,7 +73,6 @@ import com.normation.zio.currentTimeMillis
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import org.joda.time.DateTime
 import zio._
 import zio.syntax._
 
@@ -102,126 +93,23 @@ final case class TechniqueUpdateError(message : String, exception : Option[Throw
 final case class MethodNotFound(message : String, exception : Option[Throwable]) extends NcfError
 
 /*
- * get the full line of arguments for rudderc for the given kind of target,
- * with the given input file and config file
+ * This service is in charge of writing an editor technique and it's related files.
+ * This is a higher level api, that works at EditorTechnique level, and is able to generate all the low level stuff (calling rudderc if needed) like
+ * metadata.xml, agent related files, etc
  */
-trait RuddercOptionsForTarget[T <: RuddercTarget] {
-  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String]
-  def targetName: String
+trait TechniqueWriter {
+
+  def deleteTechnique(techniqueName: String, techniqueVersion: String, deleteDirective: Boolean, modId: ModificationId, committer: EventActor): IOResult[Unit]
+
+  def writeTechniqueAndUpdateLib(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor): IOResult[EditorTechnique]
+
+  // Write and commit all techniques files
+  def writeTechnique(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor): IOResult[EditorTechnique]
 }
 
-object RuddercOptionsForTarget {
-  // the compile line is common to both target, only the file extension type for agent changes
-  def buildOptions(extension: String, techniquePath: String)(implicit ruddercConfig: RuddercConfig) = {
-    "compile" :: "--json-logs" :: "--format" :: extension ::
-    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.rd""" ::
-    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
-  }
 
-  implicit val cfengineRuddercOption = new RuddercOptionsForTarget[RuddercTarget.CFEngine.type] {
-    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-      buildOptions("cf", techniquePath)
-    }
-    override def targetName: String = "CFEngine"
-  }
 
-  implicit val dscRuddercOption = new RuddercOptionsForTarget[RuddercTarget.DSC.type] {
-    override def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-      buildOptions("dsc", techniquePath)
-    }
-    override def targetName: String = "DSC"
-  }
-}
-
-object RuddercOptionForSave {
-  def options(techniquePath: String)(implicit ruddercConfig: RuddercConfig): List[String] = {
-    "save" :: "--json-logs" ::
-    "--input" :: s"""${ruddercConfig.outputPath}/${techniquePath}/technique.json""" ::
-    s"--config-file=${ruddercConfig.configFilePath}" :: Nil
-  }
-}
-
-final case class RuddercConfig(
-    configFilePath : String
-  , rudderCPath    : String
-  , outputPath     : String
-)
-
-class RudderCRunner(
-    configFilePath : String
-  , rudderCPath    : String
-  , outputPath     : String
-) {
-
-  implicit val config = RuddercConfig(configFilePath, rudderCPath, outputPath)
-  import RuddercOptionsForTarget._
-
-  /*
-   * `techniquePath` is the relative path of the technique.
-   */
-  def compileForTarget[T <: RuddercTarget](techniquePath: String)(implicit ruddercOptionsForTarget: RuddercOptionsForTarget[T]) = {
-    for {
-      time_1 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, ruddercOptionsForTarget.options(techniquePath), Map.empty))
-      res    <- r.await
-      _      <- ZIO.when(res.code != 0) {
-                  Inconsistency(
-                    s"An error occurred when compiling technique.rd file into ${ruddercOptionsForTarget.targetName}\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-                  ).fail
-                }
-      time_2 <- currentTimeMillis
-      _      <- TimingDebugLoggerPure.trace(s"compileTechnique: compiling technique '${techniquePath}' into ${ruddercOptionsForTarget.targetName} took ${time_2 - time_1}ms")
-    } yield ()
-  }
-
-  // returns whether the fallback was applied
-  def writeOne[T <: RuddercTarget](target: T, ruddercTargets: Set[RuddercTarget], technique: EditorTechnique,
-                                   methods: Map[BundleName, GenericMethod], fallback: AgentSpecificTechniqueWriter,
-                                   outputPath: String, configFilePath: String): ZIO[Any, RudderError, Boolean] = {
-    if(ruddercTargets.contains(target)) {
-      TechniqueWriterLoggerPure.debug(s"Using rudderc for target '${target.name}' for technique '${technique.path}'") *> {
-        target match {
-          case RuddercTarget.DSC      => compileForTarget[RuddercTarget.DSC.type](technique.path)
-          // no need for na reporting file when succeeds
-          case RuddercTarget.CFEngine => compileForTarget[RuddercTarget.CFEngine.type](technique.path)
-        }
-      }.map(_ => false)
-    } else {
-      for {
-        _ <- TechniqueWriterLoggerPure.debug(s"Using fallback technique generation in place of rudderc for technique '${technique.path}' because target '${target.name}' not enabled in settings")
-        _ <- fallback.writeAgentFiles(technique, methods)
-      } yield {
-        true
-      }
-    }
-  }
-
-  def compileTechnique(technique : EditorTechnique, targets: Set[RuddercTarget], methods: Map[BundleName, GenericMethod],
-                       cfengineFallback: AgentSpecificTechniqueWriter, dscFallback: AgentSpecificTechniqueWriter) = {
-
-    for {
-      time_0 <- currentTimeMillis
-      r      <- RunNuCommand.run(Cmd(rudderCPath, RuddercOptionForSave.options(technique.path), Map.empty))
-      res    <- r.await
-      _      <- ZIO.when(res.code != 0) {
-                  Inconsistency(
-                    s"An error occurred when translating ${technique.path}/technique.json file into Rudder language\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-                  ).fail
-                }
-      time_1 <- currentTimeMillis
-      _      <- TimingDebugLoggerPure.trace(s"compileTechnique: saving technique '${technique.name}' took ${time_1 - time_0}ms")
-
-      writtenByRudderWebapp <- writeOne(RuddercTarget.CFEngine, targets, technique, methods, cfengineFallback, outputPath, configFilePath)
-
-      _                     <- writeOne(RuddercTarget.DSC     , targets, technique, methods, dscFallback     , outputPath, configFilePath)
-
-    } yield {
-      writtenByRudderWebapp
-    }
-  }
-}
-
-class TechniqueWriter (
+class TechniqueWriterImpl (
     archiver            : TechniqueArchiver
   , techLibUpdate       : UpdateTechniqueLibrary
   , translater          : InterpolatedValueCompiler
@@ -230,38 +118,34 @@ class TechniqueWriter (
   , techniqueRepository : TechniqueRepository
   , workflowLevelService: WorkflowLevelService
   , xmlPrettyPrinter    : RudderPrettyPrinter
-  , basePath            : String
+  , baseConfigRepoPath  : String // root of config repos
   , parameterTypeService: ParameterTypeService
   , techniqueSerializer : TechniqueSerializer
-  , compiler            : RudderCRunner
-  , errorLogPath        : String
-  , ruddercTargets      : IOResult[Set[RuddercTarget]]
-) {
+) extends TechniqueWriter {
 
-  /*
-   * This is the pre-rudderc writers. Still used as a fallback when rudderc is not configured for a target,
-   * or as a fallback on error.
-   * Plus, as of Rudder 7.0, rudderc does not know how to write metadata yet.
-   */
-  private[this] val cfengineFallbackTechniqueWriter = new ClassicTechniqueWriter(basePath, parameterTypeService)
-  private[this] val dscFallbackTechniqueWriter = new DSCTechniqueWriter(basePath, translater, parameterTypeService)
-  private[this] val agentSpecific = cfengineFallbackTechniqueWriter :: dscFallbackTechniqueWriter :: Nil
 
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
+  private[this] val cfengineTechniqueWriter = new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService)
+  private[this] val dscTechniqueWriter = new DSCTechniqueWriter(baseConfigRepoPath, translater, parameterTypeService)
+  private[this] val agentSpecific = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
+
+  // root of technique repository
+  val techniquesDir = File(baseConfigRepoPath) / "techniques"
+
+  override def deleteTechnique(techniqueName : String, techniqueVersion : String, deleteDirective : Boolean, modId : ModificationId, committer : EventActor) : IOResult[Unit] ={
 
     def createCr(directive : Directive, rootSection : SectionSpec ) ={
-        val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
-        ChangeRequestService.createChangeRequestFromDirective(
-          s"Deleting technique ${techniqueName}/${techniqueVersion}"
-          , ""
-          , TechniqueName(techniqueName)
-          , Some(rootSection)
-          , directive.id
-          , Some(directive)
-          , diff
-          , committer
-          , None
-        )
+      val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
+      ChangeRequestService.createChangeRequestFromDirective(
+        s"Deleting technique ${techniqueName}/${techniqueVersion}"
+        , ""
+        , TechniqueName(techniqueName)
+        , Some(rootSection)
+        , directive.id
+        , Some(directive)
+        , diff
+        , committer
+        , None
+      )
     }
 
     def mergeCrs(cr1 : ConfigurationChangeRequest, cr2 : ConfigurationChangeRequest) = {
@@ -273,66 +157,67 @@ class TechniqueWriter (
         directives <- readDirectives.getFullDirectiveLibrary().map(_.allActiveTechniques.values.filter(_.techniqueName.value == techniqueId.name.value).flatMap(_.directives).filter(_.techniqueVersion == techniqueId.version))
         categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
         // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-        _          <-  directives match {
-                         case Nil => UIO.unit
-                         case _ =>
-                           if (deleteDirective) {
-                             val wf = workflowLevelService.getWorkflowService()
-                             for {
-                               cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete ${technique.name}/${techniqueVersion} directives")
-                               _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique ${technique.name}/${techniqueVersion}")).toIO
-                             } yield ()
-                           } else
-                             Unexpected(s"${directives.size} directives are defined for ${technique.name}/${techniqueVersion} please delete them, or force deletion").fail
-                       }
-        activeTech <- readDirectives.getActiveTechnique(TechniqueName(technique.name))
+        _          <- directives match {
+                        case Nil => UIO.unit
+                        case _ =>
+                          if (deleteDirective) {
+                            val wf = workflowLevelService.getWorkflowService()
+                            for {
+                              cr <- directives.map(createCr(_,technique.rootSection)).reduceOption(mergeCrs).notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
+                              _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique '${techniqueId.serialize}'")).toIO
+                            } yield ()
+                          } else
+                              Unexpected(s"${directives.size} directives are defined for '${techniqueId.serialize}': please delete them, or force deletion").fail
+                      }
+        activeTech <- readDirectives.getActiveTechnique(techniqueId.name)
         _          <- activeTech match {
                         case None =>
                           // No active technique found, let's delete it
                           ().succeed
                         case Some(activeTechnique) =>
-                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique ${techniqueName}"))
+                          writeDirectives.deleteActiveTechnique(activeTechnique.id, modId, committer, Some(s"Deleting active technique '${techniqueId.name.value}'"))
                       }
-        _          <- archiver.deleteTechnique(technique.name, techniqueVersion, categories.map(_.id.name.value), modId,committer, s"Deleting technique ${technique.name}/${techniqueVersion}")
-        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of Technique ${technique.name}")).toIO.chainError(
+        _          <- archiver.deleteTechnique(techniqueId, categories.map(_.id.name.value), modId, committer, s"Deleting technique '${techniqueId}'")
+        _          <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of technique '${technique.name}'")).toIO.chainError(
                         s"An error occurred during technique update after deletion of Technique ${technique.name}"
                       )
       } yield ()
     }
 
-    def removeInvalidTechnique(basePath: String, techniqueName: String): IOResult[Unit] = {
-      val unknownTechniquesDir = File(s"${basePath}/techniques/").listRecursively.filter(_.isDirectory).filter(_.name == techniqueName).toList
+    def removeInvalidTechnique(techniquesDir: File, techniqueId: TechniqueId): IOResult[Unit] = {
+      val unknownTechniquesDir = techniquesDir.listRecursively.filter(_.isDirectory).filter(_.name == techniqueId.name.value).toList
       unknownTechniquesDir.length match {
         case 0 =>
-          ApplicationLogger.info(s"No technique `${techniqueName}` found to delete").succeed
+          ApplicationLogger.debug(s"No technique `${techniqueId.debugString}` found to delete").succeed
         case _ =>
           for {
             _ <- ZIO.foreach(unknownTechniquesDir) { f =>
-                   val cat = f.pathAsString.substring(s"${basePath}/techniques/".length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
-                   for {
-                     _ <-  archiver.deleteTechnique(techniqueName, techniqueVersion, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
-                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in /var/rudder/configuration-repository/techniques: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
+              val cat = f.pathAsString.substring((techniquesDir.pathAsString + "/").length).split("/").filter(s => s != techniqueName && s != techniqueVersion).toList
+              for {
+                _ <- archiver.deleteTechnique(techniqueId, cat, modId, committer, s"Deleting invalid technique ${techniqueName}/${techniqueVersion}").chainError(
+                       s"Error when trying to delete invalids techniques, you can manually delete them by running these commands in " +
+                       s"${techniquesDir.pathAsString}: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
                      )
-                     _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
-                       s"An error occurred during technique update after deletion of Technique ${techniqueName}"
-                     )
-                   } yield ()
-                 }
+                _ <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")).toIO.chainError(
+                  s"An error occurred during technique update after deletion of Technique ${techniqueName}"
+                )
+              } yield ()
+            }
           } yield ()
       }
     }
 
     for {
-      techVers    <- ZIO.fromEither(TechniqueVersion.parse(techniqueVersion)).mapError(Unexpected)
-      techniqueId = TechniqueId(TechniqueName(techniqueName), techVers)
+      techVersion <- TechniqueVersion.parse(techniqueVersion).toIO
+      techniqueId =  TechniqueId(TechniqueName(techniqueName), techVersion)
       _           <- techniqueRepository.get(techniqueId) match {
                        case Some(technique) => removeTechnique(techniqueId, technique)
-                       case None            => removeInvalidTechnique(basePath, techniqueName)
+                       case None            => removeInvalidTechnique(techniquesDir, techniqueId)
                      }
-   } yield ()
+    } yield ()
   }
 
-  def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : PureResult[XmlNode] = {
+  def techniqueMetadataContent(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]) : PureResult[XmlNode] = {
 
     def reportingValuePerBlock (block : MethodBlock) : PureResult[NodeSeq] = {
 
@@ -405,7 +290,7 @@ class TechniqueWriter (
 
     for {
       reportingSection <- reportingSections(technique.methodCalls.toList)
-      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods, writtenByRudderWebapp))
+      agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
         { if (technique.parameters.nonEmpty) {
@@ -434,14 +319,14 @@ class TechniqueWriter (
     for {
       updatedTechnique <- writeTechnique(technique,methods,modId,committer)
       libUpdate        <- techLibUpdate.update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")).
-                            toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
+        toIO.chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
       updatedTechnique
     }
   }
 
   // Write and commit all techniques files
-  def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
+  override def writeTechnique(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, committer : EventActor) : IOResult[EditorTechnique] = {
     for {
       time_0     <- currentTimeMillis
       _          <- TechniqueWriterLoggerPure.debug(s"Writing technique ${technique.name}")
@@ -452,46 +337,17 @@ class TechniqueWriter (
       json       <- writeJson(techniqueWithResourceUpdated, methods)
       time_1     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing json for technique '${technique.name}' took ${time_1 - time_0}ms")
-      targets    <- ruddercTargets
-      _          <- TechniqueWriterLoggerPure.debug(s"Targets for technique ${technique.name} are ${targets.map(_.name).mkString(",")}")
-      writtenByRudderWebapp <- if (targets.nonEmpty) {
-            // if we have some rudderc target, use them
-            compiler.compileTechnique(technique, targets, methods, cfengineFallbackTechniqueWriter, dscFallbackTechniqueWriter).catchAll { e =>
-              val errorPath: File = root / errorLogPath / "rudderc" / "failures" / s"${DateTime.now()}_${technique.bundleName.value}.log"
-              for {
-                _ <- TechniqueWriterLoggerPure.error(s"An error occurred when compiling technique '${technique.name}' (id : '${technique.bundleName}') with rudderc, error details in ${errorPath}, falling back to old saving process")
-                _ <- IOResult.effect {
-                  errorPath.createFileIfNotExists(true)
-                  errorPath.write(
-                    s"""
-                    |error =>
-                    |  ${e.fullMsg}
-                    |technique data =>
-                    |  ${net.liftweb.json.prettyRender(techniqueSerializer.serializeTechniqueMetadata(technique,methods))}""".stripMargin)
-                   }.catchAll(e2 =>
-                       TechniqueWriterLoggerPure.error(s"Error when writing error log of '${technique.name}' (id : '${technique.bundleName}') in in ${errorPath}: ${e2.fullMsg}") *>
-                       TechniqueWriterLoggerPure.error(s"Error when compiling '${technique.name}' (id : '${technique.bundleName}') with rudderc was: ${e.fullMsg}")
-                   )
-              _   <- writeAgentFiles(technique, methods, modId, committer)
-            } yield {
-              true
-            }
-          }
-        } else {
-          for {
-            _   <- writeAgentFiles(technique, methods, modId, committer)
-          } yield {
-            true
-          }
-        }
-      _          <- TechniqueWriterLoggerPure.debug(s"Result of writtenByRudderWebapp for ${technique.name} is ${writtenByRudderWebapp}")
+      _          <- writeAgentFiles(technique, methods, modId, committer)
       time_2     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms")
 
-      metadata   <- writeMetadata(technique, methods, writtenByRudderWebapp)
+      metadata   <- writeMetadata(technique, methods)
       time_3     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_3 - time_2}ms")
-      commit     <- archiver.commitTechnique(technique, modId, committer, s"Committing technique ${technique.name}")
+      id         <- TechniqueVersion.parse(technique.version.value).toIO.map(v =>  TechniqueId(TechniqueName(technique.bundleName.value), v))
+                    // resources files are missing the the "resources/" prefix
+      resources  =  technique.ressources.map(r => ResourceFile("resources/" + r.path, r.state))
+      commit     <- archiver.saveTechnique(id, technique.category.split('/').toIndexedSeq, Chunk.fromIterable(resources), modId, committer, s"Committing technique ${technique.name}")
       time_4     <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
       _          <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
@@ -501,7 +357,10 @@ class TechniqueWriter (
     }
   }
 
-  def writeAgentFiles(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], modId : ModificationId, commiter : EventActor) : IOResult[Seq[String]] = {
+
+  ///// utility methods /////
+
+  def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod], modId: ModificationId, committer: EventActor) : IOResult[Seq[String]] = {
     for {
       // Create/update agent files, filter None by flattening to list
       files  <- ZIO.foreach(agentSpecific)(_.writeAgentFiles(technique, methods)).map(_.flatten)
@@ -511,27 +370,27 @@ class TechniqueWriter (
     }
   }
 
-  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean) : IOResult[String] = {
+  def writeMetadata(technique : EditorTechnique, methods: Map[BundleName, GenericMethod]) : IOResult[String] = {
 
     val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
 
-    val path = s"${basePath}/${metadataPath}"
+    val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
-      content <- techniqueMetadataContent(technique, methods, writtenByRudderWebapp).map(n => xmlPrettyPrinter.format(n)).toIO
+      content <- techniqueMetadataContent(technique, methods).map(n => xmlPrettyPrinter.format(n)).toIO
       _       <- IOResult.effect(s"An error occurred while creating metadata file for Technique '${technique.name}'") {
-                   implicit val charSet = StandardCharsets.UTF_8
-                   val file = File (path).createFileIfNotExists (true)
-                   file.write (content)
-                 }
+        implicit val charSet = StandardCharsets.UTF_8
+        val file = File (path).createFileIfNotExists (true)
+        file.write (content)
+      }
     } yield {
       metadataPath
     }
   }
 
-  def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
+  def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
     val metadataPath = s"${technique.path}/technique.json"
 
-    val path = s"${basePath}/${metadataPath}"
+    val path = s"${baseConfigRepoPath}/${metadataPath}"
 
     val content = techniqueSerializer.serializeTechniqueMetadata(technique, methods)
     for {
@@ -550,7 +409,7 @@ trait AgentSpecificTechniqueWriter {
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : IOResult[Seq[String]]
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) : PureResult[NodeSeq]
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) : PureResult[NodeSeq]
 }
 
 class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterTypeService) extends AgentSpecificTechniqueWriter {
@@ -593,13 +452,114 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     s"""_method_reporting_context_v4("${component}", "${value}","${methodCall.id}")"""
   }
 
+  def reportingContextInBundle(args: Seq[String]) = {
+    s"_method_reporting_context_v4(${convertArgsToBundleCall(args)})"
+  }
+
+
+  def convertArgsToBundleCall(args:Seq[String]) : String = {
+    args.map(escapeCFEngineString(_)).map(""""${""" + _ + """}"""").mkString(",")
+  }
 
 
   def writeAgentFiles( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : IOResult[Seq[String]] = {
 
+    // increment of the bundle number in the technique, used by createCallingBundle
+    var bundleIncrement = 0
+
     val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
 
-    def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+    // generate a bundle which encapsulate the method_reporting_context + the actual method call
+    // and the method to call this bundle
+    // Params are:
+    // * condition when to call this bundle
+    // * the methodCall itself from the technique editor
+    // * the class parameter _value_
+    // * all the parameters already converted to cfengine format
+    // * if it's for the NAReports bundle (reverse the condition from if to unless)
+    // Returns the bundle agent, and the "promised_" usebundle => bundle_created
+    def createCallingBundle(condition          : String
+                          , call               : MethodCall
+                          , classParameterValue: String
+                          , params             : Seq[String]
+                          , forNaReport        : Boolean) = {
+      val promiser = call.id + "_${report_data.directive_id}"
+
+      val filterOnMethod = forNaReport match {
+        case false => "if"
+        case true  => "unless"
+      }
+
+
+      // Reporting argument
+      val reportingValues = escapeCFEngineString(call.component) ::
+                          escapeCFEngineString(classParameterValue) ::
+                          call.id :: Nil
+      // create the bundle arguments:
+      // there are 3 arguments corresponding to the reportingValues, (need to be quoted)
+      // the rest is for the methodArgs.
+      val allValues = reportingValues.map( x  => s""""${x}"""")  ::: params.toList
+
+      val method = methods.get(call.methodId)
+
+      // Get all bundle argument names
+      val bundleName = (technique.bundleName.value + "_gm_" + bundleIncrement).replaceAll("-", "_")
+      bundleIncrement = bundleIncrement + 1
+
+      val reportingArgs = "c_name" :: "c_key" :: "report_id" :: Nil
+
+      val (bundleArgs, bundleNameAndArg) = forNaReport match {
+        case false =>
+          val args = params.toList.zipWithIndex.map {
+          case (_, id) =>
+            method.flatMap(_.parameters.get(id.toLong).map(_.id.value)).getOrElse("arg_" + id)
+          }
+          (args, s"""${call.methodId.value}(${convertArgsToBundleCall(args)});""")
+
+        case true =>
+          // special case for log_na_rudder; args muse be called with @
+          val args = "message" :: "class_parameter" :: "unique_prefix" :: "args" :: Nil
+          (args, """log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});""")
+      }
+
+      val allArgs = reportingArgs ::: bundleArgs
+
+      // The bundle that will effectively act
+      val bundleActing = {
+        val bundleCall =
+          s"""    "${promiser}" usebundle => ${reportingContextInBundle(reportingArgs)};
+             |    "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
+
+        val bundleCallWithReportOption =
+          if (call.disabledReporting) {
+            s"""    "${promiser}" usebundle => disable_reporting;
+               |${bundleCall}
+               |    "${promiser}" usebundle => enable_reporting;""".stripMargin('|')
+          } else {
+            bundleCall
+          }
+
+
+        s"""bundle agent ${bundleName}(${allArgs.mkString(", ")}) {
+             |  methods:
+             |${bundleCallWithReportOption}
+             |}
+             |""".stripMargin('|')
+      }
+
+      // the call to the bundle
+      val callBundle = {
+          s"""    "${promiser}" usebundle => ${bundleName}(${allValues.mkString(", ")}),
+             |     ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");
+             |""".stripMargin('|')
+
+
+      }
+      (bundleActing, callBundle)
+    }
+
+    // returns the bundle acting, and the method to call the bundle
+    def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[(String, String)] = {
       method match {
         case call : MethodCall =>
           (for {
@@ -617,35 +577,18 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             }
           }  yield {
             val condition = canonifyCondition(call, parentBlocks)
-            val promiser = call.id + "_${report_data.directive_id}"
-            // Check constraint and missing value
-            val args = params.mkString(", ")
-            val bundleCall =
-            s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
-               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-               |    "${promiser}" usebundle => ${call.methodId.value}(${args}),
-               |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-               |""".stripMargin('|')
-
-            if (call.disabledReporting) {
-              s"""    "${promiser}" usebundle => disable_reporting,
-                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-                 |""" ++
-                 bundleCall ++
-              s"""    "${promiser}" usebundle => enable_reporting,
-                 |     ${promiser.map(_ => ' ')}         if => concat("${condition}");
-                 |""".stripMargin('|')
-            } else {
-              bundleCall
-            }
-
-
+            createCallingBundle(condition, call, classParameterValue, params, false)
           }).toList
         case block : MethodBlock =>
           block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
       }
     }
-    val methodCalls = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("")
+    val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+
+    val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
+    val methodsCalls = bundleAndMethodCallsList.map(_._2).mkString("")
+
+
 
     val content = {
       import net.liftweb.json.JsonDSL._
@@ -668,8 +611,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
          |    "pass2" expression => "pass1";
          |    "pass1" expression => "any";
          |  methods:
-         |${methodCalls}
-         |}""".stripMargin('|')
+         |${methodsCalls}
+         |}
+         |
+         |${bundleActings}""".stripMargin('|')
     }
 
     implicit val charset = StandardCharsets.UTF_8
@@ -688,39 +633,26 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
       val bundleParams = if (technique.parameters.nonEmpty) technique.parameters.map(_.name.canonify).mkString("(",",",")") else ""
       val args = technique.parameters.map(p => s"$${${p.name.canonify}}").mkString(", ")
 
-      def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[String] = {
+      def bundleMethodCall( parentBlocks : List[MethodBlock])(method : MethodElem) : List[(String, String)] = {
         method match {
           case c : MethodCall =>
-            val call = MethodCall.renameParams(c,methods)
+            val call = MethodCall.renameParams(c,methods).copy(methodId = BundleName("log_na_rudder"))
             (for {
-              method_info <- methods.get(call.methodId)
+              method_info <- methods.get(c.methodId)
               // Skip that method if name starts with _
-              if ! call.methodId.value.startsWith("_")
+              if ! c.methodId.value.startsWith("_")
               (_, classParameterValue) <- call.parameters.find( _._1 == method_info.classParameter)
 
               escapedClassParameterValue = escapeCFEngineString(classParameterValue)
               classPrefix = s"$${class_prefix}_${method_info.classPrefix}_${escapedClassParameterValue}"
 
             }  yield {
-              val promiser = call.id
               def naReport(condition : String, message : String) = {
-                val bundleCall =
-                s"""    "${promiser}" usebundle => ${reportingContext(call, classParameterValue)},
-                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
-                   |    "${promiser}" usebundle => log_na_rudder("${message}", "${escapedClassParameterValue}", "${classPrefix}", @{args}),
-                   |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
 
-                if (call.disabledReporting) {
-                  s"""    "${promiser}" usebundle => disable_reporting,
-                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");
-                     |${bundleCall}
-                     |    "${promiser}" usebundle => enable_reporting,
-                     |     ${promiser.map(_ => ' ')}     unless => concat("${condition}");""".stripMargin('|')
-                } else {
-                  bundleCall
-                }
+                val params = s""""${message}"""" :: s""""${escapedClassParameterValue}"""" :: s""""${classPrefix}"""" :: "@{args}" :: Nil
+
+                createCallingBundle(condition, call, classParameterValue, params, true)
               }
-
 
               // Write report if the method does not support CFEngine ...
               (if (! method_info.agentSupport.contains(AgentType.CfeCommunity)) {
@@ -729,7 +661,7 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
                 Some((condition,message))
               } else {
                 // ... or if the condition needs rudder_reporting
-                if (methodCallNeedReporting(methods, parentBlocks)(call)) {
+                if (methodCallNeedReporting(methods, parentBlocks)(c)) {
                   val message = s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
                   val condition = s"${canonifyCondition(call, parentBlocks)}"
                   Some((condition, message))
@@ -742,7 +674,11 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
             block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
         }
       }
-      val methodsReporting = technique.methodCalls.flatMap(bundleMethodCall(Nil)).mkString("\n")
+      val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+
+      val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
+      val methodsCalls = bundleAndMethodCallsList.map(_._2).mkString("")
+
       val content =
         s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
            |{
@@ -753,8 +689,10 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
            |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
            |
            |  methods:
-           |${methodsReporting}
-           |}"""
+           |${methodsCalls}
+           |}
+           |
+           |${bundleActings}"""
 
       val reportingFile = File(basePath) / "techniques"/ technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
       IOResult.effect(s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}") {
@@ -771,10 +709,9 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
     }
   }
 
-  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean )  : PureResult[NodeSeq] = {
+  def agentMetadata ( technique : EditorTechnique, methods : Map[BundleName, GenericMethod] )  : PureResult[NodeSeq] = {
 
-    // Rudderc manages directly na reporting in bundle. so we only need to do rudder reporting only if it was written by Rudder
-    val needReporting =  writtenByRudderWebapp && needReportingBundle(technique, methods)
+    val needReporting =  needReportingBundle(technique, methods)
     val xml = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
@@ -805,120 +742,141 @@ class ClassicTechniqueWriter(basePath : String, parameterTypeService: ParameterT
   }
 
 }
+
+
 class DSCTechniqueWriter(
     basePath   : String
   , translater : InterpolatedValueCompiler
   , parameterTypeService : ParameterTypeService
 ) extends AgentSpecificTechniqueWriter{
+  implicit class IndentString(s: String) {
+    // indent all lines EXCLUDING THE FIRST by the given number of spaces
+    def indent(spaces:Int) = s.linesIterator.mkString("\n" + " " * spaces)
+  }
 
-  val genericParams =
-    "-reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly"
+  // we use the same class prefix construction as for CFEngine.
+  // If it's really the same thing, it should either be given by technique editor or common to both
+  def computeClassPrefix(gm: GenericMethod, classParameter: String): String = {
+    // the canonification must be done commonly with other canon
+    s"""[Rudder.Condition]::canonify("${gm.classPrefix}_" + ${classParameter})"""
+  }
+
+  // WARNING: this is extremely likely false, it MUST be done in the technique editor or
+  // via a full fledge parser of conditions
+  def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]) = {
+    formatCondition(methodCall, parentBlocks).replaceAll("""(\$\{[^\}]*})""", """" + ([Rudder.Condition]::canonify(\$componentKey)) + """")
+  }
+
+  def truthyCondition(condition: String) = condition.isEmpty || condition == "any"
+
+  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
+    (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
+      case (Nil, true)   => "any"
+      case (list, true)  => list.mkString("(", ").(", ")")
+      case (Nil, false)  => methodCall.condition
+      case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
+    }
+  }
 
   def computeTechniqueFilePath(technique : EditorTechnique) =
     s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
-  def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ): IOResult[Seq[String]] = {
-
-    def toDscFormat(parentBlocks: List[MethodBlock])(method : MethodElem) : PureResult[List[String]] = {
-      method match {
-        case c : MethodCall =>
-          val call = MethodCall.renameParams(c,methods)
-          if (call.methodId.value.startsWith("_")) {
-            Right(Nil)
-          } else {
-            val componentName = s"""-componentName "${call.component.replaceAll("\"", "`\"")}""""
-            val disableReporting =
-              s"""-Report:$$${if (call.disabledReporting) {"false" } else { "true" }}"""
+  def formatDscMethodBlock(techniqueName: String, methods : Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(method: MethodElem): PureResult[List[String]] = {
+    method match {
+      case c : MethodCall =>
+        val call = MethodCall.renameParams(c,methods)
+        if (call.methodId.value.startsWith("_")) {
+          Right(Nil)
+        } else {
+          val componentName = call.component.replaceAll("\"", "`\"")
+          val disableReporting = if (call.disabledReporting) { "true" } else { "false" }
 
 
-            def truthyCondition(condition : String) = condition.isEmpty || condition == "any"
-            def formatCondition(methodCall: MethodCall, parentBlock : List[MethodBlock]) =  {
-              (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
-                case (Nil, true) => "any"
-                case (list, true) => list.mkString("(",").(",")")
-                case (Nil, false) => methodCall.condition
-                case (list, false) => list.mkString("(", ").(", s".${methodCall.condition})")
-              }
-            }
-            def canonifyCondition(methodCall: MethodCall) = {
-              formatCondition(methodCall, parentBlocks).replaceAll("""(\$\{[^\}]*})""","""" + \$(Canonify-Class $1) + """")
-            }
 
-            def naReport(method : GenericMethod, expectedReportingValue : String) =
-              s"""_rudder_common_report_na ${componentName} -componentKey ${expectedReportingValue} -message "Not applicable" ${disableReporting} ${genericParams}"""
+          (for {
+
+            // First translate parameters to Dsc values
+            params    <- ((call.parameters.toList).traverse {
+                            case (id, arg) =>
+                              translater.translateToAgent(arg, AgentType.Dsc) match {
+                                case Full(dscValue) =>
+                                  parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
+
+                                case eb : EmptyBox =>
+                                  val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                                  Left(IOError(fail.messageChain,None))
+                              }
+                         }).map(_.toMap)
+
+            // Translate condition
+            condition <- translater.translateToAgent(canonifyCondition(call, parentBlocks), AgentType.Dsc) match {
+                           case Full(c) => Right(c)
+                           case eb : EmptyBox =>
+                             val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                             Left(IOError(fail.messageChain,None))
+                         }
+
+            // Check if method exists
+            method <- methods.get(call.methodId) match {
+                        case Some(method) =>
+                          Right(method)
+                        case None =>
+                          Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${techniqueName}' methods calls", None))
+                      }
+            // Check if class parameter is correctly defined
+            classParameter <- params.get(method.classParameter) match {
+                                case Some(classParameter) =>
+                                  Right(classParameter)
+                                case None =>
+                                  Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${techniqueName}' methods calls",None))
+                              }
+
+            methodParams = params.map { case(id, arg) => s"""-${id.validDscName} ${arg}""" }.mkString(" ")
+            effectiveCall =
+              s"""$$call = ${call.methodId.validDscName} ${methodParams} -PolicyMode $$policyMode
+                 |$$methodContext = Compute-Method-Call @reportParams -MethodCall $$call
+                 |$$localContext.merge($$methodContext)
+                 |""".stripMargin
 
 
-            (for {
-
-              // First translate parameters to Dsc values
-              params    <- ((call.parameters.toList).traverse {
-                              case (id, arg) =>
-                                translater.translateToAgent(arg, AgentType.Dsc) match {
-                                  case Full(dscValue) =>
-                                    parameterTypeService.translate(dscValue, methods.get(call.methodId).flatMap(_.parameters.find(_.id == id)).map(_.parameterType).getOrElse(ParameterType.StringParameter), AgentType.Dsc).map(dscValue => (id,dscValue))
-
-                                  case eb : EmptyBox =>
-                                    val fail = eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${technique.name}"
-                                    Left(IOError(fail.messageChain,None))
-                                }
-                           }).map(_.toMap)
-
-              // Translate condition
-              condition <- translater.translateToAgent(canonifyCondition(call), AgentType.Dsc) match {
-                             case Full(c) => Right(c)
-                             case eb : EmptyBox =>
-                               val fail = eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${technique.name}"
-                               Left(IOError(fail.messageChain,None))
-                           }
-
-              methodParams =
-                ( for {
-                  (id, arg) <- params
-                } yield {
-                s"""-${id.validDscName} ${arg}"""
-                }).mkString(" ")
-
-              effectiveCall =
-                s"""$$local_classes = Merge-ClassContext $$local_classes $$(${call.methodId.validDscName} ${methodParams} ${componentName} ${disableReporting} ${genericParams}).get_item("classes")"""
-
-              // Check if method exists
-              method <- methods.get(call.methodId) match {
-                          case Some(method) =>
-                            Right(method)
-                          case None =>
-                            Left(MethodNotFound(s"Method '${call.methodId.value}' not found when writing dsc Technique '${technique.name}' methods calls", None))
-                        }
-              // Check if class parameter is correctly defined
-              classParameter <- params.get(method.classParameter) match {
-                                  case Some(classParameter) =>
-                                    Right(classParameter)
-                                  case None =>
-                                    Left(MethodNotFound(s"Parameter '${method.classParameter.value}' for method '${method.id.value}' not found when writing dsc Technique '${technique.name}' methods calls",None))
-                                }
-
-            } yield {
-              if (method.agentSupport.contains(AgentType.Dsc)) {
-                if (condition == "any" ) {
-                  s"  ${effectiveCall}" :: Nil
-                } else {
-                  s"""|  $$class = "${condition}"
-                      |  if (Evaluate-Class $$class $$local_classes $$system_classes) {
-                      |    ${effectiveCall}
-                      |  } else {
-                      |    ${naReport(method,classParameter)}
-                      |  }""".stripMargin('|') :: Nil
-                }
+          } yield {
+            val methodCall = if (method.agentSupport.contains(AgentType.Dsc)) {
+              if (condition == "any" ) {
+                s"""${effectiveCall.indent(2)}"""
               } else {
-                s"  ${naReport(method,classParameter)}" :: Nil
+                s"""$$class = "${condition}"
+                   |if ($$localContext.Evaluate($$class)) {
+                   |  ${effectiveCall.indent(2)}
+                   |} else {
+                   |  Rudder-Report-NA @reportParams
+                   |}""".stripMargin('|').indent(2)
               }
-           }).map(s"""  $$reportId=$$reportIdBase+"${call.id}"""" :: _)
-         }
+            } else {
+              s"Rudder-Report-NA @reportParams"
+            }
 
-      case block : MethodBlock =>
-        block.calls.flatTraverse(toDscFormat(block :: parentBlocks))
-      }
+            s"""|  $$reportId=$$reportIdBase+"${call.id}"
+                |  $$componentKey = ${classParameter}
+                |  $$reportParams = @{
+                |    ClassPrefix = ([Rudder.Condition]::canonify(("${method.classPrefix}_" + $$componentKey)))
+                |    ComponentKey = $$componentKey
+                |    ComponentName = "${componentName}"
+                |    PolicyMode = $$policyMode
+                |    ReportId = $$reportId
+                |    DisableReporting = $$${disableReporting}
+                |    TechniqueName = $$techniqueName
+                |  }
+                |  ${methodCall}""".stripMargin('|') :: Nil
+
+          })
+       }
+
+    case block : MethodBlock =>
+      block.calls.flatTraverse(formatDscMethodBlock(techniqueName, methods, block :: parentBlocks))
     }
+  }
 
+  def writeAgentFiles(technique : EditorTechnique, methods : Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
 
     val parameters = technique.parameters match {
       case Nil => ""
@@ -933,7 +891,7 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- technique.methodCalls.toList.flatTraverse(toDscFormat(Nil)).toIO
+      calls <- technique.methodCalls.toList.flatTraverse(formatDscMethodBlock(technique.name, methods, Nil)).toIO
 
       content =
         s"""|function ${technique.bundleName.validDscName} {
@@ -943,14 +901,16 @@ class DSCTechniqueWriter(
             |      [string]$$reportId,
             |      [parameter(Mandatory=$$true)]
             |      [string]$$techniqueName,${parameters}
-            |      [switch]$$auditOnly
+            |      [Rudder.PolicyMode]$$policyMode
             |  )
+            |  BeginTechniqueCall -Name $$techniqueName
             |  $$reportIdBase = $$reportId.Substring(0,$$reportId.Length-1)
-            |  $$local_classes = New-ClassContext
+            |  $$localContext = [Rudder.Context]::new($$techniqueName)
+            |  $$localContext.Merge($$system_classes)
             |  $$resources_dir = $$PSScriptRoot + "\\resources"
             |
             |${calls.mkString("\n\n")}
-            |
+            |  EndTechniqueCall -Name $$techniqueName
             |}""".stripMargin('|')
 
       path  <-  IOResult.effect(s"Could not find dsc Technique '${technique.name}' in path ${basePath}/${techniquePath}") (
@@ -958,10 +918,8 @@ class DSCTechniqueWriter(
                 )
       // Powershell files needs to have a BOM added at the beginning of all files when using UTF8 enoding
       // See https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks
-      contentWithBom : List[Byte] =
-        // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
-        239.toByte :: 187.toByte :: 191.toByte  ::
-        content.getBytes(StandardCharsets.UTF_8).toList
+      // Bom, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
+      contentWithBom = Array(239.toByte, 187.toByte, 191.toByte) ++ content.getBytes(StandardCharsets.UTF_8)
 
       files <-  IOResult.effect(s"Could not write dsc Technique file '${technique.name}' in path ${basePath}/${techniquePath}") {
                   Files.createDirectories(path.getParent)
@@ -972,7 +930,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod], writtenByRudderWebapp : Boolean ) = {
+  def agentMetadata(technique : EditorTechnique, methods : Map[BundleName, GenericMethod] ) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.bundleName.validDscName}</NAME>
@@ -998,72 +956,4 @@ class DSCTechniqueWriter(
 
 }
 
-trait TechniqueArchiver {
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String], modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit]
-}
 
-class TechniqueArchiverImpl (
-    override val gitRepo                   : GitRepositoryProvider
-  , override val xmlPrettyPrinter          : RudderPrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , personIdentservice                     : PersonIdentService
-  , override val groupOwner                : String
-) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
-
-  override val encoding : String = "UTF-8"
-
-  // we can't use "techniques" for relative path because of ncf and dsc files. This is an architecture smell, we need to clean it.
-  override val relativePath = "/"
-
-  def deleteTechnique(techniqueName : String, techniqueVersion : String, categories : Seq[String],  modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
-    (for {
-      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
-      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
-      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}").call())
-
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield {
-      s"techniques/${categoryPath}/${techniqueName}/${techniqueVersion}"
-    }).chainError(s"error when deleting and committing Technique '${techniqueName}/${techniqueVersion}").unit
-  }
-
-  def commitTechnique(technique : EditorTechnique, modId: ModificationId, commiter:  EventActor, msg : String) : IOResult[Unit] = {
-
-    val techniqueGitPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}"
-    val filesToAdd = (
-      "metadata.xml" +:
-      "rudder_reporting.cf" +:
-      "technique.cf" +:
-      "technique.ps1" +:
-      "technique.json" +:
-      "technique.rd" +:
-      technique.ressources.collect {
-      case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified =>
-        s"resources/${path}"
-      }
-    ).map(file =>  s"${techniqueGitPath}/$file")
-
-    // appart resources, additionnal files to delete are for migration purpose.
-    val filesToDelete =
-      s"ncf/50_techniques/${technique.bundleName.value}" +:
-      s"dsc/ncf/50_techniques/${technique.bundleName.value}" +:
-      technique.ressources.collect {
-        case ResourceFile(path, ResourceFileState.Deleted) =>
-          s"${techniqueGitPath}/resources/${path}"
-      }
-    (for {
-      ident   <- personIdentservice.getPersonIdentOrDefault(commiter.name)
-
-      added <- ZIO.foreach(filesToAdd) { f =>
-        IOResult.effect(gitRepo.git.add.addFilepattern(f).call())
-      }
-      removed <- ZIO.foreach(filesToDelete) { f =>
-        IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
-      }
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
-    } yield ()).chainError(s"error when committing Technique '${technique.name}/${technique.version}").unit
-  }
-
-}

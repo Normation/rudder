@@ -1,0 +1,15 @@
+{{#vars.system_slapd_logrotate.ldap_logs}}
+{{{.name}}} {
+        daily
+        missingok
+        rotate {{{.duration}}}
+        compress
+        notifempty
+        create {{{.create}}}
+        delaycompress
+        sharedscripts
+        postrotate
+          {{{.postrotate}}}
+        endscript
+}
+{{/vars.system_slapd_logrotate.ldap_logs}}

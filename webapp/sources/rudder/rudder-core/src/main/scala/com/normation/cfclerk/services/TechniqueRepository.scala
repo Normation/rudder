@@ -134,4 +134,5 @@ trait TechniqueRepository {
   }
 
   def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory]
+
 }

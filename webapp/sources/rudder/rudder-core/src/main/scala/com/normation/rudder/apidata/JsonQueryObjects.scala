@@ -42,7 +42,6 @@ import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.inventory.domain.RuddercTarget
 
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
@@ -327,9 +326,6 @@ object JsonQueryObjects {
     }
   }
 
-  // RuddercTargets are serialized as a json array in rudder settings
-  final case class JQRuddercTargets(values: Set[RuddercTarget])
-
   // policy servers are serialized in their output format
 }
 
@@ -369,10 +365,7 @@ trait RudderJsonDecoders {
 
   // tags
   implicit val tagsDecoder: JsonDecoder[Tags] = JsonDecoder[List[Map[String, String]]].map { list =>
-    val res = list.flatMap { _.map {
-      case (k, v) => com.normation.rudder.domain.policies.Tag(TagName(k), TagValue(v))
-    } }
-    Tags(res.toSet)
+    Tags.fromMaps(list)
   }
   // PolicyMode
   implicit val policyModeDecoder: JsonDecoder[Option[PolicyMode]] = JsonDecoder[Option[String]].mapOrFail(opt => opt match {
@@ -423,12 +416,30 @@ trait RudderJsonDecoders {
   implicit val nodeGroupIdDecoder: JsonDecoder[NodeGroupId] = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
   implicit val groupDecoder: JsonDecoder[JQGroup] = DeriveJsonDecoder.gen
 
-  implicit val ruddercTargetDecoder: JsonDecoder[RuddercTarget] = JsonDecoder[String].mapOrFail(s =>
-    RuddercTarget.parse(s)
-  )
-  implicit val ruddercTargetsDecoder: JsonDecoder[JQRuddercTargets] = JsonDecoder[List[String]].mapOrFail(list =>
-    list.accumulatePure(s => ruddercTargetDecoder.decodeJson(s).left.map(Inconsistency) ).left.map(_.fullMsg).map(x => JQRuddercTargets(x.toSet))
-  )
+}
+
+object ZioJsonExtractor {
+
+  /**
+   * Parse request body as JSON, and decode it as type `A`.
+   * This is the root method to transform a JSON query into a Rest object.
+   */
+  def parseJson[A](req: Req)(implicit decoder: JsonDecoder[A]): PureResult[A] = {
+    if(req.json_?) {
+      // copied from `Req.forcedBodyAsJson`
+      def r = """; *charset=(.*)""".r
+      def r2 = """[^=]*$""".r
+      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
+      // end copy
+
+      req.body match {
+        case eb: EmptyBox => Left(Unexpected((eb ?~! "error when accessing request body").messageChain))
+        case Full(bytes)  => decoder.decodeJson(new String(bytes, charset)).left.map(Unexpected(_))
+      }
+    } else {
+      Left(Unexpected("Cannot parse non-JSON request as JSON; please check content-type."))
+    }
+  }
 }
 
 /*
@@ -439,27 +450,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
   import JsonResponseObjects._
   import JsonQueryObjects._
   import implicits._
-
-  /**
-   * Parse request body as JSON, and decode it as type `A`.
-   * This is the root method to transform a JSON query into a Rest object.
-   */
-  def parseJson[A](req: Req)(implicit decoder: JsonDecoder[A]): PureResult[A] = {
-    if(req.json_?) {
-    // copied from `Req.forcedBodyAsJson`
-    def r = """; *charset=(.*)""".r
-    def r2 = """[^=]*$""".r
-      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
-    // end copy
-
-      req.body match {
-        case eb: EmptyBox => Left(Unexpected((eb ?~! "error when accessing request body").messageChain))
-        case Full(bytes)  => decoder.decodeJson(new String(bytes, charset)).left.map(Unexpected(_))
-      }
-    } else {
-      Left(Unexpected("Cannot parse non-JSON request as JSON; please check content-type."))
-    }
-  }
+  import ZioJsonExtractor.parseJson
 
   /**
    * Utilities to extract values from params Map

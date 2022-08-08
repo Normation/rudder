@@ -62,6 +62,51 @@ trait SortIndex {
   protected[rest] def z: Int
 }
 
+sealed trait CampaignApi extends EndpointSchema with InternalApi with SortIndex
+object CampaignApi extends ApiModuleProvider[CampaignApi] {
+  final case object GetCampaigns extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all campaigns model"
+    val (action, path)  = GET / "campaigns"
+    val dataContainer = Some("campaigns")
+  }
+  final case object GetCampaignEvents extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all campaigns events"
+    val (action, path)  = GET / "campaigns" / "events"
+    val dataContainer = Some("campaignEvents")
+  }
+  final case object GetCampaignEventDetails extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get all campaigns events"
+    val (action, path)  = GET / "campaigns" / "events" / "{id}"
+    val dataContainer = Some("campaignEvents")
+  }
+  final case object SaveCampaign extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Save a campaign model"
+    val (action, path)  = POST / "campaigns"
+    val dataContainer = Some("campaigns")
+  }
+  final case object ScheduleCampaign extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Save a campaign model"
+    val (action, path)  = POST / "campaigns" / "{id}" / "schedule"
+    val dataContainer = Some("campaigns")
+  }
+  final case object GetCampaignDetails extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get a campaign model"
+    val (action, path)  = GET / "campaigns" / "{id}"
+    val dataContainer = Some("campaigns")
+  }
+  final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get a campaign model"
+    val (action, path)  = GET / "campaigns"  / "{id}" / "events"
+    val dataContainer = Some("campaignEvents")
+  }
+  final case object SaveCampaignEvent extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Save a campaign event"
+    val (action, path)  = POST / "campaigns" / "events" /  "{id}"
+    val dataContainer = Some("campaigns")
+  }
+  def endpoints: List[CampaignApi] = ca.mrvisser.sealerate.values[CampaignApi].toList.sortBy( _.z )
+}
+
 sealed trait ComplianceApi extends EndpointSchema with GeneralApi with SortIndex
 object ComplianceApi extends ApiModuleProvider[ComplianceApi] {
 
@@ -889,6 +934,35 @@ object UserApi extends ApiModuleProvider[UserApi] {
 }
 
 /*
+ * An API for import & export of archives of objects with their dependencies
+ */
+sealed trait ArchiveApi extends EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
+object ArchiveApi extends ApiModuleProvider[ArchiveApi] {
+  /*
+   * Request format:
+   *   ../archives/export?rules=rule_ids&directives=dir_ids&techniques=tech_ids&groups=group_ids&include=scope
+   * Where:
+   * - rule_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - dir_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - group_ids = xxxx-xxxx-xxx-xxx[,other ids]
+   * - tech_ids = techniqueName/1.0[,other tech ids]
+   * - scope = all (default), none, directives, techniques (implies directive), groups
+   */
+  final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+    val description    = "Export the list of objects with their dependencies in a policy archive"
+    val (action, path) = GET / "archives" / "export"
+  }
+  final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+    val description    = "Import policy archive"
+    val (action, path) = POST / "archives" / "import"
+  }
+
+  def endpoints = ca.mrvisser.sealerate.values[ArchiveApi].toList.sortBy( _.z )
+}
+
+/*
  * All API.
  */
 object AllApi {
@@ -903,6 +977,7 @@ object AllApi {
     TechniqueApi.endpoints :::
     RuleApi.endpoints :::
     InventoryApi.endpoints :::
+    ArchiveApi.endpoints :::
     InfoApi.endpoints :::
     HookApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin

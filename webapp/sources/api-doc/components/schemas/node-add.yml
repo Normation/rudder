@@ -68,34 +68,22 @@ items:
     agentKey:
       $ref: agent-key.yml
     properties:
-      type: object
-      description: >-
-        Node properties in "key":"value" format, where "key" is a string, and "value" is either a string, a json array, or a json object.
-        The following example shows you three example of &#58;
-        &#173; a json array on the example of "tags":[ "some", "tags" ]
-        &#173; a simple string on the example of "env":"prod"
-        &#173; a complex json object on the example of "vars":{ "var1":"value1", "var2":"value2" }
-        They are optional and can be used in any combination as long the keys are unique within the properties object.
-      properties:
-        tags:
-          type: array
-          items:
+      type: array
+      description: Node properties (either set by user or filled by third party sources)
+      items:
+        type: object
+        required:
+          - name
+          - value
+        properties:
+          name:
             type: string
-            enum:
-              - some
-              - tags
-        env:
-          type: string
-          example: "prod"
-        vars:
-          type: object
-          properties:
-            var1:
-              type: string
-              example: value1
-            vars2:
-              type: string
-              example: value2
+            description: Property name
+            example: datacenter
+          value:
+            format: string or JSON
+            example: AMS2
+            description: Property value (can be a string or JSON object)   
     ipAddresses:
       type: array
       description: an array of IPs.

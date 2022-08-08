@@ -41,11 +41,14 @@ import cats.data._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest._
+
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
 import org.slf4j.LoggerFactory
+
+import scala.util.control.NonFatal
 
 final case class DefaultParams(
     prettify                : Boolean
@@ -59,20 +62,25 @@ trait LiftApiModule extends ApiModule[Req, Full[LiftResponse], AuthzToken, Defau
     Full(process(version, path, resources, req, params, authzToken))
   }
   override def getParam(req: Req): Either[ApiError.BadParam, DefaultParams] = {
-    // prettify is always given in the param list
-    val defaultPrettify = false
-    val prettify = req.params.get("pretiffy") match {
-      case None               => defaultPrettify
-      case Some(value :: Nil) => value.toLowerCase match {
-        case "true"  => true
-        case "false" => false
-        case _       => defaultPrettify
+    // this can fail because params try to decode things as string always, which fails with binary data
+    try {
+      // prettify is always given in the param list
+      val defaultPrettify = false
+      val prettify = req.params.get("pretiffy") match {
+        case None               => defaultPrettify
+        case Some(value :: Nil) => value.toLowerCase match {
+          case "true"  => true
+          case "false" => false
+          case _       => defaultPrettify
+        }
+        case _                  => defaultPrettify
       }
-      case _                  => defaultPrettify
-    }
-    def get(name: String): Option[String] = req.params.get(name).flatMap(_.headOption)
+      def get(name: String): Option[String] = req.params.get(name).flatMap(_.headOption)
 
-    Right(DefaultParams(prettify, get("reason"), get("changeRequestName"), get("changeRequestDescription")))
+      Right(DefaultParams(prettify, get("reason"), get("changeRequestName"), get("changeRequestDescription")))
+    } catch {
+      case NonFatal(ex) => Left(ApiError.BadParam(s"Error when trying to read request parameters: ${ex.getMessage}", schema.name))
+    }
   }
 
   // As in our case, we always return Full, we are adding that method to simplify plombing
@@ -157,10 +165,17 @@ class LiftHandler(
   }
 
   def logBody(req: Req): String = {
-    req.body match {
-      case Empty      => "[request body is empty]"
-      case f:Failure  => (f ?~! "Error geting request body:").messageChain
-      case Full(body) => new String(body.take(1024), "UTF-8") + (if(body.size>1024) "..." else "")
+    // this can fail if the body is binary
+    try {
+      req.body match {
+        case Empty      => "[request body is empty]"
+        case f:Failure  => (f ?~! "Error geting request body:").messageChain
+        case Full(body) => new String(body.take(1024), "UTF-8") + (if(body.size>1024) "..." else "")
+      }
+    } catch {
+      case NonFatal(ex) =>
+        logger.warn(s"Error when trying to read request body: ${ex.getMessage}")
+        s"{request body can't be displayed (${ex.getMessage})}"
     }
   }
 

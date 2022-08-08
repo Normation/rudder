@@ -578,7 +578,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
      configRepo.getTechnique(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)).runNow match {
       case Some(technique) =>
-        val dirEditForm = createForm(directive, oldDirective, technique, None)
+        val dirEditForm = createForm(directive, oldDirective, technique._2, None)
         currentDirectiveSettingForm.set(Full(dirEditForm))
       case None =>
         // do we have at least one version for that technique ? We can then try to migrate towards it

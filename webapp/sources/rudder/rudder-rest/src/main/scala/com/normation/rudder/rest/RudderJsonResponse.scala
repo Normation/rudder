@@ -48,7 +48,7 @@ import com.normation.rudder.rest.lift.DefaultParams
 
 /*
  * This class deals with everything serialisation related for API.
- * Change things with care! Everything must be versionned!
+ * Change things with care! Everything must be versioned!
  * Even changing a field name can lead to an API incompatible change and
  * so will need a new API version number (and be sure that old behavior is kept
  * for previous versions).
@@ -58,7 +58,7 @@ import com.normation.rudder.rest.lift.DefaultParams
 /*
  * Rudder standard response.
  * We normalize response format to look like what is detailed here: https://docs.rudder.io/api/v/13/#section/Introduction/Response-format
- * Data are always name-spaced, so that theorically an answer can mixe several type of data. For example, for node details:
+ * Data are always name-spaced, so that theoretically an answer can mixe several type of data. For example, for node details:
  *     "data": { "nodes": [ ... list of nodes ... ] }
  * And for globalCompliance:
  *     "data": { "globalCompliance": { ... } }
@@ -85,7 +85,7 @@ object RudderJsonResponse {
 
   //////////////////////////// Lift JSON response ////////////////////////////
 
-  final case class RudderJsonResponse[A](json: A, prettify: Boolean, code: Int)(implicit encoder: JsonEncoder[A]) extends LiftResponse {
+  final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(implicit encoder: JsonEncoder[A]) extends LiftResponse {
     def toResponse = {
       val indent = if(prettify) Some(2) else None
       val bytes = encoder.encodeJson(json, indent).toString.getBytes("UTF-8")
@@ -109,10 +109,10 @@ object RudderJsonResponse {
 
   object generic {
     // generic response, not in rudder normalized format - use it if you want an ad-hoc json response.
-    def success[A]       (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = RudderJsonResponse(json, prettify, 200)
-    def internalError[A] (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = RudderJsonResponse(json, prettify, 500)
-    def notFoundError[A] (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = RudderJsonResponse(json, prettify, 404)
-    def forbiddenError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = RudderJsonResponse(json, prettify, 404)
+    def success[A]       (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = LiftJsonResponse(json, prettify, 200)
+    def internalError[A] (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = LiftJsonResponse(json, prettify, 500)
+    def notFoundError[A] (json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = LiftJsonResponse(json, prettify, 404)
+    def forbiddenError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]) = LiftJsonResponse(json, prettify, 404)
   }
 
   trait DataContainer[A] {
@@ -165,7 +165,7 @@ object RudderJsonResponse {
     generic.forbiddenError(JsonRudderApiResponse.error(schema, errorMsg))
   }
 
-  //import that to transform a class from JsonResponse into a lift response. An encoder for the JsonResponse classe
+  //import that to transform a class from JsonResponse into a lift response. An encoder for the JsonResponse class
   // must be available.
   trait implicits {
     implicit class ToLiftResponseList[A](result: IOResult[Seq[A]]) {

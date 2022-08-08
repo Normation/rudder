@@ -294,7 +294,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         elem.click(function() {oData.callback(action);});
         elem.attr("href","javascript://");
     } else {
-        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'","action":"'+action+'"}');
+        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement/rule/'+oData.id);
     }
     return elem;
   }
@@ -573,7 +573,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
         var editIcon = $("<i>");
         editIcon.addClass("fa fa-pencil");
         var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
@@ -719,7 +719,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       displayTags(nTd, oData.tags)
       if (! oData.isSystem) {
         var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         var editIcon = $("<i>");
         editIcon.addClass("fa fa-pencil");
         editLink.click(function(e) {e.stopPropagation();});
@@ -1336,10 +1336,15 @@ function createNodeTable(gridId, refresh) {
     , "language": {
         "search": ""
     }
-    , columnDefs : {
-       "target" : 0
+    , columnDefs : [
+      {
+        "targets": "_all"
+      , "render": $.fn.dataTable.render.text() // escape HTML by default for columns value.
+      },{
+         "target" : 0
        , "visible" : true
-    }
+      }
+    ]
     , "ajax" : {
     "url" : contextPath + "/secure/api/nodes/details"
     , "type" : "POST"
@@ -1382,15 +1387,16 @@ function createNodeTable(gridId, refresh) {
   }
 
   function addColumn(columnName, value, checked) {
+    var escapedValue = escapeHTML(value);
     var table = $('#'+gridId).DataTable();
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
     if (columnName =="Property" || columnName =="Software" ) {
-      columns.push(allColumns[columnName](value, checked))
+      columns.push(allColumns[columnName](escapedValue, checked))
       localStorage.setItem(cacheId, JSON.stringify(columns))
       params["ajax"] = {
-          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+value
+          "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+escapedValue
         , "type" : "POST"
         , "contentType": "application/json"
         , "data" : function(d) {
@@ -1411,7 +1417,7 @@ function createNodeTable(gridId, refresh) {
                           if (node[dataName] === undefined) {
                             node[dataName] = {}
                           }
-                          node[dataName][value] = d[node.id]
+                          node[dataName][escapedValue] = d[node.id]
                         }
                         return data2
                       }
@@ -2285,9 +2291,9 @@ function displayTags(element, tagsArray){
   for(var t in tagsArray){
     tmp  =
       [ "<span class='tags-label'><i class='fa fa-tag'></i>"
-      , "<span class='tag-key'> " + tagsArray[t].key + " </span>"
+      , '<span class="tag-key">'+escapeHTML(tagsArray[t].key)+'</span>'
       , "<span class='tag-separator'> = </span>"
-      , "<span class='tag-value'> " + tagsArray[t].value + " </span>"
+      , '<span class="tag-value">'+escapeHTML(tagsArray[t].value)+'</span>'
       , "</span>"
       ].join('');
     listTags.push(tmp);

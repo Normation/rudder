@@ -612,7 +612,7 @@ class DirectiveApiService14 (
           IOResult.effect(techniqueRepository.getLastTechniqueByName(techniqueName)).notOptional( s"Error while fetching last version of technique ${techniqueName.value}")
       case (Some(techniqueName), Some(version)) =>
         val id = TechniqueId(techniqueName, version)
-        configRepository.getTechnique(id).notOptional(s" Technique '${techniqueName.value}' version '${version.serialize}' is not a valid Technique")
+        configRepository.getTechnique(id).notOptional(s" Technique '${techniqueName.value}' version '${version.serialize}' is not a valid Technique").map(_._2)
     }
   }
 
@@ -650,7 +650,8 @@ class DirectiveApiService14 (
           // technique version: by default, directive one. It techniqueVersion is given, use that. If techniqueRevision is specified, use it.
           techVersion   =  restDirective.techniqueVersion.getOrElse(ad.directive.techniqueVersion)
           techId        =  TechniqueId(ad.activeTechnique.techniqueName, techVersion)
-          technique     <- configRepository.getTechnique(techId).notOptional(s"Technique with ID '${techId.debugString}' was not found")
+          tuple         <- configRepository.getTechnique(techId).notOptional(s"Technique with ID '${techId.debugString}' was not found")
+          (_,technique) =  tuple
           newDirective  =  restDirective.copy(enabled = Some(false), techniqueVersion = Some(techId.version))
           baseDirective =  ad.directive.modify(_.id.uid).setTo(directiveId)
           result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique, params, actor)
@@ -724,7 +725,7 @@ class DirectiveApiService14 (
       tid = TechniqueId(at.activeTechnique.techniqueName, at.directive.techniqueVersion)
       t  <- configRepository.getTechnique(tid).notOptional(s"Technique with id '${tid.debugString}' was not found")
     } yield {
-      JRDirective.fromDirective(t, at.directive, None)
+      JRDirective.fromDirective(t._2, at.directive, None)
     }
   }
 

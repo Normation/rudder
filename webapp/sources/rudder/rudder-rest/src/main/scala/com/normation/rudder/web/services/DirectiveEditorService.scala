@@ -100,9 +100,9 @@ class DirectiveEditorServiceImpl(
     for {
       //start by checking Directive existence
       pol <- techniqueRepository.getTechnique(techniqueId).notOptional(s"Error when looking for technique with ID '${techniqueId.debugString}'. Check technique name and version").toBox
-      allVars = pol.rootSection.copyWithoutSystemVars.getAllVariables
+      allVars = pol._2.rootSection.copyWithoutSystemVars.getAllVariables
       vars = getVars(allVars, withVarValues)
-      pe <- section2FieldService.initDirectiveEditor(pol, directiveId, vars)
+      pe <- section2FieldService.initDirectiveEditor(pol._2, directiveId, vars)
     } yield pe
   }
 

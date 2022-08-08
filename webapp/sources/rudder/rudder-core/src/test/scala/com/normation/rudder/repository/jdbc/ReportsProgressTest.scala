@@ -92,12 +92,12 @@ class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
     "correctly insert at start" in {
       (lastlogged.getReportLoggerLastId.mustEmpty()) and
       (lastlogged.updateReportLoggerLastId(43) mustFullEq(43) ) and
-      (lastlogged.getReportLoggerLastId mustFullEq(43))
+      (lastlogged.getReportLoggerLastId mustFullEq(Some(43)))
     }
 
     "correctly update after" in {
       (lastlogged.updateReportLoggerLastId(88) mustFullEq(88) ) and
-      (lastlogged.getReportLoggerLastId mustFullEq(88))
+      (lastlogged.getReportLoggerLastId mustFullEq(Some(88)))
     }
   }
 }

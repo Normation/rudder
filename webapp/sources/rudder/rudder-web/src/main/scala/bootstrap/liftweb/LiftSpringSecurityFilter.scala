@@ -37,7 +37,17 @@
 
 package bootstrap.liftweb
 
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.spring.SecurityFilter
+
+import org.springframework.http.HttpHeaders
+import org.springframework.security.web.firewall.RequestRejectedException
+
+import javax.servlet.FilterChain
+import javax.servlet.ServletRequest
+import javax.servlet.ServletResponse
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 /**
  * Our Spring security filter, only redefined to override the way
@@ -45,4 +55,20 @@ import com.normation.spring.SecurityFilter
  */
 class LiftSpringSecurityFilter extends SecurityFilter {
   override def webApplicationContext = LiftSpringApplicationContext.springContext
+
+  override def doFilter(request: ServletRequest, response: ServletResponse, filterChain: FilterChain): Unit = {
+    try {
+      super.doFilter(request, response, filterChain)
+    } catch {
+      case e: RequestRejectedException =>
+        val req = request.asInstanceOf[HttpServletRequest]
+        val res = response.asInstanceOf[HttpServletResponse]
+        ApplicationLogger.warn(s"request_rejected: remote=${req.getRemoteHost()}, " +
+                               s"user_agent=${req.getHeader(HttpHeaders.USER_AGENT)}, " +
+                               s"request_url=${req.getRequestURL}, " +
+                               s"reason: ${e.getMessage}"
+        )
+        res.sendError(HttpServletResponse.SC_NOT_FOUND)
+    }
+  }
 }

@@ -447,7 +447,7 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
       case CharSeq(s)         => s
       case NonRudderVar(s)    => s"$${${s}}"
       case NodeAccessor(path) => s"$${rudder.node.${path.mkString(".")}}"
-      case Param(name)         => s"$${rudder.param.${name}}"
+      case Param(name)        => s"$${rudder.param.${name}}"
       case RudderEngine(e, m, o) =>
         val opt = o match {
           case Some(options) => options.map(o => s"| ${o.name} = ${o.value}").mkString(" ")

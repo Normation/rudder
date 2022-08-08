@@ -1,0 +1,117 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+get:
+  summary: Get a ZIP archive of the requested items and their dependencies
+  description: Get a ZIP archive or rules, directives, techniques and groups with optionally their dependencies
+  operationId: export
+  parameters:
+    - in: query
+      name: rules
+      schema:
+        type: array
+      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: Example of a single ID
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e]   # ?rules=a0573b59-e5bd-441b-9031-f307aa21a61e
+        multipleIds:
+          summary: Example of multiple IDs, some with revisions
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e, 4cba6eee-3a43-4e17-a608-a4941b6d984f%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
+    - in: query
+      name: rules
+      schema:
+        type: array
+      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: Example of a single ID
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e]   # ?rules=a0573b59-e5bd-441b-9031-f307aa21a61e
+        multipleIds:
+          summary: Example of multiple IDs, some with revisions
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e, 4cba6eee-3a43-4e17-a608-a4941b6d984f%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
+    - in: query
+      name: directives
+      schema:
+        type: array
+      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of directives to include
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: Example of a single ID
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e]   # ?directives=a0573b59-e5bd-441b-9031-f307aa21a61e
+        multipleIds:
+          summary: Example of multiple IDs, some with revisions
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e, 4cba6eee-3a43-4e17-a608-a4941b6d984f%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
+    - in: query
+      name: techniques
+      schema:
+        type: array
+      description: IDs, ie technique name/technique version (optionally with revision, '+' need to be escaped as '%2B') of techniques to include
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: Example of a single ID
+          value: [fileContent/3.0] 
+        multipleIds:
+          summary: Example of multiple IDs, some with revisions
+          value: [userManagement/6.3, fileContent/3.0%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
+    - in: query
+      name: groups
+      schema:
+        type: array
+      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of groups to include
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: Example of a single ID
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e]   # ?groups=a0573b59-e5bd-441b-9031-f307aa21a61e
+        multipleIds:
+          summary: Example of multiple IDs, some with revisions
+          value: [a0573b59-e5bd-441b-9031-f307aa21a61e, 4cba6eee-3a43-4e17-a608-a4941b6d984f%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
+    - in: query
+      name: include
+      schema:
+        type: array
+        items: 
+          type: string
+          enum: 
+            - all (default)
+            - none 
+            - directives
+            - techniques
+            - groups
+      description: >-
+        Scope of dependencies to include in archive, where rule as directives and groups dependencies, directives have techniques dependencies,
+        and techniques and groups don't have dependencies. 'none' means no dependencies will be include, 'all' means that the whole tree will, 
+        'directives' and 'groups' means to include them specifically, 'techniques' means to include both directives and techniques.
+      style: form
+      explode: false
+      examples:
+        none:
+          summary: Do not include dependencies
+          value: [none] 
+        directivesAndGroups:
+          summary: Include directives and groups, but no techniques
+          value: [directives, groups]
+  responses:
+    "200":
+      description: A zip archive with the queried content.
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+  tags:
+    - Archives
+  x-code-samples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/archives/export.sh
+

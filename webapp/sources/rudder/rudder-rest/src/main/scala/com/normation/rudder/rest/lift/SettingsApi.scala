@@ -42,7 +42,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.appconfig.ReadConfigService
 import com.normation.appconfig.UpdateConfigService
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.RuddercTarget
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.PolicyGenerationTrigger
@@ -134,7 +133,7 @@ class SettingsApi(
       RestNodeAcceptDuplicatedHostname ::
       RestComputeDynGroupMaxParallelism ::
       RestSetupDone ::
-      RestRuddercTargets ::
+      ArchiveApiFeatureSwitch ::
       Nil
 
   val allSettings_v12 =   RestReportProtocolDefault :: allSettings_v10
@@ -598,7 +597,7 @@ final case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
   def set = configService.set_send_server_metrics _
 }
 
-final case object RestJSEngine extends RestSetting[FeatureSwitch] {
+  final case object RestJSEngine extends RestSetting[FeatureSwitch] {
     val startPolicyGeneration = true
     def toJson(value : FeatureSwitch) : JValue = value.name
     def parseJson(json: JValue) = {
@@ -615,7 +614,24 @@ final case object RestJSEngine extends RestSetting[FeatureSwitch] {
     def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
   }
 
-final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
+  final case object ArchiveApiFeatureSwitch extends RestSetting[FeatureSwitch] {
+    val startPolicyGeneration = false
+    def toJson(value : FeatureSwitch) : JValue = value.name
+    def parseJson(json: JValue) = {
+      json match {
+        case JString(value) => FeatureSwitch.parse(value)
+        case x              => Failure("Invalid value "+x)
+      }
+    }
+    def parseParam(param : String) = {
+      FeatureSwitch.parse(param)
+    }
+    val key = "rudder_featureSwitch_archiveApi"
+    def get = configService.rudder_featureSwitch_archiveApi()
+    def set = (value : FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_archiveApi(value)
+  }
+
+  final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[Option[PolicyMode]] = {
       Full(PolicyMode.allModes.find( _.name == value))
@@ -631,7 +647,8 @@ final case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]]
     def get = configService.rudder_node_onaccept_default_policy_mode()
     def set = (value : Option[PolicyMode], _, _) => configService.set_rudder_node_onaccept_default_policy_mode(value)
   }
-final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
+
+  final case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[NodeState] = {
       Full(NodeState.values.find( _.name == value).getOrElse(NodeState.Enabled))
@@ -786,32 +803,6 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
     val key = "rudder_setup_done"
     def get = configService.rudder_setup_done()
     def set = (value : Boolean, _, _) => configService.set_rudder_setup_done(value)
-  }
-
-  final case object RestRuddercTargets extends RestSetting[Set[RuddercTarget]] {
-
-    val key = "rudder_generation_rudderc_enabled_targets"
-    val startPolicyGeneration = true
-
-    override def toJson(value: Set[RuddercTarget]): JValue = JArray(value.toList.sortBy(_.name).map(x => JString(x.name)))
-    override def parseJson(json: JValue): Box[Set[RuddercTarget]] = {
-      def err(x: JValue) = Left(s"Can not parse '${prettyRender(x)}' as a rudderc target, accepted values are: '${RuddercTarget.all.map(_.name).mkString("', '")}'").toIO
-      (json match {
-        case JArray(values) => values.accumulate {
-          case JString(x) => RuddercTarget.parse(x.trim).toIO
-          case x => err(x)
-        }.map(_.toSet)
-        case x => err(x)
-      }).toBox
-    }
-    // when a param, it's just a comma separated list of target
-    override def parseParam(param: String): Box[Set[RuddercTarget]] = {
-      param.split(",").map(x => RuddercTarget.parse(x.trim)).toList.accumulate(_.toIO).map(_.toSet).toBox
-    }
-
-
-    def get = configService.rudder_generation_rudderc_enabled_targets()
-    def set = (value : Set[RuddercTarget], _, _) => configService.set_rudder_generation_rudderc_enabled_targets(value)
   }
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.

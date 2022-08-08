@@ -37,11 +37,21 @@
 
 package bootstrap.liftweb
 
-import java.io.File
-import java.security.Security
-import java.util.concurrent.TimeUnit
 import better.files.File.root
-import com.normation.rudder.apidata.RestDataSerializerImpl
+import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
+import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
+import bootstrap.liftweb.checks.action.CreateSystemToken
+import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
+import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
+import bootstrap.liftweb.checks.consistency.CheckConnections
+import bootstrap.liftweb.checks.consistency.CheckDIT
+import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
+import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
+import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
+import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
+import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 import com.normation.appconfig._
 import com.normation.box._
 import com.normation.cfclerk.services._
@@ -56,8 +66,8 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning.AddIpValues
 import com.normation.inventory.ldap.provisioning.CheckMachineName
 import com.normation.inventory.ldap.provisioning.CheckOsType
-import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
 import com.normation.inventory.ldap.provisioning.DefaultInventorySaver
+import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
 import com.normation.inventory.ldap.provisioning.FromMotherBoardUuidIdFinder
 import com.normation.inventory.ldap.provisioning.LastInventoryDate
 import com.normation.inventory.ldap.provisioning.LogInventoryPreCommit
@@ -72,12 +82,12 @@ import com.normation.inventory.provisioning.fusion.PreInventoryParserCheckConsis
 import com.normation.inventory.services.core._
 import com.normation.inventory.services.provisioning.DefaultInventoryParser
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
+import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.inventory.services.provisioning.MachineDNFinderService
 import com.normation.inventory.services.provisioning.NamedMachineDNFinderAction
 import com.normation.inventory.services.provisioning.NamedNodeInventoryDNFinderAction
 import com.normation.inventory.services.provisioning.NodeInventoryDNFinderService
 import com.normation.inventory.services.provisioning.PreCommit
-import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.ldap.sdk._
 import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
@@ -85,9 +95,16 @@ import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
+import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch._
+import com.normation.rudder.campaigns.CampaignEventRepositoryImpl
+import com.normation.rudder.campaigns.CampaignRepositoryImpl
+import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.JSONReportsAnalyser
+import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
+import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain._
@@ -111,10 +128,9 @@ import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.RudderCRunner
-import com.normation.rudder.ncf.TechniqueArchiverImpl
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
@@ -128,6 +144,7 @@ import com.normation.rudder.repository.xml._
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest._
 import com.normation.rudder.rest.internal._
+import com.normation.rudder.rest.lift
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.rule.category._
@@ -165,19 +182,6 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
-import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
-import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
-import bootstrap.liftweb.checks.action.CreateSystemToken
-import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
-import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
-import bootstrap.liftweb.checks.consistency.CheckConnections
-import bootstrap.liftweb.checks.consistency.CheckDIT
-import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
-import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
-import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
-import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
-import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
-import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -190,12 +194,16 @@ import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import zio.IO
-import zio.syntax._
+import zio.Ref
 import zio.duration._
+import zio.syntax._
 
+import java.io.File
+import java.nio.file.attribute.PosixFilePermission
+import java.security.Security
+import java.util.concurrent.TimeUnit
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
-import zio.Ref
 
 object RUDDER_CHARSET {
   import java.nio.charset.StandardCharsets
@@ -284,6 +292,7 @@ object RudderProperties {
       val d = better.files.File(x)
       try {
         d.createDirectoryIfNotExists(true)
+        d.setPermissions(Set(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE))
       } catch {
         case ex: Exception =>
           ApplicationLogger.error(s"The configuration directory '${d.pathAsString}' for overriding file config can't be created: ${ex.getMessage}")
@@ -324,10 +333,10 @@ object RudderProperties {
       ApplicationLogger.debug(s"Writing resolved configuration file to ${dest.pathAsString}")
       import java.nio.file.attribute.PosixFilePermission._
       try {
-        dest.setPermissions(Set(OWNER_READ, GROUP_READ)).writeText(config.root().render())
+        dest.writeText(config.root().render()).setPermissions(Set(OWNER_READ))
       } catch {
         case ex: Exception =>
-          ApplicationLogger.error(s"The debug file for configuration resolution '${dest.pathAsString}' can't be created: ${ex.getMessage}")
+          ApplicationLogger.error(s"The debug file for configuration resolution '${dest.pathAsString}' can't be created: ${ex.getClass.getName}: ${ex.getMessage}")
       }
     }
   }
@@ -1263,9 +1272,15 @@ object RudderConfig extends Loggable {
         , () => globalComplianceModeService.getGlobalComplianceMode
       )
 
-  val techniqueArchiver = new TechniqueArchiverImpl(gitConfigRepo, prettyPrinter, gitModificationRepository, personIdentService, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  val techniqueCompiler = new RudderCRunner("/opt/rudder/etc/rudderc.conf","/opt/rudder/bin/rudderc",RUDDER_GIT_ROOT_CONFIG_REPO)
-  val ncfTechniqueWriter = new TechniqueWriter(
+  val techniqueArchiver = new TechniqueArchiverImpl(
+      gitConfigRepo
+    , prettyPrinter
+    , gitModificationRepository
+    , personIdentService
+    , techniqueParser
+    , RUDDER_GROUP_OWNER_CONFIG_REPO
+  )
+  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver
     , updateTechniqueLibrary
     , interpolationCompiler
@@ -1277,9 +1292,6 @@ object RudderConfig extends Loggable {
     , RUDDER_GIT_ROOT_CONFIG_REPO
     , typeParameterService
     , techniqueSerializer
-    , techniqueCompiler
-    , "/var/log/rudder"
-    , configService.rudder_generation_rudderc_enabled_targets()
   )
 
   lazy val pipelinedInventoryParser: InventoryParser = {
@@ -1324,11 +1336,15 @@ object RudderConfig extends Loggable {
   )
   )
 
-  lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runNow
+  lazy val gitFactRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_FACT_REPO).runOrDie(err =>
+    new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg)
+  )
   private[this] lazy val gitFactRepoGC = new GitGC(gitFactRepo, RUDDER_GIT_GC)
   gitFactRepoGC.start()
   lazy val factRepo = new GitNodeFactRepository(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO)
-  factRepo.checkInit().runNow
+  factRepo.checkInit().runOrDie(err =>
+    new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg)
+  )
 
   lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
   lazy val inventorySaver      = new DefaultInventorySaver(
@@ -1366,7 +1382,7 @@ object RudderConfig extends Loggable {
     val maxParallel = try {
       val user = if(MAX_PARSE_PARALLEL.endsWith("x")) {
         val xx = MAX_PARSE_PARALLEL.substring(0, MAX_PARSE_PARALLEL.size-1)
-        java.lang.Double.parseDouble(xx) * Runtime.getRuntime.availableProcessors()
+        java.lang.Double.parseDouble(xx) * java.lang.Runtime.getRuntime.availableProcessors()
       } else {
         java.lang.Double.parseDouble(MAX_PARSE_PARALLEL)
       }
@@ -1377,7 +1393,7 @@ object RudderConfig extends Loggable {
         println(s"ERROR Error when parsing configuration properties for the parallelization of inventory processing. " +
                 s"Expecting a positive integer or number of time the available processors. Default to '0.5x': " +
                 s"inventory.parse.parallelization=${MAX_PARSE_PARALLEL}")
-        Math.max(1, Math.ceil(Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
+        Math.max(1, Math.ceil(java.lang.Runtime.getRuntime.availableProcessors().toDouble/2).toLong)
     }
     new InventoryProcessor(
         pipelinedInventoryParser
@@ -1413,6 +1429,21 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val archiveApi = {
+    val archiveBuilderService = new ZipArchiveBuilderService(new FileArchiveNameService(), configurationRepository, gitParseTechniqueLibrary)
+    // fixe archive name to make it simple to test
+    val rootDirName = "archive".succeed
+    new com.normation.rudder.rest.lift.ArchiveApi(
+        archiveBuilderService
+      , configService.rudder_featureSwitch_archiveApi()
+      , rootDirName
+      , new ZipArchiveReaderImpl(queryParser, techniqueParser)
+      , new SaveArchiveServicebyRepo(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
+                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository)
+      , new CheckArchiveServiceImpl(techniqueRepository)
+    )
+  }
+
   /*
    * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
    * of an existing endpoint, if done in a purely compatible way, don't change api version).
@@ -1428,7 +1459,7 @@ object RudderConfig extends Loggable {
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
-    ApiVersion(15 , false) :: // rudder 7.2
+    ApiVersion(15 , false) :: // rudder 7.1
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1441,6 +1472,7 @@ object RudderConfig extends Loggable {
     val nodeInheritedProperties = new NodeApiInheritedProperties(nodeInfoService, roNodeGroupRepository, roLDAPParameterRepository)
     val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
 
+    val campaignApi = new lift.CampaignApi(campaignRepo, campaignSerializer, campaignEventRepo, mainCampaignService , restExtractorService, stringUuidGenerator)
     val modules = List(
         new ComplianceApi(restExtractorService, complianceAPIService)
       , new GroupsApi(roLdapNodeGroupRepository, restExtractorService, zioJsonExtractor, stringUuidGenerator, groupApiService2, groupApiService6, groupApiService14, groupInheritedProperties)
@@ -1455,7 +1487,9 @@ object RudderConfig extends Loggable {
       , new PluginApi(restExtractorService, pluginSettingsService)
       , new RecentChangesAPI(recentChangesService, restExtractorService)
       , new RulesInternalApi(restExtractorService, ruleInternalApiService)
+      , campaignApi
       , new HookApi(hookApiService)
+      , archiveApi
       // info api must be resolved latter, because else it misses plugin apis !
     )
 
@@ -1479,6 +1513,7 @@ object RudderConfig extends Loggable {
       , workflowLevelService
     )
   }
+
 
   lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository), () => configService.rudder_compute_changes().toBox)
 
@@ -1538,9 +1573,11 @@ object RudderConfig extends Loggable {
       roLdapDirectiveRepository
     , techniqueRepository
     , roLdapRuleRepository
+    , roNodeGroupRepository
     , parseActiveTechniqueLibrary
     , gitParseTechniqueLibrary
     , parseRules
+    , parseGroupLibrary
   )
 
   private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
@@ -1712,7 +1749,9 @@ object RudderConfig extends Loggable {
     eventLogRepo
   }
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
-  private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runNow
+  private[this] lazy val gitConfigRepo = GitRepositoryProviderImpl.make(RUDDER_GIT_ROOT_CONFIG_REPO).runOrDie(err =>
+    new RuntimeException(s"Error when creating git configuration repository: " + err.fullMsg)
+  )
   private[this] lazy val gitConfigRepoGC = new GitGC(gitConfigRepo, RUDDER_GIT_GC)
   gitConfigRepoGC.start()
   private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
@@ -1826,6 +1865,7 @@ object RudderConfig extends Loggable {
     , queryProcessor
     , ditQueryDataImpl
     , psMngtService
+    , nodeInfoServiceImpl
     , configService.node_accept_duplicated_hostname()
   )
 
@@ -2195,7 +2235,6 @@ object RudderConfig extends Loggable {
       , POSTGRESQL_IS_LOCAL
   )}
 
-
   lazy val policyGenerationBootGuard = zio.Promise.make[Nothing, Unit].runNow
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentActor = {
@@ -2317,7 +2356,7 @@ object RudderConfig extends Loggable {
    , ldapEntityMapper
    , uptLibReadWriteMutex
   )
-  private[this] lazy val parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
+  private[this] lazy val parseGroupLibrary : ParseGroupLibrary with GroupRevisionRepository = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
     , gitConfigRepo
@@ -2466,6 +2505,21 @@ object RudderConfig extends Loggable {
   )
 
   lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
+  lazy val campaignSerializer = new CampaignSerializer()
+  lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie, campaignSerializer)
+  val campaignPath = root / "var" / "rudder" / "configuration-repository" / "campaigns"
+
+  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath).runOrDie(err =>
+    new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg)
+  )
+
+  val mainCampaignService  = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen)
+  lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
+
+  // todo: scheduler interval should be a property
+  ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
+
+  ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
 
   /**
    * *************************************************
@@ -2482,6 +2536,7 @@ object RudderConfig extends Loggable {
     , new CheckAddSpecialTargetAllPolicyServers(rwLdap)
     , new CheckAddSpecialNodeGroupsDescription(rwLdap)
     , new CheckMigratedSystemTechniques(policyServerManagementService, gitConfigRepo, nodeInfoService, rwLdap, techniqueRepository, techniqueRepositoryImpl, uuidGen, woDirectiveRepository, woRuleRepository)
+    , new CheckRemoveRuddercSetting(rwLdap)
     , new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
@@ -2575,7 +2630,9 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
     val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeInfoServiceImpl)
-    cached.init().runNow
+    cached.init().runOrDie(err =>
+      new RuntimeException(s"Error when initializing node configuration cache: " + err)
+    )
     cached
   }
 

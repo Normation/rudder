@@ -7,14 +7,27 @@
       [string]$techniqueName,
       [parameter(Mandatory=$true)]
       [string]$Version,
-      [switch]$auditOnly
+      [Rudder.PolicyMode]$policyMode
   )
+  BeginTechniqueCall -Name $techniqueName
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $local_classes = New-ClassContext
+  $localContext = [Rudder.Context]::new($techniqueName)
+  $localContext.Merge($system_classes)
   $resources_dir = $PSScriptRoot + "\resources"
 
   $reportId=$reportIdBase+"id"
-
-  $local_classes = Merge-ClassContext $local_classes $(Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -componentName "Test component$&é)à\'`"" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
-
+  $componentKey = "$($node.properties[apache_package_name])"
+  $reportParams = @{
+    ClassPrefix = ([Rudder.Condition]::canonify(("package_install_version_" + $componentKey)))
+    ComponentKey = $componentKey
+    ComponentName = "Test component$&é)à\'`""
+    PolicyMode = $policyMode
+    ReportId = $reportId
+    DisableReporting = $false
+    TechniqueName = $techniqueName
+  }
+  $call = Package-Install-Version -PackageName "$($node.properties[apache_package_name])" -PackageVersion "2.2.11" -PolicyMode $policyMode
+  $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+  $localContext.merge($methodContext)
+  EndTechniqueCall -Name $techniqueName
 }

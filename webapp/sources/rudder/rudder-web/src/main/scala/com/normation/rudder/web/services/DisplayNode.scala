@@ -66,6 +66,7 @@ import com.normation.rudder.services.reports.{NoReportInInterval, Pending}
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import org.joda.time.format.ISODateTimeFormat
+import xml.Utility.escape
 
 /**
  * A service used to display details about a server
@@ -92,6 +93,9 @@ object DisplayNode extends Loggable {
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
 
+  private def escapeJs(in: String): JsExp = Str(escape(in))
+  private def escapeHTML(in: String): NodeSeq = Text(escape(in))
+  private def ?(in:Option[String]) : NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
   private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
     for {
@@ -138,9 +142,9 @@ object DisplayNode extends Loggable {
       gridDataId = htmlId(jsId,"soft_grid_data_")
       gridId = "soft"
     } yield SetExp(JsVar(gridDataId),JsArray(seq.map { x => JsArray(
-        Str(x.name.getOrElse("")),
-        Str(x.version.map(_.value).getOrElse("")),
-        Str(x.description.getOrElse(""))
+        escapeJs(x.name.getOrElse("")),
+        escapeJs(x.version.map(_.value).getOrElse("")),
+        escapeJs(x.description.getOrElse(""))
       )}:_*) ) & JsRaw(s"""
           $$('#${htmlId(jsId,gridId+"_")}').dataTable({
             "aaData":${gridDataId},
@@ -395,12 +399,12 @@ object DisplayNode extends Loggable {
         <h4>Operating system details</h4>
         <div class="tooltip-content">
           <ul>
-            <li><b>Type:</b> ${sm.node.main.osDetails.os.kernelName}</li>
-            <li><b>Name:</b> ${S.?("os.name." + sm.node.main.osDetails.os.name)}</li>
-            <li><b>Version:</b> ${sm.node.main.osDetails.version.value}</li>
-            <li><b>Service Pack:</b> ${sm.node.main.osDetails.servicePack.getOrElse("None")}</li>
-            <li><b>Architecture:</b> ${sm.node.archDescription.getOrElse("None")}</li>
-            <li><b>Kernel version:</b> ${sm.node.main.osDetails.kernelVersion.value}</li>
+            <li><b>Type:</b> ${escape(sm.node.main.osDetails.os.kernelName)}</li>
+            <li><b>Name:</b> ${escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
+            <li><b>Version:</b> ${escape(sm.node.main.osDetails.version.value)}</li>
+            <li><b>Service Pack:</b> ${escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
+            <li><b>Architecture:</b> ${escape(sm.node.archDescription.getOrElse("None"))}</li>
+            <li><b>Kernel version:</b> ${escape(sm.node.main.osDetails.kernelVersion.value)}</li>
           </ul>
         </div>
       """
@@ -410,18 +414,18 @@ object DisplayNode extends Loggable {
         <h4>Operating system details</h4>
         <div class="tooltip-content">
           <ul>
-            <li><b>Total physical memory (RAM):</b> ${sm.node.ram.map(_.toStringMo).getOrElse("-")}</li>
-            <li><b>Manufacturer:</b> ${sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}</li>
-            <li><b>Total swap space:</b> ${sm.node.swap.map( _.toStringMo).getOrElse("-")}</li>
-            <li><b>System Serial Number:</b> ${sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}</li>
+            <li><b>Total physical memory (RAM):</b> ${escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))}</li>
+            <li><b>Manufacturer:</b> ${escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))}</li>
+            <li><b>Total swap space:</b> ${escape(sm.node.swap.map( _.toStringMo).getOrElse("-"))}</li>
+            <li><b>System Serial Number:</b> ${escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))}</li>
             <li><b>Time Zone:</b>
-              ${sm.node.timezone.map(x =>
+              ${escape(sm.node.timezone.map(x =>
                 if(x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})"
-              ).getOrElse("unknown")}
+              ).getOrElse("unknown"))}
             </li>
             <li>
-              ${ sm.machine.map( _.id.value).map( machineId =>
-                "<b>Machine ID:</b> " ++ {machineId}
+              ${sm.machine.map( _.id.value).map( machineId =>
+                "<b>Machine ID:</b> " ++ {escape(machineId)}
               ).getOrElse("""<span class="error">Machine Information are missing for that node</span>""")}
             </li>
           </ul>
@@ -441,7 +445,7 @@ object DisplayNode extends Loggable {
               } }
           </div>
           <div><label>Node ID:          </label> {sm.node.main.id.value}</div>
-          <div><label>Operating system: </label> {sm.node.main.osDetails.fullName}<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={osTooltip}></span></div>
+          <div><label>Operating system: </label> {escape(sm.node.main.osDetails.fullName)}<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={osTooltip}></span></div>
           <div>
             <label>Machine:             </label>
             {displayMachineType(sm.machine)}
@@ -562,7 +566,7 @@ object DisplayNode extends Loggable {
   private def htmlId(jsId:JsNodeId, prefix:String) : String = prefix + jsId.toString
   private def htmlId_#(jsId:JsNodeId, prefix:String) : String = "#" + prefix + jsId.toString
 
-  private def ?(in:Option[String]) : NodeSeq = in.map(Text(_)).getOrElse(NodeSeq.Empty)
+
 
   // Display the role of the node
   private def displayServerRole(sm:FullInventory, inventoryStatus : InventoryStatus) : NodeSeq = {
@@ -599,11 +603,11 @@ object DisplayNode extends Loggable {
   private def displayPolicyServerInfos(sm:FullInventory) : NodeSeq = {
     nodeInfoService.getNodeInfo(sm.node.main.policyServerId).either.runNow match {
       case Left(err) =>
-        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
+        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escape(sm.node.main.hostname)}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
         logger.error(e)
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
       case Right(Some(policyServerDetails)) =>
-        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{policyServerDetails.hostname}</a></div>
+        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={s"updateNodeIdAndReload('${policyServerDetails.id.value}')"}>{escape(policyServerDetails.hostname)}</a></div>
       case Right(None) =>
         logger.error(s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')")
         <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
@@ -625,7 +629,7 @@ object DisplayNode extends Loggable {
   //show a comma separated list with description in tooltip
 
   private def displayAccounts(node:NodeInventory) : NodeSeq = {
-    Text{if(node.accounts.isEmpty) {
+    escapeHTML { if(node.accounts.isEmpty) {
         "None"
       } else {
         node.accounts.sortWith(_ < _).mkString(", ")
@@ -692,12 +696,12 @@ object DisplayNode extends Loggable {
 
   private def displayTabNetworks(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("net", Full(sm.node.networks)){
-        ("Interface"  , {x:Network => Text(x.name)}) ::
-        ("IP address" , {x:Network => (x.ifAddresses.map{ y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
-        ("Mask"       , {x:Network => (x.ifMask.map     { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
-        ("Network"    , {x:Network => (x.ifSubnet.map   { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
-        ("Gateway"    , {x:Network => (x.ifGateway.map  { y => (<div>{ y.getHostAddress }</div>  ) } ):NodeSeq }) ::
-        ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
+        ("Interface"  , {x:Network => escapeHTML(x.name)}) ::
+        ("IP address" , {x:Network => (x.ifAddresses.map{ y => (<div>{ escapeHTML(y.getHostAddress) }</div>  ) } ):NodeSeq }) ::
+        ("Mask"       , {x:Network => (x.ifMask.map     { y => (<div>{ escapeHTML(y.getHostAddress) }</div>  ) } ):NodeSeq }) ::
+        ("Network"    , {x:Network => (x.ifSubnet.map   { y => (<div>{ escapeHTML(y.getHostAddress) }</div>  ) } ):NodeSeq }) ::
+        ("Gateway"    , {x:Network => (x.ifGateway.map  { y => (<div>{ escapeHTML(y.getHostAddress) }</div>  ) } ):NodeSeq }) ::
+        ("DHCP server", {x:Network => escapeHTML(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
         ("MAC address", {x:Network => ?(x.macAddress)}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
         ("Speed", {x:Network => ?(x.speed)}) ::
@@ -707,7 +711,7 @@ object DisplayNode extends Loggable {
 
   private def displayTabFilesystems(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("fs", Full(sm.node.fileSystems)){
-        ("Mount point", {x:FileSystem => Text(x.mountPoint)}) ::
+        ("Mount point", {x:FileSystem => escapeHTML(x.mountPoint)}) ::
         ("Filesystem", {x:FileSystem => ?(x.name)}) ::
         ("Free space", {x:FileSystem => ?(x.freeSpace.map(_.toStringMo))}) ::
         ("Total space", {x:FileSystem => ?(x.totalSpace.map(_.toStringMo))}) ::
@@ -719,8 +723,8 @@ object DisplayNode extends Loggable {
 
       val title = sm.node.inventoryDate.map(date => s"Environment variable status on ${DateFormaterService.getDisplayDate(date)}")
       displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
-        ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
-        ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
+        ("Name", {x:EnvironmentVariable => escapeHTML(x.name)}) ::
+        ("Value", {x:EnvironmentVariable => escapeHTML(x.value.getOrElse("Unspecified"))}) ::
         Nil
       }
     }
@@ -746,7 +750,7 @@ object DisplayNode extends Loggable {
     val title = sm.node.inventoryDate.map(date => s"Process status on ${DateFormaterService.getDisplayDate(date)}")
     displayTabGrid(jsId)("process", Full(sm.node.processes),title){
         ("User", {x:Process => ?(x.user)}) ::
-        ("PID", {x:Process => Text(x.pid.toString())}) ::
+        ("PID", {x:Process => escapeHTML(x.pid.toString())}) ::
         ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
         ("% Memory", {x:Process => ?(x.memory.map(_.toString()))}) ::
         ("Virtual memory", {x:Process => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo))}) ::
@@ -762,7 +766,7 @@ object DisplayNode extends Loggable {
         ("Name", {x:VirtualMachine => ?(x.name)}) ::
         ("Type", {x:VirtualMachine => ?(x.vmtype)}) ::
         ("SubSystem", {x:VirtualMachine => ?(x.subsystem)}) ::
-        ("Uuid", {x:VirtualMachine => Text(x.uuid.value)}) ::
+        ("Uuid", {x:VirtualMachine => escapeHTML(x.uuid.value)}) ::
         ("Status", {x:VirtualMachine => ?(x.status)}) ::
         ("Owner", {x:VirtualMachine => ?(x.owner)}) ::
         ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
@@ -772,7 +776,7 @@ object DisplayNode extends Loggable {
 
   private def displayTabBios(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("bios", sm.machine.map(fm => fm.bios)){
-        ("Name", {x:Bios => Text(x.name)}) ::
+        ("Name", {x:Bios => escapeHTML(x.name)}) ::
         ("Editor", {x:Bios => ?(x.editor.map( _.name))}) ::
         ("Version", {x:Bios => ?(x.version.map( _.value))}) ::
         ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_)))}) ::
@@ -781,37 +785,37 @@ object DisplayNode extends Loggable {
 
   private def displayTabControllers(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("controllers", sm.machine.map(fm => fm.controllers)){
-        ("Name", {x:Controller => Text(x.name)}) ::
+        ("Name", {x:Controller => escapeHTML(x.name)}) ::
         ("Manufacturer", {x:Controller => ?(x.manufacturer.map( _.name))}) ::
         ("Type", {x:Controller => ?(x.cType)}) ::
-        ("Quantity", {x:Controller => Text(x.quantity.toString)}) ::
+        ("Quantity", {x:Controller => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabMemories(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("memories", sm.machine.map(fm => fm.memories)){
-        ("Slot", {x:MemorySlot => Text(x.slotNumber)}) ::
+        ("Slot", {x:MemorySlot => escapeHTML(x.slotNumber)}) ::
         ("Capacity", {x:MemorySlot => ?(x.capacity.map( _.toStringMo ))}) ::
         ("Description", {x:MemorySlot => ?(x.description)}) ::
         ("Serial Number", {x:MemorySlot => ?(x.serialNumber)}) ::
         ("Speed", {x:MemorySlot => ?(x.speed)}) ::
         ("Type", {x:MemorySlot => ?(x.memType)}) ::
-        ("Quantity", {x:MemorySlot => Text(x.quantity.toString)}) ::
+        ("Quantity", {x:MemorySlot => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabPorts(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("ports", sm.machine.map(fm => fm.ports)){
-        ("Name", {x:Port => Text(x.name)}) ::
+        ("Name", {x:Port => escapeHTML(x.name)}) ::
         ("Type", {x:Port => ?(x.pType )}) ::
         ("Description", {x:Port => ?(x.description)}) ::
-        ("Quantity", {x:Port => Text(x.quantity.toString)}) ::
+        ("Quantity", {x:Port => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabProcessors(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("processors", sm.machine.map(fm => fm.processors)){
-        ("Name", {x:Processor => Text(x.name)}) ::
+        ("Name", {x:Processor => escapeHTML(x.name)}) ::
         ("Speed", {x:Processor => ?(x.speed.map(_.toString))}) ::
         ("Model", {x:Processor => ?(x.model.map(_.toString()))}) ::
         ("Family", {x:Processor => ?(x.family.map(_.toString()))}) ::
@@ -822,30 +826,30 @@ object DisplayNode extends Loggable {
         ("CPUID", {x:Processor => ?(x.cpuid)}) ::
         ("Architecture", {x:Processor => ?(x.arch)}) ::
         ("Stepping", {x:Processor => ?(x.stepping.map(_.toString))}) ::
-        ("Quantity", {x:Processor => Text(x.quantity.toString)}) ::
+        ("Quantity", {x:Processor => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabSlots(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("slots", sm.machine.map(fm => fm.slots)){
-        ("Name" , {x:Slot => Text(x.name)}) ::
+        ("Name" , {x:Slot => escapeHTML(x.name)}) ::
         ( "Description" , {x:Slot => ?(x.description)}) ::
         ( "Status" , {x:Slot => ?(x.status)}) ::
-        ( "Quantity" , {x:Slot => Text(x.quantity.toString)}) ::
+        ( "Quantity" , {x:Slot => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabSounds(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("sounds", sm.machine.map(fm => fm.sounds)){
-        ("Name" , {x:Sound => Text(x.name)}) ::
+        ("Name" , {x:Sound => escapeHTML(x.name)}) ::
         ( "Description" , {x:Sound => ?(x.description)}) ::
-        ( "Quantity" , {x:Sound => Text(x.quantity.toString)}) ::
+        ( "Quantity" , {x:Sound => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabStorages(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("storages", sm.machine.map(fm => fm.storages)){
-        ( "Name" , {x:Storage => Text(x.name)}) ::
+        ( "Name" , {x:Storage => escapeHTML(x.name)}) ::
         ( "Description" , {x:Storage => ?(x.description)}) ::
         ( "Size" , {x:Storage => ?(x.size.map( _.toStringMo))}) ::
         ( "Firmware" , {x:Storage => ?(x.firmware)}) ::
@@ -853,17 +857,17 @@ object DisplayNode extends Loggable {
         ( "Model" , {x:Storage => ?(x.model)}) ::
         ( "Serial" , {x:Storage => ?(x.serialNumber)}) ::
         ( "Type" , {x:Storage => ?(x.sType)}) ::
-        ( "Quantity" , {x:Storage => Text(x.quantity.toString)}) ::
+        ( "Quantity" , {x:Storage => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 
   private def displayTabVideos(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("videos", sm.machine.map(fm => fm.videos)){
-        ("Name" , {x:Video => Text(x.name)}) ::
+        ("Name" , {x:Video => escapeHTML(x.name)}) ::
         ( "Chipset" , {x:Video => ?(x.chipset)}) ::
         ( "Memory" , {x:Video => ?(x.memory.map( _.toStringMo))}) ::
         ( "Resolution" , {x:Video => ?(x.resolution)}) ::
-        ( "Quantity" , {x:Video => Text(x.quantity.toString)}) ::
+        ( "Quantity" , {x:Video => escapeHTML(x.quantity.toString)}) ::
         Nil
     }
 

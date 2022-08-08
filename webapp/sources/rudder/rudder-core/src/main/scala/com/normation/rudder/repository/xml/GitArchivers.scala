@@ -39,10 +39,14 @@ package com.normation.rudder.repository.xml
 
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.xmlparsers.TechniqueParser
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.Constants.CONFIGURATION_RULES_ARCHIVE_TAG
 import com.normation.rudder.domain.Constants.GROUPS_ARCHIVE_TAG
 import com.normation.rudder.domain.Constants.PARAMETERS_ARCHIVE_TAG
@@ -58,8 +62,11 @@ import com.normation.rudder.git.GitArchiverFullCommitUtils
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling._
+import com.normation.rudder.services.user.PersonIdentService
 
 import net.liftweb.common._
 import org.apache.commons.io.FileUtils
@@ -67,6 +74,8 @@ import org.eclipse.jgit.lib.PersonIdent
 
 import java.io.File
 import scala.collection.mutable.Buffer
+import scala.xml.Source
+import scala.xml.XML
 
 import zio._
 import zio.syntax._
@@ -169,9 +178,126 @@ trait BuildCategoryPathName[T] {
 }
 
 
+///////////////////////////////////////////////////////////////
+//////  Archive techniques (techniques, resources files  //////
+///////////////////////////////////////////////////////////////
+
+/*
+ * There is a low level API that works at "metadata.xml and files" level and only checks things like metadata.xml ok, overwriting ok,
+ * unicity, resources presents, agent file presents, etc
+ *
+ * This service is also in charge of low-level git related actions: delete files, commit, etc.
+ */
+trait TechniqueArchiver {
+  def deleteTechnique(techniqueId: TechniqueId, categories: Seq[String], modId: ModificationId, committer:  EventActor, msg: String) : IOResult[Unit]
+  def saveTechnique(techniqueId: TechniqueId, categories: Seq[String], resourcesStatus: Chunk[ResourceFile], modId: ModificationId, committer:  EventActor, msg: String) : IOResult[Unit]
+}
+
+/*
+ * List of files to add/delete in the commit.
+ * All path are given relative to git root, ie they can be used in
+ * a git command as they are.
+ */
+final case class TechniqueFilesToCommit(
+    add   : Chunk[String]
+  , delete: Chunk[String]
+)
+
+class TechniqueArchiverImpl (
+    override val gitRepo                   : GitRepositoryProvider
+  , override val xmlPrettyPrinter          : RudderPrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
+  , personIdentservice                     : PersonIdentService
+  , techniqueParser                        : TechniqueParser
+  , override val groupOwner                : String
+) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
+
+  override val encoding : String = "UTF-8"
+
+  // we can't use "techniques" for relative path because of ncf and dsc files. This is an architecture smell, we need to clean it.
+  override val relativePath = "techniques"
+
+  def deleteTechnique(techniqueId: TechniqueId, categories: Seq[String],  modId: ModificationId, committer:  EventActor, msg: String) : IOResult[Unit] = {
+    (for {
+      ident   <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath <- categories.filter(_ != "/").mkString("/").succeed
+      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}").call())
+
+      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield {
+      s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
+    }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
+  }
+
+  /*
+   * Return the list of files to commit for the technique.
+   * For resources, we need to have an hint about the state because we can't guess for deleted files.
+   *
+   * TODO: resource files path and status should be deducted from the metadata.xml and the Resources ID.
+   *  It would insure that there is consistency between technique descriptor and actual content, and
+   * insure that the lower generation part has a clear and defined API, and that we can do whatever we want
+   * in the middle.
+   * All path are related to git repository root path (ie, the correct path to use in git command).
+   * gitTechniquePath is the path for the technique relative to that git root, without ending slash
+   */
+  def getFilesToCommit(technique: Technique, gitTechniquePath: String, resourcesStatus: Chunk[ResourceFile]): TechniqueFilesToCommit = {
+    // parse metadata.xml and find what files need to be added
+    val filesToAdd = (Chunk(
+        "metadata.xml"             // standard technique API, used for policy generation pipeline
+      , "technique.json"           // high-level API between technique editor and rudder. Will evolve to .yml
+      , "technique.rd" ) ++        // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+      (if(technique.agentConfigs.collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise).nonEmpty) {
+        Chunk("rudder_reporting.cf", "technique.cf")
+      } else Chunk()) ++
+      (if(technique.agentConfigs.collectFirst(_.agentType == AgentType.Dsc).nonEmpty) {
+        Chunk("technique.ps1")
+      } else Chunk()) ++
+      resourcesStatus.collect {
+        case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified => path
+      }
+    ).map(p => gitTechniquePath + "/" + p) // from path relative to technique to relative to git root
+
+
+    // apart resources, additional files to delete are for migration purpose.
+    val filesToDelete = (
+      s"ncf/50_techniques/${technique.id.name.value}" +:      // added in 5.1 for migration to 6.0
+      s"dsc/ncf/50_techniques/${technique.id.name.value}" +:  // added in 6.1
+      resourcesStatus.collect {
+        case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path
+      }
+    )
+
+    TechniqueFilesToCommit(filesToAdd, filesToDelete)
+  }
+
+  override def saveTechnique(techniqueId: TechniqueId, categories: Seq[String], resourcesStatus: Chunk[ResourceFile], modId: ModificationId, committer:  EventActor, msg: String) : IOResult[Unit] = {
+
+    val categoryPath = categories.filter(_ != "/").mkString("/")
+    val techniqueGitPath = s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
+
+    (for {
+      metadata <- IOResult.effect(XML.load(Source.fromFile((gitRepo.rootDirectory / techniqueGitPath / "metadata.xml").toJava)))
+      tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
+      files    =  getFilesToCommit(tech, techniqueGitPath, resourcesStatus)
+      ident    <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      added    <- ZIO.foreach(files.add) { f =>
+                    IOResult.effect(gitRepo.git.add.addFilepattern(f).call())
+                  }
+      removed <- ZIO.foreach(files.delete) { f =>
+                   IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
+                 }
+      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
+  }
+
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //////  Archive the active technique library (categories, techniques, directives) //////
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * A specific trait to create archive of an active technique category.

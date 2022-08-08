@@ -40,6 +40,7 @@ package bootstrap.liftweb.checks.migration
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
@@ -55,12 +56,14 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
+import com.normation.rudder.configuration.GroupAndCat
 import com.normation.rudder.domain.NodeDit
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -162,6 +165,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getAll(): IOResult[Map[NodeId, NodeInfo]] = List(root, relay1).map(x => (x.id, x)).toMap.succeed
     override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     override def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = ???
+    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
     override def getNumberOfManagedNodes: Int = ???
     override def getAllNodesIds(): IOResult[Set[NodeId]] = ???
     override def getAllNodes(): IOResult[Map[NodeId, Node]] = ???
@@ -205,7 +209,8 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   // technique repos & all
   val testEnv =  new TestTechniqueRepo(
-      optGitRevisionProvider = Some((repo: GitRepositoryProvider) => new LDAPGitRevisionProvider(ldap, rudderDit, repo, "refs/heads/master"))
+      configRepoName = "configuration-repository-test-new-system-tech-7_0"
+    , optGitRevisionProvider = Some((repo: GitRepositoryProvider) => new LDAPGitRevisionProvider(ldap, rudderDit, repo, "refs/heads/master"))
   )
 
   private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(DN("ou=Accepted Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
@@ -251,11 +256,12 @@ class TestMigrateSystemTechniques7_0 extends Specification {
       , "metadata.xml"
     )
   lazy val configurationRepository = new ConfigurationRepository {
-    override def getTechnique(id: TechniqueId): IOResult[Option[Technique]] = testEnv.techniqueRepository.getLastTechniqueByName(id.name).succeed
+    override def getTechnique(id: TechniqueId): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]] = testEnv.techniqueRepository.getLastTechniqueByName(id.name).map((Chunk.empty, _)).succeed
     override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = ???
     override def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = ???
     override def getDirectiveRevision(uid: DirectiveUid): IOResult[List[GitVersion.RevisionInfo]] = ???
     override def getRule(id: RuleId): IOResult[Option[Rule]] = ???
+    override def getGroup(id: NodeGroupId): IOResult[Option[GroupAndCat]] = ???
   }
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDit, roLdap, ldapEntityMapper, testEnv.techniqueRepository, uptLibReadWriteMutex

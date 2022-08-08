@@ -51,8 +51,6 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
-import com.normation.inventory.domain.RuddercTarget
-import com.normation.rudder.apidata.JsonResponseObjects.JRRuddercTargets
 import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
@@ -193,6 +191,13 @@ trait ReadConfigService {
    */
   def rudder_featureSwitch_directiveScriptEngine(): IOResult[FeatureSwitch]
 
+
+  /**
+   * Should we activate import/export archive API
+   */
+  def rudder_featureSwitch_archiveApi(): IOResult[FeatureSwitch]
+
+
   /**
    * Default value for node properties after acceptation:
    * - policy mode
@@ -231,8 +236,6 @@ trait ReadConfigService {
   def rudder_generation_continue_on_error(): IOResult[Boolean]
 
   def rudder_setup_done(): IOResult[Boolean]
-
-  def rudder_generation_rudderc_enabled_targets(): IOResult[Set[RuddercTarget]]
 
 }
 
@@ -324,6 +327,11 @@ trait UpdateConfigService {
    */
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit]
 
+  /*
+   * Should we enable import/export archive API ?
+   */
+  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit]
+
 /**
    * Set the compliance mode
    */
@@ -374,8 +382,6 @@ trait UpdateConfigService {
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]
 
   def set_rudder_setup_done(value : Boolean): IOResult[Unit]
-
-  def set_rudder_generation_rudderc_enabled_targets(targets: Set[RuddercTarget]): IOResult[Unit]
 }
 
 /*
@@ -427,6 +433,7 @@ class GenericConfigService(
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
+       rudder.featureSwitch.archiveApi=disabled
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportUnboundedVarValues=true
@@ -712,6 +719,12 @@ class GenericConfigService(
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
   /**
+   * Should we enable import/export archive API?
+   */
+  def rudder_featureSwitch_archiveApi(): IOResult[FeatureSwitch] = get("rudder_featureSwitch_archiveApi")
+  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit] = save("rudder_featureSwitch_archiveApi", status)
+
+  /**
    * Default value for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
@@ -782,22 +795,4 @@ class GenericConfigService(
 
   def rudder_setup_done(): IOResult[Boolean] = get("rudder_setup_done")
   def set_rudder_setup_done(value: Boolean): IOResult[Unit] = save("rudder_setup_done", value)
-
-
-  private[this] implicit def toRuddercTargets(p: RudderWebProperty): Set[RuddercTarget] = {
-    import com.normation.rudder.apidata.implicits.ruddercTargetsDecoder
-    ruddercTargetsDecoder.decodeJson(p.value).map(_.values) match {
-      case Right(targets) => targets
-      case Left(err) =>
-        logEffect.warn(s"Error when trying the read rudderc targets from settings (using default: ${RuddercTarget.defaultTargets.map(_.name).mkString(", ")}): ${err}")
-        RuddercTarget.defaultTargets
-    }
-  }
-  private[this] implicit def serRuddercTargets(x: Set[RuddercTarget]): String = {
-    import com.normation.rudder.apidata.implicits.ruddercTargetsEncoder
-    ruddercTargetsEncoder.encodeJson(JRRuddercTargets(x), None).toString
-  }
-
-  def rudder_generation_rudderc_enabled_targets(): IOResult[Set[RuddercTarget]] = get("rudder_generation_rudderc_enabled_targets")
-  def set_rudder_generation_rudderc_enabled_targets(targets: Set[RuddercTarget]): IOResult[Unit] = save("rudder_generation_rudderc_enabled_targets", targets)
 }

@@ -860,7 +860,7 @@ class NodeApiService13 (
                            case None =>
                              nodeInfoService.getAll().toBox
                            case Some(nodeIds) =>
-                             nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
+                             nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
                          }
       n2              =  System.currentTimeMillis
       _               =  TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
@@ -915,7 +915,7 @@ class NodeApiService13 (
 
       nodes <- optNodeIds match {
         case None          => nodeInfoService.getAll().toBox
-        case Some(nodeIds) => nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
+        case Some(nodeIds) => nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
       }
       softs <- readOnlySoftwareDAO.getNodesbySofwareName(software).toBox.map(_.toMap)
     } yield {
@@ -929,7 +929,7 @@ class NodeApiService13 (
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
       nodes      <- optNodeIds match {
                       case None          => nodeInfoService.getAll().toBox
-                      case Some(nodeIds) => nodeInfoService.getNodeInfos(nodeIds.toSet).map(_.map(n => (n.id, n)).toMap).toBox
+                      case Some(nodeIds) => nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
                     }
       propMap = nodes.values.groupMapReduce(_.id)(n =>  n.properties.filter(_.name == property))(_ ::: _)
 
@@ -1211,7 +1211,7 @@ class NodeApiService6 (
                        Map[NodeId, FullInventory]().succeed
                      }
       software    <- if(detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                       softwareRepository.getSoftwareByNode(nodeIds, state)
                      } else {
                        Map[NodeId, Seq[Software]]().succeed
                      }
@@ -1324,7 +1324,9 @@ class NodeApiService8 (
       Nil
     // We currently bypass verification on certificate
     // We should add an option to allow the user to define a certificate in configuration file
-    val options = HttpOptions.allowUnsafeSSL :: Nil
+    //
+    // We set a 5 minutes timeout (in milliseconds) as remote-runs can be long
+    val options = HttpOptions.allowUnsafeSSL :: HttpOptions.readTimeout(5 * 60 * 1000) :: Nil
 
     Http(url).params(params).options(options).copy(headers = List(("User-Agent", s"rudder/remote run query for node ${nodeId.value}"))).postForm
   }

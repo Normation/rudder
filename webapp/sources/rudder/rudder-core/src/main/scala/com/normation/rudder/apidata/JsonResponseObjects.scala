@@ -37,19 +37,24 @@
 
 package com.normation.rudder.apidata
 
+import com.normation.GitVersion
 import com.normation.GitVersion.RevisionInfo
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.cfclerk.domain.Technique
-import com.normation.inventory.domain.RuddercTarget
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.rule.category.RuleCategory
+
 import zio.json.DeriveJsonEncoder
 import zio.json._
 import zio.json.internal.Write
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.repository.FullActiveTechnique
+
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -62,6 +67,7 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.ncf.BundleName
@@ -74,9 +80,18 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.utils.DateFormaterService
+
 import com.softwaremill.quicklens._
 import io.scalaland.chimney.dsl._
 import com.normation.rudder.hooks.Hooks
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.queries.StringCriterionLine
+import com.normation.rudder.services.queries.StringQuery
+
+import com.normation.errors._
+import zio.{Tag => _, _}
+import zio.syntax._
 
 /*
  * This class deals with everything serialisation related for API.
@@ -147,9 +162,29 @@ object JsonResponseObjects {
       // we have one more "section" indirection level between a section and its details:
       // { sections":[ { "section":{ "name": .... } }, { "section": { ... }} ]
     , sections: Option[List[Map[String, JRDirectiveSection]]]
-  )
+  ) {
+
+    // toMapVariable is just accumulating var by name in seq, see SectionVal.toMapVariables
+    def toMapVariables: Map[String,Seq[String]] = {
+      import scala.collection.mutable.{Map, Buffer}
+      val res = Map[String, Buffer[String]]()
+
+      def recToMap(sec : JRDirectiveSection) : Unit = {
+        sec.vars.foreach(_.foreach( _.foreach { case (_, sectionVar) =>
+          res.getOrElseUpdate(sectionVar.name, Buffer()).append(sectionVar.value)
+        }))
+        sec.sections.foreach(_.foreach(_.foreach { case (_, section) =>
+          recToMap( section )
+        }))
+      }
+      recToMap(this)
+      res.map { case (k,buf) => (k,buf.toSeq) }.toMap
+    }
+  }
+
+
   // we have one more level between a directive section and a section
-  final case class JRDirectiveSerctionHolder(
+  final case class JRDirectiveSectionHolder(
     section: JRDirectiveSection
   )
 
@@ -239,7 +274,6 @@ object JsonResponseObjects {
     def from (elem : MethodElem, methods : Map[BundleName,GenericMethod]): JRTechniqueElem = {
        elem match {
          case c : MethodCall =>
-           val newCall = MethodCall.renameParams(c,methods)
            val params: List[JRMethodCallValue] = c.parameters.map {
              case (parameterName, value) =>
                JRMethodCallValue(
@@ -307,7 +341,33 @@ object JsonResponseObjects {
     , system           : Boolean
     , policyMode       : String
     , tags             : List[Map[String, String]]
-  )
+  ) {
+    def toDirective(): IOResult[(TechniqueName, Directive)] = {
+      for {
+        i <- DirectiveId.parse(id).toIO
+        v <- TechniqueVersion.parse(techniqueVersion).toIO
+          // the Map is just for "section" -> ...
+        s <- parameters.get("section").notOptional("Root section entry 'section' is missing for directive parameters")
+        m <- PolicyMode.parseDefault(policyMode).toIO
+      } yield {
+        ( TechniqueName(techniqueName)
+        , Directive(
+              i
+            , v
+            , s.toMapVariables
+            , displayName
+            , shortDescription
+            , m
+            , longDescription
+            , priority
+            , enabled
+            , system
+            , Tags.fromMaps(tags)
+          )
+        )
+      }
+    }
+  }
 
   object JRTechnique {
     def fromTechnique(technique : Technique, optEditorInfo : Option[EditorTechnique], methods: Map[BundleName, GenericMethod]) : JRTechnique = (
@@ -406,7 +466,25 @@ object JsonResponseObjects {
     , tags            : List[Map[String, String]]
     , policyMode      : Option[String]
     , status          : Option[JRApplicationStatus]
-  )
+  ) {
+    def toRule(): IOResult[Rule] = {
+      for {
+        i <- RuleId.parse(id).toIO
+        d <- ZIO.foreach(directives)(DirectiveId.parse(_).toIO)
+      } yield Rule(
+          i
+        , displayName
+        , RuleCategoryId(categoryId)
+        , targets.map(_.toRuleTarget).toSet
+        , d.toSet
+        , shortDescription
+        , longDescription
+        , enabled
+        , system
+        , Tags.fromMaps(tags)
+      )
+    }
+  }
 
   object JRRule {
     // create an empty json rule with just ID set
@@ -622,7 +700,9 @@ object JsonResponseObjects {
     , attribute : String
     , comparator: String
     , value     : String
-  )
+  ) {
+    def toStringCriterionLine = StringCriterionLine(objectType, attribute, comparator, Some(value))
+  }
 
   object JRCriterium {
     def fromCriterium(c: CriterionLine) = {
@@ -669,7 +749,37 @@ object JsonResponseObjects {
     , properties      : List[JRProperty]
     , target          : String
     , system          : Boolean
-  )
+  ) {
+    def toGroup(queryParser: CmdbQueryParser): IOResult[(NodeGroupCategoryId, NodeGroup)] = {
+      for {
+        i <- NodeGroupId.parse(id).toIO
+        q <- query match {
+               case None    => None.succeed
+               case Some(q) =>
+                 for {
+                   t <- QueryReturnType(q.select).toIO
+                   x <- queryParser.parse(StringQuery(t, Some(q.composition), q.transform, q.where.map(_.toStringCriterionLine) )).toIO
+                 } yield Some(x)
+             }
+      } yield {
+        ( NodeGroupCategoryId(category)
+        , NodeGroup(
+              i
+            , displayName
+            , description
+            , properties.map(p => GroupProperty(p.name, GitVersion.DEFAULT_REV, p.value, p.inheritMode, p.provider))
+            , q
+            , dynamic
+            , nodeIds.map(NodeId(_)).toSet
+            , enabled
+            , system
+          )
+        )
+      }
+    }
+  }
+
+
   object JRGroup {
     def empty(id: String) = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
 
@@ -689,9 +799,6 @@ object JsonResponseObjects {
         .transform
     }
   }
-
-  // used to encode RuddercTargets in settings into an json array of strings
-  final case class JRRuddercTargets(values: Set[RuddercTarget])
 
   final case class JRRuleNodesDirectives(
       id              : String // id is in format uid+rev
@@ -761,7 +868,7 @@ trait RudderJsonEncoders {
   implicit val rulesEncoder: JsonEncoder[JRRules] = DeriveJsonEncoder.gen
 
   implicit val directiveSectionVarEncoder: JsonEncoder[JRDirectiveSectionVar] = DeriveJsonEncoder.gen
-  implicit lazy val directiveSectionHolderEncoder: JsonEncoder[JRDirectiveSerctionHolder] = DeriveJsonEncoder.gen
+  implicit lazy val directiveSectionHolderEncoder: JsonEncoder[JRDirectiveSectionHolder] = DeriveJsonEncoder.gen
   implicit lazy val directiveSectionEncoder: JsonEncoder[JRDirectiveSection] = DeriveJsonEncoder.gen
   implicit val directiveEncoder: JsonEncoder[JRDirective] = DeriveJsonEncoder.gen
   implicit val directivesEncoder: JsonEncoder[JRDirectives] = DeriveJsonEncoder.gen
@@ -821,7 +928,30 @@ trait RudderJsonEncoders {
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
-
-  implicit val ruddercTargetsEncoder: JsonEncoder[JRRuddercTargets] = JsonEncoder[List[String]].contramap[JRRuddercTargets](_.values.map(_.name).toList.sorted)
 }
 
+
+/*
+ * Decoders for JsonResponse object, when you need to read back something that they serialized.
+ */
+object JsonResponseObjectDecodes extends RudderJsonDecoders {
+  import JsonResponseObjects._
+
+  implicit lazy val decodeJRParentProperty: JsonDecoder[JRParentProperty] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRPropertyHierarchy: JsonDecoder[JRPropertyHierarchy] = DeriveJsonDecoder.gen
+  implicit lazy val decodePropertyProvider: JsonDecoder[PropertyProvider] = JsonDecoder.string.map(s =>
+    PropertyProvider(s)
+  )
+  implicit lazy val decodeJRProperty: JsonDecoder[JRProperty] = DeriveJsonDecoder.gen
+
+  implicit lazy val decodeJRCriterium: JsonDecoder[JRCriterium] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRDirectiveSectionVar: JsonDecoder[JRDirectiveSectionVar] = DeriveJsonDecoder.gen
+
+  implicit lazy val decodeJRApplicationStatus: JsonDecoder[JRApplicationStatus] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRQuery: JsonDecoder[JRQuery] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRDirectiveSection: JsonDecoder[JRDirectiveSection] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRRule: JsonDecoder[JRRule] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRGroup: JsonDecoder[JRGroup] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRDirective: JsonDecoder[JRDirective] = DeriveJsonDecoder.gen
+
+}

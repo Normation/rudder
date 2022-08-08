@@ -90,7 +90,7 @@ final class NodeGrid(
   def displayAndInit(
       servers:Seq[Srv],
       tableId:String,
-      columns:Seq[(Node,Srv => NodeSeq)]=Seq(),
+      columns:Seq[(Node,Srv => NodeSeq)]=Seq(), // these need to be XSS-escaped
       aoColumns:String ="",
       searchable : Boolean = true,
       paginate : Boolean = true
@@ -104,6 +104,7 @@ final class NodeGrid(
   /*
    * Init Javascript for the table with ID
    * 'tableId'
+   * columns need to be XSS-escaped
    */
   def initJs(tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean) : JsCmd = {
 
@@ -205,11 +206,12 @@ final class NodeGrid(
   def display(servers:Seq[Srv], tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
     //bind the table
     val headers : NodeSeq = columns flatMap { c => <th>{c._1}</th> }
+    def escape(s: String) = xml.Utility.escape(s)
 
     def serverLine (server: Srv) : NodeSeq = {
-        (".hostname *" #> {(if(isEmpty(server.hostname)) "(Missing host name) " + server.id.value else server.hostname)} &
-         ".fullos *" #> server.osFullName &
-         ".ips *" #> ( (server.ips.flatMap{ ip => <div class="ip">{ip}</div> }):NodeSeq ) & // TODO : enhance this
+        (".hostname *" #> {(if(isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escape(server.hostname))} &
+         ".fullos *" #> escape(server.osFullName) &
+         ".ips *" #> ( (server.ips.flatMap{ ip => <div class="ip">{escape(ip)}</div> }):NodeSeq ) & // TODO : enhance this
          ".other" #> ( (columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }):NodeSeq ) &
          ".nodetr [jsuuid]" #> {server.id.value.replaceAll("-","")} &
          ".nodetr [nodeid]" #> {server.id.value} &

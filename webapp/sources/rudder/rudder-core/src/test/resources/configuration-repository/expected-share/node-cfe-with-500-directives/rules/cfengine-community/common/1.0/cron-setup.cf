@@ -1,35 +1,31 @@
-#####################################################################################
-# Copyright 2011 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 bundle agent setup_cronjob
 {
+  vars:
+    solaris::
+      "crontab_group" string => "root";
+    aix::
+      "crontab_group" string => "cron";
+
+    pass2.in_hours::
+      "interval_str" string => eval("${system_common.agent_run_interval} / 60", "math", "infix");
+      "interval" string => format("%d", "${interval_str}");
+      "steps" string => execresult("seq -s, 0 ${interval} 23", "useshell");
+      "cron_prefix" string => "0 ${steps} * * *";
+
+    pass2.!in_hours::
+      "steps" string => execresult("seq -s, 0 ${system_common.agent_run_interval} 59", "useshell");
+      "cron_prefix" string => "${steps} * * * *";
+
+  classes:
+      "in_hours" expression => isgreaterthan("${system_common.agent_run_interval}","60");
+      "pass2" expression => "any";
+
   files:
 
-    linux::
-
-      # Temporary cron file added by rudder-agent postinst to prevent from UUID removal.
-      # When this promise will be generated, this cron will be useless then removed.
-      # (see http://www.rudder-project.org/redmine/issues/3925 and http://www.rudder-project.org/redmine/issues/3930).
-      "/etc/cron.d/rudder-agent-uuid"
-        delete => tidy;
-
-    !aix::
-
+    pass2.!aix.!solaris::
       "/etc/cron.d/rudder-agent"
         create          => "true",
         perms           => mog("644", "root", "0"),
@@ -37,37 +33,20 @@ bundle agent setup_cronjob
         template_method => "mustache",
         edit_template   => "${sys.workdir}/inputs/common/cron/rudder-agent-community-cron";
 
-    aix::
-
-      # Cleanup the crontab
-      "/var/spool/cron/crontabs/root"
-        edit_defaults => noempty_backup,
-        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* if \[ -x /opt/rudder/bin/check-rudder-agent \]; then /opt/rudder/bin/check-rudder-agent( >/dev/null)?; fi");
-
-      # Cleanup the pre-4.0 crontab
-      "/var/spool/cron/crontabs/root"
-        edit_defaults => noempty_backup,
-        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* /usr/bin/test -x /opt/rudder/bin/check-rudder-agent.*");
-
-      # Cleanup the crontab without logfile
-      "/var/spool/cron/crontabs/root"
-        edit_defaults => noempty_backup,
-        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* /usr/bin/test -x /opt/rudder/bin/rudder && /opt/rudder/bin/rudder agent check >/dev/null");
-
-      # Cleanup crontab again
-      "/var/spool/cron/crontabs/root"
-        edit_defaults => noempty_backup,
-        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* /usr/bin/test -x /opt/rudder/bin/rudder && /opt/rudder/bin/rudder agent check >> /var/log/rudder/agent-check/check.log 2>&1");
-
-      # Add Rudder entry
+    pass2.(aix|solaris)::
       "/var/spool/cron/crontabs/root"
         create        => "true",
         perms         => mog("600", "root", "cron"),
-        edit_line     => insert_lines("0,5,10,15,20,25,30,35,40,45,50,55 * * * * /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1"),
-        classes       => classes_generic("rudder_aix_crontab_insertion"),
+        edit_line     => insert_lines("${cron_prefix} /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1 # RUDDER CRON"),
+        classes       => classes_generic("rudder_system_user_crontab_insertion"),
         comment       => "Insert an AIX-compatible user crontab to run /opt/rudder/bin/rudder agent check";
 
-}
+      # Cleanup old crontab, without the tag
+      "/var/spool/cron/crontabs/root"
+        edit_defaults => noempty_backup,
+        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1");
+
+ }
 
 #######################################################
 # Check if the cron daemon is running
@@ -90,28 +69,26 @@ bundle agent check_cron_daemon
       "pass1" expression => "any";
 
   methods:
-
-    pass2.restart_crond::
       "restart_cron" usebundle => disable_reporting;
       "restart_cron" usebundle => _method_reporting_context("CRON Daemon", "None");
-      "restart_cron" usebundle => service_restart("${service_name}");
+      "check_cron_service"
+                     usebundle => service_check_running("${service_name}"),
+                            if => "!aix";
+
+      "restart_cron" usebundle => service_restart("${service_name}"),
+                            if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
       "restart_cron" usebundle => enable_reporting;
 
-    # Fake success result, since we don't actually call service_restart unless it's needed
-    pass2.!aix.!restart_crond::
-      "any" usebundle => _classes_success("service_restart_${service_name}");
 
-    pass3.!aix::
-      "any" usebundle => rudder_common_reports_generic("Common", "service_restart_${service_name}", "${system_common.directiveId}", "CRON Daemon", "None", "Cron daemon status");
+    pass3::
+      "any" usebundle => rudder_common_reports_generic("Common", "service_restart_${service_name}", "${system_common.directiveId}", "CRON Daemon", "None", "Cron daemon status"),
+                   if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
 
+      "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "CRON Daemon", "None", "CRON is correctly running"),
+                   if => "!(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
     aix::
       "any" usebundle => rudder_common_report("Common", "result_na", "${system_common.directiveId}", "CRON Daemon", "None", "CRON is not a service on AIX: CRON verifications skipped");
 
-  processes:
 
-    !aix::
-      "cron"
-        process_select => cron_bin,
-        restart_class => "restart_crond";
 
 }

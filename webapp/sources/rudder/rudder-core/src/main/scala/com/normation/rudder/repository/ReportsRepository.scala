@@ -115,7 +115,7 @@ trait ReportsRepository {
   def getHighestId() : Box[Long]
   def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]]
   //return the reports between the two ids, limited to limit number of reports, in asc order of id.
-  def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
+  def getReportsByKindBetween(lower: Long, upper: Option[Long], limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
 
   /*
    * Count number of changes by rule by interval. Also return the id of the highest result_repair.
@@ -137,7 +137,7 @@ trait ReportsRepository {
   /**
    * From an id and an end date (optionnal, if none, till now), return a list of AgentRun, and the max ID that has been considered
    */
-  def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[AgentRun], Long)]
+  def getReportsFromId(id : Long, endDate : DateTime) : Box[(Seq[AgentRun], Long)]
 
   def getReportsWithLowestId : Box[Option[(Long, Reports)]]
 

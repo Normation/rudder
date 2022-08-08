@@ -1,20 +1,5 @@
-#####################################################################################
-# Copyright 2011 Normation SAS
-#####################################################################################
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, Version 3.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#####################################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
 
 #######################################################
 #
@@ -24,14 +9,9 @@
 
 bundle server access_rules
 {
-  vars:
-    enterprise_edition::
-      "query_types" slist => {"delta", "rebase", "full"};
-
-  # Access rules are only defined on a policy server. Standard nodes should not share any files.
   access:
-
-    policy_server|role_rudder_relay_promises_only::
+    # Access rules are only defined on a policy server. Standard nodes should not share any files.
+    policy_server::
       "${def.dir_masterfiles}"
         handle    => "grant_access_policy",
         comment   => "Grant access to the policy updates",
@@ -60,15 +40,6 @@ bundle server access_rules
 
       &endif&
 
-    role_rudder_cfengine_mission_portal::
-      "${query_types}"
-        handle             => "server_access_grant_${query_types}_for_hub",
-        comment            => "Grant ${query_types} reporting query for the hub on the policy server",
-        resource_type      => "query",
-        report_data_select => rudder_data_select_policy_hub,
-        admit_ips          => { host2ip("${server_info.policy_server}"), @{sys.ip_addresses} }; # an enterprise policy server needs to be able to contact itself
-
-
     any::
     &MANAGED_NODES_NAME, MANAGED_NODES_ID, MANAGED_NODES_KEY : {host, uuid, key |
       "/var/rudder/share/&uuid&/"
@@ -85,17 +56,12 @@ bundle server access_rules
 
     # Allow server to remotely run the agent
     # Using ${sys.cf_agent} fails, as cf-serverd cannot canonize its path
-    any::
+    !root_server::
       "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand",
-        admit_ips => { host2ip("${server_info.policy_server}") };
-
-    enterprise_edition::
-      "${query_types}"
-        handle             => "server_access_grant_${query_types}_for_hosts",
-        comment            => "Grant ${query_types} reporting query for the hub on the hosts",
-        resource_type      => "query",
-        report_data_select => rudder_data_select_host,
-        admit_ips          => { host2ip("${server_info.policy_server}"), @{sys.ip_addresses} };
+        admit_keys => { "&POLICY_SERVER_KEY&" };
+    root_server::
+      "${g.rudder_command}" comment => "Grant access to rudder agent command for cfruncommand, root is its own policy server",
+        admit_keys => { "&POLICY_SERVER_KEY&" };
 
   roles:
       # Allow user root to set any class
@@ -113,7 +79,7 @@ bundle common def
 
    # List here the IP masks that we grant access to on the server
 
-    policy_server::
+    policy_server.(agent|server)::
       "acl" slist => {
         "127.0.0.0/8" , "::1", @{sys.ip_addresses},
 &if(ALLOWED_NETWORKS)&
@@ -123,10 +89,22 @@ bundle common def
 
     };
 
-    !policy_server::
+    !policy_server.(agent|server)::
       "acl" slist => {
         host2ip("${server_info.policy_server}")
       };
+
+
+    ipv6_enabled::
+      "bindtointerface" string => "${node.properties[rudder][server][cf_serverd_bind_address]}";
+
+    !ipv6_enabled::
+      "bindtointerface" string => "",
+                            if => strcmp("${node.properties[rudder][server][cf_serverd_bind_address]}", "::");
+
+      "bindtointerface" string => "${node.properties[rudder][server][cf_serverd_bind_address]}",
+                        unless => strcmp("${node.properties[rudder][server][cf_serverd_bind_address]}", "::");
+
 
   classes:
       "ipv6_enabled" expression => fileexists("/proc/net/if_inet6"),
@@ -137,10 +115,15 @@ bundle common def
 
 body server control
 {
+      policy_server::
         trustkeysfrom     => {
           @{def.acl} ,
-        }; #trustkey allows the exchange of keys
+        };
+      # our policy server should already be trusted after bootstraping
+      !policy_server::
+        trustkeysfrom     => {};
 
+      any::
         allowconnects     => {
           @{def.acl} ,
         };
@@ -149,10 +132,10 @@ body server control
           @{def.acl} ,
         };
 
-        # force connections via tls1.2
+        # force connections via tls1.2 or higher
         allowtlsversion => "1.2";
 
-        maxconnections    => "1000";
+        maxconnections    => "10000";
         logallconnections => "true";
 
         # Disallow old protocol
@@ -169,13 +152,14 @@ body server control
 
         denybadclocks => "&DENYBADCLOCKS&";
 
-    community_edition.!debug_port::
+    !debug_port::
         port => "&COMMUNITYPORT&";
-    community_edition.debug_port::
+    debug_port::
         port => "5310";
 
-    ipv6_enabled::
-        bindtointerface => "::";
+    any::
+        bindtointerface => "${def.bindtointerface}";
+
 
 }
 
@@ -184,24 +168,14 @@ body server control
 &if(MANAGED_NODES_NAME)&
 body runagent control
 {
-  enterprise_edition::
-  # If using enterprise, the nodes to connect to are using default port
-        hosts => {
-          &MANAGED_NODES_NAME: {
-          "&it&",}&
-        };
-
-  !enterprise_edition::
-  # When using community, we must use the port &COMMUNITYPORT& to connect to nodes
         hosts => {
           &MANAGED_NODES_NAME: {
           "&it&:&COMMUNITYPORT&",}&
         };
 
-    any::
         max_children => "25";
 
-    community_edition.!debug_port::
+    !debug_port::
         port => "&COMMUNITYPORT&";
     debug_port::
         port => "5310";

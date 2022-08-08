@@ -95,6 +95,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
     def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
     def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
+    def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
     def getNode(nodeId: NodeId): Box[Node] = ???
     def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
     def getAllNodesIds(): IOResult[Set[NodeId]] = ???

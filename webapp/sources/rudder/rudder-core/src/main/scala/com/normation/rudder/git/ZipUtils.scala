@@ -39,19 +39,22 @@ package com.normation.rudder.git
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors.effectUioUnit
-
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import scala.collection.Seq
 import scala.jdk.CollectionConverters._
+
+import zio.Chunk
 import zio.ZIO
 import zio.syntax._
 
@@ -59,6 +62,7 @@ object ZipUtils {
 
   final case class Zippable(path: String, useContent: Option[(InputStream => IOResult[Any]) => IOResult[Any]])
 
+  // unzip from a file to another file/directory
   def unzip(zip: ZipFile, intoDir: File): IOResult[Unit] = {
     if (intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {
       IOResult.effect(s"Error while unzipping file '${zip.getName}'") {
@@ -76,6 +80,41 @@ object ZipUtils {
       Inconsistency(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence").fail
     }}
 
+  // unzip an input stream into zip entries
+  def getZipEntries(name: String, zip: InputStream): IOResult[Chunk[(ZipEntry, Option[Array[Byte]])]] = {
+    import better.files._
+    // ah, Java. It was a long time ago. I didn't miss you.
+
+    // effect-full and all horror, must be encapsulated.
+    // Be careful, entry.getSize can't be trusted
+    def readEntry(zipis: ZipInputStream, entry: ZipEntry): Array[Byte] = {
+      if(entry.getSize > Int.MaxValue) throw new IllegalArgumentException(s"Zip content is too big, can not read it in Memory")
+      else {
+        val array = new ByteArrayOutputStream()
+        // read content
+        zipis.pipeTo(array)
+        // entry need to be closed
+        zipis.closeEntry()
+        array.toByteArray
+      }
+    }
+
+    IOResult.effect(s"Error while unzipping file '${name}'") {
+      val zipis = new ZipInputStream(zip)
+      var entry: ZipEntry = zipis.getNextEntry
+      var entries = Chunk[(ZipEntry, Option[Array[Byte]])]()
+      while(entry != null) {
+        entries = entries :+ (if(entry.isDirectory) {
+          (entry, None)
+        } else {
+          (entry, Some(readEntry(zipis, entry)))
+        })
+        entry = zipis.getNextEntry
+      }
+      entries
+    }
+  }
+
 
   /**
    * Zippable must be ordered from root to children (deep first),
@@ -85,10 +124,12 @@ object ZipUtils {
    */
 
   def zip(zipout: OutputStream, toAdds: Seq[Zippable]): IOResult[Unit] = {
+    // we must ensure that each entry is unique, else zip fails
+    val unique = toAdds.distinctBy(_.path)
     ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => effectUioUnit(zout.close())) { zout =>
       val addToZout = (is: InputStream) => IOResult.effect("Error when copying file")(IOUtils.copy(is, zout))
 
-      ZIO.foreach_(toAdds) { x =>
+      ZIO.foreach_(unique) { x =>
         val name = x.useContent match {
           case None     =>
             if (x.path.endsWith("/")) {
@@ -114,7 +155,7 @@ object ZipUtils {
   /**
    * Create the seq of zippable from a directory or file.
    * If it's a directory, all children are added recursively,
-   * and there name are relative to the root.
+   * and their names are relative to the root.
    * For a file, only its basename is added.
    *
    * The returned Zippable are ordered from root to children (deep first),
@@ -127,6 +168,8 @@ object ZipUtils {
    * root/dir-b/file-a
    * root/dir-b/file-b
    * etc
+   *
+   * root name itself is not used.
    */
   def toZippable(file: File): Seq[Zippable] = {
     if (file.getParent == null) {

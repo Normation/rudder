@@ -42,20 +42,20 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.v1.RestStatus
-import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{InMemoryResponse, Req}
-import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.common._
+import net.liftweb.http.InMemoryResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-import net.liftweb.http.JsonResponse
 import net.liftweb.http.PlainTextResponse
 
 @RunWith(classOf[JUnitRunner])
-class SystemApiTests extends Specification with AfterAll with Loggable {
+class SystemApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest = new RestTest(restTestSetUp.liftRules)
@@ -521,10 +521,12 @@ class SystemApiTests extends Specification with AfterAll with Loggable {
         def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
         testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
           .withFilter(filterGeneratedFile _)
-      case Full(JsonResponse(json, headers, cookies, code)) =>
+      case Full(JsonResponsePrettify(json, _, _, code, _)) =>
+        import net.liftweb.http.js.JsExp._
         (code must beEqualTo(500)) and
         (json.toJsCmd must beMatching(".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"))
-      case _ => ko
+      case x =>
+        ko
     }
   }
 

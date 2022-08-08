@@ -4,15 +4,15 @@ import better.files.File
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRHooks
-import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.HookApi as API
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.{HookApi => API}
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import zio.*
+import zio._
 
 
 class HookApi(

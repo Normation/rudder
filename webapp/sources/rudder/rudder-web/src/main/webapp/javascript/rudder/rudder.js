@@ -37,6 +37,22 @@
 
 /* Event handler function */
 
+var entityMap = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '/': '&#x2F;',
+  '`': '&#x60;',
+  '=': '&#x3D;'
+};
+
+function escapeHTML (string) {
+  return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+    return entityMap[s];
+  });
+}
 
 var bootstrapButton = $.fn.button.noConflict();
 var bootstrapAlert = $.fn.alert.noConflict();
@@ -749,7 +765,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
         $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
-        $("#report").html('<pre>' + response + '</pre>');
+        $("#report").html('<pre>' + escapeHTML(response) + '</pre>');
         $("#report").addClass("border-success");
         $("#visibilityOutput").show();
         showOrHideBtn();

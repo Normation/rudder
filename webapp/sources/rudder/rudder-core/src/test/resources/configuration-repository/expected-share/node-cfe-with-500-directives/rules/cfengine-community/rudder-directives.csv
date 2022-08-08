@@ -498,5 +498,5 @@
 "directive-copyGitFile97","enforce","separated","false","copyGitFile","2.3","false","Copy git file"
 "directive-copyGitFile98","enforce","separated","false","copyGitFile","2.3","false","Copy git file"
 "directive-copyGitFile99","enforce","separated","false","copyGitFile","2.3","false","Copy git file"
-"common-root","audit","merged","false","common","1.0","true","Common"
+"common-hasPolicyServer-root","audit","merged","false","common","1.0","true","Common"
 "inventory-all","audit","merged","false","inventory","1.0","true","Inventory"

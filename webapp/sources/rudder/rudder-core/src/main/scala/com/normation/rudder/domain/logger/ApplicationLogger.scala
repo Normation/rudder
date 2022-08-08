@@ -49,8 +49,20 @@ object ApplicationLogger extends Logger {
 }
 
 object ApplicationLoggerPure extends NamedZioLogger {
+  parent =>
   def loggerName = "application"
+
+  object Archive extends NamedZioLogger {
+    def loggerName = parent.loggerName + ".archive"
+  }
+
+  object Plugin extends NamedZioLogger {
+    def loggerName = parent.loggerName + ".plugin"
+  }
+
 }
+
+
 
 object ApiLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("api")
@@ -84,7 +96,7 @@ object ScheduledJobLoggerPure extends NamedZioLogger {
 }
 
 /**
- * A logger for new nodes informations
+ * A logger for new nodes information
  */
 object NodeLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("nodes")

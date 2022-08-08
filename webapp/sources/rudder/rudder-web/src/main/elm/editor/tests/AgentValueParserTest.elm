@@ -31,4 +31,15 @@ suite =
       \_ -> "${hel lo}" |> run valueLoop |> Expect.equal (Ok [Value  "${hel lo}"])
   , test " should not parse variable a variable when then there is spaced within but still parse a valid variable after" <|
       \_ -> "${hel lo}${hello}" |> run valueLoop |> Expect.equal (Ok [Value  "${hel lo}", Variable [Value  "hello"]])
+
+  , test "When parsing a simple string should produce the same string" <|
+      \_ -> "Hello" |> getAgentValue |> canonify |> Expect.equal "Hello"
+  , test "When parsing a variable should not change the string" <|
+      \_ -> "${hello}" |> getAgentValue |> canonify |> Expect.equal "${hello}"
+  , test "When parsing a bash variable , should canonify its content" <|
+      \_ -> "command_execution cat $(echo \"/etc/hosts\")" |> getAgentValue |> canonify |> Expect.equal "command_execution_cat___echo___etc_hosts__"
+  , test "When parsing a node property, should not canonify it" <|
+      \_ -> "package_absent ${node.properties[package]}" |> getAgentValue |> canonify |> Expect.equal "package_absent_${node.properties[package]}"
+
   ]
+
