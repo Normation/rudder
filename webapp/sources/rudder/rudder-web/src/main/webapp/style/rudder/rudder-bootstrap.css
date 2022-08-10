@@ -144,12 +144,12 @@ body{
 .wrapper .navbar-rudder .navbar-nav > .active > a, .wrapper .navbar-rudder .navbar-nav > .active > a:hover, .wrapper .navbar-rudder .navbar-nav > .active > a:focus,
 .wrapper .navbar-rudder .navbar-nav .dropdown.active > a, .wrapper .navbar-rudder .navbar-nav .dropdown.active > a:hover, .wrapper .navbar-rudder .navbar-nav .dropdown.active > a:focus {
   background-color: #2e2d2d;
-  color: #e78f08;
+  color: #1295c2;
 }
 .content-wrapper .nav > li > a:hover, .content-wrapper .nav > li > a:focus,
 .content-wrapper .nav li.dropdown > a:hover, .content-wrapper .nav li.dropdown > a:focus {
   background-color: #2e2d2d;
-  color: #e78f08;
+  color: #1295c2;;
   text-decoration:none;
 }
 .wrapper .navbar-rudder.navbar-fixed-top {
