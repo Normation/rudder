@@ -76,15 +76,17 @@ $.fn.dataTable.ext.search.push(
 
             if (min === undefined)
                 return true;
+            // look for the compliance column
+            var complianceCol = settings.aoColumns.find(a => a.data == "compliance");
 
-            if (data.compliance !== undefined) {
-
+            if (complianceCol !== undefined) {
                 // here, we get the id of the row element by looking deep inside settings...
                 // maybe there exists something cleaner.
+                // we get a string, rather than an array
 
-                var complianceArray = data.compliance;
-                 if (complianceArray !== undefined) {
-                     var compliance = computeCompliancePercent(complianceArray);
+                var complianceString = data[complianceCol.idx];
+                if (complianceString !== undefined) {
+                     var compliance = computeCompliancePercentFromString(complianceString);
 
                      if (max === undefined)
                         return compliance >= min;
@@ -1841,6 +1843,16 @@ function confirmRollback(id) {
 function cancelRollback(id) {
   $('#confirm'+id).empty();
   $('#rollback'+id).show();
+}
+function computeCompliancePercentFromString(complianceString) {
+  var complianceArray = complianceString.split(",").map(Number);
+  // ignore every odd entry that contains the number of components, we need the percentage
+  if (Array.isArray(complianceArray)) {
+    // Enforce N/A (1 * 2 +1) + Audit N/A (9 * 2 +1) + Repaired (3 * 2 +1) + Enforce success (2* 2+1) + Audit success (10*2+1)
+    return complianceArray[3] + complianceArray[19] + complianceArray[7] + complianceArray[5] + complianceArray[21];
+  } else {
+    return  0;
+  }  
 }
 
 function computeCompliancePercent (complianceArray) {
