@@ -187,7 +187,7 @@ view model =
                   )
                 , div[]
                   [ span[] [text "If you are new to Rudder, we advice you to "]
-                  , a [href "#"] [text "follow the getting started guide"]
+                  , a [href "/rudder-doc/get-started/current/index.html"] [text "follow the getting started guide"]
                   , span[] [text "."]
                   ]
                 , div[ class "wizard-btn-group"]
