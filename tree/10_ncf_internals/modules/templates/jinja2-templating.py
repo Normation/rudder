@@ -43,7 +43,6 @@ from optparse import OptionParser
 import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from distutils.version import StrictVersion
 import pkgutil
 
 try:
@@ -75,7 +74,7 @@ def render(opts, args):
 
     # keep_trailing_newline appeared in jinja 2.7, see http://jinja.pocoo.org/docs/dev/api/
     # we add a case for this as it can be really important in configuration management context
-    if StrictVersion(jinja2.__version__) >= StrictVersion("2.7"):
+    if [int(x) for x in jinja2.__version__.split(".")[0:2]] >= [2, 7]:
         env = Environment(
             loader=FileSystemLoader(os.path.dirname(template_path)),
             keep_trailing_newline=True
