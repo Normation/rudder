@@ -832,9 +832,9 @@ class DSCTechniqueWriter(
                               }
 
             methodParams = params.map { case(id, arg) => s"""-${id.validDscName} ${arg}""" }.mkString(" ")
-            effectiveCall =
-              s"""$$call = ${call.methodId.validDscName} ${methodParams} -PolicyMode $$policyMode
-                 |$$methodContext = Compute-Method-Call @reportParams -MethodCall $$call
+            effectiveCall = s"""$$call = ${call.methodId.validDscName} ${methodParams} -PolicyMode $$policyMode""" // methodParams can be multiline text
+                                                                                                                   // so we should never indent it
+            methodContext = s"""$$methodContext = Compute-Method-Call @reportParams -MethodCall $$call
                  |$$localContext.merge($$methodContext)
                  |""".stripMargin
 
@@ -842,17 +842,19 @@ class DSCTechniqueWriter(
           } yield {
             val methodCall = if (method.agentSupport.contains(AgentType.Dsc)) {
               if (condition == "any" ) {
-                s"""${effectiveCall.indent(2)}"""
+                s"""  ${effectiveCall}
+                   |  ${methodContext.indent(2)}""".stripMargin
               } else {
-                s"""$$class = "${condition}"
-                   |if ($$localContext.Evaluate($$class)) {
-                   |  ${effectiveCall.indent(2)}
-                   |} else {
-                   |  Rudder-Report-NA @reportParams
-                   |}""".stripMargin('|').indent(2)
+                s"""  $$class = "${condition}"
+                   |  if ($$localContext.Evaluate($$class)) {
+                   |    ${effectiveCall}
+                   |    ${methodContext.indent(4)}
+                   |  } else {
+                   |    Rudder-Report-NA @reportParams
+                   |  }""".stripMargin('|')
               }
             } else {
-              s"Rudder-Report-NA @reportParams"
+              s"  Rudder-Report-NA @reportParams"
             }
 
             s"""|  $$reportId=$$reportIdBase+"${call.id}"
@@ -866,7 +868,7 @@ class DSCTechniqueWriter(
                 |    DisableReporting = $$${disableReporting}
                 |    TechniqueName = $$techniqueName
                 |  }
-                |  ${methodCall}""".stripMargin('|') :: Nil
+                |${methodCall}""".stripMargin('|') :: Nil
 
           })
        }
