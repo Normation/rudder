@@ -80,6 +80,13 @@ USER_HOME=/home/foohome
 fileName=myApp.log
 destination=${USER_HOME}/${fileName}
 
+  <logger name="campaign" level="info" additivity="false">
+   <appender-ref ref="STDOUT" />
+  </logger>
+
    -->
+
+
+
 
 </configuration>
