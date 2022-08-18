@@ -181,7 +181,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
 
     def start() = {
       for {
-        init <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+        init <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None, None, None, None, None)
         _ <- queue.offerAll(init)
         _ <- loop().forever.forkDaemon
       } yield {
@@ -265,7 +265,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   def scheduleCampaignEvent(campaign: Campaign) : IOResult[CampaignEvent] = {
 
     for {
-      events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id))
+      events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id), None, None, None, None)
       lastEventDate = events match {
         case Nil => DateTime.now()
         case _ => events.maxBy(_.start.getMillis).start
@@ -286,7 +286,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case None => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
         for {
-          alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+          alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None, None, None, None,None)
           campaigns <- campaignRepo.getAll()
           _ <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
@@ -308,7 +308,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       _ <- CampaignLogger.debug("Starting campaign scheduler")
       _ <- s.start().forkDaemon
       _ <- CampaignLogger.debug("Starting campaign forked, now getting already created events")
-      alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+      alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None, None, None, None, None)
       _ <- CampaignLogger.debug("Got events, queue them")
       _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
       _ <- CampaignLogger.debug("queued events, check campaigns")

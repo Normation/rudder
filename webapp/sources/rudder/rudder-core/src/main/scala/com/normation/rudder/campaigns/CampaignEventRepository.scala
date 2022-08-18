@@ -62,7 +62,7 @@ trait CampaignEventRepository {
    * - if Nil or None, clause is ignored
    * - if a value is provided, then it is use to filter things accordingly
    */
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]]
+  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime])  : IOResult[List[CampaignEvent]]
 }
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
@@ -94,18 +94,23 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]] = {
+  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime]) : IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list._
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
     val stateQuery = states.toNel.map(s => Fragments.in(fr"state", s.map(_.value)))
-    val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery)
+    val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
+    val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
+    val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+
+    val limitQuery = limit.map(i => fr" limit $i").getOrElse(fr"")
+    val offsetQuery = offset.map(i => fr" offset $i").getOrElse(fr"")
 
 
-    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents " ++ where
+    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents " ++ where ++ limitQuery ++ offsetQuery
 
-    transactIOResult(s"error when getting campaign events")(xa => q.queryWithLogHandler[CampaignEvent](LogHandler.jdkLogHandler).to[List].transact(xa))
+    transactIOResult(s"error when getting campaign events")(xa => q.query[CampaignEvent].to[List].transact(xa))
   }
 
   def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
