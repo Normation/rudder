@@ -2432,9 +2432,9 @@ class MockCampaign() {
       } yield c
     }
 
-    def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId]): IOResult[List[CampaignEvent]] = {
+    def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId], limit: Option[Int], offset: Option[Int], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[List[CampaignEvent]] = {
 
-      val allEvents = items.get.map(_.values.toList)
+    val allEvents = items.get.map(_.values.toList)
       val campaignIdFiltered = campaignId match {
         case None => allEvents
         case Some(id) => allEvents.map(_.filter(_.campaignId == id))
@@ -2443,9 +2443,29 @@ class MockCampaign() {
         case None => campaignIdFiltered
         case Some(id) => campaignIdFiltered.map(_.filter(_.campaignType == id))
       }
-      states match {
+      val stateFiltered = states match {
         case Nil => campaignTypeFiltered
         case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state)))
+      }
+
+      val afterDateFiltered = afterDate match {
+        case None => stateFiltered
+        case Some(id) => stateFiltered.map(_.filter(_.end.isAfter(id)))
+      }
+      val beforeDateFiltered = beforeDate match {
+        case None => afterDateFiltered
+        case Some(id) => afterDateFiltered.map(_.filter(_.start.isBefore(id)))
+      }
+
+      (offset,limit) match {
+        case (Some(offset),Some(limit)) =>
+          beforeDateFiltered.map(_.drop(offset).take(limit))
+        case (None,Some(limit)) =>
+          beforeDateFiltered.map(_.take(limit))
+        case (Some(offset),None) =>
+          beforeDateFiltered.map(_.drop(offset))
+        case (None,None) =>
+          beforeDateFiltered
       }
     }
 

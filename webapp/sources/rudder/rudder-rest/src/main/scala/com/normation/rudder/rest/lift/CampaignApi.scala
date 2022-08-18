@@ -9,23 +9,22 @@ import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.CampaignSerializer._
+import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rest.{CampaignApi => API}
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.CampaignApi as API
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 import com.normation.errors.Unexpected
+import com.normation.utils.DateFormaterService
 
 class CampaignApi (
     campaignRepository: CampaignRepository
@@ -148,7 +147,11 @@ class CampaignApi (
       val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
       val campaignId = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
-      campaignEventRepository.getWithCriteria(states,campaignType,campaignId).toLiftResponseList(params,schema )
+      val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val offset = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val beforeDate = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val afterDate = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      campaignEventRepository.getWithCriteria(states,campaignType,campaignId, limit, offset, afterDate, beforeDate).toLiftResponseList(params,schema )
     }
   }
 
@@ -168,7 +171,11 @@ class CampaignApi (
     def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
-      campaignEventRepository.getWithCriteria(states, campaignType, Some(CampaignId(resources))).toLiftResponseList(params,schema)
+      val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val offset = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val beforeDate = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val afterDate = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      campaignEventRepository.getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate).toLiftResponseList(params,schema)
 
     }
   }
