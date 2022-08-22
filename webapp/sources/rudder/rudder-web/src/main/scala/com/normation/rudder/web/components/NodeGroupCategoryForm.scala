@@ -172,44 +172,38 @@ class NodeGroupCategoryForm(
    */
   private[this] def deleteButton : NodeSeq = {
 
+     val deletePopupContent =
+       <div class="modal-backdrop fade in" style="height: 100%;"></div>
+         <div class="modal-dialog">
+           <div class="modal-content">
+             <div class="modal-header">
+               <div class="close" data-dismiss="modal">
+                 <span aria-hidden="true">&times;</span>
+                 <span class="sr-only">Close</span>
+               </div>
+               <h4 class="modal-title text-left">
+                 Delete a group category
+               </h4>
+             </div>
+             <div class="modal-body">
+               <div class="row">
+                 <div class="col-lg-12">
+                   <h4 class="text-center">
+                     Are you sure that you want to completely delete this category ?
+                   </h4>
+                 </div>
+               </div>
+             </div>
+             <div class="modal-footer" style="text-align:center">
+               <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+               {SHtml.ajaxButton("Delete", onDelete _ ,("class", "btn btn-danger"))}
+             </div>
+           </div>
+         </div>
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
-      ( <button id="removeButton" class="btn btn-danger">Delete</button>
-        <div id="removeActionDialog" class="modal fade" data-keyboard="true" data-container="body" tabindex="-1">
-          <div class="modal-backdrop fade in" style="height: 100%;"></div>
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <div class="close" data-dismiss="modal">
-                  <span aria-hidden="true">&times;</span>
-                  <span class="sr-only">Close</span>
-                </div>
-                <h4 class="modal-title text-left">
-                  Delete a group category
-                </h4>
-              </div>
-              <div class="modal-body">
-                <div class="row">
-                  <div class="col-lg-12">
-                    <h4 class="text-center">
-                        Are you sure that you want to completely delete this category ?
-                    </h4>
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer" style="text-align:center">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                {SHtml.ajaxButton("Delete", onDelete _ ,("class", "btn btn-danger"))}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) ++
-      Script(JsRaw("""
-        $('#removeButton').click(function() {
-          createPopup("removeActionDialog");
-          return false;
-        });
-        """))
+      ( SHtml.ajaxSubmit("Delete", () => SetHtml("removeActionDialog",deletePopupContent)  & JsRaw("""createPopup("removeActionDialog")"""),("class" ,"btn btn-danger")) ++
+        <div id="removeActionDialog" class="modal fade"  tabindex="-1"> </div>
+      )
     } else {
       ( <span class="btn btn-danger btn-tooltip disabled" data-toggle="tooltip" data-placement="bottom" data-html="true" data-original-title={"<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"}>Delete</span>
       ) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();"""))
