@@ -69,18 +69,16 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File)
 
   def getAll(): IOResult[List[Campaign]] = {
     for {
-      _ <- CampaignLogger.info(path.children.toList.map(_.extension).mkString(", "))
       jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ ==".json"))}
       campaigns <- (ZIO.foreach(jsonFiles.toList) {
 
         json =>
           (for {
-            _ <- CampaignLogger.info(json.pathAsString)
             c <-
               campaignSerializer.parse(json.contentAsString)
           } yield {
             c
-          }).either.chainError("yo")
+          }).either.chainError("Error when getting all campaings from filesystem")
       })
     } yield {
       campaigns.partitionMap(identity)._2
@@ -105,7 +103,6 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File)
                 file.createFileIfNotExists(true)
                 file
               }
-      _       <- CampaignLogger.info(file.pathAsString)
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.effect { file.write(content) }
     } yield {
