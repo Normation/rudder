@@ -311,9 +311,8 @@ class DirectiveEditForm(
   }
 
   private[this] def clone(): JsCmd = {
-    SetHtml(CreateCloneDirectivePopup.htmlId_popup,
-        newCreationPopup(technique, activeTechnique)) &
-    JsRaw(s""" createPopup("${CreateCloneDirectivePopup.htmlId_popup}"); """)
+    SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
+    JsRaw(s""" createPopup("basePopup"); """)
   }
 
   ////////////// Callbacks //////////////
@@ -722,8 +721,8 @@ class DirectiveEditForm(
           case None =>
             popup.onSubmit()
           case Some(_) =>
-            SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
-            JsRaw("""createPopup("confirmUpdateActionDialog")""")
+            SetHtml("basePopup", popup.popupContent()) &
+            JsRaw("""createPopup("basePopup")""")
         }
     }
   }
