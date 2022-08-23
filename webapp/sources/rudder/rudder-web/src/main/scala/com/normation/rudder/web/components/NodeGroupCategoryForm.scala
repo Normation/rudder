@@ -173,8 +173,7 @@ class NodeGroupCategoryForm(
   private[this] def deleteButton : NodeSeq = {
 
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
-      ( <button id="removeButton" class="btn btn-danger">Delete</button>
-        <div id="removeActionDialog" class="modal fade" data-keyboard="true" data-container="body" tabindex="-1">
+       val popupContent =
           <div class="modal-backdrop fade in" style="height: 100%;"></div>
           <div class="modal-dialog">
             <div class="modal-content">
@@ -202,14 +201,9 @@ class NodeGroupCategoryForm(
               </div>
             </div>
           </div>
-        </div>
-      ) ++
-      Script(JsRaw("""
-        $('#removeButton').click(function() {
-          createPopup("removeActionDialog");
-          return false;
-        });
-        """))
+       SHtml.ajaxSubmit("Delete", () => SetHtml("basePopup",popupContent)  & JsRaw("""createPopup("basePopup")"""),("class" ,"btn btn-danger"))
+
+
     } else {
       ( <span class="btn btn-danger btn-tooltip disabled" data-toggle="tooltip" data-placement="bottom" data-html="true" data-original-title={"<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"}>Delete</span>
       ) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();"""))
