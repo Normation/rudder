@@ -281,11 +281,11 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 }
 .content-wrapper .btn-success:focus,.content-wrapper .btn-success:focus {
   background-color: #13BEB7;
-  border-color: #82a926;
+  border-color: #109f9a;
 }
 .content-wrapper .btn-success:active,.content-wrapper .btn-success:active:focus {
-  background-color: #81a927;
-  border-color: #62801e;
+  background-color: #10a19c;
+  border-color: #109f9a;
 }
 
 .skin-yellow .sidebar-menu>li>a>.fa{
