@@ -211,7 +211,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Display the actions bar of the user library
    */
   def userLibraryAction() : NodeSeq = {
-    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-success btn-outline new-icon pull-right"))
+    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-default pull-right"))
   }
 
   /**
