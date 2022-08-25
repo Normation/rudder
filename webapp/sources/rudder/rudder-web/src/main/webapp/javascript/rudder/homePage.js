@@ -120,8 +120,8 @@ function homePage (
   if(globalGauge < 0) { //put placeholder texte
     $("#globalCompliance").html("") //let blank
     $("#globalComplianceStats").html(
-      "<span>You only have system rules. They are ignored in global compliance. "+
-      "Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</span>"
+      "<h4>You only have system rules. They are ignored in global compliance.</h4>"+
+      "<h4>Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</h4>"
     )
 
     var complianceGauge = document.getElementById('complianceGauge');
