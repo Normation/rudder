@@ -1473,10 +1473,6 @@ label span.text-fit{
 #serverDetails .dataTables_wrapper_top .dataTables_length{
   padding: 5px;
 }
-.dataTables_length label {
-  font-weight: normal;
-  margin:0;
-}
 #changesChartContainer {
   height: 40vh;
 }
