@@ -246,6 +246,9 @@ def package_install_latest(names, mode='release', exact_version=True, exit_on_er
 
 def remove(package_names):
     for package_name in package_names:
+        # Allow short names
+        if not package_name.startswith('rudder-plugin-'):
+            package_name = 'rudder-plugin-' + package_name
         logger.info('Removing ' + package_name)
         if package_name not in utils.DB['plugins']:
             utils.fail('This package is not installed. Aborting!', 2)
