@@ -52,6 +52,7 @@ async fn expired(file: &Path) -> Result<bool, Error> {
 // special cleanup implementation as retention is based on shared files metadata content
 pub async fn cleanup(path: WatchedDirectory, cfg: SharedFilesCleanupConfig) -> Result<(), Error> {
     let mut timer = interval(cfg.frequency);
+    debug!("starting shared-files cleanup in {:?}", path);
 
     loop {
         timer.tick().await;
@@ -59,21 +60,25 @@ pub async fn cleanup(path: WatchedDirectory, cfg: SharedFilesCleanupConfig) -> R
 
         for entry in WalkDir::new(&path).into_iter().filter_map(|e| e.ok()) {
             let file = entry.path();
+
             // If metadata file exists assume file is here
             if file.extension().and_then(OsStr::to_str) == Some("metadata") {
-                // Get file name by removing extension
-                let shared_file = path.parent().unwrap().join(path.file_stem().unwrap());
-                if expired(&shared_file).await? {
-                    info!("removing expired shared-file: {:?}", shared_file);
-                    remove_file(&shared_file)
-                        .await
-                        .unwrap_or_else(|e| error!("removal error: {}", e));
-                    remove_file(&shared_file.with_extension("metadata"))
-                        .await
-                        .unwrap_or_else(|e| error!("removal error: {}", e));
-                    remove_file(&shared_file.with_extension("sign"))
-                        .await
-                        .unwrap_or_else(|e| error!("removal error: {}", e));
+                debug!("considering shared-files {:?}", file);
+
+                // Get file name by removing the extension
+                let shared_file = file.parent().unwrap().join(file.file_stem().unwrap());
+                match expired(&shared_file).await {
+                    Ok(true) => {
+                        info!("removing expired shared-file: {:?}", shared_file);
+                        remove_file(&shared_file)
+                            .await
+                            .unwrap_or_else(|e| error!("removal error: {}", e));
+                        remove_file(&shared_file.with_extension("metadata"))
+                            .await
+                            .unwrap_or_else(|e| error!("removal error: {}", e));
+                    }
+                    Ok(false) => (),
+                    Err(e) => error!("shared-file expiration check error: {}", e),
                 }
             }
         }
@@ -86,7 +91,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_reads_expire_metadata() {
-        assert!(expired(Path::new("tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file.metadata")).await.unwrap());
-        assert!(!expired(Path::new("tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file-future.metadata")).await.unwrap());
+        assert!(expired(Path::new("tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file-old.metadata")).await.unwrap());
+        assert!(!expired(Path::new("tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file.metadata")).await.unwrap());
     }
 }
