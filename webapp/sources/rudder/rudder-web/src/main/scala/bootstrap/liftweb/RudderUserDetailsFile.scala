@@ -385,7 +385,7 @@ object UserFileProcessing {
       //now, get users
       val users = ( (xml \ "user").toList.flatMap { node =>
        //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
-       (   node.attribute("name").map(_.toList.map(_.text))
+       (   node.attribute("name").map(_.toList.map(str => if (RudderConfig.rudderUsernameCaseSensitive) str.text else str.text.toLowerCase()))
          , node.attribute("password").map(_.toList.map(_.text))
          , node.attribute("role").map(_.toList.map( role => RoleToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
        ) match {
