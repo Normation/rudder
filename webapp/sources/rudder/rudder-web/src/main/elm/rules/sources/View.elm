@@ -145,7 +145,8 @@ view model =
       NoModal -> text ""
       DeletionValidation rule ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-        [ div [ class "modal-dialog" ] [
+        [  div [class "modal-backdrop fade in"][]
+        ,  div [ class "modal-dialog" ] [
             div [ class "modal-content" ] [
               div [ class "modal-header ng-scope" ] [
                 h3 [ class "modal-title" ] [ text "Delete Rule"]
@@ -169,7 +170,8 @@ view model =
           txtDisable = if rule.enabled then "Disable" else "Enable"
         in
           div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-          [ div [ class "modal-dialog" ] [
+          [ div [class "modal-backdrop fade in"][]
+          , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
                 div [ class "modal-header ng-scope" ] [
                   h3 [ class "modal-title" ] [ text (txtDisable ++" Rule")]
@@ -192,7 +194,8 @@ view model =
           ]
       DeletionValidationCat category ->
         div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-         [ div [ class "modal-dialog" ] [
+         [ div [class "modal-backdrop fade in"][]
+         , div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
                div [ class "modal-header ng-scope" ] [
                  h3 [ class "modal-title" ] [ text "Delete category"]
