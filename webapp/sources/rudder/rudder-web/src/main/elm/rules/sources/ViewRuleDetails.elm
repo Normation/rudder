@@ -1,7 +1,6 @@
 module ViewRuleDetails exposing (..)
 
 import DataTypes exposing (..)
-import Dict
 import Html exposing (Html, button, div, i, span, text, h1, ul, li,  a, p)
 import Html.Attributes exposing (id, class, type_,  style, attribute, disabled)
 import Html.Events exposing (onClick)
@@ -98,6 +97,23 @@ editionTemplate model details =
 
 
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
+    getIncludedTargetIds : List RuleTarget -> List String
+    getIncludedTargetIds listTargets =
+      List.concatMap (\target -> case target of
+         NodeGroupId groupId -> [groupId]
+         Composition i e ->
+           let
+             included = getIncludedTargetIds[ i ]
+             --excluded = getTargetIds[ e ]
+           in
+             included
+         Special spe -> [spe]
+         Node node -> [node]
+         Or t  -> getIncludedTargetIds t
+         And t -> getIncludedTargetIds t
+      ) listTargets
+    originRuleGroups = getIncludedTargetIds (Maybe.Extra.unwrap [] .targets originRule)
+    (diffGroupsPos, diffGroupsNeg) = getDiffList originRuleGroups (getIncludedTargetIds rule.targets)
 
     nbDirectives = case originRule of
       Just oR -> Maybe.withDefault "" ( Maybe.map String.fromInt (details.numberOfDirectives) )
@@ -165,6 +181,8 @@ editionTemplate model details =
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
               [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbGroups originRule))]
+              , ( if diffGroupsPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffGroupsPos)] else text "")
+              , ( if diffGroupsNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffGroupsNeg)] else text "")
               ]
             ]
           ]
