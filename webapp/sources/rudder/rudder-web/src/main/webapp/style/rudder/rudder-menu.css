@@ -2931,7 +2931,6 @@ h3.box-title {
 }
 .toggleTabFilter.updateTable{
   padding: 5px 10px !important;
-  border-bottom:none !important;
 }
 .box-tools > .btn > .fa,.box-tools > .btn > .glyphicon,.box-tools > .btn > .ion{
   margin-left: 6px;
