@@ -40,6 +40,7 @@ package com.normation.rudder.campaigns
 import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
+import com.normation.errors.RudderError
 import com.normation.rudder.campaigns.CampaignEventState._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
@@ -50,6 +51,8 @@ import zio.ZIO
 import zio.clock.Clock
 import zio.duration._
 import zio.syntax._
+
+import scala.annotation.nowarn
 
 
 trait CampaignHandler{
@@ -108,6 +111,15 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
 
       val now = DateTime.now()
 
+      @nowarn
+      def failingLog(err : RudderError) = {
+        for {
+          _ <- CampaignLogger.error(s"An error occurred while treating campaign event ${event.id.value}, error details : ${err.fullMsg} ")
+          _ <- err.fail
+        } yield  {
+          event
+        }
+      }
       (for {
 
         _ <-  CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
@@ -179,15 +191,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           }
       } yield {
         ()
-      }).provide(zclock).catchAll(
-        err =>
-          for {
-            _ <- CampaignLogger.error(s"An error occurred while treating campaign event ${event.id.value}, error details : ${err.fullMsg} ")
-            _ <- err.fail
-          } yield  {
-            event
-          }
-        )
+      }).provide(zclock).catchAll(failingLog)
 
 
     }
@@ -276,16 +280,20 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   }
 
   def scheduleCampaignEvent(campaign: Campaign) : IOResult[CampaignEvent] = {
-
+    val now = DateTime.now()
     for {
+      nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
       events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id), None, None, None, None)
       lastEventDate = events match {
-        case Nil => DateTime.now()
-        case _ => events.maxBy(_.start.getMillis).start
+        case Nil => now
+        case _ =>
+          val maxEventDate = events.maxBy(_.end.getMillis).start
+          if (maxEventDate.isAfter(now)) maxEventDate else now
+
       }
       newEventDate <- nextCampaignDate(campaign.info.schedule, lastEventDate)
       end = newEventDate.plus(campaign.info.duration.toMillis)
-      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,Scheduled,newEventDate,end,campaign.campaignType)
+      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,s" ${campaign.info.name} #${nbOfEvents+1}", Scheduled,newEventDate,end,campaign.campaignType)
       _ <- repo.saveCampaignEvent(newCampaign)
       _ <- queueCampaign(newCampaign)
     } yield {

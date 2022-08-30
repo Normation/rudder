@@ -134,7 +134,7 @@ case class MonthlySchedule(
   , day : DayOfWeek
   , startHour : Int
   , startMinute : Int) extends CampaignSchedule
-@jsonHint("weekly") // TODO: we need start minutes too
+@jsonHint("weekly")
 case class WeeklySchedule(
     day : DayOfWeek
   , startHour : Int
@@ -150,6 +150,7 @@ case class CampaignType(value : String)
 case class CampaignEvent(
     id          : CampaignEventId
   , campaignId  : CampaignId
+  , name        : String
   , state       : CampaignEventState
   , start       : DateTime
   , end         : DateTime

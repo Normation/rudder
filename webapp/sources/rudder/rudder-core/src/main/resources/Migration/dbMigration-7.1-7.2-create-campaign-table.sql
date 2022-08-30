@@ -42,6 +42,7 @@
 CREATE TABLE CampaignEvents (
   campaignId   text
 , eventid      text PRIMARY KEY
+, name         text
 , state        text
 , startDate    timestamp with time zone NOT NULL
 , endDate      timestamp with time zone NOT NULL

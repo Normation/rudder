@@ -40,8 +40,8 @@ package com.normation.rudder.campaigns
 import better.files.File
 
 import com.normation.errors.IOResult
-import zio.*
-import zio.syntax.*
+import zio._
+import zio.syntax._
 import com.normation.errors.Unexpected
 
 trait CampaignRepository {

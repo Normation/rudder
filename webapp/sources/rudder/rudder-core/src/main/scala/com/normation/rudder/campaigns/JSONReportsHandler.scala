@@ -44,7 +44,7 @@ import com.normation.rudder.repository.RudderPropertiesRepository
 
 import zio._
 import zio.duration.Duration
-import com.normation.errors.*
+import com.normation.errors._
 
 trait JSONReportsHandler {
   def handle :  PartialFunction[Reports, IOResult[Reports]]
