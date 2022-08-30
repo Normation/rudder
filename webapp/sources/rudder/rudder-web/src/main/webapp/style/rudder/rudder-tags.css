@@ -74,6 +74,10 @@
 #showFiltersDirective .filterTag .panel-group {
   margin-bottom: 10px;
 }
+#showFiltersRules {
+  padding-left: 5px;
+  padding-right: 5px;
+}
 #showFiltersRules .filterTag .panel-group {
   margin-bottom: 0;
 }
