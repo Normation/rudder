@@ -513,9 +513,11 @@ class ProcessFile(
             // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
 
             val effect = ZioRuntime.blocking(
-                 UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
+              UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
               *> (watchEventQueue.offer(WatchEvent.End(file))
-                   *> processFile(file)
+                 *> processFile(file).catchAll(err =>
+                      InventoryProcessingLogger.error(s"Error when adding new inventory file '${file.path}' to processing: ${err.fullMsg}")
+                    )
                  ).uninterruptible
             ).forkDaemon
 
@@ -536,13 +538,11 @@ class ProcessFile(
   ZioRuntime.internal.unsafeRunSync(processMessage().forever.forkDaemon)
 
   def addFilePure(file: File): IOResult[Unit] = {
-    processFile(file)
+    watchEventQueue.offer(WatchEvent.Mod(file)).unit
   }
 
   def addFile(file: File): Unit = {
-    ZioRuntime.internal.unsafeRunSync(addFilePure(file).catchAll(err =>
-      InventoryProcessingLogger.error(s"Error when adding new inventory file '${file.path}' to processing: ${err.fullMsg}")
-    ))
+    ZioRuntime.internal.unsafeRunSync(addFilePure(file))
   }
 
   /*
