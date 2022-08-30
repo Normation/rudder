@@ -211,7 +211,7 @@ class NodeGroupCategoryForm(
   private[this] def onDelete() : JsCmd = {
     woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.actor, Some("Node Group category deleted by user from UI")).toBox match {
       case Full(id) =>
-        JsRaw("""$('#removeActionDialog').bsModal('hide');""") &
+        JsRaw("""$('#basePopup').bsModal('hide');""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
