@@ -126,7 +126,7 @@ object AgentType {
     override def displayName  = "Rudder Windows"
     override def toRulesPath  = "/dsc"
     override def inventoryAgentNames   = Set("dsc")
-    override val inventorySoftwareName = "Rudder agent (Windows)"
+    override val inventorySoftwareName = "Rudder agent (DSC)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
     override val defaultPolicyExtension ="" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
   }
