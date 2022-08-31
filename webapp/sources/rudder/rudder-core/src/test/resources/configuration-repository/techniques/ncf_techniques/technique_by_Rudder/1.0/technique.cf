@@ -23,7 +23,9 @@ bundle agent technique_by_Rudder(technique_parameter)
                                              if => concat("redhat");
     "id5_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_4("Command execution", "/bin/echo \"testing special characters ` è &é 'à é \"\\", "id5", "/bin/echo \"testing special characters ` è &é 'à é \"\\"),
                                              if => concat("any");
-    "id6_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_5("Not sure we should test it ...", "NA", "id6", "NA", "NA"),
+    "id5_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_5("Package state windows", "vim", "id5", "vim"),
+                                             if => concat("dsc");
+    "id6_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_6("Not sure we should test it ...", "NA", "id6", "NA", "NA"),
                                              if => concat("any");
 
 }
@@ -55,7 +57,12 @@ bundle agent technique_by_Rudder_gm_4(c_name, c_key, report_id, command) {
     "id5_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id5_${report_data.directive_id}" usebundle => command_execution("${command}");
 }
-bundle agent technique_by_Rudder_gm_5(c_name, c_key, report_id, message, old_class_prefix) {
+bundle agent technique_by_Rudder_gm_5(c_name, c_key, report_id, package_name) {
+  methods:
+    "id5_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id5_${report_data.directive_id}" usebundle => package_state_windows("${package_name}");
+}
+bundle agent technique_by_Rudder_gm_6(c_name, c_key, report_id, message, old_class_prefix) {
   methods:
     "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id6_${report_data.directive_id}" usebundle => _logger("${message}","${old_class_prefix}");

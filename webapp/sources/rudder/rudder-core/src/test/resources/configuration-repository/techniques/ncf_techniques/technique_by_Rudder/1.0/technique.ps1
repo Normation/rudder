@@ -107,5 +107,25 @@
   } else {
     Rudder-Report-NA @reportParams
   }
+
+  $reportId=$reportIdBase+"id5"
+  $componentKey = "vim"
+  $reportParams = @{
+    ClassPrefix = ([Rudder.Condition]::canonify(("package_state_windows_" + $componentKey)))
+    ComponentKey = $componentKey
+    ComponentName = "Package state windows"
+    PolicyMode = $policyMode
+    ReportId = $reportId
+    DisableReporting = $false
+    TechniqueName = $techniqueName
+  }
+  $class = "dsc"
+  if ($localContext.Evaluate($class)) {
+    $call = Package-State-Windows -PackageName "vim" -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+  } else {
+    Rudder-Report-NA @reportParams
+  }
   EndTechniqueCall -Name $techniqueName
 }
