@@ -151,7 +151,7 @@ ul.graph-legend{
   margin: 15px auto 0px auto;
 }
 #nodeOverview {
-  height: 382px;
+  min-height: 382px;
 }
 #nodeOverview ul.graph-legend{
   width: 290px;
