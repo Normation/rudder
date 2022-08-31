@@ -2373,7 +2373,7 @@ class MockCampaign() {
     , WeeklySchedule(Monday, 3, 42)
     , Duration("1 hour")
   ), DumbCampaignDetails("campaign #0"))
-  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,CampaignEventState.Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,"campaign #0",CampaignEventState.Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
 
 
   object repo extends CampaignRepository {
@@ -2469,6 +2469,7 @@ class MockCampaign() {
       }
     }
 
+    def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
   }
 
   val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl())
