@@ -311,6 +311,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , None
     , Seq()
   ) ::
+  GenericMethod(
+      BundleName("package_state_windows")
+      , "Package state windows"
+      , MethodParameter(ParameterId("package_name"),"", defaultConstraint, StringParameter) :: Nil
+      , ParameterId("package_name")
+      , "package_state_windows"
+      , AgentType.Dsc :: Nil
+      , "Package install"
+      , None
+      , None
+      , None
+      , Seq()
+  ) ::
   Nil ).map(m => (m.id,m)).toMap
 
   val technique =
@@ -362,6 +375,14 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           , List((ParameterId("command"),"/bin/echo \"testing special characters ` è &é 'à é \"\\"))
           , "cfengine-community"
           , "Command execution"
+          , false
+        ) ::
+        MethodCall(
+          BundleName("package_state_windows")
+          , "id5"
+          , List((ParameterId("package_name"),"vim"))
+          , "dsc"
+          , "Package state windows"
           , false
         ) ::
         MethodCall(
