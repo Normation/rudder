@@ -298,6 +298,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     , Seq()
   ) ::
   GenericMethod(
+      BundleName("package_state_windows")
+      , "Package state windows"
+      , MethodParameter(ParameterId("package_name"),"", defaultConstraint, StringParameter) :: Nil
+      , ParameterId("package_name")
+      , "package_state_windows"
+      , AgentType.Dsc :: Nil
+      , "Package install"
+      , None
+      , None
+      , None
+      , Seq()
+  ) ::
+  GenericMethod(
       BundleName("_logger")
     , "_logger"
     , MethodParameter(ParameterId("message"),"", defaultConstraint, StringParameter) ::
@@ -379,7 +392,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ) ::
         MethodCall(
           BundleName("package_state_windows")
-          , "id5"
+          , "id6"
           , List((ParameterId("package_name"),"vim"))
           , "dsc"
           , "Package state windows"
@@ -387,7 +400,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ) ::
         MethodCall(
             BundleName("_logger")
-          , "id6"
+          , "id7"
           , List((ParameterId("message"),"NA"),(ParameterId("old_class_prefix"),"NA"))
           , "any"
           , "Not sure we should test it ..."
