@@ -53,4 +53,13 @@
     _rudder_common_report_na -componentName "Command execution" -componentKey "/bin/echo `"testing special characters ` è &é 'à é `"\" -message "Not applicable" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
   }
 
+  $reportId=$reportIdBase+"id6"
+
+  $class = "dsc"
+  if (Evaluate-Class $class $local_classes $system_classes) {
+    $local_classes = Merge-ClassContext $local_classes $(Package-State-Windows -PackageName "vim" -componentName "Package state windows" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly).get_item("classes")
+  } else {
+    _rudder_common_report_na -componentName "Package state windows" -componentKey "vim" -message "Not applicable" -Report:$true -reportId $reportId -techniqueName $techniqueName -auditOnly:$auditOnly
+  }
+
 }

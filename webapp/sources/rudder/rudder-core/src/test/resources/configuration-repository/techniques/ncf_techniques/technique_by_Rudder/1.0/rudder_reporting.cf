@@ -27,4 +27,8 @@ bundle agent technique_by_Rudder_rudder_reporting(technique_parameter)
              unless => concat("redhat");
     "id4" usebundle => log_na_rudder("Skipping method 'Package install' with key parameter 'openssh-server' since condition 'redhat' is not reached", "openssh-server", "${class_prefix}_package_install_openssh-server", @{args}),
              unless => concat("redhat");
+    "id6" usebundle => _method_reporting_context_v4("Package state windows", "vim","id6"),
+             unless => concat("false");
+    "id6" usebundle => log_na_rudder("'Package state windows' method is not available on classic Rudder agent, skip", "vim", "${class_prefix}_package_state_windows_vim", @{args}),
+             unless => concat("false");
 }

@@ -37,9 +37,13 @@ bundle agent technique_by_Rudder(technique_parameter)
                                              if => concat("any");
     "id5_${report_data.directive_id}" usebundle => command_execution("/bin/echo \"testing special characters ` è &é 'à é \"\\"),
                                              if => concat("any");
-    "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("Not sure we should test it ...", "NA","id6"),
+    "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("Package state windows", "vim","id6"),
+                                             if => concat("dsc");
+    "id6_${report_data.directive_id}" usebundle => package_state_windows("vim"),
+                                             if => concat("dsc");
+    "id7_${report_data.directive_id}" usebundle => _method_reporting_context_v4("Not sure we should test it ...", "NA","id7"),
                                              if => concat("any");
-    "id6_${report_data.directive_id}" usebundle => _logger("NA", "NA"),
+    "id7_${report_data.directive_id}" usebundle => _logger("NA", "NA"),
                                              if => concat("any");
 
 }
