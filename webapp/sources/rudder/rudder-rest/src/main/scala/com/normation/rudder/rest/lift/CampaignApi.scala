@@ -9,12 +9,12 @@ import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.CampaignSerializer.*
+import com.normation.rudder.campaigns.CampaignSerializer._
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.implicits._
 import com.normation.rudder.rest.CampaignApi as API
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.EmptyBox
@@ -22,7 +22,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.ZIO
-import zio.syntax.*
+import zio.syntax._
 import com.normation.errors.Unexpected
 import com.normation.utils.DateFormaterService
 

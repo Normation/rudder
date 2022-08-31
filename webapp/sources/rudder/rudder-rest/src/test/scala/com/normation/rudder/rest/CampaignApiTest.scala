@@ -105,6 +105,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
     val ce0 = CampaignEvent(
         CampaignEventId("e0")
       , CampaignId("c0")
+      , "campaign #0"
       , CampaignEventState.Finished
       , new DateTime(0)
       , new DateTime(1)

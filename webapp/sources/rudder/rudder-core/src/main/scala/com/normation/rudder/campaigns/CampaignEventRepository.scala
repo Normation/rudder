@@ -41,7 +41,6 @@ import com.normation.errors.IOResult
 import com.normation.rudder.campaigns.CampaignEventState.Scheduled
 import com.normation.rudder.db.Doobie
 import doobie.Fragments
-import doobie.LogHandler
 import doobie.Read
 import doobie.Write
 import doobie.implicits._
@@ -56,6 +55,7 @@ import java.sql.Timestamp
 trait CampaignEventRepository {
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
+  def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int]
 
   /*
    * Semantic is:
@@ -72,25 +72,26 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   implicit  val stateWrite : Write[CampaignEventState] = Write[String].contramap(_.value)
 
   implicit val eventWrite: Write[CampaignEvent] =
-    Write[(String,String,CampaignEventState,Timestamp,Timestamp, String)].contramap{
-      case event => (event.id.value,event.campaignId.value, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis), event.campaignType.value)
+    Write[(String,String,String,CampaignEventState,Timestamp,Timestamp, String)].contramap{
+      case event => (event.id.value,event.campaignId.value, event.name, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis), event.campaignType.value)
     }
 
   implicit val eventRead : Read[CampaignEvent] =
-    Read[(String,String,String,Timestamp,Timestamp,String)].map {
-      d : (String,String,String,Timestamp,Timestamp,String) =>
+    Read[(String,String,String,String,Timestamp,Timestamp,String)].map {
+      d : (String,String,String,String,Timestamp,Timestamp,String) =>
         CampaignEvent(
             CampaignEventId(d._1)
           , CampaignId(d._2)
-          , CampaignEventState.parse(d._3).getOrElse(Scheduled)
-          , new DateTime(d._4.getTime())
+          , d._3
+          , CampaignEventState.parse(d._4).getOrElse(Scheduled)
           , new DateTime(d._5.getTime())
-          , campaignSerializer.campaignType(d._6)
+          , new DateTime(d._6.getTime())
+          , campaignSerializer.campaignType(d._7)
         )
     }
 
   def get(id : CampaignEventId): IOResult[CampaignEvent] = {
-    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents where eventId = '${id.value}'"
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents where eventId = '${id.value}'"
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
@@ -108,17 +109,23 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val offsetQuery = offset.map(i => fr" offset $i").getOrElse(fr"")
 
 
-    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents " ++ where ++ limitQuery ++ offsetQuery
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents " ++ where ++ limitQuery ++ offsetQuery
 
     transactIOResult(s"error when getting campaign events")(xa => q.query[CampaignEvent].to[List].transact(xa))
+  }
+
+  def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int] = {
+    val q = sql"select count(*) from  CampaignEvents where campaignId = ${campaignId.value}"
+
+    transactIOResult(s"error when getting campaign events")(xa => q.query[Int].unique.transact(xa))
   }
 
   def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
     import doobie._
     val query =
-      sql"""insert into CampaignEvents  (eventId, campaignId, state, startDate, endDate, campaignType) values (${c})
+      sql"""insert into CampaignEvents  (eventId, campaignId, name, state, startDate, endDate, campaignType) values (${c})
            |  ON CONFLICT (eventId) DO UPDATE
-           |  SET state = ${c.state}; """.stripMargin
+           |  SET state = ${c.state}, name = ${c.name} ; """.stripMargin
 
     transactIOResult(s"error when inserting event with id ${c.campaignId.value}")(xa => query.update.run.transact(xa)).map(_ => c)
   }
