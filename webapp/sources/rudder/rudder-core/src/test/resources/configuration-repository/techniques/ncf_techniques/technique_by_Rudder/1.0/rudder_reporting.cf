@@ -15,7 +15,7 @@ bundle agent technique_by_Rudder_rudder_reporting(technique_parameter)
                                              unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
     "id4_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_10("Package install", "openssh-server", "id4", "Skipping method 'Package install' with key parameter 'openssh-server' since condition 'redhat' is not reached", "openssh-server", "${class_prefix}_package_install_openssh-server", @{args}),
                                              unless => concat("redhat");
-    "id5_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_11("Package state windows", "vim", "id5", "'Package state windows' method is not available on Linux Rudder agent, skip", "vim", "${class_prefix}_package_state_windows_vim", @{args}),
+    "id6_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_11("Package state windows", "vim", "id6", "'Package state windows' method is not available on Linux Rudder agent, skip", "vim", "${class_prefix}_package_state_windows_vim", @{args}),
                                              unless => concat("false");
 
 }
@@ -44,6 +44,6 @@ bundle agent technique_by_Rudder_gm_10(c_name, c_key, report_id, message, class_
 }
 bundle agent technique_by_Rudder_gm_11(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id5_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id5_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id6_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
 }

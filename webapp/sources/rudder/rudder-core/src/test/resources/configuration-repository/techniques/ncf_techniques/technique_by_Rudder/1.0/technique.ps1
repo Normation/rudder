@@ -108,7 +108,7 @@
     Rudder-Report-NA @reportParams
   }
 
-  $reportId=$reportIdBase+"id5"
+  $reportId=$reportIdBase+"id6"
   $componentKey = "vim"
   $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_state_windows_" + $componentKey)))

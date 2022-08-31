@@ -50,9 +50,9 @@
         <VALUE id="id5">/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;\</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION component="true" multivalued="true" id="id5" name="Package state windows">
+    <SECTION component="true" multivalued="true" id="id6" name="Package state windows">
       <REPORTKEYS>
-        <VALUE id="id5">vim</VALUE>
+        <VALUE id="id6">vim</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Technique parameters">
