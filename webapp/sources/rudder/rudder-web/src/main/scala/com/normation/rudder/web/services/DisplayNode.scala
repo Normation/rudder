@@ -516,7 +516,7 @@ object DisplayNode extends Loggable {
                       case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
                       case Right(cert) => (
                         <div><label>SHA1 Fingerprint: </label> <samp>{SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</samp></div>
-                        <div><label>Expiration date: </label> {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</div>
+                        <div><label>Expiration date: </label> {DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))}</div>
                       )
                     }
                 }}
