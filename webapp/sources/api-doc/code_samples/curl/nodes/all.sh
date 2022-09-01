@@ -1,5 +1,5 @@
 # To get the Linux nodes with a hostname starting with "node1"
-curl --header "X-API-Token: yourToken" 'https://rudder.example.com/rudder/api/latest/nodes?where=\[\{"objectType":"node","attribute":"OS","comparator":"eq","value":"Linux"\},\{"objectType":"node","attribute":"nodeHostname","comparator":"regex","value":"node1.*"\}\]'
+curl -g --header "X-API-Token: yourToken" 'https://rudder.example.com/rudder/api/latest/nodes?where=[{"objectType":"node","attribute":"OS","comparator":"eq","value":"Linux"},{"objectType":"node","attribute":"nodeHostname","comparator":"regex","value":"node1.*"}]&composition=And'
 
 # To get the list of nodes with their agent version
 curl -k -H "X-API-Token: yourToken" -X GET "https://rudder.example.com/rudder/api/latest/nodes?include=minimal,managementTechnology" | jq '.data.nodes[] | {"id": .id, "version": .managementTechnology[].version}'
@@ -22,7 +22,7 @@ curl -k -H "X-API-Token: yourToken" -H "Content-Type: application/json" -X GET '
 # To get information about the nodes running a JVM process
 #
 # This gets information about nodes with processes matching the quesry, and then extract the flat list of matching processes
-curl -s -k -H "X-API-Token: yourToken" 'https://rudder.example.com/rudder/api/latest/nodes?include=minimal,processes&where=\[\{"objectType":"process","attribute":"commandName","comparator":"regex","value":".*(java|jre|jdk).*"\}\]' | jq -r '.data.nodes[] | [ { hostname } + .processes[] ][] | select( .name | test(".*(java|jdk|jre).*")) | [.hostname, .user, .name] | @tsv' | cut -c -120
+curl -g -s -H "X-API-Token: yourToken" 'https://rudder.example.com/rudder/api/latest/nodes?include=minimal,processes&where=[{"objectType":"process","attribute":"commandName","comparator":"regex","value":".*(java|jre|jdk).*"}]' | jq -r '.data.nodes[] | [ { hostname } + .processes[] ][] | select( .name | test(".*(java|jdk|jre).*")) | [.hostname, .user, .name] | @tsv' | cut -c -120
 # It gives:
 #
 # node1.example.com	jenkins	java -jar remoting.jar -workDir /home/jenkins -jar-cache /home/jenkins/rem
