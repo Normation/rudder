@@ -5,7 +5,11 @@ from pkg_resources import parse_version
 import fcntl, termios, struct, traceback
 from distutils.version import StrictVersion
 import subprocess
-import urllib
+
+try:
+    from urllib.parse import quote
+except:
+    from urllib import quote
 
 try:
     import ConfigParser as configparser
@@ -245,7 +249,7 @@ def download(completeUrl, dst=''):
         # only take file name to avoid reaching max file name length
         fileName = completeUrl.rsplit('/', 1)[-1]
         # escape but keep tildes
-        fileName = urllib.parse.quote(fileName, '~')
+        fileName = quote(fileName, '~')
         fileDst = FOLDER_PATH + '/' + fileName
     else:
         fileDst = dst
