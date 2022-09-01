@@ -1763,7 +1763,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                       var confirm = "#confirm" + id.toString();
                       var radios = $('.radio');
                       var action = getRadioChecked(radios);
-                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default' onClick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
+                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default rollback-action' onClick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
                       $(confirm).append(confirmHtml);
                     });
                   } else {
@@ -1815,11 +1815,19 @@ function confirmRollback(id) {
     type: "GET",
     url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
     contentType: "application/json; charset=utf-8",
+    beforeSend: function() {
+      $('.rollback-action').prop("disabled", true)
+      createInfoNotification("Rollback " + action + " eventlog " + id + " is starting, please wait until the process complete");
+    },
     success: function (response, status, jqXHR) {
       createSuccessNotification("Rollback " + action + " eventlog " + id);
     },
     error: function (jqXHR, textStatus, errorThrown) {
       createErrorNotification("Rollback failed : " + jqXHR.responseJSON.errorDetails)
+    },
+    complete: function (jqXHR , textStatus) {
+      $('.rollback-action').prop("disabled", false);
+      cancelRollback(id);
     }
   });
 }
