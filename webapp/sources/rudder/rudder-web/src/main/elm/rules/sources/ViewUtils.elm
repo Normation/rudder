@@ -41,7 +41,7 @@ getRuleNbNodes ruleDetails =
 getRuleNbGroups : Maybe Rule -> Int
 getRuleNbGroups rule =
   case Maybe.Extra.unwrap [] .targets rule of
-    [Composition (Or i) (Or e)] -> List.length i
+    [Composition (Or i) (Or e)] -> List.length i + List.length e
     targets -> List.length targets
 
 
