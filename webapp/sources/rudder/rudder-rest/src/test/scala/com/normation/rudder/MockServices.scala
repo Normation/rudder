@@ -63,7 +63,6 @@ import com.normation.rudder.campaigns.CampaignDetails
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignInfo
 import com.normation.rudder.campaigns.CampaignRepository
@@ -149,12 +148,15 @@ import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.xml.Elem
 import zio.syntax._
-import zio.{Tag => _, _}
+import zio.{Tag as _, _}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignType
+import com.normation.rudder.campaigns.Finished
+import com.normation.rudder.campaigns.Running
+import com.normation.rudder.campaigns.Scheduled
 import com.normation.zio._
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -2373,7 +2375,7 @@ class MockCampaign() {
     , WeeklySchedule(Monday, 3, 42)
     , Duration("1 hour")
   ), DumbCampaignDetails("campaign #0"))
-  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,"campaign #0",CampaignEventState.Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,"campaign #0",Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
 
 
   object repo extends CampaignRepository {
@@ -2419,7 +2421,7 @@ class MockCampaign() {
     val items = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
 
     def isActive(e: CampaignEvent) = {
-      e.state == CampaignEventState.Scheduled || e.state == CampaignEventState.Running
+      e.state == Scheduled || e.state == Running
     }
 
 
@@ -2432,7 +2434,7 @@ class MockCampaign() {
       } yield c
     }
 
-    def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId], limit: Option[Int], offset: Option[Int], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[List[CampaignEvent]] = {
+    def getWithCriteria(states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], limit: Option[Int], offset: Option[Int], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[List[CampaignEvent]] = {
 
     val allEvents = items.get.map(_.values.toList)
       val campaignIdFiltered = campaignId match {
@@ -2445,7 +2447,7 @@ class MockCampaign() {
       }
       val stateFiltered = states match {
         case Nil => campaignTypeFiltered
-        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state)))
+        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state.value)))
       }
 
       val afterDateFiltered = afterDate match {

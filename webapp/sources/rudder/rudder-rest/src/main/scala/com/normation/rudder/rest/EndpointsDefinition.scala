@@ -99,7 +99,7 @@ object CampaignApi extends ApiModuleProvider[CampaignApi] {
     val (action, path)  = GET / "campaigns"  / "{id}" / "events"
     val dataContainer = Some("campaignEvents")
   }
-  final case object SaveCampaignEvent extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+  final case object SaveCampaignEvent extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Save a campaign event"
     val (action, path)  = POST / "campaigns" / "events" /  "{id}"
     val dataContainer = Some("campaigns")

@@ -78,8 +78,11 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File)
               campaignSerializer.parse(json.contentAsString)
           } yield {
             c
-          }).either.chainError("Error when getting all campaings from filesystem")
+          }).either.chainError("Error when getting all campaigns from filesystem")
       })
+      _ <- ZIO.foreach(  campaigns.partitionMap(identity)._1){
+             err => CampaignLogger.error(err.msg)
+           }
     } yield {
       campaigns.partitionMap(identity)._2
     }

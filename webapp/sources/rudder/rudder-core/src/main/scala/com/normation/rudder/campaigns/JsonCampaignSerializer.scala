@@ -49,7 +49,6 @@ import zio.json.ast.Json
 import zio.syntax._
 
 
-
 trait JSONTranslateCampaign{
 
   def getRawJson(): PartialFunction[Campaign, IOResult[Json]]
@@ -153,13 +152,13 @@ object CampaignSerializer {
   implicit val campaignInfoDecoder: JsonDecoder[CampaignInfo]= DeriveJsonDecoder.gen
 
   implicit val campaignEventIdDecoder   : JsonDecoder[CampaignEventId] = JsonDecoder[String].map(CampaignEventId)
-  implicit val campaignEventStateDecoder: JsonDecoder[CampaignEventState] =  JsonDecoder[String].mapOrFail(CampaignEventState.parse)
+  implicit val campaignEventStateDecoder: JsonDecoder[CampaignEventState] = DeriveJsonDecoder.gen
   implicit val campaignEventDecoder     : JsonDecoder[CampaignEvent] = DeriveJsonDecoder.gen
 
 
   implicit val campaignTypeEncoder      : JsonEncoder[CampaignType] = JsonEncoder[String].contramap(_.value)
   implicit val campaignEventIdEncoder   : JsonEncoder[CampaignEventId] = JsonEncoder[String].contramap(_.value)
-  implicit val campaignEventStateEncoder: JsonEncoder[CampaignEventState] =  JsonEncoder[String].contramap( _.value)
+  implicit val campaignEventStateEncoder: JsonEncoder[CampaignEventState] = DeriveJsonEncoder.gen
   implicit val campaignEventEncoder     : JsonEncoder[CampaignEvent] = DeriveJsonEncoder.gen
 }
 
