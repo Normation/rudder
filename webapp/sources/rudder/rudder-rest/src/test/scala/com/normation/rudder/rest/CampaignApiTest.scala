@@ -40,14 +40,14 @@ package com.normation.rudder.rest
 import com.normation.rudder.DumbCampaignType
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
-
 import better.files.File
+import com.normation.rudder.campaigns.Finished
+import com.normation.rudder.campaigns.Scheduled
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -56,7 +56,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-
 import zio.json._
 import com.normation.zio._
 
@@ -106,7 +105,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
         CampaignEventId("e0")
       , CampaignId("c0")
       , "campaign #0"
-      , CampaignEventState.Finished
+      , Finished
       , new DateTime(0)
       , new DateTime(1)
       , DumbCampaignType
@@ -138,7 +137,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
             val next = events.collectFirst { case x if x.id != ce0.id => x }.getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
             (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state must beEqualTo(CampaignEventState.Scheduled)) and
+            (next.state must beEqualTo(Scheduled)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
 

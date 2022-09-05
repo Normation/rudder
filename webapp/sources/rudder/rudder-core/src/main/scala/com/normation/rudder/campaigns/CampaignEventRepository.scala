@@ -38,9 +38,9 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.IOResult
-import com.normation.rudder.campaigns.CampaignEventState.Scheduled
 import com.normation.rudder.db.Doobie
 import doobie.Fragments
+import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits._
@@ -48,8 +48,6 @@ import doobie.implicits.javasql._
 import doobie.implicits.toSqlInterpolator
 import org.joda.time.DateTime
 import zio.interop.catz._
-
-import java.sql.Timestamp
 
 
 trait CampaignEventRepository {
@@ -62,45 +60,49 @@ trait CampaignEventRepository {
    * - if Nil or None, clause is ignored
    * - if a value is provided, then it is use to filter things accordingly
    */
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime])  : IOResult[List[CampaignEvent]]
+  def getWithCriteria(states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime])  : IOResult[List[CampaignEvent]]
 }
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
   import doobie._
+  import CampaignSerializer._
+  import com.normation.rudder.db.json.implicits._
+  import Doobie.DateTimeMeta
 
-  implicit  val stateWrite : Write[CampaignEventState] = Write[String].contramap(_.value)
+
+  implicit  val stateWrite : Meta[CampaignEventState] = new Meta(pgDecoderGet, pgEncoderPut)
 
   implicit val eventWrite: Write[CampaignEvent] =
-    Write[(String,String,String,CampaignEventState,Timestamp,Timestamp, String)].contramap{
-      case event => (event.id.value,event.campaignId.value, event.name, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis), event.campaignType.value)
+    Write[(String,String,String,CampaignEventState,DateTime,DateTime, String)].contramap{
+      case event => (event.id.value,event.campaignId.value, event.name, event.state , event.start, event.end, event.campaignType.value)
     }
 
   implicit val eventRead : Read[CampaignEvent] =
-    Read[(String,String,String,String,Timestamp,Timestamp,String)].map {
-      d : (String,String,String,String,Timestamp,Timestamp,String) =>
+    Read[(String,String,String,CampaignEventState,DateTime,DateTime,String)].map {
+      d : (String,String,String,CampaignEventState,DateTime,DateTime,String) =>
         CampaignEvent(
             CampaignEventId(d._1)
           , CampaignId(d._2)
           , d._3
-          , CampaignEventState.parse(d._4).getOrElse(Scheduled)
-          , new DateTime(d._5.getTime())
-          , new DateTime(d._6.getTime())
+          , d._4
+          , d._5
+          , d._6
           , campaignSerializer.campaignType(d._7)
         )
     }
 
   def get(id : CampaignEventId): IOResult[CampaignEvent] = {
-    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents where eventId = '${id.value}'"
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents where eventId = ${id.value}"
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime]) : IOResult[List[CampaignEvent]] = {
+  def getWithCriteria(states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime]) : IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list._
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery = states.toNel.map(s => Fragments.in(fr"state", s.map(_.value)))
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state::json->>'value'", s))
     val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
     val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
@@ -125,7 +127,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val query =
       sql"""insert into CampaignEvents  (eventId, campaignId, name, state, startDate, endDate, campaignType) values (${c})
            |  ON CONFLICT (eventId) DO UPDATE
-           |  SET state = ${c.state}, name = ${c.name} ; """.stripMargin
+           |  SET state = ${c.state}, name = ${c.name}, startDate = ${c.start}, endDate = ${c.end} ; """.stripMargin
 
     transactIOResult(s"error when inserting event with id ${c.campaignId.value}")(xa => query.update.run.transact(xa)).map(_ => c)
   }

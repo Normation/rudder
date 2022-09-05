@@ -41,7 +41,7 @@ import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors.RudderError
-import com.normation.rudder.campaigns.CampaignEventState._
+import com.normation.rudder.campaigns._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
@@ -62,7 +62,7 @@ trait CampaignHandler{
 object MainCampaignService {
   def start(mainCampaignService: MainCampaignService) = {
     for {
-      campaignQueue <- Queue.unbounded[CampaignEvent]
+      campaignQueue <- Queue.unbounded[CampaignEventId]
       _             <- mainCampaignService.start(campaignQueue).forkDaemon
     } yield ()
   }
@@ -93,19 +93,19 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
-  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEvent], zclock: Clock) {
+  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEventId], zclock: Clock) {
 
     def queueCampaign(c: CampaignEvent) = {
       for {
-        _ <- queue.offer(c)
+        _ <- queue.offer(c.id)
       } yield {
         c
       }
     }
 
-    def handle(event: CampaignEvent) = {
+    def handle(eventId: CampaignEventId) = {
 
-      def base: PartialFunction[Campaign, IOResult[CampaignEvent]] = {
+      def base(event : CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = {
         case _ => event.succeed
       }
 
@@ -114,31 +114,42 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       @nowarn
       def failingLog(err : RudderError) = {
         for {
-          _ <- CampaignLogger.error(s"An error occurred while treating campaign event ${event.id.value}, error details : ${err.fullMsg} ")
+          _ <- CampaignLogger.error(s"An error occurred while treating campaign event ${eventId.value}, error details : ${err.fullMsg} ")
           _ <- err.fail
         } yield  {
-          event
+          ()
         }
       }
       (for {
 
-        _ <-  CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
+        event <- repo.get(eventId)
         campaign <- campaignRepo.get(event.campaignId)
         _ <-  CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
+
+        _ <-  CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
         wait <-
           event.state match {
-            case Finished =>
+            case Finished | Skipped(_) =>
               ().succeed
-            case Scheduled | Skipped =>
-              if (event.start.isAfter(now)) {
-                for {
-                  _ <-  CampaignLogger.debug(s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService.serialize(event.start)}")
-                  _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
-                } yield {
-                  ()
+            case Scheduled =>
+              campaign.info.status match {
+                case Disabled(reason) =>
+                  val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                  repo.saveCampaignEvent(event.copy(state = Skipped(s"Event was cancelled because campaign is disabled. ${reasonMessage}")))
+                case Archived(reason,date) =>
+                  val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                  repo.saveCampaignEvent(event.copy(state = Skipped(s"Event was cancelled because campaign is archived. ${reasonMessage}")))
+                case Enabled =>
+                  if (event.start.isAfter(now)) {
+                    for {
+                      _ <-  CampaignLogger.debug(s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService.serialize(event.start)}")
+                      _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
+                    } yield {
+                      ().succeed
+                    }
+                  } else
+                    CampaignLogger.debug(s"${event.id.value} should be treated by ${event.campaignType.value} handler for Scheduled state")
                 }
-              } else
-                CampaignLogger.debug(s"${event.id.value} should be treated by ${campaign.campaignType.value} handler for Scheduled state")
             case Running =>
               if (event.start.isAfter(now)) {
                 for {
@@ -159,11 +170,17 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                     ()
                   }
                 } else
-                  CampaignLogger.debug(s"${event.id.value} should be treated by ${campaign.campaignType.value} handler for Running state")
+                  CampaignLogger.debug(s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state")
           }
-        updatedEvent <- repo.get(event.id).catchAll(_ => event.succeed)
-        handle = services.map(_.handle(main,updatedEvent)).foldLeft(base) { case (base, handler) => handler orElse base }
-        newCampaign <- handle.apply(campaign).catchAll(
+
+        // Get updated event and campaign, state of the event could have changed, campaign parameter also
+        updatedEvent <- repo.get(event.id)
+        updatedCampaign <- campaignRepo.get(event.campaignId)
+        _ <-  CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
+
+
+        handle = services.map(_.handle(main,updatedEvent)).foldLeft(base(updatedEvent)) { case (base, handler) => handler orElse base }
+        newCampaign <- handle.apply(updatedCampaign).catchAll(
           err =>
           for {
             _ <- CampaignLogger.error(err.fullMsg)
@@ -175,14 +192,14 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
         save <- repo.saveCampaignEvent(newCampaign)
         post <-
           newCampaign.state match {
-            case Finished =>
+            case Finished|Skipped(_)  =>
               for {
                 campaign <- campaignRepo.get(event.campaignId)
                 up <-  scheduleCampaignEvent(campaign)
               } yield {
                 up
               }
-            case Scheduled|Running|Skipped =>
+            case Scheduled|Running =>
               for {
                 _ <- queueCampaign(newCampaign)
               } yield {
@@ -283,7 +300,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     val now = DateTime.now()
     for {
       nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-      events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id), None, None, None, None)
+      events <- repo.getWithCriteria(Scheduled.value :: Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None)
       lastEventDate = events match {
         case Nil => now
         case _ =>
@@ -307,7 +324,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case None => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
         for {
-          alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None, None, None, None,None)
+          alreadyScheduled <- repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, None, None, None, None, None,None)
           _ <- CampaignLogger.debug("Got events, queue them")
           _ <- s.queue.takeAll // empty queue, we will enqueue all existing events again
           _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
@@ -327,7 +344,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
-  def start(initQueue: Queue[CampaignEvent]) = {
+  def start(initQueue: Queue[CampaignEventId]) = {
     val s = CampaignScheduler(this, initQueue, ZioRuntime.environment)
     inner = Some(s)
     for {
