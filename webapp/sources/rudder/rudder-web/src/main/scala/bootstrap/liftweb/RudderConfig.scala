@@ -1439,7 +1439,8 @@ object RudderConfig extends Loggable {
       , rootDirName
       , new ZipArchiveReaderImpl(queryParser, techniqueParser)
       , new SaveArchiveServicebyRepo(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
-                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository)
+                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository, updateTechniqueLibrary
+                                   , asyncDeploymentAgent)
       , new CheckArchiveServiceImpl(techniqueRepository)
     )
   }
