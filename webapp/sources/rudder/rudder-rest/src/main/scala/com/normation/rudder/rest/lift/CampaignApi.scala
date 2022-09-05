@@ -4,7 +4,6 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
@@ -99,9 +98,9 @@ class CampaignApi (
     }
   }
 
-  object SaveCampaignEvent extends LiftApiModule0 {
+  object SaveCampaignEvent extends LiftApiModule {
     val schema = API.SaveCampaignEvent
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       (for {
         campaignEvent <- ZioJsonExtractor.parseJson[CampaignEvent](req).toIO
@@ -144,7 +143,7 @@ class CampaignApi (
     val schema = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val states = req.params.get("state").getOrElse(Nil)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
       val campaignId = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
@@ -169,7 +168,7 @@ class CampaignApi (
   object GetAllEventsForCampaign extends LiftApiModule {
     val schema = API.GetCampaignEventsForModel
     def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val states = req.params.get("state").getOrElse(Nil)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
       val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)

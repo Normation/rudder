@@ -86,9 +86,9 @@ sealed trait CampaignStatus
 @jsonHint("enabled")
 case object Enabled  extends CampaignStatus
 @jsonHint("disabled")
-case object Disabled extends CampaignStatus
+case class Disabled(reason : String) extends CampaignStatus
 @jsonHint("archived")
-case class Archived(date : DateTime) extends CampaignStatus
+case class Archived(reason : String, date : DateTime) extends CampaignStatus
 
 @jsonDiscriminator("type")
 sealed trait CampaignSchedule
@@ -158,19 +158,19 @@ case class CampaignEvent(
 )
 case class CampaignEventId(value : String)
 
+@jsonDiscriminator("value")
 sealed trait CampaignEventState{
   def value : String
 }
-final object CampaignEventState {
-  final case object Scheduled extends CampaignEventState { val value = "scheduled"    }
-  final case object Running   extends CampaignEventState { val value = "running"      }
-  final case object Finished  extends CampaignEventState { val value = "finished"     }
-  final case object Skipped   extends CampaignEventState { val value = "skipped"      }
+@jsonHint(Scheduled.value)
+final case object Scheduled extends CampaignEventState { val value = "scheduled"    }
+@jsonHint(Running.value)
+final case object Running   extends CampaignEventState { val value = "running"      }
+@jsonHint(Finished.value)
+final case object Finished  extends CampaignEventState { val value = "finished"     }
+@jsonHint(Skipped("").value)
+final case class  Skipped(reason : String)   extends CampaignEventState { val value = "skipped"      }
 
-  val all = ca.mrvisser.sealerate.values[CampaignEventState].toList
-
-  def parse(v: String): Either[String, CampaignEventState] = all.find(_.value == v.toLowerCase()).toRight(s"Error: ${v}' is not a valid campaign event state. Allowed values: '${all.mkString("','")}'")
-}
 
 trait CampaignResult {
   def id : CampaignEventId
