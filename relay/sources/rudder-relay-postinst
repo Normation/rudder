@@ -104,6 +104,9 @@ fi
 sed -i '/^Set up a WSGI serving process/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
 sed -i '/^WSGI/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
 
+# Remove old cron job
+rm -f /etc/cron.d/rudder-relay
+
 # Apply SELinux config before starting the services
 if [ "${SELINUX}" = "true" ]; then
   # Check "sestatus" presence, if not there there is not SELinux
