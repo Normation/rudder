@@ -7,8 +7,7 @@ import Json.Decode
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Markdown.Render
-import Markdown.Option exposing (..)
+import Markdown
 import Maybe.Extra
 import String.Extra
 import Dom exposing (..)
@@ -250,7 +249,7 @@ showMethod ui method mode dnd =
          ( appendChild
            ( element "div"
              |> addClass "markdown"
-             |> appendNode ( Html.map (\_ -> Ignore) (Markdown.Render.toHtml Standard (Maybe.withDefault "" method.documentation)))
+             |> appendNodeList ( Markdown.toHtml Nothing (Maybe.withDefault "" method.documentation))
            )
          )
        else
