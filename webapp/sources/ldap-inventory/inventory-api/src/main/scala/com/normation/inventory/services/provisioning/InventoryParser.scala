@@ -93,7 +93,7 @@ trait XmlInventoryParser extends InventoryParser {
       InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex)
     }).flatMap( doc =>
       if(doc.isEmpty) {
-        InventoryError.Inconsistency("Fusion Inventory file seem's to be empty").fail
+        InventoryError.Inconsistency("Fusion Inventory file seems to be empty").fail
       } else {
         this.fromXmlDoc(inventoryName, doc)
       }
