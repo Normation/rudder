@@ -22,13 +22,39 @@
 # @documentation
 #
 # Execute the **Command** in shell.
-# On DSC agent, the **Command** in executed through the Powershell `&` operator.
 #
-# The method status will report:
+# On Unix based agents, the method status will report:
 #
-# * a **Repaired** if the return code is "0",
+# * a **Repaired** if the return code is "0"
 # * an **Error** if the return code is not "0"
 #
+# On Windows based agents the command is executed through Powershell and its `&` operator.
+# The method status will report:
+#
+# * an **Error** in Audit mode as the command will not be executed
+# * an **Error** in Enforce mode if the command did throw an exception
+# * an **Error** in Enforce mode if the `LASTEXITCODE` of the execution was not 0. This can happend when calling '.exe' binaries for instance.
+# * a **Repaired** in any other cases
+#
+# Do not use the "exit" command on Windows as the shell used is the same than the one running the agent!
+#
+# # Windows examples
+#
+# ```
+# # A simple command execution
+# Write-Output "rudder test" | Out-File "C:\test.txt
+#
+# # Another one with a statement, will report a Repaired if the folder exists,
+# # and an error if it does not.
+# {
+#   if ( (Test-Path "C:\Program Files\Rudder" -PathType Container)) {
+#     "Rudder folder found!"
+#   } else {
+#     throw "Rudder folder does not exist!"
+#   }
+# }
+#
+# ```
 #
 # @parameter command  Command to run
 #
