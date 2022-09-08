@@ -19,6 +19,7 @@
 # @name Condition from command
 # @description Execute a command and create result conditions depending on its exit code
 # @documentation
+#
 # This method executes a command, and defines a `${condition}_true` or a
 #  `${condition}_false` condition depending on the result of the command:
 #
@@ -35,6 +36,16 @@
 #
 #
 # The created condition is global to the agent.
+#
+# ##### Windows
+#
+# On Windows nodes, the exit code is taken from the `LASTEXITCODE` which is defined either by:
+#
+# * The exit code of a binary execution (when the command a call to an exe)
+# * The return code of a Powershell script
+#
+# Direct Powershell execution will almost always return 0 as `LASTEXITCODE` value, meaning that you have to execute either a binary or a Powershell
+# script to control the return code.
 #
 # ##### Example:
 #
