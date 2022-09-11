@@ -250,7 +250,7 @@ class RuleDisplayer (
                                      input-changed="updateValue" override-suggestions="true">
                                 </div>
                                 <span class="input-group-btn">
-                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) && isEmptyOrBlank(newTag.value)); ">
+                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-success btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) &amp;&amp; isEmptyOrBlank(newTag.value)); ">
                                     <span class="fa fa-plus"></span>
                                   </button>
                                 </span>
