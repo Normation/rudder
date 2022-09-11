@@ -1,66 +1,66 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.marshalling
 
-import scala.xml.Elem
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.domain.policies.Directive
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.rule.category.RuleCategory
+import scala.xml.Elem
 
 trait XmlSerializer {
 
-  val rule        : RuleSerialisation
-  val directive   : DirectiveSerialisation
-  val group       : NodeGroupSerialisation
-  val globalParam : GlobalParameterSerialisation
-  val ruleCat     : RuleCategorySerialisation
+  val rule:        RuleSerialisation
+  val directive:   DirectiveSerialisation
+  val group:       NodeGroupSerialisation
+  val globalParam: GlobalParameterSerialisation
+  val ruleCat:     RuleCategorySerialisation
 
 }
 
@@ -69,6 +69,7 @@ trait XmlSerializer {
  * rule to an XML file.
  */
 trait RuleSerialisation {
+
   /**
    * Version 5:
      <rule fileFormat="5">
@@ -86,7 +87,7 @@ trait RuleSerialisation {
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  def serialise(rule:Rule):  Elem
+  def serialise(rule: Rule): Elem
 }
 
 /**
@@ -94,6 +95,7 @@ trait RuleSerialisation {
  * Node group categories to an XML file.
  */
 trait RuleCategorySerialisation {
+
   /**
    * Version 5: (rc: nodeGroupCategory)
      <ruleCategory fileFormat="5">
@@ -103,7 +105,7 @@ trait RuleCategorySerialisation {
         <isSystem>{ngc.isSystem}</isSystem>
       </ruleCategory>
    */
-  def serialise(rc:RuleCategory):  Elem
+  def serialise(rc: RuleCategory): Elem
 }
 
 /**
@@ -111,6 +113,7 @@ trait RuleCategorySerialisation {
  * active techniques categories to an XML file.
  */
 trait ActiveTechniqueCategorySerialisation {
+
   /**
    * Version 2:
      <policyLibraryCategory fileFormat="2">
@@ -120,7 +123,7 @@ trait ActiveTechniqueCategorySerialisation {
         <isSystem>{uptc.isSystem}</isSystem>
       </policyLibraryCategory>
    */
-  def serialise(uptc:ActiveTechniqueCategory):  Elem
+  def serialise(uptc: ActiveTechniqueCategory): Elem
 }
 
 /**
@@ -128,6 +131,7 @@ trait ActiveTechniqueCategorySerialisation {
  * active techniques to an XML file.
  */
 trait ActiveTechniqueSerialisation {
+
   /**
    * Version 2:
      <policyLibraryTemplate fileFormat="2">
@@ -142,7 +146,7 @@ trait ActiveTechniqueSerialisation {
         </versions>
       </policyLibraryTemplate>
    */
-  def serialise(uptc:ActiveTechnique):  Elem
+  def serialise(uptc: ActiveTechnique): Elem
 }
 
 /**
@@ -150,6 +154,7 @@ trait ActiveTechniqueSerialisation {
  * active techniques to an XML file.
  */
 trait DirectiveSerialisation {
+
   /**
    * Version 2:
      <directive fileFormat="2">
@@ -177,18 +182,18 @@ trait DirectiveSerialisation {
     </directive>
    */
   def serialise(
-      ptName             : TechniqueName
-    , variableRootSection: Option[SectionSpec]
-    , directive          : Directive
-  ) : Elem
+      ptName:              TechniqueName,
+      variableRootSection: Option[SectionSpec],
+      directive:           Directive
+  ): Elem
 }
-
 
 /**
  * That trait allows to serialise
  * Node group categories to an XML file.
  */
 trait NodeGroupCategorySerialisation {
+
   /**
    * Version 2: (ngc: nodeGroupCategory)
      <groupLibraryCategory fileFormat="2">
@@ -198,7 +203,7 @@ trait NodeGroupCategorySerialisation {
         <isSystem>{ngc.isSystem}</isSystem>
       </groupLibraryCategory>
    */
-  def serialise(ngc:NodeGroupCategory):  Elem
+  def serialise(ngc: NodeGroupCategory): Elem
 }
 
 /**
@@ -206,6 +211,7 @@ trait NodeGroupCategorySerialisation {
  * Node group to an XML file.
  */
 trait NodeGroupSerialisation {
+
   /**
    * Version 2:
      <nodeGroup fileFormat="2">
@@ -222,13 +228,14 @@ trait NodeGroupSerialisation {
        </nodeIds>
      </nodeGroup>
    */
-  def serialise(ng:NodeGroup):  Elem
+  def serialise(ng: NodeGroup): Elem
 }
 
 /**
  * That trait allows to serialise deployment status to an XML data
  */
 trait DeploymentStatusSerialisation {
+
   /**
    * Version 2:
      <deploymentStatus fileFormat="2">
@@ -239,11 +246,9 @@ trait DeploymentStatusSerialisation {
       <errorMessage>{errorStatus.failure]</errorMessage>
     </deploymentStatus>
   */
-  def serialise(
-      deploymentStatus : CurrentDeploymentStatus) : Elem
+  def serialise(deploymentStatus: CurrentDeploymentStatus): Elem
 
 }
-
 
 /**
  * That trait allow to unserialise change request changes from an XML file.
@@ -251,6 +256,7 @@ trait DeploymentStatusSerialisation {
  */
 // TODO : do we need to change the fileFormat ?
 trait ChangeRequestChangesSerialisation {
+
   /**
    * Version 2:
      <changeRequest fileFormat="2">
@@ -333,7 +339,7 @@ trait ChangeRequestChangesSerialisation {
         </globalParameters>
       </changeRequest>
    */
-  def serialise(changeRequest:ChangeRequest): Elem
+  def serialise(changeRequest: ChangeRequest): Elem
 }
 
 /**
@@ -341,6 +347,7 @@ trait ChangeRequestChangesSerialisation {
  * Global Parameter to an XML
  */
 trait GlobalParameterSerialisation {
+
   /**
    * Version 3:
      <globalParameter fileFormat="3">
@@ -350,7 +357,7 @@ trait GlobalParameterSerialisation {
        <provider>{param.provider}</provider>
      </globalParameter>
    */
-  def serialise(param:GlobalParameter):  Elem
+  def serialise(param: GlobalParameter): Elem
 }
 
 /**
@@ -358,6 +365,7 @@ trait GlobalParameterSerialisation {
  * API Account to an XML
  */
 trait APIAccountSerialisation {
+
   /**
    * Version 4:
      <apiAccount fileFormat="4">
@@ -370,13 +378,14 @@ trait APIAccountSerialisation {
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
      </apiAccount>
    */
-  def serialise(account:ApiAccount):  Elem
+  def serialise(account: ApiAccount): Elem
 }
 
 /**
  * That trait allows to serialize a web property to an XML
  */
 trait GlobalPropertySerialisation {
+
   /**
    * Version 6:
      <globalPropertyUpdate fileFormat="6">
@@ -384,7 +393,7 @@ trait GlobalPropertySerialisation {
        <value>{property.value}</value>
      </globalPropertyUpdate>
    */
-  def serializeChange(oldProperty:RudderWebProperty, newProperty : RudderWebProperty) :  Elem
+  def serializeChange(oldProperty: RudderWebProperty, newProperty: RudderWebProperty): Elem
 
 }
 
@@ -393,5 +402,5 @@ trait GlobalPropertySerialisation {
  * Secret to an XML
  */
 trait SecretSerialisation {
-  def serialise(s: Secret):  Elem
+  def serialise(s: Secret): Elem
 }

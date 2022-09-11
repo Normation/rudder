@@ -1,42 +1,46 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.inventory
 
+import com.normation.errors._
+import com.normation.errors.Chained
+import com.normation.errors.IOResult
+import com.normation.errors.SystemError
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryProcessingLogger
@@ -48,36 +52,27 @@ import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.inventory.services.provisioning.InventorySaver
 import com.normation.rudder.domain.logger.ApplicationLogger
-
+import com.normation.zio._
+import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
-import org.joda.time.Duration
-import org.joda.time.format.PeriodFormat
-
 import java.io.InputStream
 import java.security.{PublicKey => JavaSecPubKey}
-
+import org.joda.time.Duration
+import org.joda.time.format.PeriodFormat
 import zio._
 import zio.syntax._
-import com.normation.errors.Chained
-import com.normation.errors.IOResult
-import com.normation.errors.SystemError
-import com.normation.errors._
-import com.normation.zio.ZioRuntime
-import com.normation.zio._
-
 
 sealed trait InventoryProcessStatus {
   def inventoryName: String
-  def nodeId       : NodeId
+  def nodeId:        NodeId
 
 }
 final object InventoryProcessStatus {
-  final case class Accepted        (inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
-  final case class QueueFull       (inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
+  final case class Accepted(inventoryName: String, nodeId: NodeId)         extends InventoryProcessStatus
+  final case class QueueFull(inventoryName: String, nodeId: NodeId)        extends InventoryProcessStatus
   final case class SignatureInvalid(inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
   final case class MissingSignature(inventoryName: String, nodeId: NodeId) extends InventoryProcessStatus
 }
-
 
 object StatusLog {
   implicit class LogMessage(status: InventoryProcessStatus) {
@@ -106,20 +101,20 @@ object StatusLog {
   }
 }
 
-
-
 class InventoryProcessor(
-    unmarshaller       : InventoryParser
-  , inventorySaver     : InventorySaver[Seq[LDIFChangeRecord]]
-  , val maxQueueSize   : Int
-  , val maxParallel    : Long
-  , repo               : FullInventoryRepository[Seq[LDIFChangeRecord]]
-  , digestService      : InventoryDigestServiceV1
-  , checkAliveLdap     : () => IOResult[Unit]
-  , nodeInventoryDit   : InventoryDit
+    unmarshaller:     InventoryParser,
+    inventorySaver:   InventorySaver[Seq[LDIFChangeRecord]],
+    val maxQueueSize: Int,
+    val maxParallel:  Long,
+    repo:             FullInventoryRepository[Seq[LDIFChangeRecord]],
+    digestService:    InventoryDigestServiceV1,
+    checkAliveLdap:   () => IOResult[Unit],
+    nodeInventoryDit: InventoryDit
 ) {
 
-  ApplicationLogger.info(s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'")
+  ApplicationLogger.info(
+    s"INFO Configure inventory processing with parallelism of '${maxParallel}' and queue size of '${maxQueueSize}'"
+  )
 
   // we want to limit the number of inventories concurrently parsed
   lazy val xmlParsingSemaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
@@ -145,8 +140,8 @@ class InventoryProcessor(
    * - it drops new requests when an other one is already here (which means that
    *   `addInventoryToQueue` from the previous action is still blocked)
    */
-  protected lazy val latch         = ZQueue.dropping[Inventory](1).runNow
-  //start latch, it just forwards to the blocking queue when there is room
+  protected lazy val latch = ZQueue.dropping[Inventory](1).runNow
+  // start latch, it just forwards to the blocking queue when there is room
   latch.take.flatMap(addInventoryToQueue(_)).forever.forkDaemon.runNow
 
   def currentQueueSize: Int = ZioRuntime.unsafeRun(blockingQueue.size)
@@ -156,7 +151,7 @@ class InventoryProcessor(
     // The "+1" is because the fiber waiting for inventory give 1 slot,
     // if don't "+1", we start at -1 when no inventories are here.
 
-    //must be coherent with "can do", current = 49 < max = 50 => not saturated
+    // must be coherent with "can do", current = 49 < max = 50 => not saturated
     blockingQueue.size.map(_ + 1 >= maxQueueSize)
   }
 
@@ -165,10 +160,12 @@ class InventoryProcessor(
    */
 
   def loop(): UIO[Nothing] = {
-    blockingQueue.take.flatMap(r =>
-      InventoryProcessingLogger.trace(s"Took inventory '${r.name}' from backend queue and saving it") *>
-      saveInventory(r)
-    ).forever
+    blockingQueue.take
+      .flatMap(r => {
+        InventoryProcessingLogger.trace(s"Took inventory '${r.name}' from backend queue and saving it") *>
+        saveInventory(r)
+      })
+      .forever
   }
 
   // start the inventory processing
@@ -203,10 +200,20 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo, blocking: Boolean): IOResult[InventoryProcessStatus] = {
-    def saveWithSignature(inventory: Inventory, publicKey: JavaSecPubKey, newInventoryStream: () => InputStream, newSignature: () => InputStream): IOResult[InventoryProcessStatus] = {
-      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${inventory.name}'", _)))(is => Task.effect(is.close()).run) { inventoryStream =>
-        ZIO.bracket(Task.effect(newSignature()).mapError(SystemError(s"Error when reading signature for inventory file '${inventory.name}'", _)))(is => Task.effect(is.close()).run) { signatureStream =>
-
+    def saveWithSignature(
+        inventory:          Inventory,
+        publicKey:          JavaSecPubKey,
+        newInventoryStream: () => InputStream,
+        newSignature:       () => InputStream
+    ): IOResult[InventoryProcessStatus] = {
+      ZIO.bracket(
+        Task.effect(newInventoryStream()).mapError(SystemError(s"Error when reading inventory file '${inventory.name}'", _))
+      )(is => Task.effect(is.close()).run) { inventoryStream =>
+        ZIO.bracket(
+          Task
+            .effect(newSignature())
+            .mapError(SystemError(s"Error when reading signature for inventory file '${inventory.name}'", _))
+        )(is => Task.effect(is.close()).run) { signatureStream =>
           for {
             digest  <- digestService.parse(signatureStream)
             checked <- digestService.check(publicKey, digest, inventoryStream)
@@ -215,23 +222,26 @@ class InventoryProcessor(
                          // Set the keyStatus to Certified
                          // For now we set the status to certified since we want pending inventories to have their inventory signed
                          // When we will have a 'pending' status for keys we should set that value instead of certified
-                         val certified = inventory.copy(node = inventory.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
+                         val certified =
+                           inventory.copy(node = inventory.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
                          checkQueueAndSave(certified, blocking)
                        } else {
                          // Signature is not valid, reject inventory
                          InventoryProcessStatus.SignatureInvalid(inventory.name, inventory.node.main.id).succeed
                        }
-           } yield {
-             saved
-           }
+          } yield {
+            saved
+          }
         }
       }
     }
 
     def parseSafe(newInventoryStream: () => InputStream, inventoryFileName: String): IOResult[Inventory] = {
-      ZIO.bracket(Task.effect(newInventoryStream()).mapError(SystemError(s"Error when trying to read inventory file '${inventoryFileName}'", _)) )(
-        is => Task.effect(is.close()).run
-      ){ is =>
+      ZIO.bracket(
+        Task
+          .effect(newInventoryStream())
+          .mapError(SystemError(s"Error when trying to read inventory file '${inventoryFileName}'", _))
+      )(is => Task.effect(is.close()).run) { is =>
         for {
           r <- unmarshaller.fromXml(inventoryFileName, is)
         } yield {
@@ -246,47 +256,60 @@ class InventoryProcessor(
       start        <- currentTimeMillis
       qsize        <- blockingQueue.size
       qsaturated   <- isQueueFull
-      _            <- InventoryProcessingLogger.debug(s"Enter pre-processed inventory for ${info.fileName} with blocking='${blocking}' and current backend queue size=${qsize} (saturated=${qsaturated})")
+      _            <-
+        InventoryProcessingLogger.debug(
+          s"Enter pre-processed inventory for ${info.fileName} with blocking='${blocking}' and current backend queue size=${qsize} (saturated=${qsaturated})"
+        )
       inventory    <- xmlParsingSemaphore.withPermit(
                         InventoryProcessingLogger.debug(s"Start parsing inventory '${info.fileName}'") *>
                         parseSafe(info.inventoryStream, info.fileName).chainError("Can't parse the input inventory, aborting") <*
                         InventoryProcessingLogger.trace(s"Parsing done for inventory '${info.fileName}'")
                       )
-      secPair      <- digestService.getKey(inventory).chainError(s"Error when trying to check inventory key for Node '${inventory.node.main.id.value}'")
+      secPair      <- digestService
+                        .getKey(inventory)
+                        .chainError(s"Error when trying to check inventory key for Node '${inventory.node.main.id.value}'")
       parsed       <- digestService.parseSecurityToken(secPair._1)
       _            <- parsed.subject match {
                         case None       => UIO.unit
                         case Some(list) => SecurityToken.checkCertificateSubject(inventory.node.main.id, list)
                       }
-      afterParsing =  System.currentTimeMillis()
-      inventoryName= inventory.name
-      nodeId       = inventory.node.main.id
-      _            =  InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
+      afterParsing  = System.currentTimeMillis()
+      inventoryName = inventory.name
+      nodeId        = inventory.node.main.id
+      _             = InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault
+                          .print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- info.optSignatureStream match { // Do we have a signature ?
                         // Signature here, check it
                         case Some(sig) =>
-                          saveWithSignature(inventory, parsed.publicKey, info.inventoryStream, sig).chainError("Error when trying to check inventory signature")
+                          saveWithSignature(inventory, parsed.publicKey, info.inventoryStream, sig).chainError(
+                            "Error when trying to check inventory signature"
+                          )
 
                         // There is no Signature
-                        case None =>
-                          Inconsistency(s"Error, inventory '${inventory.name}' has no signature, which is not supported anymore in Rudder 6.0. " +
-                                        s"Please check that your node's agent is compatible with that version.").fail
+                        case None      =>
+                          Inconsistency(
+                            s"Error, inventory '${inventory.name}' has no signature, which is not supported anymore in Rudder 6.0. " +
+                            s"Please check that your node's agent is compatible with that version."
+                          ).fail
                       }
-      _            <- InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' for node '${inventory.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
+      _            <- InventoryProcessingLogger.debug(
+                        s"Inventory '${inventory.name}' for node '${inventory.node.main.id.value}' pre-processed in ${PeriodFormat.getDefault
+                            .print(new Duration(start, System.currentTimeMillis).toPeriod)} ms"
+                      )
     } yield {
       saved
     }).foldM(
       err => {
         val fail = Chained(s"Error when trying to process inventory '${info.fileName}'", err)
         InventoryProcessingLogger.error(fail.fullMsg) *> err.fail
-      }
-    , status => {
+      },
+      status => {
         import com.normation.rudder.inventory.StatusLog.LogMessage
         (status match {
-          case InventoryProcessStatus.MissingSignature(_,_) => InventoryProcessingLogger.error(status.msg)
-          case InventoryProcessStatus.SignatureInvalid(_,_) => InventoryProcessingLogger.error(status.msg)
-          case InventoryProcessStatus.QueueFull(_,_)        => InventoryProcessingLogger.warn(status.msg)
-          case InventoryProcessStatus.Accepted(_,_)         => InventoryProcessingLogger.trace(status.msg)
+          case InventoryProcessStatus.MissingSignature(_, _) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.SignatureInvalid(_, _) => InventoryProcessingLogger.error(status.msg)
+          case InventoryProcessStatus.QueueFull(_, _)        => InventoryProcessingLogger.warn(status.msg)
+          case InventoryProcessStatus.Accepted(_, _)         => InventoryProcessingLogger.trace(status.msg)
         }) *> status.succeed
       }
     )
@@ -295,9 +318,11 @@ class InventoryProcessor(
     // need to check again here.
     for {
       exists <- info.testExits
-      res    <- if(exists) processLogic
-                else InventoryProcessingLogger.trace(s"File '${info.fileName}' was deleted, skipping") *>
-                     InventoryProcessStatus.Accepted(info.fileName, NodeId("skipped")).succeed
+      res    <- if (exists) processLogic
+                else {
+                  InventoryProcessingLogger.trace(s"File '${info.fileName}' was deleted, skipping") *>
+                  InventoryProcessStatus.Accepted(info.fileName, NodeId("skipped")).succeed
+                }
     } yield res
   }
 
@@ -309,20 +334,20 @@ class InventoryProcessor(
   def checkQueueAndSave(inventory: Inventory, blocking: Boolean): IOResult[InventoryProcessStatus] = {
 
     (for {
-      _     <- checkAliveLdap()
-      res   <- if(blocking) {
-                 // that's block. And so inventory is always accepted in the end
-                 addInventoryToQueue(inventory) *> InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
-               } else {
-                 for {
-                   canDo <- latch.offer(inventory)
-                   res   <- if(canDo) {
-                              InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
-                            } else {
-                              InventoryProcessStatus.QueueFull(inventory.name, inventory.node.main.id).succeed
-                            }
-                 } yield res
-              }
+      _   <- checkAliveLdap()
+      res <- if (blocking) {
+               // that's block. And so inventory is always accepted in the end
+               addInventoryToQueue(inventory) *> InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
+             } else {
+               for {
+                 canDo <- latch.offer(inventory)
+                 res   <- if (canDo) {
+                            InventoryProcessStatus.Accepted(inventory.name, inventory.node.main.id).succeed
+                          } else {
+                            InventoryProcessStatus.QueueFull(inventory.name, inventory.node.main.id).succeed
+                          }
+               } yield res
+             }
     } yield {
       res
     }).catchAll { err =>
@@ -341,22 +366,25 @@ class InventoryProcessor(
    * decrease it when it terminates a processing.
    *
    */
-  def saveInventory(inventory:Inventory): UIO[Unit] = {
+  def saveInventory(inventory: Inventory): UIO[Unit] = {
     for {
-      _     <- InventoryProcessingLogger.trace(s"Start post processing of inventory '${inventory.name}' for node '${inventory.node.main.id.value}'")
+      _     <- InventoryProcessingLogger.trace(
+                 s"Start post processing of inventory '${inventory.name}' for node '${inventory.node.main.id.value}'"
+               )
       start <- UIO(System.currentTimeMillis)
       saved <- inventorySaver.save(inventory).chainError("Can't merge inventory in LDAP directory, aborting").either
       _     <- saved match {
                  case Left(err) =>
                    InventoryProcessingLogger.error(s"Error when trying to process inventory: ${err.fullMsg}")
-                 case Right(_) =>
+                 case Right(_)  =>
                    InventoryProcessingLogger.debug("Inventory saved.")
                }
-      _      <- InventoryProcessingLogger.info(s"Inventory '${inventory.name}' for node '${inventory.node.main.hostname}' [${inventory.node.main.id.value}] (signature:${inventory.node.main.keyStatus.value}) "+
-                s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+      _     <-
+        InventoryProcessingLogger.info(
+          s"Inventory '${inventory.name}' for node '${inventory.node.main.hostname}' [${inventory.node.main.id.value}] (signature:${inventory.node.main.keyStatus.value}) " +
+          s"processed in ${PeriodFormat.getDefault.print(new Duration(start, System.currentTimeMillis).toPeriod)}"
+        )
     } yield ()
   }
 
 }
-
-

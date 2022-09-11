@@ -1,42 +1,43 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.quicksearch
 
+import com.normation.box._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -46,10 +47,9 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.Control._
 import net.liftweb.common.Box
-import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import com.normation.box._
+import net.liftweb.common.Loggable
 
 /**
  * This class allow to return a list of Rudder object given a string.
@@ -59,12 +59,12 @@ import com.normation.box._
  * object type and UUID
  */
 class FullQuickSearchService(implicit
-    val ldapConnection: LDAPConnectionProvider[RoLDAPConnection]
-  , val nodeDit       : NodeDit
-  , val inventoryDit  : InventoryDit
-  , val rudderDit     : RudderDit
-  , val directiveRepo : RoDirectiveRepository
-  , val nodeInfos     : NodeInfoService
+    val ldapConnection: LDAPConnectionProvider[RoLDAPConnection],
+    val nodeDit:        NodeDit,
+    val inventoryDit:   InventoryDit,
+    val rudderDit:      RudderDit,
+    val directiveRepo:  RoDirectiveRepository,
+    val nodeInfos:      NodeInfoService
 ) extends Loggable {
 
   import QuickSearchService._
@@ -78,8 +78,10 @@ class FullQuickSearchService(implicit
   def search(token: String): Box[Set[QuickSearchResult]] = {
     for {
       query   <- token.parse()
-      _       =  logger.debug(s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
-                 s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'")
+      _        = logger.debug(
+                   s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
+                   s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'"
+                 )
       results <- sequence(QSBackend.all.toSeq) { b =>
                    val res = b.search(query)
                    res match {
@@ -99,18 +101,17 @@ class FullQuickSearchService(implicit
 
 object QuickSearchService {
 
-
   implicit class QSParser(val query: String) extends AnyVal {
     def parse(): Box[Query] = QSRegexQueryParser.parse(query).toBox
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
-      directiveRepo: RoDirectiveRepository
-    , ldap         : LDAPConnectionProvider[RoLDAPConnection]
-    , inventoryDit : InventoryDit
-    , nodeDit      : NodeDit
-    , rudderDit    : RudderDit
-    , nodeInfos    : NodeInfoService
+      directiveRepo:              RoDirectiveRepository,
+      ldap:                       LDAPConnectionProvider[RoLDAPConnection],
+      inventoryDit:               InventoryDit,
+      nodeDit:                    NodeDit,
+      rudderDit:                  RudderDit,
+      nodeInfos:                  NodeInfoService
   ) {
 
     import QSBackend._
@@ -122,4 +123,3 @@ object QuickSearchService {
 
   }
 }
-

@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository.jdbc
 
@@ -47,21 +47,32 @@ import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.repository.{CategoryWithActiveTechniques, ComplianceRepository, FullActiveTechniqueCategory, RoDirectiveRepository, RoRuleRepository}
+import com.normation.rudder.repository.CategoryWithActiveTechniques
+import com.normation.rudder.repository.ComplianceRepository
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.services.reports.{CachedFindRuleNodeStatusReports, CachedNodeChangesServiceImpl, DefaultFindRuleNodeStatusReports, NodeChangesServiceImpl, NodeConfigurationService, NodeConfigurationServiceImpl, ReportingServiceImpl, UnexpectedReportInterpretation}
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.NodeChangesServiceImpl
+import com.normation.rudder.services.reports.NodeConfigurationService
+import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
+import com.normation.rudder.services.reports.ReportingServiceImpl
+import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import doobie.implicits._
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -70,12 +81,11 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio._
-import zio.syntax._
-
 import scala.collection.SortedMap
 import scala.concurrent.duration._
+import zio._
 import zio.interop.catz._
+import zio.syntax._
 
 /**
  *
@@ -86,106 +96,109 @@ import zio.interop.catz._
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   self =>
 
-  //clean data base
+  // clean data base
   def cleanTables() = {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
   object nodeInfoService extends NodeInfoService {
-    def getNodeInfo(nodeId: NodeId) : IOResult[Option[NodeInfo]] = ???
-    def getNodeInfoPure(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    def getNodeInfos(nodesId: Set[NodeId]) : IOResult[Set[NodeInfo]] = ???
-    def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
-    def getNode(nodeId: NodeId): Box[Node] = ???
-    def getAllNodes() : IOResult[Map[NodeId, Node]] = ???
-    def getAllNodesIds(): IOResult[Set[NodeId]] = ???
-    def getAllNodeInfos():IOResult[Seq[NodeInfo]] = ???
-    def getAllSystemNodeIds() : IOResult[Seq[NodeId]] = ???
-    def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    def getNumberOfManagedNodes: Int = ???
-    val getAll : IOResult[Map[NodeId, NodeInfo]] = {
+    def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = ???
+    def getNodeInfoPure(nodeId: NodeId):       IOResult[Option[NodeInfo]]      = ???
+    def getNodeInfos(nodesId: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
+    def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
+    def getNode(nodeId: NodeId):               Box[Node]                       = ???
+    def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
+    def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
+    def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]         = ???
+    def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???
+    def getPendingNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
+    def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
+    def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
+    def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
+    def getNumberOfManagedNodes:               Int                             = ???
+    val getAll:                                IOResult[Map[NodeId, NodeInfo]] = {
       def build(id: String, mode: Option[PolicyMode]) = {
         val node1 = NodeConfigData.node1.node
         NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id), policyMode = mode))
       }
       Seq(
-          build("n0", None)
-        , build("n1", Some(PolicyMode.Enforce))
-        , build("n2", Some(PolicyMode.Audit))
-        , build("n3", Some(PolicyMode.Enforce))
-        , build("n4", Some(PolicyMode.Audit))
+        build("n0", None),
+        build("n1", Some(PolicyMode.Enforce)),
+        build("n2", Some(PolicyMode.Audit)),
+        build("n3", Some(PolicyMode.Enforce)),
+        build("n4", Some(PolicyMode.Audit))
       ).map(n => (n.id, n)).toMap.succeed
     }
   }
 
-  val directivesLib = NodeConfigData.directives
+  val directivesLib   = NodeConfigData.directives
   val directivesRepos = new RoDirectiveRepository() {
-    def getFullDirectiveLibrary() : IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
-    def getDirective(directiveId:DirectiveUid) : IOResult[Option[Directive]] = ???
-    def getDirectiveWithContext(directiveId:DirectiveUid) : IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
-    def getActiveTechniqueAndDirective(id:DirectiveId) : IOResult[Option[(ActiveTechnique, Directive)]] = ???
-    def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : IOResult[Seq[Directive]] = ???
-    def getActiveTechniqueByCategory(includeSystem:Boolean = false) : IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    def getActiveTechniqueByActiveTechnique(id:ActiveTechniqueId) : IOResult[Option[ActiveTechnique]] = ???
-    def getActiveTechnique(techniqueName: TechniqueName) : IOResult[Option[ActiveTechnique]] = ???
-    def activeTechniqueBreadCrump(id:ActiveTechniqueId) : IOResult[List[ActiveTechniqueCategory]] = ???
-    def getActiveTechniqueLibrary : IOResult[ActiveTechniqueCategory] = ???
-    def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : IOResult[Seq[ActiveTechniqueCategory]] = ???
-    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[Option[ActiveTechniqueCategory]] = ???
-    def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[ActiveTechniqueCategory] = ???
-    def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : IOResult[List[ActiveTechniqueCategory]] = ???
-    def getParentsForActiveTechnique(id:ActiveTechniqueId) : IOResult[ActiveTechniqueCategory] = ???
-    def containsDirective(id: ActiveTechniqueCategoryId) : UIO[Boolean] = ???
+    def getFullDirectiveLibrary():                                                           IOResult[FullActiveTechniqueCategory]                     = directivesLib.succeed
+    def getDirective(directiveId: DirectiveUid):                                             IOResult[Option[Directive]]                               = ???
+    def getDirectiveWithContext(directiveId: DirectiveUid):                                  IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id: DirectiveId):                                     IOResult[Option[(ActiveTechnique, Directive)]]            = ???
+    def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean = false): IOResult[Seq[Directive]]                                  = ???
+    def getActiveTechniqueByCategory(
+        includeSystem: Boolean = false
+    ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId):                          IOResult[Option[ActiveTechnique]]                         = ???
+    def getActiveTechnique(techniqueName: TechniqueName):                                    IOResult[Option[ActiveTechnique]]                         = ???
+    def activeTechniqueBreadCrump(id: ActiveTechniqueId):                                    IOResult[List[ActiveTechniqueCategory]]                   = ???
+    def getActiveTechniqueLibrary:                                                           IOResult[ActiveTechniqueCategory]                         = ???
+    def getAllActiveTechniqueCategories(includeSystem: Boolean = false):                     IOResult[Seq[ActiveTechniqueCategory]]                    = ???
+    def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                           IOResult[Option[ActiveTechniqueCategory]]                 = ???
+    def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                     IOResult[ActiveTechniqueCategory]                         = ???
+    def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                 IOResult[List[ActiveTechniqueCategory]]                   = ???
+    def getParentsForActiveTechnique(id: ActiveTechniqueId):                                 IOResult[ActiveTechniqueCategory]                         = ???
+    def containsDirective(id: ActiveTechniqueCategoryId):                                    UIO[Boolean]                                              = ???
 
   }
 
   val rulesRepos = new RoRuleRepository {
-    def getOpt(ruleId:RuleId) : IOResult[Option[Rule]] = ???
-    def getAll(includeSytem:Boolean = false) : IOResult[Seq[Rule]] = ???
-    def getIds(includeSytem:Boolean = false) : IOResult[Set[RuleId]] = ???
+    def getOpt(ruleId: RuleId):                IOResult[Option[Rule]] = ???
+    def getAll(includeSytem: Boolean = false): IOResult[Seq[Rule]]    = ???
+    def getIds(includeSytem: Boolean = false): IOResult[Set[RuleId]]  = ???
 
   }
 
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
-    def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
-    def nodeInfoService: NodeInfoService = self.nodeInfoService
-    def nodeConfigrationService : NodeConfigurationService = null
+    def defaultFindRuleNodeStatusReports:                     DefaultFindRuleNodeStatusReports        = null
+    def nodeInfoService:                                      NodeInfoService                         = self.nodeInfoService
+    def nodeConfigrationService:                              NodeConfigurationService                = null
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
-    def findUserNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
-    def findSystemNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
-    def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = null
-    def findUncomputedNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = null
+    def findNodeStatusReport(nodeId: NodeId):                 Box[NodeStatusReport]                   = null
+    def findUserNodeStatusReport(nodeId: NodeId):             Box[NodeStatusReport]                   = null
+    def findSystemNodeStatusReport(nodeId: NodeId):           Box[NodeStatusReport]                   = null
+    def getGlobalUserCompliance():                            Box[Option[(ComplianceLevel, Long)]]    = null
+    def findUncomputedNodeStatusReports():                    Box[Map[NodeId, NodeStatusReport]]      = null
 
-    def getUserNodeStatusReports() : Box[Map[NodeId, NodeStatusReport]] = Full(Map())
-    def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]]) : IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
+    def getUserNodeStatusReports():                                           Box[Map[NodeId, NodeStatusReport]] = Full(Map())
+    def getSystemAndUserCompliance(
+        optNodeIds: Option[Set[NodeId]]
+    ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
 
     override def batchSize: Int = 5000
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
-  lazy val pgIn = new PostgresqlInClause(2)
-  lazy val reportsRepo = new ReportsJdbcRepository(doobie)
-  lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-  lazy val nodeConfigService = new NodeConfigurationServiceImpl(findExpected)
-  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val pgIn                  = new PostgresqlInClause(2)
+  lazy val reportsRepo           = new ReportsJdbcRepository(doobie)
+  lazy val findExpected          = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+  lazy val nodeConfigService     = new NodeConfigurationServiceImpl(findExpected)
+  lazy val updateExpected        = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
 
   lazy val agentRunService = new AgentRunIntervalService() {
     private[this] val interval = Duration.standardMinutes(5)
-    private[this] val nodes = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
-    def getGlobalAgentRun() : Box[AgentRunInterval] = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
+    private[this] val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
+    def getGlobalAgentRun():                                  Box[AgentRunInterval]                      = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
     def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
-      Full(nodes.view.filterKeys { x => nodeIds.contains(x) }.toMap)
+      Full(nodes.view.filterKeys(x => nodeIds.contains(x)).toMap)
     }
   }
 
-
   lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie)
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, nodeConfigService, pgIn,200)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, nodeConfigService, pgIn, 200)
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
     override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
@@ -200,56 +213,58 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   lazy val updateRuns = {
     new ReportsExecutionService(
-        reportsRepo
-      , new LastProcessedReportRepositoryImpl(doobie)
-      , dummyChangesCache
-      , dummyComplianceCache
-      , dummyComplianceRepos
-      , 1.hour
-      , 1.hour
+      reportsRepo,
+      new LastProcessedReportRepositoryImpl(doobie),
+      dummyChangesCache,
+      dummyComplianceCache,
+      dummyComplianceRepos,
+      1.hour,
+      1.hour
     )
   }
 
-  //help differentiate run number with the millis
-  //perfect case: generation are followe by runs one minute latter
+  // help differentiate run number with the millis
+  // perfect case: generation are followe by runs one minute latter
 
-  lazy val gen1 = DateTime.now.minusMinutes(5*2).withMillisOfSecond(1)
+  lazy val gen1 = DateTime.now.minusMinutes(5 * 2).withMillisOfSecond(1)
   lazy val run1 = gen1.plusMinutes(1).withMillisOfSecond(2)
   lazy val gen2 = gen1.plusMinutes(5).withMillisOfSecond(3)
   lazy val run2 = gen2.plusMinutes(1).withMillisOfSecond(4)
-  //now
+  // now
 //  val gen3 = gen2.plusMinutes(5).withMillisOfSecond(3)
 //  val run3 = gen3.minusMinutes(1)
 
-/*
- * We need 5 nodes
- * - n0: no run
- * - n1: a run older than agent frequency, no config version
- * - n2: a run older than agent frequency, a config version n2_t1
- * - n3: both a run newer and older than agent frequency, no config version
- * - n4: both a run newer and older than agent frequency, a config version n4_t2
- *
- * Two expected reports, one for t0, one for t1
- * - at t0:
- * - r0 / d0 / c0 on all nodes
- * - r1 / d1 / c1 on all nodes
- *
- * - at t1:
- * - r0 / d0 / c0 on all nodes
- * - r2 / d2 / c2 on all nodes
- * (r2 is added, r1 is removed)
- *
- *
- * TODO: need to test for "overridden" unique directive on a node
- */
+  /*
+   * We need 5 nodes
+   * - n0: no run
+   * - n1: a run older than agent frequency, no config version
+   * - n2: a run older than agent frequency, a config version n2_t1
+   * - n3: both a run newer and older than agent frequency, no config version
+   * - n4: both a run newer and older than agent frequency, a config version n4_t2
+   *
+   * Two expected reports, one for t0, one for t1
+   * - at t0:
+   * - r0 / d0 / c0 on all nodes
+   * - r1 / d1 / c1 on all nodes
+   *
+   * - at t1:
+   * - r0 / d0 / c0 on all nodes
+   * - r2 / d2 / c2 on all nodes
+   * (r2 is added, r1 is removed)
+   *
+   *
+   * TODO: need to test for "overridden" unique directive on a node
+   */
 
-  //BE CAREFUL: we don't compare on expiration dates!
+  // BE CAREFUL: we don't compare on expiration dates!
   val EXPIRATION_DATE = new DateTime(0)
 
-  val allNodes_t1 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t1"), gen1, Some(gen2) ))).toMap
-  val allNodes_t2 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t2"), gen2, None ))).toMap
+  val allNodes_t1 =
+    Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n + "_t1"), gen1, Some(gen2)))).toMap
+  val allNodes_t2 =
+    Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n + "_t2"), gen2, None))).toMap
 
-  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupMap( _._1 )( _._2 )
+  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupMap(_._1)(_._2)
 
   // this need to be NodeConfiguration (ex in NodeConfigData)
 
@@ -273,63 +288,62 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   val reports = (
     Map[String, Seq[Reports]]()
-    + node("n0")(
+      + node("n0")(
         // no run
-    )
-    + node("n1")( //run 1: no config version ; no run 2
-          ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "", run1, "control", "End execution")
-    )
-    + node("n2")( //run 1: config version ; no run 2
-          ("rudder", "report_id", "common", "start", "n2_t1", run1, "control", "Start execution")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "n2_t1", run1, "control", "End execution")
-    )
-    + node("n3")( //run 1 and run 2 : no config version
-          ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "", run1, "control", "End execution")
-        , ("rudder", "report_id", "common", "start", "", run2, "control", "Start execution")
-        , ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
-        , ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
-        , ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "", run2, "control", "End execution")
-    )
-    + node("n4")( //run 1 and run 2 : one config version
-          ("rudder", "report_id", "common", "start", "n4_t1", run1, "control", "Start execution")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg")
-        , ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg")
-        , ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "n4_t1", run1, "control", "End execution")
-        , ("rudder", "report_id", "common", "start", "n4_t1", run2, "control", "Start execution")
-        , ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg")
-        , ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg")
-        , ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg")
-        , ("rudder", "report_id", "common", "end", "n4_t1", run2, "control", "End execution")
-    )
+      )
+      + node("n1")( // run 1: no config version ; no run 2
+        ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg"),
+        ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "", run1, "control", "End execution")
+      )
+      + node("n2")( // run 1: config version ; no run 2
+        ("rudder", "report_id", "common", "start", "n2_t1", run1, "control", "Start execution"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg"),
+        ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "n2_t1", run1, "control", "End execution")
+      )
+      + node("n3")( // run 1 and run 2 : no config version
+        ("rudder", "report_id", "common", "start", "", run1, "control", "Start execution"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg"),
+        ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "", run1, "control", "End execution"),
+        ("rudder", "report_id", "common", "start", "", run2, "control", "Start execution"),
+        ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg"),
+        ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg"),
+        ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "", run2, "control", "End execution")
+      )
+      + node("n4")( // run 1 and run 2 : one config version
+        ("rudder", "report_id", "common", "start", "n4_t1", run1, "control", "Start execution"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c0", "r0_d0_c0_v0", run1, "result_success", "msg"),
+        ("r0", "report_id", "r0_d0", "r0_d0_c1", "r0_d0_c1_v0", run1, "result_success", "msg"),
+        ("r1", "report_id", "r1_d1", "r1_d1_c0", "r1_d1_c0_v0", run1, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "n4_t1", run1, "control", "End execution"),
+        ("rudder", "report_id", "common", "start", "n4_t1", run2, "control", "Start execution"),
+        ("r0", "report_id2", "r0_d0", "r0_d0_c0", "r0_d0_c0_v1", run2, "result_success", "msg"),
+        ("r0", "report_id2", "r0_d0", "r0_d0_c1", "r0_d0_c1_v1", run2, "result_success", "msg"),
+        ("r2", "report_id", "r2_d2", "r2_d2_c0", "r2_d2_c0_v0", run2, "result_success", "msg"),
+        ("rudder", "report_id", "common", "end", "n4_t1", run2, "control", "End execution")
+      )
   )
 
-
   def buildReportingService(compliance: GlobalComplianceMode) = new ReportingServiceImpl(
-      findExpected
-    , reportsRepo
-    , roAgentRun
-    , agentRunService
-    , nodeInfoService
-    , directivesRepos
-    , rulesRepos
-    , nodeConfigService
-    , () => Full(compliance)
-    , () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed
-    , () => Full(UnexpectedReportInterpretation(Set()))
-    , RUDDER_JDBC_BATCH_MAX_SIZE
+    findExpected,
+    reportsRepo,
+    roAgentRun,
+    agentRunService,
+    nodeInfoService,
+    directivesRepos,
+    rulesRepos,
+    nodeConfigService,
+    () => Full(compliance),
+    () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
+    () => Full(UnexpectedReportInterpretation(Set())),
+    RUDDER_JDBC_BATCH_MAX_SIZE
   )
 
   sequential
@@ -374,7 +388,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 //
 //  "Testing set-up for expected reports and agent run" should {  //be in ExpectedReportsTest!
-    //essentially test the combination of in/in(values clause
+    // essentially test the combination of in/in(values clause
 
     // TODO : CORRECT TESTS
 //    "be correct for in(tuple) clause" in {
@@ -926,12 +940,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //    ids.map(id => NodeAndConfigId(NodeId(id._1), NodeConfigId(id._2))).toSet
 //  }
 
-  implicit def toReport(t:(DateTime,String, String, String, String, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s:String) = RuleId(RuleUid(s))
+  implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
+    implicit def toRuleId(s: String)      = RuleId(RuleUid(s))
     implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
-    implicit def toNodeId(s: String) = NodeId(s)
+    implicit def toNodeId(s: String)      = NodeId(s)
 
-    Reports(t._1, t._2, t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10)
+    Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }
 //
 //  def ruleNodeComparator(x: RuleNodeStatusReport): String = {
@@ -974,18 +988,18 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   //         nodeId               ruleId  serial dirId   comp     keyVal   execTime   severity  msg
-  def node(nodeId:String)(lines: (String, String,   String, String,  String,  DateTime,  String,   String)*): (String, Seq[Reports]) = {
-    (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2,t._4,t._5,t._6,t._7,t._8))))
+  def node(nodeId: String)(lines: (String, String, String, String, String, DateTime, String, String)*): (String, Seq[Reports]) = {
+    (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2, t._4, t._5, t._6, t._7, t._8))))
   }
 
-  implicit def toRuleId(id: String): RuleId = RuleId(RuleUid(id))
-  implicit def toNodeId(id: String): NodeId = NodeId(id)
+  implicit def toRuleId(id: String):   RuleId       = RuleId(RuleUid(id))
+  implicit def toNodeId(id: String):   NodeId       = NodeId(id)
   implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
 
-  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Long)])*): Map[NodeId, Option[AgentRun]] = {
-    runs.map { case (id, opt) =>
-      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3))
+  implicit def agentRuns(runs: (String, Option[(DateTime, Option[String], Long)])*): Map[NodeId, Option[AgentRun]] = {
+    runs.map {
+      case (id, opt) =>
+        NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3))
     }.toMap
   }
 }
-

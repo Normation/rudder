@@ -1,8 +1,8 @@
 package com.normation.rudder.repository
 
+import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
-import com.normation.errors._
 import com.normation.rudder.git.GitCommitId
 
 /**
@@ -14,7 +14,7 @@ trait GitModificationRepository {
   /**
    * Get commits linked to a modification Id
    */
-  def getCommits(modificationId: ModificationId) : IOResult[Option[GitCommitId]]
+  def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]]
 
-  def addCommit(commit: GitCommitId, modId:ModificationId) : IOResult[DB.GitCommitJoin]
+  def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin]
 }

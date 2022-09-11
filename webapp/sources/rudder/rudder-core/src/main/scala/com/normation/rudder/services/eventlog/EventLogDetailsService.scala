@@ -1,79 +1,61 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.eventlog
 
 import com.normation.GitVersion.ParseRev
-
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.common.Box._
-import net.liftweb.util.Helpers.tryo
-import org.joda.time.format.ISODateTimeFormat
-import org.eclipse.jgit.lib.PersonIdent
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.domain.TechniqueName
+import com.normation.box._
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.Control.sequence
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.Certificate
+import com.normation.inventory.domain.KeyStatus
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PublicKey
+import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.api._
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import com.normation.rudder.git.GitPath
-import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.git.GitArchiveId
-import com.normation.rudder.reports._
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.marshalling._
-import com.normation.rudder.services.marshalling.TestFileFormat
-import org.joda.time.DateTime
-import com.normation.box._
-import com.normation.inventory.domain.Certificate
-import com.normation.inventory.domain.KeyStatus
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
@@ -84,7 +66,24 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.git.GitArchiveId
+import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.git.GitPath
+import com.normation.rudder.reports._
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.marshalling._
+import com.normation.rudder.services.marshalling.TestFileFormat
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.utils.Control.sequence
 import com.typesafe.config.ConfigValue
+import net.liftweb.common._
+import net.liftweb.common.Box._
+import net.liftweb.util.Helpers.tryo
+import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
+import scala.xml._
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -97,92 +96,92 @@ trait EventLogDetailsService {
    * The result, if Full, is trimed so that pattern matching can be made without
    * taking care of empty texts.
    */
-  def getEntryContent(xml:NodeSeq) : Box[Elem]
+  def getEntryContent(xml: NodeSeq): Box[Elem]
 
   ///// rule /////
 
-  def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff]
+  def getRuleAddDetails(xml: NodeSeq): Box[AddRuleDiff]
 
-  def getRuleDeleteDetails(xml:NodeSeq) : Box[DeleteRuleDiff]
+  def getRuleDeleteDetails(xml: NodeSeq): Box[DeleteRuleDiff]
 
-  def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff]
+  def getRuleModifyDetails(xml: NodeSeq): Box[ModifyRuleDiff]
 
   ///// directive /////
 
-  def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)]
+  def getDirectiveAddDetails(xml: NodeSeq): Box[(AddDirectiveDiff, SectionVal)]
 
-  def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)]
+  def getDirectiveDeleteDetails(xml: NodeSeq): Box[(DeleteDirectiveDiff, SectionVal)]
 
-  def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff]
+  def getDirectiveModifyDetails(xml: NodeSeq): Box[ModifyDirectiveDiff]
 
   ///// node group /////
 
-  def getNodeGroupAddDetails(xml:NodeSeq) : Box[AddNodeGroupDiff]
+  def getNodeGroupAddDetails(xml: NodeSeq): Box[AddNodeGroupDiff]
 
-  def getNodeGroupDeleteDetails(xml:NodeSeq) : Box[DeleteNodeGroupDiff]
+  def getNodeGroupDeleteDetails(xml: NodeSeq): Box[DeleteNodeGroupDiff]
 
-  def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff]
+  def getNodeGroupModifyDetails(xml: NodeSeq): Box[ModifyNodeGroupDiff]
 
   ///// node /////
 
-  def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
+  def getAcceptNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails]
 
-  def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
+  def getRefuseNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails]
 
-  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
+  def getDeleteNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails]
 
   ///// other /////
 
-  def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus]
+  def getDeploymentStatusDetails(xml: NodeSeq): Box[CurrentDeploymentStatus]
 
-  def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification]
+  def getUpdatePolicyServerDetails(xml: NodeSeq): Box[AuthorizedNetworkModification]
 
-  def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]]
+  def getTechniqueLibraryReloadDetails(xml: NodeSeq): Box[Seq[TechniqueId]]
 
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff]
 
-  def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff]
+  def getTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteTechniqueDiff]
 
   ///// archiving & restoration /////
 
-  def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
+  def getNewArchiveDetails[T <: ExportEventLog](xml: NodeSeq, archive: T): Box[GitArchiveId]
 
-  def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId]
+  def getRestoreArchiveDetails[T <: ImportEventLog](xml: NodeSeq, archive: T): Box[GitCommitId]
 
-  def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo]
+  def getRollbackDetails(xml: NodeSeq): Box[RollbackInfo]
 
-  def getChangeRequestDetails(xml:NodeSeq) : Box[ChangeRequestDiff]
+  def getChangeRequestDetails(xml: NodeSeq): Box[ChangeRequestDiff]
 
-  def getWorkflotStepChange(xml:NodeSeq) : Box[WorkflowStepChange]
+  def getWorkflotStepChange(xml: NodeSeq): Box[WorkflowStepChange]
 
   // Parameters
-  def getGlobalParameterAddDetails(xml:NodeSeq) : Box[AddGlobalParameterDiff]
+  def getGlobalParameterAddDetails(xml: NodeSeq): Box[AddGlobalParameterDiff]
 
-  def getGlobalParameterDeleteDetails(xml:NodeSeq) : Box[DeleteGlobalParameterDiff]
+  def getGlobalParameterDeleteDetails(xml: NodeSeq): Box[DeleteGlobalParameterDiff]
 
-  def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff]
+  def getGlobalParameterModifyDetails(xml: NodeSeq): Box[ModifyGlobalParameterDiff]
 
   // API Account
-  def getApiAccountAddDetails(xml:NodeSeq) : Box[AddApiAccountDiff]
+  def getApiAccountAddDetails(xml: NodeSeq): Box[AddApiAccountDiff]
 
-  def getApiAccountDeleteDetails(xml:NodeSeq) : Box[DeleteApiAccountDiff]
+  def getApiAccountDeleteDetails(xml: NodeSeq): Box[DeleteApiAccountDiff]
 
-  def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff]
+  def getApiAccountModifyDetails(xml: NodeSeq): Box[ModifyApiAccountDiff]
 
   // Global properties
-  def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)]
+  def getModifyGlobalPropertyDetails(xml: NodeSeq): Box[(RudderWebProperty, RudderWebProperty)]
 
   // Node modifiction
-  def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
+  def getModifyNodeDetails(xml: NodeSeq): Box[ModifyNodeDiff]
 
-  def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)]
+  def getPromotedNodeToRelayDetails(xml: NodeSeq): Box[(NodeId, String)]
 
   // Secrets variables
-  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff]
+  def getSecretAddDetails(xml: NodeSeq): Box[AddSecretDiff]
 
-  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff]
+  def getSecretDeleteDetails(xml: NodeSeq): Box[DeleteSecretDiff]
 
-  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff]
+  def getSecretModifyDetails(xml: NodeSeq): Box[ModifySecretDiff]
 
 }
 
@@ -190,24 +189,24 @@ trait EventLogDetailsService {
  * Details should always be in the format: <entry>{more details here}</entry>
  */
 class EventLogDetailsServiceImpl(
-    cmdbQueryParser                 : CmdbQueryParser
-  , piUnserialiser                  : DirectiveUnserialisation
-  , groupUnserialiser               : NodeGroupUnserialisation
-  , crUnserialiser                  : RuleUnserialisation
-  , techniqueUnserialiser           : ActiveTechniqueUnserialisation
-  , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
-  , globalParameterUnserialisation  : GlobalParameterUnserialisation
-  , apiAccountUnserialisation       : ApiAccountUnserialisation
-  , secretUnserialisation           : SecretUnserialisation
+    cmdbQueryParser:                 CmdbQueryParser,
+    piUnserialiser:                  DirectiveUnserialisation,
+    groupUnserialiser:               NodeGroupUnserialisation,
+    crUnserialiser:                  RuleUnserialisation,
+    techniqueUnserialiser:           ActiveTechniqueUnserialisation,
+    deploymentStatusUnserialisation: DeploymentStatusUnserialisation,
+    globalParameterUnserialisation:  GlobalParameterUnserialisation,
+    apiAccountUnserialisation:       ApiAccountUnserialisation,
+    secretUnserialisation:           SecretUnserialisation
 ) extends EventLogDetailsService {
 
   /**
    * An utility method that is able the parse a <X<from>....</from><to>...</to></X>
    * attribute and extract it into a SimpleDiff class.
    */
-  private[this] def getFromTo[T](opt:Option[NodeSeq], f:NodeSeq => Box[T] ) : Box[Option[SimpleDiff[T]]] = {
+  private[this] def getFromTo[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[T]]] = {
     opt match {
-      case None => Full(None)
+      case None    => Full(None)
       case Some(x) =>
         for {
           fromS <- (x \ "from").headOption ?~! ("Missing required tag 'from'")
@@ -223,13 +222,13 @@ class EventLogDetailsServiceImpl(
   /**
    * Special case of getFromTo for strings.
    */
-  private[this] def getFromToString(opt:Option[NodeSeq]) = getFromTo[String](opt,(s:NodeSeq) => Full(s.text))
+  private[this] def getFromToString(opt: Option[NodeSeq]) = getFromTo[String](opt, (s: NodeSeq) => Full(s.text))
 
-  def getEntryContent(xml:NodeSeq) : Box[Elem] = {
-    if(xml.size == 1) {
+  def getEntryContent(xml: NodeSeq): Box[Elem] = {
+    if (xml.size == 1) {
       val node = Utility.trim(xml.head)
       node match {
-        case e:Elem => Full(e)
+        case e: Elem => Full(e)
         case _ => Failure("Given node is not an XML element: " + node.toString)
       }
     } else {
@@ -237,12 +236,12 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  def getSecretFromXML(xml:NodeSeq, changeType:String) : Box[Secret] = {
+  def getSecretFromXML(xml: NodeSeq, changeType: String): Box[Secret] = {
     for {
       entry           <- getEntryContent(xml)
       s               <- (entry \ "secret").headOption ?~! (s"Entry type is not a secret: ${entry}")
       changeTypeAddOk <- {
-        if(s.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+        if (s.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure(s"Secret attribute does not have changeType=${changeType} in ${entry}")
       }
       secret          <- secretUnserialisation.unserialise(s)
@@ -267,10 +266,8 @@ class EventLogDetailsServiceImpl(
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  override def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff] = {
-    getRuleFromXML(xml, "add").map { rule =>
-      AddRuleDiff(rule)
-    }
+  override def getRuleAddDetails(xml: NodeSeq): Box[AddRuleDiff] = {
+    getRuleFromXML(xml, "add").map(rule => AddRuleDiff(rule))
   }
 
   /**
@@ -289,10 +286,8 @@ class EventLogDetailsServiceImpl(
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  override def getRuleDeleteDetails(xml:NodeSeq) : Box[DeleteRuleDiff] = {
-    getRuleFromXML(xml, "delete").map { rule =>
-      DeleteRuleDiff(rule)
-    }
+  override def getRuleDeleteDetails(xml: NodeSeq): Box[DeleteRuleDiff] = {
+    getRuleFromXML(xml, "delete").map(rule => DeleteRuleDiff(rule))
   }
 
   /**
@@ -307,74 +302,71 @@ class EventLogDetailsServiceImpl(
      <longDescription><from>...</from><to>...</to></longDescription>
      </rule>
    */
-  override def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff] = for {
-    entry             <- getEntryContent(xml)
-    rule              <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry.toString())
-    changeTypeAddOk   <- {
-                           if(rule.attribute("changeType").map( _.text ) == Some("modify"))
-                             Full("OK")
-                           else
-                             Failure("Rule attribute does not have changeType=modify: " + entry.toString())
-                         }
-    fileFormatOk      <- TestFileFormat(rule)
-    sid               <- (rule \ "id").headOption.map( _.text ) ?~!
-                         ("Missing attribute 'id' in entry type rule : " + entry.toString())
-    id                <- RuleId.parse(sid).toBox
-    displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
-                         ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
-    name              <- getFromToString((rule \ "name").headOption)
-    category          <- getFromTo[RuleCategoryId](
-                             (rule \ "category").headOption
-                           , { s => Full(RuleCategoryId(s.text)) }
-                         )
-    serial            <- getFromTo[Int]((rule \ "serial").headOption,
-                           { x => tryo(x.text.toInt) } )
-    targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption,
-                          { x:NodeSeq =>
-                              Full((x \ "target").toSet.flatMap{ y: NodeSeq  =>
-                                RuleTarget.unser(y.text )})
-                         })
-    shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
-    longDescription   <- getFromToString((rule \ "longDescription").headOption)
-    isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption,
-                           { s => tryo { s.text.toBoolean } } )
-    isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption,
-                           { s => tryo { s.text.toBoolean } } )
-    directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption,
-                           { x:NodeSeq =>
-                             Full((x \ "id").toSet.map {  (y: NodeSeq) =>
-                               DirectiveId(DirectiveUid( y.text ), ParseRev((y \ "@revision").text) )
-                             })
-                         } )
+  override def getRuleModifyDetails(xml: NodeSeq): Box[ModifyRuleDiff] = for {
+    entry            <- getEntryContent(xml)
+    rule             <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry.toString())
+    changeTypeAddOk  <- {
+      if (rule.attribute("changeType").map(_.text) == Some("modify"))
+        Full("OK")
+      else
+        Failure("Rule attribute does not have changeType=modify: " + entry.toString())
+    }
+    fileFormatOk     <- TestFileFormat(rule)
+    sid              <- (rule \ "id").headOption.map(_.text) ?~!
+                        ("Missing attribute 'id' in entry type rule : " + entry.toString())
+    id               <- RuleId.parse(sid).toBox
+    displayName      <- (rule \ "displayName").headOption.map(_.text) ?~!
+                        ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
+    name             <- getFromToString((rule \ "name").headOption)
+    category         <- getFromTo[RuleCategoryId](
+                          (rule \ "category").headOption,
+                          s => Full(RuleCategoryId(s.text))
+                        )
+    serial           <- getFromTo[Int]((rule \ "serial").headOption, x => tryo(x.text.toInt))
+    targets          <- getFromTo[Set[RuleTarget]](
+                          (rule \ "targets").headOption,
+                          { x: NodeSeq => Full((x \ "target").toSet.flatMap { y: NodeSeq => RuleTarget.unser(y.text) }) }
+                        )
+    shortDescription <- getFromToString((rule \ "shortDescription").headOption)
+    longDescription  <- getFromToString((rule \ "longDescription").headOption)
+    isEnabled        <- getFromTo[Boolean]((rule \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
+    isSystem         <- getFromTo[Boolean]((rule \ "isSystem").headOption, s => tryo(s.text.toBoolean))
+    directiveIds     <- getFromTo[Set[DirectiveId]](
+                          (rule \ "directiveIds").headOption,
+                          { x: NodeSeq =>
+                            Full((x \ "id").toSet.map { (y: NodeSeq) =>
+                              DirectiveId(DirectiveUid(y.text), ParseRev((y \ "@revision").text))
+                            })
+                          }
+                        )
   } yield {
     ModifyRuleDiff(
-        id = id
-      , name = displayName
-      , modName = name
-      , modSerial = serial
-      , modTarget = targets
-      , modDirectiveIds = directiveIds
-      , modShortDescription = shortDescription
-      , modLongDescription = longDescription
-      , modIsActivatedStatus = isEnabled
-      , modIsSystem = isSystem
-      , modCategory = category
+      id = id,
+      name = displayName,
+      modName = name,
+      modSerial = serial,
+      modTarget = targets,
+      modDirectiveIds = directiveIds,
+      modShortDescription = shortDescription,
+      modLongDescription = longDescription,
+      modIsActivatedStatus = isEnabled,
+      modIsSystem = isSystem,
+      modCategory = category
     )
   }
-
 
   /**
    * Map XML into a rule
    */
-  private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {
+  private[this] def getRuleFromXML(xml: NodeSeq, changeType: String): Box[Rule] = {
     for {
       entry           <- getEntryContent(xml)
       crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry.toString())
       changeTypeAddOk <- {
-                           if(crXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                           else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
-                         }
-      rule              <- crUnserialiser.unserialise(crXml)
+        if (crXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
+      }
+      rule            <- crUnserialiser.unserialise(crXml)
     } yield {
       rule
     }
@@ -385,123 +377,133 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a directive
    */
-  private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {
+  private[this] def getDirectiveFromXML(xml: NodeSeq, changeType: String): Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       entry           <- getEntryContent(xml)
       directiveXml    <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry.toString())
       changeTypeAddOk <- {
-                           if(directiveXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                           else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
-                         }
+        if (directiveXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
+      }
       unserialised    <- piUnserialiser.unserialise(directiveXml)
     } yield {
       unserialised
     }
   }
 
-  def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)] = {
-    getDirectiveFromXML(xml, "add").map { case (ptName, directive,sectionVal) =>
-      (AddDirectiveDiff(ptName, directive),sectionVal)
+  def getDirectiveAddDetails(xml: NodeSeq): Box[(AddDirectiveDiff, SectionVal)] = {
+    getDirectiveFromXML(xml, "add").map {
+      case (ptName, directive, sectionVal) =>
+        (AddDirectiveDiff(ptName, directive), sectionVal)
     }
   }
 
-  def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)] = {
-    getDirectiveFromXML(xml, "delete").map { case(ptName, directive,sectionVal) =>
-      (DeleteDirectiveDiff(ptName, directive),sectionVal)
+  def getDirectiveDeleteDetails(xml: NodeSeq): Box[(DeleteDirectiveDiff, SectionVal)] = {
+    getDirectiveFromXML(xml, "delete").map {
+      case (ptName, directive, sectionVal) =>
+        (DeleteDirectiveDiff(ptName, directive), sectionVal)
     }
   }
 
-  def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff] = {
+  def getDirectiveModifyDetails(xml: NodeSeq): Box[ModifyDirectiveDiff] = {
     for {
       entry            <- getEntryContent(xml)
       directive        <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry.toString())
       changeTypeAddOk  <- {
-                            if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                            else Failure("Directive attribute does not have changeType=modify: " + entry.toString())
-                          }
+        if (directive.attribute("changeType").map(_.text) == Some("modify")) Full("OK")
+        else Failure("Directive attribute does not have changeType=modify: " + entry.toString())
+      }
       fileFormatOk     <- TestFileFormat(directive)
-      sid              <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry.toString())
+      sid              <-
+        (directive \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type directive : " + entry.toString())
       id               <- DirectiveId.parse(sid).toBox
-      ptName           <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry.toString())
-      displayName      <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry.toString())
+      ptName           <- (directive \ "techniqueName").headOption.map(
+                            _.text
+                          ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry.toString())
+      displayName      <- (directive \ "displayName").headOption.map(
+                            _.text
+                          ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry.toString())
       name             <- getFromToString((directive \ "name").headOption)
-      techniqueVersion <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v => TechniqueVersion.parse(v.text).toBox } )
-      parameters       <- getFromTo[SectionVal]((directive \ "parameters").headOption, {parameter =>
-                           piUnserialiser.parseSectionVal(parameter)
-                         })
+      techniqueVersion <-
+        getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, v => TechniqueVersion.parse(v.text).toBox)
+      parameters       <-
+        getFromTo[SectionVal]((directive \ "parameters").headOption, parameter => piUnserialiser.parseSectionVal(parameter))
       shortDescription <- getFromToString((directive \ "shortDescription").headOption)
       longDescription  <- getFromToString((directive \ "longDescription").headOption)
-      priority         <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
-      isEnabled        <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
-      isSystem         <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
-      policyMode       <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
+      priority         <- getFromTo[Int]((directive \ "priority").headOption, x => tryo(x.text.toInt))
+      isEnabled        <- getFromTo[Boolean]((directive \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
+      isSystem         <- getFromTo[Boolean]((directive \ "isSystem").headOption, s => tryo(s.text.toBoolean))
+      policyMode       <-
+        getFromTo[Option[PolicyMode]]((directive \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
     } yield {
       ModifyDirectiveDiff(
-          techniqueName = TechniqueName(ptName)
-        , id
-        , displayName
-        , name
-        , techniqueVersion
-        , parameters
-        , shortDescription
-        , longDescription
-        , priority
-        , isEnabled
-        , isSystem
-        , policyMode
+        techniqueName = TechniqueName(ptName),
+        id,
+        displayName,
+        name,
+        techniqueVersion,
+        parameters,
+        shortDescription,
+        longDescription,
+        priority,
+        isEnabled,
+        isSystem,
+        policyMode
       )
     }
   }
 
   ///// node group /////
 
-  override def getNodeGroupAddDetails(xml:NodeSeq) : Box[AddNodeGroupDiff] = {
-    getNodeGroupFromXML(xml, "add").map { group =>
-      AddNodeGroupDiff(group)
-    }
+  override def getNodeGroupAddDetails(xml: NodeSeq): Box[AddNodeGroupDiff] = {
+    getNodeGroupFromXML(xml, "add").map(group => AddNodeGroupDiff(group))
   }
 
-  override def getNodeGroupDeleteDetails(xml:NodeSeq) : Box[DeleteNodeGroupDiff] = {
-    getNodeGroupFromXML(xml, "delete").map { group =>
-      DeleteNodeGroupDiff(group)
-    }
+  override def getNodeGroupDeleteDetails(xml: NodeSeq): Box[DeleteNodeGroupDiff] = {
+    getNodeGroupFromXML(xml, "delete").map(group => DeleteNodeGroupDiff(group))
   }
 
-  override def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff] = {
+  override def getNodeGroupModifyDetails(xml: NodeSeq): Box[ModifyNodeGroupDiff] = {
     for {
       entry           <- getEntryContent(xml)
       group           <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not nodeGroup : " + entry.toString())
       changeTypeAddOk <- {
-                            if(group.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                            else Failure("NodeGroup attribute does not have changeType=modify: " + entry.toString())
-                          }
+        if (group.attribute("changeType").map(_.text) == Some("modify")) Full("OK")
+        else Failure("NodeGroup attribute does not have changeType=modify: " + entry.toString())
+      }
       fileFormatOk    <- TestFileFormat(group)
-      id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry.toString())
-      displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry.toString())
+      id              <- (group \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry.toString())
+      displayName     <- (group \ "displayName").headOption.map(
+                           _.text
+                         ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry.toString())
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
-      query           <- getFromTo[Option[QueryTrait]]((group \ "query").headOption, {s =>
-                          //check for <from><none></none></from> or the same with <to>, <none/>, etc
-                          if( (s \ "none").isEmpty) cmdbQueryParser(s.text).map( Some(_) )
-                          else Full(None)
-                        } )
-      isDynamic       <- getFromTo[Boolean]((group \ "isDynamic").headOption, { s => tryo { s.text.toBoolean } } )
-      serverList      <- getFromTo[Set[NodeId]]((group \ "nodeIds").headOption, { x:NodeSeq =>
-                            Full((x \ "id").toSet.map( (y:NodeSeq) => NodeId( y.text ) ))
-                          } )
-      isEnabled     <- getFromTo[Boolean]((group \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
-      isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
+      query           <- getFromTo[Option[QueryTrait]](
+                           (group \ "query").headOption,
+                           { s =>
+                             // check for <from><none></none></from> or the same with <to>, <none/>, etc
+                             if ((s \ "none").isEmpty) cmdbQueryParser(s.text).map(Some(_))
+                             else Full(None)
+                           }
+                         )
+      isDynamic       <- getFromTo[Boolean]((group \ "isDynamic").headOption, s => tryo(s.text.toBoolean))
+      serverList      <- getFromTo[Set[NodeId]](
+                           (group \ "nodeIds").headOption,
+                           { x: NodeSeq => Full((x \ "id").toSet.map((y: NodeSeq) => NodeId(y.text))) }
+                         )
+      isEnabled       <- getFromTo[Boolean]((group \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
+      isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, s => tryo(s.text.toBoolean))
     } yield {
       ModifyNodeGroupDiff(
-          id = NodeGroupId(id)
-        , name = displayName
-        , modName = name
-        , modDescription = description
-        , modQuery = query
-        , modIsDynamic = isDynamic
-        , modNodeList = serverList
-        , modIsActivated = isEnabled
-        , modIsSystem = isSystem
+        id = NodeGroupId(id),
+        name = displayName,
+        modName = name,
+        modDescription = description,
+        modQuery = query,
+        modIsDynamic = isDynamic,
+        modNodeList = serverList,
+        modIsActivated = isEnabled,
+        modIsSystem = isSystem
       )
     }
   }
@@ -509,67 +511,72 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a node group
    */
-  private[this] def getNodeGroupFromXML(xml:NodeSeq, changeType:String) : Box[NodeGroup] = {
+  private[this] def getNodeGroupFromXML(xml: NodeSeq, changeType: String): Box[NodeGroup] = {
     for {
       entry           <- getEntryContent(xml)
       groupXml        <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not a nodeGroup: " + entry.toString())
       changeTypeAddOk <- {
-                            if(groupXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                            else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
-                          }
+        if (groupXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
+      }
       group           <- groupUnserialiser.unserialise(groupXml)
     } yield {
       group
     }
   }
 
-  def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
+  def getAcceptNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "accept")
   }
 
-  def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
+  def getRefuseNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "refuse")
   }
 
   /**
    * Get inventory details
    */
-  private[this] def getInventoryLogDetails(xml:NodeSeq, action:String) : Box[InventoryLogDetails] = {
+  private[this] def getInventoryLogDetails(xml: NodeSeq, action: String): Box[InventoryLogDetails] = {
     for {
       entry        <- getEntryContent(xml)
       details      <- (entry \ "node").headOption ?~! ("Entry type is not a node: " + entry.toString())
       actionOk     <- {
-                        if(details.attribute("action").map( _.text ) == Some(action)) Full("OK")
-                        else Failure("node attribute does not have action=%s: ".format(action) + entry)
-                      }
+        if (details.attribute("action").map(_.text) == Some(action)) Full("OK")
+        else Failure("node attribute does not have action=%s: ".format(action) + entry)
+      }
       fileFormatOk <- TestFileFormat(details)
-      nodeId       <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry.toString())
-      version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry.toString())
-      hostname     <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry.toString())
-      os           <- (details \ "fullOsName").headOption.map( _.text ) ?~! ("Missing attribute 'fullOsName' in entry type node : " + entry.toString())
-      actorIp      <- (details \ "actorIp").headOption.map( _.text ) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry.toString())
+      nodeId       <- (details \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type node: " + entry.toString())
+      version      <- (details \ "inventoryVersion").headOption.map(
+                        _.text
+                      ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry.toString())
+      hostname     <- (details \ "hostname").headOption
+                        .map(_.text) ?~! ("Missing attribute 'hostname' in entry type node : " + entry.toString())
+      os           <- (details \ "fullOsName").headOption
+                        .map(_.text) ?~! ("Missing attribute 'fullOsName' in entry type node : " + entry.toString())
+      actorIp      <-
+        (details \ "actorIp").headOption.map(_.text) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry.toString())
     } yield {
       InventoryLogDetails(
-          nodeId           = NodeId(nodeId)
-        , inventoryVersion = ISODateTimeFormat.dateTimeParser.parseDateTime(version)
-        , hostname         = hostname
-        , fullOsName       = os
-        , actorIp          = actorIp
+        nodeId = NodeId(nodeId),
+        inventoryVersion = ISODateTimeFormat.dateTimeParser.parseDateTime(version),
+        hostname = hostname,
+        fullOsName = os,
+        actorIp = actorIp
       )
     }
   }
 
-  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
+  def getDeleteNodeLogDetails(xml: NodeSeq): Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "delete")
   }
 
-  def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {
+  def getDeploymentStatusDetails(xml: NodeSeq): Box[CurrentDeploymentStatus] = {
     for {
-      entry        <- getEntryContent(xml)
-      details      <- (entry \ "deploymentStatus").headOption ?~! ("Entry type is not a deploymentStatus: " + entry.toString())
+      entry            <- getEntryContent(xml)
+      details          <- (entry \ "deploymentStatus").headOption ?~! ("Entry type is not a deploymentStatus: " + entry.toString())
       deploymentStatus <- deploymentStatusUnserialisation.unserialise(details)
     } yield {
-        deploymentStatus
+      deploymentStatus
     }
   }
 
@@ -586,17 +593,20 @@ class EventLogDetailsServiceImpl(
       </newAuthorizedNetworks>
       </changeAuthorizedNetworks>
    */
-  def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification] = {
+  def getUpdatePolicyServerDetails(xml: NodeSeq): Box[AuthorizedNetworkModification] = {
     for {
       entry        <- getEntryContent(xml)
-      details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry.toString())
+      details      <-
+        (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry.toString())
       fileFormatOk <- TestFileFormat(details)
-      oldsXml      <- (entry \\ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry.toString())
-      newsXml      <- (entry \\ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry.toString())
+      oldsXml      <- (entry \\ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry
+                        .toString())
+      newsXml      <- (entry \\ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry
+                        .toString())
     } yield {
       AuthorizedNetworkModification(
-          oldNetworks = (oldsXml \ "net").map( _.text )
-        , newNetworks = (newsXml \ "net").map( _.text )
+        oldNetworks = (oldsXml \ "net").map(_.text),
+        newNetworks = (newsXml \ "net").map(_.text)
       )
     }
   }
@@ -614,18 +624,23 @@ class EventLogDetailsServiceImpl(
        ....
      </techniqueReloaded>
    */
-  def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]] = {
+  def getTechniqueLibraryReloadDetails(xml: NodeSeq): Box[Seq[TechniqueId]] = {
     for {
       entry              <- getEntryContent(xml)
       details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry.toString())
       fileFormatOk       <- TestFileFormat(details)
       activeTechniqueIds <- sequence((details \ "modifiedTechnique")) { technique =>
                               for {
-                                name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry.toString())
-                                version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry.toString())
+                                name    <- (technique \ "name").headOption.map(
+                                             _.text
+                                           ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry.toString())
+                                version <-
+                                  (technique \ "version").headOption.map(
+                                    _.text
+                                  ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry.toString())
                                 v       <- TechniqueVersion.parse(version).toBox
                               } yield {
-                                TechniqueId(TechniqueName(name),v)
+                                TechniqueId(TechniqueName(name), v)
                               }
                             }
     } yield {
@@ -635,39 +650,36 @@ class EventLogDetailsServiceImpl(
 
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff] = {
     for {
-      entry              <- getEntryContent(xml)
-      technique            <- (entry \ "activeTechnique").headOption ?~!
-                            ("Entry type is not a technique: " + entry.toString())
-      id                <- (technique \ "id").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'id' in entry type technique : " + entry.toString())
-      displayName       <- (technique \ "techniqueName").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
-      isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption,
-                             { s => tryo { s.text.toBoolean } } )
-      fileFormatOk       <- TestFileFormat(technique)
+      entry        <- getEntryContent(xml)
+      technique    <- (entry \ "activeTechnique").headOption ?~!
+                      ("Entry type is not a technique: " + entry.toString())
+      id           <- (technique \ "id").headOption.map(_.text) ?~!
+                      ("Missing attribute 'id' in entry type technique : " + entry.toString())
+      displayName  <- (technique \ "techniqueName").headOption.map(_.text) ?~!
+                      ("Missing attribute 'displayName' in entry type rule : " + entry.toString())
+      isEnabled    <- getFromTo[Boolean]((technique \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
+      fileFormatOk <- TestFileFormat(technique)
     } yield {
       ModifyTechniqueDiff(
-          id = ActiveTechniqueId(id)
-        , name = TechniqueName(displayName)
-        , modIsEnabled = isEnabled
+        id = ActiveTechniqueId(id),
+        name = TechniqueName(displayName),
+        modIsEnabled = isEnabled
       )
     }
   }
 
-  override def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff] = {
-    getTechniqueFromXML(xml, "delete").map { technique =>
-      DeleteTechniqueDiff(technique)
-    }
+  override def getTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteTechniqueDiff] = {
+    getTechniqueFromXML(xml, "delete").map(technique => DeleteTechniqueDiff(technique))
   }
 
   /**
    * Map XML into a technique
    */
-  private[this] def getTechniqueFromXML(xml:NodeSeq, changeType:String) : Box[ActiveTechnique] = {
+  private[this] def getTechniqueFromXML(xml: NodeSeq, changeType: String): Box[ActiveTechnique] = {
     for {
       entry           <- getEntryContent(xml)
       techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry.toString())
-      changeTypeAddOk <- if(techniqueXml.attribute("changeType").map( _.text ) == Some(changeType))
+      changeTypeAddOk <- if (techniqueXml.attribute("changeType").map(_.text) == Some(changeType))
                            Full("OK")
                          else
                            Failure("Technique attribute does not have changeType=%s: ".format(changeType) + entry)
@@ -677,407 +689,446 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId] = {
-    def getCommitInfo(xml:NodeSeq, tagName:String) = {
+  def getNewArchiveDetails[T <: ExportEventLog](xml: NodeSeq, archive: T): Box[GitArchiveId] = {
+    def getCommitInfo(xml: NodeSeq, tagName: String) = {
       for {
         entry        <- getEntryContent(xml)
         details      <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
         fileFormatOk <- TestFileFormat(details)
-        path         <- (details \ "path").headOption.map( _.text ) ?~! ("Missing attribute 'path' in entry: " + xml)
-        commitId     <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
-        name         <- (details \ "commiterName").headOption.map( _.text ) ?~! ("Missing attribute 'commiterName' in entry: " + xml)
-        email        <- (details \ "commiterEmail").headOption.map( _.text ) ?~! ("Missing attribute 'commiterEmail' in entry: " + xml)
+        path         <- (details \ "path").headOption.map(_.text) ?~! ("Missing attribute 'path' in entry: " + xml)
+        commitId     <- (details \ "commit").headOption.map(_.text) ?~! ("Missing attribute 'commit' in entry: " + xml)
+        name         <- (details \ "commiterName").headOption.map(_.text) ?~! ("Missing attribute 'commiterName' in entry: " + xml)
+        email        <- (details \ "commiterEmail").headOption.map(_.text) ?~! ("Missing attribute 'commiterEmail' in entry: " + xml)
       } yield {
         GitArchiveId(GitPath(path), GitCommitId(commitId), new PersonIdent(name, email))
       }
     }
 
     archive match {
-      case x:ExportGroupsArchive => getCommitInfo(xml, ExportGroupsArchive.tagName)
-      case x:ExportTechniqueLibraryArchive => getCommitInfo(xml, ExportTechniqueLibraryArchive.tagName)
-      case x:ExportRulesArchive => getCommitInfo(xml, ExportRulesArchive.tagName)
-      case x:ExportParametersArchive => getCommitInfo(xml, ExportParametersArchive.tagName)
-      case x:ExportFullArchive => getCommitInfo(xml, ExportFullArchive.tagName)
+      case x: ExportGroupsArchive           => getCommitInfo(xml, ExportGroupsArchive.tagName)
+      case x: ExportTechniqueLibraryArchive => getCommitInfo(xml, ExportTechniqueLibraryArchive.tagName)
+      case x: ExportRulesArchive            => getCommitInfo(xml, ExportRulesArchive.tagName)
+      case x: ExportParametersArchive       => getCommitInfo(xml, ExportParametersArchive.tagName)
+      case x: ExportFullArchive             => getCommitInfo(xml, ExportFullArchive.tagName)
     }
   }
 
-  def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId] = {
-    def getCommitInfo(xml:NodeSeq, tagName:String) = {
+  def getRestoreArchiveDetails[T <: ImportEventLog](xml: NodeSeq, archive: T): Box[GitCommitId] = {
+    def getCommitInfo(xml: NodeSeq, tagName: String) = {
       for {
         entry        <- getEntryContent(xml)
         details      <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
         fileFormatOk <- TestFileFormat(details)
-        commitId <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
+        commitId     <- (details \ "commit").headOption.map(_.text) ?~! ("Missing attribute 'commit' in entry: " + xml)
       } yield {
         GitCommitId(commitId)
       }
     }
 
     archive match {
-      case x:ImportGroupsArchive => getCommitInfo(xml, ImportGroupsArchive.tagName)
-      case x:ImportTechniqueLibraryArchive => getCommitInfo(xml, ImportTechniqueLibraryArchive.tagName)
-      case x:ImportRulesArchive => getCommitInfo(xml, ImportRulesArchive.tagName)
-      case x:ImportParametersArchive => getCommitInfo(xml, ImportParametersArchive.tagName)
-      case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
-      case x: Rollback => getCommitInfo(xml, Rollback.tagName)
+      case x: ImportGroupsArchive           => getCommitInfo(xml, ImportGroupsArchive.tagName)
+      case x: ImportTechniqueLibraryArchive => getCommitInfo(xml, ImportTechniqueLibraryArchive.tagName)
+      case x: ImportRulesArchive            => getCommitInfo(xml, ImportRulesArchive.tagName)
+      case x: ImportParametersArchive       => getCommitInfo(xml, ImportParametersArchive.tagName)
+      case x: ImportFullArchive             => getCommitInfo(xml, ImportFullArchive.tagName)
+      case x: Rollback                      => getCommitInfo(xml, Rollback.tagName)
     }
   }
 
-  def getChangeRequestDetails(xml:NodeSeq) : Box[ChangeRequestDiff] = {
+  def getChangeRequestDetails(xml: NodeSeq): Box[ChangeRequestDiff] = {
     for {
       entry         <- getEntryContent(xml)
       changeRequest <- (entry \ "changeRequest").headOption ?~! s"Entry type is not a 'changeRequest': ${entry}"
-      kind          <- (changeRequest \ "@changeType").headOption.map(_.text)  ?~! s"diff is not a valid changeRequest diff: ${changeRequest}"
-      crId          <- (changeRequest \ "id").headOption.map(id => ChangeRequestId(id.text.toInt)) ?~! s"change request does not have any Id: ${changeRequest}"
-      modId         =  (changeRequest \ "modId").headOption.map(modId => ModificationId(modId.text))
+      kind          <-
+        (changeRequest \ "@changeType").headOption.map(_.text) ?~! s"diff is not a valid changeRequest diff: ${changeRequest}"
+      crId          <- (changeRequest \ "id").headOption.map(id =>
+                         ChangeRequestId(id.text.toInt)
+                       ) ?~! s"change request does not have any Id: ${changeRequest}"
+      modId          = (changeRequest \ "modId").headOption.map(modId => ModificationId(modId.text))
       name          <- (changeRequest \ "name").headOption.map(_.text) ?~! s"change request does not have any name: ${changeRequest}"
-      description   <- (changeRequest \ "description").headOption.map(_.text) ?~! s"change request does not have any description: ${changeRequest}"
+      description   <- (changeRequest \ "description").headOption.map(
+                         _.text
+                       ) ?~! s"change request does not have any description: ${changeRequest}"
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
-      } yield {
-        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map(), Map())
-        kind match {
-          case "add" => AddChangeRequestDiff(changeRequest)
-          case "delete" => DeleteChangeRequestDiff(changeRequest)
-          case "modify" => ModifyToChangeRequestDiff(changeRequest,diffName,diffDesc)
-        }
+    } yield {
+      val changeRequest =
+        ConfigurationChangeRequest(crId, modId, ChangeRequestInfo(name, description), Map(), Map(), Map(), Map())
+      kind match {
+        case "add"    => AddChangeRequestDiff(changeRequest)
+        case "delete" => DeleteChangeRequestDiff(changeRequest)
+        case "modify" => ModifyToChangeRequestDiff(changeRequest, diffName, diffDesc)
       }
+    }
 
   }
 
-  def getWorkflotStepChange(xml:NodeSeq) : Box[WorkflowStepChange] = {
+  def getWorkflotStepChange(xml: NodeSeq): Box[WorkflowStepChange] = {
     for {
-      entry         <- getEntryContent(xml)
-      workflowStep  <- (entry \ "workflowStep").headOption ?~! s"Entry type is not a 'workflowStep': ${entry}"
-      crId          <- (workflowStep \ "changeRequestId").headOption.map(id => ChangeRequestId(id.text.toInt)) ?~! s"Workflow event does not target any change request: ${workflowStep}"
-      from          <- (workflowStep \ "from").headOption.map(from => WorkflowNodeId(from.text)) ?~! s"Workflow event does not have any from step: ${workflowStep}"
-      to            <- (workflowStep \ "to").headOption.map(to => WorkflowNodeId(to.text)) ?~! s"workflow step does not have any to step: ${workflowStep}"
-      } yield {
-        WorkflowStepChange(crId,from,to)
-      }
+      entry        <- getEntryContent(xml)
+      workflowStep <- (entry \ "workflowStep").headOption ?~! s"Entry type is not a 'workflowStep': ${entry}"
+      crId         <- (workflowStep \ "changeRequestId").headOption.map(id =>
+                        ChangeRequestId(id.text.toInt)
+                      ) ?~! s"Workflow event does not target any change request: ${workflowStep}"
+      from         <- (workflowStep \ "from").headOption.map(from =>
+                        WorkflowNodeId(from.text)
+                      ) ?~! s"Workflow event does not have any from step: ${workflowStep}"
+      to           <- (workflowStep \ "to").headOption.map(to =>
+                        WorkflowNodeId(to.text)
+                      ) ?~! s"workflow step does not have any to step: ${workflowStep}"
+    } yield {
+      WorkflowStepChange(crId, from, to)
+    }
 
   }
 
-  def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo] = {
-    def getEvents(xml:Elem): Box[Seq[RollbackedEvent]]= {
-      sequence(xml  \ "rollbackedEvent") {
-        entry =>
-          for {
-            id      <- (entry \ "id").headOption.map(_.text.toInt) ?~! s"rollbacked event details does not have an id: ${entry}"
-            evtType <- (entry \ "type").headOption.map(_.text)     ?~! s"rollbacked event details does not have a type: ${entry}"
-            author  <- (entry \ "author").headOption.map(_.text)   ?~! s"rollbacked event details does not have an author: ${entry}"
-            date    <- (entry \ "date").headOption.map(_.text)     ?~! s"rollbacked event details does not have a date: ${entry}"
-          } yield {
-            RollbackedEvent(id, date, evtType, author)
-          }
+  def getRollbackDetails(xml: NodeSeq): Box[RollbackInfo] = {
+    def getEvents(xml: Elem): Box[Seq[RollbackedEvent]] = {
+      sequence(xml \ "rollbackedEvent") { entry =>
+        for {
+          id      <- (entry \ "id").headOption.map(_.text.toInt) ?~! s"rollbacked event details does not have an id: ${entry}"
+          evtType <- (entry \ "type").headOption.map(_.text) ?~! s"rollbacked event details does not have a type: ${entry}"
+          author  <- (entry \ "author").headOption.map(_.text) ?~! s"rollbacked event details does not have an author: ${entry}"
+          date    <- (entry \ "date").headOption.map(_.text) ?~! s"rollbacked event details does not have a date: ${entry}"
+        } yield {
+          RollbackedEvent(id, date, evtType, author)
+        }
       }
     }
 
     for {
       entry        <- getEntryContent(xml)
-      rollback     <- (entry \ "main").headOption                        ?~! s"Entry type is not a 'rollback' event: ${entry}"
-      id           <- (rollback \ "id").headOption.map(_.text.toInt)     ?~! s"rollback event does not have an id: ${entry}"
-      evtType      <- (rollback \ "type").headOption.map(_.text)         ?~! s"rollback event does not have a type: ${entry}"
-      author       <- (rollback \ "author").headOption.map(_.text)       ?~! s"rollback event does not have an author: ${entry}"
-      date         <- (rollback \ "date").headOption.map(_.text)         ?~! s"rollback event does not have a date: ${entry}"
-      rollbackType <- (rollback \ "rollbackType").headOption.map(_.text) ?~! s"rollback event does not have a rollback type: ${entry}"
+      rollback     <- (entry \ "main").headOption ?~! s"Entry type is not a 'rollback' event: ${entry}"
+      id           <- (rollback \ "id").headOption.map(_.text.toInt) ?~! s"rollback event does not have an id: ${entry}"
+      evtType      <- (rollback \ "type").headOption.map(_.text) ?~! s"rollback event does not have a type: ${entry}"
+      author       <- (rollback \ "author").headOption.map(_.text) ?~! s"rollback event does not have an author: ${entry}"
+      date         <- (rollback \ "date").headOption.map(_.text) ?~! s"rollback event does not have a date: ${entry}"
+      rollbackType <-
+        (rollback \ "rollbackType").headOption.map(_.text) ?~! s"rollback event does not have a rollback type: ${entry}"
       events       <- getEvents(entry)
     } yield {
-      val target = RollbackedEvent(id,date,evtType,author)
-      RollbackInfo(target,rollbackType,events)
+      val target = RollbackedEvent(id, date, evtType, author)
+      RollbackInfo(target, rollbackType, events)
     }
   }
 
   // Parameters
-  def getGlobalParameterFromXML(xml:NodeSeq, changeType:String) : Box[GlobalParameter] = {
+  def getGlobalParameterFromXML(xml: NodeSeq, changeType: String): Box[GlobalParameter] = {
     for {
       entry           <- getEntryContent(xml)
       globalParam     <- (entry \ "globalParameter").headOption ?~! (s"Entry type is not a globalParameter: ${entry}")
       changeTypeAddOk <- {
-                           if(globalParam.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                           else Failure(s"Global Parameter attribute does not have changeType=${changeType} in ${entry}")
-                         }
+        if (globalParam.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure(s"Global Parameter attribute does not have changeType=${changeType} in ${entry}")
+      }
       globalParameter <- globalParameterUnserialisation.unserialise(globalParam)
     } yield {
       globalParameter
     }
   }
 
-  def getGlobalParameterAddDetails(xml:NodeSeq) : Box[AddGlobalParameterDiff] = {
-    getGlobalParameterFromXML(xml, "add").map { globalParam =>
-      AddGlobalParameterDiff(globalParam)
-    }
+  def getGlobalParameterAddDetails(xml: NodeSeq): Box[AddGlobalParameterDiff] = {
+    getGlobalParameterFromXML(xml, "add").map(globalParam => AddGlobalParameterDiff(globalParam))
   }
 
-  def getGlobalParameterDeleteDetails(xml:NodeSeq) : Box[DeleteGlobalParameterDiff] = {
-    getGlobalParameterFromXML(xml, "delete").map { globalParam =>
-      DeleteGlobalParameterDiff(globalParam)
-    }
+  def getGlobalParameterDeleteDetails(xml: NodeSeq): Box[DeleteGlobalParameterDiff] = {
+    getGlobalParameterFromXML(xml, "delete").map(globalParam => DeleteGlobalParameterDiff(globalParam))
   }
 
-  def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff] = {
+  def getGlobalParameterModifyDetails(xml: NodeSeq): Box[ModifyGlobalParameterDiff] = {
     for {
-      entry              <- getEntryContent(xml)
-      globalParam        <- (entry \ "globalParameter").headOption ?~!
-                            (s"Entry type is not a Global Parameter: ${entry}")
-      name               <- (globalParam \ "name").headOption.map( _.text ) ?~!
-                           ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
-      modValue           <- getFromTo[ConfigValue]((globalParam \ "value").headOption,
-                             { s => GenericProperty.parseValue(s.text).toBox })
-      modInheritMode     <- getFromTo[Option[InheritMode]]((globalParam \ "inheritMode").headOption,
-                             { s => Full(InheritMode.parseString(s.text).toOption) })
-      modDescription     <- getFromToString((globalParam \ "description").headOption)
-      modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
-                             { s => tryo { s.text.toBoolean } } )
-      fileFormatOk       <- TestFileFormat(globalParam)
+      entry          <- getEntryContent(xml)
+      globalParam    <- (entry \ "globalParameter").headOption ?~!
+                        (s"Entry type is not a Global Parameter: ${entry}")
+      name           <- (globalParam \ "name").headOption.map(_.text) ?~!
+                        ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
+      modValue       <- getFromTo[ConfigValue]((globalParam \ "value").headOption, s => GenericProperty.parseValue(s.text).toBox)
+      modInheritMode <- getFromTo[Option[InheritMode]](
+                          (globalParam \ "inheritMode").headOption,
+                          s => Full(InheritMode.parseString(s.text).toOption)
+                        )
+      modDescription <- getFromToString((globalParam \ "description").headOption)
+      modOverridable <- getFromTo[Boolean]((globalParam \ "overridable").headOption, s => tryo(s.text.toBoolean))
+      fileFormatOk   <- TestFileFormat(globalParam)
     } yield {
       ModifyGlobalParameterDiff(
-          name = name
-        , modValue = (modValue)
-        , modDescription = modDescription
-        , modInheritMode = modInheritMode
+        name = name,
+        modValue = (modValue),
+        modDescription = modDescription,
+        modInheritMode = modInheritMode
       )
     }
   }
 
   // API Account
-  def getApiAccountFromXML(xml:NodeSeq, changeType:String) : Box[ApiAccount] = {
+  def getApiAccountFromXML(xml: NodeSeq, changeType: String): Box[ApiAccount] = {
     for {
       entry           <- getEntryContent(xml)
       account         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~! (s"Entry type is not an API Account: ${entry}")
       changeTypeAddOk <- {
-                           if(account.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                           else Failure(s"API Account attribute does not have changeType=${changeType} in ${entry}")
-                         }
-      apiAccount       <- apiAccountUnserialisation.unserialise(account)
+        if (account.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure(s"API Account attribute does not have changeType=${changeType} in ${entry}")
+      }
+      apiAccount      <- apiAccountUnserialisation.unserialise(account)
     } yield {
       apiAccount
     }
   }
 
-  def getApiAccountAddDetails(xml:NodeSeq) : Box[AddApiAccountDiff] = {
-    getApiAccountFromXML(xml, "add").map { account =>
-      AddApiAccountDiff(account)
-    }
+  def getApiAccountAddDetails(xml: NodeSeq): Box[AddApiAccountDiff] = {
+    getApiAccountFromXML(xml, "add").map(account => AddApiAccountDiff(account))
   }
 
-  def getApiAccountDeleteDetails(xml:NodeSeq) : Box[DeleteApiAccountDiff] = {
-    getApiAccountFromXML(xml, "delete").map { account =>
-      DeleteApiAccountDiff(account)
-    }
+  def getApiAccountDeleteDetails(xml: NodeSeq): Box[DeleteApiAccountDiff] = {
+    getApiAccountFromXML(xml, "delete").map(account => DeleteApiAccountDiff(account))
   }
 
-  def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff] = {
+  def getApiAccountModifyDetails(xml: NodeSeq): Box[ModifyApiAccountDiff] = {
     import cats.implicits._
 
     for {
-      entry              <- getEntryContent(xml)
-      apiAccount         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
-                              (s"Entry type is not a Api Account: ${entry}")
-      id                 <- (apiAccount \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry.toString())
-      modName            <- getFromToString((apiAccount \ "name").headOption)
-      modToken           <- getFromToString((apiAccount \ "token").headOption)
-      modDescription     <- getFromToString((apiAccount \ "description").headOption)
-      modIsEnabled       <- getFromTo[Boolean]((apiAccount \ "enabled").headOption,
-                              { s => tryo { s.text.toBoolean } } )
-      modTokenGenDate    <- getFromTo[DateTime]((apiAccount \ "tokenGenerationDate").headOption,
-                              { s => tryo { ISODateTimeFormat.dateTimeParser().parseDateTime(s.text) }} )
-      modExpirationDate  <- getFromTo[Option[DateTime]]((apiAccount \ "expirationDate").headOption,
-                              { s => Full(tryo { ISODateTimeFormat.dateTimeParser().parseDateTime(s.text) }.toOption) } )
-      modAccountKind     <- getFromToString((apiAccount \ "accountKind").headOption)
-      modAcls            <- getFromTo[List[ApiAclElement]]((apiAccount \ "acls").headOption,
-                              { s =>  ((s \ "acl").toList.traverse{x =>
-                                for {
-                                    path    <- AclPath.parse((x \ "@path").head.text)
-                                    actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse _)
-                                } yield {
-                                    ApiAclElement(path, actions.toSet)
-                                }
-                              }) match {
-                                case Left(e)  => Failure(e)
-                                case Right(x) => Full(x)
-                              }
-                              } )
-      fileFormatOk       <- TestFileFormat(apiAccount)
+      entry             <- getEntryContent(xml)
+      apiAccount        <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
+                           (s"Entry type is not a Api Account: ${entry}")
+      id                <-
+        (apiAccount \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type API Account : " + entry.toString())
+      modName           <- getFromToString((apiAccount \ "name").headOption)
+      modToken          <- getFromToString((apiAccount \ "token").headOption)
+      modDescription    <- getFromToString((apiAccount \ "description").headOption)
+      modIsEnabled      <- getFromTo[Boolean]((apiAccount \ "enabled").headOption, s => tryo(s.text.toBoolean))
+      modTokenGenDate   <- getFromTo[DateTime](
+                             (apiAccount \ "tokenGenerationDate").headOption,
+                             s => tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text))
+                           )
+      modExpirationDate <- getFromTo[Option[DateTime]](
+                             (apiAccount \ "expirationDate").headOption,
+                             s => Full(tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text)).toOption)
+                           )
+      modAccountKind    <- getFromToString((apiAccount \ "accountKind").headOption)
+      modAcls           <- getFromTo[List[ApiAclElement]](
+                             (apiAccount \ "acls").headOption,
+                             { s =>
+                               ((s \ "acl").toList.traverse { x =>
+                                 for {
+                                   path    <- AclPath.parse((x \ "@path").head.text)
+                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse _)
+                                 } yield {
+                                   ApiAclElement(path, actions.toSet)
+                                 }
+                               }) match {
+                                 case Left(e)  => Failure(e)
+                                 case Right(x) => Full(x)
+                               }
+                             }
+                           )
+      fileFormatOk      <- TestFileFormat(apiAccount)
     } yield {
       ModifyApiAccountDiff(
-          id = ApiAccountId(id)
-        , modName = modName
-        , modToken = modToken
-        , modDescription = modDescription
-        , modIsEnabled = modIsEnabled
-        , modTokenGenerationDate = modTokenGenDate
-        , modExpirationDate      = modExpirationDate
-        , modAccountKind         = modAccountKind
-        , modAccountAcl          = modAcls
+        id = ApiAccountId(id),
+        modName = modName,
+        modToken = modToken,
+        modDescription = modDescription,
+        modIsEnabled = modIsEnabled,
+        modTokenGenerationDate = modTokenGenDate,
+        modExpirationDate = modExpirationDate,
+        modAccountKind = modAccountKind,
+        modAccountAcl = modAcls
       )
     }
   }
 
   // global properties
-  def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)] = {
+  def getModifyGlobalPropertyDetails(xml: NodeSeq): Box[(RudderWebProperty, RudderWebProperty)] = {
     for {
-      entry              <- getEntryContent(xml)
-      globalParam        <- (entry \ "globalPropertyUpdate").headOption ?~! (s"Entry type is not a Global Property: ${entry}")
-      name               <- (globalParam \ "name").headOption.map( xml => RudderWebPropertyName(xml.text )) ?~! ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
-      modValue           <- getFromToString((globalParam \ "value").headOption)
-      values             <- modValue
-      fileFormatOk       <- TestFileFormat(globalParam)
+      entry        <- getEntryContent(xml)
+      globalParam  <- (entry \ "globalPropertyUpdate").headOption ?~! (s"Entry type is not a Global Property: ${entry}")
+      name         <- (globalParam \ "name").headOption.map(xml =>
+                        RudderWebPropertyName(xml.text)
+                      ) ?~! ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
+      modValue     <- getFromToString((globalParam \ "value").headOption)
+      values       <- modValue
+      fileFormatOk <- TestFileFormat(globalParam)
     } yield {
-      val oldValue = RudderWebProperty(name,values.oldValue,"")
-      val newValue = RudderWebProperty(name,values.newValue,"")
-      (oldValue,newValue)
+      val oldValue = RudderWebProperty(name, values.oldValue, "")
+      val newValue = RudderWebProperty(name, values.newValue, "")
+      (oldValue, newValue)
     }
   }
 
-  private[this] def extractAgentRun(xml : NodeSeq)( details : NodeSeq ) = {
-    if((details \ "_").isEmpty) { //no children
+  private[this] def extractAgentRun(xml: NodeSeq)(details: NodeSeq) = {
+    if ((details \ "_").isEmpty) { // no children
       Full(None)
     } else {
       for {
         overrides   <- (details \ "override").headOption match {
-                         case None => Full(None)
-                         case Some(elt) => if(elt.child.isEmpty) Full(None) else tryo(Some(elt.text.toBoolean))
+                         case None      => Full(None)
+                         case Some(elt) => if (elt.child.isEmpty) Full(None) else tryo(Some(elt.text.toBoolean))
                        }
-        interval    <- (details \ "interval").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'interval' in entry type node : '${xml}'"
-        startMinute <- (details \ "startMinute").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'startMinute' in entry type node : '${xml}'"
-        startHour   <- (details \ "startHour").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'startHour' in entry type node : '${xml}'"
-        splaytime   <- (details \ "splaytime").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'splaytime' in entry type node : '${xml}'"
+        interval    <- (details \ "interval").headOption.flatMap(x =>
+                         tryo(x.text.toInt)
+                       ) ?~! s"Missing attribute 'interval' in entry type node : '${xml}'"
+        startMinute <- (details \ "startMinute").headOption.flatMap(x =>
+                         tryo(x.text.toInt)
+                       ) ?~! s"Missing attribute 'startMinute' in entry type node : '${xml}'"
+        startHour   <- (details \ "startHour").headOption.flatMap(x =>
+                         tryo(x.text.toInt)
+                       ) ?~! s"Missing attribute 'startHour' in entry type node : '${xml}'"
+        splaytime   <- (details \ "splaytime").headOption.flatMap(x =>
+                         tryo(x.text.toInt)
+                       ) ?~! s"Missing attribute 'splaytime' in entry type node : '${xml}'"
       } yield {
-        Some(AgentRunInterval(
-            overrides
-          , interval
-          , startMinute
-          , startHour
-          , splaytime
-        ))
+        Some(
+          AgentRunInterval(
+            overrides,
+            interval,
+            startMinute,
+            startHour,
+            splaytime
+          )
+        )
       }
     }
   }
 
-  private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
-    if((details\"_").isEmpty) { //no children
+  private[this] def extractHeartbeatConfiguration(xml: NodeSeq)(details: NodeSeq) = {
+    if ((details \ "_").isEmpty) { // no children
       Full(None)
-    } else for {
-      overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
-      period    <- (details \ "period").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
-    } yield {
-      Some(HeartbeatConfiguration(overrides, period))
+    } else {
+      for {
+        overrides <- (details \ "override").headOption.flatMap(x =>
+                       tryo(x.text.toBoolean)
+                     ) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
+        period    <- (details \ "period").headOption.flatMap(x =>
+                       tryo(x.text.toInt)
+                     ) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
+      } yield {
+        Some(HeartbeatConfiguration(overrides, period))
+      }
     }
   }
 
-  private[this] def extractNodeProperties(xml : NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
-    if(details.isEmpty) Full(Seq())
-    else for {
-      properties <- sequence((details \ "property").toSeq) { prop =>
-                       for {
-                         name     <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
-                         value    <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
-                                     // 'provider' is optionnal, default to "default"
-                         provider =  (prop \ "provider" ).headOption.map( p => PropertyProvider(p.text) )
-                         mode     =  (prop \ "inheritMode" ).headOption.flatMap( p => InheritMode.parseString(p.text).toOption )
-                         prop     <- NodeProperty.parse(name, value, mode, provider).toBox
-                       } yield {
-                         prop
-                       }
-                     }
-    } yield {
-      properties
+  private[this] def extractNodeProperties(xml: NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
+    if (details.isEmpty) Full(Seq())
+    else {
+      for {
+        properties <- sequence((details \ "property").toSeq) { prop =>
+                        for {
+                          name    <-
+                            (prop \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
+                          value   <-
+                            (prop \ "value").headOption.map(_.text) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
+                          // 'provider' is optionnal, default to "default"
+                          provider = (prop \ "provider").headOption.map(p => PropertyProvider(p.text))
+                          mode     = (prop \ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text).toOption)
+                          prop    <- NodeProperty.parse(name, value, mode, provider).toBox
+                        } yield {
+                          prop
+                        }
+                      }
+      } yield {
+        properties
+      }
     }
   }
 
-  def getPromotedNodeToRelayDetails(xml:NodeSeq) : Box[(NodeId, String)] = {
+  def getPromotedNodeToRelayDetails(xml: NodeSeq): Box[(NodeId, String)] = {
     for {
       entry        <- getEntryContent(xml)
       node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
       fileFormatOk <- TestFileFormat(node)
       changeTypeOk <- {
-        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+        if (node.attribute("changeType").map(_.text) == Some("modify")) Full("OK")
         else Failure(s"'Node promotion' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
       }
-      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
-      name         <- (node \ "hostname").headOption.map( x => x.text ) ?~! ("Missing element 'hostname' in entry type Node: " + entry.toString())
+      id           <- (node \ "id").headOption.map(x => NodeId(x.text)) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
+      name         <-
+        (node \ "hostname").headOption.map(x => x.text) ?~! ("Missing element 'hostname' in entry type Node: " + entry.toString())
     } yield {
-      (id,name)
+      (id, name)
     }
   }
 
-  def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
+  def getModifyNodeDetails(xml: NodeSeq): Box[ModifyNodeDiff] = {
     for {
       entry        <- getEntryContent(xml)
       node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
       fileFormatOk <- TestFileFormat(node)
       changeTypeOk <- {
-                        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                        else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
-                      }
-      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
-      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text).toBox })
-      agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
-      heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })
-      properties   <- getFromTo[List[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x).map(_.toList) })
-      agentKey     <- getFromTo[SecurityToken]( (node \ "agentKey").headOption ,{ x => val s = x.text; if(s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Full(PublicKey(s)) })
-      keyStatus    <- getFromTo[KeyStatus]( (node \ "keyStatus").headOption , {x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))} )
+        if (node.attribute("changeType").map(_.text) == Some("modify")) Full("OK")
+        else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
+      }
+      id           <- (node \ "id").headOption.map(x => NodeId(x.text)) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
+      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
+      agentRun     <- getFromTo[Option[AgentRunInterval]]((node \ "agentRun").headOption, x => extractAgentRun(xml)(x))
+      heartbeat    <-
+        getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption, x => extractHeartbeatConfiguration(xml)(x))
+      properties   <-
+        getFromTo[List[NodeProperty]]((node \ "properties").headOption, x => extractNodeProperties(xml)(x).map(_.toList))
+      agentKey     <- getFromTo[SecurityToken](
+                        (node \ "agentKey").headOption,
+                        { x =>
+                          val s = x.text; if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Full(PublicKey(s))
+                        }
+                      )
+      keyStatus    <- getFromTo[KeyStatus](
+                        (node \ "keyStatus").headOption,
+                        x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))
+                      )
     } yield {
       ModifyNodeDiff(
-          id
-        , heartbeat
-        , agentRun
-        , properties
-        , policyMode
-        , agentKey
-        , keyStatus
+        id,
+        heartbeat,
+        agentRun,
+        properties,
+        policyMode,
+        agentKey,
+        keyStatus
       )
     }
   }
 
-  def getSecretAddDetails(xml:NodeSeq) : Box[AddSecretDiff] = {
-    getSecretFromXML(xml, "add").map { secret =>
-      AddSecretDiff(secret)
-    }
+  def getSecretAddDetails(xml: NodeSeq): Box[AddSecretDiff] = {
+    getSecretFromXML(xml, "add").map(secret => AddSecretDiff(secret))
   }
 
-  def getSecretDeleteDetails(xml:NodeSeq) : Box[DeleteSecretDiff] = {
-    getSecretFromXML(xml, "delete").map { secret =>
-      DeleteSecretDiff(secret)
-    }
+  def getSecretDeleteDetails(xml: NodeSeq): Box[DeleteSecretDiff] = {
+    getSecretFromXML(xml, "delete").map(secret => DeleteSecretDiff(secret))
   }
 
-  def getSecretModifyDetails(xml:NodeSeq) : Box[ModifySecretDiff] = {
+  def getSecretModifyDetails(xml: NodeSeq): Box[ModifySecretDiff] = {
     for {
-      entry              <- getEntryContent(xml)
-      secret             <- (entry \ "secret").headOption ?~!
-        (s"Entry type is not a Secret: ${entry}")
-      name               <- (secret \ "name").headOption.map( _.text ) ?~!
-        (s"Missing attribute 'name' in entry type Secret: ${entry}")
-      description        <- (secret \ "description").headOption.map( _.text ) ?~!
-        (s"Missing attribute 'description' in entry type Secret: ${entry}")
-      modValue           <- tryo{(secret \ "valueHasChanged").text.toBoolean}
-      modDescription     <- getFromToString((secret \ "diffDescription").headOption)
-      modName            <- getFromToString((secret \ "diffName").headOption)
-      fileFormatOk       <- TestFileFormat(secret)
+      entry          <- getEntryContent(xml)
+      secret         <- (entry \ "secret").headOption ?~!
+                        (s"Entry type is not a Secret: ${entry}")
+      name           <- (secret \ "name").headOption.map(_.text) ?~!
+                        (s"Missing attribute 'name' in entry type Secret: ${entry}")
+      description    <- (secret \ "description").headOption.map(_.text) ?~!
+                        (s"Missing attribute 'description' in entry type Secret: ${entry}")
+      modValue       <- tryo((secret \ "valueHasChanged").text.toBoolean)
+      modDescription <- getFromToString((secret \ "diffDescription").headOption)
+      modName        <- getFromToString((secret \ "diffName").headOption)
+      fileFormatOk   <- TestFileFormat(secret)
     } yield {
       ModifySecretDiff(
-          name = name
-        , description = description
-        , modValue = (modValue)
-        , modDescription = (modDescription)
+        name = name,
+        description = description,
+        modValue = (modValue),
+        modDescription = (modDescription)
       )
     }
   }
-
 
 }
 
 final case class RollbackInfo(
-    target : RollbackedEvent
-  , rollbackType : String
-  , rollbacked : Seq[RollbackedEvent]
+    target:       RollbackedEvent,
+    rollbackType: String,
+    rollbacked:   Seq[RollbackedEvent]
 )
 
 final case class RollbackedEvent(
-    id        : Int
-  , date      : String
-  , eventType : String
-  , author    : String
+    id:        Int,
+    date:      String,
+    eventType: String,
+    author:    String
 )

@@ -1,71 +1,70 @@
 /*
-*************************************************************************************
-* Copyright 2013 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2013 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.common._
-import net.liftweb.http.SHtml
-import scala.xml._
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js._
-import JsCmds._
-import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
-import JE._
-import com.normation.rudder.rule.category._
+import com.normation.box._
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.rule.category._
+import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
-
-import com.normation.box._
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SHtml
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import scala.xml._
 
 /**
  * the component in charge of displaying the rule grid, with category tree
  * and one line by rule.
  */
-class RuleDisplayer (
-    directive           : Option[DirectiveApplicationManagement]
-  , gridId              : String
-  , detailsCallbackLink : (Rule, String) => JsCmd
-  , onCreateRule        : (Rule) => JsCmd
-  , showRulePopup       : (Option[Rule]) => JsCmd
-  , columnCompliance    : DisplayColumn
-  , graphRecentChanges  : DisplayColumn
-) extends DispatchSnippet with Loggable  {
+class RuleDisplayer(
+    directive:           Option[DirectiveApplicationManagement],
+    gridId:              String,
+    detailsCallbackLink: (Rule, String) => JsCmd,
+    onCreateRule:        (Rule) => JsCmd,
+    showRulePopup:       (Option[Rule]) => JsCmd,
+    columnCompliance:    DisplayColumn,
+    graphRecentChanges:  DisplayColumn
+) extends DispatchSnippet with Loggable {
 
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
   private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
@@ -73,24 +72,22 @@ class RuleDisplayer (
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
   def getRootCategory() = {
-    directive match  {
+    directive match {
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
-      case None =>
+      case None                =>
         roCategoryRepository.getRootCategory().toBox
     }
   }
 
-  private[this] var root : Box[RuleCategory]= {
-      getRootCategory()
+  private[this] var root: Box[RuleCategory] = {
+    getRootCategory()
   }
 
-  def dispatch = {
-    case "display" => { _ => NodeSeq.Empty }
-  }
+  def dispatch = { case "display" => { _ => NodeSeq.Empty } }
 
   // Update Rule displayer after a Rule has changed ( update / creation )
-  def onRuleChange (selectedCategoryUpdate : RuleCategoryId)= {
+  def onRuleChange(selectedCategoryUpdate: RuleCategoryId) = {
     refreshGrid & refreshTree & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
   }
 
@@ -108,33 +105,39 @@ class RuleDisplayer (
   private[this] val ruleCategoryTree = {
     root.map(
       new RuleCategoryTree(
-          "categoryTree"
-        , _
-        , directive
-        , (() =>  check())
-        , ((c:RuleCategory) => showCategoryPopup(Some(c)))
-        , ((c:RuleCategory) => showDeleteCategoryPopup(c))
-        , () => refreshGrid
-    ) )
+        "categoryTree",
+        _,
+        directive,
+        (() => check()),
+        ((c: RuleCategory) => showCategoryPopup(Some(c))),
+        ((c: RuleCategory) => showDeleteCategoryPopup(c)),
+        () => refreshGrid
+      )
+    )
   }
 
   def includeSubCategory = {
     SHtml.ajaxCheckbox(
-        true
-      , value =>  OnLoad(JsRaw(s"""
+      true,
+      value => OnLoad(JsRaw(s"""
         include=${value};
-        filterTableInclude('#grid_rules_grid_zone',filter,include); """)) & check()
-      , ("id","includeCheckbox")
+        filterTableInclude('#grid_rules_grid_zone',filter,include); """)) & check(),
+      ("id", "includeCheckbox")
     )
   }
-  def actionButtonCategory: NodeSeq =
+  def actionButtonCategory: NodeSeq = {
     if (directive.isEmpty) {
-      SHtml.ajaxButton("Add Category", () => showCategoryPopup(None), ("class" -> "new-icon category btn btn-success btn-outline btn-sm"))
+      SHtml.ajaxButton(
+        "Add Category",
+        () => showCategoryPopup(None),
+        ("class" -> "new-icon category btn btn-success btn-outline btn-sm")
+      )
     } else {
       NodeSeq.Empty
     }
+  }
 
-  def displaySubcategories : NodeSeq = {
+  def displaySubcategories:                               NodeSeq = {
     <ul class="form-group list-sm">
       <li class="rudder-form">
         <div class="input-group">
@@ -152,7 +155,7 @@ class RuleDisplayer (
       </li>
     </ul>
   }
-  def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
+  def viewCategories(ruleCategoryTree: RuleCategoryTree): NodeSeq = {
     <div id="treeParent">
       {displaySubcategories}
       <div id="categoryTree">
@@ -162,12 +165,16 @@ class RuleDisplayer (
   }
 
   def check() = {
-    def action(ruleId : RuleId, status:Boolean) = {
+    def action(ruleId: RuleId, status: Boolean) = {
       JsRaw(s"""$$('#${ruleId.serialize}Checkbox').prop("checked",${status}); """)
     }
 
     directive match {
-      case Some(d) => d.checkRules match {case (toCheck,toUncheck) => (toCheck.map(r => action(r.id,true)) ++ toUncheck.map(r => action(r.id,false))).foldLeft(Noop){ _ & _ }}
+      case Some(d) =>
+        d.checkRules match {
+          case (toCheck, toUncheck) =>
+            (toCheck.map(r => action(r.id, true)) ++ toUncheck.map(r => action(r.id, false))).foldLeft(Noop)(_ & _)
+        }
       case None    => Noop
     }
   }
@@ -180,7 +187,7 @@ class RuleDisplayer (
     }
   }
 
-  def viewRules : NodeSeq = {
+  def viewRules: NodeSeq = {
 
     val callbackLink = {
       if (directive.isDefined) {
@@ -189,33 +196,34 @@ class RuleDisplayer (
         Some(detailsCallbackLink)
       }
     }
-    val ruleGrid = {
+    val ruleGrid     = {
       new RuleGrid(
-          "rules_grid_zone"
-        , callbackLink
-        , directive.isDefined
-        , directive
-        , columnCompliance
-        , graphRecentChanges
+        "rules_grid_zone",
+        callbackLink,
+        directive.isDefined,
+        directive,
+        columnCompliance,
+        graphRecentChanges
       )
     }
 
     <div>
-      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, false)  ++
-        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None).applied))
-      }
+      {
+      ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, false) ++
+      Script(OnLoad(ruleGrid.asyncDisplayAllRules(None).applied))
+    }
     </div>
 
   }
 
   def display = {
-   val columnToFilter = {
-     if (directive.isDefined) 3 else 2
-   }
+    val columnToFilter = {
+      if (directive.isDefined) 3 else 2
+    }
 
-   ruleCategoryTree match {
-     case Full(ruleCategoryTree) =>
-       <div>
+    ruleCategoryTree match {
+      case Full(ruleCategoryTree) =>
+        <div>
           <div class="row col-small-padding">
             <div class="col-xs-12 col-lg-3 col-md-4">
               <div class="box">
@@ -331,92 +339,93 @@ class RuleDisplayer (
         </div> ++ Script(JsRaw(s"""
                   var include = true;
                   var filter = "";
-                  var column = ${columnToFilter};"""
-                ) )
-     case eb:EmptyBox =>
-       val fail = eb ?~! "Could not get root category"
-       val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
-       logger.error(msg)
-       <div style="padding:10px;">
+                  var column = ${columnToFilter};"""))
+      case eb: EmptyBox =>
+        val fail = eb ?~! "Could not get root category"
+        val msg  = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+        logger.error(msg)
+        <div style="padding:10px;">
          <div class="error">{msg}</div>
        </div>
-   }
+    }
   }
 
-  def ruleCreationPopup (ruleToClone:Option[Rule]): NodeSeq = {
+  def ruleCreationPopup(ruleToClone: Option[Rule]): NodeSeq = {
     ruleCategoryTree match {
       case Full(ruleCategoryTree) =>
         val root = ruleCategoryTree.getRoot
         new CreateOrCloneRulePopup(
-            root
-          , ruleToClone
-          , ruleCategoryTree.getSelected
-          , onSuccessCallback = onCreateRule
+          root,
+          ruleToClone,
+          ruleCategoryTree.getSelected,
+          onSuccessCallback = onCreateRule
         ).popupContent()
-     case eb:EmptyBox =>
-       val fail = eb ?~! "Could not get root category"
-       val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
-       logger.error(msg)
-       <div style="padding:10px;">
+      case eb: EmptyBox =>
+        val fail = eb ?~! "Could not get root category"
+        val msg  = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+        logger.error(msg)
+        <div style="padding:10px;">
          <div class="error">{msg}</div>
        </div>
     }
   }
 
   // Popup
-    private[this] def creationPopup(category : Option[RuleCategory], ruleCategoryTree : RuleCategoryTree) = {
-      val rootCategory = ruleCategoryTree.getRoot
-      new  RuleCategoryPopup(
-          rootCategory
-        , category
-        , ruleCategoryTree.getSelected
-        , {(r : RuleCategory) =>
-            root = roCategoryRepository.getRootCategory().toBox
-            ruleCategoryTree.refreshTree(root) & refreshGrid
-          }
-      )
-    }
+  private[this] def creationPopup(category: Option[RuleCategory], ruleCategoryTree: RuleCategoryTree) = {
+    val rootCategory = ruleCategoryTree.getRoot
+    new RuleCategoryPopup(
+      rootCategory,
+      category,
+      ruleCategoryTree.getSelected,
+      { (r: RuleCategory) =>
+        root = roCategoryRepository.getRootCategory().toBox
+        ruleCategoryTree.refreshTree(root) & refreshGrid
+      }
+    )
+  }
 
-   /**
+  /**
     * Create the popup
     */
-    private[this] def showCategoryPopup(category : Option[RuleCategory]) : JsCmd = {
-    val popupHtml =
+  private[this] def showCategoryPopup(category: Option[RuleCategory]): JsCmd = {
+    val popupHtml = {
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>
-          creationPopup(category,ruleCategoryTree).popupContent()
-        case eb:EmptyBox =>
+          creationPopup(category, ruleCategoryTree).popupContent()
+        case eb: EmptyBox =>
           // Should not happen, the function will be called only if the rootCategory is Set
           val fail = eb ?~! "Could not get root category"
-          val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+          val msg  = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
           logger.error(msg)
           <div style="padding:10px;">
             <div class="error">{msg}</div>
           </div>
-     }
-      SetHtml(htmlId_popup, popupHtml) &
-      JsRaw( s""" createPopup("${htmlId_popup}") """)
+      }
     }
+    SetHtml(htmlId_popup, popupHtml) &
+    JsRaw(s""" createPopup("${htmlId_popup}") """)
+  }
 
-    /**
+  /**
     * Create the delete popup
     */
-    private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
-      val popupHtml =
-        ruleCategoryTree match {
-          case Full(ruleCategoryTree) =>
-            val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().toBox.openOr(Seq())).toList
-            creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules))
-          case eb:EmptyBox =>
-            // Should not happen, the function will be called only if the rootCategory is Set
-            val fail = eb ?~! "Could not get root category"
-            val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
-            logger.error(msg)
-            <div style="padding:10px;">
+  private[this] def showDeleteCategoryPopup(category: RuleCategory): JsCmd = {
+    val popupHtml = {
+      ruleCategoryTree match {
+        case Full(ruleCategoryTree) =>
+          val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().toBox.openOr(Seq())).toList
+          creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules))
+        case eb: EmptyBox =>
+          // Should not happen, the function will be called only if the rootCategory is Set
+          val fail = eb ?~! "Could not get root category"
+          val msg  = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+          logger.error(msg)
+          <div style="padding:10px;">
             <div class="error">{msg}</div>
           </div>
-       }
-      SetHtml(htmlId_popup, popupHtml) &
-      JsRaw( s"""createPopup("${htmlId_popup}");""")
+      }
     }
+    SetHtml(htmlId_popup, popupHtml) &
+    JsRaw(s"""createPopup("${htmlId_popup}");""")
+  }
 }

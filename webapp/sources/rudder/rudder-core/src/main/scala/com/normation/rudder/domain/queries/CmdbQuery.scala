@@ -1,51 +1,49 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.domain.queries
 
-import java.util.Locale
-import java.util.regex.PatternSyntaxException
 import cats.implicits._
 import com.jayway.jsonpath.JsonPath
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.BuildFilter._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -54,47 +52,48 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries._
 import com.normation.zio._
 import com.unboundid.ldap.sdk._
+import java.util.Locale
+import java.util.regex.PatternSyntaxException
 import net.liftweb.common._
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr._
 import net.liftweb.http.SHtml.SelectableOption
+import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js._
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-
 import scala.xml._
 
 sealed trait CriterionComparator {
-  val id:String
-  def hasValue : Boolean = true
+  val id: String
+  def hasValue: Boolean = true
 }
 
 sealed trait BaseComparator extends CriterionComparator
 
-final case object Exists extends BaseComparator {
-  override val id = "exists"
+final case object Exists    extends BaseComparator {
+  override val id       = "exists"
   override def hasValue = false
 }
 final case object NotExists extends BaseComparator {
-  override val id = "notExists"
+  override val id       = "notExists"
   override def hasValue = false
 }
-final case object Equals    extends BaseComparator { override val id = "eq" }
+final case object Equals    extends BaseComparator { override val id = "eq"    }
 final case object NotEquals extends BaseComparator { override val id = "notEq" }
 
 sealed trait OrderedComparator extends BaseComparator
-final case object Greater   extends OrderedComparator { override val id = "gt"} //strictly greater
-final case object Lesser    extends OrderedComparator { override val id = "lt"} //strictly lower
-final case object GreaterEq extends OrderedComparator { override val id = "gteq"} //greater or equals
-final case object LesserEq  extends OrderedComparator { override val id = "lteq"} //lower or equals
+final case object Greater      extends OrderedComparator { override val id = "gt"   } //strictly greater
+final case object Lesser       extends OrderedComparator { override val id = "lt"   } //strictly lower
+final case object GreaterEq    extends OrderedComparator { override val id = "gteq" } //greater or equals
+final case object LesserEq     extends OrderedComparator { override val id = "lteq" } //lower or equals
 
 sealed trait SpecialComparator extends BaseComparator
-final case object Regex extends SpecialComparator { override val id = "regex" }
-final case object NotRegex extends SpecialComparator { override val id = "notRegex" }
+final case object Regex        extends SpecialComparator { override val id = "regex"    }
+final case object NotRegex     extends SpecialComparator { override val id = "notRegex" }
 
 sealed trait KeyValueComparator extends BaseComparator
 object KeyValueComparator {
@@ -106,22 +105,21 @@ object KeyValueComparator {
 
 sealed trait ComparatorList {
 
-
-  def comparators : Seq[CriterionComparator]
-  def comparatorForString(s: String) : Option[CriterionComparator] = {
-    for(comp <- comparators) {
-      if(s.equalsIgnoreCase(comp.id)) return Some(comp)
+  def comparators: Seq[CriterionComparator]
+  def comparatorForString(s: String): Option[CriterionComparator] = {
+    for (comp <- comparators) {
+      if (s.equalsIgnoreCase(comp.id)) return Some(comp)
     }
     None
   }
 }
 
 object BaseComparators extends ComparatorList {
-  override def comparators : Seq[CriterionComparator] = Seq(Exists, NotExists, Equals, NotEquals, Regex, NotRegex)
+  override def comparators: Seq[CriterionComparator] = Seq(Exists, NotExists, Equals, NotEquals, Regex, NotRegex)
 }
 
 object OrderedComparators extends ComparatorList {
-  override def comparators : Seq[CriterionComparator] = BaseComparators.comparators ++ Seq(Lesser, LesserEq, Greater, GreaterEq)
+  override def comparators: Seq[CriterionComparator] = BaseComparators.comparators ++ Seq(Lesser, LesserEq, Greater, GreaterEq)
 }
 
 sealed trait CriterionType extends ComparatorList {
@@ -130,34 +128,41 @@ sealed trait CriterionType extends ComparatorList {
    * for the field.
    * DO NOT FORGET TO USE attrs ! (especially 'id')
    */
-  def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = SHtml.text(value,func, attrs:_*)
-  def initForm(formId: String) : JsCmd = Noop
-  def destroyForm(formId: String) : JsCmd = {
-    OnLoad(JsRaw(
-      """$('#%s').datepicker( "destroy" );""".format(formId)
-    ) )
+  def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem               = SHtml.text(value, func, attrs: _*)
+  def initForm(formId: String):                                             JsCmd              = Noop
+  def destroyForm(formId: String):                                          JsCmd              = {
+    OnLoad(
+      JsRaw(
+        """$('#%s').datepicker( "destroy" );""".format(formId)
+      )
+    )
   }
-  //Base validation, subclass only have to define validateSubCase
-  def validate(value:String,compName:String) : PureResult[String] = comparatorForString(compName) match {
-    case Some(c) => c match {
-        case Exists | NotExists => Right(value) //ok, just ignored it
-        case _                  => validateSubCase(value,c)
+  // Base validation, subclass only have to define validateSubCase
+  def validate(value: String, compName: String):                            PureResult[String] = comparatorForString(compName) match {
+    case Some(c) =>
+      c match {
+        case Exists | NotExists => Right(value) // ok, just ignored it
+        case _                  => validateSubCase(value, c)
       }
     case None    => Left(Inconsistency("Unrecognized comparator name: " + compName))
   }
 
-  protected def validateSubCase(value: String, comparator: CriterionComparator) : PureResult[String]
+  protected def validateSubCase(value: String, comparator: CriterionComparator): PureResult[String]
 
   protected def validateRegex(value: String): PureResult[String] = {
     try {
-      val _ = java.util.regex.Pattern.compile(value) //yes, "_" is not used, side effects are fabulous! KEEP IT
+      val _ = java.util.regex.Pattern.compile(value) // yes, "_" is not used, side effects are fabulous! KEEP IT
       Right(value)
     } catch {
-      case ex: java.util.regex.PatternSyntaxException => Left(Inconsistency(s"The regular expression '${value}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html. Exception was: ${ex.getMessage}"))
+      case ex: java.util.regex.PatternSyntaxException =>
+        Left(
+          Inconsistency(
+            s"The regular expression '${value}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html. Exception was: ${ex.getMessage}"
+          )
+        )
     }
   }
 }
-
 
 /*
  * There is two kinds of comparators:
@@ -166,7 +171,6 @@ sealed trait CriterionType extends ComparatorList {
  * - the ones working on Rudder NodeInfo, which are higher level and works on information
  *   provided by NodeInfoService
  */
-
 
 // a case class that allows to precompute some parts of the NodeInfo matcher which are indep from the
 // the node.
@@ -179,7 +183,7 @@ object NodeInfoMatcher {
   // default builder: it will evaluated each time, sufficiant if all parts of the matcher uses NodeInfo
   def apply(s: String, f: NodeInfo => Boolean): NodeInfoMatcher = {
     new NodeInfoMatcher {
-      override val debugString: String = s
+      override val debugString:             String  = s
       override def matches(node: NodeInfo): Boolean = f(node)
     }
   }
@@ -193,55 +197,56 @@ sealed trait NodeCriterionType extends CriterionType {
   def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher
 }
 
-
 final case object NodeStateComparator extends NodeCriterionType {
 
-  //this need to be lazy, else access to "S." at boot will lead to NPE.
-  lazy val nodeStates = NodeState.labeledPairs.map{ case (x, label) => (x.name, label) }
+  // this need to be lazy, else access to "S." at boot will lead to NPE.
+  lazy val nodeStates = NodeState.labeledPairs.map { case (x, label) => (x.name, label) }
 
   override def comparators = Seq(Equals, NotEquals)
 
-  override protected def validateSubCase(v: String, comparator:CriterionComparator): PureResult[String] = {
+  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = {
     if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.state.name == value )
-      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.state.name != value )
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.state.name == value)
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.state.name != value)
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
-        nodeStates
-      , Box(nodeStates.find( _._1 == value).map(_._1))
-      , func
-      , attrs:_*
+      nodeStates,
+      Box(nodeStates.find(_._1 == value).map(_._1)),
+      func,
+      attrs: _*
     )
+  }
 }
 
 final case object NodeOstypeComparator extends NodeCriterionType {
-  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  val osTypes                                                                        = List("AIX", "BSD", "Linux", "Solaris", "Windows")
+  override def comparators                                                           = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName == value )
-      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName != value )
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName == value)
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.kernelName != value)
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
-        (osTypes map (e => (e,e))).toSeq
-      , { if(osTypes.contains(value)) Full(value) else Empty}
-      , func
-      , attrs:_*
+      (osTypes map (e => (e, e))).toSeq,
+      if (osTypes.contains(value)) Full(value) else Empty,
+      func,
+      attrs: _*
     )
+  }
 }
 
 final case object NodeOsNameComparator extends NodeCriterionType {
@@ -249,49 +254,51 @@ final case object NodeOsNameComparator extends NodeCriterionType {
   import net.liftweb.http.S
 
   val osNames = AixOS ::
-                BsdType.allKnownTypes.sortBy { _.name } :::
-                LinuxType.allKnownTypes.sortBy { _.name } :::
-                (SolarisOS :: Nil) :::
-                WindowsType.allKnownTypes
+    BsdType.allKnownTypes.sortBy(_.name) :::
+    LinuxType.allKnownTypes.sortBy {
+      _.name
+    } :::
+    (SolarisOS :: Nil) :::
+    WindowsType.allKnownTypes
 
-
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  override def comparators                                                           = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.name == value )
-      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.name != value )
+      case Equals => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.osDetails.os.name == value)
+      case _      => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => node.osDetails.os.name != value)
     }
   }
 
   private[this] def distribName(x: OsType): String = {
     x match {
-      //add linux: for linux
-      case _: LinuxType   => "Linux - " + S.?("os.name."+x.name)
-      case _: BsdType     => "BSD - " + S.?("os.name."+x.name)
-      //nothing special for windows, Aix and Solaris
-      case _              => S.?("os.name."+x.name)
+      // add linux: for linux
+      case _: LinuxType => "Linux - " + S.?("os.name." + x.name)
+      case _: BsdType   => "BSD - " + S.?("os.name." + x.name)
+      // nothing special for windows, Aix and Solaris
+      case _ => S.?("os.name." + x.name)
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
-      osNames.map(e => (e.name,distribName(e))).toSeq,
-      {osNames.find(x => x.name == value).map( _.name)},
+      osNames.map(e => (e.name, distribName(e))).toSeq,
+      osNames.find(x => x.name == value).map(_.name),
       func,
-      attrs:_*
+      attrs: _*
     )
+  }
 }
-
 
 final case class NodeStringComparator(access: NodeInfo => String) extends NodeCriterionType {
   override val comparators = BaseComparators.comparators
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed"))
+    else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Right(v)
@@ -301,13 +308,13 @@ final case class NodeStringComparator(access: NodeInfo => String) extends NodeCr
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
-      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => access(node) != value )
-      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => access(node).matches(value) )
-      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !access(node).matches(value) )
-      case Exists    => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => access(node).nonEmpty )
-      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => access(node).isEmpty )
-      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value )
+      case Equals    => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value)
+      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => access(node) != value)
+      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => access(node).matches(value))
+      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !access(node).matches(value))
+      case Exists    => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => access(node).nonEmpty)
+      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => access(node).isEmpty)
+      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => access(node) == value)
     }
   }
 
@@ -317,7 +324,8 @@ final case object NodeIpListComparator extends NodeCriterionType {
   override val comparators = BaseComparators.comparators
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed"))
+    else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Right(v)
@@ -327,12 +335,13 @@ final case object NodeIpListComparator extends NodeCriterionType {
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     comparator match {
-      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => !node.ips.contains(value) )
-      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => node.ips.exists(_.matches(value)) )
-      case NotRegex  => NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !node.ips.exists(_.matches(value)) )
-      case Exists    => NodeInfoMatcher(s"Prop exists", (node:NodeInfo) => node.ips.nonEmpty )
-      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node:NodeInfo) => node.ips.isEmpty )
-      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node:NodeInfo) => node.ips.contains(value) )
+      case NotEquals => NodeInfoMatcher(s"Prop not equals '${value}'", (node: NodeInfo) => !node.ips.contains(value))
+      case Regex     => NodeInfoMatcher(s"Prop matches regex '${value}'", (node: NodeInfo) => node.ips.exists(_.matches(value)))
+      case NotRegex  =>
+        NodeInfoMatcher(s"Prop matches not regex '${value}'", (node: NodeInfo) => !node.ips.exists(_.matches(value)))
+      case Exists    => NodeInfoMatcher(s"Prop exists", (node: NodeInfo) => node.ips.nonEmpty)
+      case NotExists => NodeInfoMatcher(s"Prop doesn't exists", (node: NodeInfo) => node.ips.isEmpty)
+      case _         => NodeInfoMatcher(s"Prop equals '${value}'", (node: NodeInfo) => node.ips.contains(value))
     }
   }
 }
@@ -354,7 +363,7 @@ final case object NodeIpListComparator extends NodeCriterionType {
  *   {"name":"k","value":{ "any":"json","here":"here"}}
  *
  */
-final case class SplittedValue(key   : String, values: List[String]) {
+final case class SplittedValue(key: String, values: List[String]) {
   def value = values.mkString("=")
 }
 
@@ -365,46 +374,57 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
   // is there is several '=', we consider they are part of the value
   def splitInput(value: String, sep: String): SplittedValue = {
     val array = value.split(sep)
-    val k = array(0) //always exists with split
-    val v = array.toList.tail
+    val k     = array(0) // always exists with split
+    val v     = array.toList.tail
     SplittedValue(k, v)
   }
 
   override def validateSubCase(value: String, comparator: CriterionComparator): PureResult[String] = {
     comparator match {
-      case Equals | NotEquals =>
-        if(value.contains("=")) {
+      case Equals | NotEquals            =>
+        if (value.contains("=")) {
           Right(value)
         } else {
-          Left(Inconsistency(s"When looking for 'key=value', the '=' is mandatory. The left part is a key name, and the right part is the string to look for."))
+          Left(
+            Inconsistency(
+              s"When looking for 'key=value', the '=' is mandatory. The left part is a key name, and the right part is the string to look for."
+            )
+          )
         }
       case KeyValueComparator.JsonSelect =>
         val x = value.split(":")
-        if(x.nonEmpty) { // remaining '=' will be considered part of the value
+        if (x.nonEmpty) { // remaining '=' will be considered part of the value
           Right(value)
         } else {
-          Left(Inconsistency(s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left "+
-                  "part is a key name, and the right part is the JSON path expression (see https://github.com/json-path/JsonPath). For example: datacenter:world.europe.[?(@.city=='Paris')]"))
+          Left(
+            Inconsistency(
+              s"When looking for 'key=json path expression', we found zero ':', but at least one is mandatory. The left " +
+              "part is a key name, and the right part is the JSON path expression (see https://github.com/json-path/JsonPath). For example: datacenter:world.europe.[?(@.city=='Paris')]"
+            )
+          )
         }
-      case Regex | NotRegex   => validateRegex(value)
-      case _                  => Right(value)
+      case Regex | NotRegex              => validateRegex(value)
+      case _                             => Right(value)
     }
   }
-
 
   def matchJsonPath(key: String, path: PureResult[JsonPath])(p: NodeProperty): Boolean = {
     (p.name == key) && path.flatMap(JsonSelect.exists(_, p.valueAsString).toPureResult).getOrElse(false)
   }
 
-  val regexMatcher = (value: String) => new NodeInfoMatcher {
-                            val predicat = (p: NodeProperty) => try {
-                                value.r.pattern.matcher(s"${p.name}=${p.valueAsString}").matches()
-                              } catch { //malformed patterned should not be saved, but never let an exception be silent
-                                case ex: PatternSyntaxException => false
-                              }
-                            override val debugString = s"Prop matches '${value}'"
-                            override def matches(node: NodeInfo): Boolean = node.properties.exists(predicat)
-                          }
+  val regexMatcher = (value: String) => {
+    new NodeInfoMatcher {
+      val predicat             = (p: NodeProperty) => {
+        try {
+          value.r.pattern.matcher(s"${p.name}=${p.valueAsString}").matches()
+        } catch { // malformed patterned should not be saved, but never let an exception be silent
+          case ex: PatternSyntaxException => false
+        }
+      }
+      override val debugString = s"Prop matches '${value}'"
+      override def matches(node: NodeInfo): Boolean = node.properties.exists(predicat)
+    }
+  }
 
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     import com.normation.rudder.domain.queries.{KeyValueComparator => KVC}
@@ -412,27 +432,35 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
     comparator match {
       // equals mean: the key is equals to kv._1 and the value is defined and the value is equals to kv._2.get
       case Equals         => {
-                               val kv = splitInput(value, "=")
-                               NodeInfoMatcher(s"Prop name=value equals'${value}'", (node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined)
+        val kv = splitInput(value, "=")
+        NodeInfoMatcher(
+          s"Prop name=value equals'${value}'",
+          (node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined
+        )
       }
       // not equals mean: the key is not equals to kv._1 or the value is not defined or the value is defined but equals to kv._2.get
-      case NotEquals      => NodeInfoMatcher(s"Prop name=value not equals'${value}'", (node: NodeInfo) => !matches(Equals, value).matches(node))
-      case Exists         => NodeInfoMatcher(s"Prop name=value exists (at least one property)", (node: NodeInfo) => node.properties.nonEmpty)
-      case NotExists      => NodeInfoMatcher(s"Prop name=value not exists (empty properties)", (node: NodeInfo) => node.properties.isEmpty)
+      case NotEquals      =>
+        NodeInfoMatcher(s"Prop name=value not equals'${value}'", (node: NodeInfo) => !matches(Equals, value).matches(node))
+      case Exists         =>
+        NodeInfoMatcher(s"Prop name=value exists (at least one property)", (node: NodeInfo) => node.properties.nonEmpty)
+      case NotExists      =>
+        NodeInfoMatcher(s"Prop name=value not exists (empty properties)", (node: NodeInfo) => node.properties.isEmpty)
       case Regex          => regexMatcher(value)
-      case NotRegex       => new NodeInfoMatcher {
-                               val regex = regexMatcher(value)
-                               override val debugString = s"Prop matches regex '${value}'"
-                               override def matches(node: NodeInfo): Boolean = !regex.matches(node)
-                             }
+      case NotRegex       =>
+        new NodeInfoMatcher {
+          val regex                = regexMatcher(value)
+          override val debugString = s"Prop matches regex '${value}'"
+          override def matches(node: NodeInfo): Boolean = !regex.matches(node)
+        }
       case KVC.HasKey     => NodeInfoMatcher(s"Prop has key '${value}'", (node: NodeInfo) => node.properties.exists(_.name == value))
-      case KVC.JsonSelect => new NodeInfoMatcher {
-                               val kv = splitInput(value, ":")
-                               val path = JsonSelect.compilePath(kv.value).toPureResult
-                               val matcher = matchJsonPath(kv.key, path) _
-                               override val debugString = s"Prop json select '${value}'"
-                               override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
-                             }
+      case KVC.JsonSelect =>
+        new NodeInfoMatcher {
+          val kv                   = splitInput(value, ":")
+          val path                 = JsonSelect.compilePath(kv.value).toPureResult
+          val matcher              = matchJsonPath(kv.key, path) _
+          override val debugString = s"Prop json select '${value}'"
+          override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
+        }
       case _              => matches(Equals, value)
     }
   }
@@ -443,49 +471,51 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
  */
 
 sealed trait LDAPCriterionType extends CriterionType {
-  //transform the given value to its LDAP string value
-  def toLDAP(value:String) : PureResult[String]
+  // transform the given value to its LDAP string value
+  def toLDAP(value: String): PureResult[String]
 
-  def buildRegex(attribute:String,value:String)   : PureResult[RegexFilter]    = Right(SimpleRegexFilter(attribute,value))
-  def buildNotRegex(attribute:String,value:String): PureResult[NotRegexFilter] = Right(SimpleNotRegexFilter(attribute,value))
+  def buildRegex(attribute: String, value: String):    PureResult[RegexFilter]    = Right(SimpleRegexFilter(attribute, value))
+  def buildNotRegex(attribute: String, value: String): PureResult[NotRegexFilter] = Right(SimpleNotRegexFilter(attribute, value))
 
-  //build the ldap filter for given attribute name and comparator
-  def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-      (toLDAP(value),comparator) match {
-        case (_,Exists)           => HAS(attributeName)
-        case (_,NotExists)        => NOT(HAS(attributeName))
-        case (Right(v),Equals)    => EQ(attributeName,v)
-        case (Right(v),NotEquals) => NOT(EQ(attributeName,v))
-        case (Right(v),Greater)   => AND(HAS(attributeName),NOT(LTEQ(attributeName,v)))
-        case (Right(v),Lesser)    => AND(HAS(attributeName),NOT(GTEQ(attributeName,v)))
-        case (Right(v),GreaterEq) => GTEQ(attributeName,v)
-        case (Right(v),LesserEq)  => LTEQ(attributeName,v)
-        case (Right(v),Regex)     => HAS(attributeName) //"default, non interpreted regex
-        case (Right(v),NotRegex)  => HAS(attributeName) //"default, non interpreted regex
-        case (f,c)                => throw new IllegalArgumentException(s"Can not build a filter with a non legal value for comparator '${c}': ${f}'")
+  // build the ldap filter for given attribute name and comparator
+  def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
+    (toLDAP(value), comparator) match {
+      case (_, Exists)           => HAS(attributeName)
+      case (_, NotExists)        => NOT(HAS(attributeName))
+      case (Right(v), Equals)    => EQ(attributeName, v)
+      case (Right(v), NotEquals) => NOT(EQ(attributeName, v))
+      case (Right(v), Greater)   => AND(HAS(attributeName), NOT(LTEQ(attributeName, v)))
+      case (Right(v), Lesser)    => AND(HAS(attributeName), NOT(GTEQ(attributeName, v)))
+      case (Right(v), GreaterEq) => GTEQ(attributeName, v)
+      case (Right(v), LesserEq)  => LTEQ(attributeName, v)
+      case (Right(v), Regex)     => HAS(attributeName) // "default, non interpreted regex
+      case (Right(v), NotRegex)  => HAS(attributeName) // "default, non interpreted regex
+      case (f, c)                =>
+        throw new IllegalArgumentException(s"Can not build a filter with a non legal value for comparator '${c}': ${f}'")
     }
   }
 }
 
 //a comparator type with undefined comparators
 final case class BareComparator(override val comparators: CriterionComparator*) extends LDAPCriterionType {
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = Right(v)
-  override def toLDAP(value:String) = Right(value)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = Right(v)
+  override def toLDAP(value: String)                                                 = Right(value)
 }
 
 sealed trait TStringComparator extends LDAPCriterionType {
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed"))
+    else {
       comparator match {
         case Regex | NotRegex => validateRegex(v)
         case x                => Right(v)
       }
     }
   }
-  override def toLDAP(value:String) = Right(value)
+  override def toLDAP(value: String)                                                 = Right(value)
 
-  protected def escapedFilter(attributeName:String,value:String) : Filter = {
+  protected def escapedFilter(attributeName: String, value: String): Filter = {
     BuildFilter(attributeName + "=" + Filter.encodeValue(value))
   }
 }
@@ -493,72 +523,72 @@ sealed trait TStringComparator extends LDAPCriterionType {
 final case object StringComparator extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
-    //for equals and not equals, check value for jocker
-    case Equals => escapedFilter(attributeName,value)
-    case NotEquals => NOT(escapedFilter(attributeName,value))
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
+    // for equals and not equals, check value for jocker
+    case Equals    => escapedFilter(attributeName, value)
+    case NotEquals => NOT(escapedFilter(attributeName, value))
     case NotExists => NOT(HAS(attributeName))
-    case Regex => HAS(attributeName) //"default, non interpreted regex
-    case NotRegex => HAS(attributeName) //"default, non interpreted regex
-    case _ => HAS(attributeName) //default to Exists
+    case Regex     => HAS(attributeName) // "default, non interpreted regex
+    case NotRegex  => HAS(attributeName) // "default, non interpreted regex
+    case _         => HAS(attributeName) // default to Exists
   }
 }
 
 final case object ExactStringComparator extends TStringComparator {
   override val comparators = Equals :: Nil
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
     // whatever the comparator it should be treated like Equals
-    case _ => escapedFilter(attributeName,value)
+    case _ => escapedFilter(attributeName, value)
   }
 }
 
 final case object OrderedStringComparator extends TStringComparator {
   override val comparators = OrderedComparators.comparators
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
-    //for equals and not equals, check value for jocker
-    case Equals => escapedFilter(attributeName,value)
-    case NotEquals => NOT(escapedFilter(attributeName,value))
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
+    // for equals and not equals, check value for jocker
+    case Equals    => escapedFilter(attributeName, value)
+    case NotEquals => NOT(escapedFilter(attributeName, value))
     case NotExists => NOT(HAS(attributeName))
-    //for Greater/Lesser, the HAS attribute part is meaningful: that won't work without it.
-    case Greater => AND(HAS(attributeName),NOT(LTEQ(attributeName,value)))
-    case Lesser => AND(HAS(attributeName),NOT(GTEQ(attributeName,value)))
-    case GreaterEq => GTEQ(attributeName,value)
-    case LesserEq => LTEQ(attributeName,value)
-    case Regex => HAS(attributeName) //"default, non interpreted regex
-    case NotRegex => HAS(attributeName) //"default, non interpreted regex
-    case _ => HAS(attributeName) //default to Exists
+    // for Greater/Lesser, the HAS attribute part is meaningful: that won't work without it.
+    case Greater   => AND(HAS(attributeName), NOT(LTEQ(attributeName, value)))
+    case Lesser    => AND(HAS(attributeName), NOT(GTEQ(attributeName, value)))
+    case GreaterEq => GTEQ(attributeName, value)
+    case LesserEq  => LTEQ(attributeName, value)
+    case Regex     => HAS(attributeName) // "default, non interpreted regex
+    case NotRegex  => HAS(attributeName) // "default, non interpreted regex
+    case _         => HAS(attributeName) // default to Exists
   }
 }
 
 final case object DateComparator extends LDAPCriterionType {
-  override val comparators = OrderedComparators.comparators.filterNot( c => c == Regex || c == NotRegex)
-  val fmt = "dd/MM/yyyy"
-  val frenchFmt = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
-  def error(value: String, e: Exception) = Inconsistency(s"Invalide date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}")
+  override val comparators               = OrderedComparators.comparators.filterNot(c => c == Regex || c == NotRegex)
+  val fmt                                = "dd/MM/yyyy"
+  val frenchFmt                          = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
+  def error(value: String, e: Exception) = Inconsistency(
+    s"Invalide date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
+  )
 
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = try {
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = try {
     Right(frenchFmt.parseDateTime(v).toString)
   } catch {
-    case e:Exception =>
+    case e: Exception =>
       Left(error(v, e))
   }
-  //init a jquery datepicker
-  override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
-    """var init = $.datepicker.regional['en'];
+  // init a jquery datepicker
+  override def initForm(formId: String): JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
        init['showOn'] = 'focus';
        $('#%s').datepicker(init);
        """.format(formId)))
-  override def destroyForm(formId:String) : JsCmd = OnLoad(JsRaw(
-    """$('#%s').datepicker( "destroy" );""".format(formId)))
-  override def toLDAP(value:String) = parseDate(value).map( GeneralizedTime( _ ).toString )
+  override def destroyForm(formId: String): JsCmd = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
+  override def toLDAP(value: String) = parseDate(value).map(GeneralizedTime(_).toString)
 
-  private[this] def parseDate(value: String) : PureResult[DateTime] = try {
+  private[this] def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
     Right(date)
   } catch {
-    case e:Exception =>
+    case e: Exception =>
       Left(error(value, e))
   }
 
@@ -566,80 +596,81 @@ final case object DateComparator extends LDAPCriterionType {
    * Date comparison are not trivial, because we don't want to take care of the
    * time, but the time exists.
    */
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
 
     // don't parse the date and throw exception when not needed
-    lazy val date = parseDate(value).getOrElse(throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
-    def date0000 = GeneralizedTime(date.withTimeAtStartOfDay).toString
-    def date2359 = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
-    def eq = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+    lazy val date = parseDate(value).getOrElse(
+      throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt))
+    )
+    def date0000  = GeneralizedTime(date.withTimeAtStartOfDay).toString
+    def date2359  = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
+    def eq        = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
 
     comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => eq
+      // for equals and not equals, check value for jocker
+      case Equals    => eq
       case NotEquals => NOT(eq)
       case NotExists => NOT(HAS(attributeName))
-      case Greater => AND(HAS(attributeName),NOT(LTEQ(attributeName,date2359)))
-      case Lesser => AND(HAS(attributeName),NOT(GTEQ(attributeName,date0000)))
-      case GreaterEq => GTEQ(attributeName,date0000)
-      case LesserEq => LTEQ(attributeName,date2359)
+      case Greater   => AND(HAS(attributeName), NOT(LTEQ(attributeName, date2359)))
+      case Lesser    => AND(HAS(attributeName), NOT(GTEQ(attributeName, date0000)))
+      case GreaterEq => GTEQ(attributeName, date0000)
+      case LesserEq  => LTEQ(attributeName, date2359)
 //      case Regex => HAS(attributeName) //"default, non interpreted regex
-      case _ => HAS(attributeName) //default to Exists
+      case _         => HAS(attributeName) // default to Exists
     }
   }
 
 }
 
 final case object BooleanComparator extends LDAPCriterionType {
-  override val comparators = BaseComparators.comparators
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = v.toLowerCase match {
+  override val comparators                                                           = BaseComparators.comparators
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = v.toLowerCase match {
     case "t" | "f" | "true" | "false" => Right(v)
-    case _ => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
+    case _                            => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
   }
-  override def toLDAP(v:String) = v.toLowerCase match {
+  override def toLDAP(v: String)                                                     = v.toLowerCase match {
     case "t" | "f" | "true" | "false" => Right(v)
-    case _ => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
+    case _                            => Left(Inconsistency(s"Bad input: boolean expected, '${v}' found"))
   }
 }
 
 final case object LongComparator extends LDAPCriterionType {
-  override val comparators = OrderedComparators.comparators
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
+  override val comparators                                                           = OrderedComparators.comparators
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = try {
     Right((v.toLong).toString)
   } catch {
-    case e:Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
+    case e: Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
   }
-  override def toLDAP(v:String) = try {
+  override def toLDAP(v: String)                                                     = try {
     Right((v.toLong).toString)
   } catch {
-    case e:Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
+    case e: Exception => Left(Inconsistency(s"Invalid long : '${v}'"))
   }
 }
 
 final case object MemoryComparator extends LDAPCriterionType {
-  override val comparators = OrderedComparators.comparators
+  override val comparators                                                           = OrderedComparators.comparators
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
     comparator match {
       case Regex | NotRegex => validateRegex(v)
-      case _ =>
-        if(MemorySize.parse(v).isDefined) Right(v)
+      case _                =>
+        if (MemorySize.parse(v).isDefined) Right(v)
         else Left(Inconsistency(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
     }
   }
 
-  override def toLDAP(v:String) = MemorySize.parse(v) match {
+  override def toLDAP(v: String) = MemorySize.parse(v) match {
     case Some(m) => Right(m.toString)
-    case None => Left(Inconsistency(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
+    case None    => Left(Inconsistency(s"Invalid memory size : '${v}', expecting '300 M', '16KB', etc"))
   }
 }
 
-
 final case object MachineComparator extends LDAPCriterionType {
 
-  val machineTypes = "Virtual" ::  "Physical" :: Nil
+  val machineTypes = "Virtual" :: "Physical" :: Nil
 
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v: String, comparator:CriterionComparator) = {
+  override def comparators                                                           = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
     if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 
@@ -648,22 +679,23 @@ final case object MachineComparator extends LDAPCriterionType {
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
     val v = value match {
       // the machine can't belong to another type
-      case "Virtual" => OC_VM
+      case "Virtual"  => OC_VM
       case "Physical" => OC_PM
     }
     comparator match {
       case Equals => IS(v)
-      case _ => NOT(IS(v))
+      case _      => NOT(IS(v))
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
-      (machineTypes map (e => (e,e))).toSeq
-      , { if(machineTypes.contains(value)) Full(value) else Empty}
-      , func
-      , attrs:_*
+      (machineTypes map (e => (e, e))).toSeq,
+      if (machineTypes.contains(value)) Full(value) else Empty,
+      func,
+      attrs: _*
     )
+  }
 }
 
 /*
@@ -678,18 +710,19 @@ final case object MachineComparator extends LDAPCriterionType {
  */
 final case object AgentComparator extends LDAPCriterionType {
 
-  val ANY_CFENGINE = "cfengine"
-  val (cfeTypes, cfeAgents) = ((ANY_CFENGINE, "Any CFEngine based agent"),(ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
-  val allAgents = AgentType.allValues.toList
+  val ANY_CFENGINE          = "cfengine"
+  val (cfeTypes, cfeAgents) =
+    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+  val allAgents             = AgentType.allValues.toList
 
-  val agentTypes = ( cfeTypes  :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy( _._2 )
-  val agentMap   = ( cfeAgents :: allAgents.map(a => (a.oldShortName, a :: Nil))).toMap
+  val agentTypes = (cfeTypes :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy(_._2)
+  val agentMap   = (cfeAgents :: allAgents.map(a => (a.oldShortName, a :: Nil))).toMap
 
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  override def comparators                                                           = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
-  override def toLDAP(value:String) = Right(value)
+  override def toLDAP(value: String)                                                 = Right(value)
 
   /*
    * We need compatibility for < 4.2 inventory
@@ -697,52 +730,55 @@ final case object AgentComparator extends LDAPCriterionType {
    * 4.1: a json is stored in AGENTS_NAME, but not with the same value than 4.2 (oldshortName instead of id is stored as agentType ...)
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
-  private[this] def filterAgent(agent: AgentType) =
-      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) :: // 4.2+
-      SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
-      EQ(A_AGENTS_NAME, agent.oldShortName) :: // 3.1 ( < 4.1 in fact)
-      Nil
+  private[this] def filterAgent(agent: AgentType) = {
+    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
+    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+    EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
+    Nil
+  }
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
 
     val filters = for {
       agents <- agentMap.get(value).toList
-      agent <- agents
+      agent  <- agents
       filter <- filterAgent(agent)
     } yield {
       filter
     }
     comparator match {
-      //for equals and not equals, check value for joker
+      // for equals and not equals, check value for joker
       case Equals =>
-        OR(filters:_*)
-      case _ => //actually, this is meant to be "not equals"
-        NOT(OR(filters:_*))
+        OR(filters: _*)
+      case _      => // actually, this is meant to be "not equals"
+        NOT(OR(filters: _*))
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
       agentTypes,
-      Box(agentTypes.find( _._1 == value )).map( _._1),
+      Box(agentTypes.find(_._1 == value)).map(_._1),
       func,
-      attrs:_*
+      attrs: _*
     )
+  }
 }
 
 final case object EditorComparator extends LDAPCriterionType {
-  val editors = List("Microsoft", "RedHat", "Debian", "Adobe", "Macromedia")
-  override val comparators = BaseComparators.comparators
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) =
-    if(editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
+  val editors                                                                        = List("Microsoft", "RedHat", "Debian", "Adobe", "Macromedia")
+  override val comparators                                                           = BaseComparators.comparators
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) =
+    if (editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     SHtml.select(
-      (editors map (e => (e,e))).toSeq,
-      { if(editors.contains(value)) Full(value) else Empty},
+      (editors map (e => (e, e))).toSeq,
+      if (editors.contains(value)) Full(value) else Empty,
       func,
-      attrs:_*
+      attrs: _*
     )
-  override def toLDAP(value:String) = Right(value)
+  }
+  override def toLDAP(value: String) = Right(value)
 }
 
 /*
@@ -757,35 +793,35 @@ final case object EditorComparator extends LDAPCriterionType {
  *
  * Used for "process" attribute
  */
-final case class JsonFixedKeyComparator(ldapAttr:String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
+final case class JsonFixedKeyComparator(ldapAttr: String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
-  def format(attribute:String, value:String) = {
+  def format(attribute: String, value: String) = {
     val v = if (quoteValue) s""""$value"""" else value
     s""""${attribute}":${v}"""
   }
-  def regex(attribute: String, value: String) = {
+  def regex(attribute: String, value: String)  = {
     s".*${format(attribute, value)}.*"
   }
-  override def buildRegex(attribute:String,value:String) : PureResult[RegexFilter] = {
-    Right(SimpleRegexFilter(ldapAttr,regex(attribute, value)))
+  override def buildRegex(attribute: String, value: String): PureResult[RegexFilter] = {
+    Right(SimpleRegexFilter(ldapAttr, regex(attribute, value)))
   }
 
-  override def buildNotRegex(attribute:String,value:String) : PureResult[NotRegexFilter] = {
-    Right(SimpleNotRegexFilter(ldapAttr,regex(attribute, value)))
+  override def buildNotRegex(attribute: String, value: String): PureResult[NotRegexFilter] = {
+    Right(SimpleNotRegexFilter(ldapAttr, regex(attribute, value)))
   }
 
-  override def buildFilter(key: String, comparator:CriterionComparator,value: String) : Filter = {
+  override def buildFilter(key: String, comparator: CriterionComparator, value: String): Filter = {
     import KeyValueComparator.HasKey
     val sub = SUB(ldapAttr, null, Array(format(key, value).getBytes("UTF-8")), null)
     comparator match {
       case Equals    => sub
       case NotEquals => NOT(sub)
       case NotExists => NOT(HAS(ldapAttr))
-      case Regex     => HAS(ldapAttr) //default, non interpreted regex
-      case NotRegex  => HAS(ldapAttr) //default, non interpreted regex
+      case Regex     => HAS(ldapAttr) // default, non interpreted regex
+      case NotRegex  => HAS(ldapAttr) // default, non interpreted regex
       case HasKey    => sub
-      case _         => HAS(key) //default to Exists
+      case _         => HAS(key)      // default to Exists
     }
   }
 }
@@ -810,8 +846,8 @@ final case class NameValueComparator(ldapAttr: String) extends TStringComparator
   // is there is several '=', we consider they are part of the value
   def splitInput(value: String): (String, Option[String]) = {
     val array = value.split('=')
-    val k = array(0) //always exists with split
-    val v = array.toList.tail match {
+    val k     = array(0) // always exists with split
+    val v     = array.toList.tail match {
       case Nil => None
       case t   => Some(t.mkString("="))
     }
@@ -820,32 +856,32 @@ final case class NameValueComparator(ldapAttr: String) extends TStringComparator
 
   // produce the correct "serialized" JSON to look for
   def formatKV(kv: (String, Option[String])): String = {
-    //no englobing {} to allow use in regex
+    // no englobing {} to allow use in regex
     s""""name":"${kv._1}","value":"${kv._2.getOrElse("")}""""
   }
 
-  //the first arg is "name.value", not interesting here
-  override def buildRegex(_x: String, value: String) : PureResult[RegexFilter] = {
-    Right(SimpleRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}""" ))
+  // the first arg is "name.value", not interesting here
+  override def buildRegex(_x: String, value: String): PureResult[RegexFilter] = {
+    Right(SimpleRegexFilter(ldapAttr, """\{""" + formatKV(splitInput(value)) + """\}"""))
   }
 
-  //the first arg is "name.value", not interesting here
-  override def buildNotRegex(_x: String, value: String) : PureResult[NotRegexFilter] = {
-    Right(SimpleNotRegexFilter(ldapAttr,"""\{"""+formatKV(splitInput(value))+"""\}"""))
+  // the first arg is "name.value", not interesting here
+  override def buildNotRegex(_x: String, value: String): PureResult[NotRegexFilter] = {
+    Right(SimpleNotRegexFilter(ldapAttr, """\{""" + formatKV(splitInput(value)) + """\}"""))
   }
 
-  //the first arg is "name.value", not interesting here
-  override def buildFilter(_x:String, comparator:CriterionComparator, value:String) : Filter = {
-    val kv = splitInput(value)
-    val sub = SUB(ldapAttr, ("{"+formatKV(kv)).getBytes("UTF-8"), null, null)
+  // the first arg is "name.value", not interesting here
+  override def buildFilter(_x: String, comparator: CriterionComparator, value: String): Filter = {
+    val kv  = splitInput(value)
+    val sub = SUB(ldapAttr, ("{" + formatKV(kv)).getBytes("UTF-8"), null, null)
     comparator match {
       case Equals    => sub
       case NotEquals => NOT(sub)
       case NotExists => NOT(HAS(ldapAttr))
-      case Regex     => HAS(ldapAttr) //default, non interpreted regex
-      case NotRegex  => HAS(ldapAttr) //default, non interpreted regex
+      case Regex     => HAS(ldapAttr) // default, non interpreted regex
+      case NotRegex  => HAS(ldapAttr) // default, non interpreted regex
       case HasKey    => SUB(ldapAttr, s"""{"name":"${kv._1}"""".getBytes("UTF-8"), null, null)
-      case _         => HAS(ldapAttr) //default to Exists
+      case _         => HAS(ldapAttr) // default to Exists
     }
   }
 }
@@ -863,12 +899,12 @@ final case class SubGroupChoice(id: NodeGroupId, name: String)
 class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends TStringComparator {
   override val comparators = Equals :: Nil
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
     // whatever the comparator it should be treated like Equals
-    case _ => escapedFilter(attributeName,value)
+    case _ => escapedFilter(attributeName, value)
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = {
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
     // we need to query for the list of groups here
     val subGroups: Seq[SelectableOption[String]] = {
       (for {
@@ -876,8 +912,8 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
       } yield {
         val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.value, name) }
         // if current value is defined but not in the list, add it with a "missing group" label
-        if(value != "") {
-          g.find( _.value == value ) match {
+        if (value != "") {
+          g.find(_.value == value) match {
             case None    => SelectableOption(value, "Missing group") +: g
             case Some(_) => g
           }
@@ -885,22 +921,23 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
           g
         }
       }).either.runNow match {
-        case Right(list) => list.sortBy( _.label )
-        case Left(error) => //if an error occure, log and display the error in place of the label
-          ApplicationLogger.error(s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}")
+        case Right(list) => list.sortBy(_.label)
+        case Left(error) => // if an error occure, log and display the error in place of the label
+          ApplicationLogger.error(
+            s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}"
+          )
           SelectableOption(value, "Error when looking for available groups") :: Nil
       }
     }
 
     SHtml.selectObj[String](
-        subGroups
-      , Box(subGroups.find( _.value == value).map( _.value))
-      , func
-      , attrs:_*
+      subGroups,
+      Box(subGroups.find(_.value == value).map(_.value)),
+      func,
+      attrs: _*
     )
   }
 }
-
 
 /**
  * Create a new criterion for the given attribute `name`, and `cType` comparator.
@@ -908,74 +945,79 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
  * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
-final case class Criterion(val name:String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
+final case class Criterion(val name: String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
   require(name != null && name.nonEmpty, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 }
 
-case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
+case class ObjectCriterion(val objectType: String, val criteria: Seq[Criterion]) {
   require(objectType.nonEmpty, "Unique identifier for line must be defined")
   require(criteria.nonEmpty, "You must at least have one criterion for the line")
 
-  //optionnaly retrieve the criterion from a "string" attribute
-  def criterionForName(name:String) : (Option[Criterion]) = {
-    for(c <- criteria) {
-      if(name.equalsIgnoreCase(c.name)) return Some(c)
+  // optionnaly retrieve the criterion from a "string" attribute
+  def criterionForName(name: String): (Option[Criterion]) = {
+    for (c <- criteria) {
+      if (name.equalsIgnoreCase(c.name)) return Some(c)
     }
     None
   }
 
-  def criterionComparatorForName(name:String, comparator:String) : (Option[Criterion],Option[CriterionComparator]) = {
+  def criterionComparatorForName(name: String, comparator: String): (Option[Criterion], Option[CriterionComparator]) = {
     criterionForName(name) match {
-      case ab@Some(x) => (ab, x.cType.comparatorForString(comparator))
-      case _ => (None,None)
+      case ab @ Some(x) => (ab, x.cType.comparatorForString(comparator))
+      case _            => (None, None)
     }
   }
 }
 
-final case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="")
+final case class CriterionLine(
+    objectType: ObjectCriterion,
+    attribute:  Criterion,
+    comparator: CriterionComparator,
+    value:      String = ""
+)
 
 sealed abstract class CriterionComposition { def value: String }
 final case object And extends CriterionComposition { val value = "and" }
-final case object Or extends CriterionComposition { val value = "or" }
+final case object Or  extends CriterionComposition { val value = "or"  }
 object CriterionComposition {
-    def parse(s:String) : Option[CriterionComposition] = {
+  def parse(s: String): Option[CriterionComposition] = {
     s.toLowerCase match {
       case "and" => Some(And)
-      case "or" => Some(Or)
-      case _ => None
+      case "or"  => Some(Or)
+      case _     => None
     }
   }
 }
 
 sealed trait QueryReturnType {
-  def value : String
+  def value: String
 }
 
 final case object QueryReturnType {
-  def apply(value : String) = {
+  def apply(value: String) = {
     value match {
-      case NodeReturnType.value => Right(NodeReturnType)
+      case NodeReturnType.value              => Right(NodeReturnType)
       case NodeAndRootServerReturnType.value => Right(NodeAndRootServerReturnType)
-      case _ => Left(Inconsistency(s"Query return type '${value}' is not valid"))
+      case _                                 => Left(Inconsistency(s"Query return type '${value}' is not valid"))
     }
   }
 }
-final case object NodeReturnType extends QueryReturnType{
+final case object NodeReturnType extends QueryReturnType {
   override val value = "node"
 }
-final case object NodeAndRootServerReturnType extends QueryReturnType{
+final case object NodeAndRootServerReturnType extends QueryReturnType {
   override val value = "nodeAndPolicyServer"
 }
 
 sealed trait ResultTransformation {
   def value: String
 }
-object ResultTransformation {
+object ResultTransformation       {
   // no result transformation
   final case object Identity extends ResultTransformation { val value = "identity" }
   // invert result: substract from "all nodes" the one matching that query
-  final case object Invert   extends ResultTransformation { val value = "invert" }
+  final case object Invert   extends ResultTransformation { val value = "invert"   }
 
   def all = ca.mrvisser.sealerate.values[ResultTransformation]
 
@@ -983,34 +1025,39 @@ object ResultTransformation {
     value.toLowerCase match {
       case "none" | Identity.value => Right(Identity)
       case Invert.value            => Right(Invert)
-      case _ =>Left(Inconsistency(s"Can not parse '${value}' as a result transformation; expecting: ${all.map(_.value).mkString("'", "', '", "'")}"))
+      case _                       =>
+        Left(
+          Inconsistency(
+            s"Can not parse '${value}' as a result transformation; expecting: ${all.map(_.value).mkString("'", "', '", "'")}"
+          )
+        )
     }
   }
 }
-
 
 // This trait and the apply method are necessary to allow backward compatibilty in 6.2.5 for plugin scale-out relay due to changes to apply method in https://issues.rudder.io/issues/19138
 // This can be removed in 7.0, going back to a case class Query with 4 fields
 // The issue was that we added a new field to a case class and this breaks binary compatibility
 sealed trait QueryTrait {
-  def  returnType : QueryReturnType  //"node" or "node and policy servers"
-  def  composition: CriterionComposition
-  def  criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
-  def  transform  : ResultTransformation
+  def returnType:  QueryReturnType     // "node" or "node and policy servers"
+  def composition: CriterionComposition
+  def criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
+  def transform:   ResultTransformation
 
-  override def toString() = s"{ returnType:'${returnType.value}' (${transform.value}) with '${composition.toString}' criteria [${
-      criteria.map{x => s"${x.objectType.objectType}.${x.attribute.name} ${x.comparator.id} ${x.value}" }.mkString(" ; ")
-    }] }"
+  override def toString() = {
+    s"{ returnType:'${returnType.value}' (${transform.value}) with '${composition.toString}' criteria [${criteria.map { x =>
+        s"${x.objectType.objectType}.${x.attribute.name} ${x.comparator.id} ${x.value}"
+      }.mkString(" ; ")}] }"
+  }
 
-
-     /*
-       *  { "select":"...", "composition":"...", "where": [
-       *      { "objectType":"...", "attribute":"...", "comparator":"..", "value":"..." }
-       *      ...
-       *    ]}
-       *
-       * Make "transform" optional: don't display it if it's identity
-       */
+  /*
+   *  { "select":"...", "composition":"...", "where": [
+   *      { "objectType":"...", "attribute":"...", "comparator":"..", "value":"..." }
+   *      ...
+   *    ]}
+   *
+   * Make "transform" optional: don't display it if it's identity
+   */
   lazy val toJSON = {
     val t = transform match {
       case ResultTransformation.Identity => None
@@ -1018,54 +1065,58 @@ sealed trait QueryTrait {
     }
     ("select" -> returnType.value) ~
     ("composition" -> composition.toString) ~
-    ("transform" -> t) ~
-    ("where" -> criteria.map( c =>
+    ("transform"   -> t) ~
+    ("where"       -> criteria.map(c => {
       ("objectType" -> c.objectType.objectType) ~
-      ("attribute" -> c.attribute.name) ~
+      ("attribute"  -> c.attribute.name) ~
       ("comparator" -> c.comparator.id) ~
-      ("value" -> c.value)
-    ) )
+      ("value"      -> c.value)
+    }))
   }
 
   lazy val toJSONString = compactRender(toJSON)
 
-    override def equals(other:Any) : Boolean = {
-      other match {
-        case a :  QueryTrait => //criteria order does not matter
-          this.returnType == a.returnType &&
-          this.composition == a.composition &&
-          this.transform == a.transform &&
-          this.criteria.size == a.criteria.size &&
-          this.criteria.forall(c1 => a.criteria.exists(c2 => c1 == c2))
-          //we don't care if the cardinal of equals criterion is not the same on the two,
-          //ie [c1,c2,c1] == [c2,c2,c1] yields true
-        case _ => false
-      }
+  override def equals(other: Any): Boolean = {
+    other match {
+      case a: QueryTrait => // criteria order does not matter
+        this.returnType == a.returnType &&
+        this.composition == a.composition &&
+        this.transform == a.transform &&
+        this.criteria.size == a.criteria.size &&
+        this.criteria.forall(c1 => a.criteria.exists(c2 => c1 == c2))
+      // we don't care if the cardinal of equals criterion is not the same on the two,
+      // ie [c1,c2,c1] == [c2,c2,c1] yields true
+      case _ => false
     }
+  }
 
-    override def hashCode() = returnType.hashCode * 17 + composition.hashCode * 3 + transform.hashCode * 11 + criteria.toSet.hashCode * 7
+  override def hashCode() =
+    returnType.hashCode * 17 + composition.hashCode * 3 + transform.hashCode * 11 + criteria.toSet.hashCode * 7
 }
 
 final case class Query(
-    returnType : QueryReturnType  //"node" or "node and policy servers"
-  , composition: CriterionComposition
-  , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
+    returnType: QueryReturnType, // "node" or "node and policy servers"
+
+    composition: CriterionComposition,
+    criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
 ) extends QueryTrait {
-  override  def transform : ResultTransformation = ResultTransformation.Identity
+  override def transform: ResultTransformation = ResultTransformation.Identity
 }
 
-object  Query {
-  def apply (
-      returnType : QueryReturnType  //"node" or "node and policy servers"
-    , composition: CriterionComposition
-    , transform  : ResultTransformation
-    , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
-  ) : NewQuery = NewQuery(returnType, composition, transform, criteria)
+object Query {
+  def apply(
+      returnType: QueryReturnType, // "node" or "node and policy servers"
+
+      composition: CriterionComposition,
+      transform:   ResultTransformation,
+      criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
+  ): NewQuery = NewQuery(returnType, composition, transform, criteria)
 }
 
 final case class NewQuery(
-    returnType : QueryReturnType  //"node" or "node and policy servers"
-  , composition: CriterionComposition
-  , transform  : ResultTransformation
-  , criteria   : List[CriterionLine] //list of all criteria to be matched by returned values
+    returnType: QueryReturnType, // "node" or "node and policy servers"
+
+    composition: CriterionComposition,
+    transform:   ResultTransformation,
+    criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
 ) extends QueryTrait

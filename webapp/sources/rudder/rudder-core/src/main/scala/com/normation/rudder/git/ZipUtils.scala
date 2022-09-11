@@ -1,48 +1,44 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 package com.normation.rudder.git
 
-import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
-
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.IOUtils
-
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -50,6 +46,8 @@ import java.io.OutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import scala.collection.Seq
 import scala.jdk.CollectionConverters._
 import zio.ZIO
@@ -73,9 +71,11 @@ object ZipUtils {
         }
       }
     } else {
-      Inconsistency(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence").fail
-    }}
-
+      Inconsistency(
+        s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence"
+      ).fail
+    }
+  }
 
   /**
    * Zippable must be ordered from root to children (deep first),
@@ -95,18 +95,20 @@ object ZipUtils {
               x.path
             } else {
               x.path + "/"
-            }case Some(is) =>
+            }
+          case Some(is) =>
             if (x.path.endsWith("/")) {
               x.path.substring(0, x.path.size - 1)
             } else {
               x.path
-            }}
+            }
+        }
         IOResult.effect(zout.putNextEntry(new ZipEntry(name))) *> (
-                                                                  x.useContent match {
-                                                                    case None    => ().succeed
-                                                                    case Some(x) => x(addToZout)
-                                                                  }
-                                                                  )
+          x.useContent match {
+            case None    => ().succeed
+            case Some(x) => x(addToZout)
+          }
+        )
       }
     }
   }
@@ -137,24 +139,22 @@ object ZipUtils {
     def getPath(f: File) = base.relativize(f.toURI).getPath
 
     def recZippable(f: File, existing: Seq[Zippable]): Seq[Zippable] = {
-      //sort accordingly to the required convention
+      // sort accordingly to the required convention
       def sortFile(files: Array[java.io.File]): Array[java.io.File] = {
-        files.sortWith { case (file1, file2) =>
-          (file1.isDirectory, file2.isDirectory) match {
-            case (true, true) | (false, false) => file1.getName.compareTo(file2.getName) <= 0
-            case (true, false)                 => false
-            case (false, true)                 => true
-          }
+        files.sortWith {
+          case (file1, file2) =>
+            (file1.isDirectory, file2.isDirectory) match {
+              case (true, true) | (false, false) => file1.getName.compareTo(file2.getName) <= 0
+              case (true, false)                 => false
+              case (false, true)                 => true
+            }
         }
       }
 
       if (f.isDirectory) {
         val c = existing :+ Zippable(getPath(f), None)
 
-
-        sortFile(f.listFiles).foldLeft(c) { (seq, ff) =>
-          recZippable(ff, seq)
-        }
+        sortFile(f.listFiles).foldLeft(c)((seq, ff) => recZippable(ff, seq))
       } else {
         def buildContent(use: InputStream => Any): IOResult[Any] = {
           ZIO.bracket(IOResult.effect(new FileInputStream(f)))(is => effectUioUnit(is.close)) { is =>

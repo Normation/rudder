@@ -1,52 +1,49 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.Inventory
-import java.io.InputStream
-
-import com.normation.inventory.domain.InventoryError
 import com.normation.errors._
+import com.normation.inventory.domain.Inventory
+import com.normation.inventory.domain.InventoryError
+import java.io.InputStream
+import scala.xml._
 import zio._
 import zio.syntax._
-
-import scala.xml._
-
 
 /**
  * General interface to process inventory files
@@ -75,7 +72,7 @@ trait InventoryParser {
    * In particular, we DO NOT bind os, vms and container here (what means that os#containers will
    * be empty even if the List<Container<StringId>> is not.
    */
-  def fromXml(inventoryName: String, s: InputStream) : IOResult[Inventory]
+  def fromXml(inventoryName: String, s: InputStream): IOResult[Inventory]
 
 }
 
@@ -86,21 +83,20 @@ trait InventoryParser {
  */
 trait XmlInventoryParser extends InventoryParser {
 
-  override def fromXml(inventoryName:String,is:InputStream) : IOResult[Inventory] = {
+  override def fromXml(inventoryName: String, is: InputStream): IOResult[Inventory] = {
     (Task.effect {
       XML.load(is)
-    } mapError { ex =>
-      InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex)
-    }).flatMap( doc =>
-      if(doc.isEmpty) {
-        InventoryError.Inconsistency("Fusion Inventory file seems to be empty").fail
-      } else {
-        this.fromXmlDoc(inventoryName, doc)
-      }
-    )
+    } mapError { ex => InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex) })
+      .flatMap(doc => {
+        if (doc.isEmpty) {
+          InventoryError.Inconsistency("Fusion Inventory file seems to be empty").fail
+        } else {
+          this.fromXmlDoc(inventoryName, doc)
+        }
+      })
   }
 
-  def fromXmlDoc(inventoryName: String, xml:NodeSeq) : IOResult[Inventory]
+  def fromXmlDoc(inventoryName: String, xml: NodeSeq): IOResult[Inventory]
 }
 
 /**
@@ -109,21 +105,23 @@ trait XmlInventoryParser extends InventoryParser {
  */
 trait PipelinedInventoryParser extends XmlInventoryParser {
 
-  def preParsingPipeline : Seq[PreInventoryParser]
-  def inventoryParser : XmlInventoryParser
+  def preParsingPipeline: Seq[PreInventoryParser]
+  def inventoryParser:    XmlInventoryParser
 
-  override def fromXmlDoc(inventoryName:String, xml:NodeSeq) : IOResult[Inventory] = {
-    //init pipeline with the data structure initialized by the configured inventoryParser
+  override def fromXmlDoc(inventoryName: String, xml: NodeSeq): IOResult[Inventory] = {
+    // init pipeline with the data structure initialized by the configured inventoryParser
     for {
-       //run each post processor of the pipeline sequentially, stop on the first which
-       //return an empty result
+      // run each post processor of the pipeline sequentially, stop on the first which
+      // return an empty result
       preProcessingOk <- ZIO.foldLeft(preParsingPipeline)(xml) { (inventory, preParsing) =>
-        preParsing(inventory).chainError(s"Error when post processing inventory with '${preParsing.name}', abort")
-      }
-      inventoryParsed <- inventoryParser.fromXmlDoc(inventoryName, preProcessingOk).chainError("Can not parse the given inventory file, abort")
+                           preParsing(inventory).chainError(
+                             s"Error when post processing inventory with '${preParsing.name}', abort"
+                           )
+                         }
+      inventoryParsed <-
+        inventoryParser.fromXmlDoc(inventoryName, preProcessingOk).chainError("Can not parse the given inventory file, abort")
     } yield {
       inventoryParsed
     }
   }
 }
-

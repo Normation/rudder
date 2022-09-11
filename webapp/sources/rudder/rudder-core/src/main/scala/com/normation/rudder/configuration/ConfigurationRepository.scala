@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2020 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2020 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.configuration
 
@@ -43,7 +43,6 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
-
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
@@ -56,7 +55,6 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-
 import zio._
 import zio.syntax._
 
@@ -82,22 +80,19 @@ trait RoConfigurationRepository {
    */
   def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[Technique]]
-  def getRule(id: RuleId): IOResult[Option[Rule]]
+  def getRule(id:      RuleId):      IOResult[Option[Rule]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 
   def getDirectiveRevision(uid: DirectiveUid): IOResult[List[RevisionInfo]]
 }
 
-trait WoConfigurationRepository {
-
-}
-
+trait WoConfigurationRepository {}
 
 trait DirectiveRevisionRepository {
 
   def getDirectiveRevision(uid: DirectiveUid, rev: Revision): IOResult[Option[(ActiveTechnique, Directive)]]
-  def getRevisions(uid: DirectiveUid): IOResult[List[RevisionInfo]]
+  def getRevisions(uid:         DirectiveUid): IOResult[List[RevisionInfo]]
 }
 
 trait RuleRevisionRepository {
@@ -107,12 +102,12 @@ trait RuleRevisionRepository {
 /****************************************************************************************/
 
 class ConfigurationRepositoryImpl(
-    roDirectiveRepository: RoDirectiveRepository
-  , techniqueRepository  : TechniqueRepository
-  , roRuleRepository     : RoRuleRepository
-  , directiveRevisionRepo: DirectiveRevisionRepository
-  , techniqueRevisionRepo: TechniqueRevisionRepository
-  , ruleRevisionRepo     : RuleRevisionRepository
+    roDirectiveRepository: RoDirectiveRepository,
+    techniqueRepository:   TechniqueRepository,
+    roRuleRepository:      RoRuleRepository,
+    directiveRevisionRepo: DirectiveRevisionRepository,
+    techniqueRevisionRepo: TechniqueRevisionRepository,
+    ruleRevisionRepo:      RuleRevisionRepository
 ) extends ConfigurationRepository {
 
   override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
@@ -121,7 +116,7 @@ class ConfigurationRepositoryImpl(
         roDirectiveRepository.getActiveTechniqueAndDirective(id)
       case r                      =>
         directiveRevisionRepo.getDirectiveRevision(id.uid, r)
-    }).map( _.map{ case (at, d) => ActiveDirective(at, d)} )
+    }).map(_.map { case (at, d) => ActiveDirective(at, d) })
   }
 
   override def getTechnique(id: TechniqueId): IOResult[Option[Technique]] = {
@@ -132,7 +127,6 @@ class ConfigurationRepositoryImpl(
         techniqueRevisionRepo.getTechnique(id.name, id.version.version, r)
     }
   }
-
 
   override def getRule(id: RuleId): IOResult[Option[Rule]] = {
     id.rev match {
@@ -151,18 +145,19 @@ class ConfigurationRepositoryImpl(
     def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.DEFAULT_REV
     val versionedDirectives = ids.filter(x => nonDefaultRev(x.rev))
     for {
-      optDirs   <- ZIO.foreach(versionedDirectives.toList)(getDirective) // TODO: find a way to do that without N git treewalks
-      vDirs     =  optDirs.collect { case Some(ad) => (ad.activeTechnique.techniqueName, ad.directive) }
-      others    <- roDirectiveRepository.getFullDirectiveLibrary()
-      lib       =  others.addAndFilterDirectives(vDirs, ids)
+      optDirs  <- ZIO.foreach(versionedDirectives.toList)(getDirective) // TODO: find a way to do that without N git treewalks
+      vDirs     = optDirs.collect { case Some(ad) => (ad.activeTechnique.techniqueName, ad.directive) }
+      others   <- roDirectiveRepository.getFullDirectiveLibrary()
+      lib       = others.addAndFilterDirectives(vDirs, ids)
       // now that we have all (and only) relevant techniques, find the one with version and retrieve them
-      vTechIds  =  lib.allDirectives.collect { case (_, (fat, d)) if(nonDefaultRev(d.techniqueVersion.rev)) => TechniqueId(fat.techniqueName, d.techniqueVersion)}
-      optTechs  <- ZIO.foreach(vTechIds)(getTechnique) // TODO: find a way to do that without N git treewalks
-      fullLib   =  lib.addTechniques(optTechs.flatten.toList)
+      vTechIds  = lib.allDirectives.collect {
+                    case (_, (fat, d)) if (nonDefaultRev(d.techniqueVersion.rev)) =>
+                      TechniqueId(fat.techniqueName, d.techniqueVersion)
+                  }
+      optTechs <- ZIO.foreach(vTechIds)(getTechnique)                   // TODO: find a way to do that without N git treewalks
+      fullLib   = lib.addTechniques(optTechs.flatten.toList)
     } yield {
       fullLib
     }
   }
 }
-
-

@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2018 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2018 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.plugins
 
@@ -44,12 +44,10 @@ import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
 import net.liftweb.util.Helpers
-
 import scala.xml.NodeSeq
 
-
 trait PluginEnableImpl extends PluginStatus {
-  override val current = PluginStatusInfo.EnabledNoLicense
+  override val current   = PluginStatusInfo.EnabledNoLicense
   override val isEnabled = true
 }
 
@@ -62,48 +60,48 @@ trait PluginEnableImpl extends PluginStatus {
  */
 trait DefaultPluginDef extends RudderPluginDef {
 
-
   def status: PluginStatus
 
-  //get properties name for the plugin from "build.conf" file
-  //have default string for errors (and avoid "missing prop exception"):
+  // get properties name for the plugin from "build.conf" file
+  // have default string for errors (and avoid "missing prop exception"):
   lazy val defaults = {
     val d1 = List(
-        "plugin-name"
-      , "plugin-fullname"
-      , "plugin-title-description"
-      , "plugin-version"
+      "plugin-name",
+      "plugin-fullname",
+      "plugin-title-description",
+      "plugin-version"
     ).map(p => s"$p=missing property with name '$p' in file 'build.conf' for '${basePackage}'").mkString("\n")
 
     val d2 = List(
-        "branch-type"
-      , "rudder-version"
-      , "common-version"
-      , "private-version"
+      "branch-type",
+      "rudder-version",
+      "common-version",
+      "private-version"
     ).map(p => s"$p=missing property with name '$p' in file 'main-build.conf' for '${basePackage}'").mkString("\n")
 
     val res = d1 + "\n" + d2
     res
   }
 
-  //by convention, plugin "build.conf" and plugin-commons "main-build.conf" files are copied into path:
+  // by convention, plugin "build.conf" and plugin-commons "main-build.conf" files are copied into path:
   // target/classes/com/normation/plugins/${project.artifactId}
-  lazy val buildConfPath = basePackage.replaceAll("""\.""", "/") + "/build.conf"
+  lazy val buildConfPath     = basePackage.replaceAll("""\.""", "/") + "/build.conf"
   lazy val mainBuildConfPath = basePackage.replaceAll("""\.""", "/") + "/main-build.conf"
-  lazy val buildConf = try {
-    val c1 = ConfigFactory.load(this.getClass.getClassLoader, buildConfPath).withFallback(ConfigFactory.parseString(defaults))
-    ConfigFactory.load(this.getClass.getClassLoader, mainBuildConfPath).withFallback(c1)
-  } catch {
-    case ex: ConfigException => //something want very wrong with "build.conf" parsing
-
-      ApplicationLogger.error(s"Error when parsing coniguration file for plugin '${basePackage}': ${ex.getMessage}", ex)
-      ConfigFactory.parseString(defaults)
+  lazy val buildConf         = {
+    try {
+      val c1 = ConfigFactory.load(this.getClass.getClassLoader, buildConfPath).withFallback(ConfigFactory.parseString(defaults))
+      ConfigFactory.load(this.getClass.getClassLoader, mainBuildConfPath).withFallback(c1)
+    } catch {
+      case ex: ConfigException => // something want very wrong with "build.conf" parsing
+        ApplicationLogger.error(s"Error when parsing coniguration file for plugin '${basePackage}': ${ex.getMessage}", ex)
+        ConfigFactory.parseString(defaults)
+    }
   }
 
-  override lazy val name = PluginName(buildConf.getString("plugin-fullname"))
-  override lazy val shortName = buildConf.getString("plugin-name")
+  override lazy val name        = PluginName(buildConf.getString("plugin-fullname"))
+  override lazy val shortName   = buildConf.getString("plugin-name")
   override lazy val displayName = buildConf.getString("plugin-title-description")
-  override lazy val version = {
+  override lazy val version     = {
     val versionString = buildConf.getString("rudder-version") + "-" + buildConf.getString("plugin-version")
     PluginVersion.from(versionString).getOrElse(PluginVersion.PARSING_ERROR(versionString))
   }
@@ -111,20 +109,19 @@ trait DefaultPluginDef extends RudderPluginDef {
     try {
       Some(buildConf.getString("version-info"))
     } catch {
-      case e:ConfigException.Missing => None
+      case e: ConfigException.Missing => None
     }
   }
 
-
-  override def description : NodeSeq  = (
-     <div>
+  override def description: NodeSeq = (
+    <div>
      {
-      if(buildConf.hasPathOrNull("plugin-web-description")) {
+      if (buildConf.hasPathOrNull("plugin-web-description")) {
         Helpers.secureXML.loadString(buildConf.getString("plugin-web-description"))
       } else {
         displayName
       }
-     }
+    }
      </div>
   )
 
@@ -133,39 +130,36 @@ trait DefaultPluginDef extends RudderPluginDef {
    * "Plugins" menu. Override that method if you want a more potent
    * interaction with Rudder menu (at the risk of breaking it).
    */
-  def pluginMenuEntry: Option[Menu] = None
+  def pluginMenuEntry:  Option[Menu] = None
   def pluginMenuParent: Option[Menu] = None
 
-  override def updateSiteMap(menus:List[Menu]) : List[Menu] = {
+  override def updateSiteMap(menus: List[Menu]): List[Menu] = {
 
     pluginMenuEntry match {
-      case None       => menus
-      case Some(menu@Menu(loc,_*)) =>
+      case None                       => menus
+      case Some(menu @ Menu(loc, _*)) =>
         val (parentName, updatedMenu) = pluginMenuParent match {
-          case None => (MenuUtils.pluginsMenu, menus)
+          case None             => (MenuUtils.pluginsMenu, menus)
           case Some(parentMenu) =>
-            val menu = if (menus.exists (_.loc.name == parentMenu.loc.name )) {
-               menus
+            val menu = if (menus.exists(_.loc.name == parentMenu.loc.name)) {
+              menus
             } else {
-              ( parentMenu :: menus).sortBy(_.loc.name)
+              (parentMenu :: menus).sortBy(_.loc.name)
             }
-            (parentMenu.loc.name,menu)
+            (parentMenu.loc.name, menu)
         }
 
         updatedMenu.map {
-          case m@Menu(l, _* ) if(l.name == parentName) =>
+          case m @ Menu(l, _*) if (l.name == parentName) =>
             // We need to avoid collision on name/loc
-            if (m.kids.exists (_.loc.name == loc.name)) {
+            if (m.kids.exists(_.loc.name == loc.name)) {
               PluginLogger.error(s"There is already a menu with id (${loc.name}, please contact Plugin team")
               m
             } else {
-              Menu(l , (m.kids :+ menu).sortBy(_.loc.name):_* )
+              Menu(l, (m.kids :+ menu).sortBy(_.loc.name): _*)
             }
-          case m => m
+          case m                                         => m
         }
     }
   }
 }
-
-
-

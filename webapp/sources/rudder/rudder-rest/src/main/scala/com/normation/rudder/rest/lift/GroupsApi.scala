@@ -1,91 +1,91 @@
 /*
-*************************************************************************************
-* Copyright 2017 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2017 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.rest.lift
 
-import com.normation.rudder.apidata.RestDataSerializer
+import com.normation.box._
+import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.UserService
-import com.normation.rudder.batch.AsyncDeploymentActor
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.{GroupApi => API}
-import com.normation.rudder.services.queries.QueryProcessor
-import com.normation.rudder.services.workflows._
-import com.normation.utils.StringUuidGenerator
-import net.liftweb.common._
-import net.liftweb.http.LiftResponse
-import net.liftweb.http.Req
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
-import com.normation.box._
-import com.normation.errors._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.FullDetails
-import com.normation.rudder.repository.CategoryAndNodeGroup
-import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.services.nodes.MergeNodeProperties
-import com.normation.rudder.rest._
 import com.normation.rudder.apidata.JsonQueryObjects._
 import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.RenderInheritedProperties
+import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.repository.CategoryAndNodeGroup
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.rest._
+import com.normation.rudder.rest.{GroupApi => API}
+import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.rest.data._
 import com.normation.rudder.rest.implicits._
+import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.queries.CmdbQueryParser
-import zio.syntax._
+import com.normation.rudder.services.queries.QueryProcessor
+import com.normation.rudder.services.workflows._
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
+import net.liftweb.common._
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import zio.syntax._
 
 class GroupsApi(
-    readGroup           : RoNodeGroupRepository
-  , restExtractorService: RestExtractorService
-  , zioJsonExtractor    : ZioJsonExtractor
-  , uuidGen             : StringUuidGenerator
-  , serviceV2           : GroupApiService2
-  , serviceV6           : GroupApiService6
-  , serviceV14          : GroupApiService14
-  , inheritedProperties : GroupApiInheritedProperties
+    readGroup:            RoNodeGroupRepository,
+    restExtractorService: RestExtractorService,
+    zioJsonExtractor:     ZioJsonExtractor,
+    uuidGen:              StringUuidGenerator,
+    serviceV2:            GroupApiService2,
+    serviceV6:            GroupApiService6,
+    serviceV14:           GroupApiService14,
+    inheritedProperties:  GroupApiInheritedProperties
 ) extends LiftApiModuleProvider[API] {
 
   def schemas = API
@@ -95,40 +95,59 @@ class GroupsApi(
    * Depends of authz method and supported version.
    */
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => e match {
-        case API.ListGroups                      => ChooseApi0(List                           , ListV14                           )
-        case API.GetGroupTree                    => ChooseApi0(GetTree                        , GetTreeV14                        )
-        case API.GroupDetails                    => ChooseApiN(Get                            , GetV14                            )
-        case API.GroupInheritedProperties        => ChooseApiN(GroupInheritedProperties       , GroupInheritedPropertiesV14       )
-        case API.GroupDisplayInheritedProperties => ChooseApiN(GroupDisplayInheritedProperties, GroupDisplayInheritedPropertiesV14)
-        case API.DeleteGroup                     => ChooseApiN(Delete                         , DeleteV14                         )
-        case API.CreateGroup                     => ChooseApi0(Create                         , CreateV14                         )
-        case API.UpdateGroup                     => ChooseApiN(Update                         , UpdateV14                         )
-        case API.DeleteGroupCategory             => ChooseApiN(DeleteCategory                 , DeleteCategoryV14                 )
-        case API.CreateGroupCategory             => ChooseApi0(CreateCategory                 , CreateCategoryV14                 )
-        case API.GetGroupCategoryDetails         => ChooseApiN(GetCategory                    , GetCategoryV14                    )
-        case API.UpdateGroupCategory             => ChooseApiN(UpdateCategory                 , UpdateCategoryV14                 )
-        case API.ReloadGroup                     => ChooseApiN(Reload                         , ReloadV14                         )
-    }).toList
+    API.endpoints
+      .map(e => {
+        e match {
+          case API.ListGroups                      => ChooseApi0(List, ListV14)
+          case API.GetGroupTree                    => ChooseApi0(GetTree, GetTreeV14)
+          case API.GroupDetails                    => ChooseApiN(Get, GetV14)
+          case API.GroupInheritedProperties        => ChooseApiN(GroupInheritedProperties, GroupInheritedPropertiesV14)
+          case API.GroupDisplayInheritedProperties =>
+            ChooseApiN(GroupDisplayInheritedProperties, GroupDisplayInheritedPropertiesV14)
+          case API.DeleteGroup                     => ChooseApiN(Delete, DeleteV14)
+          case API.CreateGroup                     => ChooseApi0(Create, CreateV14)
+          case API.UpdateGroup                     => ChooseApiN(Update, UpdateV14)
+          case API.DeleteGroupCategory             => ChooseApiN(DeleteCategory, DeleteCategoryV14)
+          case API.CreateGroupCategory             => ChooseApi0(CreateCategory, CreateCategoryV14)
+          case API.GetGroupCategoryDetails         => ChooseApiN(GetCategory, GetCategoryV14)
+          case API.UpdateGroupCategory             => ChooseApiN(UpdateCategory, UpdateCategoryV14)
+          case API.ReloadGroup                     => ChooseApiN(Reload, ReloadV14)
+        }
+      })
+      .toList
   }
 
-  object List extends LiftApiModule0 {
+  object List extends LiftApiModule0      {
     val schema = API.ListGroups
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listGroups().toLiftResponseList(params, schema)
     }
   }
-  object Get extends LiftApiModuleString {
+  object Get  extends LiftApiModuleString {
     val schema = API.GroupDetails
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object GroupInheritedProperties extends LiftApiModuleString {
-    val schema = API.GroupInheritedProperties
+    val schema        = API.GroupInheritedProperties
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).either.runNow match {
         case Right(value) =>
           toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
@@ -139,9 +158,16 @@ class GroupsApi(
   }
 
   object GroupDisplayInheritedProperties extends LiftApiModuleString {
-    val schema = API.GroupDisplayInheritedProperties
+    val schema        = API.GroupDisplayInheritedProperties
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       inheritedProperties.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).either.runNow match {
         case Right(value) =>
           toJsonResponse(None, value)("groupInheritedProperties", restExtractor.extractPrettify(req.params))
@@ -152,24 +178,31 @@ class GroupsApi(
   }
 
   object Delete extends LiftApiModuleString {
-    val schema = API.DeleteGroup
+    val schema        = API.DeleteGroup
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV2.deleteGroup(id, req, version)
     }
   }
 
-  object Create extends LiftApiModule0 {
-    val schema = API.CreateGroup
+  object Create extends LiftApiModule0      {
+    val schema        = API.CreateGroup
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      if(req.json_?) {
+      if (req.json_?) {
         req.json match {
           case Full(arg) =>
             val restGroup = restExtractor.extractGroupFromJSON(arg)
             serviceV2.createGroup(restGroup, req, version)
-          case eb:EmptyBox=>
-            toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
+          case eb: EmptyBox =>
+            toJsonError(None, "No Json data sent")("createGroup", restExtractor.extractPrettify(req.params))
         }
       } else {
         val restGroup = restExtractor.extractGroup(req.params)
@@ -178,16 +211,23 @@ class GroupsApi(
     }
   }
   object Update extends LiftApiModuleString {
-    val schema = API.UpdateGroup
+    val schema        = API.UpdateGroup
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      if(req.json_?) {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      if (req.json_?) {
         req.json match {
           case Full(arg) =>
             val restGroup = restExtractor.extractGroupFromJSON(arg)
             serviceV2.updateGroup(id, req, restGroup, version)
-          case eb:EmptyBox=>
-            toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+          case eb: EmptyBox =>
+            toJsonError(None, "No Json data sent")("updateGroup", restExtractor.extractPrettify(req.params))
         }
       } else {
         val restGroup = restExtractor.extractGroup(req.params)
@@ -196,9 +236,16 @@ class GroupsApi(
     }
   }
   object Reload extends LiftApiModuleString {
-    val schema = API.ReloadGroup
+    val schema        = API.ReloadGroup
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV2.reloadGroup(id, req, version)
     }
   }
@@ -206,115 +253,141 @@ class GroupsApi(
   import RestUtils._
   import net.liftweb.json._
 
-  def response ( function : Box[JValue], req : Req, errorMessage : String, id : Option[String])(implicit action: String): LiftResponse = {
-    RestUtils.response(restExtractorService,  "groupCategories", id)(function, req, errorMessage)
+  def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
+      action:            String
+  ): LiftResponse = {
+    RestUtils.response(restExtractorService, "groupCategories", id)(function, req, errorMessage)
   }
 
-  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String, id : Option[String], actor: EventActor)(implicit action: String): LiftResponse = {
-    RestUtils.actionResponse2(restExtractorService,  "groupCategories", uuidGen, id)(function, req, errorMessage)(action, actor)
+  def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
+      action:                  String
+  ): LiftResponse = {
+    RestUtils.actionResponse2(restExtractorService, "groupCategories", uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
   // group categories
-  object GetTree extends LiftApiModule0 {
-    val schema = API.GetGroupTree
+  object GetTree        extends LiftApiModule0      {
+    val schema        = API.GetGroupTree
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      response (
-        serviceV6.getCategoryTree(version)
-        , req
-        , s"Could not fetch Group tree"
-        , None
+      response(
+        serviceV6.getCategoryTree(version),
+        req,
+        s"Could not fetch Group tree",
+        None
       )
     }
   }
-  object GetCategory extends LiftApiModuleString {
-    val schema = API.GetGroupCategoryDetails
+  object GetCategory    extends LiftApiModuleString {
+    val schema        = API.GetGroupCategoryDetails
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
-      response (
-          serviceV6.getCategoryDetails(NodeGroupCategoryId(id), version)
-        , req
-        , s"Could not fetch Group category '${id}' details"
-        , Some(id)
+      response(
+        serviceV6.getCategoryDetails(NodeGroupCategoryId(id), version),
+        req,
+        s"Could not fetch Group category '${id}' details",
+        Some(id)
       )
     }
   }
   object DeleteCategory extends LiftApiModuleString {
-    val schema = API.DeleteGroupCategory
+    val schema        = API.DeleteGroupCategory
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
       actionResponse(
-          Full(serviceV6.deleteCategory(NodeGroupCategoryId(id), version))
-        , req
-        , s"Could not delete Group category '${id}'"
-        , Some(id)
-        , authzToken.actor
+        Full(serviceV6.deleteCategory(NodeGroupCategoryId(id), version)),
+        req,
+        s"Could not delete Group category '${id}'",
+        Some(id),
+        authzToken.actor
       )
     }
   }
   object UpdateCategory extends LiftApiModuleString {
-    val schema = API.UpdateGroupCategory
+    val schema        = API.UpdateGroupCategory
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
-      val x = for {
-        restCategory <- { if(req.json_?) {
-                            for {
-                              json <- req.json ?~! "No JSON data sent"
-                              cat  <- restExtractor.extractGroupCategory(json)
-                            } yield {
-                              cat
-                            }
-                          } else {
-                            restExtractor.extractGroupCategory(req.params)
-                          }
-                        }
+      val x               = for {
+        restCategory <- {
+          if (req.json_?) {
+            for {
+              json <- req.json ?~! "No JSON data sent"
+              cat  <- restExtractor.extractGroupCategory(json)
+            } yield {
+              cat
+            }
+          } else {
+            restExtractor.extractGroupCategory(req.params)
+          }
+        }
       } yield {
         serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory, version) _
       }
       actionResponse(
-          x
-        , req
-        , s"Could not update Group category '${id}'"
-        , Some(id)
-        , authzToken.actor
+        x,
+        req,
+        s"Could not update Group category '${id}'",
+        Some(id),
+        authzToken.actor
       )
     }
   }
-  object CreateCategory extends LiftApiModule0 {
-    val schema = API.CreateGroupCategory
+  object CreateCategory extends LiftApiModule0      {
+    val schema        = API.CreateGroupCategory
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      val id = () => NodeGroupCategoryId(uuidGen.newUuid)
-      val x = for {
-        restCategory <- { if(req.json_?) {
-                            for {
-                              json <- req.json ?~! "No JSON data sent"
-                              cat  <- restExtractor.extractGroupCategory(json)
-                            } yield {
-                              cat
-                            }
-                          } else {
-                            restExtractor.extractGroupCategory(req.params)
-                          }
-                        }
+      val id              = () => NodeGroupCategoryId(uuidGen.newUuid)
+      val x               = for {
+        restCategory <- {
+          if (req.json_?) {
+            for {
+              json <- req.json ?~! "No JSON data sent"
+              cat  <- restExtractor.extractGroupCategory(json)
+            } yield {
+              cat
+            }
+          } else {
+            restExtractor.extractGroupCategory(req.params)
+          }
+        }
       } yield {
         serviceV6.createCategory(id, restCategory, version) _
       }
       actionResponse(
-          x
-        , req
-        , s"Could not create group category"
-        , None
-        , authzToken.actor
+        x,
+        req,
+        s"Could not create group category",
+        None,
+        authzToken.actor
       )
     }
   }
-
 
   //
   //
@@ -322,38 +395,69 @@ class GroupsApi(
   //
   //
 
-
-  object ListV14 extends LiftApiModule0 {
-    val schema = API.ListGroups
+  object ListV14 extends LiftApiModule0      {
+    val schema        = API.ListGroups
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listGroups().toLiftResponseList(params, schema)
     }
   }
-  object GetV14 extends LiftApiModuleString {
+  object GetV14  extends LiftApiModuleString {
     val schema = API.GroupDetails
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV14.groupDetails(NodeGroupId(id)).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   object GroupInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupInheritedProperties
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON).toLiftResponseOne(params, schema, s => Some(s.groupId))
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      serviceV14
+        .getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.JSON)
+        .toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object GroupDisplayInheritedPropertiesV14 extends LiftApiModuleString {
     val schema = API.GroupDisplayInheritedProperties
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML).toLiftResponseOne(params, schema, s => Some(s.groupId))
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      serviceV14
+        .getNodePropertiesTree(NodeGroupId(id), RenderInheritedProperties.HTML)
+        .toLiftResponseOne(params, schema, s => Some(s.groupId))
     }
   }
 
   object DeleteV14 extends LiftApiModuleString {
     val schema = API.DeleteGroup
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV14.deleteGroup(NodeGroupId(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -362,18 +466,31 @@ class GroupsApi(
     val schema = API.CreateGroup
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        restGroup  <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
-        result     <- serviceV14.createGroup(restGroup, NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid)), restGroup.source.map(NodeGroupId), params, authzToken.actor)
+        restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
+        result    <- serviceV14.createGroup(
+                       restGroup,
+                       NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid)),
+                       restGroup.source.map(NodeGroupId),
+                       params,
+                       authzToken.actor
+                     )
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
-      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id) ))
+      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id)))
     }
   }
 
   object UpdateV14 extends LiftApiModuleString {
     val schema = API.UpdateGroup
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       (for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract a group from request.").toIO
         res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.actor)
@@ -384,118 +501,148 @@ class GroupsApi(
   }
 
   object ReloadV14 extends LiftApiModuleString {
-    val schema = API.ReloadGroup
+    val schema        = API.ReloadGroup
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       serviceV14.reloadGroup(id, params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
   // group categories
-  object GetTreeV14 extends LiftApiModule0 {
-    val schema = API.GetGroupTree
+  object GetTreeV14        extends LiftApiModule0      {
+    val schema        = API.GetGroupTree
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      response (
-        serviceV14.getCategoryTree(version)
-        , req
-        , s"Could not fetch Group tree"
-        , None
+      response(
+        serviceV14.getCategoryTree(version),
+        req,
+        s"Could not fetch Group tree",
+        None
       )
     }
   }
-  object GetCategoryV14 extends LiftApiModuleString {
-    val schema = API.GetGroupCategoryDetails
+  object GetCategoryV14    extends LiftApiModuleString {
+    val schema        = API.GetGroupCategoryDetails
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
-      response (
-          serviceV14.getCategoryDetails(NodeGroupCategoryId(id), version)
-        , req
-        , s"Could not fetch Group category '${id}' details"
-        , Some(id)
+      response(
+        serviceV14.getCategoryDetails(NodeGroupCategoryId(id), version),
+        req,
+        s"Could not fetch Group category '${id}' details",
+        Some(id)
       )
     }
   }
   object DeleteCategoryV14 extends LiftApiModuleString {
-    val schema = API.DeleteGroupCategory
+    val schema        = API.DeleteGroupCategory
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
       actionResponse(
-          Full(serviceV14.deleteCategory(NodeGroupCategoryId(id), version))
-        , req
-        , s"Could not delete Group category '${id}'"
-        , Some(id)
-        , authzToken.actor
+        Full(serviceV14.deleteCategory(NodeGroupCategoryId(id), version)),
+        req,
+        s"Could not delete Group category '${id}'",
+        Some(id),
+        authzToken.actor
       )
     }
   }
   object UpdateCategoryV14 extends LiftApiModuleString {
-    val schema = API.UpdateGroupCategory
+    val schema        = API.UpdateGroupCategory
     val restExtractor = restExtractorService
-    def process(version: ApiVersion, path: ApiPath, id: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
       implicit val action = schema.name
-      val x = for {
-        restCategory <- { if(req.json_?) {
-                            for {
-                              json <- req.json ?~! "No JSON data sent"
-                              cat  <- restExtractor.extractGroupCategory(json)
-                            } yield {
-                              cat
-                            }
-                          } else {
-                            restExtractor.extractGroupCategory(req.params)
-                          }
-                        }
+      val x               = for {
+        restCategory <- {
+          if (req.json_?) {
+            for {
+              json <- req.json ?~! "No JSON data sent"
+              cat  <- restExtractor.extractGroupCategory(json)
+            } yield {
+              cat
+            }
+          } else {
+            restExtractor.extractGroupCategory(req.params)
+          }
+        }
       } yield {
         serviceV14.updateCategory(NodeGroupCategoryId(id), restCategory, version) _
       }
       actionResponse(
-          x
-        , req
-        , s"Could not update Group category '${id}'"
-        , Some(id)
-        , authzToken.actor
+        x,
+        req,
+        s"Could not update Group category '${id}'",
+        Some(id),
+        authzToken.actor
       )
     }
   }
-  object CreateCategoryV14 extends LiftApiModule0 {
-    val schema = API.CreateGroupCategory
+  object CreateCategoryV14 extends LiftApiModule0      {
+    val schema        = API.CreateGroupCategory
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      val id = () => NodeGroupCategoryId(uuidGen.newUuid)
-      val x = for {
-        restCategory <- { if(req.json_?) {
-                            for {
-                              json <- req.json ?~! "No JSON data sent"
-                              cat  <- restExtractor.extractGroupCategory(json)
-                            } yield {
-                              cat
-                            }
-                          } else {
-                            restExtractor.extractGroupCategory(req.params)
-                          }
-                        }
+      val id              = () => NodeGroupCategoryId(uuidGen.newUuid)
+      val x               = for {
+        restCategory <- {
+          if (req.json_?) {
+            for {
+              json <- req.json ?~! "No JSON data sent"
+              cat  <- restExtractor.extractGroupCategory(json)
+            } yield {
+              cat
+            }
+          } else {
+            restExtractor.extractGroupCategory(req.params)
+          }
+        }
       } yield {
         serviceV14.createCategory(id, restCategory, version) _
       }
       actionResponse(
-          x
-        , req
-        , s"Could not create group category"
-        , None
-        , authzToken.actor
+        x,
+        req,
+        s"Could not create group category",
+        None,
+        authzToken.actor
       )
     }
   }
 }
 
 class GroupApiInheritedProperties(
-    groupRepo  : RoNodeGroupRepository
-  , paramRepo  : RoParameterRepository
+    groupRepo: RoNodeGroupRepository,
+    paramRepo: RoParameterRepository
 ) {
 
   /*
@@ -514,111 +661,113 @@ class GroupApiInheritedProperties(
         case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
         case RenderInheritedProperties.JSON => properties.toApiJson
       }
-      JArray((
-        ("groupId"    -> groupId.value)
-      ~ ("properties" -> rendered     )
-      ) :: Nil)
+      JArray(
+        (
+          ("groupId" -> groupId.value)
+          ~ ("properties" -> rendered)
+        ) :: Nil
+      )
     }
   }
 }
 
-class GroupApiService2 (
-    readGroup            : RoNodeGroupRepository
-  , writeGroup           : WoNodeGroupRepository
-  , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentActor
-  , workflowLevelService : WorkflowLevelService
-  , restExtractor        : RestExtractorService
-  , queryProcessor       : QueryProcessor
-  , restDataSerializer   : RestDataSerializer
-) ( implicit userService : UserService ) extends Loggable {
+class GroupApiService2(
+    readGroup:            RoNodeGroupRepository,
+    writeGroup:           WoNodeGroupRepository,
+    uuidGen:              StringUuidGenerator,
+    asyncDeploymentAgent: AsyncDeploymentActor,
+    workflowLevelService: WorkflowLevelService,
+    restExtractor:        RestExtractorService,
+    queryProcessor:       QueryProcessor,
+    restDataSerializer:   RestDataSerializer
+)(implicit userService:   UserService)
+    extends Loggable {
 
   import RestUtils._
   import restDataSerializer._
 
-  private[this] def createChangeRequestAndAnswer (
-      id           : String
-    , diff         : ChangeRequestNodeGroupDiff
-    , group        : NodeGroup
-    , initialState : Option[NodeGroup]
-    , newCategory  : Option[NodeGroupCategoryId]
-    , actor        : EventActor
-    , req          : Req
-    , act          : DGModAction
-    , apiVersion   : ApiVersion
-  ) (implicit action : String, prettify : Boolean) = {
+  private[this] def createChangeRequestAndAnswer(
+      id:            String,
+      diff:          ChangeRequestNodeGroupDiff,
+      group:         NodeGroup,
+      initialState:  Option[NodeGroup],
+      newCategory:   Option[NodeGroupCategoryId],
+      actor:         EventActor,
+      req:           Req,
+      act:           DGModAction,
+      apiVersion:    ApiVersion
+  )(implicit action: String, prettify: Boolean) = {
 
     val change = NodeGroupChangeRequest(act, group, newCategory, initialState)
 
-    ( for {
-        reason    <- restExtractor.extractReason(req)
-        crName    <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act.name} group '${group.name}' from API"))
-        workflow  <- workflowLevelService.getForNodeGroup(actor, change)
-        cr        =  ChangeRequestService.createChangeRequestFromNodeGroup(
-                        crName
-                      , restExtractor.extractChangeRequestDescription(req)
-                      , group
-                      , initialState
-                      , diff
-                      , actor
-                      , reason
-                    )
-        id        <- workflow.startWorkflow(cr, actor, None)
-      } yield {
-        (id, workflow)
-      }
-    ) match {
+    (for {
+      reason   <- restExtractor.extractReason(req)
+      crName   <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act.name} group '${group.name}' from API"))
+      workflow <- workflowLevelService.getForNodeGroup(actor, change)
+      cr        = ChangeRequestService.createChangeRequestFromNodeGroup(
+                    crName,
+                    restExtractor.extractChangeRequestDescription(req),
+                    group,
+                    initialState,
+                    diff,
+                    actor,
+                    reason
+                  )
+      id       <- workflow.startWorkflow(cr, actor, None)
+    } yield {
+      (id, workflow)
+    }) match {
       case Full((crId, workflow)) =>
-        val optCrId = if (workflow.needExternalValidation()) Some(crId) else None
+        val optCrId   = if (workflow.needExternalValidation()) Some(crId) else None
         val jsonGroup = List(serializeGroup(group, newCategory, optCrId))
         toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
 
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not save changes on Group ${id}" )
-        val msg = s"${act} failed, cause is: ${fail.messageChain}."
+      case eb: EmptyBox =>
+        val fail = eb ?~ (s"Could not save changes on Group ${id}")
+        val msg  = s"${act} failed, cause is: ${fail.messageChain}."
         toJsonError(Some(id), msg)
     }
   }
 
-  def listGroups(req : Req, apiVersion: ApiVersion) = {
-    implicit val action = "listGroups"
+  def listGroups(req: Req, apiVersion: ApiVersion) = {
+    implicit val action   = "listGroups"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll().toBox match {
       case Full(groups) =>
-        toJsonResponse(None, ( "groups" -> JArray(groups.sortBy(_.id.value).map(g => serializeGroup(g, None, None)).toList)))
+        toJsonResponse(None, ("groups" -> JArray(groups.sortBy(_.id.value).map(g => serializeGroup(g, None, None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).messageChain
         toJsonError(None, message)
     }
   }
 
-  def createGroup(restGroup: Box[RestGroup], req:Req, apiVersion: ApiVersion) = {
+  def createGroup(restGroup: Box[RestGroup], req: Req, apiVersion: ApiVersion) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = RestUtils.getActor(req)
-    val groupIdBox = restExtractor.extractId(req)(x => Full(NodeGroupId(x))).map(_.getOrElse(NodeGroupId(uuidGen.newUuid)))
+    val modId             = ModificationId(uuidGen.newUuid)
+    val actor             = RestUtils.getActor(req)
+    val groupIdBox        = restExtractor.extractId(req)(x => Full(NodeGroupId(x))).map(_.getOrElse(NodeGroupId(uuidGen.newUuid)))
 
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId, isClone: Boolean) = {
-      ( for {
+      (for {
         reason   <- restExtractor.extractReason(req)
         rootCat  <- readGroup.getRootCategoryPure().toBox
-        cat      =  change.category.getOrElse(rootCat.id)
+        cat       = change.category.getOrElse(rootCat.id)
         saveDiff <- writeGroup.create(change.newGroup, cat, modId, actor, reason).toBox
       } yield {
         (saveDiff, cat)
-      } ) match {
+      }) match {
         case Full((x, cat)) =>
           if (x.needDeployment) {
             // Trigger a deployment only if it is needed
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
           }
-          val jsonGroup = List(serializeGroup(change.newGroup, Some(cat), None))
-          implicit val action = if(isClone) "cloneGroup" else "createGroup"
+          val jsonGroup       = List(serializeGroup(change.newGroup, Some(cat), None))
+          implicit val action = if (isClone) "cloneGroup" else "createGroup"
 
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
-        case eb:EmptyBox =>
-          val fail = eb ?~ (s"Could not save group '${groupId.value}''" )
+        case eb: EmptyBox =>
+          val fail    = eb ?~ (s"Could not save group '${groupId.value}''")
           val message = s"Could not create group '${change.newGroup.name}' (id:${groupId.value}), cause is: ${fail.messageChain}."
           toJsonError(Some(groupId.value), message)
       }
@@ -626,19 +775,25 @@ class GroupApiService2 (
 
     // decide if we should create a new group or clone an existing one
     // Return the source group to use in each case.
-    def createOrClone(actor: EventActor, restGroup: RestGroup, groupId: NodeGroupId, name: String, sourceIdParam: Option[NodeGroupId]): Box[NodeGroupChangeRequest] = {
+    def createOrClone(
+        actor:         EventActor,
+        restGroup:     RestGroup,
+        groupId:       NodeGroupId,
+        name:          String,
+        sourceIdParam: Option[NodeGroupId]
+    ): Box[NodeGroupChangeRequest] = {
       sourceIdParam match {
         case Some(sourceId) =>
           // clone existing group
           for {
             (group, cat) <- readGroup.getNodeGroup(sourceId).toBox ?~!
-              s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')"
-            id           =  NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
+                            s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')"
+            id            = NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
             updated      <- restGroup.updateGroup(group).toBox
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
             val category = restGroup.category.orElse(Some(cat))
-            val withId = updated.copy(id = id)
+            val withId   = updated.copy(id = id)
             NodeGroupChangeRequest(DGModAction.CreateSolo, withId, category, Some(group))
           }
 
@@ -646,7 +801,7 @@ class GroupApiService2 (
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup = NodeGroup(groupId,name,"", Nil,None,true,Set(), defaultEnabled)
+          val baseGroup      = NodeGroup(groupId, name, "", Nil, None, true, Set(), defaultEnabled)
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -659,8 +814,9 @@ class GroupApiService2 (
            */
           for {
             updated  <- restGroup.updateGroup(baseGroup).toBox
-            change   =  NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
-            workflow <- workflowLevelService.getForNodeGroup(actor, change) ?~! "Could not find workflow status for that rule creation"
+            change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
+            workflow <-
+              workflowLevelService.getForNodeGroup(actor, change) ?~! "Could not find workflow status for that rule creation"
           } yield {
             // we don't actually start a workflow, we only disable the group if a workflow should be
             // started. Update rule "enable" status accordingly.
@@ -669,8 +825,10 @@ class GroupApiService2 (
             change.copy(newGroup = change.newGroup.copy(_isEnabled = enableCheck))
           }
 
-        case _                     =>
-          Failure(s"Could not create group '${name}' (id:${groupId.value}) based on an already existing group, cause is: too many values for source parameter.")
+        case _ =>
+          Failure(
+            s"Could not create group '${name}' (id:${groupId.value}) based on an already existing group, cause is: too many values for source parameter."
+          )
       }
     }
 
@@ -687,82 +845,93 @@ class GroupApiService2 (
     } yield {
       actualGroupCreation(change, groupId, source.isDefined)
     }) match {
-      case Full(resp)  =>
+      case Full(resp) =>
         resp
       case eb: EmptyBox =>
-        val fail = eb ?~ (s"Error when creating new group" )
-          toJsonError(groupIdBox.toOption.map(_.value), fail.messageChain)
-        }
+        val fail = eb ?~ (s"Error when creating new group")
+        toJsonError(groupIdBox.toOption.map(_.value), fail.messageChain)
+    }
   }
 
-  def groupDetails(id:String, req:Req, apiVersion: ApiVersion) = {
-    implicit val action = "groupDetails"
+  def groupDetails(id: String, req: Req, apiVersion: ApiVersion) = {
+    implicit val action   = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group, cat)) =>
-        val jsonGroup = List(serializeGroup(group,Some(cat), None))
-        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
-      case eb:EmptyBox =>
-        val fail = eb ?~!(s"Could not find Group ${id}" )
-        val message=  s"Could not get Group ${id} details cause is: ${fail.msg}."
+        val jsonGroup = List(serializeGroup(group, Some(cat), None))
+        toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
+      case eb: EmptyBox =>
+        val fail    = eb ?~! (s"Could not find Group ${id}")
+        val message = s"Could not get Group ${id} details cause is: ${fail.msg}."
         toJsonError(Some(id), message)
     }
   }
 
-  def reloadGroup(id:String, req:Req, apiVersion: ApiVersion) = {
-    implicit val action = "reloadGroup"
+  def reloadGroup(id: String, req: Req, apiVersion: ApiVersion) = {
+    implicit val action   = "reloadGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor = RestUtils.getActor(req)
+    val actor             = RestUtils.getActor(req)
 
     readGroup.getNodeGroup(NodeGroupId(id)).toBox match {
       case Full((group, cat)) =>
         group.query match {
-          case Some(query) => queryProcessor.processOnlyId(query) match {
-            case Full(nodeIds) =>
-              val updatedGroup = group.copy(serverList = nodeIds.toSet)
-              val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
-              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), None, actor, req, DGModAction.Update, apiVersion)
-            case eb:EmptyBox =>
-              val fail = eb ?~(s"Could not fetch Nodes" )
-              val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
-              toJsonError(Some(id), message)
-          }
-          case None =>
+          case Some(query) =>
+            queryProcessor.processOnlyId(query) match {
+              case Full(nodeIds) =>
+                val updatedGroup    = group.copy(serverList = nodeIds.toSet)
+                val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
+                createChangeRequestAndAnswer(
+                  id,
+                  reloadGroupDiff,
+                  group,
+                  Some(group),
+                  None,
+                  actor,
+                  req,
+                  DGModAction.Update,
+                  apiVersion
+                )
+              case eb: EmptyBox =>
+                val fail    = eb ?~ (s"Could not fetch Nodes")
+                val message = s"Could not reload Group ${id} details cause is: ${fail.msg}."
+                toJsonError(Some(id), message)
+            }
+          case None        =>
             val jsonGroup = List(serializeGroup(group, Some(cat), None))
-            toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
+            toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
         }
         val jsonGroup = List(serializeGroup(group, Some(cat), None))
-        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Group ${id}" )
-        val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
+        toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
+      case eb: EmptyBox =>
+        val fail    = eb ?~ (s"Could not find Group ${id}")
+        val message = s"Could not reload Group ${id} details cause is: ${fail.msg}."
         toJsonError(Some(id), message)
     }
   }
 
-  def deleteGroup(id:String, req:Req, apiVersion: ApiVersion) = {
-    implicit val action = "deleteGroup"
+  def deleteGroup(id: String, req: Req, apiVersion: ApiVersion) = {
+    implicit val action   = "deleteGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor = RestUtils.getActor(req)
-    val groupId = NodeGroupId(id)
+    val actor             = RestUtils.getActor(req)
+    val groupId           = NodeGroupId(id)
 
     readGroup.getNodeGroup(groupId).toBox match {
-      case Full((group,_)) =>
+      case Full((group, _)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
         createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
 
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
+      case eb: EmptyBox =>
+        val fail    = eb ?~ (s"Could not find Group ${groupId.value}")
         val message = s"Could not delete Group ${groupId.value} cause is: ${fail.msg}."
         toJsonError(Some(groupId.value), message)
     }
   }
 
-  def updateGroup(id: String, req: Req, restValues : Box[RestGroup], apiVersion: ApiVersion) = {
-    implicit val action = "updateGroup"
+  def updateGroup(id: String, req: Req, restValues: Box[RestGroup], apiVersion: ApiVersion) = {
+    implicit val action   = "updateGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor = getActor(req)
-    val groupId = NodeGroupId(id)
+    val actor             = getActor(req)
+    val groupId           = NodeGroupId(id)
 
     (for {
       (group, cat) <- readGroup.getNodeGroup(groupId).toBox
@@ -773,29 +942,29 @@ class GroupApiService2 (
     }) match {
       case Full((group, updated, optCategory, diff)) =>
         createChangeRequestAndAnswer(id, diff, updated, Some(group), optCategory, actor, req, DGModAction.Update, apiVersion)
-      case eb : EmptyBox =>
-            val fail = eb ?~ s"Could not modify Group ${groupId.value}"
-            toJsonError(Some(groupId.value), fail.messageChain)
+      case eb: EmptyBox =>
+        val fail = eb ?~ s"Could not modify Group ${groupId.value}"
+        toJsonError(Some(groupId.value), fail.messageChain)
     }
   }
 
 }
 
-class GroupApiService6 (
-    readGroup         : RoNodeGroupRepository
-  , writeGroup        : WoNodeGroupRepository
-  , restDataSerializer: RestDataSerializer
+class GroupApiService6(
+    readGroup:          RoNodeGroupRepository,
+    writeGroup:         WoNodeGroupRepository,
+    restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
   def getCategoryTree(apiVersion: ApiVersion) = {
     for {
-        root <- readGroup.getFullGroupLibrary().toBox
+      root <- readGroup.getFullGroupLibrary().toBox
     } yield {
       restDataSerializer.serializeGroupCategory(root, root.id, FullDetails, apiVersion)
     }
   }
 
-  def getCategoryDetails(id : NodeGroupCategoryId, apiVersion: ApiVersion) = {
+  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion) = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -805,7 +974,10 @@ class GroupApiService6 (
     }
   }
 
-  def deleteCategory(id : NodeGroupCategoryId, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def deleteCategory(
+      id:         NodeGroupCategoryId,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -816,26 +988,34 @@ class GroupApiService6 (
     }
   }
 
-  def updateCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def updateCategory(
+      id:         NodeGroupCategoryId,
+      restData:   RestGroupCategory,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
-      parent    =  restData.parent.getOrElse(oldParent.id)
-      update    =  restData.update(category)
-      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason).toBox
+      parent     = restData.parent.getOrElse(oldParent.id)
+      update     = restData.update(category)
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
   }
 
   // defaultId: the id to use if restDateDidn't provide one
-  def createCategory(defaultId : () => NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(
+      defaultId:  () => NodeGroupCategoryId,
+      restData:   RestGroupCategory,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
-      update   <- restData.create(defaultId)
-      category =  update.toNodeGroupCategory
-      parent   =  restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _        <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
+      update  <- restData.create(defaultId)
+      category = update.toNodeGroupCategory
+      parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
+      _       <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
@@ -843,37 +1023,37 @@ class GroupApiService6 (
 
 }
 
-class GroupApiService14 (
-    readGroup            : RoNodeGroupRepository
-  , writeGroup           : WoNodeGroupRepository
-  , paramRepo            : RoParameterRepository
-  , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentActor
-  , workflowLevelService : WorkflowLevelService
-  , restExtractor        : RestExtractorService
-  , queryParser          : CmdbQueryParser
-  , queryProcessor       : QueryProcessor
-  , restDataSerializer   : RestDataSerializer
+class GroupApiService14(
+    readGroup:            RoNodeGroupRepository,
+    writeGroup:           WoNodeGroupRepository,
+    paramRepo:            RoParameterRepository,
+    uuidGen:              StringUuidGenerator,
+    asyncDeploymentAgent: AsyncDeploymentActor,
+    workflowLevelService: WorkflowLevelService,
+    restExtractor:        RestExtractorService,
+    queryParser:          CmdbQueryParser,
+    queryProcessor:       QueryProcessor,
+    restDataSerializer:   RestDataSerializer
 ) {
 
   private[this] def createChangeRequest(
-      diff   : ChangeRequestNodeGroupDiff
-    , change : NodeGroupChangeRequest
-    , params : DefaultParams
-    , actor  : EventActor
+      diff:   ChangeRequestNodeGroupDiff,
+      change: NodeGroupChangeRequest,
+      params: DefaultParams,
+      actor:  EventActor
   ) = {
     for {
-      workflow  <- workflowLevelService.getForNodeGroup(actor, change)
-      cr        =  ChangeRequestService.createChangeRequestFromNodeGroup(
-                      params.changeRequestName.getOrElse(s"${change.action.name} group '${change.newGroup.name}' from API")
-                    , params.changeRequestDescription.getOrElse("")
-                    , change.newGroup
-                    , change.previousGroup
-                    , diff
-                    , actor
-                    , params.reason
+      workflow <- workflowLevelService.getForNodeGroup(actor, change)
+      cr        = ChangeRequestService.createChangeRequestFromNodeGroup(
+                    params.changeRequestName.getOrElse(s"${change.action.name} group '${change.newGroup.name}' from API"),
+                    params.changeRequestDescription.getOrElse(""),
+                    change.newGroup,
+                    change.previousGroup,
+                    diff,
+                    actor,
+                    params.reason
                   )
-      id        <- workflow.startWorkflow(cr, actor, None)
+      id       <- workflow.startWorkflow(cr, actor, None)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
       JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory().id), optCrId)
@@ -881,41 +1061,59 @@ class GroupApiService14 (
   }
 
   def listGroups(): IOResult[Seq[JRGroup]] = {
-    readGroup.getGroupsByCategory(true).chainError("Could not fetch Groups").map(groups =>
-      groups.values.flatMap { case CategoryAndNodeGroup(c, gs) => gs.map(JRGroup.fromGroup(_, c.id, None)) }.toSeq.sortBy(_.id)
-    )
+    readGroup
+      .getGroupsByCategory(true)
+      .chainError("Could not fetch Groups")
+      .map(groups =>
+        groups.values.flatMap { case CategoryAndNodeGroup(c, gs) => gs.map(JRGroup.fromGroup(_, c.id, None)) }.toSeq.sortBy(_.id)
+      )
   }
 
-  def createGroup(restGroup: JQGroup, nodeGroupId: NodeGroupId, clone: Option[NodeGroupId], params: DefaultParams, actor: EventActor) = {
+  def createGroup(
+      restGroup:   JQGroup,
+      nodeGroupId: NodeGroupId,
+      clone:       Option[NodeGroupId],
+      params:      DefaultParams,
+      actor:       EventActor
+  ) = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       val modId = ModificationId(uuidGen.newUuid)
-      ( for {
+      (for {
         rootCat  <- readGroup.getRootCategoryPure()
-        cat      =  change.category.getOrElse(rootCat.id)
+        cat       = change.category.getOrElse(rootCat.id)
         saveDiff <- writeGroup.create(change.newGroup, cat, modId, actor, params.reason)
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
         }
         JRGroup.fromGroup(saveDiff.group, cat, None)
-      } ).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.value}).")
+      }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.value}).")
     }
 
     // decide if we should create a new group or clone an existing one
     // Return the source group to use in each case.
-    def createOrClone(restGroup: JQGroup, groupId: NodeGroupId, name: String, clone: Option[NodeGroupId], params: DefaultParams, actor: EventActor): IOResult[NodeGroupChangeRequest] = {
+    def createOrClone(
+        restGroup: JQGroup,
+        groupId:   NodeGroupId,
+        name:      String,
+        clone:     Option[NodeGroupId],
+        params:    DefaultParams,
+        actor:     EventActor
+    ): IOResult[NodeGroupChangeRequest] = {
       clone match {
         case Some(sourceId) =>
           // clone existing group
           for {
-            pair    <- readGroup.getNodeGroup(sourceId).chainError(s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')")
-            id      =  NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
+            pair    <- readGroup
+                         .getNodeGroup(sourceId)
+                         .chainError(s"Could not create group '${name}' (id:${groupId.value}) by cloning group '${sourceId.value}')")
+            id       = NodeGroupId(restGroup.id.getOrElse(uuidGen.newUuid))
             updated <- restGroup.updateGroup(pair._1, queryParser).toIO
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
             val category = restGroup.category.orElse(Some(pair._2))
-            val withId = updated.copy(id = id)
+            val withId   = updated.copy(id = id)
             NodeGroupChangeRequest(DGModAction.CreateSolo, withId, category, Some(pair._1))
           }
 
@@ -923,7 +1121,7 @@ class GroupApiService14 (
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup = NodeGroup(groupId,name,"", Nil,None,true,Set(), defaultEnabled)
+          val baseGroup      = NodeGroup(groupId, name, "", Nil, None, true, Set(), defaultEnabled)
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -936,8 +1134,11 @@ class GroupApiService14 (
            */
           for {
             updated  <- restGroup.updateGroup(baseGroup, queryParser).toIO
-            change   =  NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
-            workflow <- workflowLevelService.getForNodeGroup(actor, change).toIO.chainError("Could not find workflow status for that rule creation")
+            change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
+            workflow <- workflowLevelService
+                          .getForNodeGroup(actor, change)
+                          .toIO
+                          .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the group if a workflow should be
             // started. Update rule "enable" status accordingly.
@@ -954,29 +1155,35 @@ class GroupApiService14 (
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {
       created
-    }).chainError(s"Error when creating new group" )
+    }).chainError(s"Error when creating new group")
   }
 
   def groupDetails(id: NodeGroupId): IOResult[JRGroup] = {
-    readGroup.getNodeGroup(id).map { case (g, c) =>
-      JRGroup.fromGroup(g, c, None)
+    readGroup.getNodeGroup(id).map {
+      case (g, c) =>
+        JRGroup.fromGroup(g, c, None)
     }
   }
 
-  def reloadGroup(id:String, params: DefaultParams, actor: EventActor): IOResult[JRGroup] = {
-    readGroup.getNodeGroup(NodeGroupId(id)).flatMap { case (group, cat) =>
-      group.query match {
-        case Some(query) =>
-          queryProcessor.processOnlyId(query).toIO.flatMap { nodeIds =>
-            val updatedGroup = group.copy(serverList = nodeIds.toSet)
-            val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
-            val change = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
-            createChangeRequest(reloadGroupDiff, change, params, actor).toIO
-          }.chainError(s"Could not reload Group ${id} details")
+  def reloadGroup(id: String, params: DefaultParams, actor: EventActor): IOResult[JRGroup] = {
+    readGroup.getNodeGroup(NodeGroupId(id)).flatMap {
+      case (group, cat) =>
+        group.query match {
+          case Some(query) =>
+            queryProcessor
+              .processOnlyId(query)
+              .toIO
+              .flatMap { nodeIds =>
+                val updatedGroup    = group.copy(serverList = nodeIds.toSet)
+                val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
+                val change          = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
+                createChangeRequest(reloadGroupDiff, change, params, actor).toIO
+              }
+              .chainError(s"Could not reload Group ${id} details")
 
-        case None =>
-          JRGroup.fromGroup(group, cat, None).succeed
-      }
+          case None =>
+            JRGroup.fromGroup(group, cat, None).succeed
+        }
     }
   }
 
@@ -984,7 +1191,7 @@ class GroupApiService14 (
     readGroup.getNodeGroupOpt(id).flatMap {
       case Some((group, cat)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        val change = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
+        val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
         createChangeRequest(deleteGroupDiff, change, params, actor).toIO
 
       case None =>
@@ -997,10 +1204,10 @@ class GroupApiService14 (
       id      <- restGroup.id.notOptional(s"You must specify the ID of the group that you want to update")
       pair    <- readGroup.getNodeGroup(NodeGroupId(id))
       updated <- restGroup.updateGroup(pair._1, queryParser).toIO
-      diff    =  ModifyToNodeGroupDiff(updated)
-      optCat  =  restGroup.category.orElse(Some(pair._2))
-      change  =  NodeGroupChangeRequest(DGModAction.Update, updated, optCat, Some(pair._1))
-      res     <- createChangeRequest( diff, change, params, actor).toIO
+      diff     = ModifyToNodeGroupDiff(updated)
+      optCat   = restGroup.category.orElse(Some(pair._2))
+      change   = NodeGroupChangeRequest(DGModAction.Update, updated, optCat, Some(pair._1))
+      res     <- createChangeRequest(diff, change, params, actor).toIO
     } yield {
       res
     }
@@ -1008,13 +1215,13 @@ class GroupApiService14 (
 
   def getCategoryTree(apiVersion: ApiVersion) = {
     for {
-        root <- readGroup.getFullGroupLibrary().toBox
+      root <- readGroup.getFullGroupLibrary().toBox
     } yield {
       restDataSerializer.serializeGroupCategory(root, root.id, FullDetails, apiVersion)
     }
   }
 
-  def getCategoryDetails(id : NodeGroupCategoryId, apiVersion: ApiVersion) = {
+  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion) = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1024,7 +1231,10 @@ class GroupApiService14 (
     }
   }
 
-  def deleteCategory(id : NodeGroupCategoryId, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def deleteCategory(
+      id:         NodeGroupCategoryId,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1035,26 +1245,34 @@ class GroupApiService14 (
     }
   }
 
-  def updateCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def updateCategory(
+      id:         NodeGroupCategoryId,
+      restData:   RestGroupCategory,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
-      parent    =  restData.parent.getOrElse(oldParent.id)
-      update    =  restData.update(category)
-      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason).toBox
+      parent     = restData.parent.getOrElse(oldParent.id)
+      update     = restData.update(category)
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
   }
 
   // defaultId: the id to use if restDateDidn't provide one
-  def createCategory(defaultId : () => NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(
+      defaultId:  () => NodeGroupCategoryId,
+      restData:   RestGroupCategory,
+      apiVersion: ApiVersion
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
     for {
-      update   <- restData.create(defaultId)
-      category =  update.toNodeGroupCategory
-      parent   =  restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _        <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
+      update  <- restData.create(defaultId)
+      category = update.toNodeGroupCategory
+      parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
+      _       <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
@@ -1062,7 +1280,10 @@ class GroupApiService14 (
   /*
    * the returned format is a list of properties:
    */
-  def getNodePropertiesTree(groupId: NodeGroupId, renderInHtml: RenderInheritedProperties): IOResult[JRGroupInheritedProperties] = {
+  def getNodePropertiesTree(
+      groupId:      NodeGroupId,
+      renderInHtml: RenderInheritedProperties
+  ): IOResult[JRGroupInheritedProperties] = {
     for {
       allGroups  <- readGroup.getFullGroupLibrary().map(_.allGroups)
       params     <- paramRepo.getAllGlobalParameters()

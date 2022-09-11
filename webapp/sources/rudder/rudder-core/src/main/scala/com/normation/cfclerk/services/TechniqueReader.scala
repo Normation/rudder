@@ -1,70 +1,67 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain._
-import java.io.InputStream
-
 import com.normation.errors.IOResult
-
+import java.io.InputStream
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable.{Map => MutMap}
 
-
 final case class TechniquesInfo(
-    rootCategory          : RootTechniqueCategory
-  , gitRev                : String
-    //the TechniqueCategoryId is a path from the point of view of a tree
-  , techniquesCategory    : Map[TechniqueId, TechniqueCategoryId]
-  , techniques            : Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
-    //head of categories is the root category
-  , subCategories         : Map[SubTechniqueCategoryId, TechniqueCategory]
-  , directivesDefaultNames: Map[String, String]
+    rootCategory: RootTechniqueCategory,
+    gitRev:       String, // the TechniqueCategoryId is a path from the point of view of a tree
+
+    techniquesCategory: Map[TechniqueId, TechniqueCategoryId],
+    techniques:         Map[TechniqueName, SortedMap[TechniqueVersion, Technique]], // head of categories is the root category
+
+    subCategories:          Map[SubTechniqueCategoryId, TechniqueCategory],
+    directivesDefaultNames: Map[String, String]
 ) {
   val allCategories = Map[TechniqueCategoryId, TechniqueCategory]() ++ subCategories + (rootCategory.id -> rootCategory)
 }
 
 //a mutable version of TechniquesInfo, for internal use only !
 private[services] class InternalTechniquesInfo(
-    var rootCategory: Option[RootTechniqueCategory] = None
-  , val techniquesCategory: MutMap[TechniqueId, TechniqueCategoryId] = MutMap()
-  , val techniques: MutMap[TechniqueName, MutMap[TechniqueVersion, Technique]] = MutMap()
-  , val subCategories: MutMap[SubTechniqueCategoryId, SubTechniqueCategory] = MutMap()
+    var rootCategory:       Option[RootTechniqueCategory] = None,
+    val techniquesCategory: MutMap[TechniqueId, TechniqueCategoryId] = MutMap(),
+    val techniques:         MutMap[TechniqueName, MutMap[TechniqueVersion, Technique]] = MutMap(),
+    val subCategories:      MutMap[SubTechniqueCategoryId, SubTechniqueCategory] = MutMap()
 )
 
 /**
@@ -96,8 +93,7 @@ trait TechniqueReader {
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getMetadataContent[T](techniqueId: TechniqueId)(useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
-
+  def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]
 
   /**
    * Read the content of a resource, if the resources is known by that
@@ -114,7 +110,9 @@ trait TechniqueReader {
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String]) (useIt : Option[InputStream] => IOResult[T]) : IOResult[T]
+  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(
+      useIt:                                     Option[InputStream] => IOResult[T]
+  ): IOResult[T]
 
   /**
    * An indicator that the underlying policy template library changed and that the content
@@ -122,8 +120,7 @@ trait TechniqueReader {
    * If the sequence is empty, then nothing changed. Else, the list of Technique with
    * *any* change will be given
    */
-  def getModifiedTechniques : Map[TechniqueName, TechniquesLibraryUpdateType]
+  def getModifiedTechniques: Map[TechniqueName, TechniquesLibraryUpdateType]
 
-  def needReload() : Boolean
+  def needReload(): Boolean
 }
-

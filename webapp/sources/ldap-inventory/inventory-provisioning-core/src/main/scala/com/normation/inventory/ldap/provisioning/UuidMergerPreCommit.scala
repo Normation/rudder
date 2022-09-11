@@ -1,47 +1,46 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.ldap.provisioning
 
-
-import com.normation.errors.Chained
-import com.normation.inventory.domain.Inventory
 import com.normation.errors._
+import com.normation.errors.Chained
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.Inventory
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
@@ -63,11 +62,11 @@ object UuidMergerPreCommit {
  *
  */
 class UuidMergerPreCommit(
-    uuidGen         : StringUuidGenerator
-  , DIT             : InventoryDit
-  , serverIdFinder  : NodeInventoryDNFinderAction
-  , vmIdFinder      : MachineDNFinderAction
-  , softwareIdFinder: SoftwareDNFinderAction
+    uuidGen:          StringUuidGenerator,
+    DIT:              InventoryDit,
+    serverIdFinder:   NodeInventoryDNFinderAction,
+    vmIdFinder:       MachineDNFinderAction,
+    softwareIdFinder: SoftwareDNFinderAction
 ) extends PreCommit {
 
   override val name = "pre_commit_inventory:merge_uuid"
@@ -87,20 +86,18 @@ class UuidMergerPreCommit(
    *
    * @return The actually saved inventory, or a failure if one happened
    */
-  override def apply(inventory: Inventory) : IOResult[Inventory] = {
-
+  override def apply(inventory: Inventory): IOResult[Inventory] = {
 
     ///////
     ////// we don't want to add anything about a inventory if any of the merging part fails /////
     //////
 
-
     for {
-      //check some size matching
-       _ <- ZIO.when(inventory.node.softwareIds.toSet != inventory.applications.map( _.id ).toSet) {
-              val msg = "Inconsistant inventory. Server#softwareIds does not match list of application in the inventory"
-              InventoryProcessingLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
-            }
+      // check some size matching
+      _               <- ZIO.when(inventory.node.softwareIds.toSet != inventory.applications.map(_.id).toSet) {
+                           val msg = "Inconsistant inventory. Server#softwareIds does not match list of application in the inventory"
+                           InventoryProcessingLogger.error(msg) *> InventoryError.Inconsistency(msg).fail
+                         }
       /*
        * Software are special. They are legions. And they are really simple.
        * So, if one merge works, we assume that the software is the same
@@ -108,80 +105,90 @@ class UuidMergerPreCommit(
        * from the values in server
        *
        */
-       mergedSoftwares <- softwareIdFinder.tryWith(inventory.applications.toSet).mapError(e =>
-                            Chained("Error when trying to find existing software UUIDs", e)
-                          )
-    //update node's soft ids
-      node = inventory.node.copy(
-                softwareIds = (mergedSoftwares.alreadySavedSoftware.map( _.id ) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
-              )
+      mergedSoftwares <- softwareIdFinder
+                           .tryWith(inventory.applications.toSet)
+                           .mapError(e => Chained("Error when trying to find existing software UUIDs", e))
+      // update node's soft ids
+      node             = inventory.node.copy(
+                           softwareIds = (mergedSoftwares.alreadySavedSoftware.map(_.id) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
+                         )
 
-    /*
-     * Don't forget to update:
-     * - server's software if one or more softwareId changed ;
-     * - server's vms is one or more vms id changed
-     */
-    vms <- ZIO.foreach(inventory.vms)(vm => mergeVm(vm)).catchAll(e =>
-             InventoryProcessingLogger.error(s"Error when merging vm. Reported message was: ${e.fullMsg}") *> e.fail
-           )
-    /*
-     * We always want the node and machine to have the same status.
-     * Also, we ALWAYS derive machine ID from nodeId. So we only check
-     * if the nodeId is present to find the correct status.
-     */
+      /*
+       * Don't forget to update:
+       * - server's software if one or more softwareId changed ;
+       * - server's vms is one or more vms id changed
+       */
+      vms             <-
+        ZIO
+          .foreach(inventory.vms)(vm => mergeVm(vm))
+          .catchAll(e => InventoryProcessingLogger.error(s"Error when merging vm. Reported message was: ${e.fullMsg}") *> e.fail)
+      /*
+       * We always want the node and machine to have the same status.
+       * Also, we ALWAYS derive machine ID from nodeId. So we only check
+       * if the nodeId is present to find the correct status.
+       */
 
-    finalNodeMachine <- mergeNode(node).foldM(
-      err => InventoryProcessingLogger.error(s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving") *> err.fail
-      , optNode => optNode match {
-          case None =>
-            // New node, save machine and node in reporting
-            node.copyWithMain(m => m.copy(status = PendingInventory)).succeed
-          case Some(n) =>
-            // Existing Node, save the machine with a new id in the same status than node
-            n.succeed
-      }).map { nodeWithStatus =>
+      finalNodeMachine <- mergeNode(node)
+                            .foldM(
+                              err =>
+                                InventoryProcessingLogger.error(
+                                  s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving"
+                                ) *> err.fail,
+                              optNode => {
+                                optNode match {
+                                  case None    =>
+                                    // New node, save machine and node in reporting
+                                    node.copyWithMain(m => m.copy(status = PendingInventory)).succeed
+                                  case Some(n) =>
+                                    // Existing Node, save the machine with a new id in the same status than node
+                                    n.succeed
+                                }
+                              }
+                            )
+                            .map { nodeWithStatus =>
+                              // now, set the correct machineId and status for machine
+                              val newMachineId = MachineUuid(IdGenerator.md5Hash(nodeWithStatus.main.id.value))
+                              val newMachine   = inventory.machine.copy(id = newMachineId, status = nodeWithStatus.main.status)
+                              val newNode      = nodeWithStatus.copy(machineId = Some((newMachineId, nodeWithStatus.main.status)))
 
-        // now, set the correct machineId and status for machine
-        val newMachineId = MachineUuid(IdGenerator.md5Hash(nodeWithStatus.main.id.value))
-        val newMachine   = inventory.machine.copy(id = newMachineId, status = nodeWithStatus.main.status)
-        val newNode      = nodeWithStatus.copy(machineId = Some((newMachineId, nodeWithStatus.main.status)))
-
-        (newNode, newMachine)
-      }
+                              (newNode, newMachine)
+                            }
     } yield {
 
-      //ok, build the merged inventory
+      // ok, build the merged inventory
       Inventory(
-          inventory.name
-        , inventory.inventoryAgentDevideId
-        , finalNodeMachine._1
-        , finalNodeMachine._2
-        , inventory.version
-        , vms.flatten
-        //no need to put again already saved softwares
-        , mergedSoftwares.newSoftware.toSeq
-        , inventory.sourceFile
+        inventory.name,
+        inventory.inventoryAgentDevideId,
+        finalNodeMachine._1,
+        finalNodeMachine._2,
+        inventory.version,
+        vms.flatten, // no need to put again already saved softwares
+
+        mergedSoftwares.newSoftware.toSeq,
+        inventory.sourceFile
       )
     }
   }
 
-  protected def mergeVm(machine:MachineInventory) : IOResult[Option[MachineInventory]] = {
+  protected def mergeVm(machine: MachineInventory): IOResult[Option[MachineInventory]] = {
     for {
       opt <- vmIdFinder.tryWith(machine)
     } yield {
-      opt.map { case (uuid, status) =>
-        machine.copy(id = uuid, status = status)
+      opt.map {
+        case (uuid, status) =>
+          machine.copy(id = uuid, status = status)
       }
     }
   }
 
-  protected def mergeNode(node:NodeInventory) : IOResult[Option[NodeInventory]] = {
+  protected def mergeNode(node: NodeInventory): IOResult[Option[NodeInventory]] = {
     for {
       opt <- serverIdFinder.tryWith(node)
     } yield {
-      opt.map { case (uuid,status) =>
-        val main = node.main
-        node.copy( main = main.copy(id = uuid, status = status) )
+      opt.map {
+        case (uuid, status) =>
+          val main = node.main
+          node.copy(main = main.copy(id = uuid, status = status))
       }
     }
   }

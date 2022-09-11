@@ -1,53 +1,59 @@
 package com.normation.rudder.services.marshalling
 
-
-import com.normation.cfclerk.domain.{TechniqueName, TechniqueVersionHelper}
-import com.normation.cfclerk.xmlparsers.{SectionSpecParser, VariableSpecParser}
-import com.normation.rudder.domain.policies.{Directive, DirectiveId, DirectiveUid, SectionVal, Tags}
+import com.normation.BoxSpecMatcher
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.cfclerk.xmlparsers.VariableSpecParser
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.rudder.services.queries.{CmdbQueryParser, DefaultStringQueryParser, JsonQueryLexer}
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.queries.DefaultStringQueryParser
+import com.normation.rudder.services.queries.JsonQueryLexer
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import com.normation.BoxSpecMatcher
-import net.liftweb.common.{Empty, Failure, Full}
-
-
 
 /*
  * Test the cache behaviour
  */
 @RunWith(classOf[JUnitRunner])
-class TestXmlUnserialisation extends Specification  with BoxSpecMatcher  {
+class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
-  val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+  val queryParser                      = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]()
   }
-  val directiveUnserialisation = new DirectiveUnserialisationImpl
+  val directiveUnserialisation         = new DirectiveUnserialisationImpl
   val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
-  val nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
-  val ruleUnserialisation = new RuleUnserialisationImpl
-  val ruleCategoryUnserialisation = new RuleCategoryUnserialisationImpl
-  val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
+  val nodeGroupUnserialisation         = new NodeGroupUnserialisationImpl(queryParser)
+  val ruleUnserialisation              = new RuleUnserialisationImpl
+  val ruleCategoryUnserialisation      = new RuleCategoryUnserialisationImpl
+  val globalParameterUnserialisation   = new GlobalParameterUnserialisationImpl
 
   val variableSpecParser = new VariableSpecParser
-  val sectionSpecParser = new SectionSpecParser(variableSpecParser)
-
+  val sectionSpecParser  = new SectionSpecParser(variableSpecParser)
 
   val testNodeConfiguration = new TestNodeConfiguration("")
 
   val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
-      nodeGroupUnserialisation
-    , directiveUnserialisation
-    , ruleUnserialisation
-    , globalParameterUnserialisation
-    , testNodeConfiguration.techniqueRepository
-    , sectionSpecParser
+    nodeGroupUnserialisation,
+    directiveUnserialisation,
+    ruleUnserialisation,
+    globalParameterUnserialisation,
+    testNodeConfiguration.techniqueRepository,
+    sectionSpecParser
   )
 
   val techniqueName = "TEST_Technique"
-  val directiveId = "1234567-aaaa-bbbb-cccc-ddddddddddd"
+  val directiveId   = "1234567-aaaa-bbbb-cccc-ddddddddddd"
 
   val directiveXML = <directive fileFormat="6">
     <id>{directiveId}</id>
@@ -65,17 +71,17 @@ class TestXmlUnserialisation extends Specification  with BoxSpecMatcher  {
   </directive>
 
   val directive = Directive(
-      DirectiveId(DirectiveUid(directiveId))
-    , TechniqueVersionHelper("1.0")
-    , Map()
-    , "Test Directive name"
-    , "see my description"
-    , None
-    , ""
-    ,5
-    ,true
-    ,false
-    ,Tags(Set())
+    DirectiveId(DirectiveUid(directiveId)),
+    TechniqueVersionHelper("1.0"),
+    Map(),
+    "Test Directive name",
+    "see my description",
+    None,
+    "",
+    5,
+    true,
+    false,
+    Tags(Set())
   )
 
   "when unserializing, we" should {
@@ -84,7 +90,7 @@ class TestXmlUnserialisation extends Specification  with BoxSpecMatcher  {
 
       val expected = (TechniqueName(techniqueName), directive, SectionVal(Map(), Map()))
 
-      unserialized mustFullEq(expected)
+      unserialized mustFullEq (expected)
     }
 
     "be able to correctly unserialize a change request" in {
@@ -111,16 +117,13 @@ class TestXmlUnserialisation extends Specification  with BoxSpecMatcher  {
         <globalParameters/>
       </changeRequest>
 
-
       changeRequestChangesUnserialisation.unserialise(change) match {
         case f: Failure =>
           val msg = s"I wasn't expecting the failure: ${f.messageChain}"
-          f.rootExceptionCause.foreach { ex =>
-            ex.printStackTrace()
-          }
+          f.rootExceptionCause.foreach(ex => ex.printStackTrace())
           ko(msg)
-        case Empty      => ko(s"Unexpected Empty!")
-        case Full(_)    => ok("unserialization was a success")
+        case Empty => ko(s"Unexpected Empty!")
+        case Full(_) => ok("unserialization was a success")
       }
     }
   }

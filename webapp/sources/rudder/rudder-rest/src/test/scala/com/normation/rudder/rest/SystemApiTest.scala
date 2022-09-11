@@ -1,90 +1,94 @@
 /*
-*************************************************************************************
-* Copyright 2018 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2018 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.rest
 
+import com.github.ghik.silencer.silent
+import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.v1.RestStatus
-
-import com.github.ghik.silencer.silent
-import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{InMemoryResponse, Req}
-import net.liftweb.json.JsonAST.{JArray, JField, JObject}
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.InMemoryResponse
+import net.liftweb.http.JsonResponse
+import net.liftweb.http.PlainTextResponse
+import net.liftweb.http.Req
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JField
+import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.PlainTextResponse
 
 @silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class SystemApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
-  val restTest = new RestTest(restTestSetUp.liftRules)
+  val restTest      = new RestTest(restTestSetUp.liftRules)
 
   "testing status REST API" should {
     "be correct" in {
       restTest.testGET("/api/status") { req =>
-       RestStatus(req)() must beEqualTo(Full(PlainTextResponse(
-         """OK
-           |""".stripMargin)))
+        RestStatus(req)() must beEqualTo(Full(PlainTextResponse("""OK
+                                                                  |""".stripMargin)))
       }
     }
   }
 
-
   "Testing system API info" should {
     "match the response defined below" in {
 
-      implicit val action = "getSystemInfo"
+      implicit val action   = "getSystemInfo"
       implicit val prettify = false
 
-      val response = toJsonResponse(None, ("rudder" -> (
-          ("major-version" -> "5.0")
-        ~ ("full-version"  -> "5.0.0")
-        ~ ("build-time"    -> "some time")
-      )))
+      val response = toJsonResponse(
+        None,
+        ("rudder"           -> (
+          ("major-version"  -> "5.0")
+          ~ ("full-version" -> "5.0.0")
+          ~ ("build-time"   -> "some time")
+        ))
+      )
 
       restTest.testGET("/api/latest/system/info") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -92,11 +96,10 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-
   "Testing system API status" should {
     "match the response defined below" in {
 
-      implicit val action = "getStatus"
+      implicit val action   = "getStatus"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "global" -> "OK")
@@ -110,7 +113,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing technique reload of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "reloadTechniques"
+      implicit val action   = "reloadTechniques"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "techniques" -> "Started")
@@ -124,7 +127,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing dynamic groups reload on System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "reloadGroups"
+      implicit val action   = "reloadGroups"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "groups" -> "Started")
@@ -138,9 +141,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing dynamic groups and techniques reload of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "reloadAll"
+      implicit val action   = "reloadAll"
       implicit val prettify = false
-
 
       val response = toJsonResponse(None, List(JField("groups", "Started"), JField("techniques", "Started")))
 
@@ -153,7 +155,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing policies update of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "updatePolicies"
+      implicit val action   = "updatePolicies"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "policies" -> "Started")
@@ -167,7 +169,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing policies regenerate of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "regeneratePolicies"
+      implicit val action   = "regeneratePolicies"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "policies" -> "Started")
@@ -180,22 +182,23 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   // To test with multiple archives, declare more archive in restTestSetup
   // and add their Json representation to the archives list below.
 
-
   val dateTimeId = "1970-01-01_01-00-00.042"
 
-  val archive1 = JObject(List(
-    JField("id", "path")
-    , JField("date", "1970-01-01T010000")
-    , JField("committer", "test-user")
-    , JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
-  ))
+  val archive1 = JObject(
+    List(
+      JField("id", "path"),
+      JField("date", "1970-01-01T010000"),
+      JField("committer", "test-user"),
+      JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
+    )
+  )
 
   val archives = List(archive1)
 
   "Testing archive groups listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "listGroupsArchive"
+      implicit val action   = "listGroupsArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "groups" -> JArray(archives))
@@ -209,7 +212,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive directives of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "listDirectivesArchive"
+      implicit val action   = "listDirectivesArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "directives" -> JArray(archives))
@@ -223,7 +226,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive rules listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "listRulesArchive"
+      implicit val action   = "listRulesArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "rules" -> JArray(archives))
@@ -237,7 +240,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing full archive listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "listFullArchive"
+      implicit val action   = "listFullArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "full" -> JArray(archives))
@@ -251,7 +254,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore groups latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreGroupsLatestArchive"
+      implicit val action   = "restoreGroupsLatestArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "groups" -> "Started")
@@ -265,7 +268,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore directives latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreDirectivesLatestArchive"
+      implicit val action   = "restoreDirectivesLatestArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "directives" -> "Started")
@@ -279,7 +282,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore rules latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreRulesLatestArchive"
+      implicit val action   = "restoreRulesLatestArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "rules" -> "Started")
@@ -293,7 +296,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore full latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreFullLatestArchive"
+      implicit val action   = "restoreFullLatestArchive"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "full" -> "Started")
@@ -307,7 +310,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore groups latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreGroupsLatestCommit"
+      implicit val action   = "restoreGroupsLatestCommit"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "groups" -> "Started")
@@ -321,7 +324,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore directives latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreDirectivesLatestCommit"
+      implicit val action   = "restoreDirectivesLatestCommit"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "directives" -> "Started")
@@ -335,7 +338,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore rules latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreRulesLatestCommit"
+      implicit val action   = "restoreRulesLatestCommit"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "rules" -> "Started")
@@ -349,7 +352,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore full latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "restoreFullLatestCommit"
+      implicit val action   = "restoreFullLatestCommit"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "full" -> "Started")
@@ -360,16 +363,18 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  val archive2 = JObject(List(
-      JField("committer", "test-user")
-    , JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
-    , JField("id", "path")
-  ))
+  val archive2 = JObject(
+    List(
+      JField("committer", "test-user"),
+      JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104"),
+      JField("id", "path")
+    )
+  )
 
   "Testing archive groups of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveGroups"
+      implicit val action   = "archiveGroups"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "groups" -> archive2)
@@ -383,7 +388,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive directives of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveDirectives"
+      implicit val action   = "archiveDirectives"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "directives" -> archive2)
@@ -394,11 +399,10 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-
   "Testing archive rules of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveRules"
+      implicit val action   = "archiveRules"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "rules" -> archive2)
@@ -412,7 +416,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing all archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveAll"
+      implicit val action   = "archiveAll"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "full" -> archive2)
@@ -426,7 +430,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing group archive restore based on a date time" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveGroupDateRestore"
+      implicit val action   = "archiveGroupDateRestore"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "group" -> "Started")
@@ -440,7 +444,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing directive archive restore based on its date time" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveDirectiveDateRestore"
+      implicit val action   = "archiveDirectiveDateRestore"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "directive" -> "Started")
@@ -454,7 +458,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing rule archive restore based on its date time" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveRuleDateRestore"
+      implicit val action   = "archiveRuleDateRestore"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "rule" -> "Started")
@@ -468,7 +472,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing full archive restore based on its datetime" should {
     "match the response defined below" in {
 
-      implicit val action = "archiveFullDateRestore"
+      implicit val action   = "archiveFullDateRestore"
       implicit val prettify = false
 
       val response = toJsonResponse(None, "full" -> "Started")
@@ -481,12 +485,12 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
   /*
   **
-  *  From here is the code needed to test the zip api endpoints. It is a 4 step process :
-  *  1. Create a clone of /var/rudder/configuration-repository in the /tmp folder
-  *  2. Call the appropriate endpoint and get the archive in /tmp/resource-content
-  *  3. Unzip the archive
-  *  4. Compare the appropriate data
-  */
+   *  From here is the code needed to test the zip api endpoints. It is a 4 step process :
+   *  1. Create a clone of /var/rudder/configuration-repository in the /tmp folder
+   *  2. Call the appropriate endpoint and get the archive in /tmp/resource-content
+   *  3. Unzip the archive
+   *  4. Compare the appropriate data
+   */
 
   val refCommit = restTestSetUp.mockGitRepo.gitRepo.db.findRef("master").toString
 
@@ -497,7 +501,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   // It will be cleared at the end of the test in "afterAll"
 
   val testDir = new File("/tmp/response-content")
-  if(!testDir.exists()) {
+  if (!testDir.exists()) {
     Files.createDirectory(testDir.toPath)
   }
 
@@ -517,17 +521,20 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
     restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
 
-      case Full(resp: InMemoryResponse) =>
+      case Full(resp: InMemoryResponse)                     =>
         FileUtils.writeByteArrayToFile(new File("/tmp/response-content/response-archive.zip"), resp.data)
         val zip = new ZipFile("/tmp/response-content/response-archive.zip")
         ZipUtils.unzip(zip, testDir)
         def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
-        testDir must org.specs2.matcher.ContentMatchers.haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
+        testDir must org.specs2.matcher.ContentMatchers
+          .haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
           .withFilter(filterGeneratedFile _)
       case Full(JsonResponse(json, headers, cookies, code)) =>
         (code must beEqualTo(500)) and
-        (json.toJsCmd must beMatching(".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"))
-      case _ => ko
+        (json.toJsCmd must beMatching(
+          ".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"
+        ))
+      case _                                                => ko
     }
   }
 
@@ -538,16 +545,17 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
       val matcher = {
         val l = List(
-            new File(configRootPath + "/directives")
-          , new File(configRootPath + "/parameters")
-          , new File(configRootPath + "/techniques")
-          , new File(configRootPath + "/ncf")
+          new File(configRootPath + "/directives"),
+          new File(configRootPath + "/parameters"),
+          new File(configRootPath + "/techniques"),
+          new File(configRootPath + "/ncf")
         )
         l.filter(_.exists())
       }
 
-      restTest.testGET(s"/api/latest/system/archives/directives/zip/$commitId")
-      { req => contentArchiveDiff(req, matcher, "getDirectivesZipArchive") }
+      restTest.testGET(s"/api/latest/system/archives/directives/zip/$commitId") { req =>
+        contentArchiveDiff(req, matcher, "getDirectivesZipArchive")
+      }
     }
   }
 
@@ -556,8 +564,9 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
       val matcher = List(new File(configRootPath + "/groups"))
 
-      restTest.testGET(s"/api/latest/system/archives/groups/zip/$commitId")
-      { req => contentArchiveDiff(req, matcher, "getGroupsZipArchive") }
+      restTest.testGET(s"/api/latest/system/archives/groups/zip/$commitId") { req =>
+        contentArchiveDiff(req, matcher, "getGroupsZipArchive")
+      }
     }
   }
 
@@ -566,8 +575,9 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
       val matcher = List(new File(configRootPath + "/rules"), new File(configRootPath + "/ruleCategories"))
 
-      restTest.testGET(s"/api/latest/system/archives/rules/zip/$commitId")
-      { req => contentArchiveDiff(req, matcher, "getRulesZipArchive") }
+      restTest.testGET(s"/api/latest/system/archives/rules/zip/$commitId") { req =>
+        contentArchiveDiff(req, matcher, "getRulesZipArchive")
+      }
     }
   }
 
@@ -575,19 +585,20 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     "satisfy the matcher defined below" in {
 
       val matcher = {
-        val l =  List(
-            new File(configRootPath + "/directives")
-          , new File(configRootPath + "/groups")
-          , new File(configRootPath + "/parameters")
-          , new File(configRootPath + "/ruleCategories")
-          , new File(configRootPath + "/rules")
-          , new File(configRootPath + "/techniques")
+        val l = List(
+          new File(configRootPath + "/directives"),
+          new File(configRootPath + "/groups"),
+          new File(configRootPath + "/parameters"),
+          new File(configRootPath + "/ruleCategories"),
+          new File(configRootPath + "/rules"),
+          new File(configRootPath + "/techniques")
         )
         l.filter(_.exists())
       }
 
-      restTest.testGET(s"/api/latest/system/archives/full/zip/$commitId")
-      { req => contentArchiveDiff(req, matcher, "getAllZipArchive") }
+      restTest.testGET(s"/api/latest/system/archives/full/zip/$commitId") { req =>
+        contentArchiveDiff(req, matcher, "getAllZipArchive")
+      }
     }
   }
 

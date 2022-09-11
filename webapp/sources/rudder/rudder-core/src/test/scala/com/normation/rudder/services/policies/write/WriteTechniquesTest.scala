@@ -1,83 +1,83 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.policies.write
 
-import org.specs2.runner.JUnitRunner
-import org.junit.runner.RunWith
 import com.normation.BoxSpecMatcher
-import com.normation.cfclerk.domain.{TechniqueResourceId, TechniqueTemplate, Variable}
+import com.normation.GitVersion.Revision
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueResourceIdByName
+import com.normation.cfclerk.domain.TechniqueResourceIdByPath
+import com.normation.cfclerk.domain.TechniqueTemplate
+import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.policies.BoundPolicyDraft
+import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
+import com.normation.rudder.services.policies.ParameterForConfiguration
+import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
-
+import com.normation.zio._
 import java.io.File
+import java.nio.charset.StandardCharsets
 import net.liftweb.common.Loggable
+import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+import org.junit.runner.RunWith
 import org.specs2.io.FileLinesContent
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
-import com.normation.rudder.services.policies.ParameterForConfiguration
-import com.normation.rudder.services.policies.Policy
-
-import java.nio.charset.StandardCharsets
-import com.normation.GitVersion.Revision
-import com.normation.cfclerk.domain.TechniqueResourceIdByName
-import com.normation.cfclerk.domain.TechniqueResourceIdByPath
-import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.rudder.services.policies.MergePolicyService
-import com.normation.rudder.services.policies.BoundPolicyDraft
-import org.apache.commons.io.FileUtils
 import zio.syntax._
-import com.normation.zio._
-import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 
 /**
  * Details of tests executed in each instances of
@@ -86,28 +86,28 @@ import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.file
  * of that file.
  */
 class TestSystemData {
-  //make tests more similar than default rudder install
+  // make tests more similar than default rudder install
   val hookIgnore = """.swp, ~, .bak,
  .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,
  .dpkg-old, .dpkg-dist, .dpkg-new, .dpkg-tmp,
  .disable , .disabled , _disable , _disabled,
  .ucf-old , .ucf-dist , .ucf-new ,
- .rpmnew  , .rpmsave  , .rpmorig""".split(",").map( _.trim).toList
+ .rpmnew  , .rpmsave  , .rpmorig""".split(",").map(_.trim).toList
 
   //////////// init ////////////
   val data = new TestNodeConfiguration()
-  import data._
+  import this.data._
 
   val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot.getPath + "/lognodes")
 
-  lazy val agentRegister = new AgentRegister()
+  lazy val agentRegister              = new AgentRegister()
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
 
   val prepareTemplateVariable = new PrepareTemplateVariablesImpl(
-      techniqueRepository
-    , systemVariableServiceSpec
-    , new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles)
-    , agentRegister
+    techniqueRepository,
+    systemVariableServiceSpec,
+    new BuildBundleSequence(systemVariableServiceSpec, writeAllAgentSpecificFiles),
+    agentRegister
   )
 
   /*
@@ -116,30 +116,31 @@ class TestSystemData {
    */
   def getPromiseWriter(label: String) = {
 
-    //where the "/var/rudder/share" file is for tests:
-    val SHARE = abstractRoot/s"share-${label}"
+    // where the "/var/rudder/share" file is for tests:
+    val SHARE = abstractRoot / s"share-${label}"
 
-    val rootGeneratedPromisesDir = SHARE/"root"
+    val rootGeneratedPromisesDir = SHARE / "root"
 
     val pathComputer = new PathComputerImpl(
-        SHARE.getParent + "/"
-      , SHARE.getName
-      , Some(abstractRoot.getAbsolutePath + "/backup")
-      , rootGeneratedPromisesDir.getAbsolutePath // community will go under our share
-      , "/" // we don't want to use entreprise agent root path
+      SHARE.getParent + "/",
+      SHARE.getName,
+      Some(abstractRoot.getAbsolutePath + "/backup"),
+      rootGeneratedPromisesDir.getAbsolutePath, // community will go under our share
+
+      "/" // we don't want to use entreprise agent root path
     )
 
     val promiseWriter = new PolicyWriterServiceImpl(
-        techniqueRepository
-      , pathComputer
-      , logNodeConfig
-      , prepareTemplateVariable
-      , new FillTemplatesService()
-      , writeAllAgentSpecificFiles
-      , "/we-don-t-want-hooks-here"
-      , hookIgnore
-      , StandardCharsets.UTF_8
-      , None
+      techniqueRepository,
+      pathComputer,
+      logNodeConfig,
+      prepareTemplateVariable,
+      new FillTemplatesService(),
+      writeAllAgentSpecificFiles,
+      "/we-don-t-want-hooks-here",
+      hookIgnore,
+      StandardCharsets.UTF_8,
+      None
     )
 
     (rootGeneratedPromisesDir, promiseWriter)
@@ -155,30 +156,37 @@ class TestSystemData {
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   def getSystemVars(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory) = {
-    systemVariableService.getSystemVariables(
-                         nodeInfo, allNodeInfos, allGroups.getTarget(nodeInfo).map(_._2).toList
-                       , globalSystemVariables, globalAgentRun, globalComplianceMode
-                     ).openOrThrowException("I should get system variable in tests")
+    systemVariableService
+      .getSystemVariables(
+        nodeInfo,
+        allNodeInfos,
+        allGroups.getTarget(nodeInfo).map(_._2).toList,
+        globalSystemVariables,
+        globalAgentRun,
+        globalComplianceMode
+      )
+      .openOrThrowException("I should get system variable in tests")
   }
 
   def policies(nodeInfo: NodeInfo, drafts: List[BoundPolicyDraft]): List[Policy] = {
-    MergePolicyService.buildPolicy(nodeInfo, globalPolicyMode, drafts).getOrElse(throw new RuntimeException("We must be able to build policies from draft in tests!"))
+    MergePolicyService
+      .buildPolicy(nodeInfo, globalPolicyMode, drafts)
+      .getOrElse(throw new RuntimeException("We must be able to build policies from draft in tests!"))
   }
 
   /// For root, we are using the same system variable and base root node config
   // the root node configuration
-  val baseRootDrafts = List(common(root.id, allNodesInfo_rootOnly))++ allRootPolicies
+  val baseRootDrafts     = List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies
   val baseRootNodeConfig = rootNodeConfig.copy(
-      policies    = policies(rootNodeConfig.nodeInfo, baseRootDrafts)
-    , nodeContext = getSystemVars(root, allNodesInfo_rootOnly, groupLib)
-    , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+    policies = policies(rootNodeConfig.nodeInfo, baseRootDrafts),
+    nodeContext = getSystemVars(root, allNodesInfo_rootOnly, groupLib),
+    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
   val cfeNodeConfig = NodeConfigData.node1NodeConfig.copy(
-      nodeInfo   = cfeNode
-    , parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+    nodeInfo = cfeNode,
+    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
-
 
   // A global list of files to ignore because variable content (like timestamp)
   // We must also ignore symlink, because they are copied as plain file by FileUtils, and that make unwanted errors
@@ -190,30 +198,29 @@ class TestSystemData {
     }
   }
 
-  //write a config
+  // write a config
 
 }
 
 //an utility class for filtering file lines given a regex,
 //used in the file content matcher
-private final case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
+final private case class RegexFileContent(regex: List[String]) extends LinesContent[File] {
   val patterns = regex.map(_.r.pattern)
 
   override def lines(f: File): Seq[String] = {
-    FileLinesContent.lines(f).filter { line => !patterns.exists { _.matcher(line).matches() } }
+    FileLinesContent.lines(f).filter(line => !patterns.exists(_.matcher(line).matches()))
   }
 
   override def name(f: File) = FileLinesContent.name(f)
 }
 
-
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
   val testSystemData = new TestSystemData()
   import testSystemData._
-  import data._
+  import testSystemData.data._
 
-   /*
+  /*
    * put regex for line you don't want to be compared for difference
    */
   def ignoreSomeLinesMatcher(regex: List[String]): LinesPairComparisonMatcher[File, File] = {
@@ -222,7 +229,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
 
   //////////// set-up auto test cleaning ////////////
   override def afterAll(): Unit = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
+    if (System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + data.abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(abstractRoot)
     }
@@ -230,13 +237,15 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
 
   //////////// end set-up ////////////
 
-  //utility to assert the content of a resource equals some string
+  // utility to assert the content of a resource equals some string
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
-    val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
-    reader.getResourceContent(id, ext) {
+    val ext = if (isTemplate) Some(TechniqueTemplate.templateExtension) else None
+    reader
+      .getResourceContent(id, ext) {
         case None     => ko("Can not open an InputStream for " + id.displayPath).succeed
         case Some(is) => (IOUtils.toString(is, StandardCharsets.UTF_8) === expectedContent).succeed
-      }.runNow
+      }
+      .runNow
   }
 
   def compareWith(path: File, expectedPath: String, ignoreRegex: List[String] = Nil) = {
@@ -244,28 +253,33 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
      * And compare them with expected, modulo the configId and the name
      * of the (temp) directory where we wrote them
      */
-    path must haveSameFilesAs(EXPECTED_SHARE/expectedPath)
-      .withFilter ( filterGeneratedFile _ )
-      .withMatcher(ignoreSomeLinesMatcher(
-           """.*rudder_node_config_id" string => .*"""
-        :: """.*string => "/.*/configuration-repository.*"""
-        :: """.*/test-rudder-config-repo-.*""" //config repos path with timestamp
-        :: ignoreRegex
-      ))
+    path must haveSameFilesAs(EXPECTED_SHARE / expectedPath)
+      .withFilter(filterGeneratedFile _)
+      .withMatcher(
+        ignoreSomeLinesMatcher(
+          """.*rudder_node_config_id" string => .*"""
+          :: """.*string => "/.*/configuration-repository.*"""
+          :: """.*/test-rudder-config-repo-.*""" // config repos path with timestamp
+          :: ignoreRegex
+        )
+      )
   }
 
 }
 
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniquesTest extends TechniquesTest{
+class WriteSystemTechniquesTest extends TechniquesTest {
   import testSystemData._
-  import data._
+  import testSystemData.data._
 
-  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
 
   // uncomment to have timing information
-  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.INFO)
-  //org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  org.slf4j.LoggerFactory
+    .getLogger("policy.generation")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.INFO)
+  // org.slf4j.LoggerFactory.getLogger("policy.generation.timing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
 
@@ -273,7 +287,7 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
   "The test configuration-repository" should {
     "exists, and have a techniques/system sub-dir" in {
-      val promiseFile = configurationRepositoryRoot/"techniques/system/common/1.0/promises.st"
+      val promiseFile = configurationRepositoryRoot / "techniques/system/common/1.0/promises.st"
       promiseFile.exists === true
     }
   }
@@ -281,13 +295,22 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   "A root node, with no node connected" should {
     def writeNodeConfigWithUserDirectives(promiseWriter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
-          policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
-          //testing escape of "
-        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
-     )
+        policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
+
+        parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+      )
 
       // Actually write the promise files for the root node
-      promiseWriter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc),  Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism)
+      promiseWriter.writeTemplate(
+        root.id,
+        Set(root.id),
+        Map(root.id -> rnc),
+        Map(root.id -> rnc.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
+      )
     }
 
     "correctly write the expected policies files with default installation" in {
@@ -301,14 +324,17 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       def addCrap(path: String): Unit = {
         val f = better.files.File(path)
         f.parent.createDirectories()
-        f.append("some text that should be overwritten during generation").append(
-          //this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
-          """
-            |"common-root","audit","merged","false","common","1.0","true","Common"
-            |"root-distributePolicy","audit","merged","false","distributePolicy","1.0","true","Distribute Policy"
-            |"inventory-all","audit","merged","false","inventory","1.0","true","Inventory"
-            |"server-roles-directive","audit","merged","false","server-roles","1.0","true","Server Roles"
-            |""".stripMargin).appendLines("some more crap")
+        f.append("some text that should be overwritten during generation")
+          .append(
+            // this need to be longer than at least one file, else it's overwritten enterly without exposing the pb
+            """
+              |"common-root","audit","merged","false","common","1.0","true","Common"
+              |"root-distributePolicy","audit","merged","false","distributePolicy","1.0","true","Distribute Policy"
+              |"inventory-all","audit","merged","false","inventory","1.0","true","Inventory"
+              |"server-roles-directive","audit","merged","false","server-roles","1.0","true","Server Roles"
+              |""".stripMargin
+          )
+          .appendLines("some more crap")
       }
 
       val (rootPath, writer) = getPromiseWriter("root-default-install-crap")
@@ -319,13 +345,17 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       val newPolicies = new File(rootPath.getParentFile, "root.new")
       newPolicies.mkdirs()
 
-      List("promises.cf", filepaths.SYSTEM_VARIABLE_JSON, filepaths.DIRECTIVE_RUN_CSV, filepaths.ROOT_SERVER_CERT, filepaths.POLICY_SERVER_CERT).foreach(s =>
-        addCrap(newPolicies.getAbsolutePath +"/" + s)
-      )
+      List(
+        "promises.cf",
+        filepaths.SYSTEM_VARIABLE_JSON,
+        filepaths.DIRECTIVE_RUN_CSV,
+        filepaths.ROOT_SERVER_CERT,
+        filepaths.POLICY_SERVER_CERT
+      ).foreach(s => addCrap(newPolicies.getAbsolutePath + "/" + s))
 
       val inventory = new File(newPolicies, "inventory/1.0")
       inventory.mkdirs()
-      addCrap(inventory.getAbsolutePath+"/test-inventory.pl")
+      addCrap(inventory.getAbsolutePath + "/test-inventory.pl")
 
       (writeNodeConfigWithUserDirectives(writer) mustFull) and
       compareWith(rootPath, "root-default-install")
@@ -334,9 +364,11 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly write the expected policies files when 2 directives configured" in {
       val (rootPath, writer) = getPromiseWriter("root-with-two-directives")
       (writeNodeConfigWithUserDirectives(writer, clock, rpm) mustFull) and
-      compareWith(rootPath, "root-with-two-directives",
-           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
-        :: """.*add:default:==:.*"""                               //rpm reports
+      compareWith(
+        rootPath,
+        "root-with-two-directives",
+        """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
+        :: """.*add:default:==:.*"""                           // rpm reports
         :: Nil
       )
     }
@@ -344,9 +376,11 @@ class WriteSystemTechniquesTest extends TechniquesTest{
     "correctly write the expected policies files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
       val (rootPath, writer) = getPromiseWriter("root-with-one-multipolicy")
       (writeNodeConfigWithUserDirectives(writer, fileTemplate1, fileTemplate2, fileTemplate3) mustFull) and
-      compareWith(rootPath, "root-with-one-multipolicy",
-           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
-        :: """.*add:default:==:.*"""                               //rpm reports
+      compareWith(
+        rootPath,
+        "root-with-one-multipolicy",
+        """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
+        :: """.*add:default:==:.*"""                           // rpm reports
         :: Nil
       )
     }
@@ -357,16 +391,22 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
     def getRootNodeConfig(groupLib: FullNodeGroupCategory) = {
       // system variables for root
-      val systemVariables = systemVariableService.getSystemVariables(
-          root, allNodesInfo_rootOnly, groupLib.getTarget(root).map(_._2).toList
-        , globalSystemVariables, globalAgentRun, globalComplianceMode
-      ).openOrThrowException("I should get system variable in tests")
+      val systemVariables = systemVariableService
+        .getSystemVariables(
+          root,
+          allNodesInfo_rootOnly,
+          groupLib.getTarget(root).map(_._2).toList,
+          globalSystemVariables,
+          globalAgentRun,
+          globalComplianceMode
+        )
+        .openOrThrowException("I should get system variable in tests")
 
       // the root node configuration
       rootNodeConfig.copy(
-          policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_rootOnly))++ allRootPolicies)
-        , nodeContext = systemVariables
-        , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+        policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies),
+        nodeContext = systemVariables,
+        parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
       )
     }
 
@@ -374,17 +414,20 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       val (rootPath, writer) = getPromiseWriter("group-1")
 
       // Actually write the promise files for the root node
-      writer.writeTemplate(
-          root.id
-        , Set(root.id)
-        , Map(root.id -> getRootNodeConfig(emptyGroupLib))
-        , Map(root.id -> getRootNodeConfig(emptyGroupLib).nodeInfo)
-        , Map(root.id -> NodeConfigId("root-cfg-id"))
-        , globalPolicyMode
-        , DateTime.now, parallelism
-      ).openOrThrowException("Can not write template!")
+      writer
+        .writeTemplate(
+          root.id,
+          Set(root.id),
+          Map(root.id -> getRootNodeConfig(emptyGroupLib)),
+          Map(root.id -> getRootNodeConfig(emptyGroupLib).nodeInfo),
+          Map(root.id -> NodeConfigId("root-cfg-id")),
+          globalPolicyMode,
+          DateTime.now,
+          parallelism
+        )
+        .openOrThrowException("Can not write template!")
 
-      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
+      rootPath / "common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE / "test-rudder-groups/no-group.cf")
     }
 
     "correctly write the classes and by_uuid array when groups" in {
@@ -392,49 +435,64 @@ class WriteSystemTechniquesTest extends TechniquesTest{
       // make a group lib without "all" target so that it's actually different than the full one,
       // so that we don't have false positive due to bad directory cleaning
       val groupLib2 = groupLib.copy(targetInfos = groupLib.targetInfos.take(groupLib.targetInfos.size - 1))
-      val rnc = getRootNodeConfig(groupLib2)
+      val rnc       = getRootNodeConfig(groupLib2)
 
       // Actually write the promise files for the root node
       val (rootPath, writer) = getPromiseWriter("group-2")
 
-      writer.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism).openOrThrowException("Can not write template!")
+      writer
+        .writeTemplate(
+          root.id,
+          Set(root.id),
+          Map(root.id -> rnc),
+          Map(root.id -> rnc.nodeInfo),
+          Map(root.id -> NodeConfigId("root-cfg-id")),
+          globalPolicyMode,
+          DateTime.now,
+          parallelism
+        )
+        .openOrThrowException("Can not write template!")
 
-      rootPath/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
+      rootPath / "common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE / "test-rudder-groups/some-groups.cf")
     }
   }
 
   "A CFEngine node, with two directives" should {
 
     val rnc = rootNodeConfig.copy(
-        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode))++ allRootPolicies)
-      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
+      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
-    val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
+    val p     = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
     val cfeNC = cfeNodeConfig.copy(
-        nodeInfo    = cfeNode
-      , policies    = p
-      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
-      , runHooks    = MergePolicyService.mergeRunHooks(p.filter( ! _.technique.isSystem), None, globalPolicyMode)
+      nodeInfo = cfeNode,
+      policies = p,
+      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib),
+      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
     )
 
     "correctly get the expected policy files" in {
       val (rootPath, writer) = getPromiseWriter("node-cfe-with-two-directives")
       // Actually write the promise files for the root node
-      val written = writer.writeTemplate(
-            root.id
-          , Set(root.id, cfeNode.id)
-          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-          , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
-          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , globalPolicyMode, DateTime.now, parallelism
+      val written            = writer.writeTemplate(
+        root.id,
+        Set(root.id, cfeNode.id),
+        Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
+        Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
       )
 
       (written mustFull) and
-      compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-two-directives",
-           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
-        :: """.*add:default:==:.*"""                               //rpm reports
+      compareWith(
+        rootPath.getParentFile / cfeNode.id.value,
+        "node-cfe-with-two-directives",
+        """.*rudder_common_report\("ntpConfiguration".*@@.*""" // clock reports
+        :: """.*add:default:==:.*"""                           // rpm reports
         :: Nil
       )
     }
@@ -443,41 +501,43 @@ class WriteSystemTechniquesTest extends TechniquesTest{
   "We must ensure the override semantic of generic-variable-definition" should {
 
     val rnc = rootNodeConfig.copy(
-        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode))++ allRootPolicies)
-      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
+      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
     val cfeNC = cfeNodeConfig.copy(
-        nodeInfo    = cfeNode
-      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2))
-      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+      nodeInfo = cfeNode,
+      policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
+      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
     )
 
     "correctly get the expected policy files" in {
       val (rootPath, writer) = getPromiseWriter("node-gen-var-def-override")
       // Actually write the promise files for the root node
-      val written = writer.writeTemplate(
-            root.id
-          , Set(root.id, cfeNode.id)
-          , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-          , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
-          , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id"))
-          , globalPolicyMode, DateTime.now, parallelism
+      val written            = writer.writeTemplate(
+        root.id,
+        Set(root.id, cfeNode.id),
+        Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
+        Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
       )
 
       (written mustFull) and
-      compareWith(rootPath.getParentFile/cfeNode.id.value, "node-gen-var-def-override", Nil)
+      compareWith(rootPath.getParentFile / cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
 }
 
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniques500Test extends TechniquesTest{
+class WriteSystemTechniques500Test extends TechniquesTest {
   import testSystemData._
-  import data._
+  import testSystemData.data._
 
-  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
 
   // uncomment to have timing information
 //  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.DEBUG)
@@ -494,31 +554,33 @@ class WriteSystemTechniques500Test extends TechniquesTest{
     def forceBooleanToFalse(systemVars: Map[String, Variable]) = {
       systemVars("DENYBADCLOCKS").copyWithSavedValue("false") match {
         case Right(variable) => systemVars + ("DENYBADCLOCKS" -> variable)
-        case _ => systemVars
+        case _               => systemVars
       }
     }
 
     val rnc = rootNodeConfig.copy(
-        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode))++ allRootPolicies ++ List(test18205))
-      , nodeContext = forceBooleanToFalse(getSystemVars(root, allNodesInfo_cfeNode, groupLib))
-      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      policies =
+        policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies ++ List(test18205)),
+      nodeContext = forceBooleanToFalse(getSystemVars(root, allNodesInfo_cfeNode, groupLib)),
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
-
 
     "correctly get the expected policy files" in {
       val (rootPath, writer) = getPromiseWriter("root-sys-var-false")
       // Actually write the promise files for the root node
-      val written = writer.writeTemplate(
-        root.id
-        , Set(root.id, cfeNode.id)
-        , Map(root.id -> rnc)
-        , Map(root.id -> rnc.nodeInfo)
-        , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id"))
-        , globalPolicyMode, DateTime.now, parallelism
+      val written            = writer.writeTemplate(
+        root.id,
+        Set(root.id, cfeNode.id),
+        Map(root.id -> rnc),
+        Map(root.id -> rnc.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
       )
 
       (written mustFull) and
-        compareWith(rootPath.getParentFile/root.id.value, "root-sys-var-false", Nil)
+      compareWith(rootPath.getParentFile / root.id.value, "root-sys-var-false", Nil)
     }
   }
 
@@ -527,60 +589,61 @@ class WriteSystemTechniques500Test extends TechniquesTest{
     val techniqueList: Seq[BoundPolicyDraft] = (1 to 500).map(copyGitFileDirectives(_)).toList
 
     // create the 500 directives files
-    createCopyGitFileDirectories("node-cfe-with-500-directives",  (1 to 500))
+    createCopyGitFileDirectories("node-cfe-with-500-directives", (1 to 500))
 
     val rnc = rootNodeConfig.copy(
-      policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode))++ allRootPolicies ++ techniqueList)
-      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      policies =
+        policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies ++ techniqueList),
+      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
-
-    val p = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll) ++ techniqueList)
+    val p     = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll) ++ techniqueList)
     val cfeNC = cfeNodeConfig.copy(
-        nodeInfo    = cfeNode
-      , policies    = p
-      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
-      , runHooks    = MergePolicyService.mergeRunHooks(p.filter( ! _.technique.isSystem), None, globalPolicyMode)
+      nodeInfo = cfeNode,
+      policies = p,
+      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib),
+      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
     )
 
     "correctly get the expected policy files" in {
       val (rootPath, writer) = getPromiseWriter("node-cfe-with-500-directives")
       // Actually write the promise files for the root node
-      val written = writer.writeTemplate(
-        root.id
-        , Set(root.id, cfeNode.id)
-        , Map(root.id -> rnc, cfeNode.id -> cfeNC)
-        , Map(root.id -> rnc.nodeInfo, cfeNode.id -> cfeNC.nodeInfo)
-        , Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500"))
-        , globalPolicyMode, DateTime.now, parallelism
+      val written            = writer.writeTemplate(
+        root.id,
+        Set(root.id, cfeNode.id),
+        Map(root.id -> rnc, cfeNode.id                         -> cfeNC),
+        Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
       )
 
       (written mustFull) and
-        compareWith(rootPath.getParentFile/cfeNode.id.value, "node-cfe-with-500-directives", Nil)
+      compareWith(rootPath.getParentFile / cfeNode.id.value, "node-cfe-with-500-directives", Nil)
     }
   }
 
 }
 
-
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
+class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
   import testSystemData._
-  import data._
+  import testSystemData.data._
 
-  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors()/2)
-    val rnc = rootNodeConfig.copy(
-        policies    = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode))++ allRootPolicies)
-      , nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib)
-      , parameters  = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
-    )
+  val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
+  val rnc         = rootNodeConfig.copy(
+    policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
+    nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+  )
 
-    val cfeNC = cfeNodeConfig.copy(
-        nodeInfo    = cfeNode
-      , policies    = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2))
-      , nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
-    )
+  val cfeNC = cfeNodeConfig.copy(
+    nodeInfo = cfeNode,
+    policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
+    nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+  )
 
   // uncomment to have timing information
 //  org.slf4j.LoggerFactory.getLogger("policy.generation").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
@@ -589,7 +652,6 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
   PolicyGenerationLogger.debug(s"Max parallelism: ${parallelism}")
 
   sequential
-
 
   /*
    * this test modify some things in techinques stored in config-repo and check that we do have a different output
@@ -601,14 +663,19 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
     val APPENED_TEXT = "# the file is modified on HEAD\n"
 
     import scala.jdk.CollectionConverters._
-    def getCurrentCommitId = (repo.git.log().setMaxCount(1).call()
-      .asScala.headOption.getOrElse(throw new RuntimeException("Error in test assumption: can not get current commit"))
-      .getId
-    )
+    def getCurrentCommitId = (repo.git
+      .log()
+      .setMaxCount(1)
+      .call()
+      .asScala
+      .headOption
+      .getOrElse(throw new RuntimeException("Error in test assumption: can not get current commit"))
+      .getId)
     // change content of configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st
     // and commit it
     def updateTemplate(rootPath: File): Unit = {
-      val clockTemplate = new File(rootPath, "configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st")
+      val clockTemplate =
+        new File(rootPath, "configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st")
       better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(StandardCharsets.UTF_8)
       // commit
       repo.git.commit().setAll(true).setMessage("Update template file").call()
@@ -616,21 +683,33 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
 
     def writeNodeConfigWithUserDirectives(promiseWriter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
       val rnc = baseRootNodeConfig.copy(
-          policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts)
-          //testing escape of "
-        , parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
-     )
+        policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
+
+        parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+      )
 
       // Actually write the promise files for the root node
-      promiseWriter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc),  Map(root.id -> rnc.nodeInfo), Map(root.id -> NodeConfigId("root-cfg-id")), globalPolicyMode, DateTime.now, parallelism)
+      promiseWriter.writeTemplate(
+        root.id,
+        Set(root.id),
+        Map(root.id -> rnc),
+        Map(root.id -> rnc.nodeInfo),
+        Map(root.id -> NodeConfigId("root-cfg-id")),
+        globalPolicyMode,
+        DateTime.now,
+        parallelism
+      )
     }
 
     def changeRev(draft: BoundPolicyDraft, rev: Revision): BoundPolicyDraft = {
       // need to change in technique and policyId and all resources - usually, both depend from one other each other.
       draft
-        .modify(_.id.techniqueVersion).using(_.withRevision(rev))
-        .modify(_.technique.id.version).using(_.withRevision(rev))
-        .modify(_.technique.agentConfigs.each.templates.each.id).using {
+        .modify(_.id.techniqueVersion)
+        .using(_.withRevision(rev))
+        .modify(_.technique.id.version)
+        .using(_.withRevision(rev))
+        .modify(_.technique.agentConfigs.each.templates.each.id)
+        .using {
           case TechniqueResourceIdByName(id, name)         =>
             TechniqueResourceIdByName(id.modify(_.version).using(_.withRevision(rev)), name)
           case TechniqueResourceIdByPath(parents, _, name) =>
@@ -640,15 +719,17 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest{
 
     "for a directive with a revision specified for technique" in {
       val (rootPath, writer) = getPromiseWriter("technique-and-revisions")
-      val initCommit = getCurrentCommitId.getName
+      val initCommit         = getCurrentCommitId.getName
       updateTemplate(abstractRoot)
-      val head = getCurrentCommitId.getName
+      val head               = getCurrentCommitId.getName
       // specify technique revision to use in policy
-      val revisedClock = changeRev(clock, Revision(initCommit))
+      val revisedClock       = changeRev(clock, Revision(initCommit))
       (initCommit must be_!==(head)) and
       (writeNodeConfigWithUserDirectives(writer, revisedClock) mustFull) and
-      compareWith(rootPath, "technique-and-revisions",
-           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
+      compareWith(
+        rootPath,
+        "technique-and-revisions",
+        """.*rudder_common_report\("ntpConfiguration".*@@.*"""              // clock reports
         :: s""".*directive1.*enforce.*merged.*3.0.*Clock Configuration.*""" // in rudder-directives.csv
         :: Nil
       )

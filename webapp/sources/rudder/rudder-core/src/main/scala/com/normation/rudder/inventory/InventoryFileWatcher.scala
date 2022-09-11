@@ -1,49 +1,42 @@
 /*
-*************************************************************************************
-* Copyright 2019 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.inventory
 
-import java.io.InputStream
-import java.nio.file.ClosedWatchServiceException
-import java.nio.file.NoSuchFileException
-import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchKey
-import java.util.concurrent.TimeUnit
 import better.files._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -51,19 +44,24 @@ import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.zio.ZioRuntime
-
-import scala.concurrent.ExecutionContext
-import zio._
-import zio.syntax._
-import zio.duration._
 import com.normation.zio._
+import com.normation.zio.ZioRuntime
+import java.io.FileNotFoundException
+import java.io.InputStream
+import java.nio.file.ClosedWatchServiceException
+import java.nio.file.NoSuchFileException
+import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds
+import java.nio.file.WatchKey
+import java.util.concurrent.TimeUnit
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.joda.time.DateTime
+import scala.concurrent.ExecutionContext
+import zio._
 import zio.clock.Clock
-
-import java.io.FileNotFoundException
+import zio.duration._
+import zio.syntax._
 
 final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start(): IOResult[Unit] = {
@@ -72,9 +70,9 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
       incoming.start()(scala.concurrent.ExecutionContext.global)
       updates.start()(scala.concurrent.ExecutionContext.global)
       Right(())
+    }
   }
-  }
-  def stop(): IOResult[Unit] = {
+  def stop():  IOResult[Unit] = {
     IOResult.effect {
       incoming.close()
       updates.close()
@@ -82,10 +80,10 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
     }
   }
 }
-object Watchers {
+object Watchers                                                   {
 
-  val inventoryExtentions = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
-  def hasValidInventoryExtension(file : File) = {
+  val inventoryExtentions                    = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
+  def hasValidInventoryExtension(file: File) = {
     val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
     inventoryExtentions.contains(ext)
   }
@@ -108,7 +106,7 @@ object Watchers {
         override def onCreate(file: File, count: Int): Unit = onModify(file, count)
         override def onModify(file: File, count: Int): Unit = {
           // we want to avoid processing some file
-          if( hasValidInventoryExtension(file) ) {
+          if (hasValidInventoryExtension(file)) {
             checkProcess(file)
           } else {
             val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
@@ -127,15 +125,16 @@ object Watchers {
                 k <- IOResult.effect(service.take())
                 _ <- IOResult.effect(process(k))
               } yield ()).forever
-            ).catchAll(err =>
+            ).catchAll(err => {
               err.cause match {
-                case ex: ClosedWatchServiceException if(stopRequired) => //ignored
+                case ex: ClosedWatchServiceException if (stopRequired) => // ignored
                   InventoryProcessingLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
                 case _ =>
                   InventoryProcessingLogger.error(s"Error when processing inventory: ${err.fullMsg}")
               }
-            )
-          ).forkDaemon.runNow
+            })
+          ).forkDaemon
+            .runNow
         }
 
         // This is a copy/paste of parent method, we just add a check for null before using `event.context`.
@@ -159,7 +158,7 @@ object Watchers {
           }
           key.reset()
         }
-        override def close() = {
+        override def close()                = {
           stopRequired = true
           service.close()
         }
@@ -173,11 +172,11 @@ object Watchers {
  * A class that periodically add inventories that we likely missed by inotify
  */
 class SchedulerMissedNotify(
-    directories: List[File]
-  , addFiles   : List[File] => UIO[Unit]
-  , period     : Duration
-  , zclock     : Clock
-){
+    directories: List[File],
+    addFiles:    List[File] => UIO[Unit],
+    period:      Duration,
+    zclock:      Clock
+) {
 
   /*
    * List all files that need to be add again - simply all files older than period.
@@ -190,27 +189,36 @@ class SchedulerMissedNotify(
     (for {
       // if that fails, just exit
       ageLimit <- IOResult.effect(DateTime.now().minusMillis(d.toMillis.toInt))
-      filter   =  (f:File) => if(f.exists && Watchers.hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))) Some(f) else None
+      filter    = (f: File) => {
+                    if (
+                      f.exists && Watchers
+                        .hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))
+                    ) Some(f)
+                    else None
+                  }
       // if the listing fails, just exit
-      children <- ZIO.foreach(directories)(d => IOResult.effect(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala))
+      children <- ZIO.foreach(directories)(d =>
+                    IOResult.effect(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala)
+                  )
       // filter file by file. In case of error, just skip it. Speficically ignore FileNotFound (davfs temp files disapear)
       filtered <- ZIO.foreach(children.flatten) { file =>
                     IO.effect(filter(File(file.toPath))).catchAll {
-                      case _:FileNotFoundException => // just ignore
-                        InventoryProcessingLogger.trace(s"Ignoring file '${file.toString}' when processing old inventories: " +
-                                                        s"FileNotFoundException (likely if disapeared between directory listing and filtering)"
+                      case _:  FileNotFoundException => // just ignore
+                        InventoryProcessingLogger.trace(
+                          s"Ignoring file '${file.toString}' when processing old inventories: " +
+                          s"FileNotFoundException (likely if disapeared between directory listing and filtering)"
                         ) *> UIO.effectTotal(None)
-                      case ex: Throwable => // log and switch to the next
-                        InventoryProcessingLogger.warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
+                      case ex: Throwable             => // log and switch to the next
+                        InventoryProcessingLogger
+                          .warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
                         UIO.effectTotal(None)
                     }
                   }
-    } yield (filtered.flatten)).catchAll(err =>
-      InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}")*>
+    } yield (filtered.flatten)).catchAll(err => {
+      InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}") *>
       Nil.succeed
-    )
+    })
   }
-
 
   val schedule = {
     def loop(d: Duration) = for {
@@ -230,33 +238,35 @@ class SchedulerMissedNotify(
  * inventory file as soon as an inventory+signature file is created.
  */
 class InventoryFileWatcher(
-    inventoryProcessor   : InventoryProcessor
-  , incomingInventoryPath: String
-  , updatedInventoryPath : String
-  , receivedInventoryPath: String
-  , failedInventoryPath  : String
-  , waitForSig           : Duration
-  , sigExtension         : String // signature file extension, most likely ".sign"
-  , collectOldInventories: Duration // how often you check for old inventories
-  , HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
+    inventoryProcessor:    InventoryProcessor,
+    incomingInventoryPath: String,
+    updatedInventoryPath:  String,
+    receivedInventoryPath: String,
+    failedInventoryPath:   String,
+    waitForSig:            Duration,
+    sigExtension:          String, // signature file extension, most likely ".sign"
+
+    collectOldInventories: Duration, // how often you check for old inventories
+
+    HOOKS_D:               String,
+    HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
 
   def logDirPerm(dir: File, name: String) = {
-    if(dir.isDirectory && dir.isWritable) {
+    if (dir.isDirectory && dir.isWritable) {
       InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
-      InventoryProcessingLogger.logEffect.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existence and file permission.")
+      InventoryProcessingLogger.logEffect.error(
+        s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existence and file permission."
+      )
     }
   }
 
   val semaphore = Semaphore.make(1).runNow
 
-
-
   val incoming = File(incomingInventoryPath)
   logDirPerm(incoming, "Incoming")
-  val updated = File(updatedInventoryPath)
+  val updated  = File(updatedInventoryPath)
   logDirPerm(updated, "Accepted nodes updates")
   val received = File(receivedInventoryPath)
   logDirPerm(received, "Received")
@@ -264,59 +274,69 @@ class InventoryFileWatcher(
   logDirPerm(failed, "Failed")
 
   // the cron that look for old files (or existing ones on startup/watcher restart)
-  val cronForMissed = new SchedulerMissedNotify(
-      incoming :: updated :: Nil
-    , files => ZIO.foreach_(files)(fileProcessor.addFilePure)
-    , collectOldInventories
-    , ZioRuntime.environment
+  val cronForMissed  = new SchedulerMissedNotify(
+    incoming :: updated :: Nil,
+    files => ZIO.foreach_(files)(fileProcessor.addFilePure),
+    collectOldInventories,
+    ZioRuntime.environment
   )
   // service that will actually process files (queue for event from inotify/cron for missed files)
-  val fileProcessor = new ProcessFile(inventoryProcessor, incoming, received, failed, waitForSig, sigExtension, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+  val fileProcessor  =
+    new ProcessFile(inventoryProcessor, incoming, received, failed, waitForSig, sigExtension, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
   // That reference holds watcher instance and scheduler fiber to be able to stop them if asked
-  val ref = RefM.make(Option.empty[(Watchers,Fiber[Nothing, Nothing])]).runNow
-  def startWatcher() = semaphore.withPermit(
-    ref.update(opt =>
-      opt match {
-        case Some(_) => // does nothing
-          InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
-          opt.succeed
+  val ref            = RefM.make(Option.empty[(Watchers, Fiber[Nothing, Nothing])]).runNow
+  def startWatcher() = semaphore
+    .withPermit(
+      ref.update(opt => {
+        opt match {
+          case Some(_) => // does nothing
+            InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
+            opt.succeed
 
-        case None    =>
-          val w = Watchers(incoming, updated, fileProcessor.addFile)
-          (for {
-            _ <- w.start()
-                 // start scheduler for old file, it will take care of inventories
-            s <- cronForMissed.schedule
-            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started - process existing inventories")
-          } yield Some((w,s)) ).catchAll(err =>
-            InventoryProcessingLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}") *>
-            err.fail
-          )
-      }
+          case None =>
+            val w = Watchers(incoming, updated, fileProcessor.addFile)
+            (for {
+              _ <- w.start()
+              // start scheduler for old file, it will take care of inventories
+              s <- cronForMissed.schedule
+              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started - process existing inventories")
+            } yield Some((w, s))).catchAll(err => {
+              InventoryProcessingLogger.error(
+                s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
+              ) *>
+              err.fail
+            })
+        }
+      })
     )
-  ).either.runNow
+    .either
+    .runNow
 
-  def stopWatcher() = semaphore.withPermit(
-    ref.update(opt =>
-      opt match {
-        case None    => //ok
-          InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).")*>
-          None.succeed
+  def stopWatcher() = semaphore
+    .withPermit(
+      ref.update(opt => {
+        opt match {
+          case None => // ok
+            InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).") *>
+            None.succeed
 
-        case Some((w, f)) =>
-          (for {
-            _ <- ZIO.collectAll(w.stop() :: f.interrupt :: Nil)
-            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
-          } yield None).catchAll(err =>
-              InventoryProcessingLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}.") *>
+          case Some((w, f)) =>
+            (for {
+              _ <- ZIO.collectAll(w.stop() :: f.interrupt :: Nil)
+              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
+            } yield None).catchAll(err => {
+              InventoryProcessingLogger.error(
+                s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
+              ) *>
               // in all case, remove the previous watcher, it's most likely in a dead state
               err.fail
-          )
-      }
+            })
+        }
+      })
     )
-  ).either.runNow
+    .either
+    .runNow
 }
-
 
 sealed trait WatchEvent
 object WatchEvent {
@@ -326,12 +346,11 @@ object WatchEvent {
   final case class Mod(file: File) extends WatchEvent
 }
 
-
 final case class SaveInventoryInfo(
-    fileName          : String
-  , inventoryStream   : () => InputStream
-  , optSignatureStream: Option[() => InputStream]
-  , testExits         : UIO[Boolean]
+    fileName:           String,
+    inventoryStream:    () => InputStream,
+    optSignatureStream: Option[() => InputStream],
+    testExits:          UIO[Boolean]
 )
 
 /*
@@ -340,16 +359,17 @@ final case class SaveInventoryInfo(
  * For that, it needs signature and inventory file.
  */
 class ProcessFile(
-    inventoryProcessor   : InventoryProcessor
-  , prioIncomingDir      : File
-  , received             : File
-  , failed               : File
-  , waitForSig           : Duration
-  , sigExtension         : String // signature file extension, most likely ".sign"
-  , HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
+    inventoryProcessor: InventoryProcessor,
+    prioIncomingDir:    File,
+    received:           File,
+    failed:             File,
+    waitForSig:         Duration,
+    sigExtension:       String, // signature file extension, most likely ".sign"
+
+    HOOKS_D:               String,
+    HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
-  val sign = if(sigExtension.charAt(0) == '.') sigExtension else "."+sigExtension
+  val sign = if (sigExtension.charAt(0) == '.') sigExtension else "." + sigExtension
 
   // time after the last mod event after which we consider that a file is written
   val fileWrittenThreshold = Duration(500, TimeUnit.MILLISECONDS)
@@ -401,15 +421,15 @@ class ProcessFile(
    */
   val saveInventoryBufferProcessing = {
     for {
-      fst <- saveInventoryBuffer.take
+      fst  <- saveInventoryBuffer.take
       // deduplicate and priorize file in 'incoming', which are new inventories. TakeAll is not blocking
-      all <- saveInventoryBuffer.takeAll
-      inv =  (fst::all).find { case (f,_) => f.parent == prioIncomingDir }.getOrElse(fst)
+      all  <- saveInventoryBuffer.takeAll
+      inv   = (fst :: all).find { case (f, _) => f.parent == prioIncomingDir }.getOrElse(fst)
       // process
-      _ <- InventoryProcessingLogger.info(s"Received new inventory file '${inv._1.name}' with signature available: process.")
-      _ <- sendToProcessorBlocking(inv._1, inv._2)
+      _    <- InventoryProcessingLogger.info(s"Received new inventory file '${inv._1.name}' with signature available: process.")
+      _    <- sendToProcessorBlocking(inv._1, inv._2)
       all2 <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
-      _    <- saveInventoryBuffer.offerAll((all++all2).filterNot { case (f, _) => inv._1.name == f.name })
+      _    <- saveInventoryBuffer.offerAll((all ++ all2).filterNot { case (f, _) => inv._1.name == f.name })
     } yield ()
   }
   saveInventoryBufferProcessing.forever.forkDaemon.runNow
@@ -417,9 +437,7 @@ class ProcessFile(
   def processMessage(): UIO[Unit] = {
     watchEventQueue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
-        toBeProcessed.update[Any, Nothing](s =>
-          (s - file).succeed
-        ).unit
+        toBeProcessed.update[Any, Nothing](s => (s - file).succeed).unit
 
       case WatchEvent.Mod(file) =>
         // look if the file is already here. If so, interrupt. In all case, create a new task.
@@ -431,17 +449,19 @@ class ProcessFile(
             // - then execute on different IO scheduler
             // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
 
-            val effect = ZioRuntime.blocking(
-                 UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
-              *> watchEventQueue.offer(WatchEvent.End(file))
-              *> processFile(file, locks).uninterruptible
-            ).forkDaemon
+            val effect = ZioRuntime
+              .blocking(
+                UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
+                *> watchEventQueue.offer(WatchEvent.End(file))
+                *> processFile(file, locks).uninterruptible
+              )
+              .forkDaemon
 
             effect.map(e => s + (file -> e))
           }
 
           s.get(file) match {
-            case None =>
+            case None           =>
               newMap
             case Some(existing) =>
               existing.interrupt.unit *> newMap
@@ -450,7 +470,7 @@ class ProcessFile(
     }
   }
 
-  //start the process
+  // start the process
   ZioRuntime.internal.unsafeRunSync(processMessage().forever.forkDaemon)
 
   def addFilePure(file: File): UIO[Unit] = {
@@ -468,39 +488,45 @@ class ProcessFile(
   protected def sendToProcessorBlocking(inventory: File, signature: Option[File]): UIO[Unit] = {
     // we don't manage race condition very well, so we have cases where
     // we can have two things trying to move
-    def safeMove[T](chunk: =>T): IOResult[Unit] = {
-      Task.effect{chunk ; ()}.catchAll {
+    def safeMove[T](chunk: => T): IOResult[Unit] = {
+      Task.effect { chunk; () }.catchAll {
         case ex: NoSuchFileException => // ignore
-          InventoryProcessingLogger.debug(s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The file '${inventory.pathAsString}' was correctly handled.")
-        case ex                      =>
-          InventoryProcessingLogger.error(s"Exception caught when processing inventory file '${inventory.pathAsString}': ${ex.getClass.getSimpleName} ${ex.getMessage}")
+          InventoryProcessingLogger.debug(
+            s"Ignored exception '${ex.getClass.getSimpleName} ${ex.getMessage}'. The file '${inventory.pathAsString}' was correctly handled."
+          )
+        case ex =>
+          InventoryProcessingLogger.error(
+            s"Exception caught when processing inventory file '${inventory.pathAsString}': ${ex.getClass.getSimpleName} ${ex.getMessage}"
+          )
       }
     }
 
     (for {
-      processed <- inventoryProcessor.saveInventoryBlocking(SaveInventoryInfo(
-                       inventory.name
-                     , () => inventory.newInputStream
-                     , signature.map(s => () => s.newInputStream)
-                     , IOResult.effect(inventory.exists).orElseSucceed(false)
-                   )).either
+      processed <- inventoryProcessor
+                     .saveInventoryBlocking(
+                       SaveInventoryInfo(
+                         inventory.name,
+                         () => inventory.newInputStream,
+                         signature.map(s => () => s.newInputStream),
+                         IOResult.effect(inventory.exists).orElseSucceed(false)
+                       )
+                     )
+                     .either
       move      <- processed match {
-                     case Right(InventoryProcessStatus.Accepted(_,_)) =>
-                       //move to received dir
+                     case Right(InventoryProcessStatus.Accepted(_, _)) =>
+                       // move to received dir
                        safeMove(signature.map(s => s.moveTo(received / s.name)(File.CopyOptions(overwrite = true)))) *>
                        safeMove(inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
-                     case Right(x) =>
+                     case Right(x)                                     =>
                        safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
                        safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true))) *>
                        failedHook.runHooks(failed / inventory.name)
-                     case Left(x) =>
+                     case Left(x)                                      =>
                        safeMove(signature.map(s => s.moveTo(failed / s.name)(File.CopyOptions(overwrite = true)))) *>
                        safeMove(inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true))) *>
                        failedHook.runHooks(failed / inventory.name)
                    }
-    } yield ()).catchAll(err =>
-      InventoryProcessingLogger.error(err.fullMsg)
-    )
+    } yield ()).catchAll(err => InventoryProcessingLogger.error(err.fullMsg))
   }
 
   /*
@@ -519,31 +545,37 @@ class ProcessFile(
       // The canonical way seems to be to try to get a write lock on the file and see if
       // it works. We assume that once we successfully get the lock, it means that
       // the file is written (so we can immediately release it).
-      _ <- if(file.name.endsWith(".gz")) {
+      _ <- if (file.name.endsWith(".gz")) {
              val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
              InventoryProcessingLogger.debug(s"Dealing with zip file '${file.name}'") *>
              IOResult.effect {
                file.unGzipTo(dest)
                file.delete()
              }.unit
-           } else if(file.name.endsWith(sign)) { // a signature
+           } else if (file.name.endsWith(sign)) { // a signature
              val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
 
-             if(inventory.exists) {
+             if (inventory.exists) {
                // process !
-               InventoryProcessingLogger.debug(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
+               InventoryProcessingLogger.debug(
+                 s"Watch new inventory file '${inventory.name}' with signature available: process."
+               ) *>
                saveInventoryBuffer.offer((inventory, Some(file)))
              } else {
-               InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+               InventoryProcessingLogger.debug(
+                 s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting"
+               )
              }
            } else { // an inventory
-             val signature = File(file.pathAsString+sign)
-             if(signature.exists) {
+             val signature = File(file.pathAsString + sign)
+             if (signature.exists) {
                // process !
                InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' with signature available: process.") *>
                saveInventoryBuffer.offer((file, Some(signature)))
              } else { // wait for expiration time and exec without signature
-               InventoryProcessingLogger.debug(s"Watch incoming inventory file '${file.pathAsString}' but no corresponding signature available: waiting")
+               InventoryProcessingLogger.debug(
+                 s"Watch incoming inventory file '${file.pathAsString}' but no corresponding signature available: waiting"
+               )
              }
            }
     } yield ()
@@ -553,27 +585,26 @@ class ProcessFile(
   }
 }
 
-
 class InventoryFailedHook(
-    HOOKS_D              : String
-  , HOOKS_IGNORE_SUFFIXES: List[String]
+    HOOKS_D:               String,
+    HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
   import scala.jdk.CollectionConverters._
   import zio.duration._
 
   def runHooks(file: File): UIO[Unit] = {
     (for {
-      systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
+      systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq: _*))
       hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
       _         <- for {
                      timeHooks0 <- currentTimeMillis
                      res        <- RunHooks.asyncRun(
-                                       hooks
-                                     , HookEnvPairs.build(
-                                         ("RUDDER_INVENTORY_PATH", file.pathAsString)
-                                     )
-                                     , systemEnv
-                                     , 1.minutes // warn if a hook took more than a minute
+                                     hooks,
+                                     HookEnvPairs.build(
+                                       ("RUDDER_INVENTORY_PATH", file.pathAsString)
+                                     ),
+                                     systemEnv,
+                                     1.minutes // warn if a hook took more than a minute
                                    )
                      timeHooks1 <- currentTimeMillis
                      _          <- PureHooksLogger.trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")

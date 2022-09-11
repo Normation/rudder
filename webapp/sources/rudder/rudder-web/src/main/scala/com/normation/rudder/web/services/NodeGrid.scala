@@ -1,60 +1,60 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.services
 
-import com.normation.utils.Utils.isEmpty
-import com.normation.inventory.domain.{NodeId,InventoryStatus}
+import com.normation.appconfig.ReadConfigService
+import com.normation.box._
+import com.normation.inventory.domain.InventoryStatus
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core._
-import org.slf4j.LoggerFactory
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.json._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.appconfig.ReadConfigService
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.box._
+import com.normation.utils.Utils.isEmpty
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.json._
+import net.liftweb.util.Helpers._
+import org.slf4j.LoggerFactory
+import scala.xml._
 import zio.syntax._
 
 object NodeGrid {
@@ -65,7 +65,7 @@ object NodeGrid {
  * a case class used to pass the JSON that contains id of
  * the node we want args for
  */
-final case class JsonArg(jsid:String, id:String, status:String)
+final case class JsonArg(jsid: String, id: String, status: String)
 
 /**
  * Present a grid of server in a jQuery Datatable
@@ -77,36 +77,42 @@ final case class JsonArg(jsid:String, id:String, status:String)
  * - call the display(servers) method
  */
 final class NodeGrid(
-    getNodeAndMachine: LDAPFullInventoryRepository
-  , nodeInfoService  : NodeInfoService
-  , configService    : ReadConfigService
+    getNodeAndMachine: LDAPFullInventoryRepository,
+    nodeInfoService:   NodeInfoService,
+    configService:     ReadConfigService
 ) extends Loggable {
 
   private def tableTemplate = ChooseTemplate(
-      List("templates-hidden", "server_grid")
-    , "servergrid-table"
+    List("templates-hidden", "server_grid"),
+    "servergrid-table"
   )
 
   def displayAndInit(
-      servers:Seq[Srv],
-      tableId:String,
-      columns:Seq[(Node,Srv => NodeSeq)]=Seq(), // these need to be XSS-escaped
-      aoColumns:String ="",
-      searchable : Boolean = true,
-      paginate : Boolean = true
-   ) : NodeSeq = {
+      servers:    Seq[Srv],
+      tableId:    String,
+      columns:    Seq[(Node, Srv => NodeSeq)] = Seq(), // these need to be XSS-escaped
+      aoColumns:  String = "",
+      searchable: Boolean = true,
+      paginate:   Boolean = true
+  ): NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
 
-  def jsVarNameForId(tableId:String) = "oTable" + tableId
+  def jsVarNameForId(tableId: String) = "oTable" + tableId
 
   /*
    * Init Javascript for the table with ID
    * 'tableId'
    * columns need to be XSS-escaped
    */
-  def initJs(tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean) : JsCmd = {
+  def initJs(
+      tableId:    String,
+      columns:    Seq[(Node, Srv => NodeSeq)] = Seq(),
+      aoColumns:  String = "",
+      searchable: Boolean,
+      paginate:   Boolean
+  ): JsCmd = {
 
     JsRaw(s"""
         var ${jsVarNameForId(tableId)};
@@ -115,10 +121,8 @@ final class NodeGrid(
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
         }
-      """
-    ) & OnLoad(
-
-        JsRaw(s"""
+      """) & OnLoad(
+      JsRaw(s"""
           /* Event handler function */
           ${jsVarNameForId(tableId)} = $$('#${tableId}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
@@ -148,21 +152,20 @@ final class NodeGrid(
             "pageLength": 25 ,
             "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
-            """
-        ) &
+            """) &
 
-        initJsCallBack(tableId)
+      initJsCallBack(tableId)
     )
 
-   }
+  }
 
   /**
    * Initialize JS callback bound to the servername item
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(tableId:String) : JsCmd = {
-      JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
+  def initJsCallBack(tableId: String): JsCmd = {
+    JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
             event.stopPropagation();
@@ -184,8 +187,7 @@ final class NodeGrid(
             }
           } );
         } )
-      """
-     )
+      """)
   }
 
   /**
@@ -203,28 +205,33 @@ final class NodeGrid(
    * @parameter aoColumns : the javascript for the datatable
    */
 
-  def display(servers:Seq[Srv], tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
-    //bind the table
-    val headers : NodeSeq = columns flatMap { c => <th>{c._1}</th> }
+  def display(
+      servers:   Seq[Srv],
+      tableId:   String,
+      columns:   Seq[(Node, Srv => NodeSeq)] = Seq(),
+      aoColumns: String = ""
+  ): NodeSeq = {
+    // bind the table
+    val headers: NodeSeq = columns flatMap { c => <th>{c._1}</th> }
     def escape(s: String) = xml.Utility.escape(s)
 
-    def serverLine (server: Srv) : NodeSeq = {
-        (".hostname *" #> {(if(isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escape(server.hostname))} &
-         ".fullos *" #> escape(server.osFullName) &
-         ".ips *" #> ( (server.ips.flatMap{ ip => <div class="ip">{escape(ip)}</div> }):NodeSeq ) & // TODO : enhance this
-         ".other" #> ( (columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }):NodeSeq ) &
-         ".nodetr [jsuuid]" #> {server.id.value.replaceAll("-","")} &
-         ".nodetr [nodeid]" #> {server.id.value} &
-         ".nodetr [nodestatus]" #> {server.status.name}
-         )(datatableXml)
+    def serverLine(server: Srv): NodeSeq = {
+      (".hostname *" #> {
+        (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escape(server.hostname))
+      } &
+      ".fullos *" #> escape(server.osFullName) &
+      ".ips *" #> ((server.ips.flatMap { ip => <div class="ip">{escape(ip)}</div> }): NodeSeq) & // TODO : enhance this
+      ".other" #> ((columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }): NodeSeq) &
+      ".nodetr [jsuuid]" #> { server.id.value.replaceAll("-", "") } &
+      ".nodetr [nodeid]" #> { server.id.value } &
+      ".nodetr [nodestatus]" #> { server.status.name })(datatableXml)
     }
 
-    val lines : NodeSeq = servers.flatMap{serverLine _}
+    val lines: NodeSeq = servers.flatMap(serverLine _)
 
-    ( "table [id]" #> tableId &
-      "#header *+" #> headers &
-      "#lines *" #> lines
-    ).apply(tableTemplate)
+    ("table [id]" #> tableId &
+    "#header *+" #> headers &
+    "#lines *" #> lines).apply(tableTemplate)
   }
   private[this] val datatableXml = {
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
@@ -234,35 +241,44 @@ final class NodeGrid(
       <td class="other"></td>
     </tr>
   }
+
   /**
    * We expect a json string with paramaters:
    * jsid: javascript id
    * id: the nodeid
    * status: the node status (pending, accecpted)
    */
-  private def details(jsonArg:String) : JsCmd = {
-    import Box._
+  private def details(jsonArg: String): JsCmd = {
+    import net.liftweb.common.Box._
     implicit val formats = DefaultFormats
 
-    ( for {
-      json   <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
-      arg    <- tryo(json.extract[JsonArg])
-      status : InventoryStatus <- Box(InventoryStatus(arg.status))
-      nodeId =  NodeId(arg.id)
-      sm     <- getNodeAndMachine.get(nodeId, status).notOptional(s"Error when trying to find inventory for node '${nodeId.value}'").toBox
-      nodeAndGlobalMode <- (nodeInfoService.getNodeInfo(nodeId).flatMap {
-                              case None => None.succeed
-                              case Some(node) =>
-                                configService.rudder_global_policy_mode().map(mode => Some((node,mode))).chainError(
-                                  s" Could not get global policy mode when getting node '${nodeId}' details"
-                                )
-                            }).chainError(s" Error when getting node '${nodeId}' details").toBox
-    } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode) ) match {
+    (for {
+      json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
+      arg  <- tryo(json.extract[JsonArg])
+      status: InventoryStatus <- Box(InventoryStatus(arg.status))
+      nodeId             = NodeId(arg.id)
+      sm                <-
+        getNodeAndMachine.get(nodeId, status).notOptional(s"Error when trying to find inventory for node '${nodeId.value}'").toBox
+      nodeAndGlobalMode <- (nodeInfoService
+                             .getNodeInfo(nodeId)
+                             .flatMap {
+                               case None       => None.succeed
+                               case Some(node) =>
+                                 configService
+                                   .rudder_global_policy_mode()
+                                   .map(mode => Some((node, mode)))
+                                   .chainError(
+                                     s" Could not get global policy mode when getting node '${nodeId}' details"
+                                   )
+                             })
+                             .chainError(s" Error when getting node '${nodeId}' details")
+                             .toBox
+    } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode)) match {
       case Full((nodeId, sm, jsid, status, nodeAndGlobalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension
         SetHtml(jsid, DisplayNode.showPannedContent(nodeAndGlobalMode, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
-      case e:EmptyBox =>
+      case e: EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))
     }

@@ -1,81 +1,83 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.domain.nodes
 
+import com.normation.box._
+import com.normation.errors._
+import com.normation.inventory.domain._
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
+import com.normation.zio._
 import java.io.StringReader
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
-import com.normation.inventory.domain._
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
+import net.liftweb.common._
+import org.apache.commons.codec.binary.Base64
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.box._
-import com.normation.errors._
-import com.normation.rudder.domain.Constants
-import org.apache.commons.codec.binary.Base64
 import zio._
 import zio.syntax._
-import com.normation.zio._
 
 final case class MachineInfo(
-    id          : MachineUuid
-  , machineType : MachineType
-  , systemSerial: Option[String]
-  , manufacturer: Option[Manufacturer]
+    id:           MachineUuid,
+    machineType:  MachineType,
+    systemSerial: Option[String],
+    manufacturer: Option[Manufacturer]
 )
 
 sealed trait NodeKind { def name: String }
-object NodeKind {
-  final case object Root extends NodeKind { val name = "root" }
+object NodeKind       {
+  final case object Root  extends NodeKind { val name = "root"  }
   final case object Relay extends NodeKind { val name = "relay" }
-  final case object Node extends NodeKind { val name = "node" }
+  final case object Node  extends NodeKind { val name = "node"  }
 
   def values = ca.mrvisser.sealerate.values[NodeKind]
 
   def parse(kind: String): Either[String, NodeKind] = {
     val lower = kind.toLowerCase()
-    values.find( _.name == lower ).toRight(s"Kind '${kind}' is not recognized as a valid node kind, expecting: '${values.map(_.name).mkString("','")}'")
+    values
+      .find(_.name == lower)
+      .toRight(s"Kind '${kind}' is not recognized as a valid node kind, expecting: '${values.map(_.name).mkString("','")}'")
   }
 
 }
@@ -85,19 +87,19 @@ object NodeKind {
  * always useful about a node
  */
 final case class NodeInfo(
-    node           : Node
-  , hostname       : String
-  , machine        : Option[MachineInfo]
-  , osDetails      : OsDetails
-  , ips            : List[String]
-  , inventoryDate  : DateTime
-  , keyStatus      : KeyStatus
-  , agentsName     : Seq[AgentInfo]
-  , policyServerId : NodeId
-  , localAdministratorAccountName: String
-  , archDescription: Option[String]
-  , ram            : Option[MemorySize]
-  , timezone       : Option[NodeTimezone]
+    node:                          Node,
+    hostname:                      String,
+    machine:                       Option[MachineInfo],
+    osDetails:                     OsDetails,
+    ips:                           List[String],
+    inventoryDate:                 DateTime,
+    keyStatus:                     KeyStatus,
+    agentsName:                    Seq[AgentInfo],
+    policyServerId:                NodeId,
+    localAdministratorAccountName: String,
+    archDescription:               Option[String],
+    ram:                           Option[MemorySize],
+    timezone:                      Option[NodeTimezone]
 ) {
 
   val id                         = node.id
@@ -110,6 +112,7 @@ final case class NodeInfo(
   val nodeReportingConfiguration = node.nodeReportingConfiguration
   val properties                 = node.properties
   val policyMode                 = node.policyMode
+
   /**
    * Get a digest of the key in the proprietary CFEngine digest format. It is
    * formated as expected by CFEngine authentication module, i.e with the
@@ -120,12 +123,12 @@ final case class NodeInfo(
     def formatDigest(digest: Box[String], algo: String, tokenType: SecurityToken): String = {
       digest match {
         case Full(hash) => s"${algo}=${hash}"
-        case eb:EmptyBox =>
+        case eb: EmptyBox =>
           val msgForToken = tokenType match {
             case _: PublicKey   => "of CFEngine public key for"
             case _: Certificate => "for certificate of"
           }
-          val e = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${hostname}' (${id.value})"
+          val e           = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${hostname}' (${id.value})"
           PolicyGenerationLogger.error(e.messageChain)
           ""
       }
@@ -133,24 +136,28 @@ final case class NodeInfo(
 
     agentsName.headOption.map(a => (a.agentType, a.securityToken)) match {
 
-      case Some((AgentType.CfeCommunity, key:PublicKey)) =>
+      case Some((AgentType.CfeCommunity, key: PublicKey)) =>
         formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
 
-      case Some((AgentType.CfeEnterprise, key:PublicKey)) =>
+      case Some((AgentType.CfeEnterprise, key: PublicKey)) =>
         formatDigest(NodeKeyHash.getCfengineSHA256Digest(key).toBox, "SHA", key)
 
-      case Some((AgentType.CfeCommunity, cert:Certificate)) =>
+      case Some((AgentType.CfeCommunity, cert: Certificate)) =>
         formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
 
-      case Some((AgentType.CfeEnterprise, cert:Certificate)) =>
+      case Some((AgentType.CfeEnterprise, cert: Certificate)) =>
         formatDigest(NodeKeyHash.getCfengineSHA256CertDigest(cert).toBox, "SHA", cert)
 
       case Some((AgentType.Dsc, _)) =>
-        PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet")
+        PolicyGenerationLogger.info(
+          s"Node '${hostname}' (${id.value}) is a DSC node and a we do not know how to generate a hash yet"
+        )
         ""
 
       case Some((_, _)) =>
-        PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet")
+        PolicyGenerationLogger.info(
+          s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet"
+        )
         ""
 
       case None =>
@@ -169,34 +176,37 @@ final case class NodeInfo(
    */
   lazy val keyHashBase64Sha256: String = {
     agentsName.headOption.map(_.securityToken) match {
-      case Some(publicKey : PublicKey) =>
+      case Some(publicKey: PublicKey) =>
         NodeKeyHash.getB64Sha256Digest(publicKey).either.runNow match {
-        case Right(hash) =>
-          hash
-        case Left(e) =>
-          PolicyGenerationLogger.error(s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value}): ${e.fullMsg}")
-          ""
-        }
-      case Some(cert : Certificate) =>
-        NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
-          case Right(hash) => hash
-          case Left(e) =>
-            PolicyGenerationLogger.error(s"Error when trying to get the sha-256 digest of Certificate for node '${hostname}' (${id.value}): ${e.fullMsg}")
+          case Right(hash) =>
+            hash
+          case Left(e)     =>
+            PolicyGenerationLogger.error(
+              s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value}): ${e.fullMsg}"
+            )
             ""
         }
-      case None =>
+      case Some(cert: Certificate)    =>
+        NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
+          case Right(hash) => hash
+          case Left(e)     =>
+            PolicyGenerationLogger.error(
+              s"Error when trying to get the sha-256 digest of Certificate for node '${hostname}' (${id.value}): ${e.fullMsg}"
+            )
+            ""
+        }
+      case None                       =>
         PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
 
     }
   }
 
-
   // kind: root, relay or simple node ?
   val nodeKind = (id, isPolicyServer) match {
-    case (Constants.ROOT_POLICY_SERVER_ID, _    ) => NodeKind.Root
-    case (_                              , true ) => NodeKind.Relay
-    case (_                              , false) => NodeKind.Node
+    case (Constants.ROOT_POLICY_SERVER_ID, _) => NodeKind.Root
+    case (_, true)                            => NodeKind.Relay
+    case (_, false)                           => NodeKind.Node
   }
 
 }
@@ -282,17 +292,16 @@ object NodeKeyHash {
 
   protected def getPubkeyInfo(key: PublicKey): IOResult[SubjectPublicKeyInfo] = {
     for {
-                    // the parser able to read PEM files
-                    // Parser may be null if the key is invalid
-      parser     <- IOResult.effectM(
-                      Option(new PEMParser(new StringReader(key.key))) match {
-                        case None    => Inconsistency(s"Error when trying to create the PEM parser for agent key").fail
-                        case Some(x) => x.succeed
-                      })
-                    // read the PEM b64 pubkey string
-      pubkeyInfo <- IOResult.effect( parser.readObject.asInstanceOf[SubjectPublicKeyInfo] )
-                    // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
-      _          <- if(pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else UIO.unit
+      // the parser able to read PEM files
+      // Parser may be null if the key is invalid
+      parser     <- IOResult.effectM(Option(new PEMParser(new StringReader(key.key))) match {
+                      case None    => Inconsistency(s"Error when trying to create the PEM parser for agent key").fail
+                      case Some(x) => x.succeed
+                    })
+      // read the PEM b64 pubkey string
+      pubkeyInfo <- IOResult.effect(parser.readObject.asInstanceOf[SubjectPublicKeyInfo])
+      // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      _          <- if (pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else UIO.unit
     } yield {
       pubkeyInfo
     }
@@ -307,24 +316,26 @@ object NodeKeyHash {
     }
   }
 
-
   /*
    * The actual implementation that can use either
    * "MD5" or "SHA-256" digest.
    */
   protected def getCfengineDigest(pubkeyInfo: SubjectPublicKeyInfo, algo: String): IOResult[String] = {
     for {
-      keyFactory <- IOResult.effectM(pubkeyInfo.getAlgorithm.getAlgorithm match {
-                      case PKCSObjectIdentifiers.rsaEncryption =>
-                        KeyFactory.getInstance("RSA").succeed
-                      case unknownAlgo => //not supported
-                        Inconsistency(s"The CFEngine public key used an unsupported algorithm '${unknownAlgo.toString}'. Only RSA is supported").fail
-                    })
-                    // actually decode the key...
-      keyspec    <- IOResult.effect( new X509EncodedKeySpec(pubkeyInfo.getEncoded) )
-                    // into an RSA public key.
-      rsaPubkey  <- IOResult.effect( keyFactory.generatePublic(keyspec).asInstanceOf[RSAPublicKey] )
-      digest     <- IOResult.effect( MessageDigest.getInstance(algo) )
+      keyFactory <-
+        IOResult.effectM(pubkeyInfo.getAlgorithm.getAlgorithm match {
+          case PKCSObjectIdentifiers.rsaEncryption =>
+            KeyFactory.getInstance("RSA").succeed
+          case unknownAlgo                         => // not supported
+            Inconsistency(
+              s"The CFEngine public key used an unsupported algorithm '${unknownAlgo.toString}'. Only RSA is supported"
+            ).fail
+        })
+      // actually decode the key...
+      keyspec    <- IOResult.effect(new X509EncodedKeySpec(pubkeyInfo.getEncoded))
+      // into an RSA public key.
+      rsaPubkey  <- IOResult.effect(keyFactory.generatePublic(keyspec).asInstanceOf[RSAPublicKey])
+      digest     <- IOResult.effect(MessageDigest.getInstance(algo))
       hexString  <- IOResult.effect("An error occured with node key hash") {
                       // here, we must use the hexa-string representation,
                       // because if we directly use ".toByteArray", a leading
@@ -356,7 +367,7 @@ object NodeKeyHash {
    */
   protected def sha256Digest(pubkey: Array[Byte]): IOResult[Array[Byte]] = {
     for {
-      sha256 <- IOResult.effect( MessageDigest.getInstance("SHA-256") )
+      sha256 <- IOResult.effect(MessageDigest.getInstance("SHA-256"))
       digest <- IOResult.effect("An error occured with node key hash") {
                   sha256.update(pubkey)
                   sha256.digest
@@ -393,9 +404,9 @@ object NodeKeyHash {
   def getSha256Digest(cert: Certificate): IOResult[Array[Byte]] = {
     for {
       res            <- SecurityToken.parseCertificate(cert)
-      (pubkeyInfo,_) =  res
-                        // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
-      _              <- if(pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else UIO.unit
+      (pubkeyInfo, _) = res
+      // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      _              <- if (pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else UIO.unit
       pubkey         <- IOResult.effect(pubkeyInfo.getEncoded)
       digest         <- sha256Digest(pubkey)
     } yield {
@@ -406,7 +417,7 @@ object NodeKeyHash {
   /**
    * Get Hex encoded string of the sha256 digest of the public key
    */
-  def getHexSha256Digest(key: PublicKey): IOResult[String] = {
+  def getHexSha256Digest(key: PublicKey):    IOResult[String] = {
     getSha256Digest(key).map(Hex.toHexString)
   }
   def getHexSha256Digest(cert: Certificate): IOResult[String] = {
@@ -419,6 +430,7 @@ object NodeKeyHash {
   def getB64Sha256Digest(key: PublicKey): IOResult[String] = {
     getSha256Digest(key).map(Base64.encodeBase64String)
   }
+
   /**
    * Base64 encoding of the SHA-256 hash of the DER format of the public key.
    * This is the (deprecated) format used in apach headers, and that can generated

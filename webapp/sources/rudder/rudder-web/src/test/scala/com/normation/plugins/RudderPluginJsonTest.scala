@@ -1,51 +1,49 @@
 /*
-*************************************************************************************
-* Copyright 2019 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.plugins
 
 import com.normation.utils.ParseVersion
-
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
-
 import com.normation.zio._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RudderPluginJsonTest extends Specification {
@@ -118,21 +116,21 @@ class RudderPluginJsonTest extends Specification {
 
   val expected = List(
     JsonPluginDef(
-      "rudder-plugin-branding"
-    , PluginVersion("5.0.0".toVersion, "1.3.0".toVersion)
-    , List(
+      "rudder-plugin-branding",
+      PluginVersion("5.0.0".toVersion, "1.3.0".toVersion),
+      List(
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/branding/",
         "/opt/rudder/share/plugins/branding/branding.jar"
-      )
-    , List("/opt/rudder/share/plugins/branding/branding.jar")
-    , "81edd3edf4f28c13821af8014da0520b72b9df94"
-    , DateTime.parse("2018-10-11T12:23:40+02:00", ISODateTimeFormat.dateTimeNoMillis())
-    )
-  , JsonPluginDef(
-      "rudder-plugin-centreon"
-    , PluginVersion("5.0.0".toVersion, "1.1.0".toVersion)
-    , List(
+      ),
+      List("/opt/rudder/share/plugins/branding/branding.jar"),
+      "81edd3edf4f28c13821af8014da0520b72b9df94",
+      DateTime.parse("2018-10-11T12:23:40+02:00", ISODateTimeFormat.dateTimeNoMillis())
+    ),
+    JsonPluginDef(
+      "rudder-plugin-centreon",
+      PluginVersion("5.0.0".toVersion, "1.1.0".toVersion),
+      List(
         "/opt/rudder//",
         "/opt/rudder//bin/",
         "/opt/rudder//bin/centreon-plugin",
@@ -158,10 +156,10 @@ class RudderPluginJsonTest extends Specification {
         "/opt/rudder//etc/hooks.d/node-pre-deletion/centreon-pre-deletion.sh",
         "/opt/rudder//etc/hooks.d/node-post-acceptance/",
         "/opt/rudder//etc/hooks.d/node-post-acceptance/centreon-post-acceptance.sh"
-      )
-    , List()
-    , "5c4592d93912ef56de0c506295d22fb2a86146ac"
-    , DateTime.parse("2018-10-29T18:34:16+01:00", ISODateTimeFormat.dateTimeNoMillis())
+      ),
+      List(),
+      "5c4592d93912ef56de0c506295d22fb2a86146ac",
+      DateTime.parse("2018-10-29T18:34:16+01:00", ISODateTimeFormat.dateTimeNoMillis())
     )
   )
 
@@ -169,9 +167,9 @@ class RudderPluginJsonTest extends Specification {
 
   "Plugins JSON service" should {
     "be able to read json file format" in {
-      val all = packageService.parseJson(index_json).runNow
+      val all     = packageService.parseJson(index_json).runNow
       val success = all.collect { case Right(x) => x }
-      val errors  = all.collect { case Left(x)  => x }
+      val errors  = all.collect { case Left(x) => x }
 
       (errors must beEmpty) and
       (success must containTheSameElementsAs(expected))

@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2013 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2013 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
 
@@ -42,15 +42,12 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common._
 
-
-
-
-final case class DirectiveApplicationResult (
-    rules              : List[RuleId]
-  , completeCategory   : List[RuleCategoryId]
-  , incompleteCategory : List[RuleCategoryId]
+final case class DirectiveApplicationResult(
+    rules:              List[RuleId],
+    completeCategory:   List[RuleCategoryId],
+    incompleteCategory: List[RuleCategoryId]
 ) {
-  def addCategory(isComplete : Boolean, category: RuleCategoryId) = {
+  def addCategory(isComplete: Boolean, category: RuleCategoryId) = {
     if (isComplete) {
       copy(completeCategory = category :: completeCategory)
     } else {
@@ -60,36 +57,35 @@ final case class DirectiveApplicationResult (
 }
 
 object DirectiveApplicationResult {
-  def apply(rule:RuleId) : DirectiveApplicationResult= {
-    DirectiveApplicationResult(List(rule),Nil,Nil)
+  def apply(rule: RuleId): DirectiveApplicationResult = {
+    DirectiveApplicationResult(List(rule), Nil, Nil)
   }
 
-  def mergeOne(that : DirectiveApplicationResult, into : DirectiveApplicationResult) = {
+  def mergeOne(that: DirectiveApplicationResult, into: DirectiveApplicationResult) = {
     val newRules      = (that.rules ++ into.rules).distinct
     val newComplete   = (that.completeCategory ++ into.completeCategory).distinct
     // Filter complete from incomplete so there is no conflict (actions are building to end up with complete status, so if complete stauts is achieved in some there is no icomplete possibility)
     val newIncomplete = (that.incompleteCategory ++ into.incompleteCategory).distinct.diff(newComplete)
-    DirectiveApplicationResult (newRules, newComplete, newIncomplete)
+    DirectiveApplicationResult(newRules, newComplete, newIncomplete)
   }
 
-  def merge( results : List[DirectiveApplicationResult]) = {
+  def merge(results: List[DirectiveApplicationResult]) = {
     results match {
-      case Nil => DirectiveApplicationResult(Nil,Nil,Nil)
+      case Nil         => DirectiveApplicationResult(Nil, Nil, Nil)
       case head :: Nil => head
-      case _ => results.tail.foldRight(results.head) (mergeOne)
+      case _           => results.tail.foldRight(results.head)(mergeOne)
     }
   }
 }
 
-
-final case class DirectiveApplicationManagement (
-    directive    : Directive
-  , rules        : List[Rule]
-  , rootCategory : RuleCategory
+final case class DirectiveApplicationManagement(
+    directive:    Directive,
+    rules:        List[Rule],
+    rootCategory: RuleCategory
 ) extends Loggable {
 
   // Utility Types
-  private[this] type Category = RuleCategory
+  private[this] type Category   = RuleCategory
   private[this] type CategoryId = RuleCategoryId
 
   /*
@@ -105,15 +101,14 @@ final case class DirectiveApplicationManagement (
   private[this] val applyingRulesId = applyingRules.map(_.id)
 
   // Map to get a Rule form its id
-  private[this] val rulesMap= rules.groupMapReduce(_.id)(identity)( (a,b) => a )
-
+  private[this] val rulesMap = rules.groupMapReduce(_.id)(identity)((a, b) => a)
 
   // Categories
 
   // Map to get children categories from a category
   private[this] val categories = {
-    def mapCategories (cat : Category, map : Map[CategoryId,List[CategoryId]] = Map.empty) : Map[CategoryId,List[CategoryId]] = {
-      cat.childs.foldRight(map) (mapCategories) + (cat.id -> cat.childs.map(_.id))
+    def mapCategories(cat: Category, map: Map[CategoryId, List[CategoryId]] = Map.empty): Map[CategoryId, List[CategoryId]] = {
+      cat.childs.foldRight(map)(mapCategories) + (cat.id -> cat.childs.map(_.id))
     }
 
     mapCategories(rootCategory).withDefaultValue(Nil)
@@ -121,25 +116,23 @@ final case class DirectiveApplicationManagement (
 
   // Map ti get parent category from a category
   private[this] val parentCategories = {
-    categories.flatMap{case (parent,childs) => childs.map( (_ -> parent) )}
+    categories.flatMap { case (parent, childs) => childs.map((_ -> parent)) }
   }
-
 
   // Category -> Rule
 
   // Utility method to complete the map (add Rules to parents)
-  private[this] def completeMapping (baseMap : Map[CategoryId,List[RuleId]]) : Map[CategoryId,List[RuleId]] = {
-    def toApply(category:CategoryId,rules:List[RuleId], map: Map[CategoryId,List[RuleId]])  : Map[CategoryId,List[RuleId]] = {
+  private[this] def completeMapping(baseMap: Map[CategoryId, List[RuleId]]): Map[CategoryId, List[RuleId]] = {
+    def toApply(category: CategoryId, rules: List[RuleId], map: Map[CategoryId, List[RuleId]]): Map[CategoryId, List[RuleId]] = {
       val updatedMap = map.updated(category, (map.get(category).getOrElse(Nil) ++ rules).distinct)
       parentCategories.get(category) match {
-        case None => updatedMap
-        case Some(parent) => toApply(parent,rules,updatedMap)
+        case None         => updatedMap
+        case Some(parent) => toApply(parent, rules, updatedMap)
       }
     }
-    baseMap.foldRight(baseMap) {case ((cat,rules),map) => toApply(cat, rules, map)}
+    baseMap.foldRight(baseMap) { case ((cat, rules), map) => toApply(cat, rules, map) }
 
   }
-
 
   // Get Rules from a category
   private[this] val rulesByCategory = completeMapping(rules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
@@ -149,7 +142,6 @@ final case class DirectiveApplicationManagement (
 
   // Current State, this variable will contains the application state of all Rules and categories
   private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
-
 
   // Get rules that needs to be updated , and divide them by those who are new application and those who don't apply the Directive annymore
   def checkRulesToUpdate = {
@@ -166,28 +158,27 @@ final case class DirectiveApplicationManagement (
     // Compute that are not applyting the Directive anymore, We need the rules that were applying and that don't apply anymore
     val notApplyingAnymore = applyingRulesId.diff(current)
 
-    (nowApplying.map(rulesMap),notApplyingAnymore.map(rulesMap))
+    (nowApplying.map(rulesMap), notApplyingAnymore.map(rulesMap))
 
   }
-
 
   /*
    *  Check Functions, They will change the state inside the service
    */
-  def checkRule(id : RuleId, status: Boolean) = {
-    def checkRule(id : RuleId, status: Boolean, category : CategoryId) : DirectiveApplicationResult = {
+  def checkRule(id: RuleId, status: Boolean) = {
+    def checkRule(id: RuleId, status: Boolean, category: CategoryId): DirectiveApplicationResult = {
       logger.debug(s"check for ${id.serialize}, in ${category.value}")
       // Get current state
-      val currentAppliedRules = currentApplyingRules.get(category).getOrElse(Nil)
+      val currentAppliedRules          = currentApplyingRules.get(category).getOrElse(Nil)
       // Get the new application status, and if the category completed is Full
-      val (newApplication,isComplete) = {
+      val (newApplication, isComplete) = {
         if (status) {
-          val result = (id :: currentAppliedRules).sortBy(_.serialize).distinct
+          val result        = (id :: currentAppliedRules).sortBy(_.serialize).distinct
           val completeRules = rulesByCategory(category).sortBy(_.serialize)
-          (result,result == completeRules)
+          (result, result == completeRules)
         } else {
           val result = currentAppliedRules.filter(_ != id)
-          (result,result.isEmpty)
+          (result, result.isEmpty)
         }
       }
 
@@ -205,18 +196,20 @@ final case class DirectiveApplicationManagement (
 
   }
 
-   // Check a Lists of Rules, used when you try to apply several rules together
-   def checkRules (rules : List[RuleId], status:Boolean) = {
-     DirectiveApplicationResult.merge(rules.map(checkRule(_, status)))
+  // Check a Lists of Rules, used when you try to apply several rules together
+  def checkRules(rules: List[RuleId], status: Boolean) = {
+    DirectiveApplicationResult.merge(rules.map(checkRule(_, status)))
   }
 
   // Check a Category
-  def checkCategory (id : CategoryId, status:Boolean) = {
+  def checkCategory(id: CategoryId, status: Boolean) = {
     // Current application of that category
-    val currentApplication = currentApplyingRules(id)
+    val currentApplication  = currentApplyingRules(id)
     // All Rules contained in that category
-    val completeApplication  = rulesByCategory(id)
-    logger.debug(s"category ${id.value} is currently applying ${currentApplication.size} rules and completeApplication contains ${completeApplication.size} ")
+    val completeApplication = rulesByCategory(id)
+    logger.debug(
+      s"category ${id.value} is currently applying ${currentApplication.size} rules and completeApplication contains ${completeApplication.size} "
+    )
 
     // Get Rules that needs modifications
     val rulesToCheck = if (status) {
@@ -226,15 +219,14 @@ final case class DirectiveApplicationManagement (
       // Here we remove the category: Get so the actual application
       completeApplication
     }
-    logger.debug(s"there is ${rulesToCheck.size} to ${if (status) "check" else "uncheck" }")
+    logger.debug(s"there is ${rulesToCheck.size} to ${if (status) "check" else "uncheck"}")
 
-    //Check Rules from that category
+    // Check Rules from that category
     val applications = rulesToCheck.map(checkRule(_, status))
     logger.debug(s"final applications for category ${id.value}:")
     // Final merge
     DirectiveApplicationResult.merge(applications)
   }
-
 
   /*
    * Check Status methods, here are functions to check whether a rule is considered apply the Directive or not
@@ -244,7 +236,7 @@ final case class DirectiveApplicationManagement (
     currentApplyingRules.get(rule.categoryId).getOrElse(Nil).contains(rule.id)
   }
   // Check status of Rule, based on its Id
-  def ruleStatus(ruleId : RuleId) : Box[Boolean] = {
+  def ruleStatus(ruleId: RuleId): Box[Boolean] = {
     rulesMap.get(ruleId) match {
       case Some(rule) => Full(ruleStatus(rule))
       case None       => Failure(s"Could not get Rule with id ${ruleId.serialize} from directive application.")
@@ -257,21 +249,21 @@ final case class DirectiveApplicationManagement (
   }
 
   // Check if a category is complete or not
-  def isCompletecategory (id : CategoryId) = {
-    val currentApplication = currentApplyingRules.get(id).getOrElse(Nil)
-    val completeApplication  = rulesByCategory(id)
+  def isCompletecategory(id: CategoryId) = {
+    val currentApplication  = currentApplyingRules.get(id).getOrElse(Nil)
+    val completeApplication = rulesByCategory(id)
     currentApplication.size > 0 && currentApplication == completeApplication
   }
 
   // Check if the category is in an indeterminate state
-  def isIndeterminateCategory (id : CategoryId) = {
-    val currentApplication = currentApplyingRules.get(id).getOrElse(Nil)
-    val completeApplication  = rulesByCategory(id)
+  def isIndeterminateCategory(id: CategoryId) = {
+    val currentApplication  = currentApplyingRules.get(id).getOrElse(Nil)
+    val completeApplication = rulesByCategory(id)
     currentApplication.size > 0 && currentApplication != completeApplication
   }
 
   // Check if the category is in empty
-  def isEmptyCategory (id : CategoryId) = {
+  def isEmptyCategory(id: CategoryId) = {
     val currentApplication = rulesByCategory.get(id).getOrElse(Nil)
     currentApplication.size > 0
   }

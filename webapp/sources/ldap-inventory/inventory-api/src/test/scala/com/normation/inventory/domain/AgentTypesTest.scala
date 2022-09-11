@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.domain
 
@@ -70,7 +70,8 @@ class AgentTypesTest extends Specification {
    *
    */
 
-  val key = "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAtDTtbfw2ic1pcUludrs1I+HGGdRL0r5dKjMzLhUGahCrVaH7H3ND\n/py+XPZKY/Iolttgf1RriQAazEVbFEWXozistMTXtWJu/5IxV47QNqbS82KrhQNp\ns4abfqraGOlYbYS5BXCaHYrKI2VzvAwwvCsE7vmhnO1Br4AueagrFU+itjr/0gMd\nu58xYDiAADXqGDzES75NIxCZelv5vefMfpEMlBmztKmgY+iT+Q8lhf42WUsZ9OBl\nRDRfQ9VCW+8336C1JEpcHAcSElF4mn4D0GN7RvxNOSGpuLjxAvp5qFVbp4Xtd+4q\n8DaGe+w8MplwMVCFTyEMS3E1pS4DdctdLwIDAQAB\n-----END RSA PUBLIC KEY-----"
+  val key =
+    "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAtDTtbfw2ic1pcUludrs1I+HGGdRL0r5dKjMzLhUGahCrVaH7H3ND\n/py+XPZKY/Iolttgf1RriQAazEVbFEWXozistMTXtWJu/5IxV47QNqbS82KrhQNp\ns4abfqraGOlYbYS5BXCaHYrKI2VzvAwwvCsE7vmhnO1Br4AueagrFU+itjr/0gMd\nu58xYDiAADXqGDzES75NIxCZelv5vefMfpEMlBmztKmgY+iT+Q8lhf42WUsZ9OBl\nRDRfQ9VCW+8336C1JEpcHAcSElF4mn4D0GN7RvxNOSGpuLjxAvp5qFVbp4Xtd+4q\n8DaGe+w8MplwMVCFTyEMS3E1pS4DdctdLwIDAQAB\n-----END RSA PUBLIC KEY-----"
 
   val json43 = s"""
     {
@@ -112,7 +113,12 @@ class AgentTypesTest extends Specification {
     "works for 6_1 format" in {
       val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json61, None))
       res must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("6.1.0")), Certificate(key), Set("https","very", "good").map(AgentCapability))
+        AgentInfo(
+          AgentType.CfeCommunity,
+          Some(AgentVersion("6.1.0")),
+          Certificate(key),
+          Set("https", "very", "good").map(AgentCapability)
+        )
       )
     }
   }

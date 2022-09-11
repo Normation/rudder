@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.rest.internal
 
@@ -45,13 +45,11 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
 import com.normation.rudder.web.model.LinkUtil
-
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
-
 import scala.collection.Seq
 
 /**
@@ -74,10 +72,10 @@ import scala.collection.Seq
  *     - ex: attribute:hostname,nodeId,ipAddresses
  *
  */
-class RestQuicksearch (
-    quicksearch: FullQuickSearchService
-  , userService: UserService
-  , linkUtil   : LinkUtil
+class RestQuicksearch(
+    quicksearch: FullQuickSearchService,
+    userService: UserService,
+    linkUtil:    LinkUtil
 ) extends RestHelper with Loggable {
 
   final val MAX_RES_BY_KIND = 10
@@ -92,7 +90,7 @@ class RestQuicksearch (
         case Some(values)       => values.mkString("")
       }
       quicksearch.search(token) match {
-        case eb: EmptyBox  =>
+        case eb: EmptyBox =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
           toJsonError(None, e.messageChain)("quicksearch", false)
 
@@ -103,7 +101,7 @@ class RestQuicksearch (
     }
   }
 
-  private[this] def filter (results : Set[QuickSearchResult]) = {
+  private[this] def filter(results: Set[QuickSearchResult]) = {
     import com.normation.rudder.services.quicksearch.QuickSearchResultId._
 
     val user = userService.getCurrentUser
@@ -112,14 +110,16 @@ class RestQuicksearch (
     val groupOK      = user.checkRights(AuthorizationType.Group.Read)
     val ruleOK       = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
     val directiveOK  = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Directive.Read)
-    val parametersOK = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Parameter.Read)
+    val parametersOK =
+      user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Parameter.Read)
 
-    results.filter { _.id match {
-      case _: QRNodeId      => nodeOK
-      case _: QRGroupId     => groupOK
-      case _: QRRuleId      => ruleOK
-      case _: QRParameterId => parametersOK
-      case _: QRDirectiveId => directiveOK
+    results.filter {
+      _.id match {
+        case _: QRNodeId      => nodeOK
+        case _: QRGroupId     => groupOK
+        case _: QRRuleId      => ruleOK
+        case _: QRParameterId => parametersOK
+        case _: QRDirectiveId => directiveOK
       }
     }
   }
@@ -136,15 +136,16 @@ class RestQuicksearch (
   private[this] def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
     val filteredResult = filter(results)
     // group by kind, and build the summary for each
-    val map = filteredResult.groupBy( _.id.tpe ).map { case (tpe, set) =>
-      //distinct by id:
-      val unique   = set.map(x => (x.id, x) ).toMap.values.toSeq.sortBy(_.name)
-      //on take the nth first, sorted by name
-      val returned = unique.take(maxByKind)
+    val map            = filteredResult.groupBy(_.id.tpe).map {
+      case (tpe, set) =>
+        // distinct by id:
+        val unique   = set.map(x => (x.id, x)).toMap.values.toSeq.sortBy(_.name)
+        // on take the nth first, sorted by name
+        val returned = unique.take(maxByKind)
 
-      val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
+        val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
 
-      (tpe, (summary, returned))
+        (tpe, (summary, returned))
     }
 
     // now, transformed to the wanted results: an array.
@@ -156,13 +157,13 @@ class RestQuicksearch (
     // - rules
     import com.normation.rudder.services.quicksearch.QSObject.sortQSObject
     val jsonList = QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
-      val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0,0), Seq()) )
-      if(res.isEmpty) {
+      val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0, 0), Seq()))
+      if (res.isEmpty) {
         None
       } else {
         Some(
-            ( "header" -> summary.toJson                     )
-          ~ ( "items"  -> JArray(res.toList.map( _.toJson )) )
+          ("header"  -> summary.toJson)
+          ~ ("items" -> JArray(res.toList.map(_.toJson)))
         )
       }
     }
@@ -171,29 +172,29 @@ class RestQuicksearch (
 
   // private case class cannot be final because of scalac bug
   private[this] case class ResultTypeSummary(
-      tpe            : String
-    , originalNumber : Int
-    , returnedNumber : Int
+      tpe:            String,
+      originalNumber: Int,
+      returnedNumber: Int
   )
 
-  private[this] implicit class JsonResultTypeSummary(t: ResultTypeSummary) {
+  implicit private[this] class JsonResultTypeSummary(t: ResultTypeSummary) {
 
-    val desc = if(t.originalNumber <= t.returnedNumber) {
-       s"${t.originalNumber} found"
+    val desc = if (t.originalNumber <= t.returnedNumber) {
+      s"${t.originalNumber} found"
     } else { // we elided some results
-       s"${t.originalNumber} found, only displaying the first ${t.returnedNumber}. Please refine your query."
+      s"${t.originalNumber} found, only displaying the first ${t.returnedNumber}. Please refine your query."
     }
 
     def toJson: JObject = {
       (
-          ("type"    -> t.tpe.capitalize)
-        ~ ("summary" -> desc            )
+        ("type"      -> t.tpe.capitalize)
+        ~ ("summary" -> desc)
         ~ ("numbers" -> t.originalNumber)
       )
     }
   }
 
-  private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
+  implicit private[this] class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
     import com.normation.rudder.domain.nodes.NodeGroupId
     import com.normation.rudder.domain.policies.DirectiveUid
@@ -210,23 +211,23 @@ class RestQuicksearch (
         case QRParameterId(v) => globalParameterLink(v)
       }
 
-      //limit description length to avoid having a whole file printed
+      // limit description length to avoid having a whole file printed
       val v = {
         val max = 100
-        if(r.value.size > max+3) r.value.take(max) + "..."
-        else                     r.value
+        if (r.value.size > max + 3) r.value.take(max) + "..."
+        else r.value
       }
 
-      val desc = s"${r.attribute.map( _.display + ": ").getOrElse("")}${v}"
+      val desc = s"${r.attribute.map(_.display + ": ").getOrElse("")}${v}"
 
       (
-          ( "name" -> r.name        )
-        ~ ( "type" -> r.id.tpe.name )
-        ~ ( "id"   -> r.id.value    )
+        ("name"    -> r.name)
+        ~ ("type"  -> r.id.tpe.name)
+        ~ ("id"    -> r.id.value)
         // matched value
-        ~ ( "value"-> r.value       )
-        ~ ( "desc" -> desc          )
-        ~ ( "url"  -> url           )
+        ~ ("value" -> r.value)
+        ~ ("desc"  -> desc)
+        ~ ("url"   -> url)
       )
     }
   }

@@ -24,9 +24,6 @@
 
 package com.normation.rudder.repository.xml
 
-
-
-
 class RudderPrettyPrinter(width: Int, step: Int) {
 
   import scala.xml._
@@ -40,11 +37,11 @@ class RudderPrettyPrinter(width: Int, step: Int) {
   class BrokenException() extends java.lang.Exception
 
   class Item
-  case object Break extends Item {
+  case object Break                   extends Item {
     override def toString() = "\\"
   }
   case class Box(col: Int, s: String) extends Item
-  case class Para(s: String) extends Item
+  case class Para(s: String)          extends Item
 
   protected var items: List[Item] = Nil
 
@@ -61,40 +58,42 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     val tmp = width - cur
     if (s.length <= tmp)
       return List(Box(ind, s))
-    var i = s indexOf ' '
+    var i   = s indexOf ' '
     if (i > tmp || i == -1) throw new BrokenException() // cannot break
 
-    var last: List[Int] = Nil
+    var last: List[Int]  = Nil
     while (i != -1 && i < tmp) {
-      last = i::last
-      i = s.indexOf(' ', i+1)
+      last = i :: last
+      i = s.indexOf(' ', i + 1)
     }
-    var res: List[Item] = Nil
+    var res:  List[Item] = Nil
     while (Nil != last) try {
       val b = Box(ind, s.substring(0, last.head))
       cur = ind
       res = b :: Break :: cut(s.substring(last.head, s.length), ind)
-       // backtrack
+      // backtrack
       last = last.tail
     } catch {
-      case _:BrokenException => last = last.tail
+      case _: BrokenException => last = last.tail
     }
     throw new BrokenException()
   }
 
   /** Try to make indented box, if possible, else para.
    */
-  protected def makeBox(ind: Int, s: String) =
-    if (cur + s.length > width) {            // fits in this line
+  protected def makeBox(ind: Int, s: String) = {
+    if (cur + s.length > width) { // fits in this line
       items ::= Box(ind, s)
       cur += s.length
+    } else {
+      try cut(s, ind) foreach (items ::= _) // break it up
+      catch { case _: BrokenException => makePara(ind, s) } // give up, para
     }
-    else try cut(s, ind) foreach (items ::= _)            // break it up
-    catch { case _: BrokenException => makePara(ind, s) } // give up, para
+  }
 
   // dont respect indent in para, but afterwards
   protected def makePara(ind: Int, s: String) = {
-    items = Break::Para(s)::Break::items
+    items = Break :: Para(s) :: Break :: items
     cur = ind
   }
 
@@ -138,8 +137,8 @@ class RudderPrettyPrinter(width: Int, step: Int) {
 
   protected def childrenAreLeaves(n: Node): Boolean = {
     def isLeaf(l: Node) = l match {
-      case _:Atom[_] | _:Comment | _:EntityRef | _:ProcInstr  => true
-      case _                                                  => false
+      case _: Atom[_] | _: Comment | _: EntityRef | _: ProcInstr => true
+      case _                                                     => false
     }
     n.child forall isLeaf
   }
@@ -149,36 +148,36 @@ class RudderPrettyPrinter(width: Int, step: Int) {
 
   private def doPreserve(node: Node) = true
 
-  protected def traverse(node: Node, pscope: NamespaceBinding, ind: Int): Unit =  node match {
+  protected def traverse(node: Node, pscope: NamespaceBinding, ind: Int): Unit = node match {
 
-      case Text(s) if s.trim() == "" =>
-        ;
-      case _:Atom[_] | _:Comment | _:EntityRef | _:ProcInstr =>
-        makeBox( ind, node.toString.trim() )
-      case g @ Group(xs) =>
-        traverse(xs.iterator, pscope, ind)
-      case _ =>
-        val test = {
-          val sb = new StringBuilder()
-          Utility.serialize(node, pscope, sb, false)
-          if (doPreserve(node)) sb.toString
-          else TextBuffer.fromString(sb.toString).toText(0).data
-        }
-        if (childrenAreLeaves(node) && fits(test)) {
-          makeBox(ind, test)
-        } else {
-          val (stg, len2) = startTag(node, pscope)
-          val etg = endTag(node)
-          if (stg.length < width - cur) { // start tag fits
-            makeBox(ind, stg)
-            makeBreak()
-            traverse(node.child.iterator, node.scope, ind + step)
-            makeBox(ind, etg)
-          } else if (len2 < width - cur) {
-            // <start label + attrs + tag + content + end tag
-            makeBox(ind, stg.substring(0, len2))
-            makeBreak() // todo: break the rest in pieces
-            /*{ //@todo
+    case Text(s) if s.trim() == ""                             =>
+      ;
+    case _: Atom[_] | _: Comment | _: EntityRef | _: ProcInstr =>
+      makeBox(ind, node.toString.trim())
+    case g @ Group(xs)                                         =>
+      traverse(xs.iterator, pscope, ind)
+    case _                                                     =>
+      val test = {
+        val sb = new StringBuilder()
+        Utility.serialize(node, pscope, sb, false)
+        if (doPreserve(node)) sb.toString
+        else TextBuffer.fromString(sb.toString).toText(0).data
+      }
+      if (childrenAreLeaves(node) && fits(test)) {
+        makeBox(ind, test)
+      } else {
+        val (stg, len2) = startTag(node, pscope)
+        val etg         = endTag(node)
+        if (stg.length < width - cur) { // start tag fits
+          makeBox(ind, stg)
+          makeBreak()
+          traverse(node.child.iterator, node.scope, ind + step)
+          makeBox(ind, etg)
+        } else if (len2 < width - cur) {
+          // <start label + attrs + tag + content + end tag
+          makeBox(ind, stg.substring(0, len2))
+          makeBreak() // todo: break the rest in pieces
+          /*{ //@todo
              val sq:Seq[String] = stg.split(" ");
              val it = sq.iterator;
              it.next;
@@ -187,23 +186,24 @@ class RudderPrettyPrinter(width: Int, step: Int) {
                makeBreak()
              }
              }*/
-            makeBox(ind, stg.substring(len2, stg.length))
-            makeBreak()
-            traverse(node.child.iterator, node.scope, ind + step)
-            makeBox(cur, etg)
-            makeBreak()
-          } else { // give up
-            makeBox(ind, test)
-            makeBreak()
-          }
+          makeBox(ind, stg.substring(len2, stg.length))
+          makeBreak()
+          traverse(node.child.iterator, node.scope, ind + step)
+          makeBox(cur, etg)
+          makeBreak()
+        } else { // give up
+          makeBox(ind, test)
+          makeBreak()
         }
+      }
   }
 
-  protected def traverse(it: Iterator[Node], scope: NamespaceBinding, ind: Int ): Unit =
+  protected def traverse(it: Iterator[Node], scope: NamespaceBinding, ind: Int): Unit = {
     for (c <- it) {
       traverse(c, scope, ind)
       makeBreak()
     }
+  }
 
   /** Appends a formatted string containing well-formed XML with
    *  given namespace to prefix mapping to the given string buffer.
@@ -219,10 +219,10 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     var lastwasbreak = false
     reset()
     traverse(n, pscope, 0)
-    var cur = 0
+    var cur          = 0
     for (b <- items.reverse) (b: @unchecked) match {
       case Break =>
-        if (!lastwasbreak) sb.append('\n')  // on windows: \r\n ?
+        if (!lastwasbreak) sb.append('\n') // on windows: \r\n ?
         lastwasbreak = true
         cur = 0
 //        while (cur < last) {
@@ -237,7 +237,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
           cur += 1
         }
         sb.append(s)
-      case Para( s ) =>
+      case Para(s)   =>
         lastwasbreak = false
         sb append s
     }
