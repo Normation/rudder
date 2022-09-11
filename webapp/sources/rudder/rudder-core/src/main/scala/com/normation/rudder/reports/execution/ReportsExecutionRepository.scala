@@ -1,49 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2013 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2013 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.reports.execution
 
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.domain.logger.{ComplianceDebugLoggerPure, ReportLogger, TimingDebugLoggerPure}
-import zio._
-import com.normation.zio._
 import com.normation.errors._
-
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ComplianceDebugLoggerPure
+import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.repository.CachedRepository
+import com.normation.zio._
+import zio._
 
 /**
  * Service for reading or storing execution of Nodes
@@ -70,9 +71,7 @@ trait RoReportsExecutionRepository {
 
 }
 
-
 trait WoReportsExecutionRepository {
-
 
   // Set the computation date of compliance for a run that had no compliance computed
   def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int]
@@ -84,10 +83,10 @@ trait WoReportsExecutionRepository {
  * be slow) when no cache available.
  */
 class CachedReportsExecutionRepository(
-    readBackend : RoReportsExecutionRepository
+    readBackend: RoReportsExecutionRepository
 ) extends RoReportsExecutionRepository with CachedRepository {
 
-  val logger = ReportLogger
+  val logger    = ReportLogger
   val semaphore = Semaphore.make(1).runNow
 
   /*
@@ -112,25 +111,28 @@ class CachedReportsExecutionRepository(
    */
   private[this] var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
-
-  override def clearCache(): Unit = semaphore.withPermit(IOResult.effect {
-    cache = Map()
-  }).runNow
+  override def clearCache(): Unit = semaphore
+    .withPermit(IOResult.effect {
+      cache = Map()
+    })
+    .runNow
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
-    semaphore.withPermit(
-      for {
-        n1   <- currentTimeMillis
-        _    <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cache}")
-        _    <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
-        runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
-        n2   <- currentTimeMillis
-        _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
-      } yield {
-        cache = cache ++ runs
-        cache.view.filterKeys { x => nodeIds.contains(x) }.toMap
-      }
-    ).chainError(s"Error when trying to update the cache of Agent Runs informations")
+    semaphore
+      .withPermit(
+        for {
+          n1   <- currentTimeMillis
+          _    <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cache}")
+          _    <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+          runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+          n2   <- currentTimeMillis
+          _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+        } yield {
+          cache = cache ++ runs
+          cache.view.filterKeys(x => nodeIds.contains(x)).toMap
+        }
+      )
+      .chainError(s"Error when trying to update the cache of Agent Runs informations")
   }
 
   def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = readBackend.getUnprocessedRuns()
@@ -138,14 +140,16 @@ class CachedReportsExecutionRepository(
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
-    for {
-      runs  <- readBackend.getNodesAndUncomputedCompliance()
-    } yield {
-      cache = cache ++ runs
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore
+    .withPermit(IOResult.effect {
+      for {
+        runs <- readBackend.getNodesAndUncomputedCompliance()
+      } yield {
+        cache = cache ++ runs
 
-      cache.view.filterKeys { x => runs.contains(x) }.toMap
-    }
-  }).runNow
+        cache.view.filterKeys(x => runs.contains(x)).toMap
+      }
+    })
+    .runNow
 
 }

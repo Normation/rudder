@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2013 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2013 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.migration
 
@@ -41,33 +41,32 @@ import scala.xml.Elem
 
 object DATA_5 {
   import Migration_5_DATA_Rule._
-  
-  def e(xml:Elem) = <entry>{xml}</entry>
+
+  def e(xml: Elem) = <entry>{xml}</entry>
 
   val data_5 = Map(
-      "rule_add"    -> MigrationTestLog(
-            eventType = "RuleAdded"
-          , data      = e(rule_add_5)
-      )
-    , "rule_modify" -> MigrationTestLog(
-            eventType = "RuleModified"
-          , data      =  e(rule_modify_5)
-      )
-    , "rule_delete" -> MigrationTestLog(
-            eventType = "RuleDeleted"
-          , data      = e(rule_delete_5)
-      )
-    , "cr_rule_change" -> MigrationTestLog(
-            eventType = "RuleDeleted"
-          , data      = e(rule_delete_5)
-      )        
+    "rule_add"       -> MigrationTestLog(
+      eventType = "RuleAdded",
+      data = e(rule_add_5)
+    ),
+    "rule_modify"    -> MigrationTestLog(
+      eventType = "RuleModified",
+      data = e(rule_modify_5)
+    ),
+    "rule_delete"    -> MigrationTestLog(
+      eventType = "RuleDeleted",
+      data = e(rule_delete_5)
+    ),
+    "cr_rule_change" -> MigrationTestLog(
+      eventType = "RuleDeleted",
+      data = e(rule_delete_5)
+    )
   )
 }
 
 object Migration_5_DATA_Rule {
 
-  val rule_add_5 =
-
+  val rule_add_5 = {
     <rule fileFormat="5" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
@@ -83,9 +82,9 @@ object Migration_5_DATA_Rule {
       <isSystem>false</isSystem>
       <category>rootRuleCategory</category>
     </rule>
+  }
 
-
-  val rule_modify_5 =
+  val rule_modify_5 = {
     <rule fileFormat="5" changeType="modify">
       <id>39720027-952c-4e28-b774-9d5ce63f7a1e</id>
       <displayName>Eutelsat CR Test</displayName>
@@ -119,8 +118,9 @@ object Migration_5_DATA_Rule {
       </isEnabled>
       <category>rootRuleCategory</category>
     </rule>
+  }
 
-  val rule_delete_5 =
+  val rule_delete_5 = {
     <rule fileFormat="5" changeType="delete">
       <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
       <displayName>zada on SLES10</displayName>
@@ -135,10 +135,11 @@ object Migration_5_DATA_Rule {
       <isSystem>false</isSystem>
       <category>rootRuleCategory</category>
     </rule>
+  }
 }
 
 object Migration_5_DATA_ChangeRequest {
-  val cr_rule_change_5 =
+  val cr_rule_change_5 = {
     <changeRequest fileFormat="5">
       <groups>
       </groups>
@@ -192,4 +193,5 @@ object Migration_5_DATA_ChangeRequest {
       <globalParameters>
       </globalParameters>
       </changeRequest>
+  }
 }

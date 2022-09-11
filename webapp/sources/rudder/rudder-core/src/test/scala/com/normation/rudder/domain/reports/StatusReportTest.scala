@@ -1,60 +1,57 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.domain.reports
 
 import com.github.ghik.silencer.silent
 import com.normation.GitVersion
-
-import scala.io.Source
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-
+import com.normation.rudder.domain.reports.ReportType._
+import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.reports.Pending
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import com.normation.rudder.services.reports.Pending
-
-import org.joda.time.DateTime
-import com.normation.rudder.domain.reports.ReportType._
-import com.normation.rudder.services.policies.NodeConfigData
+import scala.io.Source
 
 /**
  * Test properties about status reports,
@@ -63,9 +60,9 @@ import com.normation.rudder.services.policies.NodeConfigData
 
 @RunWith(classOf[JUnitRunner])
 class StatusReportTest extends Specification {
-  private[this] implicit def s2n(s: String): NodeId = NodeId(s)
-  private[this] implicit def r2n(s: String): RuleId = RuleId(RuleUid(s))
-  private[this] implicit def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
+  implicit private[this] def s2n(s: String): NodeId      = NodeId(s)
+  implicit private[this] def r2n(s: String): RuleId      = RuleId(RuleUid(s))
+  implicit private[this] def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
 
   sequential
 
@@ -73,18 +70,19 @@ class StatusReportTest extends Specification {
 
     "correctly be sumed" in {
 
-      ComplianceLevel.sum(List(
-          ComplianceLevel(success = 1)
-        , ComplianceLevel(error = 1, repaired = 1)
-        , ComplianceLevel(error = 1, pending = 1)
-        , ComplianceLevel(repaired = 12)
-        , ComplianceLevel(repaired = 12)
-        , ComplianceLevel(repaired = 12)
-        , ComplianceLevel(repaired = 12)
-        , ComplianceLevel(repaired = 12)
-        , ComplianceLevel(repaired = 12)
-      )) === ComplianceLevel(error = 2, repaired = 73, success = 1, pending = 1)
-
+      ComplianceLevel.sum(
+        List(
+          ComplianceLevel(success = 1),
+          ComplianceLevel(error = 1, repaired = 1),
+          ComplianceLevel(error = 1, pending = 1),
+          ComplianceLevel(repaired = 12),
+          ComplianceLevel(repaired = 12),
+          ComplianceLevel(repaired = 12),
+          ComplianceLevel(repaired = 12),
+          ComplianceLevel(repaired = 12),
+          ComplianceLevel(repaired = 12)
+        )
+      ) === ComplianceLevel(error = 2, repaired = 73, success = 1, pending = 1)
 
     }
 
@@ -104,15 +102,12 @@ class StatusReportTest extends Specification {
 
     """))
 
-
     val d1c1v1_s  = parse("n1, r1, 0, d1, c1, v1, , success, success msg")
     val d1c2v21_s = parse("n1, r1, 0, d1, c2, v2, , success, success msg")
     val d2c2v21_e = parse("n1, r1, 0, d2, c2, v2, , error  , error msg")
 
-
-
     "correctly compute compliance" in {
-      all.compliance === ComplianceLevel(1,1,1,1,2,0,1,1)
+      all.compliance === ComplianceLevel(1, 1, 1, 1, 2, 0, 1, 1)
     }
 
     "correctly add them" in {
@@ -219,20 +214,31 @@ class StatusReportTest extends Specification {
 
   "Node status reports" should {
     val modesConfig = NodeConfigData.defaultModesConfig
-    val report = NodeStatusReport(
-        NodeId("n1")
-      , Pending(
-            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, Nil, List()) // TODO : correct that test
-          , None, DateTime.now.plusMinutes(15)
-        )
-      , RunComplianceInfo.OK
-      , Nil
-    , parse("""
+    val report      = NodeStatusReport(
+      NodeId("n1"),
+      Pending(
+        NodeExpectedReports(
+          NodeId("n1"),
+          NodeConfigId("plop"),
+          DateTime.now(),
+          None,
+          modesConfig,
+          Nil,
+          List()
+        ), // TODO : correct that test
+
+        None,
+        DateTime.now.plusMinutes(15)
+      ),
+      RunComplianceInfo.OK,
+      Nil,
+      parse("""
        n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
        n1, r2, 0, d1, c0  , v0  , "", success   , pending msg
        n1, r3, 0, d1, c1  , v1  , "", error     , pending msg
-    """).toSet)
+    """).toSet
+    )
 
     "Correctly compute the compliance" in {
       report.compliance === ComplianceLevel(pending = 2, success = 1, error = 1)
@@ -247,16 +253,20 @@ class StatusReportTest extends Specification {
   }
 
   "Rule status reports" should {
-    val report = RuleStatusReport(RuleId(RuleUid("r1")), parse("""
+    val report = RuleStatusReport(
+      RuleId(RuleUid("r1")),
+      parse("""
        n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
        n2, r1, 0, d1, c0  , v0  , "", success   , pending msg
        n3, r1, 0, d1, c1  , v1  , "", error     , pending msg
        n4, r2, 0, d1, c0  , v0  , "", pending   , pending msg
-    """), Nil)
+    """),
+      Nil
+    )
 
     "Filter out r2" in {
-      report.report.reports.map( _.ruleId).toSet === Set(RuleId(RuleUid("r1")))
+      report.report.reports.map(_.ruleId).toSet === Set(RuleId(RuleUid("r1")))
     }
 
     "Correctly compute the compliance" in {
@@ -275,14 +285,14 @@ class StatusReportTest extends Specification {
       // you can look at individual results by setting log level to "TRACE" here:
       logger.setLevel(ch.qos.logback.classic.Level.OFF)
 
-      val nbSet = 90
+      val nbSet   = 90
       val sizeSet = 100
 
       // force tests to be sequentials
 
-      val initData = buildComplianceLevelSets(nbSet,sizeSet)
+      val initData = buildComplianceLevelSets(nbSet, sizeSet)
 
-      val runTest = System.getProperty("tests.run.perf", "false")  == "true"
+      val runTest = System.getProperty("tests.run.perf", "false") == "true"
       "init correctly" in {
         val result = initData.headOption.map(x => ComplianceLevel.compute(x._2))
 
@@ -293,80 +303,105 @@ class StatusReportTest extends Specification {
       }
 
       "run fast enough to compute" in {
-        initData.map( x => ComplianceLevel.compute(x._2))
+        initData.map(x => ComplianceLevel.compute(x._2))
         val t0 = System.nanoTime
 
         for (i <- 1 to 100) {
           val t0_0 = System.nanoTime
           initData.map(x => ComplianceLevel.compute(x._2))
           val t1_1 = System.nanoTime
-          logger.trace(s"${i}th call to compute for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+          logger.trace(s"${i}th call to compute for ${nbSet} sets took ${(t1_1 - t0_0) / 1000} µs")
         }
         val t1 = System.nanoTime
-        logger.debug(s"Time to run test is ${(t1-t0)/1000} µs")
-        ((t1-t0) must be lessThan( 200000*1000 )).when(runTest) // tests show 60030µs
+        logger.debug(s"Time to run test is ${(t1 - t0) / 1000} µs")
+        ((t1 - t0) must be lessThan (200000 * 1000)).when(runTest) // tests show 60030µs
       }
 
       "run fast enough to sum" in {
-        ComplianceLevel.sum(initData.map( x => ComplianceLevel.compute(x._2)))
+        ComplianceLevel.sum(initData.map(x => ComplianceLevel.compute(x._2)))
 
-        val source = initData.map(x => (x._1, ComplianceLevel.compute(x._2))).map( _._2)
-        val t0 = System.nanoTime
+        val source = initData.map(x => (x._1, ComplianceLevel.compute(x._2))).map(_._2)
+        val t0     = System.nanoTime
 
         for (i <- 1 to 100) {
           val t0_0 = System.nanoTime
           // use to warm up
           @silent // remove unused
-          val  result = ComplianceLevel.sum(source)
-          val t1_1 = System.nanoTime
-          logger.trace(s"${i}th call to sum for ${nbSet} sets took ${(t1_1-t0_0)/1000} µs")
+          val result = ComplianceLevel.sum(source)
+          val t1_1   = System.nanoTime
+          logger.trace(s"${i}th call to sum for ${nbSet} sets took ${(t1_1 - t0_0) / 1000} µs")
         }
         val t1 = System.nanoTime
-        logger.debug(s"Time to run test for sum is ${(t1-t0)/1000} µs")
-        ((t1-t0) must be lessThan( 50000*1000 )).when(runTest)  // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
+        logger.debug(s"Time to run test for sum is ${(t1 - t0) / 1000} µs")
+        ((t1 - t0) must be lessThan (50000 * 1000)).when(runTest) // tests show 3159µs on recent XPS but 30795 µs on XPS 15 9650
       }
     }
   }
 
   private[this] def parse(s: String): List[RuleNodeStatusReport] = {
 
-
     def ?(s: String): Option[String] = s.trim match {
       case "" | "\"\"" => None
-      case x => Some(x)
+      case x           => Some(x)
     }
 
-    Source.fromString(s).getLines().zipWithIndex.map { case(l,i) =>
-      val parsed = l.split(",").map( _.trim).toList
-      parsed match {
-        case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
-          Some(RuleNodeStatusReport(n, r, None, None, Map(DirectiveId(DirectiveUid(d)) ->
-            DirectiveStatusReport(d, List(
-              ValueStatusReport(c,c, List(
-                ComponentValueStatusReport(v, uv, List(
-                    MessageStatusReport(toRT(t), ?(m))
-                ))
-              ))
-            ))
-          ), DateTime.now.plusMinutes(5)))
-        case "" :: Nil | Nil => None
-        case _ => throw new IllegalArgumentException(s"Can not parse line ${i}: '${l}'")
+    Source
+      .fromString(s)
+      .getLines()
+      .zipWithIndex
+      .map {
+        case (l, i) =>
+          val parsed = l.split(",").map(_.trim).toList
+          parsed match {
+            case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
+              Some(
+                RuleNodeStatusReport(
+                  n,
+                  r,
+                  None,
+                  None,
+                  Map(
+                    DirectiveId(DirectiveUid(d)) ->
+                    DirectiveStatusReport(
+                      d,
+                      List(
+                        ValueStatusReport(
+                          c,
+                          c,
+                          List(
+                            ComponentValueStatusReport(
+                              v,
+                              uv,
+                              List(
+                                MessageStatusReport(toRT(t), ?(m))
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  DateTime.now.plusMinutes(5)
+                )
+              )
+            case "" :: Nil | Nil                                   => None
+            case _                                                 => throw new IllegalArgumentException(s"Can not parse line ${i}: '${l}'")
+          }
       }
-    }.flatten.toList
+      .flatten
+      .toList
   }
 
-
   private[this] def toRT(s: String): ReportType = s.toLowerCase match {
-    case "success"    => EnforceSuccess
-    case "error"      => EnforceError
-    case "noanswer"   => NoAnswer
-    case "unexpected" => Unexpected
-    case "missing"    => Missing
-    case "n/a" | "na" => EnforceNotApplicable
-    case "repaired"   => EnforceRepaired
-    case "applying" |
-          "pending"   => ReportType.Pending
-    case s => throw new IllegalArgumentException(s)
+    case "success"              => EnforceSuccess
+    case "error"                => EnforceError
+    case "noanswer"             => NoAnswer
+    case "unexpected"           => Unexpected
+    case "missing"              => Missing
+    case "n/a" | "na"           => EnforceNotApplicable
+    case "repaired"             => EnforceRepaired
+    case "applying" | "pending" => ReportType.Pending
+    case s                      => throw new IllegalArgumentException(s)
   }
 
   private[this] def aggregate(nr: Iterable[RuleNodeStatusReport]): AggregatedStatusReport = {
@@ -374,13 +409,14 @@ class StatusReportTest extends Specification {
   }
 
   def buildComplianceLevelSets(
-      nbSet: Int
-    ,  sizeSet: Int
-    ) = {
+      nbSet:   Int,
+      sizeSet: Int
+  ) = {
     val sets = (1 to nbSet).toSeq
-    val reportTypes: Seq[ReportType] = (1 to (sizeSet/2)).map(_ => EnforceSuccess).toSeq ++ ((1 to (sizeSet/2)).map(_ => EnforceRepaired).toSeq)
+    val reportTypes: Seq[ReportType] =
+      (1 to (sizeSet / 2)).map(_ => EnforceSuccess).toSeq ++ ((1 to (sizeSet / 2)).map(_ => EnforceRepaired).toSeq)
 
-    sets.map( x => (x, reportTypes ++ (1 to x).map(_ => EnforceNotApplicable)))
+    sets.map(x => (x, reportTypes ++ (1 to x).map(_ => EnforceNotApplicable)))
   }
 
 }

@@ -1,63 +1,67 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
-
-import scala.xml.NodeSeq
-import scala.xml.Text
-import com.normation.plugins.DefaultExtendableSnippet
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.repository.{FullActiveTechnique, FullActiveTechniqueCategory, FullNodeGroupCategory}
-import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
-import com.normation.rudder.web.services.CurrentUser
-import com.normation.rudder.web.model.FormTracker
-import com.normation.rudder.web.model.WBTextAreaField
-import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.DisplayDirectiveTree
-import com.normation.rudder.web.services.DisplayNodeGroupTree
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
+import com.normation.box._
+import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.workflows.RuleChangeRequest
+import com.normation.rudder.services.workflows.RuleModAction
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
+import com.normation.rudder.web.model.FormTracker
+import com.normation.rudder.web.model.WBSelectField
+import com.normation.rudder.web.model.WBTextAreaField
+import com.normation.rudder.web.model.WBTextField
+import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.web.services.DisplayDirectiveTree
+import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -69,13 +73,8 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.json._
 import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model.WBSelectField
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.workflows.RuleChangeRequest
-import com.normation.rudder.services.workflows.RuleModAction
-import com.normation.rudder.web.ChooseTemplate
-
-import com.normation.box._
+import scala.xml.NodeSeq
+import scala.xml.Text
 
 object RuleEditForm {
 
@@ -84,29 +83,38 @@ object RuleEditForm {
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit:NodeSeq = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
-    , "component-staticinit"
+  def staticInit: NodeSeq = ChooseTemplate(
+    "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil,
+    "component-staticinit"
   )
 
   private def body: NodeSeq = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
-    , "component-body"
+    "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil,
+    "component-body"
   )
 
   private def crForm: NodeSeq = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
-    , "component-form"
+    "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil,
+    "component-form"
   )
 
-  val htmlId_groupTree = "groupTree"
+  val htmlId_groupTree            = "groupTree"
   val htmlId_activeTechniquesTree = "directiveTree"
 }
 
-
 // these two case classes are needed to generate the JS for selected directive & target. They need to be top level else lift goes mad.
-final case class JsGroup(target: String, link:String, name: String, desc: String, isEnabled: Boolean)
-final case class JsDirective(id: String, link:String, name: String, desc: String, techniqueName: String, techniqueVersion: String, mode: String, tags: JValue, isEnabled: Boolean)
+final case class JsGroup(target: String, link: String, name: String, desc: String, isEnabled: Boolean)
+final case class JsDirective(
+    id:               String,
+    link:             String,
+    name:             String,
+    desc:             String,
+    techniqueName:    String,
+    techniqueVersion: String,
+    mode:             String,
+    tags:             JValue,
+    isEnabled:        Boolean
+)
 
 /**
  * The form that handles Rule edition
@@ -123,13 +131,16 @@ final case class JsDirective(id: String, link:String, name: String, desc: String
  *
  */
 class RuleEditForm(
-    htmlId_rule       : String //HTML id for the div around the form
-  , var rule          : Rule //the Rule to edit
-  , changeMsgEnabled  : Boolean
-  , onSuccessCallback : (Rule) => JsCmd = { (r : Rule) => Noop } //JS to execute on form success (update UI parts)
-  //there are call by name to have the context matching their execution when called,
-  , onFailureCallback : () => JsCmd = { () => Noop }
-  , onCloneCallback   : (Rule) => JsCmd = { (r:Rule) => Noop }
+    htmlId_rule: String, // HTML id for the div around the form
+
+    var rule: Rule, // the Rule to edit
+
+    changeMsgEnabled:  Boolean,
+    onSuccessCallback: (Rule) => JsCmd = { (r: Rule) => Noop }, // JS to execute on form success (update UI parts)
+    // there are call by name to have the context matching their execution when called,
+
+    onFailureCallback: () => JsCmd = { () => Noop },
+    onCloneCallback:   (Rule) => JsCmd = { (r: Rule) => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
 
@@ -149,31 +160,36 @@ class RuleEditForm(
   private[this] val configService       = RudderConfig.configService
   private[this] val linkUtil            = RudderConfig.linkUtil
 
-  private[this] val workflow            = RudderConfig.workflowLevelService
+  private[this] val workflow = RudderConfig.workflowLevelService
 
   //////////////////////////// public methods ////////////////////////////
 
   def mainDispatch = Map(
-      "showForm"          -> { _:NodeSeq => showForm() }
-    , "showRecentChanges" -> { _:NodeSeq => showForm("changesGrid") }
+    "showForm"          -> { _: NodeSeq => showForm() },
+    "showRecentChanges" -> { _: NodeSeq => showForm("changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
-  private[this] def showForm(idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
-    (getFullNodeGroupLib().toBox, getFullDirectiveLib().toBox, getAllNodeInfos().toBox, boxRootRuleCategory.toBox, configService.rudder_global_policy_mode().toBox) match {
+  private[this] def showForm(idToScroll: String = "editRuleZonePortlet"): NodeSeq = {
+    (
+      getFullNodeGroupLib().toBox,
+      getFullDirectiveLib().toBox,
+      getAllNodeInfos().toBox,
+      boxRootRuleCategory.toBox,
+      configService.rudder_global_policy_mode().toBox
+    ) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
-
         val form = {
-          if(CurrentUser.checkRights(AuthorizationType.Rule.Read)) {
+          if (CurrentUser.checkRights(AuthorizationType.Rule.Read)) {
             val formContent = if (CurrentUser.checkRights(AuthorizationType.Rule.Read)) {
               showCrForm(groupLib, directiveLib, globalMode)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>
             }
             (
-                s"#${htmlId_EditZone}" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-                ClearClearable &
+              s"#${htmlId_EditZone}" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
+              ClearClearable &
               "#ruleForm" #> formContent &
               actionButtons()
             ).apply(body)
@@ -185,7 +201,7 @@ class RuleEditForm(
 
         form ++
         Script(
-          OnLoad(JsRaw( s"""
+          OnLoad(JsRaw(s"""
             var tab_stored = JSON.parse(localStorage.getItem('Active_Rule_Tab'));
             var active_tab = isNaN(tab_stored) ? 1 : tab_stored;
             $$($$('.rules-nav-tab > li > a').get(active_tab)).bsTab('show');
@@ -210,65 +226,82 @@ class RuleEditForm(
                 localStorage.setItem('Active_Rule_Tab', 0);
               }
             });
-            """
-        ))
+            """)
+        )
 
       case (groupLib, directiveLib, allNodes, rootRuleCategory, globalMode) =>
-        List(groupLib, directiveLib, allNodes, rootRuleCategory, globalMode).collect{ case eb: EmptyBox =>
-          val e = eb ?~! "An error happens when trying to get rule datas"
-          logger.error(e.messageChain)
-          <div class="error">{e.msg}</div>
+        List(groupLib, directiveLib, allNodes, rootRuleCategory, globalMode).collect {
+          case eb: EmptyBox =>
+            val e = eb ?~! "An error happens when trying to get rule datas"
+            logger.error(e.messageChain)
+            <div class="error">{e.msg}</div>
         }
     }
   }
 
-  private[this] def actionButtons () = {
+  private[this] def actionButtons() = {
     "#removeAction *" #> {
-         SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","btn btn-danger"))
-       } &
-       "#desactivateAction *" #> {
-         val status = if(rule.isEnabledStatus) { ("Disable", RuleModAction.Disable) } else { ("Enable", RuleModAction.Enable) }
-         SHtml.ajaxButton(status._1, () => onSubmitDisable(status._2) ,("class","btn btn-default"))
-       } &
-      "#clone" #> SHtml.ajaxButton(
-                      { Text("Clone") }
-                    , { () =>  onCloneCallback(rule) }
-                    , ("type", "button")
-                    ,("class","btn btn-default")
-      ) &
-      "#save" #> saveButton
+      SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class", "btn btn-danger"))
+    } &
+    "#desactivateAction *" #> {
+      val status = if (rule.isEnabledStatus) { ("Disable", RuleModAction.Disable) }
+      else { ("Enable", RuleModAction.Enable) }
+      SHtml.ajaxButton(status._1, () => onSubmitDisable(status._2), ("class", "btn btn-default"))
+    } &
+    "#clone" #> SHtml.ajaxButton(
+      Text("Clone"),
+      () => onCloneCallback(rule),
+      ("type", "button"),
+      ("class", "btn btn-default")
+    ) &
+    "#save" #> saveButton
 
   }
 
-  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, globalMode : GlobalPolicyMode) : NodeSeq = {
+  private[this] def showCrForm(
+      groupLib:     FullNodeGroupCategory,
+      directiveLib: FullActiveTechniqueCategory,
+      globalMode:   GlobalPolicyMode
+  ): NodeSeq = {
 
-    val usedDirectiveIds = roRuleRepository.getAll().toBox.getOrElse(Seq()).flatMap { case r =>
-      r.directiveIds.map( id => (id.uid -> r.id))
-    }.groupMapReduce( _._1 )(_ => 1)(_+_).toSeq
+    val usedDirectiveIds = roRuleRepository
+      .getAll()
+      .toBox
+      .getOrElse(Seq())
+      .flatMap {
+        case r =>
+          r.directiveIds.map(id => (id.uid -> r.id))
+      }
+      .groupMapReduce(_._1)(_ => 1)(_ + _)
+      .toSeq
 
-    //is't there an other way to do that? We already have the target/name
-    //in the tree, so there's just the existing id to find back
+    // is't there an other way to do that? We already have the target/name
+    // in the tree, so there's just the existing id to find back
     val maptarget = {
       // information given to the "selectedDirective" list
       import net.liftweb.json._
       import net.liftweb.json.Serialization.write
       implicit val formats = Serialization.formats(NoTypeHints)
-      val map = (for {
-        (gt,fg) <- groupLib.allTargets
+      val map              = (for {
+        (gt, fg) <- groupLib.allTargets
       } yield {
-        val checkLinkType =
-          if(gt.target.startsWith("group:")){
+        val checkLinkType = {
+          if (gt.target.startsWith("group:")) {
             linkUtil.groupLink(NodeGroupId(NodeGroupUid(gt.target.replaceFirst("group:", ""))))
-          }else{
+          } else {
             linkUtil.targetLink(gt)
           }
-        (gt.target, JsGroup(
-            gt.target
-          , checkLinkType
-          , fg.name
-          , fg.description
-          , fg.isEnabled
-        ))
+        }
+        (
+          gt.target,
+          JsGroup(
+            gt.target,
+            checkLinkType,
+            fg.name,
+            fg.description,
+            fg.isEnabled
+          )
+        )
       }).toMap
       write(map)
     }
@@ -279,31 +312,31 @@ class RuleEditForm(
       import net.liftweb.json.Serialization.write
       implicit val formats = Serialization.formats(NoTypeHints)
       // here, we want to display a "broken directive" message in the UI if we don't have it in lib
-      val map = selectedDirectiveIds.map { id =>
+      val map              = selectedDirectiveIds.map { id =>
         val details = directiveLib.allDirectives.get(id) match {
-          case Some((t,d)) =>
+          case Some((t, d)) =>
             JsDirective(
-                d.id.uid.value
-              , linkUtil.directiveLink(d.id.uid)
-              , d.name
-              , d.shortDescription
-              , t.newestAvailableTechnique.get.name
-              , d.techniqueVersion.serialize
-              , d.policyMode.map(_.name).getOrElse(globalMode.mode.name)
-              , JsonTagSerialisation.serializeTags(d.tags)
-              , d.isEnabled
+              d.id.uid.value,
+              linkUtil.directiveLink(d.id.uid),
+              d.name,
+              d.shortDescription,
+              t.newestAvailableTechnique.get.name,
+              d.techniqueVersion.serialize,
+              d.policyMode.map(_.name).getOrElse(globalMode.mode.name),
+              JsonTagSerialisation.serializeTags(d.tags),
+              d.isEnabled
             )
-          case None => //the rule reference a non-existing directive. It will break generation. We need to make it appears
+          case None         => // the rule reference a non-existing directive. It will break generation. We need to make it appears
             JsDirective(
-                id.uid.value
-              , linkUtil.directiveLink(id.uid)
-              , s"Unknown directive with id: '${id.debugString}'"
-              , s"This directive is not known by Rudder. You should likely delete it from that rule."
-              , "Technique unknown"
-              , "Technique version unknown"
-              , "error"
-              , JArray(Nil)
-              , true
+              id.uid.value,
+              linkUtil.directiveLink(id.uid),
+              s"Unknown directive with id: '${id.debugString}'",
+              s"This directive is not known by Rudder. You should likely delete it from that rule.",
+              "Technique unknown",
+              "Technique version unknown",
+              "error",
+              JArray(Nil),
+              true
             )
         }
         (id.uid.value, details)
@@ -315,11 +348,9 @@ class RuleEditForm(
     val excludedTarget = ruleTarget.excludedTarget.targets
 
     (
-      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid)
-        } &
-      //activation button: show disactivate if activated
-      "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
+      "#pendingChangeRequestNotification" #> { xml: NodeSeq => PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid) } &
+      // activation button: show disactivate if activated
+      "#disactivateButtonLabel" #> { if (rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
       "#categoryField" #> category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
@@ -329,19 +360,20 @@ class RuleEditForm(
         <div id={htmlId_activeTechniquesTree}>{
           <ul>{
             DisplayDirectiveTree.displayTree(
-                directiveLib
-              , globalMode
-              , usedDirectiveIds = usedDirectiveIds
-              , onClickCategory  = None
-              , onClickTechnique = None
-              , onClickDirective = Some((_,t,d) => directiveClick(t, d, globalMode.mode.name))
-              , None
-              , addEditLink      = true
-              , addActionBtns    = true
-              , included         = selectedDirectiveIds.map(_.uid)
-                //filter techniques without directives, and categories without technique
-              , keepCategory     = category => category.allDirectives.nonEmpty
-              , keepTechnique    = technique => technique.directives.nonEmpty
+              directiveLib,
+              globalMode,
+              usedDirectiveIds = usedDirectiveIds,
+              onClickCategory = None,
+              onClickTechnique = None,
+              onClickDirective = Some((_, t, d) => directiveClick(t, d, globalMode.mode.name)),
+              None,
+              addEditLink = true,
+              addActionBtns = true,
+              included =
+                selectedDirectiveIds.map(_.uid), // filter techniques without directives, and categories without technique
+
+              keepCategory = category => category.allDirectives.nonEmpty,
+              keepTechnique = technique => technique.directives.nonEmpty
             )
           }</ul>
         }</div>
@@ -357,41 +389,45 @@ class RuleEditForm(
       } &
       "#selectGroupField" #> {
         <div id={htmlId_groupTree}>
-          <ul>{DisplayNodeGroupTree.displayTree(
-              groupLib
-            , None
-            , None
-            , Map(
-                  "include" -> includeRuleTarget _
-                , "exclude" -> excludeRuleTarget _
-              )
-            , includedTarget
-            , excludedTarget
-          )}</ul>
+          <ul>{
+          DisplayNodeGroupTree.displayTree(
+            groupLib,
+            None,
+            None,
+            Map(
+              "include" -> includeRuleTarget _,
+              "exclude" -> excludeRuleTarget _
+            ),
+            includedTarget,
+            excludedTarget
+          )
+        }</ul>
         </div>
-        } &
-      "#notifications" #>  updateAndDisplayNotifications
+      } &
+      "#notifications" #> updateAndDisplayNotifications
     )(crForm) ++ Script(
       OnLoad(
         // Initialize angular part of page and group tree
         JsRaw(s"""|
-          |setupMarkdown(${Str(rule.longDescription).toJsCmd}, "longDescriptionField")
-          |if(!angular.element('#groupManagement').scope()){
-          |  angular.bootstrap('#groupManagement', ['groupManagement']);
-          |}
-          |var scope = angular.element($$("#GroupCtrl")).scope();
-          |scope.$$apply(function(){
-          |  scope.init(${ruleTarget.toString()},${maptarget});
-          |} );
-          |buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);
-          |if(!angular.element('#ruleDirectives').scope()){
-          |  angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
-          |}
-          |var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
-          |ruleDirectiveScope.$$apply(function(){
-          |  ruleDirectiveScope.init(${selectedDirectives});
-          |} );
-          |buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', 0);
+                  |setupMarkdown(${Str(rule.longDescription).toJsCmd}, "longDescriptionField")
+                  |if(!angular.element('#groupManagement').scope()){
+                  |  angular.bootstrap('#groupManagement', ['groupManagement']);
+                  |}
+                  |var scope = angular.element($$("#GroupCtrl")).scope();
+                  |scope.$$apply(function(){
+                  |  scope.init(${ruleTarget.toString()},${maptarget});
+                  |} );
+                  |buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);
+                  |if(!angular.element('#ruleDirectives').scope()){
+                  |  angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+                  |}
+                  |var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
+                  |ruleDirectiveScope.$$apply(function(){
+                  |  ruleDirectiveScope.init(${selectedDirectives});
+                  |} );
+                  |buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(
+                   selectedDirectiveIds.toSeq
+                 )},'${S.contextPath}', 0);
         """.stripMargin) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
@@ -402,12 +438,16 @@ class RuleEditForm(
    * from a list of PI ids, get a string.
    * the format is a JSON array: [ "id1", "id2", ...]
    */
-  private[this] def serializedirectiveIds(ids:Seq[DirectiveId]) : String = {
+  private[this] def serializedirectiveIds(ids: Seq[DirectiveId]): String = {
     implicit val formats = Serialization.formats(NoTypeHints)
-    Serialization.write(ids.map(x => x.rev match {
-      case GitVersion.DEFAULT_REV => "jsTree-" + x.uid.value
-      case Revision(r)            => "jsTree-" + x.uid.value + "_" + r
-    }))
+    Serialization.write(
+      ids.map(x => {
+        x.rev match {
+          case GitVersion.DEFAULT_REV => "jsTree-" + x.uid.value
+          case Revision(r)            => "jsTree-" + x.uid.value + "_" + r
+        }
+      })
+    )
   }
 
   /*
@@ -415,41 +455,45 @@ class RuleEditForm(
    * Directive Ids.
    * Never fails, but returned an empty list.
    */
-  private[this] def unserializedirectiveIds(ids:String) : Seq[DirectiveId] = {
+  private[this] def unserializedirectiveIds(ids: String): Seq[DirectiveId] = {
     implicit val formats = DefaultFormats
     parse(ids).extract[List[String]].map { x =>
-      val parts = x.replace("jsTree-","").split("_")
-      DirectiveId(DirectiveUid(parts(0)), if(parts.length == 2) Revision(parts(1)) else GitVersion.DEFAULT_REV)
+      val parts = x.replace("jsTree-", "").split("_")
+      DirectiveId(DirectiveUid(parts(0)), if (parts.length == 2) Revision(parts(1)) else GitVersion.DEFAULT_REV)
     }
   }
 
-  private[this] def unserializeTarget(target:String)  = {
-      RuleTarget.unser(target).map {
-        case exclusionTarget : TargetExclusion => exclusionTarget
-        case t => RuleTarget.merge(Set(t))}.getOrElse(RuleTarget.merge(Set()))
+  private[this] def unserializeTarget(target: String) = {
+    RuleTarget
+      .unser(target)
+      .map {
+        case exclusionTarget: TargetExclusion => exclusionTarget
+        case t => RuleTarget.merge(Set(t))
+      }
+      .getOrElse(RuleTarget.merge(Set()))
   }
 
   ////////////// Callbacks //////////////
 
-  private[this] def updateFormClientSide() : JsCmd = {
-    Replace(htmlId_EditZone, this.showForm() )
+  private[this] def updateFormClientSide(): JsCmd = {
+    Replace(htmlId_EditZone, this.showForm())
   }
 
-  private[this] def onSuccess() : JsCmd = {
-    //MUST BE THIS WAY, because the parent may change some reference to JsNode
-    //and so, our AJAX could be broken
+  private[this] def onSuccess(): JsCmd = {
+    // MUST BE THIS WAY, because the parent may change some reference to JsNode
+    // and so, our AJAX could be broken
     onSuccessCallback(rule) & updateFormClientSide() &
-    //show success popup
+    // show success popup
     successPopup
   }
 
-  private[this] def onFailure() : JsCmd = {
+  private[this] def onFailure(): JsCmd = {
     onFailureCallback() &
     updateFormClientSide() &
     JsRaw("""scrollToElement("notifications", ".rudder_col");""")
   }
 
-  private[this] def onNothingToDo() : JsCmd = {
+  private[this] def onNothingToDo(): JsCmd = {
     formTracker.addFormError(error("There are no modifications to save."))
     onFailure()
   }
@@ -457,24 +501,21 @@ class RuleEditForm(
   /*
    * Create the ajax save button
    */
-  private[this] def saveButton : NodeSeq = {
+  private[this] def saveButton: NodeSeq = {
     // add an hidden field to hold the list of selected directives
     val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success")
     // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 
-    SHtml.hidden( { ids =>
-        selectedDirectiveIds = unserializedirectiveIds(ids).toSet
-      }, serializedirectiveIds(selectedDirectiveIds.toSeq)
-    ) % ( "id" -> "selectedDirectives") ++
-    SHtml.hidden( { target =>
-        ruleTarget = unserializeTarget(target)
-      }, ruleTarget.target
-    ) % ( "id" -> "selectedTargets") ++
+    SHtml.hidden(
+      ids => selectedDirectiveIds = unserializedirectiveIds(ids).toSet,
+      serializedirectiveIds(selectedDirectiveIds.toSeq)
+    )                                                                                 % ("id" -> "selectedDirectives") ++
+    SHtml.hidden(target => ruleTarget = unserializeTarget(target), ruleTarget.target) % ("id" -> "selectedTargets") ++
     save
   }
 
-  private[this] def directiveClick(t:FullActiveTechnique , d: Directive, gm:String) : JsCmd = {
+  private[this] def directiveClick(t: FullActiveTechnique, d: Directive, gm: String): JsCmd = {
     val dirId          = d.id.uid.value
     val dirLink        = linkUtil.directiveLink(d.id.uid).encJs
     val dirName        = d.name.encJs
@@ -483,15 +524,17 @@ class RuleEditForm(
     val dirTechVersion = d.techniqueVersion.serialize.encJs
     val dirMode        = d.policyMode.map(_.name).getOrElse(gm).encJs
     val dirTags        = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(d.tags))
-    JsRaw(s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})""")
+    JsRaw(
+      s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})"""
+    )
   }
 
-  private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
+  private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo): JsCmd = {
     val target = targetInfo.target.target.target
     JsRaw(s"""includeTarget(event, "${target}");""")
   }
 
-  private[this] def excludeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
+  private[this] def excludeRuleTarget(targetInfo: FullRuleTargetInfo): JsCmd = {
     val target = targetInfo.target.target.target
     JsRaw(s"""excludeTarget(event, "${target}");""")
   }
@@ -504,81 +547,84 @@ class RuleEditForm(
 
   private[this] var newTags = rule.tags
 
-  def updateTag (boxTag : Box[Tags]) = {
+  def updateTag(boxTag: Box[Tags]) = {
     boxTag match {
       case Full(tags) => newTags = tags
-      case eb : EmptyBox =>
+      case eb: EmptyBox =>
         val failure = eb ?~! s"Error when updating Rule ${rule.id.serialize} tag"
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
+  def tagsEditForm                 = new TagsEditForm(rule.tags, rule.id.serialize)
 
   private[this] val crName = new WBTextField("Name", rule.name) {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "form-control"
-    override def labelClassName = "col-xs-12"
+    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def className             = "form-control"
+    override def labelClassName        = "col-xs-12"
     override def subContainerClassName = "col-xs-12"
-    override def validations =
+    override def validations           =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val crShortDescription = {
     new WBTextField("Short description", rule.shortDescription) {
-      override def className = "form-control"
-      override def labelClassName = "col-xs-12"
+      override def className             = "form-control"
+      override def labelClassName        = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override val maxLen = 255
-      override def validations =  Nil
+      override def setFilter             = notNull _ :: trim _ :: Nil
+      override val maxLen                = 255
+      override def validations           = Nil
     }
   }
 
   private[this] val crLongDescription = {
     new WBTextAreaField("Description", rule.longDescription) {
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "form-control"
-      override def labelClassName = "row col-xs-12"
+      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def className             = "form-control"
+      override def labelClassName        = "row col-xs-12"
       override def subContainerClassName = "row col-xs-12"
-      override def containerClassName = "col-xs-6 row"
-      override def inputAttributes: Seq[(String, String)] = Seq(("rows","15"))
-      override def labelExtensions: NodeSeq =
-        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(" ") ++
-          <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+      override def containerClassName    = "col-xs-6 row"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
+      override def labelExtensions: NodeSeq               = {
+        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(
+          " "
+        ) ++
+        <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+      }
 
     }
   }
 
   private[this] val category = {
-    //if root is not defined, the error message is managed on showForm
+    // if root is not defined, the error message is managed on showForm
     val values = boxRootRuleCategory.map { r =>
-      categoryHierarchyDisplayer.getRuleCategoryHierarchy(r, None).map { case (id, name) => (id.value -> name)}
+      categoryHierarchyDisplayer.getRuleCategoryHierarchy(r, None).map { case (id, name) => (id.value -> name) }
     }.toBox.getOrElse(Nil)
 
     new WBSelectField("Rule category", values, rule.categoryId.value) {
-      override def className = "form-control"
-      override def labelClassName = "col-xs-12 text-bold"
+      override def className             = "form-control"
+      override def labelClassName        = "col-xs-12 text-bold"
       override def subContainerClassName = "col-xs-12"
     }
   }
 
   private[this] val formTracker = new FormTracker(List(crName, crShortDescription, crLongDescription))
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg: String) = <span class="error">{msg}</span>
 
-  private[this] def onSubmit() : JsCmd = {
-    if(formTracker.hasErrors) {
+  private[this] def onSubmit(): JsCmd = {
+    if (formTracker.hasErrors) {
       onFailure()
-    } else { //try to save the rule
+    } else { // try to save the rule
       val newCr = rule.copy(
-          name             = crName.get
-        , shortDescription = crShortDescription.get
-        , longDescription  = crLongDescription.get
-        , targets          = Set(ruleTarget)
-        , directiveIds     = selectedDirectiveIds
-        , isEnabledStatus  = rule.isEnabledStatus
-        , categoryId       = RuleCategoryId(category.get)
-        , tags             = newTags
+        name = crName.get,
+        shortDescription = crShortDescription.get,
+        longDescription = crLongDescription.get,
+        targets = Set(ruleTarget),
+        directiveIds = selectedDirectiveIds,
+        isEnabledStatus = rule.isEnabledStatus,
+        categoryId = RuleCategoryId(category.get),
+        tags = newTags
       )
 
       if (newCr == rule) {
@@ -589,26 +635,26 @@ class RuleEditForm(
     }
   }
 
-   //action must be 'enable' or 'disable'
+  // action must be 'enable' or 'disable'
   private[this] def onSubmitDisable(action: RuleModAction): JsCmd = {
     displayConfirmationPopup(
-        action
-      , rule.copy(isEnabledStatus = action == RuleModAction.Enable)
+      action,
+      rule.copy(isEnabledStatus = action == RuleModAction.Enable)
     )
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
     displayConfirmationPopup(
-        RuleModAction.Delete
-      , rule
+      RuleModAction.Delete,
+      rule
     )
   }
 
   // Create the popup for workflow
   private[this] def displayConfirmationPopup(
-      action  : RuleModAction
-    , newRule : Rule
-  ) : JsCmd = {
+      action:  RuleModAction,
+      newRule: Rule
+  ): JsCmd = {
 
     val change = RuleChangeRequest(action, newRule, Some(rule))
     workflow.getForRule(CurrentUser.actor, change) match {
@@ -618,16 +664,15 @@ class RuleEditForm(
         JsRaw(s"alert('${msg}')")
 
       case Full(workflowService) =>
-
         val popup = new RuleModificationValidationPopup(
-            change
-          , workflowService
-          , cr => workflowCallBack(workflowService.needExternalValidation(), action)(cr)
-          , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
-          , parentFormTracker = Some(formTracker)
+          change,
+          workflowService,
+          cr => workflowCallBack(workflowService.needExternalValidation(), action)(cr),
+          () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure(),
+          parentFormTracker = Some(formTracker)
         )
 
-        if((!changeMsgEnabled) && (!workflowService.needExternalValidation())) {
+        if ((!changeMsgEnabled) && (!workflowService.needExternalValidation())) {
           popup.onSubmit()
         } else {
           SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
@@ -636,7 +681,9 @@ class RuleEditForm(
     }
   }
 
-  private[this] def workflowCallBack(workflowEnabled: Boolean, action: RuleModAction)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
+  private[this] def workflowCallBack(workflowEnabled: Boolean, action: RuleModAction)(
+      returns:                                        Either[Rule, ChangeRequestId]
+  ): JsCmd = {
     if ((!workflowEnabled) & (action == RuleModAction.Delete)) {
       JsRaw("""
          $('#confirmUpdateActionDialog').bsModal('hide');
@@ -644,12 +691,13 @@ class RuleEditForm(
          scope.$apply(function(){
            scope.filterGlobal(scope.searchStr);
          });
-        """.stripMargin) & onSuccessCallback(rule) & SetHtml("editRuleZone",
+        """.stripMargin) & onSuccessCallback(rule) & SetHtml(
+        "editRuleZone",
         <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
-        case Left(rule) => // ok, we've received a rule, do as before
+        case Left(rule)             => // ok, we've received a rule, do as before
           this.rule = rule
           JsRaw("""
          $('#confirmUpdateActionDialog').bsModal('hide');
@@ -657,38 +705,45 @@ class RuleEditForm(
          scope.$apply(function(){
            scope.filterGlobal(scope.searchStr);
          });
-        """.stripMargin) &  onSuccess()
+        """.stripMargin) & onSuccess()
         case Right(changeRequestId) => // oh, we have a change request, go to it
           linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }
 
-  private[this] def updateAndDisplayNotifications : NodeSeq = {
+  private[this] def updateAndDisplayNotifications: NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
 
-    if(notifications.isEmpty) {
+    if (notifications.isEmpty) {
       <div id="notifications" />
-    }
-    else {
-      val html =
+    } else {
+      val html = {
         <div id="notifications" class="notify">
-          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+          <ul class="field_errors">{notifications.map(n => <li>{n}</li>)}</ul>
         </div>
+      }
       html
     }
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup : JsCmd = {
-    val warningNotification =
-      ((ruleTarget.excludedTarget.targets.size + ruleTarget.includedTarget.targets.size == 0), (selectedDirectiveIds.size == 0)) match{
-        case (true, true)  => JsRaw("""createWarningNotification("This Rule is not applied to any Groups and does not have any Directives to apply.")""")
+  private[this] def successPopup: JsCmd = {
+    val warningNotification = {
+      (
+        (ruleTarget.excludedTarget.targets.size + ruleTarget.includedTarget.targets.size == 0),
+        (selectedDirectiveIds.size == 0)
+      ) match {
+        case (true, true)  =>
+          JsRaw(
+            """createWarningNotification("This Rule is not applied to any Groups and does not have any Directives to apply.")"""
+          )
         case (true, false) => JsRaw("""createWarningNotification("This Rule is not applied to any Groups.")""")
         case (false, true) => JsRaw("""createWarningNotification("This Rule does not have any Directives to apply.")""")
         case (_)           => JsRaw("")
       }
+    }
 
     JsRaw("""
       createSuccessNotification();

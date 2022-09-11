@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository
 
@@ -72,214 +72,252 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
 
 trait EventLogRepository {
-  def eventLogFactory : EventLogFactory
+  def eventLogFactory: EventLogFactory
 
   /**
    * Save an eventLog
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
-  def saveEventLog(modId: ModificationId, eventLog : EventLog) : IOResult[EventLog]
+  def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog]
 
-  def saveAddRule(modId: ModificationId, principal: EventActor, addDiff: AddRuleDiff, reason:Option[String]) = {
+  def saveAddRule(modId: ModificationId, principal: EventActor, addDiff: AddRuleDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getAddRuleFromDiff(
-          principal = principal
-        , addDiff   = addDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getAddRuleFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
       )
     )
   }
 
-  def saveDeleteRule(modId: ModificationId, principal: EventActor, deleteDiff: DeleteRuleDiff, reason:Option[String]) = {
+  def saveDeleteRule(modId: ModificationId, principal: EventActor, deleteDiff: DeleteRuleDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteRuleFromDiff(
-            principal  = principal
-          , deleteDiff = deleteDiff
-          , reason = reason
-        )
-    )
-  }
-
-  def saveModifyRule(modId: ModificationId, principal: EventActor, modifyDiff: ModifyRuleDiff, reason:Option[String]) = {
-    saveEventLog(
-        modId
-      , eventLogFactory.getModifyRuleFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getDeleteRuleFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
       )
     )
   }
 
-  def saveAddDirective(modId: ModificationId, principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
+  def saveModifyRule(modId: ModificationId, principal: EventActor, modifyDiff: ModifyRuleDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getAddDirectiveFromDiff(
-          principal           = principal
-        , addDiff             = addDiff
-        , varsRootSectionSpec = varsRootSectionSpec
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyRuleFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
 
-  def saveDeleteDirective(modId: ModificationId, principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
+  def saveAddDirective(
+      modId:               ModificationId,
+      principal:           EventActor,
+      addDiff:             AddDirectiveDiff,
+      varsRootSectionSpec: SectionSpec,
+      reason:              Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteDirectiveFromDiff(
-          principal  = principal
-        , deleteDiff = deleteDiff
-        , varsRootSectionSpec = varsRootSectionSpec
-        , reason = reason
+      modId,
+      eventLogFactory.getAddDirectiveFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        varsRootSectionSpec = varsRootSectionSpec,
+        reason = reason
       )
     )
   }
 
-  def saveModifyDirective(modId: ModificationId, principal : EventActor, modifyDiff: ModifyDirectiveDiff, reason:Option[String]) = {
+  def saveDeleteDirective(
+      modId:               ModificationId,
+      principal:           EventActor,
+      deleteDiff:          DeleteDirectiveDiff,
+      varsRootSectionSpec: SectionSpec,
+      reason:              Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyDirectiveFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getDeleteDirectiveFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        varsRootSectionSpec = varsRootSectionSpec,
+        reason = reason
       )
     )
   }
 
-  def saveAddNodeGroup(modId: ModificationId, principal: EventActor, addDiff: AddNodeGroupDiff, reason:Option[String]) = {
+  def saveModifyDirective(
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyDirectiveDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getAddNodeGroupFromDiff(
-          principal           = principal
-        , addDiff             = addDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyDirectiveFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
 
-  def saveDeleteNodeGroup(modId: ModificationId, principal : EventActor, deleteDiff:DeleteNodeGroupDiff, reason:Option[String]) = {
+  def saveAddNodeGroup(modId: ModificationId, principal: EventActor, addDiff: AddNodeGroupDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteNodeGroupFromDiff(
-          principal  = principal
-        , deleteDiff = deleteDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getAddNodeGroupFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
       )
     )
   }
 
-  def saveModifyNodeGroup(modId: ModificationId, principal : EventActor, modifyDiff: ModifyNodeGroupDiff, reason:Option[String]) = {
+  def saveDeleteNodeGroup(
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteNodeGroupDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyNodeGroupFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getDeleteNodeGroupFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
       )
     )
   }
 
-  def saveAddTechnique(modId: ModificationId, principal: EventActor, addDiff: AddTechniqueDiff, reason:Option[String]) = {
+  def saveModifyNodeGroup(
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyNodeGroupDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getAddTechniqueFromDiff(
-          principal = principal
-        , addDiff = addDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyNodeGroupFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
 
-  def saveModifyTechnique(modId: ModificationId, principal: EventActor, modifyDiff: ModifyTechniqueDiff, reason:Option[String]) = {
+  def saveAddTechnique(modId: ModificationId, principal: EventActor, addDiff: AddTechniqueDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyTechniqueFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getAddTechniqueFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
       )
     )
   }
 
-  def saveDeleteTechnique(modId: ModificationId, principal: EventActor, deleteDiff: DeleteTechniqueDiff, reason:Option[String]) = {
+  def saveModifyTechnique(
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyTechniqueDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteTechniqueFromDiff(
-          principal  = principal
-        , deleteDiff = deleteDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyTechniqueFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
 
-  def saveChangeRequest(modId: ModificationId, principal: EventActor, diff: ChangeRequestDiff, reason:Option[String]) = {
+  def saveDeleteTechnique(
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteTechniqueDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getChangeRequestFromDiff(
-          principal =  principal
-        , diff = diff
-        , reason = reason
+      modId,
+      eventLogFactory.getDeleteTechniqueFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
       )
     )
   }
 
-  def saveWorkflowStep(modId: ModificationId, principal: EventActor, step: WorkflowStepChange, reason:Option[String]) = {
+  def saveChangeRequest(modId: ModificationId, principal: EventActor, diff: ChangeRequestDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getWorkFlowEventFromStepChange(
-          principal =  principal
-        , step = step
-        , reason = reason
+      modId,
+      eventLogFactory.getChangeRequestFromDiff(
+        principal = principal,
+        diff = diff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveWorkflowStep(modId: ModificationId, principal: EventActor, step: WorkflowStepChange, reason: Option[String]) = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getWorkFlowEventFromStepChange(
+        principal = principal,
+        step = step,
+        reason = reason
       )
     )
   }
 
   def saveAddGlobalParameter(
-      modId    : ModificationId
-    , principal: EventActor
-    , addDiff  : AddGlobalParameterDiff
-    , reason   :Option[String]
-    ) = {
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddGlobalParameterDiff,
+      reason:    Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getAddGlobalParameterFromDiff(
-          principal           = principal
-        , addDiff             = addDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getAddGlobalParameterFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
       )
     )
   }
 
   def saveDeleteGlobalParameter(
-      modId     : ModificationId
-    , principal : EventActor
-    , deleteDiff: DeleteGlobalParameterDiff
-    , reason    : Option[String]
-    ) = {
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteGlobalParameterDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteGlobalParameterFromDiff(
-          principal  = principal
-        , deleteDiff = deleteDiff
-        , reason     = reason
+      modId,
+      eventLogFactory.getDeleteGlobalParameterFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
       )
     )
   }
 
   def saveModifyGlobalParameter(
-      modId: ModificationId
-    , principal: EventActor
-    , modifyDiff: ModifyGlobalParameterDiff
-    , reason:Option[String]) = {
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyGlobalParameterDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyGlobalParameterFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyGlobalParameterFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
@@ -287,66 +325,65 @@ trait EventLogRepository {
   /**
    * Save an API Account
    */
-  def saveCreateApiAccount(
-      modId     : ModificationId
-    , principal : EventActor
-    , addDiff   : AddApiAccountDiff
-    , reason    :Option[String]) = {
+  def saveCreateApiAccount(modId: ModificationId, principal: EventActor, addDiff: AddApiAccountDiff, reason: Option[String]) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getCreateApiAccountFromDiff(
-          principal = principal
-        , addDiff = addDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getCreateApiAccountFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
       )
     )
   }
 
   def saveModifyApiAccount(
-      modId     : ModificationId
-    , principal : EventActor
-    , modifyDiff: ModifyApiAccountDiff
-    , reason    : Option[String]) = {
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyApiAccountDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyApiAccountFromDiff(
-          principal = principal
-        , modifyDiff = modifyDiff
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyApiAccountFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
       )
     )
   }
 
   def saveDeleteApiAccount(
-      modId: ModificationId
-    , principal: EventActor
-    , deleteDiff: DeleteApiAccountDiff
-    , reason:Option[String]) = {
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteApiAccountDiff,
+      reason:     Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDeleteApiAccountFromDiff(
-            principal  = principal
-          , deleteDiff = deleteDiff
-          , reason = reason
-        )
+      modId,
+      eventLogFactory.getDeleteApiAccountFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
+      )
     )
   }
 
-  def saveModifyGlobalProperty (
-      modId: ModificationId
-    , principal: EventActor
-    , oldProperty : RudderWebProperty
-    , newProperty : RudderWebProperty
-    , eventLogType : ModifyGlobalPropertyEventType
-    , reason:Option[String]) = {
+  def saveModifyGlobalProperty(
+      modId:        ModificationId,
+      principal:    EventActor,
+      oldProperty:  RudderWebProperty,
+      newProperty:  RudderWebProperty,
+      eventLogType: ModifyGlobalPropertyEventType,
+      reason:       Option[String]
+  ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyGlobalPropertyFromDiff(
-          principal = principal
-        , oldProperty = oldProperty
-        , newProperty = newProperty
-        , eventLogType = eventLogType
-        , reason = reason
+      modId,
+      eventLogFactory.getModifyGlobalPropertyFromDiff(
+        principal = principal,
+        oldProperty = oldProperty,
+        newProperty = newProperty,
+        eventLogType = eventLogType,
+        reason = reason
       )
     )
   }
@@ -355,95 +392,88 @@ trait EventLogRepository {
    * Node properties: heartbeat, agent run, properties
    */
   def saveModifyNode(
-      modId     : ModificationId
-    , principal : EventActor
-    , modifyDiff: ModifyNodeDiff
-    , reason    : Option[String]
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyNodeDiff,
+      reason:     Option[String]
   ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getModifyNodeFromDiff (
-            principal  = principal
-          , modifyDiff = modifyDiff
-          , reason = reason
-        )
+      modId,
+      eventLogFactory.getModifyNodeFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
+      )
     )
   }
 
   def savePromoteToRelay(
-    modId        : ModificationId
-  , principal    : EventActor
-  , promotedNode : NodeInfo
-  , reason       : Option[String]
+      modId:        ModificationId,
+      principal:    EventActor,
+      promotedNode: NodeInfo,
+      reason:       Option[String]
   ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getPromoteToRelayFromDiff (
-          principal  = principal
-        , promotedNode = promotedNode
-        , reason = reason
+      modId,
+      eventLogFactory.getPromoteToRelayFromDiff(
+        principal = principal,
+        promotedNode = promotedNode,
+        reason = reason
       )
     )
   }
   def saveDemoteToNode(
-    modId        : ModificationId
-  , principal    : EventActor
-  , demotedRelay : NodeInfo
-  , reason       : Option[String]
+      modId:        ModificationId,
+      principal:    EventActor,
+      demotedRelay: NodeInfo,
+      reason:       Option[String]
   ) = {
     saveEventLog(
-        modId
-      , eventLogFactory.getDemoteToNodeFromDiff (
-          principal  = principal
-        , demotedRelay = demotedRelay
-        , reason = reason
+      modId,
+      eventLogFactory.getDemoteToNodeFromDiff(
+        principal = principal,
+        demotedRelay = demotedRelay,
+        reason = reason
       )
     )
   }
 
   def saveModifySecret(
-    modId: ModificationId
-    , principal: EventActor
-    , oldSecret: Secret
-    , newSecret: Secret
-    , reason:Option[String]) = {
+      modId:     ModificationId,
+      principal: EventActor,
+      oldSecret: Secret,
+      newSecret: Secret,
+      reason:    Option[String]
+  ) = {
     saveEventLog(
-      modId
-      , eventLogFactory.getModifySecretFromDiff(
-        principal = principal
-        , oldSecret = oldSecret
-        , newSecret = newSecret
-        , reason = reason
+      modId,
+      eventLogFactory.getModifySecretFromDiff(
+        principal = principal,
+        oldSecret = oldSecret,
+        newSecret = newSecret,
+        reason = reason
       )
     )
   }
 
-  def saveAddSecret(
-    modId: ModificationId
-    , principal: EventActor
-    , secret   : Secret
-    , reason:Option[String]) = {
+  def saveAddSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]) = {
     saveEventLog(
-      modId
-      , eventLogFactory.getAddSecretFromDiff(
-        principal = principal
-        , secret  = secret
-        , reason  = reason
+      modId,
+      eventLogFactory.getAddSecretFromDiff(
+        principal = principal,
+        secret = secret,
+        reason = reason
       )
     )
   }
 
-  def saveDeleteSecret(
-    modId: ModificationId
-    , principal: EventActor
-    , secret: Secret
-    , reason:Option[String]) = {
+  def saveDeleteSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]) = {
     saveEventLog(
-      modId
-      , eventLogFactory.getDeleteSecretFromDiff(
-        principal = principal
-        , secret = secret
-        , reason = reason
+      modId,
+      eventLogFactory.getDeleteSecretFromDiff(
+        principal = principal,
+        secret = secret,
+        reason = reason
       )
     )
   }
@@ -452,27 +482,32 @@ trait EventLogRepository {
    * Returns eventlog matching criteria
    * For the moment it only a string, it should be something else in the future
    */
-  def getEventLogByCriteria(criteria: Option[String], limit :Option[Int] = None, orderBy: Option[String] = None, extendedFilter: Option[String] = None) : IOResult[Seq[EventLog]]
+  def getEventLogByCriteria(
+      criteria:       Option[String],
+      limit:          Option[Int] = None,
+      orderBy:        Option[String] = None,
+      extendedFilter: Option[String] = None
+  ): IOResult[Seq[EventLog]]
 
-  def getEventLogById(id : Long) : IOResult[EventLog]
+  def getEventLogById(id: Long): IOResult[EventLog]
 
-  def getEventLogCount(criteria : Option[String], extendedFilter : Option[String] = None): IOResult[Long]
+  def getEventLogCount(criteria: Option[String], extendedFilter: Option[String] = None): IOResult[Long]
 
   def getEventLogByChangeRequest(
-      changeRequest  : ChangeRequestId
-    , xpath          : String
-    , optLimit       : Option[Int] = None
-    , orderBy        : Option[String] = None
-    , eventTypeFilter: List[EventLogFilter] = Nil
-  ) : IOResult[Vector[EventLog]]
+      changeRequest:   ChangeRequestId,
+      xpath:           String,
+      optLimit:        Option[Int] = None,
+      orderBy:         Option[String] = None,
+      eventTypeFilter: List[EventLogFilter] = Nil
+  ): IOResult[Vector[EventLog]]
 
   /**
    * Get an EventLog and ,if it was generated by a Change Request, its Id
    */
-  def getEventLogWithChangeRequest(id : Int) : IOResult[Option[(EventLog,Option[ChangeRequestId])]]
+  def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]]
 
-  def getLastEventByChangeRequest (
-      xpath : String
-    , eventTypeFilter : List[EventLogFilter] = Nil
-  ) : IOResult[Map[ChangeRequestId,EventLog]]
+  def getLastEventByChangeRequest(
+      xpath:           String,
+      eventTypeFilter: List[EventLogFilter] = Nil
+  ): IOResult[Map[ChangeRequestId, EventLog]]
 }

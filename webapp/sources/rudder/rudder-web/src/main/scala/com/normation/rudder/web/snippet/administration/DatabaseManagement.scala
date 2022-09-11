@@ -1,170 +1,185 @@
 /*
-*************************************************************************************
-* Copyright 2012 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2012 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.snippet.administration
 
-import net.liftweb.common._
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.util.Helpers._
-
-import scala.xml._
-import org.joda.time.DateTime
-import com.normation.inventory.domain.MemorySize
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
-import org.joda.time.format.DateTimeFormat
-import net.liftweb.http.js.JE.JsRaw
-import com.normation.rudder.domain.reports._
 import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.MemorySize
+import com.normation.rudder.domain.reports._
 import com.normation.utils.DateFormaterService
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers._
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
+import scala.xml._
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = RudderConfig.databaseManager
   private[this] val dbCleaner       = RudderConfig.automaticReportsCleaning
 
-  private[this] var from : String = ""
-  val archiveAction = ArchiveAction(databaseManager,dbCleaner)
-  val deleteAction  = DeleteAction(databaseManager,dbCleaner)
-  private[this] var action : CleanReportAction = archiveAction
+  private[this] var from: String = ""
+  val archiveAction = ArchiveAction(databaseManager, dbCleaner)
+  val deleteAction  = DeleteAction(databaseManager, dbCleaner)
+  private[this] var action: CleanReportAction = archiveAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
 
-  def dispatch = {
-    case "display" => display
-  }
+  def dispatch = { case "display" => display }
 
-  def display(xml:NodeSeq) : NodeSeq = {
+  def display(xml: NodeSeq): NodeSeq = {
 
-     ("#modeSelector" #> <ul>{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
-          , {value:String => action = value match {
-            case "Archive" => archiveAction
-            case "Delete"  => deleteAction
-          } }
-          , ("class", "radio") ).flatMap(e =>
-            <li>
+    ("#modeSelector" #> <ul>{
+      SHtml
+        .radio(
+          Seq("Archive", "Delete"),
+          Full("Archive"),
+          { value: String =>
+            action = value match {
+              case "Archive" => archiveAction
+              case "Delete"  => deleteAction
+            }
+          },
+          ("class", "radio")
+        )
+        .flatMap(e => <li>
               <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>
-            </li>) }
+            </li>)
+    }
         </ul> &
-      "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class","btn btn-default")) &
-      "#reportFromDate" #> SHtml.text(from, {x => from = x } )
-
-    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""")& updateValue))
+    "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
+    "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ Script(
+      OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue)
+    )
   }
 
   def process(): JsCmd = {
     S.clearCurrentNotices
 
     (for {
-      fromDate <- tryo { DATETIME_PARSER.parseDateTime(from) } ?~! "Bad date format for 'Archive all reports older than' field"
+      fromDate <- tryo(DATETIME_PARSER.parseDateTime(from)) ?~! "Bad date format for 'Archive all reports older than' field"
     } yield {
       fromDate
     }) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! "An error occured"
-          logger.info(e.failureChain.map( _.msg ).mkString("", ": ", ""))
-          S.error(e.failureChain.map( _.msg ).mkString("", ": ", "")  )
-          Noop
-        case Full(date) =>
-          S.error("")
-          showConfirmationDialog(date,action)
+      case eb: EmptyBox =>
+        val e = eb ?~! "An error occured"
+        logger.info(e.failureChain.map(_.msg).mkString("", ": ", ""))
+        S.error(e.failureChain.map(_.msg).mkString("", ": ", ""))
+        Noop
+      case Full(date) =>
+        S.error("")
+        showConfirmationDialog(date, action)
     }
   }
 
-
-
   def updateValue = {
-    val reportsInterval = databaseManager.getReportsInterval()
+    val reportsInterval         = databaseManager.getReportsInterval()
     val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
 
     val inProgress = !(archiveAction.actorIsIdle && deleteAction.actorIsIdle)
 
     def displayInProgress(lastValue: Box[Option[DateTime]]): NodeSeq = {
       val date = displayDate(lastValue)
-      if(inProgress){
+      if (inProgress) {
         <span>Archiving is in progress, please wait (last known value: '{date}')</span>
       } else {
         date
       }
     }
 
-    SetHtml("oldestEntry", displayInProgress(reportsInterval.map( _._1 ))) &
-    SetHtml("newestEntry", displayInProgress(reportsInterval.map( _._2 ))) &
-    SetHtml("databaseSize" , databaseManager.getDatabaseSize().map(x =>
-      Text(MemorySize(x).toStringMo)).openOr(Text("Could not compute the size of the database"))
+    SetHtml("oldestEntry", displayInProgress(reportsInterval.map(_._1))) &
+    SetHtml("newestEntry", displayInProgress(reportsInterval.map(_._2))) &
+    SetHtml(
+      "databaseSize",
+      databaseManager
+        .getDatabaseSize()
+        .map(x => Text(MemorySize(x).toStringMo))
+        .openOr(Text("Could not compute the size of the database"))
     ) &
-    SetHtml("oldestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._1 ))) &
-    SetHtml("newestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._2 ))) &
-    SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
-      Text(MemorySize(x).toStringMo)).openOr(Text("Could not compute the size of the database"))
+    SetHtml("oldestArchivedEntry", displayInProgress(archivedReportsInterval.map(_._1))) &
+    SetHtml("newestArchivedEntry", displayInProgress(archivedReportsInterval.map(_._2))) &
+    SetHtml(
+      "archiveSize",
+      databaseManager
+        .getArchiveSize()
+        .map(x => Text(MemorySize(x).toStringMo))
+        .openOr(Text("Could not compute the size of the database"))
     ) &
     SetHtml("archiveProgress", Text(archiveAction.progress)) &
     SetHtml("deleteProgress", Text(deleteAction.progress)) &
-      updateAutomaticCleaner
+    updateAutomaticCleaner
   }
 
   def updateAutomaticCleaner = {
-    SetHtml("autoArchiveStatus", if(dbCleaner.archivettl > 0) Text("Enabled") else Text("Disabled") ) &
-    { if(dbCleaner.archivettl > 1)
+    SetHtml("autoArchiveStatus", if (dbCleaner.archivettl > 0) Text("Enabled") else Text("Disabled")) & {
+      if (dbCleaner.archivettl > 1)
         SetHtml("autoArchiveDays", Text("%d".format(dbCleaner.archivettl)))
       else
-        JsRaw(""" $('#autoArchiveDetails').hide(); """) } &
-    SetHtml("autoDeleteStatus", if(dbCleaner.deletettl > 0) Text("Enabled") else Text("Disabled") ) &
-    { if(dbCleaner.deletettl > 1)
+        JsRaw(""" $('#autoArchiveDetails').hide(); """)
+    } &
+    SetHtml("autoDeleteStatus", if (dbCleaner.deletettl > 0) Text("Enabled") else Text("Disabled")) & {
+      if (dbCleaner.deletettl > 1)
         SetHtml("autoDeleteDays", Text("%d".format(dbCleaner.deletettl)))
       else
-        JsRaw(""" $('#autoDeleteDetails').hide(); """) } &
-    { if(dbCleaner.deletettl > 1 || dbCleaner.archivettl > 1)
-        SetHtml("cleanFrequency",  Text(dbCleaner.freq.toString()) ) &
-        SetHtml("nextRun",  displayDate(Full(Option(dbCleaner.freq.next))))
-      else
-        JsRaw(""" $('#automaticCleanDetails').hide(); """) }
+        JsRaw(""" $('#autoDeleteDetails').hide(); """)
+    } & {
+      if (dbCleaner.deletettl > 1 || dbCleaner.archivettl > 1) {
+        SetHtml("cleanFrequency", Text(dbCleaner.freq.toString())) &
+        SetHtml("nextRun", displayDate(Full(Option(dbCleaner.freq.next))))
+      } else {
+        JsRaw(""" $('#automaticCleanDetails').hide(); """)
+      }
+    }
   }
 
-  private[this] def showConfirmationDialog(date:DateTime, action : CleanReportAction ) : JsCmd = {
-    val cancel : JsCmd = {
+  private[this] def showConfirmationDialog(date: DateTime, action: CleanReportAction): JsCmd = {
+    val cancel: JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
       JsRaw(""" $('#archiveReports').show();
                 $('#cleanParam').show(); """)
     }
 
-    val dialog =
+    val dialog = {
       <div class="callout-fade callout-info">
         <div class="marker"><span class="glyphicon glyphicon-exclamation-sign"></span></div>
         Are you sure you want to
@@ -176,18 +191,24 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         ?
         <div class="actions">
           {
-            SHtml.ajaxButton("Cancel", { () => { cancel & updateValue } }, ("class","btn btn-default"))
-          }
+        SHtml.ajaxButton("Cancel", () => { cancel & updateValue }, ("class", "btn btn-default"))
+      }
           {
-            SHtml.ajaxButton("%s reports".format(action.name.capitalize), { () => val askResult = action.ask(date)
-             JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
+        SHtml.ajaxButton(
+          "%s reports".format(action.name.capitalize),
+          { () =>
+            val askResult = action.ask(date)
+            JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
                  $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
-            }, ("class","btn btn-action") )
-          }
+          },
+          ("class", "btn btn-action")
+        )
+      }
         </div>
       </div>
+    }
 
-    def showDialog : JsCmd = {
+    def showDialog: JsCmd = {
       SetHtml("confirm", dialog) &
       JsRaw(""" $('#archiveReports').hide();
                 $('#cleanParam').hide();
@@ -198,13 +219,14 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     showDialog
   }
 
-  private[this] def displayDate( entry : Box[Option[DateTime]]) : NodeSeq = {
+  private[this] def displayDate(entry: Box[Option[DateTime]]): NodeSeq = {
     entry match {
-      case Full(dateOption) => dateOption match {
-        case Some(date) =>  <span>{DateFormaterService.getDisplayDate(date)}</span>
-        case None => <span>There is no reports in the table yet</span>
-      }
-      case _:EmptyBox => <span>There's been an error with the database, could not fetch the value</span>
+      case Full(dateOption) =>
+        dateOption match {
+          case Some(date) => <span>{DateFormaterService.getDisplayDate(date)}</span>
+          case None       => <span>There is no reports in the table yet</span>
+        }
+      case _: EmptyBox => <span>There's been an error with the database, could not fetch the value</span>
     }
   }
 }

@@ -1,42 +1,41 @@
 /*
-*************************************************************************************
-* Copyright 2020 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2020 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.metrics
-
 
 /**
  * Information about commit:
@@ -57,11 +56,13 @@ final case class CommitInformation(name: String, email: Option[String], sign: Bo
  * As a rule of thumb, every 10 min means: 6/h, 144/d, 4320/M, 52560/y
  */
 final case class FrequentNodeMetrics(
-    pending    : Int
-  , accepted   : Int
-  , modeAudit  : Int // node with at least one audit
-  , modeEnforce: Int // node with at least one enforce (excepting system directivces)
-  , modeMixed  : Int
+    pending:   Int,
+    accepted:  Int,
+    modeAudit: Int, // node with at least one audit
+
+    modeEnforce: Int, // node with at least one enforce (excepting system directivces)
+
+    modeMixed: Int
 )
 
 /**
@@ -73,7 +74,6 @@ object FrequentNodeMetrics {
   // add double quotes to a string
   private def q(s: String) = '"'.toString + s + '"'.toString
 
-
   def csvHeaders(sep: String = ",") = csvHeaderNames.map(q).mkString(sep)
 
   implicit class FormatFrequentNodeMetrics(m: FrequentNodeMetrics) {
@@ -81,7 +81,6 @@ object FrequentNodeMetrics {
   }
 
 }
-
 
 /**
  * We want to log accepted node count function of their policy mode. We want the actual policy
@@ -93,5 +92,5 @@ object Mode {
   final case object Enforce extends Mode
   final case object Audit   extends Mode
   final case object Mixed   extends Mode
-  final case object None    extends Mode //error, pending, no answer...
+  final case object None    extends Mode // error, pending, no answer...
 }

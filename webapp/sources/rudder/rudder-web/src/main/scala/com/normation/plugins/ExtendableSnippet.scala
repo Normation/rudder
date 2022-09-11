@@ -1,48 +1,47 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.plugins
 
 import net.liftweb.http._
-
-import scala.xml.NodeSeq
 import scala.reflect.ClassTag
+import scala.xml.NodeSeq
 
-final case class SnippetExtensionKey(value:String)
+final case class SnippetExtensionKey(value: String)
 
 /**
  * A default implement for extension point with only
@@ -66,7 +65,7 @@ trait SnippetExtensionPoint[T] {
   /**
    * Here, we are rather strict on what we want : a T that is also extendable
    */
-  def compose(snippet:T) : Map[String, NodeSeq => NodeSeq]
+  def compose(snippet: T): Map[String, NodeSeq => NodeSeq]
 
 }
 
@@ -79,16 +78,14 @@ trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
   def status: PluginStatus
 
   // only execute the transformation if the plugin is enable
-  def guard(f: NodeSeq => NodeSeq)(xml: NodeSeq): NodeSeq = if(status.isEnabled()) f(xml) else xml
+  def guard(f: NodeSeq => NodeSeq)(xml: NodeSeq): NodeSeq = if (status.isEnabled()) f(xml) else xml
 
   // protect all compose method with the guard. The check is done each time to allow runtime
   // switch on plugin status
   final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).view.mapValues(guard _).toMap
 
-  def pluginCompose(snippet:T) : Map[String, NodeSeq => NodeSeq]
+  def pluginCompose(snippet: T): Map[String, NodeSeq => NodeSeq]
 }
-
-
 
 /**
  * This trait allows to plugin to connect and enhance that snippet.
@@ -120,36 +117,36 @@ trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
  *
  */
 trait ExtendableSnippet[T] extends DispatchSnippet {
-  self : T =>
+  self: T =>
 
-
-  //reminder:
-  //type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
+  // reminder:
+  // type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
   def extendsAt = SnippetExtensionKey(self.getClass.getSimpleName)
 
-  def mainDispatch : Map[String, NodeSeq => NodeSeq]
+  def mainDispatch: Map[String, NodeSeq => NodeSeq]
 
-  def beforeSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]]
+  def beforeSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]]
 
-  def afterSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]]
+  def afterSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]]
 
   def dispatch: DispatchIt = {
     (ExtendableSnippet.chached[T](extendsAt, computeDispatch))(this)
   }
 
-  private[this] def computeDispatch(snippet : T) : DispatchIt = {
-    val all = (beforeSnippetExtensionSeq.map( _.compose(snippet)) :+
-              mainDispatch) ++
-              afterSnippetExtensionSeq.map( _.compose(snippet) )
+  private[this] def computeDispatch(snippet: T): DispatchIt = {
+    val all = (beforeSnippetExtensionSeq.map(_.compose(snippet)) :+
+      mainDispatch) ++
+      afterSnippetExtensionSeq.map(_.compose(snippet))
 
-    all.foldLeft(Map.empty[String, NodeSeq => NodeSeq]){ case (previous, current) =>
-      previous ++ (for {
-        (key, transform) <- current.iterator
-      } yield {
-        if(previous.isDefinedAt(key)) ( key, transform.compose( previous(key) ) )
-        else (key , transform)
-      }).toMap
+    all.foldLeft(Map.empty[String, NodeSeq => NodeSeq]) {
+      case (previous, current) =>
+        previous ++ (for {
+          (key, transform) <- current.iterator
+        } yield {
+          if (previous.isDefinedAt(key)) (key, transform.compose(previous(key)))
+          else (key, transform)
+        }).toMap
     }
   }
 }
@@ -161,11 +158,10 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
 object ExtendableSnippet {
   type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
-  private[this] val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey , _ => DispatchIt]
+  private[this] val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey, _ => DispatchIt]
 
-  def chached[T](forSnippet:SnippetExtensionKey, withDefault: => T => DispatchIt) : T => DispatchIt = {
-    if(true) withDefault
+  def chached[T](forSnippet: SnippetExtensionKey, withDefault: => T => DispatchIt): T => DispatchIt = {
+    if (true) withDefault
     else cache.getOrElseUpdate(forSnippet, withDefault).asInstanceOf[(T => DispatchIt)]
   }
 }
-

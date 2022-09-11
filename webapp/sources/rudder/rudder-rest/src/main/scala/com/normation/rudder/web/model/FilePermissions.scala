@@ -1,42 +1,41 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.model
-
 
 /**
  * Description of Unix file permissions
@@ -88,70 +87,70 @@ package com.normation.rudder.web.model
  * for the reader ;)
  */
 
-import scala.collection.BitSet
-import com.normation.utils.Utils.isEmpty
 import Perm._
+import com.normation.utils.Utils.isEmpty
+import scala.collection.BitSet
 
 trait Perm {
-  def bits:BitSet
-  lazy val octal:Int = bitSetToInt(bits)
+  def bits: BitSet
+  lazy val octal: Int = bitSetToInt(bits)
 
-  def +(p:Perm) : Perm = Perm(p.bits | bits)
-  def +(i:Byte) : Perm = Perm(i) match {
-    case Some(p) => this+(p)
-    case None => this
+  def +(p: Perm): Perm = Perm(p.bits | bits)
+  def +(i: Byte): Perm = Perm(i) match {
+    case Some(p) => this + (p)
+    case None    => this
   }
 
-  def -(p:Perm) : Perm = Perm(bits &~ p.bits)
-  def -(o:Byte) : Perm = Perm(o) match {
-    case Some(p) => this-(p)
-    case None => this
+  def -(p: Perm): Perm = Perm(bits &~ p.bits)
+  def -(o: Byte): Perm = Perm(o) match {
+    case Some(p) => this - (p)
+    case None    => this
   }
 
-  def read = bits(2)
+  def read  = bits(2)
   def write = bits(1)
-  def exec = bits(0)
+  def exec  = bits(0)
 }
 
 final case object none extends Perm {
-  val bits = BitSet()
+  val bits                = BitSet()
   override def toString() = "---"
 }
-final case object r extends Perm {
-  val bits = BitSet(2)
+final case object r    extends Perm {
+  val bits                = BitSet(2)
   override def toString() = "r--"
 }
-final case object w extends Perm {
-  val bits = BitSet(1)
+final case object w    extends Perm {
+  val bits                = BitSet(1)
   override def toString() = "-w-"
 }
-final case object x extends Perm {
-  val bits = BitSet(0)
+final case object x    extends Perm {
+  val bits                = BitSet(0)
   override def toString() = "--x"
 }
-final case object rw extends Perm {
-  val bits = BitSet(2,1)
+final case object rw   extends Perm {
+  val bits                = BitSet(2, 1)
   override def toString() = "rw-"
 }
-final case object rx extends Perm {
-  val bits = BitSet(2,0)
+final case object rx   extends Perm {
+  val bits                = BitSet(2, 0)
   override def toString() = "r-x"
 }
-final case object wx extends Perm {
-  val bits = BitSet(1,0)
+final case object wx   extends Perm {
+  val bits                = BitSet(1, 0)
   override def toString() = "-wx"
 }
-final case object rwx extends Perm {
-  val bits = BitSet(2,1,0)
+final case object rwx  extends Perm {
+  val bits                = BitSet(2, 1, 0)
   override def toString() = "rwx"
 }
 
 object Perm {
-  //utility methods to see the bitset as an int
-  //unknown result for bs.size > 31
-  private def bitSetToInt(bs:BitSet) : Int = bs.foldLeft(0){ (o,j) =>  o | 1 << j }
+  // utility methods to see the bitset as an int
+  // unknown result for bs.size > 31
+  private def bitSetToInt(bs: BitSet): Int = bs.foldLeft(0)((o, j) => o | 1 << j)
 
-  def apply(o:Byte) = o match {
+  def apply(o: Byte) = o match {
     case 0 => Some(none)
     case 1 => Some(x)
     case 2 => Some(w)
@@ -163,129 +162,133 @@ object Perm {
     case _ => None
   }
 
-  //match order: read / write / exec
-  def apply(bits:BitSet) = (bits(2),bits(1),bits(0)) match {
-    case (true,false,false) => r
-    case (false,true,false) => w
-    case (true,true,false) => rw
-    case (false,false,true) => x
-    case (true,false,true) => rx
-    case (false,true,true) => wx
-    case (true,true,true) => rwx
-    case _ => none
+  // match order: read / write / exec
+  def apply(bits: BitSet) = (bits(2), bits(1), bits(0)) match {
+    case (true, false, false) => r
+    case (false, true, false) => w
+    case (true, true, false)  => rw
+    case (false, false, true) => x
+    case (true, false, true)  => rx
+    case (false, true, true)  => wx
+    case (true, true, true)   => rwx
+    case _                    => none
   }
 
-  def unapply(s:String) : Option[Perm] = {
+  def unapply(s: String): Option[Perm] = {
     try {
       apply(s.toByte)
     } catch {
-      case e:NumberFormatException =>
+      case e: NumberFormatException =>
         s.toLowerCase match {
-          case "r" => Some(r)
-          case "w" => Some(w)
-          case "rw" => Some(rw)
-          case "x" => Some(x)
-          case "rx" => Some(rx)
-          case "wx" => Some(wx)
-          case "rwx" => Some(rwx)
+          case "r"    => Some(r)
+          case "w"    => Some(w)
+          case "rw"   => Some(rw)
+          case "x"    => Some(x)
+          case "rx"   => Some(rx)
+          case "wx"   => Some(wx)
+          case "rwx"  => Some(rwx)
           case "none" => Some(none)
-          case _ => None
+          case _      => None
         }
-      case e:Exception => None
+      case e: Exception             => None
     }
   }
 
-  def unapply(c:Char) : Option[Perm] = unapply(c.toString)
+  def unapply(c: Char): Option[Perm] = unapply(c.toString)
 
-  def allPerms = Set(none,r,w,x,rw,rx,wx,rwx)
+  def allPerms = Set(none, r, w, x, rw, rx, wx, rwx)
 }
 
-final case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* ) {
+final case class PermSet(file: FilePerms, perms: (Perm => Unit, () => Perm)*) {
 
   /*
    * Add to all perms the given rights
    */
-  def +(p:Perm) : FilePerms = {
-    perms foreach { case(set,get) =>
-      set(get() + p)
+  def +(p: Perm): FilePerms = {
+    perms foreach {
+      case (set, get) =>
+        set(get() + p)
     }
     file
   }
-  def +(o:Byte) : FilePerms = Perm(o) match {
+  def +(o: Byte): FilePerms = Perm(o) match {
     case Some(p) => this.+(p)
-    case None => file
+    case None    => file
   }
 
   /*
    * Remove to all perms the given rights
    */
-  def -(p:Perm) : FilePerms = {
-    perms foreach { case(set,get) =>
-      set(get() - p)
+  def -(p: Perm): FilePerms = {
+    perms foreach {
+      case (set, get) =>
+        set(get() - p)
     }
     file
   }
-  def -(o:Byte) : FilePerms = Perm(o) match {
+  def -(o: Byte): FilePerms = Perm(o) match {
     case Some(p) => this.-(p)
-    case None => file
+    case None    => file
   }
 
-  def octal:String = perms.foldLeft("") { (s,p) => s + p._2().octal.toString }
+  def octal: String = perms.foldLeft("")((s, p) => s + p._2().octal.toString)
 
-  //simule erad/write/exec vars
-  def read = perms.foldLeft(true){ (b,p) => b & p._2().read }
-  def read_=(b:Boolean): Unit = { if(b) this+(r) else this-(r) }
-  def write = perms.foldLeft(true){ (b,p) => b & p._2().write }
-  def write_=(b:Boolean): Unit = { if(b) this+(w) else this-(w) }
-  def exec = perms.foldLeft(true){ (b,p) => b & p._2().exec }
-  def exec_=(b:Boolean): Unit = { if(b) this+(x) else this-(x) }
+  // simule erad/write/exec vars
+  def read = perms.foldLeft(true)((b, p) => b & p._2().read)
+  def read_=(b: Boolean): Unit = { if (b) this + (r) else this - (r) }
+  def write = perms.foldLeft(true)((b, p) => b & p._2().write)
+  def write_=(b: Boolean): Unit = { if (b) this + (w) else this - (w) }
+  def exec = perms.foldLeft(true)((b, p) => b & p._2().exec)
+  def exec_=(b: Boolean): Unit = { if (b) this + (x) else this - (x) }
 
 }
 
 object PermSet {
-  val u   = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u))
-  val g   = (file:FilePerms) => new PermSet(file,(file._g_= _ , () => file._g))
-  val o   = (file:FilePerms) => new PermSet(file,(file._o_= _ , () => file._o))
-  val ug  = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g))
-  val uo  = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._o_= _ , () => file._o))
-  val go  = (file:FilePerms) => new PermSet(file,(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
-  val ugo = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
-  val a   = (file:FilePerms) => new PermSet(file,(file._u_= _ , () => file._u),(file._g_= _ , () => file._g),(file._o_= _ , () => file._o))
+  val u   = (file: FilePerms) => new PermSet(file, (file._u_= _, () => file._u))
+  val g   = (file: FilePerms) => new PermSet(file, (file._g_= _, () => file._g))
+  val o   = (file: FilePerms) => new PermSet(file, (file._o_= _, () => file._o))
+  val ug  = (file: FilePerms) => new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g))
+  val uo  = (file: FilePerms) => new PermSet(file, (file._u_= _, () => file._u), (file._o_= _, () => file._o))
+  val go  = (file: FilePerms) => new PermSet(file, (file._g_= _, () => file._g), (file._o_= _, () => file._o))
+  val ugo = (file: FilePerms) =>
+    new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g), (file._o_= _, () => file._o))
+  val a   = (file: FilePerms) =>
+    new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g), (file._o_= _, () => file._o))
 }
 
-class FilePerms( //special bits have to be explicitly set
-  var _u:Perm=none,
-  var _g:Perm=none,
-  var _o:Perm=none
+class FilePerms( // special bits have to be explicitly set
+    var _u: Perm = none,
+    var _g: Perm = none,
+    var _o: Perm = none
 ) {
 
-  val u = PermSet.u(this)
-  val g = PermSet.g(this)
-  val o = PermSet.o(this)
-  val ug = PermSet.ug(this)
-  val uo = PermSet.uo(this)
-  val go = PermSet.go(this)
+  val u   = PermSet.u(this)
+  val g   = PermSet.g(this)
+  val o   = PermSet.o(this)
+  val ug  = PermSet.ug(this)
+  val uo  = PermSet.uo(this)
+  val go  = PermSet.go(this)
   val ugo = PermSet.ugo(this)
-  val a = PermSet.a(this)
+  val a   = PermSet.a(this)
 
-  def octal:String = "%s%s%s".format(_u.octal.toString,_g.octal.toString,_o.octal.toString)
+  def octal: String = "%s%s%s".format(_u.octal.toString, _g.octal.toString, _o.octal.toString)
 
-  override def toString = "%s%s%s".format(_u.toString,_g.toString,_o.toString)
+  override def toString = "%s%s%s".format(_u.toString, _g.toString, _o.toString)
 
-  def set(that:FilePerms) = {
+  def set(that: FilePerms) = {
     this._u = that._u
     this._g = that._g
     this._o = that._o
   }
 
-  def set(u:Perm = none, g:Perm = none, o : Perm = none) = {
+  def set(u: Perm = none, g: Perm = none, o: Perm = none) = {
     this._u = u
     this._g = g
     this._o = o
   }
 
-  override def equals(other:Any) = other match {
-    case that:FilePerms => this._u == that._u && this._g == that._g && this._o == that._o
+  override def equals(other: Any) = other match {
+    case that: FilePerms => this._u == that._u && this._g == that._g && this._o == that._o
     case _ => false
   }
 
@@ -293,40 +296,41 @@ class FilePerms( //special bits have to be explicitly set
 }
 
 object FilePerms {
-  def apply(perms:String) : Option[FilePerms] = { //only understand one to three char
-    if(isEmpty(perms)) None
-    else perms.toList match {
-      case Perm(x) :: Nil => Some(FilePerms(x))
-      case Perm(x) :: Perm(y) :: Nil  => Some(FilePerms(x,y))
-      case Perm(x) :: Perm(y) :: Perm(z) :: Nil  => Some(FilePerms(x,y,z))
-      case _ => None
+  def apply(perms: String): Option[FilePerms] = { // only understand one to three char
+    if (isEmpty(perms)) None
+    else {
+      perms.toList match {
+        case Perm(x) :: Nil                       => Some(FilePerms(x))
+        case Perm(x) :: Perm(y) :: Nil            => Some(FilePerms(x, y))
+        case Perm(x) :: Perm(y) :: Perm(z) :: Nil => Some(FilePerms(x, y, z))
+        case _                                    => None
+      }
     }
 
   }
 
-  def apply(perms:Int) : Option[FilePerms] = apply(perms.toString)
+  def apply(perms: Int): Option[FilePerms] = apply(perms.toString)
 
-  def apply(u:Perm=none,g:Perm=none,o:Perm=none) = new FilePerms(u,g,o)
-  def unapply(perm:FilePerms) : Option[(Perm,Perm,Perm)] = {
-    Some((perm._u,perm._g,perm._o))
+  def apply(u: Perm = none, g: Perm = none, o: Perm = none) = new FilePerms(u, g, o)
+  def unapply(perm: FilePerms):               Option[(Perm, Perm, Perm)] = {
+    Some((perm._u, perm._g, perm._o))
   }
-  def unapply(ugo:(String,String,String)) : Option[(Perm,Perm,Perm)] = {
+  def unapply(ugo: (String, String, String)): Option[(Perm, Perm, Perm)] = {
     ugo match {
-      case (Perm(x),Perm(y),Perm(z)) => Some((x,y,z))
-      case _ => None
+      case (Perm(x), Perm(y), Perm(z)) => Some((x, y, z))
+      case _                           => None
     }
   }
 
-  def allPerms : Set[FilePerms] = for {
+  def allPerms: Set[FilePerms] = for {
     u <- Perm.allPerms
     g <- Perm.allPerms
     o <- Perm.allPerms
-  } yield FilePerms(u,g,o)
-
+  } yield FilePerms(u, g, o)
 
   /*
    * Used like: chmod( ugo(_)+rw, file)
    * [so bad for the (_)]
    */
-  def chmod( perms:FilePerms => FilePerms, file:FilePerms ) = perms(file)
+  def chmod(perms: FilePerms => FilePerms, file: FilePerms) = perms(file)
 }

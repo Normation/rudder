@@ -1,49 +1,48 @@
 /*
-*************************************************************************************
-* Copyright 2015 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2015 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.services.provisioning
 
+import com.normation.errors._
+import com.normation.inventory.domain.{PublicKey => AgentKey, _}
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import java.io.InputStream
 import java.security.PublicKey
-import java.util.Properties
 import java.security.Signature
-
-import com.normation.errors._
-import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
-import com.normation.inventory.domain.{PublicKey => AgentKey, _}
+import java.util.Properties
 import org.apache.commons.io.IOUtils
 import org.bouncycastle.util.encoders.Hex
 import zio._
@@ -56,8 +55,8 @@ import zio.syntax._
 sealed trait InventoryDigest
 
 final case class InventoryDigestV1(
-    algorithm: String
-  , digest   : String
+    algorithm: String,
+    digest:    String
 ) extends InventoryDigest
 
 /**
@@ -83,23 +82,25 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
     val properties = new Properties()
 
     for {
-      loaded  <- Task.effect {
-                   import scala.jdk.CollectionConverters._
-                   properties.load(is)
-                   properties.asInstanceOf[java.util.Map[String, String]].asScala.toMap
-                 } mapError  { ex =>
-                    InventoryError.Deserialisation(s"Failed to load properties for the signature file: ${ex.getMessage}", ex)
-                 }
-      //check version
+      loaded <- Task.effect {
+                  import scala.jdk.CollectionConverters._
+                  properties.load(is)
+                  properties.asInstanceOf[java.util.Map[String, String]].asScala.toMap
+                } mapError { ex =>
+                  InventoryError.Deserialisation(s"Failed to load properties for the signature file: ${ex.getMessage}", ex)
+                }
+      // check version
 
-      v_ok    <- loaded.get("header").filter( _.trim.equalsIgnoreCase("rudder-signature-v1") ).notOptional("could not read 'header'")
-      algo    <- loaded.get("algorithm").map( _.trim.toLowerCase).notOptional("could not read 'algorithm'")
-      algo_ok <- ZIO.when(algo != "sha512") {  // in v1, we only accept sha512
-                   InventoryError.Crypto(s"The algorithm '${algo}' contains in the digest file is not authorized, only 'sha512' is.").fail
+      v_ok    <- loaded.get("header").filter(_.trim.equalsIgnoreCase("rudder-signature-v1")).notOptional("could not read 'header'")
+      algo    <- loaded.get("algorithm").map(_.trim.toLowerCase).notOptional("could not read 'algorithm'")
+      algo_ok <- ZIO.when(algo != "sha512") { // in v1, we only accept sha512
+                   InventoryError
+                     .Crypto(s"The algorithm '${algo}' contains in the digest file is not authorized, only 'sha512' is.")
+                     .fail
                  }
-      digest  <- loaded.get("digest").map( _.trim).notOptional("could not read 'digest'")
+      digest  <- loaded.get("digest").map(_.trim).notOptional("could not read 'digest'")
     } yield {
-      InventoryDigestV1(algo,digest)
+      InventoryDigestV1(algo, digest)
     }
   }
 }
@@ -114,20 +115,17 @@ trait CheckInventoryDigest {
     Task.effect {
       val signature = Signature.getInstance("SHA512withRSA", "BC");
       signature.initVerify(publicKey);
-      val data = IOUtils.toByteArray(inventoryStream)
+      val data      = IOUtils.toByteArray(inventoryStream)
       signature.update(data);
       digest match {
-        case InventoryDigestV1(_,digest) =>
+        case InventoryDigestV1(_, digest) =>
           val sig = Hex.decode(digest)
           signature.verify(sig)
       }
-    } mapError { e =>
-        InventoryError.CryptoEx("Error when trying to check crypto-signature of security token", e)
-    }
+    } mapError { e => InventoryError.CryptoEx("Error when trying to check crypto-signature of security token", e) }
   }
 
 }
-
 
 /*
  * A data class to store parsed information about a Rudder SecurityToken
@@ -139,8 +137,8 @@ trait CheckInventoryDigest {
  * - 2.5.4.3: commonName for the hostname
  */
 final case class ParsedSecurityToken(
-    publicKey: PublicKey
-  , subject  : Option[List[(String, String)]]
+    publicKey: PublicKey,
+    subject:   Option[List[(String, String)]]
 )
 
 object ParsedSecurityToken {
@@ -153,19 +151,19 @@ object ParsedSecurityToken {
  */
 trait GetKey {
 
-  def getKey (receivedInventory  : Inventory) : IOResult[(SecurityToken, KeyStatus)]
+  def getKey(receivedInventory: Inventory): IOResult[(SecurityToken, KeyStatus)]
 
-   def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
-      token match {
-        case x:AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
-        case x:Certificate =>
-          SecurityToken.parseCertificate(x).map { case (p, s) => ParsedSecurityToken(p, Some(s)) }
-      }
+  def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
+    token match {
+      case x: AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
+      case x: Certificate =>
+        SecurityToken.parseCertificate(x).map { case (p, s) => ParsedSecurityToken(p, Some(s)) }
     }
+  }
 }
 
 class InventoryDigestServiceV1(
-    repo : ReadOnlyFullInventoryRepository
+    repo: ReadOnlyFullInventoryRepository
 ) extends ParseInventoryDigestFileV1 with GetKey with CheckInventoryDigest {
 
   /**
@@ -173,9 +171,9 @@ class InventoryDigestServiceV1(
    * either an inventory has already been treated before, it will look into ldap repository
    * or if there was no inventory before, it will look for the key in the received inventory
    */
-  def getKey (receivedInventory  : Inventory) : IOResult[(SecurityToken, KeyStatus)] = {
+  def getKey(receivedInventory: Inventory): IOResult[(SecurityToken, KeyStatus)] = {
 
-    def extractKey (node : NodeInventory) : IOResult[SecurityToken]= {
+    def extractKey(node: NodeInventory): IOResult[SecurityToken] = {
       for {
         agent <- node.agents.headOption.notOptional("There is no public key in inventory")
       } yield {
@@ -186,11 +184,11 @@ class InventoryDigestServiceV1(
     repo.get(receivedInventory.node.main.id).flatMap {
       case Some(storedInventory) =>
         val keyStatus = storedInventory.node.main.keyStatus
-        val inventory  : NodeInventory =
-          //if inventory was deleted, don't care, use new one
+        val inventory: NodeInventory = {
+          // if inventory was deleted, don't care, use new one
           storedInventory.node.main.status match {
             case RemovedInventory => receivedInventory.node
-            case _                => //in other case, check is the key update is valid
+            case _                => // in other case, check is the key update is valid
               keyStatus match {
                 case UndefinedKey => // Trust On First Use (TOFU) (user may have reseted, etc)
                   receivedInventory.node
@@ -198,10 +196,11 @@ class InventoryDigestServiceV1(
                 case CertifiedKey => storedInventory.node
               }
           }
+        }
         extractKey(inventory).map((_, keyStatus))
-      case _ =>
+      case _                     =>
         val status = receivedInventory.node.main.keyStatus
-        extractKey(receivedInventory.node).map((_,status))
+        extractKey(receivedInventory.node).map((_, status))
     }
   }
 }

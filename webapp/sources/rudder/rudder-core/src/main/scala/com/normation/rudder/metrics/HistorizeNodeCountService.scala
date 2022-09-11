@@ -1,46 +1,43 @@
 /*
-*************************************************************************************
-* Copyright 2020 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2020 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.metrics
 
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 import better.files._
-
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.reports.ComplianceLevel
@@ -48,18 +45,17 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
-
+import com.normation.zio._
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 import org.eclipse.jgit.revwalk.RevCommit
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
-
 import zio._
 import zio.clock.Clock
-import com.normation.zio._
-
 
 /*
  * First part describe API of main services, then there is default implementation
@@ -68,6 +64,7 @@ import com.normation.zio._
  * This class retrieve information about number of node used
  */
 trait FetchDataService {
+
   /**
    * Retrieve node information that must be logged frequently, typically number of nodes (pending, by policy mode, etc)
    */
@@ -75,6 +72,7 @@ trait FetchDataService {
 }
 
 trait WriteLogService {
+
   /**
    *  Write a log for given metric corresponding to given date
    */
@@ -85,6 +83,7 @@ trait WriteLogService {
  * The service which persist logs in git (optionnaly with signature)
  */
 trait CommitLogService {
+
   /**
    * Commit with the specified message and return corresponding Git commit id.
    */
@@ -97,11 +96,11 @@ trait CommitLogService {
  * A timezone can be specidied. By default, system one is used
  */
 class HistorizeNodeCountService(
-    dataService: FetchDataService
-  , writer     : WriteLogService
-  , gitLog     : CommitLogService
-  , zclock     : Clock
-  , timeZone   : DateTimeZone = DateTimeZone.getDefault()
+    dataService: FetchDataService,
+    writer:      WriteLogService,
+    gitLog:      CommitLogService,
+    zclock:      Clock,
+    timeZone:    DateTimeZone = DateTimeZone.getDefault()
 ) {
 
   /**
@@ -123,14 +122,10 @@ class HistorizeNodeCountService(
    * A version that handle all errors and log them (for use in batch).
    */
   def scheduledLog(cause: String): UIO[Unit] = {
-    fetchDataAndLog(cause).unit.catchAll(err =>
-      ScheduledJobLoggerPure.metrics.error(err.fullMsg)
-    )
+    fetchDataAndLog(cause).unit.catchAll(err => ScheduledJobLoggerPure.metrics.error(err.fullMsg))
   }
 
 }
-
-
 
 /////////////////// implementations ///////////////////
 
@@ -141,8 +136,8 @@ class HistorizeNodeCountService(
 class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: ReportingService) extends FetchDataService {
 
   def getFrequentNodeMetric(): IOResult[FrequentNodeMetrics] = {
-    //a method that returns "e" if compliance is enforce only,
-    //"a" for audit, "b" for both
+    // a method that returns "e" if compliance is enforce only,
+    // "a" for audit, "b" for both
     def mode(c: ComplianceLevel): Mode = {
       val a = c.success + c.repaired + c.error + c.notApplicable
       val e = c.compliant + c.auditNotApplicable + c.nonCompliant + c.auditError
@@ -159,13 +154,13 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
       pending    <- nodeInfoService.getPendingNodeInfos()
       compliance <- reportingService.getUserNodeStatusReports().toIO
     } yield {
-      val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_+_)
+      val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_ + _)
       FrequentNodeMetrics(
-          pending.size
-        , accepted.size
-        , modes.getOrElse(Mode.Audit, 0)
-        , modes.getOrElse(Mode.Enforce, 0)
-        , modes.getOrElse(Mode.Mixed, 0)
+        pending.size,
+        accepted.size,
+        modes.getOrElse(Mode.Audit, 0),
+        modes.getOrElse(Mode.Enforce, 0),
+        modes.getOrElse(Mode.Mixed, 0)
       )
     })
   }
@@ -178,17 +173,17 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
  */
 object WriteNodeCSV {
   def make(
-    directoryPath : String
-  , csvSeparator  : String
-  , fileDateFormat: String = "yyyy-MM"
+      directoryPath:  String,
+      csvSeparator:   String,
+      fileDateFormat: String = "yyyy-MM"
   ) = {
     val base = File(directoryPath)
 
     // Check parent directory exists (or can be created) and is writable
     IOResult.effect {
-      if(base.exists) {
-        if(base.isDirectory) {
-          if(base.isWritable) {
+      if (base.exists) {
+        if (base.isDirectory) {
+          if (base.isWritable) {
             ()
           } else {
             Unexpected(s"Metric directory '${directoryPath}' isn't writable. Please make it writable.'")
@@ -201,12 +196,9 @@ object WriteNodeCSV {
       }
     } *>
     // check that fileDateFormat is OK
-    IOResult.effect(DateTimeFormat.forPattern(fileDateFormat)).map(formatter =>
-      new WriteNodeCSV(base, csvSeparator, formatter)
-    )
+    IOResult.effect(DateTimeFormat.forPattern(fileDateFormat)).map(formatter => new WriteNodeCSV(base, csvSeparator, formatter))
   }
 }
-
 
 /**
  * The service in charge of writing CSV log file.
@@ -215,9 +207,9 @@ object WriteNodeCSV {
  * -
  */
 class WriteNodeCSV(
-    baseDdirectory: File
-  , csvSeparator  : String
-  , fileDateFormat: DateTimeFormatter
+    baseDdirectory: File,
+    csvSeparator:   String,
+    fileDateFormat: DateTimeFormatter
 ) extends WriteLogService {
 
   /**
@@ -226,15 +218,14 @@ class WriteNodeCSV(
    */
   def filename(date: DateTime) = "nodes-" + date.toString(fileDateFormat)
 
-
   /**
    * Format data in CSV according to parameters
    */
   def csv(date: DateTime, metrics: FrequentNodeMetrics): String = (
-      '"'.toString + date.toString(ISODateTimeFormat.dateTimeNoMillis()) + '"'.toString
-    + csvSeparator
-    + metrics.csv(csvSeparator)
-    + "\n"
+    '"'.toString + date.toString(ISODateTimeFormat.dateTimeNoMillis()) + '"'.toString
+      + csvSeparator
+      + metrics.csv(csvSeparator)
+      + "\n"
   )
 
   /**
@@ -245,13 +236,14 @@ class WriteNodeCSV(
     val f = File(baseDdirectory, filename(date))
     for {
       _ <- ZIO.whenM(IOResult.effect(!f.exists)) {
-             IOResult.effect(f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(File.OpenOptions.default, StandardCharsets.UTF_8))
+             IOResult.effect(
+               f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(File.OpenOptions.default, StandardCharsets.UTF_8)
+             )
            }
       _ <- IOResult.effect(f.writeText(csv(date, metrics))(File.OpenOptions.append, StandardCharsets.UTF_8))
     } yield ()
   }
 }
-
 
 /**
  *  Default implementation for commiting information in a git repo passed as argument.
@@ -263,7 +255,8 @@ class CommitLogServiceImpl(val gitRepo: GitRepositoryProvider, val commitInfo: R
     commitInfo.get.flatMap { info =>
       IOResult.effect {
         gitRepo.git.add().addFilepattern(".").setUpdate(false).call()
-        gitRepo.git.commit()
+        gitRepo.git
+          .commit()
           .setCommitter(info.name, info.email.getOrElse(""))
           .setMessage("Log node metrics: " + cause)
           .setSign(info.sign)
@@ -294,5 +287,3 @@ object CommitLogServiceImpl {
     }
   }
 }
-
-

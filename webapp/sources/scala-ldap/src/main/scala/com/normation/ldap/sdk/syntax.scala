@@ -1,29 +1,29 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.ldap.sdk
 
+import com.unboundid.ldap.sdk.{Entry => UEntry}
+import com.unboundid.ldap.sdk.{LDAPConnection => ULDAPConnection}
+import com.unboundid.ldap.sdk.{LDAPResult => ULDAPResult}
 import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.{ Entry => UEntry }
-import com.unboundid.ldap.sdk.{ LDAPConnection => ULDAPConnection }
-import com.unboundid.ldap.sdk.{ LDAPResult => ULDAPResult }
 
 object syntax {
 
@@ -31,12 +31,11 @@ object syntax {
    * Alias Unboundid.ldap.sdk.Entry and LDAPConnection to UnboundXXX so that the main
    * "entry" type is our own.
    */
-  type UnboundidEntry = UEntry
+  type UnboundidEntry          = UEntry
   type UnboundidLDAPConnection = ULDAPConnection
-  //that seems to be needed to be able to create an object LDAPResult
-  //without having naming clashes
-  type LDAPResult = ULDAPResult
-
+  // that seems to be needed to be able to create an object LDAPResult
+  // without having naming clashes
+  type LDAPResult              = ULDAPResult
 
   implicit class SearchScopeTonbound(s: SearchScope) {
     def toUnboundid = {
@@ -74,8 +73,8 @@ object syntax {
    *   (lower first), ie: ou=foo,BASE > ou=bar,BASE
    */
 
-  implicit val DnOrdering : Ordering[DN] = new Ordering[DN] {
-    def compare(x:DN,y:DN) : Int = x.compareTo(y)
+  implicit val DnOrdering: Ordering[DN] = new Ordering[DN] {
+    def compare(x: DN, y: DN): Int = x.compareTo(y)
   }
 
 }

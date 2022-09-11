@@ -1,44 +1,44 @@
 /*
-*************************************************************************************
-* Copyright 2015 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2015 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.inventory
 
-import java.security.Security
 import better.files.Resource
-
+import com.github.ghik.silencer.silent
+import com.normation.box.IOManaged
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.inventory.domain.CertifiedKey
@@ -49,24 +49,21 @@ import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGeneratorImpl
-
+import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldif.LDIFChangeRecord
+import java.security.Security
 import net.liftweb.common._
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.inventory.provisioning.fusion.FusionInventoryParser
-
-import com.normation.zio._
 import zio._
 import zio.syntax._
-import com.github.ghik.silencer.silent
-import com.normation.box.IOManaged
 
 @silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
@@ -74,24 +71,26 @@ class TestCertificate extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider())
 
   // we are testing error cases, so we don't want to output error log for them
-  org.slf4j.LoggerFactory.getLogger("inventory-processing").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+  org.slf4j.LoggerFactory
+    .getLogger("inventory-processing")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.OFF)
 
   val repository = scala.collection.mutable.Map[NodeId, FullInventory]()
 
   // our callback logic to wait for save done
   var saveDone = false
-  val callback = (_:Inventory) => effectUioUnit{ saveDone = true }
+  val callback = (_: Inventory) => effectUioUnit { saveDone = true }
   def waitSaveDone: Unit = {
-    while(!saveDone) { Thread.sleep(20)}
+    while (!saveDone) { Thread.sleep(20) }
   }
   // end callback logic
 
   val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
 
-
   // we need a callback after add to avoid flappy tests
   val reportSaver = new InventorySaver[Seq[LDIFChangeRecord]] {
-    val postCommitCallback: Inventory => UIO[Unit] = callback
+    val postCommitCallback:               Inventory => UIO[Unit]          = callback
     override def save(report: Inventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect {
       Thread.sleep(100) // false delay to be sure we match what is really inserted, not what is previously there
       repository += ((report.node.main.id, FullInventory(report.node, Some(report.machine))))
@@ -108,34 +107,35 @@ class TestCertificate extends Specification with Loggable {
     override def get(id: NodeId): IOResult[Option[FullInventory]] = repository.get(id).succeed
 
     override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = get(id)
-    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect(
-      repository += ((serverAndMachine.node.main.id, serverAndMachine))
-    ).map(_ => Nil)
+    override def save(serverAndMachine: FullInventory):             IOResult[Seq[LDIFChangeRecord]] = IOResult
+      .effect(
+        repository += ((serverAndMachine.node.main.id, serverAndMachine))
+      )
+      .map(_ => Nil)
 
-    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[(MachineUuid, InventoryStatus)]] = ???
-    override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] = ???
-    override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = ???
-    override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
-    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
-    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus):         IOResult[Option[(MachineUuid, InventoryStatus)]] =
+      ???
+    override def getAllInventories(inventoryStatus: InventoryStatus):                IOResult[Map[NodeId, FullInventory]]             = ???
+    override def getAllNodeInventories(inventoryStatus: InventoryStatus):            IOResult[Map[NodeId, NodeInventory]]             = ???
+    override def delete(id: NodeId, inventoryStatus: InventoryStatus):               IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]]                  = ???
   }
 
-
   val processor = new InventoryProcessor(
-    parser
-  , reportSaver
-  , 2
-  , fullInventoryRepo
-  , new InventoryDigestServiceV1(fullInventoryRepo)
-  , () => UIO.unit
-  , new InventoryDit(new DN("cn=test"), new DN("cn=soft"),"Pending Servers")
+    parser,
+    reportSaver,
+    2,
+    fullInventoryRepo,
+    new InventoryDigestServiceV1(fullInventoryRepo),
+    () => UIO.unit,
+    new InventoryDit(new DN("cn=test"), new DN("cn=soft"), "Pending Servers")
   )
 
   sequential
 
-
   val windows = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
-  val linux = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
+  val linux   = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
 
   val exist = IOManaged.make(true)(_ => ())
 
@@ -143,14 +143,18 @@ class TestCertificate extends Specification with Loggable {
 
   // LINUX
   "when a node is not in repository, it is ok to have a signature with cfe-key" in {
-    repository.remove(linux) ; saveDone = false
+    repository.remove(linux); saveDone = false
 
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "linux-cfe-sign"
-      , asManagedStream("certificates/linux-cfe-sign.ocs")
-      , asManagedStream("certificates/linux-cfe-sign.ocs.sign")
-      , exist
-    )).runNow
+    val res = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "linux-cfe-sign",
+          asManagedStream("certificates/linux-cfe-sign.ocs"),
+          asManagedStream("certificates/linux-cfe-sign.ocs.sign"),
+          exist
+        )
+      )
+      .runNow
 
     waitSaveDone
 
@@ -161,14 +165,18 @@ class TestCertificate extends Specification with Loggable {
 
   }
   "when a node is not in repository, invalid signature is an error" in {
-    repository.remove(linux) ; saveDone = false
+    repository.remove(linux); saveDone = false
 
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "linux-cfe-sign"
-      , asManagedStream("certificates/linux-cfe-sign.ocs")
-      , asManagedStream("certificates/windows-bad-certificate.ocs.sign")
-      , exist
-    )).runNow
+    val res = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "linux-cfe-sign",
+          asManagedStream("certificates/linux-cfe-sign.ocs"),
+          asManagedStream("certificates/windows-bad-certificate.ocs.sign"),
+          exist
+        )
+      )
+      .runNow
 
     (res must beAnInstanceOf[InventoryProcessStatus.SignatureInvalid]) and
     (repository.get(linux) must beNone)
@@ -178,12 +186,16 @@ class TestCertificate extends Specification with Loggable {
   "when a node is not in repository, it is ok to have a signature with certificate" in {
     repository.remove(windows); saveDone = false
 
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "windows-same-certificate"
-      , asManagedStream("certificates/windows-same-certificate.ocs")
-      , asManagedStream("certificates/windows-same-certificate.ocs.sign")
-      , exist
-    )).runNow
+    val res = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "windows-same-certificate",
+          asManagedStream("certificates/windows-same-certificate.ocs"),
+          asManagedStream("certificates/windows-same-certificate.ocs.sign"),
+          exist
+        )
+      )
+      .runNow
 
     waitSaveDone
 
@@ -198,12 +210,16 @@ class TestCertificate extends Specification with Loggable {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
     saveDone = false
 
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "windows-same-certificate"
-      , asManagedStream("certificates/windows-same-certificate.ocs")
-      , asManagedStream("certificates/windows-same-certificate.ocs.sign")
-      , exist
-    )).runNow
+    val res = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "windows-same-certificate",
+          asManagedStream("certificates/windows-same-certificate.ocs"),
+          asManagedStream("certificates/windows-same-certificate.ocs.sign"),
+          exist
+        )
+      )
+      .runNow
 
     waitSaveDone
 
@@ -217,12 +233,16 @@ class TestCertificate extends Specification with Loggable {
   "when a node is in repository with a registered key; signature must match existing certificate, not the one in inventory" in {
     val start = repository(windows).node.agents.head.securityToken.key === Cert.OK
     saveDone = false
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "windows-new-certificate"
-      , asManagedStream("certificates/windows-new-certificate.ocs")
-      , asManagedStream("certificates/windows-new-certificate.ocs.sign")
-      , exist
-    )).runNow
+    val res   = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "windows-new-certificate",
+          asManagedStream("certificates/windows-new-certificate.ocs"),
+          asManagedStream("certificates/windows-new-certificate.ocs.sign"),
+          exist
+        )
+      )
+      .runNow
 
     waitSaveDone
 
@@ -235,18 +255,23 @@ class TestCertificate extends Specification with Loggable {
 
   "when certificate 'subject' doesn't match node ID, we got an error" in {
     repository.remove(windows)
-    val res = processor.saveInventoryInternal(SaveInventoryInfo(
-        "windows-bad-certificate"
-      , asManagedStream("certificates/windows-bad-certificate.ocs")
-      , asManagedStream("certificates/windows-bad-certificate.ocs.sign")
-      , exist
-    )).map{
-      case InventoryProcessStatus.SaveError(_, _, err) => err.fullMsg
-      case x => s"not what was expected: ${x}}"
-    }.runNow
+    val res = processor
+      .saveInventoryInternal(
+        SaveInventoryInfo(
+          "windows-bad-certificate",
+          asManagedStream("certificates/windows-bad-certificate.ocs"),
+          asManagedStream("certificates/windows-bad-certificate.ocs.sign"),
+          exist
+        )
+      )
+      .map {
+        case InventoryProcessStatus.SaveError(_, _, err) => err.fullMsg
+        case x                                           => s"not what was expected: ${x}}"
+      }
+      .runNow
 
     (res must beMatching(".*subject doesn't contain same node ID in 'UID' attribute as inventory node ID.*"))
- }
+  }
 
 }
 

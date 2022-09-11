@@ -1,66 +1,65 @@
 /*
-*************************************************************************************
-* Copyright 2014 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2014 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.policies._
-
-import scala.xml._
-import net.liftweb.http._
-import net.liftweb.common._
-import net.liftweb.util.Helpers._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmd
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.services.ComplianceData
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.web.services.ChangeLine
-import com.normation.rudder.services.reports.NodeChanges
-import com.normation.rudder.web.ChooseTemplate
 import com.normation.box._
 import com.normation.errors._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.services.reports.ReportingServiceUtils
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.services.ChangeLine
+import com.normation.rudder.web.services.ComplianceData
 import com.normation.zio._
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers._
+import scala.xml._
 
 object RuleCompliance {
   private def details: NodeSeq = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil
-    , "component-details"
+    "templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil,
+    "component-details"
   )
 }
 
@@ -69,17 +68,17 @@ object RuleCompliance {
  *   It generates all Data and put them in a DataTable
  */
 
-class RuleCompliance (
-    rule : Rule
-  , rootRuleCategory: RuleCategory
+class RuleCompliance(
+    rule:             Rule,
+    rootRuleCategory: RuleCategory
 ) extends Loggable {
 
-  private[this] val reportingService = RudderConfig.reportingService
+  private[this] val reportingService     = RudderConfig.reportingService
   private[this] val recentChangesService = RudderConfig.recentChangesService
-  private[this] val categoryService  = RudderConfig.ruleCategoryService
-  private[this] val configService  = RudderConfig.configService
+  private[this] val categoryService      = RudderConfig.ruleCategoryService
+  private[this] val configService        = RudderConfig.configService
 
-  //fresh value when refresh
+  // fresh value when refresh
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
@@ -88,15 +87,14 @@ class RuleCompliance (
   import RuleCompliance._
 
   def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
-  def display : NodeSeq = {
-    ( "#ruleName"             #> rule.name &
-      "#ruleCategory"         #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
-      "#tagField *"           #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
-      "#ruleID"               #> rule.id.serialize &
-      "#ruleShortDescription" #> rule.shortDescription &
-      "#ruleLongDescription"  #> rule.longDescription &
-      "#compliancedetails"    #> showCompliance
-    )(details)
+  def display: NodeSeq = {
+    ("#ruleName" #> rule.name &
+    "#ruleCategory" #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
+    "#tagField *" #> tagsEditForm.viewTags("viewRuleTags", "ruleViewTagsApp", true) &
+    "#ruleID" #> rule.id.serialize &
+    "#ruleShortDescription" #> rule.shortDescription &
+    "#ruleLongDescription" #> rule.longDescription &
+    "#compliancedetails" #> showCompliance)(details)
   }
 
   /*
@@ -107,7 +105,7 @@ class RuleCompliance (
    * The table are empty when the page is displayed, then there is a JS call
    * to refresh() that fill them.
    */
-  def showCompliance : NodeSeq = {
+  def showCompliance: NodeSeq = {
     <div id="directiveComplianceSection" class="unfoldedSection" onclick="$('#directiveCompliance').toggle(400); $('#directiveComplianceSection').toggleClass('foldedSection');$('#directiveComplianceSection').toggleClass('unfoldedSection');">
       <div class="section-title">Compliance by Directive</div>
     </div>
@@ -130,7 +128,14 @@ class RuleCompliance (
           Details of changes for each period are displayed below the graph. Click to change the selected period.
         </div>
           <div class="recentChange_refresh">
-            {SHtml.ajaxButton(<i class="fa fa-refresh"></i>, () => refresh() , ("class","btn btn-primary btn-refresh") , ("title","Refresh"))}
+            {
+      SHtml.ajaxButton(
+        <i class="fa fa-refresh"></i>,
+        () => refresh(),
+        ("class", "btn btn-primary btn-refresh"),
+        ("title", "Refresh")
+      )
+    }
           </div>
       </div>
 
@@ -140,29 +145,34 @@ class RuleCompliance (
       </div>
       <div><h5>Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</h5></div>
 
-      <table id="changesGrid" cellspacing="0">  </table>  ++
-    Script(After(TimeSpan(0), JsRaw(s"""
+      <table id="changesGrid" cellspacing="0">  </table> ++
+    Script(
+      After(
+        TimeSpan(0),
+        JsRaw(s"""
       function refresh() {${refresh().toJsCmd}};
       createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
       createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);
       createChangesTable("changesGrid",[],"${S.contextPath}", refresh);
       refresh();
-    """)))
+    """)
+      )
+    )
   }
 
   def refresh() = {
-    //we want to be able to see at least one if the other fails
+    // we want to be able to see at least one if the other fails
     SHtml.ajaxInvoke(() => refreshCompliance()) &
     SHtml.ajaxInvoke(() => refreshGraphChanges()) &
     SHtml.ajaxInvoke(() => refreshTableChanges(None))
   }
 
-  def refreshGraphChanges() : JsCmd = {
+  def refreshGraphChanges(): JsCmd = {
     try {
-    ( for {
-      changesOnRule <- recentChangesService.countChangesByRuleByInterval().map( _._2.getOrElse(rule.id, Map()))
-    } yield {
-      JsRaw(s"""
+      (for {
+        changesOnRule <- recentChangesService.countChangesByRuleByInterval().map(_._2.getOrElse(rule.id, Map()))
+      } yield {
+        JsRaw(s"""
         var recentChanges = ${NodeChanges.json(changesOnRule, recentChangesService.getCurrentValidIntervals(None)).toJsCmd};
         var lastLabel = recentChanges.labels[recentChanges.labels.length -1].join(" ")
         $$("#selectedPeriod").text(lastLabel);
@@ -173,22 +183,24 @@ class RuleCompliance (
             var label = activePoints[0]._model.label.join(" ")
             selectedIndex = activePoints[0]._index;
             $$("#selectedPeriod").text(label);
-            ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"),  s => refreshTableChanges(Some(s.toLong)))}
+            ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"), s => refreshTableChanges(Some(s.toLong)))}
           }
         });
       """)
-    }) match  {
-      case Full(cmd)   => cmd
-      case eb:EmptyBox =>
-        val fail = eb ?~! "Could not refresh recent changes"
-        logger.error(fail.messageChain)
-        Noop
-    }
+      }) match {
+        case Full(cmd) => cmd
+        case eb: EmptyBox =>
+          val fail = eb ?~! "Could not refresh recent changes"
+          logger.error(fail.messageChain)
+          Noop
+      }
     } catch {
       case oom: OutOfMemoryError =>
-        val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
+        val msg = {
+          "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
           "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
           "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
+        }
         logger.error(msg)
         Noop
     }
@@ -201,75 +213,84 @@ class RuleCompliance (
    * is used.
    * We set a hard limit of 10 000 events by interval of 6 hours.
    */
-  def refreshTableChanges(intervalStartTimestamp: Option[Long]) : JsCmd = {
+  def refreshTableChanges(intervalStartTimestamp: Option[Long]): JsCmd = {
     val intervals = recentChangesService.getCurrentValidIntervals(None).sortBy(_.getStartMillis)
-    val failure = Failure("No interval defined. It's likelly a bug, please contact report it to https://issues.rudder.io")
-    val int = intervalStartTimestamp.orElse(intervals.lastOption.map(_.getStartMillis)) match {
-      case Some(t) => intervals.find { i => t == i.getStartMillis } match {
-        case Some(i) => Full(i)
-        case None    => failure
-      }
+    val failure   = Failure("No interval defined. It's likelly a bug, please contact report it to https://issues.rudder.io")
+    val int       = intervalStartTimestamp.orElse(intervals.lastOption.map(_.getStartMillis)) match {
+      case Some(t) =>
+        intervals.find(i => t == i.getStartMillis) match {
+          case Some(i) => Full(i)
+          case None    => failure
+        }
       case None    => failure
     }
 
     try {
-    ( for {
-      currentInterval <- int
-      // here, we don't use the cache because we need to have the details for each change, the cache only provides aggregation
-      changesOnRule   <- recentChangesService.getChangesForInterval(rule.id, currentInterval, Some(10000))
-      directiveLib    <- getFullDirectiveLib().toBox
-      allNodeInfos    <- getAllNodeInfos().toBox
-    } yield {
-      val changesLine = ChangeLine.jsonByInterval(Map((currentInterval, changesOnRule)), Some(rule.name), directiveLib, allNodeInfos)
-      val changesArray = changesLine.in.toList.flatMap{case a:JsArray => a.in.toList; case _ => Nil}
+      (for {
+        currentInterval <- int
+        // here, we don't use the cache because we need to have the details for each change, the cache only provides aggregation
+        changesOnRule   <- recentChangesService.getChangesForInterval(rule.id, currentInterval, Some(10000))
+        directiveLib    <- getFullDirectiveLib().toBox
+        allNodeInfos    <- getAllNodeInfos().toBox
+      } yield {
+        val changesLine  =
+          ChangeLine.jsonByInterval(Map((currentInterval, changesOnRule)), Some(rule.name), directiveLib, allNodeInfos)
+        val changesArray = changesLine.in.toList.flatMap { case a: JsArray => a.in.toList; case _ => Nil }
 
-      JsRaw(s"""
+        JsRaw(s"""
         refreshTable("changesGrid", ${JsArray(changesArray).toJsCmd});
       """)
-    }) match  {
-      case Full(cmd)   => cmd
-      case eb:EmptyBox =>
-        val fail = eb ?~! "Could not refresh recent changes"
-        logger.error(fail.messageChain)
-        Noop
-    }
+      }) match {
+        case Full(cmd) => cmd
+        case eb: EmptyBox =>
+          val fail = eb ?~! "Could not refresh recent changes"
+          logger.error(fail.messageChain)
+          Noop
+      }
     } catch {
       case oom: OutOfMemoryError =>
-        val msg = "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
+        val msg = {
+          "NodeChanges can not be retrieved du to OutOfMemory error. That mean that either your installation is missing " +
           "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
           "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
+        }
         logger.error(msg)
         Noop
     }
   }
 
-  def refreshCompliance() : JsCmd = {
-    ( for {
-        reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-        allRules     <- roRuleRepository.getAll()
-        groups       <- getGroups()
-        updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id}' is missing")
-        directiveLib <- getFullDirectiveLib()
-        allNodeInfos <- getAllNodeInfos()
-        globalMode   <- configService.rudder_global_policy_mode()
-      } yield {
+  def refreshCompliance(): JsCmd = {
+    (for {
+      reports      <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
+      allRules     <- roRuleRepository.getAll()
+      groups       <- getGroups()
+      updatedRule  <- allRules.find(_.id == rule.id).notOptional(s"The rule '${rule.id}' is missing")
+      directiveLib <- getFullDirectiveLib()
+      allNodeInfos <- getAllNodeInfos()
+      globalMode   <- configService.rudder_global_policy_mode()
+    } yield {
 
-        val ruleReport = ReportingServiceUtils.buildRuleStatusReport(rule.id, reports)
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(ruleReport, updatedRule, allNodeInfos, directiveLib, groups, allRules, globalMode).json.toJsCmd
-        val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, rule.id, reports, allNodeInfos, globalMode, allRules).json.toJsCmd
-        JsRaw(s"""
+      val ruleReport    = ReportingServiceUtils.buildRuleStatusReport(rule.id, reports)
+      val directiveData = ComplianceData
+        .getRuleByDirectivesComplianceDetails(ruleReport, updatedRule, allNodeInfos, directiveLib, groups, allRules, globalMode)
+        .json
+        .toJsCmd
+      val nodeData      = ComplianceData
+        .getRuleByNodeComplianceDetails(directiveLib, rule.id, reports, allNodeInfos, globalMode, allRules)
+        .json
+        .toJsCmd
+      JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});
           refreshTable("nodeReportsGrid", ${nodeData});
           createTooltip();
         """)
-      }
-    ).either.runNow match {
-        case Right(cmd) => cmd
-        case Left(err) =>
-          val fail = s"Error while computing Rule ${rule.name} (${rule.id.serialize}): ${err.fullMsg}"
-          logger.error(fail)
-          Noop
-      }
+    }).either.runNow match {
+      case Right(cmd) => cmd
+      case Left(err)  =>
+        val fail = s"Error while computing Rule ${rule.name} (${rule.id.serialize}): ${err.fullMsg}"
+        logger.error(fail)
+        Noop
+    }
   }
 
 }

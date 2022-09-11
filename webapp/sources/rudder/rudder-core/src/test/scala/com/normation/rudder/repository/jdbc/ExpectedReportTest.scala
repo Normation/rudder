@@ -1,54 +1,51 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository.jdbc
 
 import com.normation.rudder.db.DBCommon
-
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-
 
 /**
  * Test on database.
  */
 @RunWith(classOf[JUnitRunner])
 class ExpectedReportsTest extends DBCommon {
-
 
   "test" should {
     "be rewrote" in { true == true }
@@ -99,9 +96,9 @@ class ExpectedReportsTest extends DBCommon {
 //  "Finding nodes" should {
 //
 //    val strangeVersions = List(" abc" , "def " , "\nghi\t").map(NodeConfigId(_)).reverse //ghi is the most recent
-    //note: in version, [a,b,c] means "c" is the most recent versions
-    //in the unzserialized object, the most recent version is the HEAD of the list.
-    //note: spaces are trimmed in version
+  // note: in version, [a,b,c] means "c" is the most recent versions
+  // in the unzserialized object, the most recent version is the HEAD of the list.
+  // note: spaces are trimmed in version
 //    val expectedReportsNodes: List[DB.ExpectedReportsNodes] = List(
 //        DB.ExpectedReportsNodes(1, "n0", List())
 //      , DB.ExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
@@ -167,7 +164,6 @@ class ExpectedReportsTest extends DBCommon {
 //    }
 //  }
 
-
   /*
    * Testing updates
    */
@@ -191,7 +187,6 @@ class ExpectedReportsTest extends DBCommon {
 //      , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
 //      , "[]", DateTime.now, None
 //    )
-
 
 //    "the first time, just insert" in {
 //      val genTime = DateTime.now

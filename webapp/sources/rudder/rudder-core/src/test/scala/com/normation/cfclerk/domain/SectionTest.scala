@@ -1,60 +1,62 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.cfclerk.domain
 
+import com.normation.cfclerk.xmlparsers._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import java.io.FileNotFoundException
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
-import com.normation.cfclerk.xmlparsers._
-import CfclerkXmlConstants._
 import scala.xml._
 
 @RunWith(classOf[JUnitRunner])
 class SectionTest extends Specification {
 
-
   // we are testing error cases, so we don't want to output error log for them
-  org.slf4j.LoggerFactory.getLogger("com.normation.cfclerk.xmlparsers").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.OFF)
+  org.slf4j.LoggerFactory
+    .getLogger("com.normation.cfclerk.xmlparsers")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  val doc = readFile("testSections.xml")
-  def sectionsTag(example:String) = (doc \\ "examples" \ example \ "SECTIONS").head
+  val doc                          = readFile("testSections.xml")
+  def sectionsTag(example: String) = (doc \\ "examples" \ example \ "SECTIONS").head
 
   val sectionSpecParser = new SectionSpecParser(new VariableSpecParser)
 
@@ -62,20 +64,20 @@ class SectionTest extends Specification {
 
   ///// test on the well formed example /////
 
-
-  val rootSectionsOk = sectionParser.parseXml(sectionsTag("ok")).getOrElse(throw new IllegalArgumentException("This must be valid for test!"))
+  val rootSectionsOk =
+    sectionParser.parseXml(sectionsTag("ok")).getOrElse(throw new IllegalArgumentException("This must be valid for test!"))
 
   "the test sections <ok>" should {
-    val vars = "A" :: "B" :: "C" :: "D" :: "E" :: "F" :: Nil
+    val vars  = "A" :: "B" :: "C" :: "D" :: "E" :: "F" :: Nil
     val sects = SECTION_ROOT_NAME :: "sectA" :: "sect1" :: "sect2" ::
-      "sect3" :: "emptySect" :: "component" :: "sectF" ::Nil
+      "sect3" :: "emptySect" :: "component" :: "sectF" :: Nil
 
-    "have variables %s".format(vars.mkString("[", "," , "]")) in {
-      vars === rootSectionsOk.getAllVariables.map( _.name )
+    "have variables %s".format(vars.mkString("[", ",", "]")) in {
+      vars === rootSectionsOk.getAllVariables.map(_.name)
     }
 
-    "have sections %s".format(sects.mkString("[", "," , "]")) in {
-      sects === rootSectionsOk.getAllSections.map( _.name )
+    "have sections %s".format(sects.mkString("[", ",", "]")) in {
+      sects === rootSectionsOk.getAllSections.map(_.name)
     }
 
   }
@@ -90,7 +92,7 @@ class SectionTest extends Specification {
   "section named sect2" should {
     implicit val section = getUniqueSection("sect2")
     haveNbChildren(2)
-    //all children are variables
+    // all children are variables
     containNbVariables(2)
     beHighPriority
   }
@@ -98,7 +100,7 @@ class SectionTest extends Specification {
   "section named sect3" should {
     implicit val section = getUniqueSection("sect3")
     haveNbChildren(1)
-    //all children are variables
+    // all children are variables
     containNbVariables(1)
     beLowPriority
   }
@@ -184,14 +186,15 @@ class SectionTest extends Specification {
     }
   }
 
-  private[this] def readFile(fileName:String) : Elem = {
-    val doc =
+  private[this] def readFile(fileName: String): Elem = {
+    val doc = {
       try {
         XML.load(ClassLoader.getSystemResourceAsStream(fileName))
       } catch {
-        case e: SAXParseException => throw new Exception("Unexpected issue (unvalid xml?) with " + fileName)
+        case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with " + fileName)
         case e: java.net.MalformedURLException => throw new FileNotFoundException("%s file not found".format(fileName))
       }
+    }
     if (doc.isEmpty) {
       throw new Exception("Unexpected issue (unvalid xml?) with the %s file".format(fileName))
     }
@@ -200,11 +203,11 @@ class SectionTest extends Specification {
 
 }
 
-final case class SectionParser(sectionSpecParser: SectionSpecParser)  {
-  val id = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersionHelper("1.0"))
+final case class SectionParser(sectionSpecParser: SectionSpecParser) {
+  val id         = new TechniqueId(new TechniqueName("test-TechniqueId"), TechniqueVersionHelper("1.0"))
   val policyName = "test-policyName"
 
   def parseXml(elt: Node): Either[LoadTechniqueError, SectionSpec] = {
-    sectionSpecParser.parseSectionsInPolicy(elt,id, policyName)
+    sectionSpecParser.parseSectionsInPolicy(elt, id, policyName)
   }
 }
