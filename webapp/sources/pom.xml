@@ -263,6 +263,42 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
+      <!-- formatting with scalafmt -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>2.25.0</version>
+        <configuration>
+          <scala>
+            <includes>
+              <include>**/*.scala</include>
+            </includes>
+            <excludes>
+              <exclude>**/ConstraintsTest.scala</exclude> <!-- make spotless scalafmt stack overflow, works on intellij: ignore -->
+            </excludes>
+
+            <scalafmt>
+              <file>.scalafmt.conf</file>
+            </scalafmt>
+
+<!--            <licenseHeader>-->
+<!--              <content>/* (C)$YEAR */</content>  &lt;!&ndash; or <file>${project.basedir}/license-header</file> &ndash;&gt;-->
+<!--              <delimiter>package </delimiter> &lt;!&ndash;-->
+<!--                note the 'package ' argument - this is a regex which identifies the top-->
+<!--                of the file, be careful that all of your sources have a package declaration,-->
+<!--                or pick a regex which works better for your code &ndash;&gt;-->
+<!--            </licenseHeader>-->
+          </scala>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase> <!-- verify: default value -->
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
     <plugins>
