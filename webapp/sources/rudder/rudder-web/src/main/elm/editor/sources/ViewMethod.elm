@@ -89,7 +89,22 @@ showParam model call state methodParam param =
       ]
     , small [] [ text ( " " ++ methodParam.description) ]
     ]
-  , textarea  [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop,  readonly (not model.hasWriteRights),  name "param", class "form-control", rows  1 , value (displayValue param.value) , onInput  (MethodCallParameterModified call param.id)   ] [] --msd-elastic     ng-trim="{{trimParameter(parameterInfo)}}" ng-model="parameter.value"></textarea>
+  , textarea  [
+        stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+      , onFocus DisableDragDrop
+      , readonly (not model.hasWriteRights)
+      , name "param"
+      , class "form-control"
+      , rows  1
+      , value (displayValue param.value)
+      , onInput  (MethodCallParameterModified call param.id)
+      -- to deactivate plugin "Grammarly" or "Language Tool" from
+      -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+      , attribute "data-gramm" "false"
+      , attribute "data-gramm_editor" "false"
+      , attribute "data-enable-grammarly" "false"
+      , spellcheck False
+      ] []
   , if (not (List.isEmpty errors)) then ul [ class "list-unstyled" ]
       (List.map (\e -> li [ class "text-danger" ] [ text e ]) errors)
     else text ""
@@ -266,12 +281,34 @@ showMethodTab model method parentId call uiInfo=
                        updatedCondition = {condition | advanced = s }
                        updatedCall = Call parentId {call | condition = updatedCondition }
                      in MethodCallModified updatedCall)
+                   -- to deactivate plugin "Grammarly" or "Language Tool" from
+                   -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+                   , attribute "data-gramm" "false"
+                   , attribute "data-gramm_editor" "false"
+                   , attribute "data-enable-grammarly" "false"
+                   , spellcheck False
                    ] []
         , errorOnConditionInput
        ]
       , div [ class "form-group condition-form" ] [
           label [ for "class_context" ] [ text "Applied condition expression:" ]
-        , textarea [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop,  name "class_context",  class "form-control",  rows 1, id "advanced", value (conditionStr condition), readonly True ] []
+        , textarea [
+            readonly (not model.hasWriteRights)
+            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+            , onFocus DisableDragDrop
+            , name "class_context"
+            , class "form-control"
+            , rows 1
+            , id "advanced"
+            , value (conditionStr condition)
+            , readonly True
+            -- to deactivate plugin "Grammarly" or "Language Tool" from
+            -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+            , attribute "data-gramm" "false"
+            , attribute "data-gramm_editor" "false"
+            , attribute "data-enable-grammarly" "false"
+            , spellcheck False
+            ] []
         , if String.length (conditionStr condition) > 2048 then
             span [ class "text-danger" ] [text "Classes over 2048 characters are currently not supported." ]
           else
