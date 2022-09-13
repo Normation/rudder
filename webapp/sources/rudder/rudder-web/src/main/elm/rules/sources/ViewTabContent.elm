@@ -434,7 +434,21 @@ directivesTab model details =
                 ]
               else
                 sortedDirectives
-                |> List.map (\d ->  tr [][ td[][ badgePolicyMode model.policyMode d.policyMode, text d.displayName, buildTagsTree d.tags ] ])
+                |> List.map (\d ->
+                     tr []
+                     [ td[]
+                       [
+                         a []
+                         [ badgePolicyMode model.policyMode d.policyMode
+                         , span [class "item-name tooltipable"][text d.displayName]
+                         , buildTagsTree d.tags
+                         , div [class "treeActions-container"]
+                           [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
+                           ]
+                         , goToBtn (getDirectiveLink model.contextPath  d.id)
+                         ]
+                       ]
+                     ])
               )
             ]
         )]
