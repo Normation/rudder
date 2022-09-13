@@ -581,7 +581,7 @@ update msg model =
     AddMethod method newId ->
       if model.hasWriteRights then
       let
-        disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+        disableReporting = False
         newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting
         newModel =
           case model.mode of
@@ -815,7 +815,7 @@ update msg model =
                 NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport []))
                 NewMethod method ->
                  let
-                   disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+                   disableReporting = False
                  in
                    (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting))
             updatedCalls =
