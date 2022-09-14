@@ -38,10 +38,10 @@ bundle agent init
 
       # Audit mode
       "command[5]" string => "unknown audit command";
-      "result[5]"  string => "error";
+      "result[5]"  string => "na";
 
       "command[6]" string => "/bin/touch ${tmp}/my_file";
-      "result[6]"  string => "error";
+      "result[6]"  string => "na";
 
 
       "indices"    slist => getindices("command");

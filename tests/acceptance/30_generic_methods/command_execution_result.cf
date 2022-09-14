@@ -46,22 +46,22 @@ bundle agent init
 
     # Audit
     "command[6]"     string => "/bin/touch ${tmp}/6";
-    "result[6]"      string => "error";
+    "result[6]"      string => "na";
 
     "command[7]"     string => "/bin/touch ${tmp}/7";
-    "result[7]"      string => "error";
+    "result[7]"      string => "na";
 
     "command[8]"     string => "/bin/touch ${tmp}/8";
-    "result[8]"      string => "error";
+    "result[8]"      string => "na";
 
     "command[9]"     string => "/bin/touch ${tmp}/9";
-    "result[9]"      string => "error";
+    "result[9]"      string => "na";
 
     "command[10]"     string => "/bin/touch ${tmp}/10";
-    "result[10]"      string => "error";
+    "result[10]"      string => "na";
 
     "command[11]"     string => "/bin/touch ${tmp}/11";
-    "result[11]"      string => "error";
+    "result[11]"      string => "na";
 
     "indices" slist => getindices("command");
 

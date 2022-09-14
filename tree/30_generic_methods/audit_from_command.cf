@@ -1,0 +1,61 @@
+#####################################################################################
+# Copyright 2022 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Audit from command
+# @description Execute an audit only command and reports depending on exit code
+# @documentation Execute an audit only command and reports depending on
+# the exit codes given in parameters.
+# If an exit code is not in the list it will lead to an error status.
+# The command is always executed and the report is adapted to work properly in
+# enforce and in audit mode.
+# It is up to you to make sure the command doesn't modify the system status at all
+# since it is always executed, even in audit mode.
+#
+# @parameter command         Command to run
+# @parameter compliant_codes List of codes that produce a compliant status separated with commas (ex: 1,2,5)
+#
+# @class_prefix audit_from_command
+# @class_parameter command
+
+bundle agent audit_from_command(command, compliant_codes)
+{
+  vars:
+      "class_prefix"  string => canonify("audit_from_command_${command}");
+      "compliant_list" slist => splitstring("${compliant_codes}", "\s*,\s*", "256");
+      "empty_list"     slist => {};
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+  methods:
+    pass2.!pass3::
+      "${report_data.method_id}" usebundle  => push_dry_run_mode("false");
+    pass3::
+      "${report_data.method_id}" usebundle  => pop_dry_run_mode();
+      "${report_data.method_id}" usebundle  => log_rudder_v4("${command}", "Execute audit command", "${command}");
+
+  commands:
+    pass2.!pass3::
+      "${command}"
+        contain      => in_shell,
+        classes      => classes_generic_return_code_list_two("${report_data.method_id}", "${class_prefix}", @{compliant_list}, @{empty_list});
+}
+
