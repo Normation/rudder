@@ -25,7 +25,11 @@
 # It is compatible though, and you can call generic methods from both implementations on the same host.
 # The only drawback is that the agent will have to maintain double caches for package lists, which
 # may cause a little unneeded overhead.
-# 
+# These methods will update the corresponding package if updates are available
+# New updates may not be detected even if there are some available,
+# this is due to the update cache that is refresh every 4 hours by default,
+# you can modify this behaviour called `updates_cache_expire` in global parameter
+#
 # #### Package parameters
 # 
 # There is only one mandatory parameter, which is the package name to install.
