@@ -54,6 +54,7 @@ trait CampaignEventRepository {
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
   def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int]
+  def deleteEvent(id : Option[CampaignEventId],states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], afterDate : Option[DateTime], beforeDate : Option[DateTime] ) : IOResult[Unit]
 
   /*
    * Semantic is:
@@ -129,8 +130,22 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
            |  ON CONFLICT (eventId) DO UPDATE
            |  SET state = ${c.state}, name = ${c.name}, startDate = ${c.start}, endDate = ${c.end} ; """.stripMargin
 
-    transactIOResult(s"error when inserting event with id ${c.campaignId.value}")(xa => query.update.run.transact(xa)).map(_ => c)
+    transactIOResult(s"error when inserting event with id ${c.id.value}")(xa => query.update.run.transact(xa)).map(_ => c)
   }
 
+
+  def deleteEvent(id: Option[CampaignEventId], states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[Unit] = {
+
+    import cats.syntax.list._
+    val eventIdQuery = id.map(c => fr"eventId = ${c.value}")
+    val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
+    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state::json->>'value'", s))
+    val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
+    val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
+    val where = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+    val query = sql"""delete from campaignEvents """ ++ where
+    transactIOResult(s"error when deleting campaign event")(xa => query.update.run.transact(xa).unit)
+  }
 }
 

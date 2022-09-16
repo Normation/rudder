@@ -81,7 +81,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   def saveCampaign(c : Campaign) = {
     for {
       _ <- campaignRepo.save(c)
-      _ <- scheduleCampaignEvent(c)
+      _ <- scheduleCampaignEvent(c, DateTime.now())
     } yield {
       c
     }
@@ -195,7 +195,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
             case Finished|Skipped(_)  =>
               for {
                 campaign <- campaignRepo.get(event.campaignId)
-                up <-  scheduleCampaignEvent(campaign)
+                up <-  scheduleCampaignEvent(campaign, newCampaign.start)
               } yield {
                 up
               }
@@ -296,16 +296,17 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
-  def scheduleCampaignEvent(campaign: Campaign) : IOResult[CampaignEvent] = {
-    val now = DateTime.now()
+  def scheduleCampaignEvent(campaign: Campaign, date : DateTime) : IOResult[CampaignEvent] = {
     for {
       nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-      events <- repo.getWithCriteria(Scheduled.value :: Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None)
+      events <- repo.getWithCriteria(Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None)
+      _ <- repo.deleteEvent(None, Scheduled.value :: Nil, None,Some(campaign.info.id), None, None)
+
       lastEventDate = events match {
-        case Nil => now
+        case Nil => date
         case _ =>
           val maxEventDate = events.maxBy(_.end.getMillis).start
-          if (maxEventDate.isAfter(now)) maxEventDate else now
+          if (maxEventDate.isAfter(date)) maxEventDate else date
 
       }
       newEventDate <- nextCampaignDate(campaign.info.schedule, lastEventDate)
@@ -333,7 +334,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           _ <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           newEvents <- ZIO.foreach(toStart) { c =>
-                         scheduleCampaignEvent(c)
+                         scheduleCampaignEvent(c, DateTime.now())
                        }
           _ <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
           _ <- ZIO.foreach(newEvents) { ev => s.queueCampaign(ev) }
