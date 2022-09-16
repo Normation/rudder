@@ -2447,7 +2447,7 @@ class MockCampaign() {
       }
       val stateFiltered = states match {
         case Nil => campaignTypeFiltered
-        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state.value)))
+        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(s)))
       }
 
       val afterDateFiltered = afterDate match {
@@ -2472,6 +2472,46 @@ class MockCampaign() {
     }
 
     def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
+
+    def deleteEvent(id: Option[CampaignEventId], states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[Unit] = {
+
+      val eventIdFiltered: CampaignEvent => Boolean = id match {
+        case None => (_ => true)
+        case Some(id) => (ev => ev.id != id)
+      }
+
+      val campaignIdFiltered : CampaignEvent => Boolean = campaignId match {
+        case None => eventIdFiltered
+        case Some(id) => ev => eventIdFiltered(ev) || ev.campaignId != id
+      }
+
+
+      val campaignTypeFiltered: CampaignEvent => Boolean = campaignType match {
+        case None => campaignIdFiltered
+        case Some(id) =>  ev => campaignIdFiltered(ev) && ev.campaignType != id
+      }
+
+      val stateFiltered: CampaignEvent => Boolean = states match {
+        case Nil => campaignTypeFiltered
+        case s => ev =>  campaignTypeFiltered(ev) && ! states.contains(s)
+      }
+
+      val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
+        case None => stateFiltered
+        case Some(id) => ev => stateFiltered(ev) && ev.end.isAfter(id)
+      }
+      val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
+        case None => afterDateFiltered
+        case Some(id) => ev => afterDateFiltered(ev) && ev.start.isBefore(id)
+      }
+      for {
+        i <- items.get.map(_.values)
+        newList = i.filter(beforeDateFiltered)
+        _ <- items.set(newList.map(ce => (ce.id, ce)).toMap)
+      } yield {
+        ()
+      }
+    }
   }
 
   val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl())

@@ -85,32 +85,24 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
 
 //  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
+  val c0json =
+    """{"info":{
+      |"id":"c0",
+      |"name":"first campaign",
+      |"description":"a test campaign present when rudder boot",
+      |"status":{"value":"enabled"},
+      |"schedule":{"day":1,"startHour":3,"startMinute":42,"type":"weekly"},
+      |"duration":3600000},
+      |"details":{"name":"campaign #0"},
+      |"campaignType":"dumb-campaign"
+      |}""".stripMargin.replaceAll("""\n""","")
+
+  // init in mock
+  val ce0 = restTestSetUp.mockCampaign.e0
+
   sequential
 
   "when rudder starts, we" should {
-    val c0json =
-        """{"info":{
-            |"id":"c0",
-            |"name":"first campaign",
-            |"description":"a test campaign present when rudder boot",
-            |"status":{"value":"enabled"},
-            |"schedule":{"day":1,"startHour":3,"startMinute":42,"type":"weekly"},
-            |"duration":3600000},
-          |"details":{"name":"campaign #0"},
-          |"campaignType":"dumb-campaign"
-          |}""".stripMargin.replaceAll("""\n""","")
-
-    // init in mock
-    val ce0 = CampaignEvent(
-        CampaignEventId("e0")
-      , CampaignId("c0")
-      , "campaign #0"
-      , Finished
-      , new DateTime(0)
-      , new DateTime(1)
-      , DumbCampaignType
-    )
-
     "have one campaign" in {
       val resp = s"""[$c0json]"""
 

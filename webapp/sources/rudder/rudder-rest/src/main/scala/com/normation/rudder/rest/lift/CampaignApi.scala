@@ -24,6 +24,7 @@ import zio.ZIO
 import zio.syntax._
 import com.normation.errors.Unexpected
 import com.normation.utils.DateFormaterService
+import org.joda.time.DateTime
 
 class CampaignApi (
     campaignRepository: CampaignRepository
@@ -88,7 +89,7 @@ class CampaignApi (
       val res =
         for {
           campaign <- campaignRepository.get(CampaignId(resources))
-          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign)
+          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now())
         } yield {
           newEvent
         }
