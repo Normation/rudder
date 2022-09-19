@@ -290,7 +290,7 @@ dn: ruleId=32377fd7-02fd-43d0-aab7-28460a91347b,ou=Rules,ou=Rudder,cn=rudder
 objectClass: top
 objectClass: rule
 ruleId: 32377fd7-02fd-43d0-aab7-28460a91347b
-ruleTarget: special:all
+ruleTarget: {"include":{"or":["special:all"]},"exclude":{"or":[]}}
 cn: Global configuration for all nodes
 longDescription: This Rule was created automatically when Rudder was installed.
   It can be used to target Directives to all nodes (including the Rudder root
