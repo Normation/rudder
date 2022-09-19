@@ -2,7 +2,6 @@ port module Editor exposing (..)
 
 import ApiCalls exposing (..)
 import Browser
-import Browser.Dom
 import DataTypes exposing (..)
 import Dict exposing ( Dict )
 import Dict.Extra
@@ -667,7 +666,7 @@ update msg model =
            TechniqueDetails t o ui ->
             let
               technique = { t |  elems = removeElem (getId >> (==) callId) t.elems }
-              newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI }
+              newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI, blockUI = Dict.remove callId.value  ui.blockUI }
             in
             TechniqueDetails technique o newUi
            m -> m
