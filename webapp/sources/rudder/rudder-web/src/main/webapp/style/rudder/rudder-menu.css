@@ -2532,7 +2532,7 @@ hr.separation{
 }
 .content-wrapper .btn.btn-success.btn-outline{
   background-color: #fff !important;
-  color: #7fa71f !important;
+  color: #13BEB7 !important;
   transition-property: background-color, color;
   transition-duration: .2s;
 }
@@ -2543,7 +2543,7 @@ hr.separation{
   transition-duration: .2s;
 }
 .content-wrapper .btn.btn-success.btn-outline:hover{
-  background-color: #8fb92a !important;
+  background-color: #13BEB7 !important;
   color: #fff !important;
 }
 .content-wrapper .btn.btn-danger.btn-outline:hover{

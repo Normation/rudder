@@ -59,7 +59,7 @@
   cursor: pointer;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor.item-selected {
-  background-color: #F1F9DF;
+  background-color: #ecfdf9;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor.excluded {
   background-color: #fbeae9;
@@ -337,6 +337,12 @@
   font-size: 10px;
   padding: 4px;
   min-width: 22px;
+}
+.nb-resources.warning {
+  background-color: #EF9600;
+}
+.nb-resources.warning > .fa{
+  margin-left: 4px;
 }
 
 /* === SIDEBAR === */
@@ -1369,7 +1375,7 @@ label > .warning-info{
 }
 h4.list-title{
   font-size: 16px;
-  border-bottom: 4px solid #8fba2b;
+  border-bottom: 4px solid #13BEB7;
   padding-bottom: 6px;
   margin-bottom: 14px;
   margin-top: 14px;
@@ -1426,13 +1432,13 @@ ul.applied-list > li > .target-remove:hover + .border{
   background-color: #da534f !important;
 }
 ul.applied-list > li.new {
-  background-color: #f1f9df;
+  background-color: #ecfdf9;
 }
 ul.applied-list > li.new > .border{
-  background-color: #c1d0a0;
+  background-color: #13BEB7AA;
 }
 ul.applied-list > li.new:hover > .border{
-  background-color: #8fba2b;
+  background-color: #13BEB7;
 }
 .except + ul.applied-list > li.new {
   background-color: #faeae9;
@@ -1536,7 +1542,7 @@ ul.applied-list > .add-target > .fa{
 }
 
 .jstree ul > li .action-icon{
-  color: #8fba2b;
+  color: #13BEB7;
 }
 .jstree ul > li .action-icon.except{
   color: #DA291C;
