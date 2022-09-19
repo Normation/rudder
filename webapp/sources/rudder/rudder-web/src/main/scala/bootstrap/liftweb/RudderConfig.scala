@@ -1585,7 +1585,7 @@ object RudderConfig extends Loggable {
       rudderDitImpl
     , roLdap
     , ldapEntityMapper
-    , stringUuidGenerator
+    , tokenGenerator
     , ApiAuthorization.allAuthz.acl // for system token
   )
 

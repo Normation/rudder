@@ -39,6 +39,7 @@ package com.normation.rudder.api
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.api.TokenGenerator
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.BuildFilter
@@ -51,7 +52,6 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
 import org.joda.time.DateTime
-import com.normation.utils.StringUuidGenerator
 import com.normation.ldap.sdk.LDAPRudderError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import zio._
@@ -103,16 +103,18 @@ final class RoLDAPApiAccountRepository(
     val rudderDit    : RudderDit
   , val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection]
   , val mapper       : LDAPEntityMapper
-  , val uuidGen      : StringUuidGenerator
+  , val tokenGen     : TokenGenerator
   , val systemAcl    : List[ApiAclElement]
 ) extends RoApiAccountRepository {
+
+  val tokenSize = 32
 
   val systemAPIAccount =
     ApiAccount(
         ApiAccountId("rudder-system-api-account")
       , ApiAccountKind.System
       , ApiAccountName("Rudder system account")
-      , ApiToken(uuidGen.newUuid + "-system")
+      , ApiToken(tokenGen.newToken(tokenSize) + "-system")
       , "For internal use"
       , true
       , DateTime.now
