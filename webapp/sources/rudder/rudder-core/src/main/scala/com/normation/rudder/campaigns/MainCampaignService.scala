@@ -225,33 +225,36 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     def start() = loop().forever
   }
 
-  def nextCampaignDate(schedule : CampaignSchedule, date : DateTime) : IOResult[DateTime] = {
+  def nextDateFromDayTime(date : DateTime, start : DayTime) : DateTime = {
+    (if ( date.getDayOfWeek > start.day.value
+      || ( date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
+      || ( date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
+    ) {
+      date.plusWeeks(1)
+    } else {
+      date
+    }).withDayOfWeek(start.day.value).withHourOfDay(start.realHour).withMinuteOfHour(start.realMinute).withSecondOfMinute(0).withMillisOfSecond(0)
+  }
+
+  def nextCampaignDate(schedule : CampaignSchedule, date : DateTime) : IOResult[(DateTime,DateTime)] = {
     schedule match {
-      case OneShot(s) =>
-        if (s.isAfter(date)) {
-          s.succeed
+      case OneShot(start,end) =>
+        if (start.isAfter(end)) {
+          (start,end).succeed
         } else {
-          Inconsistency("Cannot schedule").fail
+          Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService.getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
         }
-      case WeeklySchedule(day,startHour, startMinute) =>
-        val realHour = startHour % 24
-        val realMinutes = startMinute % 60
-        for {
-          d <- (if ( date.getDayOfWeek > day.value
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay > realHour)
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay == realHour && date.getMinuteOfHour > realMinutes)
-                ) {
-                  date.plusWeeks(1)
-                } else {
-                  date
-                }).withDayOfWeek(day.value).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0).succeed
-        } yield {
-          d
-        }
-      case MonthlySchedule(position, day, startHour, startMinute) =>
-        val realHour = startHour % 24
-        val realMinutes = startMinute % 60
-        val d = (position match {
+      case WeeklySchedule(start,end) =>
+        val startDate = nextDateFromDayTime(date,start)
+        val endDate   = nextDateFromDayTime(startDate,end)
+
+        (startDate,endDate).succeed
+
+      case MonthlySchedule(position, start, end) =>
+        val realHour = start.realHour
+        val realMinutes = start.realMinute
+        val day = start.day
+        val base = (position match {
           case First =>
             val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
             if (t.getMonthOfYear < date.getMonthOfYear) {
@@ -288,11 +291,14 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
               t.minusWeeks(1)
             }
         }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
-        (if (date.isAfter(d)) {
-          d.plusMonths(1)
-        } else {
-          d
-        }).plusMonths(1).succeed
+        val startDate =
+          (if (date.isAfter(base)) {
+            base.plusMonths(1)
+          } else {
+            base
+          })
+        val endDate = nextDateFromDayTime(startDate, end)
+        (startDate,endDate).succeed
     }
   }
 
@@ -309,13 +315,13 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           if (maxEventDate.isAfter(date)) maxEventDate else date
 
       }
-      newEventDate <- nextCampaignDate(campaign.info.schedule, lastEventDate)
-      end = newEventDate.plus(campaign.info.duration.toMillis)
-      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,s" ${campaign.info.name} #${nbOfEvents+1}", Scheduled,newEventDate,end,campaign.campaignType)
-      _ <- repo.saveCampaignEvent(newCampaign)
-      _ <- queueCampaign(newCampaign)
+      dates <- nextCampaignDate(campaign.info.schedule, lastEventDate)
+      (start, end) = dates
+      newEvent = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,s" ${campaign.info.name} #${nbOfEvents+1}", Scheduled,start,end,campaign.campaignType)
+      _ <- repo.saveCampaignEvent(newEvent)
+      _ <- queueCampaign(newEvent)
     } yield {
-      newCampaign
+      newEvent
     }
   }
 

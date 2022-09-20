@@ -91,8 +91,8 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
       |"name":"first campaign",
       |"description":"a test campaign present when rudder boot",
       |"status":{"value":"enabled"},
-      |"schedule":{"day":1,"startHour":3,"startMinute":42,"type":"weekly"},
-      |"duration":3600000},
+      |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+      |},
       |"details":{"name":"campaign #0"},
       |"campaignType":"dumb-campaign"
       |}""".stripMargin.replaceAll("""\n""","")
