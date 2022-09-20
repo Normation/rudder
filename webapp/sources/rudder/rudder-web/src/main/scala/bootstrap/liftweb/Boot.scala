@@ -244,7 +244,7 @@ class Boot extends Loggable {
 
     //exclude Rudder doc from context-path rewriting
     LiftRules.excludePathFromContextPathRewriting.default.set(() => (path:String) => {
-      val noRedirectPaths= "/rudder-doc" :: "/ncf" :: "/ncf-builder" :: Nil
+      val noRedirectPaths= "/rudder-doc" :: Nil
       noRedirectPaths.exists(path.startsWith)
     })
 
@@ -314,18 +314,39 @@ class Boot extends Loggable {
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
 
-    // Lift 3 add security rules. It's good! But we use a lot
-    // of server side generated js and other things that make
-    // it extremely impracticable for us.
-    // allows everything and do not log in prod mode problems
+    // Content-Security-Policies header
+    // Only prevent loading external resources, no other XSS protection for now
+    // Can be made stricter for some pages when we get rid of inline scripts and style
+    val csp = ContentSecurityPolicy(
+        defaultSources = ContentSourceRestriction.Self :: Nil
+      , imageSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.Scheme("data:") :: Nil
+      , styleSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: Nil
+      , scriptSources  = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
+    )
+
+    val hsts = if (RudderConfig.RUDDER_SERVER_HSTS) {
+      Some(HttpsRules.secure)
+    } else {
+      None
+    }
+
     LiftRules.securityRules = () => SecurityRules(
-        https               = None
-      , content             = None
-      , frameRestrictions   = None
-      , enforceInOtherModes = false
+        https               = hsts
+      , content             = Some(csp)
+      // Prevent iframes totally, we don't use them anymore
+      , frameRestrictions   = Some(FrameRestrictions.Deny)
+      // OtherModes = not(DevMode) = Prod
+      , enforceInOtherModes = true
       , logInOtherModes     = false
       , enforceInDevMode    = false
       , logInDevMode        = true  // this is to check that nothing is reported on dev.
+    )
+
+    // Override to remove X-Lift-Version header
+    LiftRules.supplementalHeaders.default.set(
+      // Prevent search engine indexation
+      ("X-Robots-Tag", "noindex, nofollow") ::
+        LiftRules.securityRules().headers
     )
 
     /*
