@@ -401,8 +401,11 @@ CREATE TABLE CampaignEvents (
   campaignId   text
 , eventid      text PRIMARY KEY
 , name         text
-, state        json
+, state        jsonb
 , startDate    timestamp with time zone NOT NULL
 , endDate      timestamp with time zone NOT NULL
 , campaignType text
 );
+
+
+CREATE INDEX event_state_index ON CampaignEvents ((state->>'value'));

@@ -301,10 +301,10 @@ trait JsonInstances {
 
   implicit val jsonPut: Put[Json] =
     Put.Advanced.other[PGobject](
-      NonEmptyList.of("json")
+      NonEmptyList.of("jsonb")
     ).tcontramap { a =>
       val o = new PGobject
-      o.setType("json")
+      o.setType("jsonb")
       o.setValue(a.toString())
       o
     }
@@ -312,7 +312,7 @@ trait JsonInstances {
   implicit val jsonGet: Get[Json] = {
     import Json.decoder
     Get.Advanced.other[PGobject](
-      NonEmptyList.of("json")
+      NonEmptyList.of("jsonb")
     ).temap(a =>
       a.getValue.fromJson
     )

@@ -195,7 +195,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
             case Finished|Skipped(_)  =>
               for {
                 campaign <- campaignRepo.get(event.campaignId)
-                up <-  scheduleCampaignEvent(campaign, newCampaign.start)
+                up <-  scheduleCampaignEvent(campaign, newCampaign.end)
               } yield {
                 up
               }

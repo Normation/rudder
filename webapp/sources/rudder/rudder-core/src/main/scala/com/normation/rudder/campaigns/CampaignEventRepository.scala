@@ -103,7 +103,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     import cats.syntax.list._
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery = states.toNel.map(s => Fragments.in(fr"state::json->>'value'", s))
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
     val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
     val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
@@ -140,7 +140,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val eventIdQuery = id.map(c => fr"eventId = ${c.value}")
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery = states.toNel.map(s => Fragments.in(fr"state::json->>'value'", s))
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
     val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
     val where = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
