@@ -37,16 +37,12 @@
 
 package com.normation.rudder.rest
 
-import com.normation.rudder.DumbCampaignType
 import com.normation.rudder.campaigns.CampaignEvent
-import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
 import better.files.File
-import com.normation.rudder.campaigns.Finished
 import com.normation.rudder.campaigns.Scheduled
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
