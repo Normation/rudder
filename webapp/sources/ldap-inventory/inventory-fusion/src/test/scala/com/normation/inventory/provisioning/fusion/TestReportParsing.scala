@@ -158,6 +158,20 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "We can override hostname with custom property 'rudder_override_hostname'">> {
+    import net.liftweb.json.parse
+
+    // after parsing, we also have custom property for original hostname
+    val expected = List(
+        CustomProperty("rudder_override_hostname", JString("node1-overridden.rudder.local.override"))
+      , CustomProperty("rudder_original_hostname", JString("node1.rudder.local"))
+    )
+
+    val inventory = parseRun("fusion-inventories/7.1/node1-4d3a43bc-8508-46a2-92d7-cfe7320309a5.ocs")
+    (inventory.node.customProperties must containTheSameElementsAs(expected)) and
+    (inventory.node.main.hostname must beEqualTo("node1-overridden.rudder.local.override"))
+  }
+
   "Arch in Inventory" should {
 
     "be defined for windows 2012" in {
