@@ -45,7 +45,6 @@ import zio.json.jsonDiscriminator
 import zio.json.jsonField
 import zio.json.jsonHint
 
-import scala.concurrent.duration.Duration
 
 
 trait Campaign {
@@ -61,7 +60,6 @@ case class CampaignInfo (
   , description : String
   , status : CampaignStatus
   , schedule : CampaignSchedule
-  , duration: Duration
 )
 
 case class CampaignId (value : String, rev: Revision = GitVersion.DEFAULT_REV) {
@@ -127,21 +125,29 @@ case object Sunday extends DayOfWeek{
   val value = 7
 }
 
+case class DayTime (
+   day : DayOfWeek
+ , hour : Int
+ , minute : Int
+) {
+  val realHour = hour % 24
+  val realMinute = minute % 60
+}
+
 @jsonHint("monthly")
 case class MonthlySchedule(
     @jsonField("position")
     monthlySchedulePosition: MonthlySchedulePosition
-  , day : DayOfWeek
-  , startHour : Int
-  , startMinute : Int) extends CampaignSchedule
+  , start : DayTime
+  , end : DayTime
+) extends CampaignSchedule
 @jsonHint("weekly")
 case class WeeklySchedule(
-    day : DayOfWeek
-  , startHour : Int
-  , startMinute : Int
+    start : DayTime
+  , end : DayTime
 ) extends CampaignSchedule
 @jsonHint("one-shot")
-case class OneShot(start : DateTime) extends CampaignSchedule
+case class OneShot(start : DateTime, end : DateTime) extends CampaignSchedule
 
 trait CampaignDetails
 

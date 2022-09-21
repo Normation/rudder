@@ -108,12 +108,12 @@ object CampaignSerializer {
       }
   )
   import scala.concurrent.duration._
-  implicit val durationEncoder : JsonEncoder[Duration] = JsonEncoder[Long].contramap(_.toMillis)
+  implicit val durationEncoder     : JsonEncoder[Duration] = JsonEncoder[Long].contramap(_.toMillis)
   implicit val statusInfoEncoder   : JsonEncoder[CampaignStatus] = DeriveJsonEncoder.gen
-  implicit val scheduleEncoder : JsonEncoder[CampaignSchedule]= DeriveJsonEncoder.gen
+  implicit val dayTime             : JsonEncoder[DayTime]= DeriveJsonEncoder.gen
+  implicit val scheduleEncoder     : JsonEncoder[CampaignSchedule]= DeriveJsonEncoder.gen
   implicit val campaignInfoEncoder : JsonEncoder[CampaignInfo]= DeriveJsonEncoder.gen
-
-  implicit val idDecoder : JsonDecoder[CampaignId] = JsonDecoder[String].map(s => CampaignId(s))
+  implicit val idDecoder           : JsonDecoder[CampaignId] = JsonDecoder[String].map(s => CampaignId(s))
 
   implicit val decodeIsoDate: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(s =>
     try {
@@ -147,6 +147,7 @@ object CampaignSerializer {
 
   implicit val durationDecoder    : JsonDecoder[Duration] = JsonDecoder[Long].map(_.millis)
   implicit val statusInfoDecoder  : JsonDecoder[CampaignStatus] = DeriveJsonDecoder.gen
+  implicit val dayTimeDecoder     : JsonDecoder[DayTime]= DeriveJsonDecoder.gen
   implicit val scheduleDecoder    : JsonDecoder[CampaignSchedule]= DeriveJsonDecoder.gen
   implicit val campaignTypeDecoder: JsonDecoder[CampaignType] = JsonDecoder[String].map(CampaignType)
   implicit val campaignInfoDecoder: JsonDecoder[CampaignInfo]= DeriveJsonDecoder.gen
