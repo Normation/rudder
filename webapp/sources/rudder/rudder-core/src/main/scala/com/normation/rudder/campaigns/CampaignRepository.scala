@@ -47,11 +47,12 @@ import com.normation.errors.Unexpected
 trait CampaignRepository {
   def getAll(): IOResult[List[Campaign]]
   def get(id : CampaignId) : IOResult[Campaign]
+  def delete(id : CampaignId) : IOResult[CampaignId]
   def save(c : Campaign): IOResult[Campaign]
 }
 
 object CampaignRepositoryImpl {
-  def make(campaignSerializer: CampaignSerializer, path: File): IOResult[CampaignRepositoryImpl] = {
+  def make(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository): IOResult[CampaignRepositoryImpl] = {
     IOResult.effectM {
       if(path.exists) {
         if(!path.isDirectory|| !path.isWritable) {
@@ -61,11 +62,11 @@ object CampaignRepositoryImpl {
         path.createDirectoryIfNotExists(createParents = true).succeed
       }
     } *>
-    new CampaignRepositoryImpl(campaignSerializer, path).succeed
+    new CampaignRepositoryImpl(campaignSerializer, path,campaignEventRepository).succeed
   }
 }
 
-class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File) extends CampaignRepository {
+class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository) extends CampaignRepository {
 
   def getAll(): IOResult[List[Campaign]] = {
     for {
@@ -112,4 +113,16 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File)
       c
     }
   }
+
+  def delete(id: CampaignId): IOResult[CampaignId] =
+    for {
+      campaign_deleted <- IOResult.effect (s"error when delete campaign file for campaign with id '${id.value}'"){
+        val file = path / (s"${id.value}.json")
+        file.delete()
+      }
+      events_deleted <- campaignEventRepository.deleteEvent(campaignId = Some(id))
+    } yield {
+      id
+    }
+
 }

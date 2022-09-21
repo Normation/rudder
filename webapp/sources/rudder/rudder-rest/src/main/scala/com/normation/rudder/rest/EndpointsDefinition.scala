@@ -94,6 +94,11 @@ object CampaignApi extends ApiModuleProvider[CampaignApi] {
     val (action, path)  = GET / "campaigns" / "{id}"
     val dataContainer = Some("campaigns")
   }
+  final case object DeleteCampaign extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get a campaign model"
+    val (action, path)  = DELETE / "campaigns" / "{id}"
+    val dataContainer = None
+  }
   final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Get a campaign model"
     val (action, path)  = GET / "campaigns"  / "{id}" / "events"
@@ -102,7 +107,12 @@ object CampaignApi extends ApiModuleProvider[CampaignApi] {
   final case object SaveCampaignEvent extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Save a campaign event"
     val (action, path)  = POST / "campaigns" / "events" /  "{id}"
-    val dataContainer = Some("campaigns")
+    val dataContainer = Some("campaignEvents")
+  }
+  final case object DeleteCampaignEvent extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Save a campaign event"
+    val (action, path)  = DELETE / "campaigns" / "events" /  "{id}"
+    val dataContainer = None
   }
   def endpoints: List[CampaignApi] = ca.mrvisser.sealerate.values[CampaignApi].toList.sortBy( _.z )
 }

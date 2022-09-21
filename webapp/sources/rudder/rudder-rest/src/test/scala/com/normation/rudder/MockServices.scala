@@ -2389,6 +2389,10 @@ class MockCampaign() {
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
+
+    def delete(id: CampaignId): IOResult[CampaignId] = {
+      items.update(_ - id) *> id.succeed
+    }
   }
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {

@@ -54,14 +54,29 @@ trait CampaignEventRepository {
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
   def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int]
-  def deleteEvent(id : Option[CampaignEventId],states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], afterDate : Option[DateTime], beforeDate : Option[DateTime] ) : IOResult[Unit]
+  def deleteEvent(
+      id          : Option[CampaignEventId] = None
+    , states      : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId  : Option[CampaignId] = None
+    , afterDate   : Option[DateTime] = None
+    , beforeDate  : Option[DateTime] = None
+  ) : IOResult[Unit]
 
   /*
    * Semantic is:
    * - if Nil or None, clause is ignored
    * - if a value is provided, then it is use to filter things accordingly
    */
-  def getWithCriteria(states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime])  : IOResult[List[CampaignEvent]]
+  def getWithCriteria(
+      states : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId : Option[CampaignId] = None
+    , limit : Option[Int] = None
+    , offset: Option[Int] = None
+    , afterDate : Option[DateTime] = None
+    , beforeDate : Option[DateTime] = None
+  )  : IOResult[List[CampaignEvent]]
 }
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
@@ -98,7 +113,15 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
-  def getWithCriteria(states : List[String], campaignType: Option[CampaignType], campaignId : Option[CampaignId], limit : Option[Int], offset: Option[Int], afterDate : Option[DateTime], beforeDate : Option[DateTime]) : IOResult[List[CampaignEvent]] = {
+  def getWithCriteria(
+    states : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId : Option[CampaignId] = None
+    , limit : Option[Int] = None
+    , offset: Option[Int] = None
+    , afterDate : Option[DateTime] = None
+    , beforeDate : Option[DateTime] = None
+  ) : IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list._
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
@@ -134,7 +157,14 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   }
 
 
-  def deleteEvent(id: Option[CampaignEventId], states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[Unit] = {
+  def deleteEvent(
+      id          : Option[CampaignEventId] = None
+    , states      : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId  : Option[CampaignId] = None
+    , afterDate   : Option[DateTime] = None
+    , beforeDate  : Option[DateTime] = None
+  ) : IOResult[Unit] = {
 
     import cats.syntax.list._
     val eventIdQuery = id.map(c => fr"eventId = ${c.value}")
