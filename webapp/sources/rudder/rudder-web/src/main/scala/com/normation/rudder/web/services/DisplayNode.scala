@@ -65,8 +65,7 @@ import com.normation.rudder.domain.reports.{ComplianceLevel, ComplianceLevelSeri
 import com.normation.rudder.services.reports.{NoReportInInterval, Pending}
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
-import org.joda.time.format.ISODateTimeFormat
-import xml.Utility.escape
+import scala.xml.Utility.escape
 
 /**
  * A service used to display details about a server

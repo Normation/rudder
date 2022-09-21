@@ -1011,7 +1011,7 @@ object RudderConfig extends Loggable {
 
   val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
-  val tokenGenerator = new TokenGeneratorImpl(32)
+  lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
   implicit val userService = new UserService {
     def getCurrentUser = CurrentUser
