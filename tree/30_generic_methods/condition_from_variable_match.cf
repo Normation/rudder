@@ -19,7 +19,9 @@
 # @name Condition from variable match
 # @description Test the content of a string variable
 # @documentation
-# Test a variable content and create conditions depending on its value:
+#
+# Test a string variable content and create conditions depending on its value:
+#
 # * If the variable **is found and its content matches** the given regex:
 #     * a `${condition}_true` condition,
 #     * and **kept outcome** status
@@ -35,10 +37,12 @@
 # * If you want to test a technique parameter, use the `technique_id` of the technique
 #   as variable prefix and the`parameter_name` as variable name.
 #
+# The method only supports plain string type variables.
+#
 # @parameter condition Prefix of the class (condition) generated
 # @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
 # @parameter expected_match Regex to use to test if the variable content is compliant
-# 
+#
 #
 # @parameter_rename condition_prefix condition
 # @class_prefix condition_from_variable_match
