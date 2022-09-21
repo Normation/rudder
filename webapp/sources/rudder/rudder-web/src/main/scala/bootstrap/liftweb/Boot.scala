@@ -50,13 +50,13 @@ import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
-import java.util.Locale
 
+import java.util.Locale
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
-import java.net.URLConnection
 
+import java.net.URLConnection
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
 import com.normation.plugins.RudderPluginModule
@@ -75,8 +75,8 @@ import net.liftweb.sitemap.Loc.TestAccess
 import org.reflections.Reflections
 import com.normation.zio._
 
+import scala.concurrent.duration.{DAYS, Duration}
 import scala.xml.NodeSeq
-import scala.xml.NodeSeq.seqToNodeSeq
 
 /*
  * Utilities about rights
@@ -314,32 +314,37 @@ class Boot extends Loggable {
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
 
+    ////////// SECURITY SETTINGS //////////
+
+    // Strict-Transport-Security (HSTS) header
+    val hsts = if (RudderConfig.RUDDER_SERVER_HSTS) {
+      // Don't include subdomains, 1 year (standard value for "forever")
+      Some(HttpsRules(requiredTime = Some(Duration(365, DAYS))))
+    } else {
+      None
+    }
+
     // Content-Security-Policies header
     // Only prevent loading external resources, no other XSS protection for now
     // Can be made stricter for some pages when we get rid of inline scripts and style
     val csp = ContentSecurityPolicy(
         defaultSources = ContentSourceRestriction.Self :: Nil
-      , imageSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.Scheme("data:") :: Nil
+      , imageSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.Scheme("data") :: Nil
       , styleSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: Nil
       , scriptSources  = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
-    val hsts = if (RudderConfig.RUDDER_SERVER_HSTS) {
-      Some(HttpsRules.secure)
-    } else {
-      None
-    }
-
     LiftRules.securityRules = () => SecurityRules(
         https               = hsts
       , content             = Some(csp)
-      // Prevent iframes totally, we don't use them anymore
+      // Prevent frames, we don't use them anymore
       , frameRestrictions   = Some(FrameRestrictions.Deny)
-      // OtherModes = not(DevMode) = Prod
+      // OtherModes = not(DevMode) = Prod, enforce and log
       , enforceInOtherModes = true
-      , logInOtherModes     = false
+      , logInOtherModes     = true
+      // Dev mode, don't enforce but log
       , enforceInDevMode    = false
-      , logInDevMode        = true  // this is to check that nothing is reported on dev.
+      , logInDevMode        = true
     )
 
     // Override to remove X-Lift-Version header
