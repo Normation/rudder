@@ -144,7 +144,6 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import scala.collection.immutable
-import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.xml.Elem
 import zio.syntax._
@@ -154,6 +153,7 @@ import com.normation.errors.IOResult
 import com.normation.errors._
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignType
+import com.normation.rudder.campaigns.DayTime
 import com.normation.rudder.campaigns.Finished
 import com.normation.rudder.campaigns.Running
 import com.normation.rudder.campaigns.Scheduled
@@ -2360,6 +2360,7 @@ final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) 
   val campaignType = DumbCampaignType
 
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
+
 }
 
 class MockCampaign() {
@@ -2372,8 +2373,7 @@ class MockCampaign() {
     , "first campaign"
     , "a test campaign present when rudder boot"
     , Enabled
-    , WeeklySchedule(Monday, 3, 42)
-    , Duration("1 hour")
+    , WeeklySchedule(DayTime(Monday, 3, 42),DayTime(Monday, 4, 42))
   ), DumbCampaignDetails("campaign #0"))
   val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,"campaign #0",Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
 
