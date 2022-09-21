@@ -58,6 +58,11 @@ rudder.dir.lock=/var/rudder/lock/
 #
 rudder.server.relay.api=https://localhost/rudder/relay-api
 
+#
+# Add HSTS header to enforce HTTPS for Rudder Web interface
+# Don't enable if you use non-HTTPS urls on the same domain.
+rudder.server.hsts=false
+
 ##################
 # LDAP properties ###################################################################
 ##################
