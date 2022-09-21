@@ -38,6 +38,7 @@
 package bootstrap.liftweb
 
 import net.liftweb.http._
+import net.liftweb.http.js.JsCmd
 import net.liftweb.common._
 import net.liftweb.sitemap.{Menu, _}
 import net.liftweb.sitemap.Loc._
@@ -353,6 +354,13 @@ class Boot extends Loggable {
       ("X-Robots-Tag", "noindex, nofollow") ::
         LiftRules.securityRules().headers
     )
+
+    // By default Lift redirects to login page when a comet request's session changes
+    // which happens when there is a connection to the same server in another tab.
+    // Do nothing instead, as at allows to keep open tabs context until we get the new cookie
+    // This does not affect security as it is only a redirection anyway and did not change
+    // the session itself.
+    LiftRules.noCometSessionCmd.default.set(() => JsCmd.unitToJsCmd(()))
 
     /*
      * For development, we override the default local calculator
