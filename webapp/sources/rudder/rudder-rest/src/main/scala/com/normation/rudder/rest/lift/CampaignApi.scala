@@ -47,6 +47,8 @@ class CampaignApi (
       case API.GetCampaignDetails => GetCampaignDetails
       case API.GetCampaignEventsForModel => GetAllEventsForCampaign
       case API.GetCampaigns => GetCampaigns
+      case API.DeleteCampaign => DeleteCampaign
+      case API.DeleteCampaignEvent => DeleteCampaignEvent
     })
   }
   object GetCampaigns extends LiftApiModule0 {
@@ -74,6 +76,22 @@ class CampaignApi (
           serialized <- campaignSerializer.getJson(campaign)
         } yield {
           serialized
+        }
+
+      res.toLiftResponseOne(params,schema, _ => Some(resources))
+
+    }
+  }
+
+  object DeleteCampaign extends LiftApiModule {
+    val schema = API.DeleteCampaign
+
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val res =
+        for {
+          campaign <- campaignRepository.delete(CampaignId(resources))
+        } yield {
+          resources
         }
 
       res.toLiftResponseOne(params,schema, _ => Some(resources))
@@ -112,6 +130,24 @@ class CampaignApi (
 
     }
   }
+
+
+  object DeleteCampaignEvent extends LiftApiModule {
+    val schema = API.DeleteCampaignEvent
+
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val res =
+        for {
+          campaign <- campaignEventRepository.deleteEvent(id = Some(CampaignEventId(resources)))
+        } yield {
+          resources
+        }
+
+      res.toLiftResponseOne(params,schema, _ => Some(resources))
+
+    }
+  }
+
 
   object SaveCampaign extends LiftApiModule0 {
     val schema = API.SaveCampaign

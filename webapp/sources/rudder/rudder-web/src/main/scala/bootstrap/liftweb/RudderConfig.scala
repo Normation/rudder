@@ -2520,7 +2520,7 @@ object RudderConfig extends Loggable {
   lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie, campaignSerializer)
   val campaignPath = root / "var" / "rudder" / "configuration-repository" / "campaigns"
 
-  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath).runOrDie(err =>
+  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath, campaignEventRepo).runOrDie(err =>
     new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg)
   )
 
