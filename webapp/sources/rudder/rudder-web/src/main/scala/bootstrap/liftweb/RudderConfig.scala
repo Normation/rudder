@@ -623,6 +623,15 @@ object RudderConfig extends Loggable {
 
   val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
+  val RUDDER_SERVER_HSTS = {
+    try {
+      config.getBoolean("rudder.server.hsts")
+    } catch {
+      // by default, if property is missing
+      case ex: ConfigException => false
+    }
+  }
+
   val RUDDER_RELAY_RELOAD = {
     try {
       config.getString("rudder.relayd.reload")
