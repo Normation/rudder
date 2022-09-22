@@ -41,7 +41,6 @@ import cats.implicits._
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors.RudderError
-import com.normation.rudder.campaigns._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime

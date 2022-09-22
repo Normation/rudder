@@ -90,7 +90,8 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
       |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
       |},
       |"details":{"name":"campaign #0"},
-      |"campaignType":"dumb-campaign"
+      |"campaignType":"dumb-campaign",
+      |"version":1
       |}""".stripMargin.replaceAll("""\n""","")
 
   // init in mock
@@ -130,6 +131,34 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
           }
 
         case err => ko(s"I got an error in test: ${err}")
+      }
+    }
+
+    "save one campaign" in {
+
+
+      val c1json =
+        """{"info":{
+          |"id":"c1",
+          |"name":"second campaign",
+          |"description":"a test campaign present when rudder boot",
+          |"status":{"value":"enabled"},
+          |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+          |},
+          |"details":{"name":"campaign #0"},
+          |"campaignType":"dumb-campaign",
+          |"version":1
+          |}""".stripMargin.replaceAll("""\n""","")
+
+      val resp = s"""[$c1json]"""
+
+
+
+      restTest.testPOSTResponse("/secure/api/campaigns",net.liftweb.json.parse(c1json)) {
+        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
+          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
+        case err                                                                        =>
+          ko(s"I got an error in test: ${err}")
       }
     }
   }
