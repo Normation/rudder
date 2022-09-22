@@ -38,7 +38,7 @@
 package bootstrap.liftweb
 
 import net.liftweb.http._
-import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.common._
 import net.liftweb.sitemap.{Menu, _}
 import net.liftweb.sitemap.Loc._
@@ -362,7 +362,7 @@ class Boot extends Loggable {
     // Do nothing instead, as at allows to keep open tabs context until we get the new cookie
     // This does not affect security as it is only a redirection anyway and did not change
     // the session itself.
-    LiftRules.noCometSessionCmd.default.set(() => JsCmd.unitToJsCmd(()))
+    LiftRules.noCometSessionCmd.default.set(() => JsRaw(s"createErrorNotification('You have been signed out. Please reload the page to sign in again.')").cmd)
 
     // Log CSP violations
     LiftRules.contentSecurityPolicyViolationReport = (r: ContentSecurityPolicyViolation) => {
