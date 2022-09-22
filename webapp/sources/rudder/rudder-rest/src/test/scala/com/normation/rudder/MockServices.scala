@@ -151,6 +151,7 @@ import zio.{Tag as _, _}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._
+import com.normation.rudder.campaigns.CampaignParsingInfo
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignType
 import com.normation.rudder.campaigns.DayTime
@@ -2358,7 +2359,7 @@ sealed trait DumbCampaignTrait extends Campaign
 @jsonHint(DumbCampaignType.value)
 final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
   val campaignType = DumbCampaignType
-
+  val version = 1
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
 
 }
@@ -2403,12 +2404,8 @@ class MockCampaign() {
     implicit val dumbCampaignDetailsEncoder : JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
     implicit val dumbCampaignEncoder : JsonEncoder[DumbCampaignTrait] = DeriveJsonEncoder.gen
 
-    def handle(pretty: Boolean): PartialFunction[Campaign, IOResult[String]] = {
-      case c : DumbCampaignTrait => (if(pretty) c.toJsonPretty else c.toJson).succeed
-    }
-
-    def read(): PartialFunction[String, IOResult[Campaign]] = {
-      case s => s.fromJson[DumbCampaignTrait].toIO
+    def read(): PartialFunction[(String,CampaignParsingInfo), IOResult[Campaign]] = {
+      case (s,CampaignParsingInfo(DumbCampaignType,1)) => s.fromJson[DumbCampaignTrait].toIO
     }
 
     def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = {

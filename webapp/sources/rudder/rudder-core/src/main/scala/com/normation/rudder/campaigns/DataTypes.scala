@@ -47,11 +47,17 @@ import zio.json.jsonHint
 
 
 
+case class CampaignParsingInfo (
+    campaignType: CampaignType
+  , version : Int
+)
+
 trait Campaign {
   def info        : CampaignInfo
   def details     : CampaignDetails
   def campaignType: CampaignType
   def copyWithId(newId : CampaignId) : Campaign
+  def version     : Int
 }
 
 case class CampaignInfo (
