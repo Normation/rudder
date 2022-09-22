@@ -38,9 +38,7 @@
 package com.normation.rudder.campaigns
 
 import cats.implicits._
-import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
-import com.normation.errors.RudderError
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
@@ -53,7 +51,7 @@ import zio.duration._
 import zio.syntax._
 
 trait CampaignHandler {
-  def handle(mainCampaignService: MainCampaignService, event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]]
+  def handle(campaign: Campaign, mainCampaignService: MainCampaignService, event: CampaignEvent): IOResult[CampaignEvent]
 }
 
 object MainCampaignService {
@@ -67,11 +65,15 @@ object MainCampaignService {
 
 class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignRepository, uuidGen: StringUuidGenerator) {
 
-  private[this] var services: List[CampaignHandler] = Nil
-  def registerService(s: CampaignHandler) = {
-    services = s :: services
+  private[this] var services: Map[String, CampaignHandler] = Map()
+  def registerService(campaignType: String, s: CampaignHandler) = {
+    services = services + ((campaignType, s))
     init()
   }
+
+  import com.normation.errors._
+  def getService(campaignType: String): IOResult[CampaignHandler] =
+    services.get(campaignType).notOptional(s"No campaign service found for campaign type ${campaignType}")
 
   private[this] var inner: Option[CampaignScheduler] = None
 
@@ -100,34 +102,33 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       }
     }
 
-    def handle(eventId: CampaignEventId) = {
+    @nowarn
+    def failingLog(eventId: CampaignEventId)(err: RudderError) = {
+      for {
+        _ <- CampaignLogger.error(
+               s"An error occurred while treating campaign event ${eventId.value}, error details : ${err.fullMsg} "
+             )
+        _ <- err.fail
+      } yield {
+        ()
+      }
+    }
 
-      def base(event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = { case _ => event.succeed }
+    def wait(eventId: CampaignEventId) = {
 
       val now = DateTime.now()
 
-      @nowarn
-      def failingLog(err: RudderError) = {
-        for {
-          _ <- CampaignLogger.error(
-                 s"An error occurred while treating campaign event ${eventId.value}, error details : ${err.fullMsg} "
-               )
-          _ <- err.fail
-        } yield {
-          ()
-        }
-      }
       (for {
 
         event    <- repo.get(eventId)
         campaign <- campaignRepo.get(event.campaignId)
         _        <- CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
 
-        _               <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
-        wait            <-
+        _    <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
+        wait <-
           event.state match {
             case Finished | Skipped(_) =>
-              ().succeed
+              handle(event)
             case Scheduled             =>
               campaign.info.status match {
                 case Disabled(reason)       =>
@@ -149,12 +150,13 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                               .serialize(event.start)}"
                         )
                       _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
+                      _ <- handle(event)
                     } yield {
                       ().succeed
                     }
                   } else {
                     CampaignLogger.debug(
-                      s"${event.id.value} should be treated by ${event.campaignType.value} handler for Scheduled state"
+                      s"${event.id.value} should be treated by ${event.campaignType} handler for Scheduled state"
                     )
                   }
               }
@@ -183,38 +185,42 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                              .serialize(event.end)}"
                        )
                   _ <- ZIO.sleep(Duration.fromMillis(event.end.getMillis - now.getMillis))
+                  _ <- handle(event)
                 } yield {
                   ()
                 }
               } else {
-                CampaignLogger.debug(
-                  s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state"
-                )
+                CampaignLogger.debug(s"${event.id.value} should be treated by ${event.campaignType} handler for Running state")
               }
           }
+      } yield {
+        event
+      }).provide(zclock).catchAll(failingLog(eventId))
+    }
 
-        // Get updated event and campaign, state of the event could have changed, campaign parameter also
+    def handle(event: CampaignEvent) = {
+      // Get updated event and campaign, state of the event could have changed, campaign parameter also
+      (for {
         updatedEvent    <- repo.get(event.id)
         updatedCampaign <- campaignRepo.get(event.campaignId)
         _               <- CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
-
-        handle       =
-          services.map(_.handle(main, updatedEvent)).foldLeft(base(updatedEvent)) { case (base, handler) => handler orElse base }
-        newCampaign <- handle
-                         .apply(updatedCampaign)
-                         .catchAll(err => {
-                           for {
-                             _ <- CampaignLogger.error(err.fullMsg)
-                           } yield {
-                             event
+        newCampaign     <- getService(updatedCampaign.campaignType).flatMap { handler =>
+                             handler
+                               .handle(updatedCampaign, main, updatedEvent)
+                               .catchAll(err => {
+                                 for {
+                                   _ <- CampaignLogger.error(err.fullMsg)
+                                 } yield {
+                                   event
+                                 }
+                               })
                            }
-                         })
-        _           <-
+        _               <-
           CampaignLogger.debug(
             s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}"
           )
-        save        <- repo.saveCampaignEvent(newCampaign)
-        post        <-
+        save            <- repo.saveCampaignEvent(newCampaign)
+        post            <-
           newCampaign.state match {
             case Finished | Skipped(_) =>
               for {
@@ -232,14 +238,13 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           }
       } yield {
         ()
-      }).provide(zclock).catchAll(failingLog)
-
+      }).catchAll(failingLog(event.id))
     }
 
     def loop() = {
       for {
         c <- queue.take
-        _ <- handle(c).forkDaemon
+        _ <- wait(c).forkDaemon
       } yield {
         ()
       }

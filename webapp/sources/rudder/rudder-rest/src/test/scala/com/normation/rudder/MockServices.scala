@@ -70,7 +70,6 @@ import com.normation.rudder.campaigns.CampaignInfo
 import com.normation.rudder.campaigns.CampaignParsingInfo
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.CampaignType
 import com.normation.rudder.campaigns.DayTime
 import com.normation.rudder.campaigns.Enabled
 import com.normation.rudder.campaigns.Finished
@@ -157,10 +156,9 @@ import scala.collection.immutable
 import scala.util.control.NonFatal
 import scala.xml.Elem
 import zio.{Tag => _, _}
-import zio.json.jsonDiscriminator
-import zio.json.jsonHint
+import zio.json._
+import zio.json.ast.Json
 import zio.syntax._
-
 /*
  * Mock services for test, especially repositories, and provides
  * test data (nodes, directives, etc)
@@ -2980,19 +2978,20 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 
 // It would be much simpler if the root classes were concrete, parameterized with a A type:
 // case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
-final object DumbCampaignType extends CampaignType("dumb-campaign")
 
 final case class DumbCampaignDetails(name: String) extends CampaignDetails
 
-@jsonDiscriminator("campaignType")
-sealed trait DumbCampaignTrait extends Campaign
+object DumbCampaign {
+  val Type = "dumb-campaign"
+}
 
-@jsonHint(DumbCampaignType.value)
-final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
-  val campaignType = DumbCampaignType
-  val version      = 1
+case class DumbCampaign(
+    info:    CampaignInfo,
+    details: DumbCampaignDetails
+) extends Campaign {
+  val campaignType = DumbCampaign.Type
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
-
+  val version = 1
 }
 
 class MockCampaign() {
@@ -3011,18 +3010,19 @@ class MockCampaign() {
     DumbCampaignDetails("campaign #0")
   )
   val e0 =
-    CampaignEvent(CampaignEventId("e0"), c0.info.id, "campaign #0", Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+    CampaignEvent(CampaignEventId("e0"), c0.info.id, "campaign #0", Finished, new DateTime(0), new DateTime(1), DumbCampaign.Type)
 
   object repo extends CampaignRepository {
-    val items = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow
+
+    val items = Ref.make(Map[CampaignId, Campaign]((c0.info.id -> c0))).runNow
 
     override def getAll():            IOResult[List[Campaign]] = items.get.map(_.valuesIterator.toList)
     override def get(id: CampaignId): IOResult[Campaign]       =
       items.get.map(_.get(id)).notOptional(s"Missing campaign with id '${id.serialize}''")
-    override def save(c: Campaign):   IOResult[Campaign]       = {
-      c match {
-        case x: DumbCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
-        case _ => Inconsistency("Unknown campaign type").fail
+    def save(c: Campaign):            IOResult[Campaign]       = {
+      c.campaignType match {
+        case DumbCampaign.Type => items.update(_ + (c.info.id -> c)) *> c.succeed
+        case _                 => Inconsistency("Unknown campaign type").fail
       }
     }
 
@@ -3033,19 +3033,33 @@ class MockCampaign() {
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
     import com.normation.rudder.campaigns.CampaignSerializer._
-    import zio.json._
     implicit val dumbCampaignDetailsDecoder: JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
-    implicit val dumbCampaignDecoder:        JsonDecoder[DumbCampaignTrait]   = DeriveJsonDecoder.gen
+    implicit val dumbCampaignDecoder:        JsonDecoder[DumbCampaign]        = DeriveJsonDecoder.gen
     implicit val dumbCampaignDetailsEncoder: JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
-    implicit val dumbCampaignEncoder:        JsonEncoder[DumbCampaignTrait]   = DeriveJsonEncoder.gen
+    implicit val dumbCampaignEncoder:        JsonEncoder[DumbCampaign]        = DeriveJsonEncoder.gen
 
-    def read(): PartialFunction[(String, CampaignParsingInfo), IOResult[Campaign]] = {
-      case (s, CampaignParsingInfo(DumbCampaignType, 1)) => s.fromJson[DumbCampaignTrait].toIO
+    def read(s: String, c: CampaignParsingInfo): IOResult[Campaign] = {
+      c match {
+        case CampaignParsingInfo(DumbCampaign.Type, 1) =>
+          s.fromJson[DumbCampaign].toIO
+        case _                                         =>
+          Inconsistency(
+            s"Cannot translate json of type ${c.campaignType} version ${c.version} with system update campaign translator"
+          ).fail
+      }
     }
 
-    def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = { case c: DumbCampaignTrait => c.toJsonAST.toIO }
+    def getRawJson(c: Campaign): IOResult[Json] = {
+      c match {
+        case c: DumbCampaign =>
+          c.toJsonAST.toIO
+        case _ =>
+          Inconsistency(
+            s"Cannot translate json of type ${c.campaignType} version ${c.version} with system update campaign translator"
+          ).fail
+      }
+    }
 
-    def campaignType(): PartialFunction[String, CampaignType] = { case DumbCampaignType.value => DumbCampaignType }
   }
 
   object dumbCampaignEventRepository extends CampaignEventRepository {
@@ -3066,7 +3080,7 @@ class MockCampaign() {
 
     def getWithCriteria(
         states:       List[String],
-        campaignType: Option[CampaignType],
+        campaignType: Option[String],
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
         offset:       Option[Int],
@@ -3136,7 +3150,7 @@ class MockCampaign() {
     def deleteEvent(
         id:           Option[CampaignEventId],
         states:       List[String],
-        campaignType: Option[CampaignType],
+        campaignType: Option[String],
         campaignId:   Option[CampaignId],
         afterDate:    Option[DateTime],
         beforeDate:   Option[DateTime]

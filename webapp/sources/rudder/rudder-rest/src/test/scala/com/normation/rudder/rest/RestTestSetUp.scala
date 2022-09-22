@@ -887,7 +887,7 @@ class RestTestSetUp {
   object campaignApiModule {
 
     val translator = new CampaignSerializer()
-    translator.addJsonTranslater(mockCampaign.dumbCampaignTranslator)
+    translator.addJsonTranslater(DumbCampaign.Type, mockCampaign.dumbCampaignTranslator)
     import mockCampaign._
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
   }

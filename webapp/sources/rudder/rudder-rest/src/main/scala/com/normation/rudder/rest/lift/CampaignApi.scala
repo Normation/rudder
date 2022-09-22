@@ -59,7 +59,7 @@ class CampaignApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val res = (for {
         campaigns  <- campaignRepository.getAll()
-        serialized <- ZIO.foreach(campaigns)(campaignSerializer.getJson)
+        serialized <- ZIO.foreach(campaigns)(c => campaignSerializer.getJson(c))
       } yield {
         serialized
       }).map(_.toSeq)
@@ -219,7 +219,7 @@ class CampaignApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      val campaignType = req.params.get("campaignType").flatMap(_.headOption)
       val campaignId   = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
@@ -261,7 +261,7 @@ class CampaignApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      val campaignType = req.params.get("campaignType").flatMap(_.headOption)
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)

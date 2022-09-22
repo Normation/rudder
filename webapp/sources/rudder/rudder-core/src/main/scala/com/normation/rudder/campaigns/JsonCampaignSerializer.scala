@@ -38,7 +38,6 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors._
-import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
@@ -49,59 +48,43 @@ import zio.json.EncoderOps
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 import zio.json.ast.Json
-import zio.syntax._
 
 trait JSONTranslateCampaign {
 
-  def getRawJson(): PartialFunction[Campaign, IOResult[Json]]
+  def getRawJson(campaign: Campaign): IOResult[Json]
 
   // serialize the campaign based on its campaignType
-  def handle(pretty: Boolean) = getRawJson().andThen(r => r.map(json => if (pretty) json.toJsonPretty else json.toJson))
+  def handle(pretty: Boolean, campaign: Campaign) =
+    getRawJson(campaign).map(json => if (pretty) json.toJsonPretty else json.toJson)
 
-  def read(): PartialFunction[(String, CampaignParsingInfo), IOResult[Campaign]]
+  def read(json: String, parsingInfo: CampaignParsingInfo): IOResult[Campaign]
 
-  def campaignType(): PartialFunction[String, CampaignType]
 }
 
 class CampaignSerializer {
 
-  private[this] var tranlaters: List[JSONTranslateCampaign] = Nil
+  private[this] var tranlaters: Map[String, JSONTranslateCampaign] = Map.empty
   import CampaignSerializer._
-
   def getJson(campaign: Campaign) = {
-    tranlaters.map(_.getRawJson()).fold(Jsonbase) { case (a, b) => b orElse a }(campaign).flatMap { json =>
-      CampaignParsingInfo(campaign.campaignType, campaign.version).toJsonAST.toIO.map(json.merge)
-
-    }
+    getTranslater(campaign.campaignType)
+      .flatMap(_.getRawJson(campaign))
+      .flatMap(json => CampaignParsingInfo(campaign.campaignType, campaign.version).toJsonAST.toIO.map(json.merge))
   }
 
-  val Jsonbase: PartialFunction[Campaign, IOResult[Json]] = {
-    case c: Campaign => Inconsistency(s"No translater for campaign ${c.info.id.value}").fail
-  }
+  def addJsonTranslater(campaignType: String, c: JSONTranslateCampaign) = tranlaters = tranlaters + ((campaignType, c))
 
-  val base: PartialFunction[Campaign, IOResult[String]] = {
-    case c: Campaign => Inconsistency(s"No translater for campaign ${c.info.id.value}").fail
-  }
-
-  val readBase: PartialFunction[(String, CampaignParsingInfo), IOResult[Campaign]] = {
-    case (_, v) => Inconsistency(s"could not translate into campaign of type ${v.campaignType.value} version ${v.version}").fail
-  }
-
-  val campaignTypeBase: PartialFunction[String, CampaignType] = { case c: String => CampaignType(c) }
-
-  def addJsonTranslater(c: JSONTranslateCampaign) = tranlaters = c :: tranlaters
-
-  def serialize(campaign: Campaign): IOResult[String]   = getJson(campaign).map(_.toJsonPretty)
-  def parse(string: String):         IOResult[Campaign] = {
+  def getTranslater(campaignType: String): IOResult[JSONTranslateCampaign] =
+    tranlaters.get(campaignType).notOptional(s"No Json translator found for campaign type ${campaignType}")
+  def serialize(campaign: Campaign):       IOResult[String]                = getJson(campaign).map(_.toJsonPretty)
+  def parse(string: String):               IOResult[Campaign]              = {
     for {
-      baseInfo <- string.fromJson[CampaignParsingInfo].toIO
-      res      <- tranlaters.map(_.read()).fold(readBase) { case (a, b) => b orElse a }((string, baseInfo))
+      baseInfo   <- string.fromJson[CampaignParsingInfo].toIO
+      translater <- getTranslater(baseInfo.campaignType)
+      res        <- translater.read(string, baseInfo)
     } yield {
       res
     }
   }
-  def campaignType(string: String):  CampaignType       =
-    tranlaters.map(_.campaignType()).fold(campaignTypeBase) { case (a, b) => b orElse a }(string)
 
 }
 
@@ -159,14 +142,12 @@ object CampaignSerializer {
   implicit val statusInfoDecoder:   JsonDecoder[CampaignStatus]   = DeriveJsonDecoder.gen
   implicit val dayTimeDecoder:      JsonDecoder[DayTime]          = DeriveJsonDecoder.gen
   implicit val scheduleDecoder:     JsonDecoder[CampaignSchedule] = DeriveJsonDecoder.gen
-  implicit val campaignTypeDecoder: JsonDecoder[CampaignType]     = JsonDecoder[String].map(CampaignType)
   implicit val campaignInfoDecoder: JsonDecoder[CampaignInfo]     = DeriveJsonDecoder.gen
 
   implicit val campaignEventIdDecoder:    JsonDecoder[CampaignEventId]    = JsonDecoder[String].map(CampaignEventId)
   implicit val campaignEventStateDecoder: JsonDecoder[CampaignEventState] = DeriveJsonDecoder.gen
   implicit val campaignEventDecoder:      JsonDecoder[CampaignEvent]      = DeriveJsonDecoder.gen
 
-  implicit val campaignTypeEncoder:       JsonEncoder[CampaignType]       = JsonEncoder[String].contramap(_.value)
   implicit val campaignEventIdEncoder:    JsonEncoder[CampaignEventId]    = JsonEncoder[String].contramap(_.value)
   implicit val campaignEventStateEncoder: JsonEncoder[CampaignEventState] = DeriveJsonEncoder.gen
   implicit val campaignEventEncoder:      JsonEncoder[CampaignEvent]      = DeriveJsonEncoder.gen

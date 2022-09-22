@@ -46,16 +46,16 @@ import zio.json.jsonField
 import zio.json.jsonHint
 
 case class CampaignParsingInfo(
-    campaignType: CampaignType,
+    campaignType: String,
     version:      Int
 )
 
 trait Campaign {
   def info:         CampaignInfo
   def details:      CampaignDetails
-  def campaignType: CampaignType
-  def copyWithId(newId: CampaignId): Campaign
-  def version: Int
+  def campaignType: String
+  def version:      Int
+  def copyWithId(campaignId: CampaignId): Campaign
 }
 
 case class CampaignInfo(
@@ -156,8 +156,6 @@ case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule
 
 trait CampaignDetails
 
-case class CampaignType(value: String)
-
 case class CampaignEvent(
     id:           CampaignEventId,
     campaignId:   CampaignId,
@@ -165,7 +163,7 @@ case class CampaignEvent(
     state:        CampaignEventState,
     start:        DateTime,
     end:          DateTime,
-    campaignType: CampaignType
+    campaignType: String
 )
 case class CampaignEventId(value: String)
 
