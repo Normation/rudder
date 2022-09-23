@@ -70,10 +70,10 @@ pipeline {
                 }
             }
             steps {
-                dir('language') {
+                dir('policies') {
                     sh script: 'mkdir -p target', label: 'create target directory'
                     sh script: 'cargo deny check', label: 'check policies dependencies'
-                    sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list policies dependencies'
+                    sh script: 'cargo deny list > target/policies-dependencies.txt', label: 'list policies dependencies'
                 }
             }
             post {
