@@ -1596,12 +1596,10 @@ form .tooltip-content p {
 , .content-wrapper .rudder-label.label-enforce + .tooltip b.text-Audit
 , .content-wrapper .label-text.label-enforce   + .tooltip b.text-Audit
 , .text-Audit{
-  /*color: #3694d1;*/
   color: #1384BE;
 }
 
 .rudder-label.label-enforce, .rudder-label.label-green{
-  /*background-color: #9BC832;*/
   background-color: #13BE7E;
 }
 
@@ -1634,14 +1632,13 @@ form .tooltip-content p {
 , .content-wrapper .rudder-label.label-audit   + .tooltip b.text-Enforce
 , .content-wrapper .label-text.label-audit     + .tooltip b.text-Enforce
 , .text-Enforce {
-  /*color: #9BC832;*/
   color: #13BE7E;
 }
 .content-wrapper .rudder-label.label-mixed{
-  background: rgb(155,200,50);
-  background: -moz-linear-gradient(-45deg,  rgba(155,200,50,1) 0%, rgba(155,200,50,1) 50%, rgba(54,148,209,1) 50%, rgba(54,148,209,1) 100%);
-  background: -webkit-linear-gradient(-45deg,  rgba(155,200,50,1) 0%,rgba(155,200,50,1) 50%,rgba(54,148,209,1) 50%,rgba(54,148,209,1) 100%);
-  background: linear-gradient(-45deg,  rgba(155,200,50,1) 0%,rgba(155,200,50,1) 50%,rgba(54,148,209,1) 50%,rgba(54,148,209,1) 100%);
+  background: #13BE7E;
+  background: -moz-linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
+  background: -webkit-linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
+  background: linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#13BEB7', endColorstr='#3694d1',GradientType=1 );
 }
 .content-wrapper .rudder-label.label-mixed:before,.content-wrapper .label-text.label-mixed:after{
