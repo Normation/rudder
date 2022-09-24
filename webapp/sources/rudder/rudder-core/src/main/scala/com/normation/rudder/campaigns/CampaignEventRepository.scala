@@ -76,6 +76,8 @@ trait CampaignEventRepository {
     , offset: Option[Int] = None
     , afterDate : Option[DateTime] = None
     , beforeDate : Option[DateTime] = None
+    , order : Option[String]
+    , asc   : Option[String]
   )  : IOResult[List[CampaignEvent]]
 }
 
@@ -121,6 +123,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     , offset: Option[Int] = None
     , afterDate : Option[DateTime] = None
     , beforeDate : Option[DateTime] = None
+    , order : Option[String]
+    , asc   : Option[String]
   ) : IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list._
@@ -135,7 +139,17 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val offsetQuery = offset.map(i => fr" offset $i").getOrElse(fr"")
 
 
-    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents " ++ where ++ limitQuery ++ offsetQuery
+    val orderBy = (order,asc) match {
+      case (Some("startDate")|Some("start"), None|Some("asc")) => fr" order by startDate asc"
+      case (Some("startDate")|Some("start"), Some("desc")) => fr" order by startDate desc"
+      case (Some("endDate")|Some("end"), None|Some("asc")) => fr" order by endDate asc"
+      case (Some("endDate")|Some("end"), Some("desc")) => fr" order by endDate desc"
+      case _ => fr" order by startDate desc"
+    }
+
+
+
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents " ++ where  ++ orderBy ++ limitQuery ++ offsetQuery
 
     transactIOResult(s"error when getting campaign events")(xa => q.query[CampaignEvent].to[List].transact(xa))
   }
