@@ -58,6 +58,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
 
 import java.net.URLConnection
+import java.net.URI
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
 import com.normation.plugins.RudderPluginModule
@@ -329,7 +330,8 @@ class Boot extends Loggable {
     // Only prevent loading external resources, no other XSS protection for now
     // Can be made stricter for some pages when we get rid of inline scripts and style
     val csp = ContentSecurityPolicy(
-        defaultSources = ContentSourceRestriction.Self :: Nil
+        reportUri      = Full(new URI("/rudder/lift/content-security-policy-report"))
+      , defaultSources = ContentSourceRestriction.Self :: Nil
       , imageSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.Scheme("data") :: Nil
       , styleSources   = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: Nil
       , scriptSources  = ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
@@ -361,6 +363,12 @@ class Boot extends Loggable {
     // This does not affect security as it is only a redirection anyway and did not change
     // the session itself.
     LiftRules.noCometSessionCmd.default.set(() => JsCmd.unitToJsCmd(()))
+
+    // Log CSP violations
+    LiftRules.contentSecurityPolicyViolationReport = (r: ContentSecurityPolicyViolation) => {
+      ApplicationLogger.warn(s"Content security policy violation: blocked ${r.blockedUri} in ${r.documentUri} because of ${r.violatedDirective} directive")
+      Full(OkResponse())
+    }
 
     /*
      * For development, we override the default local calculator
