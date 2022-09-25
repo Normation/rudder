@@ -304,7 +304,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   def scheduleCampaignEvent(campaign: Campaign, date : DateTime) : IOResult[CampaignEvent] = {
     for {
       nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-      events <- repo.getWithCriteria(Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None)
+      events <- repo.getWithCriteria(Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None, None, None)
       _ <- repo.deleteEvent(None, Scheduled.value :: Nil, None,Some(campaign.info.id), None, None)
 
       lastEventDate = events match {
@@ -330,7 +330,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case None => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
         for {
-          alreadyScheduled <- repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, None, None, None, None, None,None)
+          alreadyScheduled <- repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, None, None, None, None, None,None, None, None)
           _ <- CampaignLogger.debug("Got events, queue them")
           _ <- s.queue.takeAll // empty queue, we will enqueue all existing events again
           _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
