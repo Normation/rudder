@@ -238,7 +238,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   def nextCampaignDate(schedule : CampaignSchedule, date : DateTime) : IOResult[(DateTime,DateTime)] = {
     schedule match {
       case OneShot(start,end) =>
-        if (start.isAfter(end)) {
+        if (start.isBefore(end)) {
           (start,end).succeed
         } else {
           Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService.getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
