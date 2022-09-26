@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.common._
+import net.liftweb.util.TimeHelpers._
 import net.liftweb.sitemap.{Menu, _}
 import net.liftweb.sitemap.Loc._
 import com.normation.plugins.RudderPluginDef
@@ -56,6 +57,7 @@ import java.util.Locale
 import net.liftweb.http.rest.RestHelper
 import org.joda.time.DateTime
 import com.normation.rudder.web.snippet.WithCachedResource
+import org.springframework.security.core.context.SecurityContextHolder
 
 import java.net.URLConnection
 import java.net.URI
@@ -273,7 +275,7 @@ class Boot extends Loggable {
     }
     // Resolve resources prefixed with the cache resource prefix
     LiftRules.statelessDispatch.append(StaticResourceRewrite)
-    // and tell lift to happen rudder version when "with-resource-id" is used
+    // and tell lift to append rudder version when "with-resource-id" is used
     LiftRules.attachResourceId = (path: String) => { "/" + StaticResourceRewrite.prefix + path }
     LiftRules.snippetDispatch.append(Map("with-cached-resource" -> WithCachedResource))
 
@@ -359,7 +361,7 @@ class Boot extends Loggable {
 
     // By default Lift redirects to login page when a comet request's session changes
     // which happens when there is a connection to the same server in another tab.
-    // Do nothing instead, as at allows to keep open tabs context until we get the new cookie
+    // Do nothing instead, as it allows to keep open tabs context until we get the new cookie
     // This does not affect security as it is only a redirection anyway and did not change
     // the session itself.
     LiftRules.noCometSessionCmd.default.set(() => JsRaw(s"createErrorNotification('You have been signed out. Please reload the page to sign in again.')").cmd)
@@ -369,6 +371,51 @@ class Boot extends Loggable {
       ApplicationLogger.warn(s"Content security policy violation: blocked ${r.blockedUri} in ${r.documentUri} because of ${r.violatedDirective} directive")
       Full(OkResponse())
     }
+
+    // Store access time for user idle tracking in each non-comet request
+    // Required as standard idle timeout includes comet requests,
+    // which practically means that an open page never expires.
+    LiftRules.onBeginServicing.append((r: Req) => {
+      // This filters out lift-related XHR only, which is exactly what we want
+      if (r.standardRequest_?) {
+        LiftRules.getLiftSession(r).httpSession
+          .foreach(s => s.setAttribute("lastNonCometAccessedTime", millis))
+      }
+    })
+
+    // Custom session expiration that ignores comet requests
+    val IdleSessionTimeout = (sessions: Map[String, SessionInfo], delete: SessionInfo => Unit) => {
+      sessions.foreach { case (id, info) =>
+        info.session.httpSession.foreach(s => {
+          s.attribute("lastNonCometAccessedTime") match {
+            case lastNonCometAccessedTime: Long =>
+              val inactiveFor = millis - lastNonCometAccessedTime
+              LiftRules.sessionInactivityTimeout.vend.foreach(timeout => {
+                ApplicationLogger.trace(s"Session $id inactive for ${inactiveFor}ms / ${timeout}ms (${info.userAgent})")
+                if (inactiveFor > timeout) {
+                  ApplicationLogger.debug(s"Session $id has been inactive for ${inactiveFor}ms which exceeds the ${timeout}ms limit, terminating")
+                  // Let's terminate the session
+                  SecurityContextHolder.clearContext()
+                  //info.session.destroySession() //does not seems to actually terminate the session everytime
+                  info.session.httpSession.foreach(s => s.terminate)
+                  // This only cleans up the session at lift level and unlink underlying session
+                  // but does nothing on it.
+                  delete(info)
+                }
+              })
+            case _ => ApplicationLogger.error("lastNonCometAccessedTime has an unexpected value, please report a bug.")
+          }
+        })
+      }
+    }
+    // Register session cleaner
+    SessionMaster.sessionCheckFuncs = SessionMaster.sessionCheckFuncs
+      ::: List(IdleSessionTimeout)
+
+    // Set timeout value, which will be applied by both the standard and custom session cleaner
+    LiftRules.sessionInactivityTimeout.default.set(RudderConfig.AUTH_IDLE_TIMEOUT.map(d => d.toMillis))
+
+    ////////// END OF SECURITY SETTINGS //////////
 
     /*
      * For development, we override the default local calculator

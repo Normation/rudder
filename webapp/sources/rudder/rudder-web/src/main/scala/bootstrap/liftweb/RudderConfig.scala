@@ -773,6 +773,17 @@ object RudderConfig extends Loggable {
     cfg
   }
 
+  // Store it an a Box as it's only used in Lift
+  val AUTH_IDLE_TIMEOUT = try {
+    val timeout = config.getString("rudder.auth.idle-timeout")
+    if (timeout.isEmpty) {
+      Empty
+    } else {
+      Full(Duration.fromScala(scala.concurrent.duration.Duration.apply(timeout)))
+    }
+  } catch {
+    case ex: Exception => Full(30.minutes)
+  }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
 

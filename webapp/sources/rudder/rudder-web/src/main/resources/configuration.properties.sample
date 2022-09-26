@@ -537,6 +537,14 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 #
 rudder.auth.provider=file
 
+#
+# Inactivity timeout for user sessions
+#
+# The default value is 30 minutes.
+# Set an empty value to disable session expiration when the page stays open.
+#
+rudder.auth.idle-timeout=30 minutes
+
 ####################
 # Server side Hooks #############################################################
 ####################
