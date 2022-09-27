@@ -10,33 +10,33 @@ use crate::Target;
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 pub struct Args {
     /// File to compile
     pub input: PathBuf,
 
     /// Output file
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub output: PathBuf,
 
     /// Output target runner
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub target: Option<Target>,
 
     /// Check mode
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub check: bool,
 
     /// Verbose
-    #[clap(short, long, parse(from_occurrences))]
-    pub verbose: usize,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
 
     /// Quiet
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub quiet: bool,
 
     /// Load library from path
-    #[clap(short, long, multiple_occurrences(true))]
+    #[arg(short, long, action = clap::ArgAction::Append)]
     pub library: Vec<PathBuf>,
 }
 

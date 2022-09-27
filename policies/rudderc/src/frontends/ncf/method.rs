@@ -16,8 +16,9 @@ use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
-use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
+
+use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 
 pub type MethodName = String;
 pub type AttributeName = String;
@@ -25,7 +26,7 @@ pub type AttributeName = String;
 /// metadata about a "ncf" CFEngine/DSC method
 ///
 /// Leaf yaml implemented by ncf
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Method {
     pub name: MethodName,
     pub description: String,
@@ -72,7 +73,7 @@ impl Method {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameter {
     pub description: String,
     pub constraints: Constraints,
@@ -204,7 +205,7 @@ impl FromStr for Method {
             // Bundle signature
             let bundle_re = regex!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*$");
             if let Some(caps) = bundle_re.captures(line) {
-                method.method_name = (&caps[1]).to_string();
+                method.method_name = (caps[1]).to_string();
                 method.method_args = match &caps.get(3) {
                     Some(args) => args
                         .as_str()

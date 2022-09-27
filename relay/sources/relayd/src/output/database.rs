@@ -80,7 +80,7 @@ pub enum RunlogInsertion {
 
 pub fn ping(pool: &PgPool) -> Result<(), Error> {
     use self::schema::ruddersysevents::dsl::*;
-    let connection = &*pool.get()?;
+    let connection = &mut *pool.get()?;
 
     let _ = ruddersysevents
         .limit(1)
@@ -95,7 +95,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
         ruddersysevents::dsl::{nodeid, *},
     };
 
-    let connection = &*pool.get()?;
+    let connection = &mut *pool.get()?;
 
     let first_report = runlog
         .reports
@@ -106,7 +106,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
         "Checking if first report {} is in the database",
         first_report
     );
-    connection.transaction::<_, Error, _>(|| {
+    connection.transaction::<_, Error, _>(|connection| {
         let new_runlog = ruddersysevents
             .filter(
                 component
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn it_inserts_runlog() {
         let pool = db();
-        let db = &*pool.get().unwrap();
+        let db = &mut *pool.get().unwrap();
 
         diesel::delete(ruddersysevents).execute(db).unwrap();
         diesel::delete(reportsexecution).execute(db).unwrap();

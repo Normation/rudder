@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Policy {
     pub format: usize,
     pub name: String,
@@ -15,14 +15,14 @@ pub struct Policy {
     pub resources: Vec<Resource>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Resource {
     BlockResource(BlockResource),
     LeafResource(LeafResource),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BlockResource {
     pub condition: String,
     pub name: String,
@@ -35,7 +35,7 @@ pub struct BlockResource {
     pub reporting: Option<ReportingPolicy>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LeafResource {
     pub name: String,
     pub params: HashMap<String, String>,
@@ -47,7 +47,7 @@ pub struct LeafResource {
     pub reporting: Option<ReportingPolicy>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
     // TODO specific type with custom deserializer that check validity
     // class regex or variables
@@ -63,14 +63,14 @@ pub struct State {
     pub reporting: Option<ReportingPolicy>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReportingPolicy {
     pub enabled: bool,
     #[serde(default)]
     pub compute: ReportingCompute,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReportingCompute {
     #[serde(rename = "worst-case-weighted-sum")]
     WorstCaseWeightedSum,

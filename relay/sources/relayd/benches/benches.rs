@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{
+    convert::TryFrom,
+    fs::{read, read_to_string},
+    io::Read,
+    str::FromStr,
+};
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
+
 use rudder_relayd::{
     configuration::{main::DatabaseConfig, Secret},
     data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
@@ -13,12 +21,6 @@ use rudder_relayd::{
         schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
         *,
     },
-};
-use std::{
-    convert::TryFrom,
-    fs::{read, read_to_string},
-    io::Read,
-    str::FromStr,
 };
 
 fn bench_nodeslist(c: &mut Criterion) {
@@ -104,7 +106,7 @@ pub fn db() -> PgPool {
 
 fn bench_insert_runlog(c: &mut Criterion) {
     let pool = db();
-    let db = &*pool.get().unwrap();
+    let db = &mut *pool.get().unwrap();
 
     diesel::delete(reportsexecution).execute(db).unwrap();
     diesel::delete(ruddersysevents).execute(db).unwrap();

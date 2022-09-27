@@ -4,7 +4,8 @@
 // Prevent warning with diesel::Insertable
 #![allow(clippy::extra_unused_lifetimes)]
 
-use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
+use std::fmt::{self, Display};
+
 use chrono::prelude::*;
 use nom::{
     branch::alt,
@@ -14,7 +15,8 @@ use nom::{
     IResult,
 };
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+
+use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
 
 type AgentLogLevel = &'static str;
 
@@ -260,52 +262,52 @@ impl RawReport {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Queryable)]
 pub struct QueryableReport {
     pub id: i64,
-    #[column_name = "executiontimestamp"]
+    #[diesel(column_name = "executiontimestamp")]
     pub start_datetime: DateTime<Utc>,
-    #[column_name = "ruleid"]
+    #[diesel(column_name = "ruleid")]
     pub rule_id: String,
-    #[column_name = "directiveid"]
+    #[diesel(column_name = "directiveid")]
     pub directive_id: String,
     pub component: String,
-    #[column_name = "keyvalue"]
+    #[diesel(column_name = "keyvalue")]
     pub key_value: Option<String>,
-    #[column_name = "eventtype"]
+    #[diesel(column_name = "eventtype")]
     pub event_type: Option<String>,
-    #[column_name = "msg"]
+    #[diesel(column_name = "msg")]
     pub msg: Option<String>,
-    #[column_name = "policy"]
+    #[diesel(column_name = "policy")]
     pub policy: Option<String>,
-    #[column_name = "nodeid"]
+    #[diesel(column_name = "nodeid")]
     pub node_id: NodeId,
-    #[column_name = "executiondate"]
+    #[diesel(column_name = "executiondate")]
     pub execution_datetime: Option<DateTime<Utc>>,
     pub report_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
-#[table_name = "ruddersysevents"]
+#[diesel(table_name = ruddersysevents)]
 pub struct Report {
-    #[column_name = "executiontimestamp"]
+    #[diesel(column_name = "executiontimestamp")]
     pub start_datetime: DateTime<FixedOffset>,
-    #[column_name = "ruleid"]
+    #[diesel(column_name = "ruleid")]
     pub rule_id: String,
-    #[column_name = "directiveid"]
+    #[diesel(column_name = "directiveid")]
     pub directive_id: String,
     pub component: String,
-    #[column_name = "keyvalue"]
+    #[diesel(column_name = "keyvalue")]
     pub key_value: String,
     // Not parsed as we do not use it and do not want to prevent future changes
-    #[column_name = "eventtype"]
+    #[diesel(column_name = "eventtype")]
     pub event_type: String,
-    #[column_name = "msg"]
+    #[diesel(column_name = "msg")]
     pub msg: String,
-    #[column_name = "policy"]
+    #[diesel(column_name = "policy")]
     pub policy: String,
-    #[column_name = "nodeid"]
+    #[diesel(column_name = "nodeid")]
     pub node_id: NodeId,
-    #[column_name = "executiondate"]
+    #[diesel(column_name = "executiondate")]
     pub execution_datetime: DateTime<FixedOffset>,
-    #[column_name = "reportid"]
+    #[diesel(column_name = "reportid")]
     pub report_id: String,
 }
 

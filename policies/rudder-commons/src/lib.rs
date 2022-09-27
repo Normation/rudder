@@ -6,7 +6,7 @@ use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 pub enum Target {
     /// It is not actually CFEngine but CFEngine + our patches + our stdlib
     ///
@@ -76,7 +76,7 @@ impl<'de> Deserialize<'de> for Target {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParameterType {
     String,
     HereString,

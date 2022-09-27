@@ -13,7 +13,7 @@ license = "GPL-3.0-or-later"
 [dependencies]
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 serde_json = "1"
 gumdrop = "0.8"
 rudder_commons = { path = "../rudder-commons" }
