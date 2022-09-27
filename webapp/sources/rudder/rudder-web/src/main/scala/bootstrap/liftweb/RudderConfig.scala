@@ -760,15 +760,7 @@ object RudderConfig extends Loggable {
       ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 6 hours: ${ex.getMessage}")
       6.hours
   }
-
-  val RUDDER_LANG_EXEC_TEST_LOOP = {
-    try {
-      config.getBoolean("rudder.lang.test-loop.exec")
-    } catch {
-      case ex: ConfigException => true
-    }
-  }
-
+  
   val RUDDER_DEFAULT_DELETE_NODE_MODE = {
     val default = DeleteMode.Erase
     val mode = try {
