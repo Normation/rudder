@@ -205,7 +205,7 @@ class TechniqueAcceptationUpdater(
           logPure.debug(s"Category '${cat.id.toString}' updated") *>
           roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id)).flatMap { opt => opt match {
             case None          =>
-              cat.id match {
+              (cat.id: @unchecked) match {
                 case _:RootTechniqueCategoryId.type => UIO.unit
                 case i:SubTechniqueCategoryId =>
                   rwActiveTechniqueRepo.addActiveTechniqueCategory(

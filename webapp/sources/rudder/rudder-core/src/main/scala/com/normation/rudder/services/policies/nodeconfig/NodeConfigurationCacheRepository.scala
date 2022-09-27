@@ -185,6 +185,7 @@ object NodeConfigurationHash {
           } catch {
             case ex: TechniqueVersionFormatException => Left((s"Technique version for policy '${ruleId}@@${directiveId}' was not recognized: ${techniqueVerion}", p))
           }
+        case x => Left((s"Error when parsing policy: a json array", x))
       }
     }
 

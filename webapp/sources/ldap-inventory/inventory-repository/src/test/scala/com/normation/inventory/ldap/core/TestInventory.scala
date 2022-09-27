@@ -42,6 +42,7 @@ import com.normation.inventory.domain._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
+
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
@@ -50,6 +51,7 @@ import org.junit.runner._
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
+
 import zio._
 import com.normation.zio._
 

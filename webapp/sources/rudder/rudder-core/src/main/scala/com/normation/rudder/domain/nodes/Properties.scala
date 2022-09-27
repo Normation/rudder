@@ -452,6 +452,7 @@ object GenericProperty {
       case ConfigValueType.NULL    => JNothing
       case ConfigValueType.BOOLEAN => JBool(value.unwrapped().asInstanceOf[Boolean])
       case ConfigValueType.NUMBER  => value.unwrapped() match {
+        case f: java.lang.Float    => JDouble(f.doubleValue())
         case d: java.lang.Double   => JDouble(d)
         case i: java.lang.Integer  => JInt(BigInt(i))
         case l: java.lang.Long     => JInt(BigInt(l))

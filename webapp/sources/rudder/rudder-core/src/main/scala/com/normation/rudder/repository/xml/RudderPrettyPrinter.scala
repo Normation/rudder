@@ -220,7 +220,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     reset()
     traverse(n, pscope, 0)
     var cur = 0
-    for (b <- items.reverse) b match {
+    for (b <- items.reverse) (b: @unchecked) match {
       case Break =>
         if (!lastwasbreak) sb.append('\n')  // on windows: \r\n ?
         lastwasbreak = true

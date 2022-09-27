@@ -239,7 +239,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case Property(tokens, opt) =>
         ((tokens foldLeft (Right(Nil): PureResult[List[String]])) {
           case (l @ Left(_), _) => l
-          case (Right(acc), t) => analyse(context,t).map(acc :+ )
+          case (Right(acc), t) => analyse(context,t).map(acc.appended)
         }).flatMap( path =>
         opt match {
           case None =>
@@ -446,7 +446,7 @@ object PropertyParser {
   import fastparse._, NoWhitespace._
 
   def parse(value: String): PureResult[List[Token]] = {
-    fastparse.parse(value, all(_)) match {
+    (fastparse.parse(value, all(_)): @unchecked) match {
       case Parsed.Success(value, index)    => Right(value)
       case Parsed.Failure(label, i, extra) => Left(Unexpected(
         s"""Error when parsing value (without ''): '${value}'. Error message is: ${extra.trace().aggregateMsg}""".stripMargin))
@@ -466,61 +466,61 @@ object PropertyParser {
   }
 
 
-  def all[_: P] : P[List[Token]] = P( Start ~ (token.rep(1) | empty )  ~ End).map(_.toList)
-  def token [_ : P] : P[Token] = noVariableStart | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
+  def all[A: P] : P[List[Token]] = P( Start ~ (token.rep(1) | empty )  ~ End).map(_.toList)
+  def token [A: P] : P[Token] = noVariableStart | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
   //empty string is a special case that must be look appart from plain string.
-  def empty[_ : P] = P("").map(_ => CharSeq("") :: Nil)
-  def space[_:P] = P(CharsWhile(_.isWhitespace, 0))
+  def empty[A: P] = P("").map(_ => CharSeq("") :: Nil)
+  def space[A: P] = P(CharsWhile(_.isWhitespace, 0))
   // plain string must not match our identifier, ${rudder.* and ${node.properties.*}
   // here we defined a function to build them
-  def noVariableStart[_: P] : P[CharSeq] = P( (!"${" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
-  def noVariableEnd[_: P] : P[CharSeq] = P( (!"}" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
+  def noVariableStart[A: P] : P[CharSeq] = P( (!"${" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
+  def noVariableEnd[A: P] : P[CharSeq] = P( (!"}" ~ AnyChar).rep(1).! ).map { CharSeq(_) }
 
-  def variable[_: P] = P("${" ~ space ~ variableType ~ space ~ "}" )
+  def variable[A: P] = P("${" ~ space ~ variableType ~ space ~ "}" )
 
-  def variableType[_: P] = P( interpolatedVariable | otherVariable )
-  def variableId[_: P] : P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
-  def propertyId[_: P] : P[String] = P(CharsWhile(validPropertyNameChar).!)
+  def variableType[A: P] = P( interpolatedVariable | otherVariable )
+  def variableId[A: P] : P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
+  def propertyId[A: P] : P[String] = P(CharsWhile(validPropertyNameChar).!)
 
   // other cases of ${}: cfengine variables, etc
-  def otherVariable[_: P]: P[NonRudderVar] = P( (variableId ~ ".").rep(0) ~ variableId ).map { case (begin, end) =>  NonRudderVar((begin :+ end).mkString(".")) }
+  def otherVariable[A: P]: P[NonRudderVar] = P( (variableId ~ ".").rep(0) ~ variableId ).map { case (begin, end) =>  NonRudderVar((begin :+ end).mkString(".")) }
 
-  def interpolatedVariable [_: P]   : P[Interpolation] = P( rudderVariable | nodeProperty )
+  def interpolatedVariable [A: P]   : P[Interpolation] = P( rudderVariable | nodeProperty )
   //identifier for step in the path or param names
 
   //an interpolated variable looks like: ${rudder.XXX}, or ${RuDder.xXx}
   // after "${rudder." there is no backtracking to an "otherProp" or string possible.
-  def rudderVariable[_: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter) )
+  def rudderVariable[A: P]  : P[Interpolation] = P( IgnoreCase("rudder") ~ space ~ "." ~ space ~/ (rudderNode | parameters | oldParameter) )
 
   //a node path looks like: ${rudder.node.HERE.PATH}
-  def rudderNode[_: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
+  def rudderNode[A: P]  : P[Interpolation] = P( IgnoreCase("node") ~/ space ~ "." ~ space ~/ variableId.rep(sep = space ~ "." ~ space) ).map { seq => NodeAccessor(seq.toList) }
 
   //a parameter old syntax looks like: ${rudder.param.PARAM_NAME}
-  def oldParameter[_: P]  : P[Interpolation] = P(IgnoreCase("param") ~ space ~ "." ~/ space ~/ variableId).map{ p => Param(p :: Nil) }
+  def oldParameter[A: P]  : P[Interpolation] = P(IgnoreCase("param") ~ space ~ "." ~/ space ~/ variableId).map{ p => Param(p :: Nil) }
 
   //a parameter new syntax looks like: ${rudder.parameters[PARAM_NAME][SUB_NAME]}
-  def parameters[_: P]  : P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames ).map{ p => Param(p.toList) }
+  def parameters[A: P]  : P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames ).map{ p => Param(p.toList) }
 
   //a node property looks like: ${node.properties[.... Cut after "properties".
-  def nodeProperty[_: P]    : P[Interpolation] =  (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ propertyPath ~/
+  def nodeProperty[A: P]    : P[Interpolation] =  (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ propertyPath ~/
                                                    nodePropertyOption.? ).map { case (path, opt) => Property(path.toList, opt) }
-  def propertyPath[_: P] : P[List[Token]] = P((space ~ "[" ~ space ~ propertyToken ~ space ~ "]" ).rep(1) ).map(_.toList)
+  def propertyPath[A: P] : P[List[Token]] = P((space ~ "[" ~ space ~ propertyToken ~ space ~ "]" ).rep(1) ).map(_.toList)
 
-  def propertyToken [_ : P] : P[Token] = propertyId.map(CharSeq) | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
+  def propertyToken [A: P] : P[Token] = propertyId.map(CharSeq) | variable | ( "${" ~ noVariableEnd.map(_.prefix("${")))
   // parse an array of property names: `[name1][name2]..` (for parameter/node properties)
-  def arrayNames[_: P] : P[List[String]] = P((space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ).map(_.toList)
+  def arrayNames[A: P] : P[List[String]] = P((space ~ "[" ~ space ~ propertyId ~ space ~ "]" ).rep(1) ).map(_.toList)
 
   //here, the number of " must be strictly decreasing - ie. triple quote before
-  def nodePropertyOption[_: P]  : P[PropertyOption] = P( space ~ "|" ~/ space ~ ( onNodeOption | defaultOption ) )
+  def nodePropertyOption[A: P]  : P[PropertyOption] = P( space ~ "|" ~/ space ~ ( onNodeOption | defaultOption ) )
 
-  def defaultOption[_: P]  : P[DefaultValue] = P( IgnoreCase("default") ~/ space ~ "=" ~/ space ~/ ( P( string("\"") |string("\"\"\"") | emptyString  | variable.map(_ :: Nil)) ) ).map(DefaultValue(_))
-  def onNodeOption[_: P]   : P[InterpreteOnNode.type] = P( IgnoreCase("node")).map(_ => InterpreteOnNode)
+  def defaultOption[A: P]  : P[DefaultValue] = P( IgnoreCase("default") ~/ space ~ "=" ~/ space ~/ ( P( string("\"") |string("\"\"\"") | emptyString  | variable.map(_ :: Nil)) ) ).map(DefaultValue(_))
+  def onNodeOption[A: P]   : P[InterpreteOnNode.type] = P( IgnoreCase("node")).map(_ => InterpreteOnNode)
 
-  def emptyString[_: P] : P[List[Token]] = P( "\"\"\"\"\"\"" | "\"\"").map { _ => CharSeq("")::Nil }
+  def emptyString[A: P] : P[List[Token]] = P( "\"\"\"\"\"\"" | "\"\"").map { _ => CharSeq("")::Nil }
 
   //string must be simple or triple quoted string
 
-  def string[_: P] (quote : String) : P[List[Token]]     = P( quote ~ ( noVariableStartString(quote) | variable | ( "${" ~ noVariableEndString(quote)).map(_.prefix("${"))   ).rep(1) ~ quote).map { case x => x.toList }
-  def noVariableStartString[_: P] (quote : String) : P[CharSeq] = P( (!"${" ~ (!quote ~ AnyChar)).rep(1).! ).map { CharSeq(_) }
-  def noVariableEndString[_: P] (quote : String) : P[CharSeq] = P( (!"}" ~ (!quote ~ AnyChar)).rep(1).! ).map { CharSeq(_) }
+  def string[A: P] (quote : String) : P[List[Token]]     = P( quote ~ ( noVariableStartString(quote) | variable | ( "${" ~ noVariableEndString(quote)).map(_.prefix("${"))   ).rep(1) ~ quote).map { case x => x.toList }
+  def noVariableStartString[A: P] (quote : String) : P[CharSeq] = P( (!"${" ~ (!quote ~ AnyChar)).rep(1).! ).map { CharSeq(_) }
+  def noVariableEndString[A: P] (quote : String) : P[CharSeq] = P( (!"}" ~ (!quote ~ AnyChar)).rep(1).! ).map { CharSeq(_) }
   }

@@ -689,6 +689,7 @@ class EventLogDetailsServiceImpl(
       case x:ImportRulesArchive => getCommitInfo(xml, ImportRulesArchive.tagName)
       case x:ImportParametersArchive => getCommitInfo(xml, ImportParametersArchive.tagName)
       case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
+      case x: Rollback => getCommitInfo(xml, Rollback.tagName)
     }
   }
 

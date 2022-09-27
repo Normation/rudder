@@ -42,6 +42,8 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 
 import com.normation.rudder.rest.RestUtils.toJsonResponse
+
+import com.github.ghik.silencer.silent
 import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http.{InMemoryResponse, Req}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject}
@@ -53,6 +55,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import net.liftweb.http.JsonResponse
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class SystemApiTests extends Specification with AfterAll with Loggable {
 

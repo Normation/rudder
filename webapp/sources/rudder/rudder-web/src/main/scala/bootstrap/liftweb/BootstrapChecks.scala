@@ -69,7 +69,7 @@ object BootstrapLogger extends NamedZioLogger {
 
 class SequentialImmediateBootStrapChecks(_checkActions:BootstrapChecks*) extends BootstrapChecks {
 
-  private[this] var checkActions = collection.mutable.Buffer[BootstrapChecks](_checkActions:_*)
+  private[this] val checkActions = collection.mutable.Buffer[BootstrapChecks](_checkActions:_*)
 
   def appendBootstrapChecks(check: BootstrapChecks): Unit = {
     checkActions.append(check)

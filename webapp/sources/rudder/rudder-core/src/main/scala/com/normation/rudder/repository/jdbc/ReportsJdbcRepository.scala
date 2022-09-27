@@ -426,6 +426,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
               recDisctinct(a :: t)
             } else (a, b) match {
               //by default, take the one with a configId.
+              case (AgentRun(_, None, _, _), AgentRun(_, None, _, _))      => recDisctinct(a :: t)
               case (AgentRun(_, Some(idA), _, _), AgentRun(_, None, _, _)) => recDisctinct(a :: t)
               case (AgentRun(_, None, _, _), AgentRun(_, Some(idB), _, _)) => recDisctinct(b :: t)
               //this one, with two config id, should never happen, but still...

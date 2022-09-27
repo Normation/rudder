@@ -48,7 +48,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
 
   var _children = new HashMap[RDN,LDAPTree]()
 
-  override def children = Map() ++ _children
+  override def children: Map[RDN, LDAPTree] = Map() ++ _children
 
   def addChild(child:LDAPTree) : Unit = {
     require(root.optDn == child.root.parentDn,

@@ -249,7 +249,7 @@ class DirectiveEditForm(
        } &
        "#clone" #> SHtml.ajaxButton(
             { Text("Clone") },
-            { () =>  clone() },
+            { () =>  clonePopup() },
             {("class", "btn btn-default")},
             {("type", "button")}
        ) &
@@ -310,7 +310,7 @@ class DirectiveEditForm(
     )
   }
 
-  private[this] def clone(): JsCmd = {
+  private[this] def clonePopup(): JsCmd = {
     SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
     JsRaw(s""" createPopup("basePopup"); """)
   }

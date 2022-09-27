@@ -781,7 +781,7 @@ class PolicyWriterServiceImpl(
         policy.technique.agentConfig.runHooks.nonEmpty ::
         policy.technique.id.name ::
         policy.technique.id.version ::
-        policy.technique.isSystem ::
+        policy.technique.isSystem.toString ::
         policy.directiveOrder.value ::
         Nil
       ).mkString("\"","\",\"","\"")

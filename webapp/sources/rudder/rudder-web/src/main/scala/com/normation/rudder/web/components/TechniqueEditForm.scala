@@ -251,7 +251,7 @@ class TechniqueEditForm(
 
   private[this] val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
@@ -260,7 +260,7 @@ class TechniqueEditForm(
 
   private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
@@ -269,7 +269,7 @@ class TechniqueEditForm(
 
   private[this] val crReasonsDisablePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))

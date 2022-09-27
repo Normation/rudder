@@ -126,7 +126,7 @@ class SimpleGitRevisionProvider(refPath:String,repo:GitRepositoryProvider) exten
         "not start with 'refs/'. Are you sure you don't mistype something ?")
   }
 
-  private[this] var currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
+  private[this] val currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
 
   override def getAvailableRevTreeId : IOResult[ObjectId] = {
     IOResult.effect {

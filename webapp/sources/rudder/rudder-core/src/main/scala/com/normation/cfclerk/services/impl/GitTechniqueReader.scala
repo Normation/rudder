@@ -177,10 +177,10 @@ class GitTechniqueReader(
   private[this] val currentTechniquesInfoCache: Ref[TechniquesInfo] = semaphore.withPermit(
     for {
       currentRevTree <- revisionProvider.currentRevTreeId
-      res            <- processRevTreeId(repo.db, currentRevTree).catchAll {
+      res            <- processRevTreeId(repo.db, currentRevTree).catchSome {
                           case err @ SystemError(m, NoRootCategory(msg)) =>
                             for {
-                              _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
+                              _            <- TechniqueReaderLoggerPure.error(s"The stored Git revision '${currentRevTree.toString}' does not provide a root category.xml, which is mandatory. Error message was: ${err.fullMsg}")
                               newRevTreeId <- revisionProvider.getAvailableRevTreeId
                               res <- if(newRevTreeId != currentRevTree) {
                                         TechniqueReaderLoggerPure.error(s"Trying to load last available revision of the technique library to unstuck the situation.") *>
@@ -738,7 +738,7 @@ class GitTechniqueReader(
               }.fold ( err => err match {
                 case e : TechniqueVersionFormatException => s"Ignoring technique '${filePath}}' because the version format is incorrect. Error message was: ${e.getMessage}}".fail
                 case e : ConstraintException => s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
-                case e : Exception => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
+                case e : Throwable => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
               }
               , ok => techniquesInfo.set(info)
               )

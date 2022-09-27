@@ -47,6 +47,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.NodeConfigData
 
+import com.github.ghik.silencer.silent
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
@@ -55,6 +56,7 @@ import org.specs2.runner.JUnitRunner
  * Test on database.
  *
  */
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
 

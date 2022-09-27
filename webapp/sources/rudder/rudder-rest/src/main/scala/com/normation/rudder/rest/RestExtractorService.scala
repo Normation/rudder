@@ -429,7 +429,7 @@ final case class RestExtractorService (
       case Disabled  => Full(None)
       case mode =>
         val reason = extractString("reason")(req)(Full(_))
-        mode match {
+        (mode: @unchecked) match {
           case Mandatory =>
             reason match {
               case Full(None) =>  Failure("Reason field is mandatory and should be at least 5 characters long")

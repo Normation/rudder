@@ -362,6 +362,8 @@ object Rollback extends EventLogFilter {
       </main>):_*
     ) ) )
 
+  val tagName = "rollback"
+
 }
 
 object ImportExportEventLogsFilter {
