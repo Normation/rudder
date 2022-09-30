@@ -37,19 +37,22 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import java.io.File
-
-import com.normation.errors._
-import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.AgentType._
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio.ZioRuntime
+
+import com.github.ghik.silencer.silent
 import net.liftweb.common._
 import net.liftweb.json.JsonAST._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+
+import java.io.File
+
 import zio._
+import com.normation.errors._
+import com.normation.zio.ZioRuntime
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -57,6 +60,7 @@ import zio._
  * demo-data, test data and test schema for UnboundID are not synchronized
  * with OpenLDAP Schema).
  */
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestInventoryParsing extends Specification with Loggable {
 
@@ -159,8 +163,6 @@ class TestInventoryParsing extends Specification with Loggable {
   }
 
   "We can override hostname with custom property 'rudder_override_hostname'">> {
-    import net.liftweb.json.parse
-
     // after parsing, we also have custom property for original hostname
     val expected = List(
         CustomProperty("rudder_override_hostname", JString("node1-overridden.rudder.local.override"))

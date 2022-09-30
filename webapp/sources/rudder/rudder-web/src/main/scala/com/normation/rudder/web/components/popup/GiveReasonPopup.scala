@@ -98,7 +98,7 @@ class GiveReasonPopup(
 
 ///////////// fields for category settings ///////////////////
   private[this] val crReasons = {
-  (userPropertyService.reasonsFieldBehavior: @unchecked) match {
+    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))

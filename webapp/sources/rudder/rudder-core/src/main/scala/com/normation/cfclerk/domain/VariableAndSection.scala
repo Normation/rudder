@@ -198,9 +198,24 @@ final case class SystemVariable(
   , override val values: Seq[String]
 ) extends Variable {
   type T = SystemVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, SystemVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, SystemVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, SystemVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 final case class TrackerVariable(
@@ -208,9 +223,24 @@ final case class TrackerVariable(
   , override val values: Seq[String]
 ) extends Variable {
   type T = TrackerVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, TrackerVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, TrackerVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, TrackerVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 trait SectionVariable extends Variable with SectionChild
@@ -220,9 +250,24 @@ final case class InputVariable(
   , override val values: Seq[String]
 ) extends SectionVariable {
   type T = InputVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, InputVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, InputVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, InputVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 final case class SelectVariable(
@@ -230,9 +275,24 @@ final case class SelectVariable(
   , override val values: Seq[String]
 ) extends SectionVariable {
   type T = SelectVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, SelectVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, SelectVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, SelectVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 final case class SelectOneVariable(
@@ -240,9 +300,24 @@ final case class SelectOneVariable(
   , override val values: Seq[String]
 ) extends SectionVariable {
   type T = SelectOneVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, SelectOneVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, SelectOneVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, SelectOneVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 final case class PredefinedValuesVariable(
@@ -250,9 +325,24 @@ final case class PredefinedValuesVariable(
   , override val values: Seq[String]
 ) extends SectionVariable {
   type T = PredefinedValuesVariableSpec
-  override def copyWithAppendedValues(seq: Seq[String]) = this.copyWithAppendedValuesResult(seq).map(x => this.copy(values = x))
-  override def copyWithSavedValue(s: String) = this.copyWithSavedValueResult(s).map(x => this.copy(values = x))
-  override def copyWithSavedValues(seq: Seq[String]) = this.copyWithSavedValuesResult(seq).map(x => this.copy(values = x))
+
+  override def copyWithAppendedValues(seq: Seq[String]): Either[LoadTechniqueError, PredefinedValuesVariable] = {
+    this.copyWithAppendedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValue(s: String): Either[LoadTechniqueError, PredefinedValuesVariable] = {
+    this.copyWithSavedValueResult(
+      s
+    ).map(x => this.copy(values = x))
+  }
+
+  override def copyWithSavedValues(seq: Seq[String]): Either[LoadTechniqueError, PredefinedValuesVariable] = {
+    this.copyWithSavedValuesResult(
+      seq
+    ).map(x => this.copy(values = x))
+  }
 }
 
 object Variable {

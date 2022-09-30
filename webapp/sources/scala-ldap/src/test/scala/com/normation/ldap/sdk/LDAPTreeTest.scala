@@ -20,14 +20,18 @@
 
 package com.normation.ldap.sdk
 
-import com.unboundid.ldap.sdk.{RDN,DN}
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.RDN
 import DN.NULL_DN
+import com.github.ghik.silencer.silent
+
 import com.normation.zio._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class LDAPTreeTest extends Specification {
 

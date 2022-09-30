@@ -37,6 +37,8 @@
 
 package com.normation.rudder.hooks
 
+import com.github.ghik.silencer.silent
+
 import java.io.File
 
 import org.junit.runner.RunWith
@@ -55,6 +57,7 @@ import org.joda.time.format.ISODateTimeFormat
  * the process context (environment variable, file descriptors..)
  */
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class RunNuCommandTest() extends Specification {
 
