@@ -61,8 +61,10 @@ import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTim
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 import com.normation.rudder.services.reports.UnexpectedReportBehavior.UnboundVarValues
 
+import com.github.ghik.silencer.silent
 
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
   private implicit def str2directiveId(s:String) = DirectiveId(DirectiveUid(s))

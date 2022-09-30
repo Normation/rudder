@@ -67,7 +67,6 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 
 import java.nio.charset.StandardCharsets
-import com.github.ghik.silencer.silent
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueResourceIdByPath
@@ -299,7 +298,6 @@ class WriteSystemTechniquesTest extends TechniquesTest{
 
     "correctly write the expected policies files with default installation but `.new` files exists" in {
 
-      @silent("local val .* in method addCrap is never used")
       def addCrap(path: String): Unit = {
         val f = better.files.File(path)
         f.parent.createDirectories()

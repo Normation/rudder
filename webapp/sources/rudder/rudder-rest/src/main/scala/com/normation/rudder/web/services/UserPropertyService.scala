@@ -39,7 +39,7 @@ import com.normation.box._
 import com.normation.errors._
 import zio.syntax._
 
-object ReasonBehavior extends Enumeration {
+final object ReasonBehavior extends Enumeration {
   type ReasonBehavior = Value
   val Disabled, Mandatory, Optionnal = Value
 }

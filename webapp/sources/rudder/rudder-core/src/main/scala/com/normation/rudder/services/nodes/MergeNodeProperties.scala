@@ -262,7 +262,7 @@ object MergeNodeProperties {
       val p = properties(k)
       val d = defaults(k)
       val mergedProp = NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)
-      val obj = p match {
+      val obj = (p: @unchecked) match {
         case x: NodeProperty    => ParentProperty.Node  ("this node" , NodeId(objectId)     , p.value)
         case x: GroupProperty   => ParentProperty.Group ("this group", NodeGroupId(objectId), p.value)
         case x: GlobalParameter => ParentProperty.Global(                                     p.value)

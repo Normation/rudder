@@ -691,7 +691,7 @@ class RwLDAPConnection(
 
     for {
       _   <- blocking(ldifFileLogger.tree(tree)) mapError (e => LDAPRudderError.BackendException(s"Error when loggin operation on LDAP tree: '${tree.parentDn.toString}'", e))
-             //process mofications
+             //process modifications
       now <- getTree(tree.root.dn)
       res <- (now match {
                case None => addTree(tree)

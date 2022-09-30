@@ -41,6 +41,9 @@ import com.normation.inventory.domain._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
+
+import com.github.ghik.silencer.silent
+
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
@@ -49,6 +52,7 @@ import org.junit.runner._
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
+
 import zio._
 import com.normation.errors._
 import com.softwaremill.quicklens._
@@ -63,6 +67,7 @@ final case class SystemError(cause: Throwable) extends RudderError {
  * demo-data, test data and test schema for UnboundID are not synchronized
  * with OpenLDAP Schema).
  */
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestInventory extends Specification {
 

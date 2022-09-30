@@ -46,6 +46,9 @@ import com.normation.cfclerk.xmlparsers._
 import scala.xml._
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 
+import com.github.ghik.silencer.silent
+
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TechniqueTest extends Specification {
 

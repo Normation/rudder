@@ -871,10 +871,10 @@ class PolicyWriterServiceImpl(
       (policy.id.directiveId.serialize ::
        policy.policyMode.getOrElse(policyMode.mode).name ::
        policy.technique.generationMode.name ::
-       policy.technique.agentConfig.runHooks.nonEmpty ::
+       policy.technique.agentConfig.runHooks.nonEmpty.toString ::
        policy.technique.id.name.value ::
        policy.technique.id.version.serialize ::
-       policy.technique.isSystem ::
+       policy.technique.isSystem.toString ::
        policy.directiveOrder.value ::
        Nil
       ).mkString("\"","\",\"","\"")
