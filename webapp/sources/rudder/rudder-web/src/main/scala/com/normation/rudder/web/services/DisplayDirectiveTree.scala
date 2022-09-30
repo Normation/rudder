@@ -179,7 +179,7 @@ object DisplayDirectiveTree extends Loggable {
         category.activeTechniques
           // We only want to keep technique that satifies keepTechnque, that are not systems
           // and that have at least one version not deprecated (deprecationInfo empty)
-          .filter( at => keepTechnique(at) && !at.isSystem && ( at.directives.length > 0 ||  at.techniques.values.exists { _.deprecrationInfo.isEmpty }))
+          .filter( at => keepTechnique(at) && !at.isSystem && ( at.directives.length > 0 ||  at.techniques.values.exists { _.deprecrationInfo.isEmpty }) && ! at.techniques.forall(_._2.isSystem))
           // We want our technique sorty by human name, default to bundle name in case we don't have any version but that should not happen
           .sortBy( at => at.newestAvailableTechnique.map(_.name).getOrElse(at.techniqueName.value ))
           .map   ( at => displayActiveTechnique(at, localOnClickTechnique, localOnClickDirective) )
@@ -237,14 +237,16 @@ object DisplayDirectiveTree extends Loggable {
                 } else NodeSeq.Empty
               case None => NodeSeq.Empty
             }
+            val disabledNotice = if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}
             val tooltipContent =
               s"""
-              <h4>${technique.name}</h4>
-              <div class="tooltip-content">
-                <p>${technique.escapedDescription}</p>
-                ${agentCompat.techniqueText}
-                ${if(!activeTechnique.isEnabled){<div>This Technique is currently <b>disabled</b>.</div>}else{NodeSeq.Empty}}
-              </div>"""
+                <h4>${technique.name}</h4>
+                <div class="tooltip-content">
+                  <p>${technique.escapedDescription}</p>
+                  ${agentCompat.techniqueText}
+                  ${disabledNotice}
+              </div>
+              """
 
             val className = {
               val defaultClass  = "treeActiveTechniqueName bsTooltip"
@@ -396,6 +398,11 @@ object DisplayDirectiveTree extends Loggable {
               NodeSeq.Empty
           }
 
+          val assignWarning = if(isAssignedTo==0){
+            <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
+          }else{
+            NodeSeq.Empty
+          }
           val tooltipContent = s"""
             <h4>${scala.xml.Utility.escape(directive.name)}</h4>
             <div class="tooltip-content directive">
@@ -405,11 +412,7 @@ object DisplayDirectiveTree extends Loggable {
                 ${directive.techniqueVersion.debugString}${deprecatedIcon}
                 ${deprecationInfo}
               </div>
-              ${if(isAssignedTo==0){
-                <span class="fa fa-warning text-warning-rudder min-size-icon"></span>
-              }else{
-                NodeSeq.Empty
-              }}
+              ${assignWarning}
               <span>Used in <b>${isAssignedTo}</b> rule${if(isAssignedTo!=1){"s"}else{""}}</span>
               ${agentCompat.directiveText}
               ${disableMessage}
