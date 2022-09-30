@@ -65,8 +65,10 @@ import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.zio._
 import zio._
 import zio.syntax._
+import com.github.ghik.silencer.silent
 import com.normation.box.IOManaged
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestCertificate extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider())

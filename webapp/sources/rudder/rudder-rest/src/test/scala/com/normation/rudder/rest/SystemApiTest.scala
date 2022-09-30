@@ -53,7 +53,9 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import net.liftweb.http.PlainTextResponse
+import com.github.ghik.silencer.silent
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class SystemApiTest extends Specification with AfterAll with Loggable {
 

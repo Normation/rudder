@@ -912,7 +912,7 @@ class SaveArchiveServicebyRepo(
                    case f if(f.state == ResourceFileState.Deleted) => f.path }.mkString(", ") }")
       _       <- ZIO.foreach_(updated) { u =>
                    if(u.state == ResourceFileState.Deleted) {
-                     IOResult.effect(File(techniqueDir.pathAsString+ "/" + u.path).delete)
+                     IOResult.effect(File(techniqueDir.pathAsString+ "/" + u.path).delete())
                    } else ZIO.unit
                  }
       // now, write new/updated files

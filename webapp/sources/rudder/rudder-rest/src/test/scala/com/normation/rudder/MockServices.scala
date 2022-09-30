@@ -129,6 +129,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
+
 import better.files._
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
@@ -146,8 +147,9 @@ import scala.collection.SortedMap
 import scala.collection.immutable
 import scala.util.control.NonFatal
 import scala.xml.Elem
+
 import zio.syntax._
-import zio.{Tag as _, _}
+import zio.{Tag => _, _}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._

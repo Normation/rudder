@@ -54,6 +54,7 @@ import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
 
 import better.files.File
+import com.github.ghik.silencer.silent
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.InMemoryResponse
@@ -74,6 +75,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.zio._
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class ArchiveApiTest extends Specification with AfterAll with Loggable {
 

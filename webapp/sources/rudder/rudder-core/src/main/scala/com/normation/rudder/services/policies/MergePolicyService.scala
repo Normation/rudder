@@ -36,16 +36,19 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.{RunHook, TechniqueGenerationMode, TechniqueName}
+import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.inventory.domain.AgentType
-import cats.kernel.Order
-import cats.data._
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import net.liftweb.common._
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.utils.Control.sequence
+
+import cats.data._
+import cats.kernel.Order
+import net.liftweb.common._
 
 import com.normation.box._
 
