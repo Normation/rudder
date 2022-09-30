@@ -159,8 +159,6 @@ class TestInventoryParsing extends Specification with Loggable {
   }
 
   "We can override hostname with custom property 'rudder_override_hostname'">> {
-    import net.liftweb.json.parse
-
     // after parsing, we also have custom property for original hostname
     val expected = List(
         CustomProperty("rudder_override_hostname", JString("node1-overridden.rudder.local.override"))

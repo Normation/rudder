@@ -108,6 +108,21 @@ final case class PendingChart (value : Int) extends ComplianceLevelPieChart{
   val color = "#5bc0de"
 }
 
+object HomePageUtils {
+  // Format different version naming type into one
+  def formatAgentVersion(version: String): String = {
+    // All that is before '.release' (rpm releases, like 3.0.6.release)
+    // OR DSC agent version, => value before dash + dash + first two numbers separated by a dot (a.b-x.y)
+    // OR all until first dash ( debian releases, like 3.0.6-wheezy)
+    // We don't want epoch, and we don't want the cfe- prefix either anymore (it's 3.x area), so only group 3 is interesting
+    val versionRegexp = """(cfe-)?(\d+:)?((.+)(?=\.release)|([^-]+-\d+\.\d+)|([^-]+))""".r
+    versionRegexp.
+      findFirstMatchIn(version).map(_.group(3)).
+      getOrElse(version).
+      // Replace all '~' by '.' to normalize alpha/beta/rc releases and nightlies
+      replace("~", ".")
+  }
+}
 object HomePage {
   private val nodeInfosService = RudderConfig.nodeInfoService
 
@@ -119,7 +134,6 @@ object HomePage {
     TimingDebugLogger.debug(s"Getting node infos: ${n2 - n1}ms")
     n
   }
-
 }
 
 class HomePage extends Loggable {
@@ -375,20 +389,7 @@ final case class ColoredChartType(value: Double) extends ChartType
     } yield {
 
 
-      // Format different version naming type into one
-      def formatVersion (version : String) : String= {
-        // All that is before '.release' (rpm relases, like 3.0.6.release)
-        // OR DSC agent version, => value before dash + dash + first two numbers separated by a dot (a.b-x.y)
-        // OR all until first dash ( debian releases, like 3.0.6-wheezy)
-        val versionRegexp = "(cfe-)?((.+)(?=\\.release)|([^-]+-\\d+\\.\\d+)|([^-]+))".r
-        versionRegexp.
-          findFirstIn(version).
-          getOrElse(version).
-          // Replace all '~' by '.' to normalize alpha/beta/rc releases and nightlies
-          replace("~", ".")
-      }
-
-      val res = agentVersions.groupBy(ag => formatVersion(ag.value)).map(x => (x._1, x._2.size))
+      val res = agentVersions.groupBy(ag => HomePageUtils.formatAgentVersion(ag.value)).map(x => (x._1, x._2.size))
       val n4 =  System.currentTimeMillis
       TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis-n4}ms")
       res
