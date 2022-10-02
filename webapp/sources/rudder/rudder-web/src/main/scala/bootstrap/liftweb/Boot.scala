@@ -409,8 +409,7 @@ class Boot extends Loggable {
       }
     }
     // Register session cleaner
-    SessionMaster.sessionCheckFuncs = SessionMaster.sessionCheckFuncs
-      ::: List(IdleSessionTimeout)
+    SessionMaster.sessionCheckFuncs = SessionMaster.sessionCheckFuncs ::: List(IdleSessionTimeout)
 
     // Set timeout value, which will be applied by both the standard and custom session cleaner
     LiftRules.sessionInactivityTimeout.default.set(RudderConfig.AUTH_IDLE_TIMEOUT.map(d => d.toMillis))
