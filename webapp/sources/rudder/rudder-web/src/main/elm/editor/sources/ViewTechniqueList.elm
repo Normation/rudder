@@ -196,7 +196,7 @@ techniqueItem model technique =
 
     li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][]
-          , a[class ("jstree-anchor " ++ activeClass), onClick (SelectTechnique (Left technique))]
+          , a[class ("jstree-anchor " ++ activeClass), href ("/rudder/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClick (SelectTechnique (Left technique))]
             [ i [class "jstree-icon jstree-themeicon fa fa-cog jstree-themeicon-custom"][]
             , span [class "treeGroupName tooltipable"]
               [ text technique.name  ]

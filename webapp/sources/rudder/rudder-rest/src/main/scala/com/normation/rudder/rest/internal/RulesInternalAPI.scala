@@ -1,8 +1,10 @@
 package com.normation.rudder.rest.internal
 
-import com.normation.errors.{EitherToIoResult, IOResult}
+import com.normation.errors.EitherToIoResult
+import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRRuleNodesDirectives
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.{RoNodeGroupRepository, RoRuleRepository}
@@ -12,7 +14,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import net.liftweb.http.{LiftResponse, Req}
 import com.normation.rudder.rest.implicits._
-import com.normation.rudder.apidata.implicits._
+
 import zio.syntax._
 
 class RulesInternalApi(
