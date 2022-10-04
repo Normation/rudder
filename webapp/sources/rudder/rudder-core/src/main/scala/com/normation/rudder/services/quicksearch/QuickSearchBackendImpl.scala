@@ -469,7 +469,7 @@ object QSLdapBackend {
   /**
    * correctly transform entry to a result, putting what is needed in type and description
    */
-  final implicit class EntryToSearchResult(val e: LDAPEntry) {
+  final implicit class EntryToSearchResult(val e: LDAPEntry)(implicit val nodeInfos   : NodeInfoService) {
     import QuickSearchResultId._
     import QSAttributeLdapFilter._
 
@@ -549,7 +549,14 @@ object QSLdapBackend {
        if(isNodeOrNotSystem(e))
       } yield {
         //prefer hostname for nodes
-        val name = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
+        val defaultName = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
+        val name =
+          if (e.isA(OC_NODE) || e.isA(OC_RUDDER_NODE)) {
+            import com.normation.zio._
+            getId(e).flatMap(id => nodeInfos.getNodeInfo(com.normation.inventory.domain.NodeId(id.value)).runNow.map(_.hostname)).getOrElse(defaultName)
+          } else {
+            defaultName
+          }
         QuickSearchResult(id, name, Some(attr), desc)
       }
     }
