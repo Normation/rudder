@@ -11,8 +11,8 @@ use serde_json::Value;
 
 use rudder_resource_type::backup::Backup;
 use rudder_resource_type::{
-    parameters::Parameters, rudder_debug, run, CheckApplyResult, Outcome, PolicyMode,
-    ResourceType0, ResourceTypeMetadata, ValidateResult,
+    diff, parameters::Parameters, rudder_debug, rudder_info, run, CheckApplyResult, Outcome,
+    PolicyMode, ResourceType0, ResourceTypeMetadata, ValidateResult,
 };
 
 // Configuration
@@ -145,10 +145,13 @@ impl ResourceType0 for Template {
 
         let already_present = output_file.exists();
 
+        let mut file_diff = None;
+
         // Check if already correct
         let already_correct = if already_present {
             let content = read_to_string(&output_file)
                 .with_context(|| format!("Failed to read file {output_file_d}"))?;
+
             if content == output {
                 true
             } else {
@@ -156,6 +159,8 @@ impl ResourceType0 for Template {
                     "Output file {} exists but has outdated content",
                     output_file_d
                 );
+                file_diff = Some(serde_json::to_string(&diff(&content, &output))?);
+                //rudder_info!("Difference:\n{diff}");
                 false
             }
         } else {
@@ -167,7 +172,13 @@ impl ResourceType0 for Template {
             (true, _) => Outcome::success(),
             (false, PolicyMode::Audit) => {
                 if already_present {
-                    bail!("Output file {output_file_d} is present but content is not up to date")
+                    if let Some(d) = file_diff {
+                        bail!("Output file {output_file_d} is present but content is not up to date: {d}")
+                    } else {
+                        bail!(
+                            "Output file {output_file_d} is present but content is not up to date"
+                        )
+                    }
                 } else {
                     bail!("Output file {output_file_d} does not exist")
                 }
@@ -194,9 +205,15 @@ impl ResourceType0 for Template {
                     .map(|p| format!(" (from {})", p.display()))
                     .unwrap_or_else(|| "".to_string());
                 if already_present {
-                    Outcome::repaired(format!(
-                        "Replaced {output_file_d} content from template{source_file}",
-                    ))
+                    if let Some(d) = file_diff {
+                        Outcome::repaired(format!(
+                            "Replaced {output_file_d} content from template{source_file}: {d}",
+                        ))
+                    } else {
+                        Outcome::repaired(format!(
+                            "Replaced {output_file_d} content from template{source_file}",
+                        ))
+                    }
                 } else {
                     Outcome::repaired(format!(
                         "Written new {output_file_d} from template{source_file}",
