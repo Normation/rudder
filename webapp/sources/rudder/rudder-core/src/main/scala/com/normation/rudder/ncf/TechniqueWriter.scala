@@ -751,7 +751,7 @@ class DSCTechniqueWriter(
 ) extends AgentSpecificTechniqueWriter{
   implicit class IndentString(s: String) {
     // indent all lines EXCLUDING THE FIRST by the given number of spaces
-    def indent(spaces:Int) = s.linesIterator.mkString("\n" + " " * spaces)
+    def indentNextLines(spaces:Int) = s.linesIterator.mkString("\n" + " " * spaces)
   }
 
   // we use the same class prefix construction as for CFEngine.
@@ -843,12 +843,12 @@ class DSCTechniqueWriter(
             val methodCall = if (method.agentSupport.contains(AgentType.Dsc)) {
               if (condition == "any" ) {
                 s"""  ${effectiveCall}
-                   |  ${methodContext.indent(2)}""".stripMargin
+                   |  ${methodContext.indentNextLines(2)}""".stripMargin
               } else {
                 s"""  $$class = "${condition}"
                    |  if ($$localContext.Evaluate($$class)) {
                    |    ${effectiveCall}
-                   |    ${methodContext.indent(4)}
+                   |    ${methodContext.indentNextLines(4)}
                    |  } else {
                    |    Rudder-Report-NA @reportParams
                    |  }""".stripMargin('|')
