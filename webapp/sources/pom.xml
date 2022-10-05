@@ -456,6 +456,10 @@ limitations under the License.
   -->
   <dependencyManagement>
     <dependencies>
+      <!--
+        We need to enforce version of all components of scala, else maven takes the oldest from transitive dep.
+        It seems to be because scala has them "compatible"
+       -->
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-library</artifactId>
@@ -463,7 +467,17 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
+        <artifactId>scala-compiler</artifactId>
+        <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
         <artifactId>scala-reflect</artifactId>
+        <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scalap</artifactId>
         <version>${scala-version}</version>
       </dependency>
       <dependency>
