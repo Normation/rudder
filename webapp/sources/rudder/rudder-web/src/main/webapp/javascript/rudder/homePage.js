@@ -241,7 +241,7 @@ function doughnutChart (id,data,count,colors) {
         }
 
 
-      , events: ['click']
+      , events: ['click', 'mousemove']
       , onClick: (e, active, currentChart) => {
              if (active[0] !== undefined){
               data = currentChart.data.labels[active[0].index]
