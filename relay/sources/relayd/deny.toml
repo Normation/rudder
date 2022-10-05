@@ -11,12 +11,7 @@ allow = [
     "ISC",
     "Zlib",
     "BSD-3-Clause",
-]
-
-[advisories]
-ignore = [
-    # Only a segfault, and no patches for 0.1 version
-    "RUSTSEC-2020-0071",
+    "Unicode-DFS-2016",
 ]
 
 [bans]
