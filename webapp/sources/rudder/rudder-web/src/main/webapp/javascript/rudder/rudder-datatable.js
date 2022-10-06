@@ -1136,7 +1136,17 @@ var allColumns = {
     function(value, inherited) {
       var title = "Property '"+value+"'"
       if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
-      return { "data": "property."+value
+      return { "data": function ( row, type, val, meta ) {
+                             if (type === 'set') {
+                               return;
+                             }
+                             else if (type === 'sort') {
+                               return JSON.stringify(row.properties[value]);
+                             }
+                             // 'sort', 'type' and undefined all just use the integer
+                             return value;
+                           }
+
              , "title": title
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
              , "createdCell" : propertyFunction(value,inherited)
@@ -1271,10 +1281,14 @@ function createNodeTable(gridId, refresh) {
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
+
     // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
-    var cache = JSON.parse(cacheColumns).filter(function(c) { return c !== null && (allColumnsKeys.includes(c.title) || c.data.startsWith("software") || c.data.startsWith("property") )  })
+
+    var cache = JSON.parse(cacheColumns).filter(function(c) {
+      return c !== null && (allColumnsKeys.includes(c.title) || (c.data !== undefined && c.data.startsWith("Software")) || c.title.startsWith("Property") )
+    })
     columns = cache.map(function(c) {
-      if (c.data.startsWith("property")) {
+      if (c.title.startsWith("Property")) {
         return allColumns.Property(c.value,c.inherited);
       } else { if (c.data.startsWith("software")) {
         return allColumns.Software(c.value);
@@ -1318,9 +1332,9 @@ function createNodeTable(gridId, refresh) {
     , "contentType": "application/json"
     , "data" : function(d) {
         var data = d
-        var softwareList= columns.filter(function(c) { return c.data.startsWith("software")}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
+        var softwareList= columns.filter(function(c) { return ((typeof c.data) !== "function" && c.data.startsWith("software"))}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
 
-        var properties = columns.filter(function(c) { return c.data.startsWith("property")}).map(function(c) {return { "value" : c.data.split(".").slice(1).join('.'), "inherited" : c.inherited } })
+        var properties = columns.filter(function(c) { return c.title.startsWith("Property")}).map(function(c) {return { "value" : c.value, "inherited" : c.inherited } })
         data = $.extend({}, d, {"software": softwareList, "properties": properties})
         if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds, "software": softwareList, "properties" : properties} ) }
         return JSON.stringify(data)
