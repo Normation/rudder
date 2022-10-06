@@ -33,6 +33,7 @@
 #
 # @class_prefix package_present
 # @class_parameter name
+# This line should be ignored
 
 bundle agent package_present(name, version, architecture, provider)
 {

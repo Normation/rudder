@@ -18,7 +18,7 @@ fn compile(filename: &str) {
 
 /// Compile the given source file with the given target. Panics if compilation fails.
 fn compile_file(source: &Path, target: Target) {
-    let result = rudderc::compile(&[], source, target);
+    let result = rudderc::action::compile(&[], source, target);
     if should_fail(source) {
         assert!(result.is_err());
     } else {

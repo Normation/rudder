@@ -98,7 +98,6 @@ class CheckNcfTechniqueUpdate(
     def updateNcfTechniques  = {
       for {
         _ <- BootstrapLogger.info("started")
-        _          <- techniqueReader.updateTechniquesMetadataFile
         _ <- BootstrapLogger.info("techniques - update")
         res <- techniqueReader.readTechniquesMetadataFile
         (techniques, methods) = res

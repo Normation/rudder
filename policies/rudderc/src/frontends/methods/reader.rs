@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-//! Reads ncf metadata from generic method `.cf` files
+//! Reads methods metadata from generic method `.cf` files
 //!
-//! Does not parse .cf policies but only metadata in ncf format.
+//! Does not parse .cf policies but only metadata in methods format.
 
 use std::{fs::read_to_string, path::Path};
 
@@ -24,7 +24,7 @@ fn is_cf_file(entry: &DirEntry) -> bool {
 
 /*
    filelist1 = get_all_generic_methods_filenames_in_dir(this "/tree/30_generic_methods")
-   filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/ncf/30_generic_methods")
+   filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/methods/30_generic_methods")
 */
 
 pub fn read_lib(path: &Path) -> Result<Vec<Method>> {

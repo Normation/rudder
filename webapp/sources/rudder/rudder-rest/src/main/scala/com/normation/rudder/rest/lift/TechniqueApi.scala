@@ -269,7 +269,6 @@ class TechniqueApi (
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
       val response= for {
-        _          <- techniqueReader.updateTechniquesMetadataFile
         res <- techniqueReader.readTechniquesMetadataFile
         (techniques,methods) = res
         _          <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))

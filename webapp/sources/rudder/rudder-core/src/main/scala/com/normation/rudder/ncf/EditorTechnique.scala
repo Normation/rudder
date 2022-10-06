@@ -186,10 +186,12 @@ object ParameterType {
   class BasicParameterTypeService extends  ParameterTypeService {
     def create(value : String) = {
       value match {
-        case "string"     => Right(StringParameter)
-        case "raw"        => Right(Raw)
-        case "HereString" => Right(HereString)
-        case _            => Left(Unexpected(s"'${value}' is not a valid method parameter type"))
+        case "string"      => Right(StringParameter)
+        case "here-string" => Right(HereString)
+        case "raw"         => Right(Raw)
+        // For compatibility with previous format
+        case "HereString"  => Right(HereString)
+        case _             => Left(Unexpected(s"'${value}' is not a valid method parameter type"))
       }
     }
 

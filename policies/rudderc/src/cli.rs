@@ -11,13 +11,13 @@ use crate::Target;
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Args {
+pub struct MainArgs {
     /// File to compile
-    pub input: PathBuf,
+    pub input: Option<PathBuf>,
 
     /// Output file
     #[arg(short, long)]
-    pub output: PathBuf,
+    pub output: Option<PathBuf>,
 
     /// Output target runner
     #[arg(short, long)]
@@ -35,17 +35,26 @@ pub struct Args {
     #[arg(short, long)]
     pub quiet: bool,
 
-    /// Load library from path
+    /// Load a library from the given path
     #[arg(short, long, action = clap::ArgAction::Append)]
     pub library: Vec<PathBuf>,
+
+    /// Generate a description of available resources and exit
+    #[arg(long)]
+    pub methods_description: bool,
 }
 
-impl Args {
+impl MainArgs {
     /// Compute target from CLI arguments
     pub fn target(&self) -> Result<Target> {
         self.target
             .ok_or_else(|| anyhow!("No target specified"))
-            // Guess from file extension
-            .or_else(|_| self.output.as_path().try_into())
+            // Guess from the file extension
+            .or_else(|_| {
+                self.output
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("Missing output path"))
+                    .and_then(|p| p.as_path().try_into())
+            })
     }
 }

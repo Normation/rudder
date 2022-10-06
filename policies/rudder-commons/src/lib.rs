@@ -6,12 +6,15 @@ use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 
+/// Targets. A bit like (machine, vendor, operating-system) targets for system compiler like
+/// "x86_64-unknown-linux-gnu", it depends on several items.
+///
+/// We can define our own (operating-system/platform, agent/management technology, environment) target spec.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 pub enum Target {
-    /// It is not actually CFEngine but CFEngine + our patches + our stdlib
-    ///
-    /// It matches what is called "classic agent" in Rudder.
+    /// Actually (Unix, CFEngine + patches, system techniques + ncf)
     Unix,
+    /// Actually (Windows, Dotnet + DSC, )
     Windows,
 }
 
@@ -77,6 +80,7 @@ impl<'de> Deserialize<'de> for Target {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ParameterType {
     String,
     HereString,
@@ -98,8 +102,10 @@ impl FromStr for ParameterType {
 pub struct Constraints {
     pub allow_empty_string: bool,
     pub allow_whitespace_string: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub select: Option<Vec<String>>,
     // Storing as string to be able to ser/de easily
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub regex: Option<String>,
     pub max_length: usize,
 }
