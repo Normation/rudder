@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-//! Models of the classic "ncf" methods of Rudder
+//! Models of the classic "methods" methods of Rudder
 //!
 //! Uses a method (function-like) based model.
 
@@ -23,9 +23,9 @@ use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 pub type MethodName = String;
 pub type AttributeName = String;
 
-/// metadata about a "ncf" CFEngine/DSC method
+/// metadata about a "methods" CFEngine/DSC method
 ///
-/// Leaf yaml implemented by ncf
+/// Leaf yaml implemented by methods
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Method {
     pub name: MethodName,
@@ -110,7 +110,7 @@ impl FromStr for Method {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut method = Method::default();
-        // Kept the same logic and regexes as ncf.py for two big reasons:
+        // Kept the same logic and regexes as methods.py for two big reasons:
         //
         // * compatibility
         // * laziness

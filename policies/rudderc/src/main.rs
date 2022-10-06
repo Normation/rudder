@@ -5,10 +5,10 @@ use std::process::exit;
 
 use clap::Parser;
 use log::{debug, error, trace};
-use rudderc::{cli::Args, logs};
+use rudderc::{cli::MainArgs, logs};
 
 fn main() {
-    let args = Args::parse();
+    let args = MainArgs::parse();
     logs::init(args.verbose, args.quiet);
     debug!(
         "Running {} v{}",

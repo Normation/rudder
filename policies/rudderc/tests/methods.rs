@@ -7,7 +7,7 @@ use std::{fs::read_to_string, path::Path};
 
 use anyhow::Result;
 use pretty_assertions::assert_eq;
-use rudderc::frontends::ncf::method::Method;
+use rudderc::frontends::methods::method::Method;
 use test_generator::test_resources;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.

@@ -61,7 +61,7 @@ pub struct State {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameter {
     pub description: String,
-    /// For now use directly implementations from ncf
+    /// For now use directly implementations from methods
     pub constraints: Constraints,
     pub p_type: ParameterType,
 }

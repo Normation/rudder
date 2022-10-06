@@ -7,8 +7,7 @@
 use anyhow::Result;
 use rudder_commons::Target;
 
-use crate::cli::Args;
-pub use crate::compiler::compile;
+use crate::cli::MainArgs;
 
 pub mod backends;
 pub mod cli;
@@ -23,13 +22,23 @@ pub mod logs;
 ///
 /// The current process is to stop at first error, and move it up to `main()` where it will
 /// be displayed.
-pub fn run(args: Args) -> Result<()> {
-    let target = args.target()?;
-
-    if args.check {
-        action::check(args.library.as_slice(), &args.input, target)
+pub fn run(args: MainArgs) -> Result<()> {
+    if args.resource_description {
+        action::describe(args.library.as_slice(), &args.output.unwrap())
     } else {
-        action::write(args.library.as_slice(), &args.input, &args.output, target)
+        // guess output target
+        let target = args.target()?;
+
+        if args.check {
+            action::check(args.library.as_slice(), &args.input.unwrap(), target)
+        } else {
+            action::write(
+                args.library.as_slice(),
+                &args.input.unwrap(),
+                &args.output.unwrap(),
+                target,
+            )
+        }
     }
 }
 
@@ -44,8 +53,17 @@ pub mod action {
     use anyhow::{Context, Result};
     use rudder_commons::Target;
 
-    pub use crate::compiler::compile;
+    pub use crate::compiler::{compile, describe_resources};
     use crate::logs::ok_output;
+
+    /// Describe available resources
+    pub fn describe(libraries: &[PathBuf], output: &Path) -> Result<()> {
+        let mut file = File::create(output)
+            .with_context(|| format!("Failed to create output file {}", output.display()))?;
+        file.write_all(describe_resources(libraries)?.as_bytes())?;
+        ok_output("Wrote", output.display());
+        Ok(())
+    }
 
     /// Linter mode
     pub fn check(libraries: &[PathBuf], input: &Path, target: Target) -> Result<()> {
