@@ -403,6 +403,9 @@ class Boot extends Loggable {
                   delete(info)
                 }
               })
+            // null here means lastNonCometAccessedTime was not set, which happens if only
+            // non-standard requests happened on a connection.
+            case null => ()
             case _ => ApplicationLogger.error("lastNonCometAccessedTime has an unexpected value, please report a bug.")
           }
         })
