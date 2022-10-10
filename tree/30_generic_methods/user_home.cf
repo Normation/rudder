@@ -27,6 +27,7 @@
 # 
 # @class_prefix user_home
 # @class_parameter login
+# @agent_support = ["cfengine-community"]
 
 bundle agent user_home(login, home)
 {

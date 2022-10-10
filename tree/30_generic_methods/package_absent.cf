@@ -30,6 +30,7 @@
 # 
 # @class_prefix package_absent
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_absent(name, version, architecture, provider)
 {

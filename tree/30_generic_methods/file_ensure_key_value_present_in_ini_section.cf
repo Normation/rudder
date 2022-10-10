@@ -30,6 +30,7 @@
 # @parameter_rename file path
 # @class_prefix file_ensure_key_value_present_in_ini_section
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_ensure_key_value_present_in_ini_section(path, section, name, value)
 {

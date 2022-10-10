@@ -33,6 +33,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_http_server
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_from_http_server(source, path)
 {

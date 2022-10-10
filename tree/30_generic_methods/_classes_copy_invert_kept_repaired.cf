@@ -52,6 +52,7 @@
 #
 # @class_prefix
 # @class_parameter
+# @agent_support = ["cfengine-community"]
 
 bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefix)
 {

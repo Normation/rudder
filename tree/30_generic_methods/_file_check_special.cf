@@ -27,6 +27,7 @@
 # @parameter_rename file_name path
 # @class_prefix file_check
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 # This bundle will define a condition file_check_${file_type}_${path}_{ok, reached, kept} if the
 # file is a special file of type ${file_type}, or file_check_${file_type}_${path}_{not_ok, reached, not_kept, failed} if
 # the file is not a special file or does not exist

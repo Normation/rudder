@@ -229,6 +229,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_template
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_from_template_jinja2(source_template, path)
 {

@@ -32,6 +32,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_string_default
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent variable_string_default(prefix, name, source_variable, default_value)
 {

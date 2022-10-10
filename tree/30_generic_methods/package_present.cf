@@ -29,6 +29,7 @@
 # @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" ]
 # @class_prefix package_present
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_present(name, version, architecture, provider)
 {

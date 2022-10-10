@@ -27,6 +27,7 @@
 #
 # @class_prefix _logger_default
 # @class_parameter old_class_prefix
+# @agent_support = ["cfengine-community"]
 
 bundle agent _log_default(message, class_parameter, old_class_prefix, class_prefix, args)
 {

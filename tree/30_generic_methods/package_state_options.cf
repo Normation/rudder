@@ -36,6 +36,7 @@
 # 
 # @class_prefix package_state_options
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_state_options(name, version, architecture, provider, state, options)
 {

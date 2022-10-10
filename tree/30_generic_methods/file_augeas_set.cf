@@ -62,6 +62,7 @@
 # @parameter_constraint lens "allow_empty_string" : true
 # @class_prefix file_augeas_set
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_augeas_set(path, value, lens, file)
 {

@@ -26,6 +26,7 @@
 # @parameter_rename destination path
 # @class_prefix file_symlink_present
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_symlink_present(source, path)
 {

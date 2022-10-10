@@ -68,6 +68,7 @@
 # @parameter_rename target path
 # @class_prefix file_report_content
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_report_content(path, regex, context)
 {

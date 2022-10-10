@@ -35,6 +35,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_string_from_command
 # @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent variable_string_from_command(prefix, name, command)
 {

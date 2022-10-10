@@ -51,6 +51,7 @@
 # @parameter_rename file path
 # @class_prefix file_block_present
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_block_present(path, block)
 {

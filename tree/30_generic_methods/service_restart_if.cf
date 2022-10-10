@@ -29,6 +29,7 @@
 # @parameter_rename trigger_class expression
 # @class_prefix service_restart
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent service_restart_if(name, expression)
 {

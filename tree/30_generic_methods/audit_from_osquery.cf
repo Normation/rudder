@@ -63,6 +63,7 @@
 # 
 # @class_prefix audit_from_osquery
 # @class_parameter query
+# @agent_support = ["cfengine-community"]
 
 bundle agent audit_from_osquery(query, comparator, value)
 {

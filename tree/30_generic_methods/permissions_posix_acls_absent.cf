@@ -84,6 +84,7 @@
 # 
 # @class_prefix permissions_posix_acls_absent
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent permissions_posix_acls_absent(path, recursive)
 {

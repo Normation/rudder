@@ -31,6 +31,7 @@
 #
 # @class_prefix audit_from_command
 # @class_parameter command
+# @agent_support = ["cfengine-community"]
 
 bundle agent audit_from_command(command, compliant_codes)
 {

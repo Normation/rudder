@@ -72,6 +72,7 @@
 # @parameter_constraint option "allow_empty_string" : true
 # @class_prefix sysctl_value
 # @class_parameter key
+# @agent_support = ["cfengine-community"]
 
 
 

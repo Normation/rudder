@@ -35,6 +35,7 @@
 # @parameter_rename package_name name
 # @class_prefix package_install
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_install_version_cmp(name, version_comparator, package_version, action)
 {

@@ -27,6 +27,7 @@
 # @parameter_rename target path
 # @class_prefix file_create
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_create(path)
 {

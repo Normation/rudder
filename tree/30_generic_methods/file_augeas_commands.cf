@@ -70,6 +70,7 @@
 #
 # @class_prefix file_augeas_commands
 # @class_parameter variable_name
+# @agent_support = ["cfengine-community"]
 
 
 bundle agent file_augeas_commands(variable_prefix, variable_name, commands, autoload)

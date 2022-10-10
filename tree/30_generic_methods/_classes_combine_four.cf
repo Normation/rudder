@@ -30,6 +30,7 @@
 #
 # @class_prefix 
 # @class_parameter destination_prefix
+# @agent_support = ["cfengine-community"]
 
 bundle agent _classes_combine_four(first_prefix, second_prefix, third_prefix, fourth_prefix, destination_prefix)
 {

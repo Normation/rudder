@@ -27,6 +27,7 @@
 #
 # @class_prefix user_present
 # @class_parameter login
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent user_present(login)
 {

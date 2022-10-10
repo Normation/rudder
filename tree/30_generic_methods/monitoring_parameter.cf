@@ -30,6 +30,7 @@
 #
 # @class_prefix monitoring_parameter
 # @class_parameter key
+# @agent_support = ["cfengine-community"]
 
 bundle agent monitoring_parameter(key, value)
 {

@@ -69,6 +69,7 @@
 # 
 # @class_prefix command_execution_once
 # @class_parameter command
+# @agent_support = ["cfengine-community"]
 
 bundle agent command_execution_once(command, ok_codes, until, unique_id)
 {

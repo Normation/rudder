@@ -26,6 +26,7 @@
 # @parameter_rename file path
 # @class_prefix file_lines_present
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_lines_present(path, lines)
 {

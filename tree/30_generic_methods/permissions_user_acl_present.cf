@@ -115,6 +115,7 @@
 #
 # @class_prefix permissions_user_acl_present
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent permissions_user_acl_present(path, recursive, user, ace)
 {

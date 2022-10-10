@@ -33,6 +33,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_dict_from_file
 # @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent variable_dict_from_file(prefix, name, file_name)
 {

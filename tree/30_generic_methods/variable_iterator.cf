@@ -39,6 +39,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_iterator
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent variable_iterator(prefix, name, value, separator)
 {

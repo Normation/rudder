@@ -29,6 +29,7 @@
 # @parameter_rename destination path
 # @class_prefix file_copy_from_local_source
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_copy_from_local_source_recursion(source, path, recursion)
 {

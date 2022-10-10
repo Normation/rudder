@@ -30,6 +30,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_string_match
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 
 bundle agent variable_string_match(name, expected_match)

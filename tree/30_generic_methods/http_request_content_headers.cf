@@ -30,6 +30,7 @@
 #
 # @class_prefix http_request_content_headers
 # @class_parameter url
+# @agent_support = ["cfengine-community"]
 
 bundle agent http_request_content_headers(method, url, content, headers)
 {

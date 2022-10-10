@@ -28,6 +28,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_string_mustache
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 # This bundle will define a condition file_from_string_mustache_${path}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_from_string_mustache(template, path)

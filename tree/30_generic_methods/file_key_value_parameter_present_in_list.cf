@@ -53,6 +53,7 @@
 # @parameter_rename file path
 # @class_prefix file_key_value_parameter_present_in_list
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_key_value_parameter_present_in_list(path, key, key_value_separator, parameter, parameter_separator, leading_char_separator, closing_char_separator)
 {

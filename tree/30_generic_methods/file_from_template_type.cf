@@ -104,6 +104,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_template
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_from_template_type(source_template, path, template_type)
 {

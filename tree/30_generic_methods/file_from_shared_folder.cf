@@ -36,6 +36,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_shared_folder
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_from_shared_folder(source, path, hash_type)
 {

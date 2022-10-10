@@ -46,6 +46,7 @@
 # @parameter_rename user login
 # @class_prefix user_group
 # @class_parameter login
+# @agent_support = ["cfengine-community"]
 
 bundle agent user_group(login, group_name) {
   vars:

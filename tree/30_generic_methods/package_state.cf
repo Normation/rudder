@@ -151,6 +151,7 @@
 # 
 # @class_prefix package_state
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_state(name, version, architecture, provider, state)
 {

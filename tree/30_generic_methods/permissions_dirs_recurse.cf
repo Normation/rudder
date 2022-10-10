@@ -28,6 +28,7 @@
 #
 # @class_prefix permissions
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent permissions_dirs_recurse(path, mode, owner, group)
 {

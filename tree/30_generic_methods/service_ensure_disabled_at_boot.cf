@@ -27,6 +27,7 @@
 # @parameter_rename service_name name
 # @class_prefix service_ensure_disabled_at_boot
 # @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent service_ensure_disabled_at_boot(name)
 {

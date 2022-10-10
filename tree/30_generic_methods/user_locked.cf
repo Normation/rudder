@@ -26,6 +26,7 @@
 # 
 # @class_prefix user_locked
 # @class_parameter login
+# @agent_support = ["cfengine-community"]
 
 bundle agent user_locked(login)
 {

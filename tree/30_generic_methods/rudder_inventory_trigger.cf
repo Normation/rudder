@@ -28,6 +28,7 @@
 #
 # @class_prefix rudder_inventory_trigger
 # @class_parameter id
+# @agent_support = ["cfengine-community"]
 
 bundle agent rudder_inventory_trigger(id)
 {

@@ -33,6 +33,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_dict_merge_tolerant
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent variable_dict_merge_tolerant(prefix, name, first_variable, second_variable)
 {

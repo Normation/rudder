@@ -25,6 +25,7 @@
 # @parameter_rename target path
 # @class_prefix file_absent
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_absent(path)
 {

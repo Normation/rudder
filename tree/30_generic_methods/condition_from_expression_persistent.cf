@@ -66,6 +66,7 @@
 # @parameter_rename condition_expression expression
 # @class_prefix condition_from_expression_persistent
 # @class_parameter condition
+# @agent_support = ["cfengine-community"]
  
 bundle agent condition_from_expression_persistent(condition, expression, duration)
 {

@@ -28,6 +28,7 @@
 # @parameter_constraint group "allow_empty_string" : true
 # @class_prefix permissions
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent permissions(path, mode, owner, group)
 {

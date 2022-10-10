@@ -30,6 +30,7 @@
 #
 # @class_prefix command_execution_result
 # @class_parameter command
+# @agent_support = ["cfengine-community"]
 
 bundle agent command_execution_result(command, kept_codes, repaired_codes)
 {

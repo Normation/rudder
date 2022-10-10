@@ -80,6 +80,7 @@
 # @parameter_rename file path
 # @class_prefix file_keys_values_present
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_keys_values_present(path, keys, separator)
 {

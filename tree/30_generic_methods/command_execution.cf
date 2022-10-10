@@ -60,6 +60,7 @@
 #
 # @class_prefix command_execution
 # @class_parameter command
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent command_execution(command)
 {

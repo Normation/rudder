@@ -27,6 +27,7 @@
 #
 # @class_prefix environment_variable_present
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 # This bundle will define a class environment_variable_present_${name}_{kept,not_ok}
 
 bundle agent environment_variable_present(name, value)

@@ -27,6 +27,7 @@
 # 
 # @class_prefix monitoring_template
 # @class_parameter template
+# @agent_support = ["cfengine-community"]
 
 bundle agent monitoring_template(template)
 {

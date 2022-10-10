@@ -36,6 +36,7 @@
 #
 # @class_prefix report_if_condition
 # @class_parameter report_message
+# @agent_support = ["cfengine-community"]
 
 bundle agent report_if_condition(report_message, condition)
 {

@@ -29,6 +29,7 @@
 # @parameter_rename service_name name
 # @class_prefix service_start
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent service_start(name)
 {

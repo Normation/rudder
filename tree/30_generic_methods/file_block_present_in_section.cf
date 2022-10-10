@@ -32,6 +32,7 @@
 # @parameter_rename file path
 # @class_prefix file_block_present_in_section
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_block_present_in_section(path, section_start, section_end, block)
 {

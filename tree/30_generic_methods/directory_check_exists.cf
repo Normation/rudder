@@ -28,6 +28,7 @@
 # @parameter_rename directory_name path
 # @class_prefix directory_check_exists
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent directory_check_exists(path)
 {

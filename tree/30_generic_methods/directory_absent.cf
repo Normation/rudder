@@ -28,6 +28,7 @@
 # @parameter_rename target path
 # @class_prefix directory_absent
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent directory_absent(path, recursive)
 {

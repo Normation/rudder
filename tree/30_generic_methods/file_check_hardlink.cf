@@ -31,6 +31,7 @@
 # @parameter_rename file_name_2 path_2
 # @class_prefix file_check_hardlink
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_check_hardlink(path, path_2)
 {

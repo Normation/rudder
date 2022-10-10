@@ -32,6 +32,7 @@
 # 
 # @class_prefix user_create
 # @class_parameter login
+# @agent_support = ["cfengine-community"]
 
 bundle agent user_create(login, description, home, group, shell, locked)
 {

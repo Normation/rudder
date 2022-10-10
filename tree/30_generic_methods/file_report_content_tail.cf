@@ -53,6 +53,7 @@
 # @parameter_rename target path
 # @class_prefix file_report_content_tail
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_report_content_tail(path, limit)
 {

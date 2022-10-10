@@ -71,6 +71,7 @@
 # @parameter_rename variable_name name
 # @class_prefix variable_dict_merge
 # @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent variable_dict_merge(prefix, name, first_variable, second_variable)
 {

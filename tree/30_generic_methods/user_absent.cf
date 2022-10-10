@@ -24,6 +24,7 @@
 # 
 # @class_prefix user_absent
 # @class_parameter login
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent user_absent(login)
 {

@@ -26,6 +26,7 @@
 # @parameter_rename package_name name
 # @class_prefix package_install
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 
 bundle agent package_install(name)
 {

@@ -48,6 +48,7 @@
 # @parameter_rename destination path
 # @class_prefix file_from_local_source_with_check
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_from_local_source_with_check(source, path, check_command, rc_ok)
 {

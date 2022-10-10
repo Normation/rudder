@@ -26,6 +26,7 @@
 #
 # @class_prefix
 # @class_parameter
+# @agent_support = ["cfengine-community"]
 
 bundle agent _classes_copy(source_prefix, destination_prefix)
 {

@@ -41,6 +41,7 @@
 #
 # @class_prefix condition_once
 # @class_parameter condition
+# @agent_support = ["cfengine-community"]
 
 bundle agent condition_once(condition)
 {

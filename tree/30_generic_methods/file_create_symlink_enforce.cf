@@ -29,6 +29,7 @@
 # @parameter_rename destination path
 # @class_prefix file_create_symlink
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_create_symlink_enforce(source, path, enforce)
 {

@@ -26,6 +26,7 @@
 # @parameter_rename target path
 # @class_prefix directory_present
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent directory_present(path)
 {

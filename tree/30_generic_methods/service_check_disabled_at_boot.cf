@@ -25,6 +25,7 @@
 # @parameter_rename service_name name
 # @class_prefix service_check_disabled_at_boot
 # @class_parameter name
+# @agent_support = ["cfengine-community"]
 # This bundle will define a condition service_check_disabled_at_boot_${name}_{kept,ok,not_ok,failed,reached}
 
 bundle agent service_check_disabled_at_boot(name)

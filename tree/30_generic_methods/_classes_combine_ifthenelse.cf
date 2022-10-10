@@ -34,6 +34,7 @@
 #
 # @class_prefix 
 # @class_parameter destination_prefix
+# @agent_support = ["cfengine-community"]
 
 bundle agent _classes_combine_ifthenelse(test_prefix, then_outcome, else_outcome, destination_prefix)
 {

@@ -25,6 +25,7 @@
 # 
 # @class_prefix user_fullname
 # @class_parameter login
+# @agent_support = ["cfengine-community"]
 
 bundle agent user_fullname(login, fullname)
 {

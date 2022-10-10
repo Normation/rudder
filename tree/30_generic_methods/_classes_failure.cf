@@ -23,6 +23,7 @@
 #
 # @class_prefix 
 # @class_parameter 
+# @agent_support = ["cfengine-community"]
 
 bundle agent _classes_failure(destination_prefix)
 {

@@ -45,6 +45,7 @@
 # @parameter_rename file path
 # @class_prefix file_replace_lines
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_replace_lines(path, line, replacement)
 {

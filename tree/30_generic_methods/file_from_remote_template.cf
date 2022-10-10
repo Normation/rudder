@@ -60,6 +60,7 @@
 
 # @class_prefix file_from_remote_template
 # @class_parameter destination
+# @agent_support = ["cfengine-community"]
 # @parameter_constraint template_type "select" : [ "jinja2", "mustache" ]
 
 

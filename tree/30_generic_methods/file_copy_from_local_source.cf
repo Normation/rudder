@@ -28,6 +28,7 @@
 # @parameter_rename destination path
 # @class_prefix file_copy_from_local_source
 # @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_copy_from_local_source(source, path)
 {

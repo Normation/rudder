@@ -29,6 +29,7 @@
 # @parameter_rename file_name path
 # @class_prefix file_check_symlink
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_check_symlink(path)
 {

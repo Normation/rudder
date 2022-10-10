@@ -35,6 +35,7 @@
 # @parameter_rename file path
 # @class_prefix file_ensure_key_value
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_ensure_key_value_option(path, key, value, separator, option)
 {

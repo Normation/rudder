@@ -33,6 +33,7 @@
 # @parameter_rename source_uuid remote_node
 # @class_prefix sharedfile_from_node
 # @class_parameter file_id
+# @agent_support = ["cfengine-community"]
 
 bundle agent sharedfile_from_node(remote_node, file_id, file_path)
 {

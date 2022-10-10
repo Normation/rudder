@@ -47,6 +47,7 @@
 # @parameter_rename condition_prefix condition
 # @class_prefix condition_from_variable_match
 # @class_parameter condition
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent condition_from_variable_match(condition, variable_name, expected_match)
 {

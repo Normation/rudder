@@ -40,6 +40,7 @@
 # @parameter_rename destination path
 # @class_prefix file_copy_from_remote_source
 # @class_parameter path
+# @agent_support = ["cfengine-community"]
 
 bundle agent file_copy_from_remote_source(source, path)
 {
