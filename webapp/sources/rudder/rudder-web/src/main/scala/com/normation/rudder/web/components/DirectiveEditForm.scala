@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain.Technique
-
 import net.liftweb.http.js._
 import JsCmds._
 import net.liftweb.util._
@@ -52,7 +51,6 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
-
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
@@ -65,7 +63,6 @@ import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.CurrentUser
-
 import com.normation.box._
 
 object DirectiveEditForm {
@@ -111,6 +108,7 @@ class DirectiveEditForm(
   private[this] val roRuleRepo             = RudderConfig.roRuleRepository
   private[this] val roRuleCategoryRepo     = RudderConfig.roRuleCategoryRepository
   private[this] val workflowLevelService   = RudderConfig.workflowLevelService
+  private[this] val ncfTechniqueService    = RudderConfig.ncfTechniqueReader
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
@@ -134,6 +132,21 @@ class DirectiveEditForm(
   val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
   def dispatch = {
     case "showForm" => { _ => showForm() }
+  }
+
+  def isNcfTechnique(id: TechniqueId): Boolean = {
+    val test = for {
+      res <- ncfTechniqueService.readTechniquesMetadataFile
+      (techniquesEditor, methods) = res
+      ids = techniquesEditor.map(_.bundleName.value)
+    } yield {
+      ids.contains(id.name.value)
+    }
+
+    test.toBox match {
+      case Full(res)    => res
+      case eb: EmptyBox => false
+    }
   }
 
   def showForm(): NodeSeq = {
@@ -253,11 +266,23 @@ class DirectiveEditForm(
             {("type", "button")}
        ) &
        //form and form fields
-      "#techniqueName *" #>
-        <a href={ "/secure/administration/techniqueLibraryManagement/" +
-          technique.id.name.value }>
-          { technique.name } version {technique.id.version}
-        </a> &
+      "#techniqueName *" #> {
+          if (isNcfTechnique(technique.id)) {
+            <a href={"/secure/configurationManager/techniqueEditor/technique/" +
+              technique.id.name.value}>
+              {technique.name}
+              version
+              {technique.id.version}
+            </a>
+          } else {
+            <a href={"/secure/administration/techniqueLibraryManagement/" +
+              technique.id.name.value}>
+              {technique.name}
+              version
+              {technique.id.version}
+            </a>
+          }
+      } &
       "#techniqueID *" #> technique.id.name.value &
       "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
       "#techniqueDescription *" #> technique.description &

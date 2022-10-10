@@ -22,6 +22,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+
 import zio.syntax._
 
 class RulesInternalApi(

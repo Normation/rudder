@@ -262,6 +262,20 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
     $(id+' .rudder-label').bsTooltip();
+  }).on("ready.jstree", function () {
+    // make jstree node openable in a new tab
+    var nodes = document.querySelectorAll('[id^="jstree-"][id$="_anchor"]');
+    nodes.forEach(function(x) {
+      var jsTreeId = x.getAttribute("id");
+      var idType = ""
+      if(jsTreeId.startsWith("jstree-special:")) {
+        var idGroupSystem = jsTreeId.slice(7, -7);
+        x.setAttribute("href", "/rudder/secure/nodeManager/groups#{\"target\":\"" + idGroupSystem + "\"}");
+      } else {
+        var idGroupUser = jsTreeId.slice(13, -7);
+        x.setAttribute("href", "/rudder/secure/nodeManager/groups#{\"groupId\":\"" + idGroupUser + "\"}");
+      }
+    });
   }).jstree({
     "core" : { 
       "animation" : 300,
@@ -407,6 +421,14 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
 
     $(id+' .rudder-label').bsTooltip();
+    }).on("ready.jstree", function () {
+      // make jstree node openable in a new tab
+      var nodes = document.querySelectorAll('[id^="jsTree-"][id$="_anchor"]');
+      nodes.forEach(function(x) {
+        var jsTreeId = x.getAttribute("id");
+        var idDirective = jsTreeId.slice(7, -7);
+        x.setAttribute("href", "/rudder/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
+      });
     }).jstree({
       "core" : { 
         "animation" : 300,
