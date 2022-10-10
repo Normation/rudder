@@ -37,17 +37,16 @@
 
 package com.normation.rudder.rest
 
-import com.normation.rudder.DumbCampaignType
 import com.normation.rudder.campaigns.CampaignEvent
-import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignEventState
-import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
 
 import better.files.File
+import com.normation.rudder.campaigns.Scheduled
+
+import com.github.ghik.silencer.silent
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -60,10 +59,12 @@ import org.specs2.specification.AfterAll
 import zio.json._
 import com.normation.zio._
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class CampaignApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
+  ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
   val restTest = new RestTest(restTestSetUp.liftRules)
 
   val testDir = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
@@ -81,36 +82,29 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
   def children(f: File) = f.children.toList.map(_.name)
 
   // start service now, it takes sometime and is async, so we need to start it early to avoid flakiness
-  ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
 
 
 //  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
+  val c0json =
+    """{"info":{
+      |"id":"c0",
+      |"name":"first campaign",
+      |"description":"a test campaign present when rudder boot",
+      |"status":{"value":"enabled"},
+      |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+      |},
+      |"details":{"name":"campaign #0"},
+      |"campaignType":"dumb-campaign",
+      |"version":1
+      |}""".stripMargin.replaceAll("""\n""","")
+
+  // init in mock
+  val ce0 = restTestSetUp.mockCampaign.e0
+
   sequential
 
   "when rudder starts, we" should {
-    val c0json =
-        """{"info":{
-            |"id":"c0",
-            |"name":"first campaign",
-            |"description":"a test campaign present when rudder boot",
-            |"status":{"value":"enabled"},
-            |"schedule":{"day":1,"startHour":3,"startMinute":42,"type":"weekly"},
-            |"duration":3600000},
-          |"details":{"name":"campaign #0"},
-          |"campaignType":"dumb-campaign"
-          |}""".stripMargin.replaceAll("""\n""","")
-
-    // init in mock
-    val ce0 = CampaignEvent(
-        CampaignEventId("e0")
-      , CampaignId("c0")
-      , CampaignEventState.Finished
-      , new DateTime(0)
-      , new DateTime(1)
-      , DumbCampaignType
-    )
-
     "have one campaign" in {
       val resp = s"""[$c0json]"""
 
@@ -137,11 +131,39 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
             val next = events.collectFirst { case x if x.id != ce0.id => x }.getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
             (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state must beEqualTo(CampaignEventState.Scheduled)) and
+            (next.state must beEqualTo(Scheduled)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
 
         case err => ko(s"I got an error in test: ${err}")
+      }
+    }
+
+    "save one campaign" in {
+
+
+      val c1json =
+        """{"info":{
+          |"id":"c1",
+          |"name":"second campaign",
+          |"description":"a test campaign present when rudder boot",
+          |"status":{"value":"enabled"},
+          |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+          |},
+          |"details":{"name":"campaign #0"},
+          |"campaignType":"dumb-campaign",
+          |"version":1
+          |}""".stripMargin.replaceAll("""\n""","")
+
+      val resp = s"""[$c1json]"""
+
+
+
+      restTest.testPOSTResponse("/secure/api/campaigns",net.liftweb.json.parse(c1json)) {
+        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
+          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
+        case err                                                                        =>
+          ko(s"I got an error in test: ${err}")
       }
     }
   }

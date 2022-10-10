@@ -118,7 +118,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map( _.id ).toBox
 
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
-  private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
+  private[this] val currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
 
   private[this] val techniqueId: Box[String] = S.param("techniqueId")
 
@@ -211,7 +211,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Display the actions bar of the user library
    */
   def userLibraryAction() : NodeSeq = {
-    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-success btn-outline new-icon pull-right"))
+    SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-default pull-right"))
   }
 
   /**

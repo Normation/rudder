@@ -41,7 +41,7 @@ getRuleNbNodes ruleDetails =
 getRuleNbGroups : Maybe Rule -> Int
 getRuleNbGroups rule =
   case Maybe.Extra.unwrap [] .targets rule of
-    [Composition (Or i) (Or e)] -> List.length i
+    [Composition (Or i) (Or e)] -> List.length i + List.length e
     targets -> List.length targets
 
 
@@ -665,3 +665,43 @@ goToBtn link =
 goToIcon : Html Msg
 goToIcon =
   span [ class "btn-goto" ] [ i[class "fa fa-pen"][] ]
+
+getNbResourcesBadge : Int -> String -> Html Msg
+getNbResourcesBadge nb msg =
+  let
+    (warningClass, warningTitle, warningIcon) =
+      if nb <= 0 then
+      ( " warning"
+      , msg
+      , i[class "fa fa-exclamation-triangle"][]
+      )
+      else
+      ( ""
+      , ""
+      , text ""
+      )
+  in
+    span [class ("nb-resources" ++ warningClass), title warningTitle]
+    [ text (String.fromInt nb)
+    , warningIcon
+    ]
+
+getGroupsNbResourcesBadge : Int -> Int -> String -> Html Msg
+getGroupsNbResourcesBadge nbTargets nbInclude msg =
+  let
+    (warningClass, warningTitle, warningIcon) =
+      if nbInclude <= 0 then
+      ( " warning"
+      , msg
+      , i[class "fa fa-exclamation-triangle"][]
+      )
+      else
+      ( ""
+      , ""
+      , text ""
+      )
+  in
+    span [class ("nb-resources" ++ warningClass), title warningTitle]
+    [ text (String.fromInt nbTargets)
+    , warningIcon
+    ]

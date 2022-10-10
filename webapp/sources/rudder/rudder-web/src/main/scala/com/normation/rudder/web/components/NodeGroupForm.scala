@@ -222,10 +222,15 @@ class NodeGroupForm(
       & "group-save" #> { if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
                     <span class="save-tooltip-container">
                       {
-                        SHtml.ajaxButton(<span>Save <i class="fa fa-download"></i></span>, onSubmit _)  %  ("id" -> saveButtonId) % ("class" -> " btn btn-success btn-icon")
+                        SHtml.ajaxOnSubmit(onSubmit _)(
+                          <button class="btn btn-success btn-icon ui-button ui-corner-all ui-widget" id={saveButtonId}>
+                            <span>Save <i class="fa fa-download"></i></span>
+                          </button>
+                        )
                       }
                       <span class="save-tooltip bsTooltip" title="Your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes. Please click on 'Search' to enable saving again"></span>
                     </span>
+
                    else NodeSeq.Empty
                 }
       & "group-delete" #> SHtml.ajaxButton(<span>Delete <i class="fa fa-times-circle"></i></span>, () => onSubmitDelete(), ("class" -> " btn btn-danger btn-icon"))

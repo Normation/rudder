@@ -38,20 +38,20 @@
 package com.normation.rudder.campaigns
 
 import cats.implicits._
-
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
-import com.normation.rudder.campaigns.CampaignEventState._
+import com.normation.errors.RudderError
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
-
 import zio.Queue
 import zio.ZIO
 import zio.clock.Clock
 import zio.duration._
 import zio.syntax._
+
+import scala.annotation.nowarn
 
 
 trait CampaignHandler{
@@ -61,7 +61,7 @@ trait CampaignHandler{
 object MainCampaignService {
   def start(mainCampaignService: MainCampaignService) = {
     for {
-      campaignQueue <- Queue.unbounded[CampaignEvent]
+      campaignQueue <- Queue.unbounded[CampaignEventId]
       _             <- mainCampaignService.start(campaignQueue).forkDaemon
     } yield ()
   }
@@ -72,6 +72,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   private[this] var services : List[CampaignHandler] = Nil
   def registerService(s : CampaignHandler) = {
     services = s :: services
+    init()
   }
 
   private[this] var inner : Option[CampaignScheduler] = None
@@ -79,7 +80,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   def saveCampaign(c : Campaign) = {
     for {
       _ <- campaignRepo.save(c)
-      _ <- scheduleCampaignEvent(c)
+      _ <- scheduleCampaignEvent(c, DateTime.now())
     } yield {
       c
     }
@@ -91,51 +92,94 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
-  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEvent], zclock: Clock) {
+  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEventId], zclock: Clock) {
 
     def queueCampaign(c: CampaignEvent) = {
       for {
-        _ <- queue.offer(c)
+        _ <- queue.offer(c.id)
       } yield {
         c
       }
     }
 
-    def handle(event: CampaignEvent) = {
+    def handle(eventId: CampaignEventId) = {
 
-      def base: PartialFunction[Campaign, IOResult[CampaignEvent]] = {
+      def base(event : CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = {
         case _ => event.succeed
       }
 
       val now = DateTime.now()
 
+      @nowarn
+      def failingLog(err : RudderError) = {
+        for {
+          _ <- CampaignLogger.error(s"An error occurred while treating campaign event ${eventId.value}, error details : ${err.fullMsg} ")
+          _ <- err.fail
+        } yield  {
+          ()
+        }
+      }
       (for {
+
+        event <- repo.get(eventId)
         campaign <- campaignRepo.get(event.campaignId)
+        _ <-  CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
+
+        _ <-  CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
         wait <-
           event.state match {
-            case Finished =>
+            case Finished | Skipped(_) =>
               ().succeed
-            case Scheduled | Skipped =>
+            case Scheduled =>
+              campaign.info.status match {
+                case Disabled(reason) =>
+                  val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                  repo.saveCampaignEvent(event.copy(state = Skipped(s"Event was cancelled because campaign is disabled. ${reasonMessage}")))
+                case Archived(reason,date) =>
+                  val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                  repo.saveCampaignEvent(event.copy(state = Skipped(s"Event was cancelled because campaign is archived. ${reasonMessage}")))
+                case Enabled =>
+                  if (event.start.isAfter(now)) {
+                    for {
+                      _ <-  CampaignLogger.debug(s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService.serialize(event.start)}")
+                      _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
+                    } yield {
+                      ().succeed
+                    }
+                  } else
+                    CampaignLogger.debug(s"${event.id.value} should be treated by ${event.campaignType.value} handler for Scheduled state")
+                }
+            case Running =>
               if (event.start.isAfter(now)) {
                 for {
+                  // Campaign should be planned, not running
+                  _ <-  CampaignLogger.warn(s"Campaign event ${event.id.value} was considered Running but we are before it start date, setting state to Schedule and wait for event to start, on ${DateFormaterService.serialize(event.start)}")
+                  _ <- repo.saveCampaignEvent(event.copy(state = Scheduled))
+                  _ <-  CampaignLogger.debug(s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService.serialize(event.start)}")
                   _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
                 } yield {
                   ()
                 }
               } else
-                ().succeed
-            case Running =>
-              if (event.end.isAfter(now)) {
-                for {
-                  _ <- ZIO.sleep(Duration.fromMillis(event.end.getMillis - now.getMillis))
-                } yield {
-                  ()
-                }
-              } else ().succeed
+                if (event.end.isAfter(now)) {
+                  for {
+                    _ <-  CampaignLogger.debug(s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService.serialize(event.end)}")
+                    _ <- ZIO.sleep(Duration.fromMillis(event.end.getMillis - now.getMillis))
+                  } yield {
+                    ()
+                  }
+                } else
+                  CampaignLogger.debug(s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state")
           }
-        updatedEvent <- repo.get(event.id).catchAll(_ => event.succeed)
-        handle = services.map(_.handle(main,updatedEvent)).foldLeft(base) { case (base, handler) => handler orElse base }
-        newCampaign <- handle.apply(campaign).catchAll(
+
+        // Get updated event and campaign, state of the event could have changed, campaign parameter also
+        updatedEvent <- repo.get(event.id)
+        updatedCampaign <- campaignRepo.get(event.campaignId)
+        _ <-  CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
+
+
+        handle = services.map(_.handle(main,updatedEvent)).foldLeft(base(updatedEvent)) { case (base, handler) => handler orElse base }
+        newCampaign <- handle.apply(updatedCampaign).catchAll(
           err =>
           for {
             _ <- CampaignLogger.error(err.fullMsg)
@@ -143,19 +187,19 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
             event
           }
         )
+        _ <- CampaignLogger.debug(s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}")
         save <- repo.saveCampaignEvent(newCampaign)
         post <-
           newCampaign.state match {
-            case Finished =>
+            case Finished|Skipped(_)  =>
               for {
                 campaign <- campaignRepo.get(event.campaignId)
-                up <-  scheduleCampaignEvent(campaign)
+                up <-  scheduleCampaignEvent(campaign, newCampaign.end)
               } yield {
                 up
               }
-            case Scheduled|Running|Skipped =>
+            case Scheduled|Running =>
               for {
-                _ <- repo.saveCampaignEvent(newCampaign)
                 _ <- queueCampaign(newCampaign)
               } yield {
                 ()
@@ -163,7 +207,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           }
       } yield {
         ()
-      }).provide(zclock).forkDaemon
+      }).provide(zclock).catchAll(failingLog)
 
 
     }
@@ -171,53 +215,45 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     def loop() = {
       for {
         c <- queue.take
-        _ <- handle(c)
+        _ <- handle(c).forkDaemon
       } yield {
         ()
       }
     }
 
-
-
-    def start() = {
-      for {
-        init <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
-        _ <- queue.offerAll(init)
-        _ <- loop().forever.forkDaemon
-      } yield {
-        ()
-      }
-
-    }
+    def start() = loop().forever
   }
 
-  def nextCampaignDate(schedule : CampaignSchedule, date : DateTime) : IOResult[DateTime] = {
+  def nextDateFromDayTime(date : DateTime, start : DayTime) : DateTime = {
+    (if ( date.getDayOfWeek > start.day.value
+      || ( date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
+      || ( date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
+    ) {
+      date.plusWeeks(1)
+    } else {
+      date
+    }).withDayOfWeek(start.day.value).withHourOfDay(start.realHour).withMinuteOfHour(start.realMinute).withSecondOfMinute(0).withMillisOfSecond(0)
+  }
+
+  def nextCampaignDate(schedule : CampaignSchedule, date : DateTime) : IOResult[(DateTime,DateTime)] = {
     schedule match {
-      case OneShot(s) =>
-        if (s.isAfter(date)) {
-          s.succeed
+      case OneShot(start,end) =>
+        if (start.isBefore(end)) {
+          (start,end).succeed
         } else {
-          Inconsistency("Cannot schedule").fail
+          Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService.getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
         }
-      case WeeklySchedule(day,startHour, startMinute) =>
-        val realHour = startHour % 24
-        val realMinutes = startMinute % 60
-        for {
-          d <- (if ( date.getDayOfWeek > day.value
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay > realHour)
-                || ( date.getDayOfWeek == day.value && date.getHourOfDay == realHour && date.getMinuteOfHour > realMinutes)
-                ) {
-                  date.plusWeeks(1)
-                } else {
-                  date
-                }).withDayOfWeek(day.value).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0).succeed
-        } yield {
-          d
-        }
-      case MonthlySchedule(position, day, startHour, startMinute) =>
-        val realHour = startHour % 24
-        val realMinutes = startMinute % 60
-        val d = (position match {
+      case WeeklySchedule(start,end) =>
+        val startDate = nextDateFromDayTime(date,start)
+        val endDate   = nextDateFromDayTime(startDate,end)
+
+        (startDate,endDate).succeed
+
+      case MonthlySchedule(position, start, end) =>
+        val realHour = start.realHour
+        val realMinutes = start.realMinute
+        val day = start.day
+        val base = (position match {
           case First =>
             val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
             if (t.getMonthOfYear < date.getMonthOfYear) {
@@ -254,29 +290,37 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
               t.minusWeeks(1)
             }
         }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
-        (if (date.isAfter(d)) {
-          d.plusMonths(1)
-        } else {
-          d
-        }).plusMonths(1).succeed
+        val startDate =
+          (if (date.isAfter(base)) {
+            base.plusMonths(1)
+          } else {
+            base
+          })
+        val endDate = nextDateFromDayTime(startDate, end)
+        (startDate,endDate).succeed
     }
   }
 
-  def scheduleCampaignEvent(campaign: Campaign) : IOResult[CampaignEvent] = {
-
+  def scheduleCampaignEvent(campaign: Campaign, date : DateTime) : IOResult[CampaignEvent] = {
     for {
-      events <- repo.getWithCriteria(Scheduled :: Running :: Nil, None,Some(campaign.info.id))
+      nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
+      events <- repo.getWithCriteria(Running.value :: Nil, None,Some(campaign.info.id), None, None, None, None, None, None)
+      _ <- repo.deleteEvent(None, Scheduled.value :: Nil, None,Some(campaign.info.id), None, None)
+
       lastEventDate = events match {
-        case Nil => DateTime.now()
-        case _ => events.maxBy(_.start.getMillis).start
+        case Nil => date
+        case _ =>
+          val maxEventDate = events.maxBy(_.end.getMillis).start
+          if (maxEventDate.isAfter(date)) maxEventDate else date
+
       }
-      newEventDate <- nextCampaignDate(campaign.info.schedule, lastEventDate)
-      end = newEventDate.plus(campaign.info.duration.toMillis)
-      newCampaign = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,Scheduled,newEventDate,end,campaign.campaignType)
-      _ <- repo.saveCampaignEvent(newCampaign)
-      _ <- queueCampaign(newCampaign)
+      dates <- nextCampaignDate(campaign.info.schedule, lastEventDate)
+      (start, end) = dates
+      newEvent = CampaignEvent(CampaignEventId(uuidGen.newUuid),campaign.info.id,s" ${campaign.info.name} #${nbOfEvents+1}", Scheduled,start,end,campaign.campaignType)
+      _ <- repo.saveCampaignEvent(newEvent)
+      _ <- queueCampaign(newEvent)
     } yield {
-      newCampaign
+      newEvent
     }
   }
 
@@ -286,34 +330,34 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case None => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
         for {
-          alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
+          alreadyScheduled <- repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, None, None, None, None, None,None, None, None)
+          _ <- CampaignLogger.debug("Got events, queue them")
+          _ <- s.queue.takeAll // empty queue, we will enqueue all existing events again
+          _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
+          _ <- CampaignLogger.debug("queued events, check campaigns")
           campaigns <- campaignRepo.getAll()
           _ <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           newEvents <- ZIO.foreach(toStart) { c =>
-                         scheduleCampaignEvent(c)
+                         scheduleCampaignEvent(c, DateTime.now())
                        }
           _ <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
           _ <- ZIO.foreach(newEvents) { ev => s.queueCampaign(ev) }
+          _ <- CampaignLogger.info(s"Campaign Scheduler initialized with ${alreadyScheduled.size + newEvents.size} events")
         } yield {
           ()
         }
     }
   }
 
-  def start(initQueue: Queue[CampaignEvent]) = {
+  def start(initQueue: Queue[CampaignEventId]) = {
     val s = CampaignScheduler(this, initQueue, ZioRuntime.environment)
     inner = Some(s)
     for {
-      _ <- CampaignLogger.debug("Starting campaign scheduler")
+      _ <- CampaignLogger.info("Starting campaign scheduler")
       _ <- s.start().forkDaemon
       _ <- CampaignLogger.debug("Starting campaign forked, now getting already created events")
-      alreadyScheduled <- repo.getWithCriteria(Running :: Scheduled :: Nil, None, None)
-      _ <- CampaignLogger.debug("Got events, queue them")
-      _ <- ZIO.foreach(alreadyScheduled) { ev => s.queueCampaign(ev) }
-      _ <- CampaignLogger.debug("queued events, check campaigns")
       _ <- init()
-
     } yield {
       ()
     }

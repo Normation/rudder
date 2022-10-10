@@ -63,7 +63,6 @@ import com.normation.rudder.campaigns.CampaignDetails
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignInfo
 import com.normation.rudder.campaigns.CampaignRepository
@@ -130,6 +129,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
+
 import better.files._
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
@@ -145,16 +145,21 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.SortedMap
 import scala.collection.immutable
-import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import scala.xml.Elem
+
 import zio.syntax._
 import zio.{Tag => _, _}
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.errors._
+import com.normation.rudder.campaigns.CampaignParsingInfo
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignType
+import com.normation.rudder.campaigns.DayTime
+import com.normation.rudder.campaigns.Finished
+import com.normation.rudder.campaigns.Running
+import com.normation.rudder.campaigns.Scheduled
 import com.normation.zio._
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -2356,8 +2361,9 @@ sealed trait DumbCampaignTrait extends Campaign
 @jsonHint(DumbCampaignType.value)
 final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
   val campaignType = DumbCampaignType
-
+  val version = 1
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
+
 }
 
 class MockCampaign() {
@@ -2370,10 +2376,9 @@ class MockCampaign() {
     , "first campaign"
     , "a test campaign present when rudder boot"
     , Enabled
-    , WeeklySchedule(Monday, 3, 42)
-    , Duration("1 hour")
+    , WeeklySchedule(DayTime(Monday, 3, 42),DayTime(Monday, 4, 42))
   ), DumbCampaignDetails("campaign #0"))
-  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,CampaignEventState.Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0 = CampaignEvent(CampaignEventId("e0"),c0.info.id,"campaign #0",Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
 
 
   object repo extends CampaignRepository {
@@ -2387,6 +2392,10 @@ class MockCampaign() {
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
+
+    def delete(id: CampaignId): IOResult[CampaignId] = {
+      items.update(_ - id) *> id.succeed
+    }
   }
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
@@ -2397,12 +2406,8 @@ class MockCampaign() {
     implicit val dumbCampaignDetailsEncoder : JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
     implicit val dumbCampaignEncoder : JsonEncoder[DumbCampaignTrait] = DeriveJsonEncoder.gen
 
-    def handle(pretty: Boolean): PartialFunction[Campaign, IOResult[String]] = {
-      case c : DumbCampaignTrait => (if(pretty) c.toJsonPretty else c.toJson).succeed
-    }
-
-    def read(): PartialFunction[String, IOResult[Campaign]] = {
-      case s => s.fromJson[DumbCampaignTrait].toIO
+    def read(): PartialFunction[(String,CampaignParsingInfo), IOResult[Campaign]] = {
+      case (s,CampaignParsingInfo(DumbCampaignType,1)) => s.fromJson[DumbCampaignTrait].toIO
     }
 
     def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = {
@@ -2419,7 +2424,7 @@ class MockCampaign() {
     val items = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
 
     def isActive(e: CampaignEvent) = {
-      e.state == CampaignEventState.Scheduled || e.state == CampaignEventState.Running
+      e.state == Scheduled || e.state == Running
     }
 
 
@@ -2432,9 +2437,9 @@ class MockCampaign() {
       } yield c
     }
 
-    def getWithCriteria(states: List[CampaignEventState], campaignType: Option[CampaignType], campaignId: Option[CampaignId]): IOResult[List[CampaignEvent]] = {
+    def getWithCriteria(states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], limit: Option[Int], offset: Option[Int], afterDate: Option[DateTime], beforeDate: Option[DateTime], order:Option[String], asc: Option[String]): IOResult[List[CampaignEvent]] = {
 
-      val allEvents = items.get.map(_.values.toList)
+    val allEvents = items.get.map(_.values.toList)
       val campaignIdFiltered = campaignId match {
         case None => allEvents
         case Some(id) => allEvents.map(_.filter(_.campaignId == id))
@@ -2443,12 +2448,87 @@ class MockCampaign() {
         case None => campaignIdFiltered
         case Some(id) => campaignIdFiltered.map(_.filter(_.campaignType == id))
       }
-      states match {
+      val stateFiltered = states match {
         case Nil => campaignTypeFiltered
-        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(ev.state)))
+        case s => campaignTypeFiltered.map(_.filter(ev => states.contains(s)))
+      }
+
+      val afterDateFiltered = afterDate match {
+        case None => stateFiltered
+        case Some(id) => stateFiltered.map(_.filter(_.end.isAfter(id)))
+      }
+      val beforeDateFiltered = beforeDate match {
+        case None => afterDateFiltered
+        case Some(id) => afterDateFiltered.map(_.filter(_.start.isBefore(id)))
+      }
+
+      val ordered = order match {
+        case Some("endDate"|"end") => beforeDateFiltered.map(_.sortWith(
+          (a,b) => asc match {
+            case Some("asc") => a.end.isBefore(b.end)
+            case _ => a.end.isAfter(b.end)
+          }
+        ))
+        case Some("startDate"|"start")|None|_ => beforeDateFiltered.map(_.sortWith(
+          (a,b) => asc match {
+            case Some("asc") => a.start.isBefore(b.start)
+            case _ => a.start.isAfter(b.start)
+          }
+        ))
+      }
+      (offset,limit) match {
+        case (Some(offset),Some(limit)) =>
+          ordered.map(_.drop(offset).take(limit))
+        case (None,Some(limit)) =>
+          ordered.map(_.take(limit))
+        case (Some(offset),None) =>
+          ordered.map(_.drop(offset))
+        case (None,None) =>
+          ordered
       }
     }
 
+    def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
+
+    def deleteEvent(id: Option[CampaignEventId], states: List[String], campaignType: Option[CampaignType], campaignId: Option[CampaignId], afterDate: Option[DateTime], beforeDate: Option[DateTime]): IOResult[Unit] = {
+
+      val eventIdFiltered: CampaignEvent => Boolean = id match {
+        case None => (_ => true)
+        case Some(id) => (ev => ev.id != id)
+      }
+
+      val campaignIdFiltered : CampaignEvent => Boolean = campaignId match {
+        case None => eventIdFiltered
+        case Some(id) => ev => eventIdFiltered(ev) || ev.campaignId != id
+      }
+
+
+      val campaignTypeFiltered: CampaignEvent => Boolean = campaignType match {
+        case None => campaignIdFiltered
+        case Some(id) =>  ev => campaignIdFiltered(ev) && ev.campaignType != id
+      }
+
+      val stateFiltered: CampaignEvent => Boolean = states match {
+        case Nil => campaignTypeFiltered
+        case s => ev =>  campaignTypeFiltered(ev) && ! states.contains(s)
+      }
+
+      val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
+        case None => stateFiltered
+        case Some(id) => ev => stateFiltered(ev) && ev.end.isAfter(id)
+      }
+      val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
+        case None => afterDateFiltered
+        case Some(id) => ev => afterDateFiltered(ev) && ev.start.isBefore(id)
+      }
+      for {
+        i <- items.get.map(_.values)
+        newList = i.filter(beforeDateFiltered)
+        _ <- items.set(newList.map(ce => (ce.id, ce)).toMap)
+      } yield {
+        ()
+      }
+    }
   }
 
   val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl())

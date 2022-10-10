@@ -44,7 +44,7 @@ import com.normation.rudder.repository.RudderPropertiesRepository
 
 import zio._
 import zio.duration.Duration
-import com.normation.errors.*
+import com.normation.errors._
 
 trait JSONReportsHandler {
   def handle :  PartialFunction[Reports, IOResult[Reports]]
@@ -73,13 +73,13 @@ case class JSONReportsAnalyser (reportsRepository: ReportsRepository, propRepo: 
   def loop = {
     for {
       lowerId <- propRepo.getReportHandlerLastId
-      _       <- CampaignLogger.debug(s"lower id is ${lowerId}" )
       reports <- reportsRepository.getReportsByKindBetween(lowerId.getOrElse(0),None, 1000, List(Reports.REPORT_JSON)).toIO
+
       _       <- reports.maxByOption(_._1) match {
                    case None    => UIO.unit
                    case Some(r) =>
-                     ZIO.foreach(reports)(r => handle(r._2)) *>
-                     propRepo.updateReportHandlerLastId(r._1)
+                     ZIO.foreach(reports)(r => handle(r._2)).catchAll(err => CampaignLogger.error(err.fullMsg)) *>
+                     propRepo.updateReportHandlerLastId((r._1+1))
                  }
     } yield {
       ()

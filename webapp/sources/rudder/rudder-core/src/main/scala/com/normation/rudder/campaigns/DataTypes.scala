@@ -45,14 +45,19 @@ import zio.json.jsonDiscriminator
 import zio.json.jsonField
 import zio.json.jsonHint
 
-import scala.concurrent.duration.Duration
 
+
+case class CampaignParsingInfo (
+    campaignType: CampaignType
+  , version : Int
+)
 
 trait Campaign {
   def info        : CampaignInfo
   def details     : CampaignDetails
   def campaignType: CampaignType
   def copyWithId(newId : CampaignId) : Campaign
+  def version     : Int
 }
 
 case class CampaignInfo (
@@ -61,7 +66,6 @@ case class CampaignInfo (
   , description : String
   , status : CampaignStatus
   , schedule : CampaignSchedule
-  , duration: Duration
 )
 
 case class CampaignId (value : String, rev: Revision = GitVersion.DEFAULT_REV) {
@@ -86,9 +90,9 @@ sealed trait CampaignStatus
 @jsonHint("enabled")
 case object Enabled  extends CampaignStatus
 @jsonHint("disabled")
-case object Disabled extends CampaignStatus
+case class Disabled(reason : String) extends CampaignStatus
 @jsonHint("archived")
-case class Archived(date : DateTime) extends CampaignStatus
+case class Archived(reason : String, date : DateTime) extends CampaignStatus
 
 @jsonDiscriminator("type")
 sealed trait CampaignSchedule
@@ -127,21 +131,29 @@ case object Sunday extends DayOfWeek{
   val value = 7
 }
 
+case class DayTime (
+   day : DayOfWeek
+ , hour : Int
+ , minute : Int
+) {
+  val realHour = hour % 24
+  val realMinute = minute % 60
+}
+
 @jsonHint("monthly")
 case class MonthlySchedule(
     @jsonField("position")
     monthlySchedulePosition: MonthlySchedulePosition
-  , day : DayOfWeek
-  , startHour : Int
-  , startMinute : Int) extends CampaignSchedule
-@jsonHint("weekly") // TODO: we need start minutes too
+  , start : DayTime
+  , end : DayTime
+) extends CampaignSchedule
+@jsonHint("weekly")
 case class WeeklySchedule(
-    day : DayOfWeek
-  , startHour : Int
-  , startMinute : Int
+    start : DayTime
+  , end : DayTime
 ) extends CampaignSchedule
 @jsonHint("one-shot")
-case class OneShot(start : DateTime) extends CampaignSchedule
+case class OneShot(start : DateTime, end : DateTime) extends CampaignSchedule
 
 trait CampaignDetails
 
@@ -150,6 +162,7 @@ case class CampaignType(value : String)
 case class CampaignEvent(
     id          : CampaignEventId
   , campaignId  : CampaignId
+  , name        : String
   , state       : CampaignEventState
   , start       : DateTime
   , end         : DateTime
@@ -157,19 +170,19 @@ case class CampaignEvent(
 )
 case class CampaignEventId(value : String)
 
+@jsonDiscriminator("value")
 sealed trait CampaignEventState{
   def value : String
 }
-final object CampaignEventState {
-  final case object Scheduled extends CampaignEventState { val value = "scheduled"    }
-  final case object Running   extends CampaignEventState { val value = "running"      }
-  final case object Finished  extends CampaignEventState { val value = "finished"     }
-  final case object Skipped   extends CampaignEventState { val value = "skipped"      }
+@jsonHint(Scheduled.value)
+final case object Scheduled extends CampaignEventState { val value = "scheduled"    }
+@jsonHint(Running.value)
+final case object Running   extends CampaignEventState { val value = "running"      }
+@jsonHint(Finished.value)
+final case object Finished  extends CampaignEventState { val value = "finished"     }
+@jsonHint(Skipped("").value)
+final case class  Skipped(reason : String)   extends CampaignEventState { val value = "skipped"      }
 
-  val all = ca.mrvisser.sealerate.values[CampaignEventState].toList
-
-  def parse(v: String): Either[String, CampaignEventState] = all.find(_.value == v.toLowerCase()).toRight(s"Error: ${v}' is not a valid campaign event state. Allowed values: '${all.mkString("','")}'")
-}
 
 trait CampaignResult {
   def id : CampaignEventId

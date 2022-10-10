@@ -21,8 +21,9 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use rudder_commons::{Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
+
+use rudder_commons::{Constraints, ParameterType, Target};
 
 pub struct Lib {
     data: HashMap<String, State>,
@@ -34,7 +35,7 @@ pub enum StateTarget {
     Universe,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Resource {
     pub name: String,
     pub description: String,
@@ -43,7 +44,7 @@ pub struct Resource {
     pub parameters: HashMap<String, Parameter>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
     pub name: String,
     pub description: String,
@@ -57,7 +58,7 @@ pub struct State {
     pub parameters: HashMap<String, Parameter>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameter {
     pub description: String,
     /// For now use directly implementations from ncf

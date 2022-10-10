@@ -44,7 +44,6 @@ import com.normation.errors._
 
 import scala.xml.NodeSeq
 import com.normation.inventory.services.provisioning._
-import com.normation.utils.HostnameRegex
 import com.normation.utils.NodeIdRegex
 
 import scala.xml.Elem
@@ -72,9 +71,9 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     val agentTagContent = getInTags(inventory, "AGENT")
     val rudderTagContent = getInTags(inventory, "RUDDER")
 
+    //hostname is now only check in FusionInventoryParser 
     val checks =
       checkId(rudderTagContent) _ ::
-      checkHostnameTags(rudderTagContent) _ ::
       checkRoot(agentTagContent) _ ::
       checkPolicyServer(agentTagContent) _ ::
       checkOS _ ::
@@ -138,17 +137,6 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     } yield {
       inventory
     }
-  }
-
-  private[this] def checkHostnameTags(rudderNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
-    // Hostname can be found in two tags:
-    // Either RUDDER∕HOSTNAME or OPERATINGSYSTEM/FQDN
-    checkWithinNodeSeq(rudderNodeSeq,"HOSTNAME").orElse(checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("FQDN")) )
-      .flatMap(HostnameRegex.checkHostname(_).toIO)
-      .map(_ => inventory)
-      .mapError( _ =>
-        InventoryError.Inconsistency(s"Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in inventory. Having at least one of Those tags is mandatory.")
-      )
   }
 
   private[this] def checkRoot(agentNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {

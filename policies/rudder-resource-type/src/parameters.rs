@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 
 use crate::PolicyMode;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Parameters {
     /// Where to store temporary files
     #[serde(default = "Parameters::default_temporary_dir")]

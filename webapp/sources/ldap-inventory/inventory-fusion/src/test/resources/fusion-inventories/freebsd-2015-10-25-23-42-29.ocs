@@ -125,7 +125,7 @@
       <ETIME>15</ETIME>
       <IPADDR>10.0.20.8</IPADDR>
       <MEMORY>8048</MEMORY>
-      <NAME>alignak_test1</NAME>
+      <NAME>alignak-test1</NAME>
       <OSCOMMENTS>FreeBSD 10.2-RELEASE #0 r286666: Wed Aug 12 15:26:37 UTC 2015     root@releng1.nyi.freebsd.org:/usr/obj/usr/src/sys/GENERIC </OSCOMMENTS>
       <OSNAME>freebsd</OSNAME>
       <OSVERSION>10.2-RELEASE</OSVERSION>
@@ -364,7 +364,7 @@
     <OPERATINGSYSTEM>
       <BOOT_TIME>2015-10-27 09:50:46</BOOT_TIME>
       <DNS_DOMAIN>my.domain</DNS_DOMAIN>
-      <FQDN>alignak_test1.my.domain</FQDN>
+      <FQDN>alignak-test1.my.domain</FQDN>
       <FULL_NAME>freebsd</FULL_NAME>
       <KERNEL_NAME>freebsd</KERNEL_NAME>
       <KERNEL_VERSION>10.2-RELEASE</KERNEL_VERSION>
@@ -458,7 +458,7 @@ avuP6rHqJ7Ki8doNxn+Omng7aOkD/wBWiKgM3W8LzVdTiXjjfLUdqt0jah/eJF8w
         <POLICY_SERVER_HOSTNAME>108.61.123.229</POLICY_SERVER_HOSTNAME>
         <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
       </AGENT>
-      <HOSTNAME>alignak_test1</HOSTNAME>
+      <HOSTNAME>alignak-test1</HOSTNAME>
       <UUID>f9a71efb-7c27-11e5-957f-f01faf3ee752</UUID>
     </RUDDER>
     <SOFTWARES>
@@ -843,6 +843,6 @@ avuP6rHqJ7Ki8doNxn+Omng7aOkD/wBWiKgM3W8LzVdTiXjjfLUdqt0jah/eJF8w
     </SOFTWARES>
     <VERSIONCLIENT>FusionInventory-Agent_v2.3.16</VERSIONCLIENT>
   </CONTENT>
-  <DEVICEID>alignak_test1-2015-10-25-23-42-29</DEVICEID>
+  <DEVICEID>alignak-test1-2015-10-25-23-42-29</DEVICEID>
   <QUERY>INVENTORY</QUERY>
 </REQUEST>

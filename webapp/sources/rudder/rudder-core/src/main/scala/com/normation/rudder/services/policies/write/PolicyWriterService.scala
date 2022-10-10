@@ -135,7 +135,7 @@ object PolicyWriterServiceImpl {
           case _:FileAlreadyExistsException => // too late, does nothing
         }
         optPerms.foreach(parent.setPermissions)
-        //optGroupOwner.foreach(parent.setGroup)
+        optGroupOwner.foreach(parent.setGroup)
       }
     }
 
@@ -234,7 +234,7 @@ class PolicyWriterServiceImpl(
   , implicit val charset      : Charset
   , groupOwner                : Option[String]
 ) extends PolicyWriterService {
-  import PolicyWriterServiceImpl._
+  import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl._
 
   val clock = ZioRuntime.environment
   val timingLogger = PolicyGenerationLoggerPure.timing
@@ -248,28 +248,27 @@ class PolicyWriterServiceImpl(
 
   //an utility that write text in a file and create file parents if needed
   implicit class CreateParentAndWrite(val file: File) {
+    def getPerms(isRootServer: Boolean) = {
+      if(isRootServer) {
+        (None      , rootFilePerms   , rootDirectoryPerms   )
+      } else {
+        (groupOwner, defaultFilePerms, defaultDirectoryPerms)
+      }
+    }
     import StandardOpenOption._
     // open file mode for create or overwrite mode
     def createParentsAndWrite(text: String, isRootServer: Boolean) = IOResult.effect {
-      val (optGroupOwner, filePerms, dirPerms) = if(isRootServer) {
-        (None      , rootFilePerms   , rootDirectoryPerms   )
-      } else {
-        (groupOwner, defaultFilePerms, defaultDirectoryPerms)
-      }
+      val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
-      //optGroupOwner.foreach(file.setGroup)
+      optGroupOwner.foreach(file.setGroup)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean) = IOResult.effect {
-      val (optGroupOwner, filePerms, dirPerms) = if(isRootServer) {
-        (None      , rootFilePerms   , rootDirectoryPerms   )
-      } else {
-        (groupOwner, defaultFilePerms, defaultDirectoryPerms)
-      }
+      val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
       file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
-      //optGroupOwner.foreach(file.setGroup)
+      optGroupOwner.foreach(file.setGroup)
     }
   }
 
@@ -498,11 +497,11 @@ class PolicyWriterServiceImpl(
 
         writeTimer           <- WriteTimer.make()
         fillTimer            <- FillTemplateTimer.make()
-        beforeWrittingTime   <- currentTimeMillis
+        beforeWritingTime    <- currentTimeMillis
         promiseWritten       <- writePolicies(preparedTemplates, writeTimer, fillTimer)
         others               <- writeOtherResources(preparedTemplates, writeTimer, globalPolicyMode, resources)
         promiseWrittenTime   <- currentTimeMillis
-        _                    <- timingLogger.debug(s"Policies written in ${promiseWrittenTime - beforeWrittingTime} ms")
+        _                    <- timingLogger.debug(s"Policies written in ${promiseWrittenTime - beforeWritingTime} ms")
         nanoToMillis         =  1000*1000
         f                    <- writeTimer.fillTemplate.get.map(_/nanoToMillis)
         w                    <- writeTimer.writeTemplate.get.map(_/nanoToMillis)
@@ -530,7 +529,7 @@ class PolicyWriterServiceImpl(
       beforePropertiesTime <- currentTimeMillis
       propertiesWritten    <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                                 writeNodePropertiesFile(agentNodeConfig).chainError(
-                                  s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                                  s"An error occurred while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                 )
                               }
 
@@ -539,7 +538,7 @@ class PolicyWriterServiceImpl(
 
       parametersWritten    <- parrallelSequence(configAndPaths) { case agentNodeConfig =>
                                 writeRudderParameterFile(agentNodeConfig).chainError(
-                                  s"An error occured while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                                  s"An error occurred while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                 )
                               }
 
@@ -871,10 +870,10 @@ class PolicyWriterServiceImpl(
       (policy.id.directiveId.serialize ::
        policy.policyMode.getOrElse(policyMode.mode).name ::
        policy.technique.generationMode.name ::
-       policy.technique.agentConfig.runHooks.nonEmpty ::
+       policy.technique.agentConfig.runHooks.nonEmpty.toString ::
        policy.technique.id.name.value ::
        policy.technique.id.version.serialize ::
-       policy.technique.isSystem ::
+       policy.technique.isSystem.toString ::
        policy.directiveOrder.value ::
        Nil
       ).mkString("\"","\",\"","\"")

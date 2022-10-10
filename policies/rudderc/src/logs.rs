@@ -36,7 +36,7 @@ fn format(f: &mut Formatter, record: &Record) -> io::Result<()> {
     }
 }
 
-pub fn init(verbose: usize, quiet: bool) {
+pub fn init(verbose: u8, quiet: bool) {
     let filter = match (verbose, quiet) {
         (0, true) => LevelFilter::Warn,
         (0, false) => LevelFilter::Info,

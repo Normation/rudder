@@ -4,24 +4,25 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignSerializer._
 import com.normation.rudder.campaigns.MainCampaignService
+import com.normation.rudder.rest.{CampaignApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rest.{CampaignApi => API}
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import org.joda.time.DateTime
 
 import zio.ZIO
 import zio.syntax._
@@ -48,6 +49,8 @@ class CampaignApi (
       case API.GetCampaignDetails => GetCampaignDetails
       case API.GetCampaignEventsForModel => GetAllEventsForCampaign
       case API.GetCampaigns => GetCampaigns
+      case API.DeleteCampaign => DeleteCampaign
+      case API.DeleteCampaignEvent => DeleteCampaignEvent
     })
   }
   object GetCampaigns extends LiftApiModule0 {
@@ -82,6 +85,22 @@ class CampaignApi (
     }
   }
 
+  object DeleteCampaign extends LiftApiModule {
+    val schema = API.DeleteCampaign
+
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val res =
+        for {
+          campaign <- campaignRepository.delete(CampaignId(resources))
+        } yield {
+          resources
+        }
+
+      res.toLiftResponseOne(params,schema, _ => Some(resources))
+
+    }
+  }
+
 
   object ScheduleCampaign extends LiftApiModule {
     val schema = API.ScheduleCampaign
@@ -90,7 +109,7 @@ class CampaignApi (
       val res =
         for {
           campaign <- campaignRepository.get(CampaignId(resources))
-          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign)
+          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now())
         } yield {
           newEvent
         }
@@ -100,9 +119,9 @@ class CampaignApi (
     }
   }
 
-  object SaveCampaignEvent extends LiftApiModule0 {
+  object SaveCampaignEvent extends LiftApiModule {
     val schema = API.SaveCampaignEvent
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       (for {
         campaignEvent <- ZioJsonExtractor.parseJson[CampaignEvent](req).toIO
@@ -113,6 +132,24 @@ class CampaignApi (
 
     }
   }
+
+
+  object DeleteCampaignEvent extends LiftApiModule {
+    val schema = API.DeleteCampaignEvent
+
+    def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val res =
+        for {
+          campaign <- campaignEventRepository.deleteEvent(id = Some(CampaignEventId(resources)))
+        } yield {
+          resources
+        }
+
+      res.toLiftResponseOne(params,schema, _ => Some(resources))
+
+    }
+  }
+
 
   object SaveCampaign extends LiftApiModule0 {
     val schema = API.SaveCampaign
@@ -145,10 +182,16 @@ class CampaignApi (
     val schema = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val states = req.params.get("state").getOrElse(Nil)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
       val campaignId = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
-      campaignEventRepository.getWithCriteria(states,campaignType,campaignId).toLiftResponseList(params,schema )
+      val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val offset = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val beforeDate = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val afterDate = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val order = req.params.get("order").flatMap(_.headOption)
+      val asc = req.params.get("asc").flatMap(_.headOption)
+      campaignEventRepository.getWithCriteria(states,campaignType,campaignId, limit, offset, afterDate, beforeDate, order, asc).toLiftResponseList(params,schema )
     }
   }
 
@@ -166,9 +209,15 @@ class CampaignApi (
   object GetAllEventsForCampaign extends LiftApiModule {
     val schema = API.GetCampaignEventsForModel
     def process(version: ApiVersion, path: ApiPath, resources: String, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val (errors,states) = req.params.get("state").map(_.map(CampaignEventState.parse)).getOrElse(Nil).partitionMap(identity)
+      val states = req.params.get("state").getOrElse(Nil)
       val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
-      campaignEventRepository.getWithCriteria(states, campaignType, Some(CampaignId(resources))).toLiftResponseList(params,schema)
+      val limit = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val offset = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
+      val beforeDate = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val afterDate = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
+      val order = req.params.get("order").flatMap(_.headOption)
+      val asc = req.params.get("asc").flatMap(_.headOption)
+      campaignEventRepository.getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate,order,asc).toLiftResponseList(params,schema)
 
     }
   }

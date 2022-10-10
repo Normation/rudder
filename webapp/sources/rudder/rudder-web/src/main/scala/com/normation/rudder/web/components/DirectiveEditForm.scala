@@ -311,9 +311,8 @@ class DirectiveEditForm(
   }
 
   private[this] def clonePopup(): JsCmd = {
-    SetHtml(CreateCloneDirectivePopup.htmlId_popup,
-        newCreationPopup(technique, activeTechnique)) &
-    JsRaw(s""" createPopup("${CreateCloneDirectivePopup.htmlId_popup}"); """)
+    SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
+    JsRaw(s""" createPopup("basePopup"); """)
   }
 
   ////////////// Callbacks //////////////
@@ -689,22 +688,22 @@ class DirectiveEditForm(
             if(workflowService.needExternalValidation()) {
               (
                   (crId: ChangeRequestId) => onSuccessCallback(Right(crId))
-                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
+                , (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
               )
             } else {
               val success = {
                 if (action == DGModAction.Delete) {
                   val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-                  (_: ChangeRequestId) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
+                  (_: ChangeRequestId) => JsRaw("$('#basePopup').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
                     successNotification()
                 } else {
-                  (_: ChangeRequestId)  => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successNotification() & onSuccessCallback(Left(newDirective))
+                  (_: ChangeRequestId)  => JsRaw("$('#basePopup').bsModal('hide');") & successNotification() & onSuccessCallback(Left(newDirective))
                 }
               }
 
               (
                   success
-                , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure()
+                , (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
               )
             }
           }
@@ -724,8 +723,8 @@ class DirectiveEditForm(
           case None =>
             popup.onSubmit()
           case Some(_) =>
-            SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
-            JsRaw("""createPopup("confirmUpdateActionDialog")""")
+            SetHtml("basePopup", popup.popupContent()) &
+            JsRaw("""createPopup("basePopup")""")
         }
     }
   }

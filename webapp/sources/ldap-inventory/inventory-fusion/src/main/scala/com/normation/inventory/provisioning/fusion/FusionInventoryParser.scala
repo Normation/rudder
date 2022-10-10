@@ -42,19 +42,22 @@ import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
+
 import java.net.InetAddress
 import java.util.Locale
-
 import com.normation.inventory.domain.InventoryError.Inconsistency
+import com.normation.utils.HostnameRegex
+
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+
 import zio._
 import zio.syntax._
 import com.normation.errors._
-
 import scala.xml._
 import com.softwaremill.quicklens._
+import net.liftweb.json.JsonAST.JString
 
 class FusionInventoryParser(
     uuidGen:StringUuidGenerator
@@ -111,7 +114,8 @@ class FusionInventoryParser(
 
     // hostname is a little special and may fail
     (for {
-      hostname <- getHostname(doc)
+      base <- getHostname(doc)
+      (hostname, customProperties) = base
       /*
        * Fusion Inventory gives a device id, but we don't exactly understand
        * how that id is generated and when/if it changes.
@@ -238,15 +242,37 @@ class FusionInventoryParser(
       val demuxed = demux(inventory)
       //add all software ids to node
       val inventoryWithSoftwareIds = demuxed.modify(_.node.softwareIds).setTo(demuxed.applications.map( _.id ))
-      inventoryWithSoftwareIds
-    }).flatMap(inventoryWithSoftwareIds =>
+      (inventoryWithSoftwareIds, customProperties)
+    }).flatMap { case (inventoryWithSoftwareIds, customProperties) =>
       // <RUDDER> elements parsing must be done after software processing, because we get agent version from them
-      processRudderElement(doc \\ "RUDDER", inventoryWithSoftwareIds)
-    )
+      processRudderElement(doc \\ "RUDDER", inventoryWithSoftwareIds, customProperties)
+    }
   }
 
-  // Use RUDDER/HOSTNAME first and if missing OS/FQDN
-  def getHostname(xml : NodeSeq): IOResult[String] = {
+  //the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
+  def processCustomProperties(xml: NodeSeq): List[CustomProperty] = {
+    import net.liftweb.json._
+
+    parseOpt(xml.text) match {
+      case None       => Nil
+      case Some(json) => json match { // only Json Array is OK
+        case JArray(values) =>
+          // each values must be an object, with each key a property name (and values... it depends :)
+          values.flatMap {
+            case JObject(fields) => fields.map(f => CustomProperty(f.name, f.value))
+            case _               => Nil
+          }
+        case x              => Nil
+      }
+    }
+  }
+
+  // Use RUDDER/HOSTNAME first and if missing OS/FQDN ; also check for override in custom properties
+  def getHostname(xml : NodeSeq): IOResult[(String, List[CustomProperty])] = {
+
+    val CUSTOM_PROPERTY_OVERRIDE_HOSTNAME = "rudder_override_hostname"
+    val CUSTOM_PROPERTY_ORIGINAL_HOSTNAME = "rudder_original_hostname"
+
     val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
     def validHostname( hostname : String ) : Boolean = {
 
@@ -255,22 +281,34 @@ class FusionInventoryParser(
        * * hostname is empty
        * * hostname is one of the invalid list
        */
-      !( hostname == null || hostname.isEmpty() || invalidList.contains(hostname))
+      !( hostname == null || hostname.isEmpty() || invalidList.contains(hostname) || HostnameRegex.checkHostname(hostname).isLeft)
     }
 
-    optTextHead(xml \\ "RUDDER" \ "HOSTNAME") match {
-      case Some(hostname) if validHostname(hostname) =>
-        hostname.succeed
-      case x =>
+    val customProperties = processCustomProperties(xml \\ "RUDDER" \ "CUSTOM_PROPERTIES")
+    val origHostname = optTextHead(xml \\ "RUDDER" \ "HOSTNAME") match {
+      case Some(hostname) =>
+        Some(hostname)
+      case x              =>
         optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN") match {
           // OS Section is the fallback
-          case Some(osfqdn) if validHostname(osfqdn) =>
-            osfqdn.succeed
-          case y =>
-            InventoryError.Inconsistency(s"Hostname could not be found in inventory (RUDDER/HOSTNAME [${x.getOrElse("")}] " +
-                                         s"and OPERATINGSYSTEM/FQDN [${y.getOrElse("")}] are missing or invalid: hostname " +
-                                         s"can't be one of '${invalidList.mkString("','")}'").fail
+          case Some(osfqdn) =>
+            Some(osfqdn)
+          case _ => None
+        }
+    }
 
+    customProperties.collectFirst { case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, JString(x)) if validHostname(x) => x  } match {
+      case Some(x) =>
+        val orig = CustomProperty(CUSTOM_PROPERTY_ORIGINAL_HOSTNAME, JString(origHostname.getOrElse("none")))
+        (x, orig::customProperties).succeed
+      case None => origHostname match {
+        case Some(hostname) if validHostname(hostname) =>
+          (hostname, customProperties).succeed
+        case x =>
+          InventoryError.Inconsistency(s"Hostname could not be found in inventory (RUDDER/HOSTNAME [${x.getOrElse("")}] " +
+                                       s"and custom overriding property '${CUSTOM_PROPERTY_OVERRIDE_HOSTNAME}' is not defined or is not a string " +
+                                       s"and OPERATINGSYSTEM/FQDN [${x.getOrElse("")}] are missing or invalid: hostname " +
+                                       s"can't be one of '${invalidList.mkString("','")}'").fail
       }
     }
   }
@@ -300,7 +338,7 @@ class FusionInventoryParser(
    *
    * Because it is fully supported since Rudder 4.1 (so migration are OK).
    */
-  def processRudderElement(xml: NodeSeq, inventory: Inventory) : IOResult[Inventory]  = {
+  def processRudderElement(xml: NodeSeq, inventory: Inventory, customProperties: List[CustomProperty]) : IOResult[Inventory]  = {
 
     // Check that a seq contains only one or identical values, if not fails
     def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : IOResult[T] = {
@@ -328,23 +366,7 @@ class FusionInventoryParser(
       }
     }
 
-    //the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
-    def processCustomProperties(xml:NodeSeq) : List[CustomProperty] = {
-      import net.liftweb.json._
 
-      parseOpt(xml.text) match {
-        case None       => Nil
-        case Some(json) => json match { // only Json Array is OK
-          case JArray(values) =>
-            // each values must be an object, with each key a property name (and values... it depends :)
-            values.flatMap {
-              case JObject(fields) => fields.map(f => CustomProperty(f.name, f.value))
-              case _               => Nil
-            }
-          case x              => Nil
-        }
-      }
-    }
 
     /*
      * Process agents. We want to keep the maximum number of agents,
@@ -413,8 +435,6 @@ class FusionInventoryParser(
         uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
         rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
         policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
-        // Node Custom properties from agent hooks
-        customProperties = processCustomProperties(xml \ "CUSTOM_PROPERTIES")
         // hostname is a special case processed in `processHostname`
         // capabilties should be per agent
         capabilities     = processAgentCapabilities(xml)

@@ -4,7 +4,8 @@
 // Prevent warning with diesel::Insertable
 #![allow(clippy::extra_unused_lifetimes)]
 
-use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
+use std::fmt::{self, Display};
+
 use chrono::prelude::*;
 use nom::{
     branch::alt,
@@ -14,7 +15,8 @@ use nom::{
     IResult,
 };
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
+
+use crate::{data::node::NodeId, output::database::schema::ruddersysevents};
 
 type AgentLogLevel = &'static str;
 
@@ -97,8 +99,39 @@ fn simpleline(i: &str) -> IResult<&str, &str> {
     Ok((i, res))
 }
 
+/// take_until("@@") without line ending
+fn end_metadata(i: &str) -> IResult<&str, &str> {
+    let (i, res) = take_until("@@")(i)?;
+    // If the result contains line breaks let's fail
+    // as it is a multi line metadata
+    if res.contains('\n') || res.contains('\r') {
+        Err(nom::Err::Error(nom::error::Error::new(
+            i,
+            nom::error::ErrorKind::Tag,
+        )))
+    } else {
+        Ok((i, res))
+    }
+}
+
+/// take_until("@@") but handles multiline (date prefix and CR/LF ending)
+fn simpleline_until_metadata(i: &str) -> IResult<&str, &str> {
+    let (i, _) = not(tag("@@"))(i)?;
+    let (i, _) = opt(line_timestamp)(i)?;
+    // Try to parse as single line metadata.
+    // If it fails, parse as a simple line
+    let (i, res) = alt((end_metadata, simpleline))(i)?;
+    Ok((i, res))
+}
+
 fn multilines(i: &str) -> IResult<&str, Vec<&str>> {
     let (i, res) = many1(simpleline)(i)?;
+    Ok((i, res))
+}
+
+/// take_until separator but handles multiline (date prefix and CRLF ending)
+fn multilines_metadata(i: &str) -> IResult<&str, Vec<&str>> {
+    let (i, res) = many1(simpleline_until_metadata)(i)?;
     Ok((i, res))
 }
 
@@ -138,7 +171,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     let (i, _) = tag("@@")(i)?;
     let (i, component) = take_until("@@")(i)?;
     let (i, _) = tag("@@")(i)?;
-    let (i, key_value) = take_until("@@")(i)?;
+    let (i, key_value) = multilines_metadata(i)?;
     let (i, _) = tag("@@")(i)?;
     let (i, start_datetime) = map_res(take_until("##"), |d| {
         DateTime::parse_from_str(d, "%Y-%m-%d %H:%M:%S%z")
@@ -159,7 +192,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
                 directive_id: directive_id.to_string(),
                 report_id: report_id.to_string(),
                 component: component.to_string(),
-                key_value: key_value.to_string(),
+                key_value: key_value.join("\n"),
                 start_datetime,
                 event_type: event_type.to_string(),
                 msg: msg.join("\n"),
@@ -229,52 +262,52 @@ impl RawReport {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Queryable)]
 pub struct QueryableReport {
     pub id: i64,
-    #[column_name = "executiontimestamp"]
+    #[diesel(column_name = "executiontimestamp")]
     pub start_datetime: DateTime<Utc>,
-    #[column_name = "ruleid"]
+    #[diesel(column_name = "ruleid")]
     pub rule_id: String,
-    #[column_name = "directiveid"]
+    #[diesel(column_name = "directiveid")]
     pub directive_id: String,
     pub component: String,
-    #[column_name = "keyvalue"]
+    #[diesel(column_name = "keyvalue")]
     pub key_value: Option<String>,
-    #[column_name = "eventtype"]
+    #[diesel(column_name = "eventtype")]
     pub event_type: Option<String>,
-    #[column_name = "msg"]
+    #[diesel(column_name = "msg")]
     pub msg: Option<String>,
-    #[column_name = "policy"]
+    #[diesel(column_name = "policy")]
     pub policy: Option<String>,
-    #[column_name = "nodeid"]
+    #[diesel(column_name = "nodeid")]
     pub node_id: NodeId,
-    #[column_name = "executiondate"]
+    #[diesel(column_name = "executiondate")]
     pub execution_datetime: Option<DateTime<Utc>>,
     pub report_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
-#[table_name = "ruddersysevents"]
+#[diesel(table_name = ruddersysevents)]
 pub struct Report {
-    #[column_name = "executiontimestamp"]
+    #[diesel(column_name = "executiontimestamp")]
     pub start_datetime: DateTime<FixedOffset>,
-    #[column_name = "ruleid"]
+    #[diesel(column_name = "ruleid")]
     pub rule_id: String,
-    #[column_name = "directiveid"]
+    #[diesel(column_name = "directiveid")]
     pub directive_id: String,
     pub component: String,
-    #[column_name = "keyvalue"]
+    #[diesel(column_name = "keyvalue")]
     pub key_value: String,
     // Not parsed as we do not use it and do not want to prevent future changes
-    #[column_name = "eventtype"]
+    #[diesel(column_name = "eventtype")]
     pub event_type: String,
-    #[column_name = "msg"]
+    #[diesel(column_name = "msg")]
     pub msg: String,
-    #[column_name = "policy"]
+    #[diesel(column_name = "policy")]
     pub policy: String,
-    #[column_name = "nodeid"]
+    #[diesel(column_name = "nodeid")]
     pub node_id: NodeId,
-    #[column_name = "executiondate"]
+    #[diesel(column_name = "executiondate")]
     pub execution_datetime: DateTime<FixedOffset>,
-    #[column_name = "reportid"]
+    #[diesel(column_name = "reportid")]
     pub report_id: String,
 }
 
@@ -299,6 +332,8 @@ impl Display for Report {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     #[test]
@@ -378,6 +413,28 @@ mod tests {
     }
 
     #[test]
+    fn it_parses_simpleline_until_metadata() {
+        assert_eq!(
+            simpleline_until_metadata("Thething\n").unwrap().1,
+            "Thething".to_string()
+        );
+        assert_eq!(
+            simpleline_until_metadata("Thething@@plop\n").unwrap().1,
+            "Thething".to_string()
+        );
+        assert_eq!(
+            simpleline_until_metadata("Thething@plop\n").unwrap().1,
+            "Thething@plop".to_string()
+        );
+        assert_eq!(
+            simpleline_until_metadata("Thething\n2018-08-24T15:55:01+00:00 plop\n")
+                .unwrap()
+                .1,
+            "Thething".to_string()
+        );
+    }
+
+    #[test]
     fn it_parses_multilines() {
         assert_eq!(
             multilines("Thething\n").unwrap().1.join("\n"),
@@ -414,6 +471,39 @@ mod tests {
                 .1
                 .join("\n"),
             "Thething\nTheotherthing".to_string()
+        );
+    }
+
+    #[test]
+    fn it_parses_multilines_metadata() {
+        assert_eq!(
+            multilines_metadata("Thething@@").unwrap().1.join("\n"),
+            "Thething".to_string()
+        );
+        assert_eq!(
+            multilines_metadata("line1@@line2").unwrap().1.join("\n"),
+            "line1".to_string()
+        );
+        assert_eq!(
+            multilines_metadata("line1@line2@line3@@")
+                .unwrap()
+                .1
+                .join("\n"),
+            "line1@line2@line3".to_string()
+        );
+        assert_eq!(
+            multilines_metadata("line1\n2018-08-24T15:55:01+00:00 line2@@line3")
+                .unwrap()
+                .1
+                .join("\n"),
+            "line1\nline2".to_string()
+        );
+        assert_eq!(
+            multilines_metadata("line1\r\nline2@@line3")
+                .unwrap()
+                .1
+                .join("\n"),
+            "line1\nline2".to_string()
         );
     }
 
@@ -578,6 +668,71 @@ mod tests {
                     directive_id: "common-root".into(),
                     component: "CRON Daemon".into(),
                     key_value: "None".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    report_id: "0".into(),
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                },
+                logs: vec![],
+            }
+        );
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@broken\n";
+        assert_eq!(
+            maybe_report(report).unwrap().1,
+            Err("2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
+        );
+        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@multi\r\n2018-08-24T15:55:01+00:00 line@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        let (i, e) = maybe_report(report).unwrap();
+        assert!(e.is_err());
+        assert_eq!(
+            maybe_report(i).unwrap().1.unwrap(),
+            RawReport {
+                report: Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON Daemon".into(),
+                    key_value: "multi\nline".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    report_id: "0".into(),
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                },
+                logs: vec![],
+            }
+        );
+        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@multi\r\nline@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        let (i, e) = maybe_report(report).unwrap();
+        assert!(e.is_err());
+        assert_eq!(
+            maybe_report(i).unwrap().1.unwrap(),
+            RawReport {
+                report: Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON Daemon".into(),
+                    key_value: "multi\nline".into(),
                     event_type: "result_repaired".into(),
                     msg: "Cron daemon status was repaired".into(),
                     policy: "Common".into(),

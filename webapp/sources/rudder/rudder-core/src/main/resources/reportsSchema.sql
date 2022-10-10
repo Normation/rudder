@@ -400,8 +400,12 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
 CREATE TABLE CampaignEvents (
   campaignId   text
 , eventid      text PRIMARY KEY
-, state        text
+, name         text
+, state        jsonb
 , startDate    timestamp with time zone NOT NULL
 , endDate      timestamp with time zone NOT NULL
 , campaignType text
 );
+
+
+CREATE INDEX event_state_index ON CampaignEvents ((state->>'value'));

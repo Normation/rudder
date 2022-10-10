@@ -2,7 +2,6 @@ port module Editor exposing (..)
 
 import ApiCalls exposing (..)
 import Browser
-import Browser.Dom
 import DataTypes exposing (..)
 import Dict exposing ( Dict )
 import Dict.Extra
@@ -581,7 +580,7 @@ update msg model =
     AddMethod method newId ->
       if model.hasWriteRights then
       let
-        disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+        disableReporting = False
         newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting
         newModel =
           case model.mode of
@@ -667,7 +666,7 @@ update msg model =
            TechniqueDetails t o ui ->
             let
               technique = { t |  elems = removeElem (getId >> (==) callId) t.elems }
-              newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI }
+              newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI, blockUI = Dict.remove callId.value  ui.blockUI }
             in
             TechniqueDetails technique o newUi
            m -> m
@@ -815,7 +814,7 @@ update msg model =
                 NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport []))
                 NewMethod method ->
                  let
-                   disableReporting = String.contains "variable" method.name || String.contains "condition" method.name
+                   disableReporting = False
                  in
                    (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting))
             updatedCalls =

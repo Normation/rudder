@@ -4,17 +4,6 @@
 // Prevent warning with diesel::Insertable
 #![allow(clippy::extra_unused_lifetimes)]
 
-use crate::{
-    data::{
-        report::{runlog, RawReport},
-        Report, RunInfo,
-    },
-    error::RudderError,
-    output::database::schema::reportsexecution,
-};
-use anyhow::Error;
-use chrono::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     convert::TryFrom,
@@ -24,23 +13,35 @@ use std::{
     str::FromStr,
 };
 
+use anyhow::Error;
+use chrono::prelude::*;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, error, warn};
 
+use crate::{
+    data::{
+        report::{runlog, RawReport},
+        Report, RunInfo,
+    },
+    error::RudderError,
+    output::database::schema::reportsexecution,
+};
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Insertable)]
-#[table_name = "reportsexecution"]
+#[diesel(table_name = reportsexecution)]
 /// Represents a runlog in the database
 pub struct InsertedRunlog {
-    #[column_name = "nodeid"]
+    #[diesel(column_name = "nodeid")]
     pub node_id: String,
-    #[column_name = "date"]
+    #[diesel(column_name = "date")]
     pub date: DateTime<FixedOffset>,
-    #[column_name = "nodeconfigid"]
+    #[diesel(column_name = "nodeconfigid")]
     pub node_config_id: Option<String>,
-    #[column_name = "insertionid"]
+    #[diesel(column_name = "insertionid")]
     pub insertion_id: i64,
-    #[column_name = "insertiondate"]
+    #[diesel(column_name = "insertiondate")]
     pub insertion_date: Option<DateTime<FixedOffset>>,
-    #[column_name = "compliancecomputationdate"]
+    #[diesel(column_name = "compliancecomputationdate")]
     pub compliance_computation_date: Option<DateTime<FixedOffset>>,
 }
 
@@ -214,9 +215,11 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use chrono::DateTime;
     use std::fs::read_dir;
+
+    use chrono::DateTime;
+
+    use super::*;
 
     #[test]
     fn it_parses_runlog() {

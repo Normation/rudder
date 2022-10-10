@@ -50,6 +50,11 @@
         <VALUE id="id5">/bin/echo &quot;testing special characters ` è &amp;é 'à é &quot;\</VALUE>
       </REPORTKEYS>
     </SECTION>
+    <SECTION component="true" multivalued="true" id="id6" name="Package state windows">
+      <REPORTKEYS>
+        <VALUE id="id6">vim</VALUE>
+      </REPORTKEYS>
+    </SECTION>
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2</NAME>

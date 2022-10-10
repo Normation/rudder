@@ -21,7 +21,7 @@ anyhow = "1"
 base64 = "0.13"
 bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
-diesel = { version = "1", default-features = false, features = ["postgres", "chrono", "r2d2"] }
+diesel = { version = "2", default-features = false, features = ["postgres", "chrono", "r2d2"] }
 # Uses rust implementation by default
 flate2 = "1"
 futures = { version = "0.3", default-features = false }
@@ -56,7 +56,7 @@ warp = { version = "0.3", default-features = false }
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 filetime = "0.2"
 proptest = "1"
 tempfile = "3"

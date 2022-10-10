@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::{
+    collections::HashMap,
+    fs::{copy, create_dir_all, remove_dir_all},
+    path::Path,
+    thread, time,
+};
+
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
+
 use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,
     init_logger,
     output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     start,
-};
-use std::{
-    collections::HashMap,
-    fs::{copy, create_dir_all, remove_dir_all},
-    path::Path,
-    thread, time,
 };
 
 pub fn db_connection() -> PgConnection {
@@ -54,7 +56,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 // Checks number of start execution reports
 // (so number of runlogs if everything goes well)
 #[allow(clippy::result_unit_err)]
-pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
+pub fn start_number(db: &mut PgConnection, expected: usize) -> Result<(), ()> {
     let mut retry = 10;
     while retry > 0 {
         thread::sleep(time::Duration::from_millis(200));
@@ -74,11 +76,11 @@ pub fn start_number(db: &PgConnection, expected: usize) -> Result<(), ()> {
 
 #[test]
 fn it_reads_and_inserts_a_runlog() {
-    let db = db_connection();
-    diesel::delete(ruddersysevents).execute(&db).unwrap();
-    diesel::delete(reportsexecution).execute(&db).unwrap();
+    let mut db = db_connection();
+    diesel::delete(ruddersysevents).execute(&mut db).unwrap();
+    diesel::delete(reportsexecution).execute(&mut db).unwrap();
 
-    assert!(start_number(&db, 0).is_ok());
+    assert!(start_number(&mut db, 0).is_ok());
 
     let _ = remove_dir_all("target/tmp/reporting");
     create_dir_all("target/tmp/reporting/incoming").unwrap();
@@ -109,13 +111,13 @@ fn it_reads_and_inserts_a_runlog() {
         start(cli_cfg, init_logger().unwrap()).unwrap();
     });
 
-    assert!(start_number(&db, 1).is_ok());
+    assert!(start_number(&mut db, 1).is_ok());
 
     copy("tests/files/config/main.conf", file_broken).unwrap();
     copy("tests/files/config/main.conf", file_unknown).unwrap();
 
     thread::sleep(time::Duration::from_millis(500));
-    assert!(start_number(&db, 1).is_ok());
+    assert!(start_number(&mut db, 1).is_ok());
 
     copy(
         "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
@@ -124,7 +126,7 @@ fn it_reads_and_inserts_a_runlog() {
     .unwrap();
 
     // Test that watcher works
-    assert!(start_number(&db, 2).is_ok());
+    assert!(start_number(&mut db, 2).is_ok());
 
     // Test files have been removed
     assert!(!Path::new(file_old).exists());

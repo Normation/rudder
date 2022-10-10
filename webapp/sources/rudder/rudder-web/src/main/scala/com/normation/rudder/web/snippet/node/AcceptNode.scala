@@ -293,13 +293,17 @@ class AcceptNode extends Loggable {
           (
               "servergrid-accept" #>
                 SHtml.submit("Accept", {
-                  () => { addNodes(listNode) }
-                  S.redirectTo(S.uri)
+                  () => {
+                    addNodes(listNode)
+                    S.redirectTo(S.uri)
+                  }
                 }, ("class", "btn btn-success"))
             & "servergrid-refuse" #>
                 SHtml.submit("Refuse", {
-                  () => refuseNodes(listNode)
-                  S.redirectTo(S.uri)
+                  () => {
+                    refuseNodes(listNode)
+                    S.redirectTo(S.uri)
+                  }
                 }, ("class", "btn btn-danger"))
             &  "servergrid-close" #>
                  SHtml.ajaxButton("Cancel", {

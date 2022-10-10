@@ -1,5 +1,5 @@
 ARG JDK_VERSION=11
-FROM maven:3-openjdk-${JDK_VERSION}
+FROM maven:3-eclipse-temurin-${JDK_VERSION}
 
 ARG USER_ID=1000
 COPY ci/user.sh .

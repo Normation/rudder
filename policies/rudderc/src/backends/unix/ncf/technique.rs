@@ -5,7 +5,7 @@ use std::fmt;
 
 use crate::backends::unix::cfengine::bundle::Bundle;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Technique {
     bundles: Vec<Bundle>,
     name: Option<String>,

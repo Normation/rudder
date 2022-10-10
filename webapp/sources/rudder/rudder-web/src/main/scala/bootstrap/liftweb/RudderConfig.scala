@@ -623,6 +623,15 @@ object RudderConfig extends Loggable {
 
   val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
+  val RUDDER_SERVER_HSTS = {
+    try {
+      config.getBoolean("rudder.server.hsts")
+    } catch {
+      // by default, if property is missing
+      case ex: ConfigException => false
+    }
+  }
+
   val RUDDER_RELAY_RELOAD = {
     try {
       config.getString("rudder.relayd.reload")
@@ -751,15 +760,7 @@ object RudderConfig extends Loggable {
       ApplicationLogger.error(s"Error when reading key: 'metrics.node.scheduler.period.max', defaulting to 6 hours: ${ex.getMessage}")
       6.hours
   }
-
-  val RUDDER_LANG_EXEC_TEST_LOOP = {
-    try {
-      config.getBoolean("rudder.lang.test-loop.exec")
-    } catch {
-      case ex: ConfigException => true
-    }
-  }
-
+  
   val RUDDER_DEFAULT_DELETE_NODE_MODE = {
     val default = DeleteMode.Erase
     val mode = try {
@@ -772,6 +773,17 @@ object RudderConfig extends Loggable {
     cfg
   }
 
+  // Store it an a Box as it's only used in Lift
+  val AUTH_IDLE_TIMEOUT = try {
+    val timeout = config.getString("rudder.auth.idle-timeout")
+    if (timeout.isEmpty) {
+      Empty
+    } else {
+      Full(Duration.fromScala(scala.concurrent.duration.Duration.apply(timeout)))
+    }
+  } catch {
+    case ex: Exception => Full(30.minutes)
+  }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")
 
@@ -1011,7 +1023,7 @@ object RudderConfig extends Loggable {
 
   val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
-  val tokenGenerator = new TokenGeneratorImpl(32)
+  lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
   implicit val userService = new UserService {
     def getCurrentUser = CurrentUser
@@ -1439,7 +1451,8 @@ object RudderConfig extends Loggable {
       , rootDirName
       , new ZipArchiveReaderImpl(queryParser, techniqueParser)
       , new SaveArchiveServicebyRepo(techniqueArchiver, techniqueReader, techniqueRepository, roDirectiveRepository, woDirectiveRepository
-                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository)
+                                   , roNodeGroupRepository, woNodeGroupRepository, roRuleRepository, woRuleRepository, updateTechniqueLibrary
+                                   , asyncDeploymentAgent)
       , new CheckArchiveServiceImpl(techniqueRepository)
     )
   }
@@ -1459,7 +1472,8 @@ object RudderConfig extends Loggable {
     ApiVersion(12 , true) :: // rudder 6.0, 6.1
     ApiVersion(13 , true) :: // rudder 6.2
     ApiVersion(14 , false) :: // rudder 7.0
-    ApiVersion(15 , false) :: // rudder 7.1
+    ApiVersion(15 , false) :: // rudder 7.1 - system update on node details
+    ApiVersion(16 , false) :: // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
     Nil
 
   val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
@@ -1584,7 +1598,7 @@ object RudderConfig extends Loggable {
       rudderDitImpl
     , roLdap
     , ldapEntityMapper
-    , stringUuidGenerator
+    , tokenGenerator
     , ApiAuthorization.allAuthz.acl // for system token
   )
 
@@ -2509,7 +2523,7 @@ object RudderConfig extends Loggable {
   lazy val campaignEventRepo= new CampaignEventRepositoryImpl(doobie, campaignSerializer)
   val campaignPath = root / "var" / "rudder" / "configuration-repository" / "campaigns"
 
-  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath).runOrDie(err =>
+  lazy val campaignRepo = CampaignRepositoryImpl.make(campaignSerializer, campaignPath, campaignEventRepo).runOrDie(err =>
     new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg)
   )
 

@@ -1,17 +1,16 @@
 module ViewRuleDetails exposing (..)
 
 import DataTypes exposing (..)
-import Dict
 import Html exposing (Html, button, div, i, span, text, h1, ul, li,  a, p)
-import Html.Attributes exposing (id, class, type_,  style, attribute, disabled)
+import Html.Attributes exposing (id, class, type_,  style, attribute, disabled, title)
 import Html.Events exposing (onClick)
 import List.Extra
-import List
+import List exposing (filter, length, member)
 import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
 import Maybe.Extra
-import ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes)
+import ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes, getNbResourcesBadge, getGroupsNbResourcesBadge)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -99,9 +98,51 @@ editionTemplate model details =
 
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
 
+    getTargetExludedIds : List RuleTarget -> List String
+    getTargetExludedIds listTargets =
+      List.concatMap (\target -> case target of
+         NodeGroupId groupId -> [groupId]
+         Composition _ e     -> getTargetExludedIds[ e ]
+         Special spe         -> [spe]
+         Node node           -> [node]
+         Or t                -> getTargetExludedIds t
+         And t               -> getTargetExludedIds t
+      ) listTargets
+
+    getTargetIncludedIds : List RuleTarget -> List String
+    getTargetIncludedIds listTargets =
+      List.concatMap (\target -> case target of
+         NodeGroupId groupId -> [groupId]
+         Composition i _     -> getTargetIncludedIds[ i ]
+         Special spe         -> [spe]
+         Node node           -> [node]
+         Or t                -> getTargetIncludedIds t
+         And t               -> getTargetIncludedIds t
+      ) listTargets
+    getDiffGroups : List String -> List String -> List String -> List String -> (Int, Int)
+    getDiffGroups origineExcludedGroup origineIncludedGroup targetExcludedGroup targetIncludedGroup =
+      let
+        (diffPos, diffNeg) =  getDiffList (origineExcludedGroup ++ origineIncludedGroup) (targetExcludedGroup ++ targetIncludedGroup)
+        -- here we search for group who changed from excluded or included (vice versa) to count it
+        -- for example if there is 2 swaps, we consider that there is two additions and two deletions (+2 / -2)
+        fromExldToIncld =
+          origineExcludedGroup
+            |> filter(\g -> member g targetIncludedGroup)
+            |> length
+        fromIncldToExcld =
+          origineIncludedGroup
+            |> filter(\g -> member g targetExcludedGroup)
+            |> length
+        totalSwap = (fromIncldToExcld + fromExldToIncld)
+      in
+      (diffPos + totalSwap, diffNeg + totalSwap)
+
+    (originRuleGroupsExcld, originRuleGroupsIncld) = (getTargetExludedIds (Maybe.Extra.unwrap [] .targets originRule), getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))
+    (diffGroupsPos, diffGroupsNeg) = getDiffGroups originRuleGroupsExcld originRuleGroupsIncld (getTargetExludedIds rule.targets ) ( getTargetIncludedIds rule.targets)
+
     nbDirectives = case originRule of
-      Just oR -> Maybe.withDefault "" ( Maybe.map String.fromInt (details.numberOfDirectives) )
-      Nothing -> "0"
+      Just oR -> Maybe.withDefault 0 details.numberOfDirectives
+      Nothing -> 0
 
     saveAction =
       if String.isEmpty (String.trim rule.name) then
@@ -142,7 +183,7 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Directives})]
             [ text "Directives"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text nbDirectives]
+              [ getNbResourcesBadge nbDirectives "This rule does not apply any directive"
               , ( if diffDirectivesPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffDirectivesPos)] else text "")
               , ( if diffDirectivesNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffDirectivesNeg)] else text "")
               ]
@@ -155,7 +196,7 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
             [ text "Nodes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text ( Maybe.withDefault "" (Maybe.map String.fromInt (getRuleNbNodes details) ) ) ]
+              [ getNbResourcesBadge (Maybe.withDefault 0 (getRuleNbNodes details)) "This rule is not applied on any node"
               ]
             ]
           ]
@@ -164,7 +205,9 @@ editionTemplate model details =
           [ a[onClick (UpdateRuleForm {details | tab = Groups })]
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
-              [ span [class "nb-resources"] [ text (String.fromInt(getRuleNbGroups originRule))]
+              [ getGroupsNbResourcesBadge (getRuleNbGroups originRule) (List.length (getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))) "This rule is not applied on any group"
+              , ( if diffGroupsPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffGroupsPos)] else text "")
+              , ( if diffGroupsNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffGroupsNeg)] else text "")
               ]
             ]
           ]

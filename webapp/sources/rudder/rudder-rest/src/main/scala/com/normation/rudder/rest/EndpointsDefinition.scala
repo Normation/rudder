@@ -94,15 +94,25 @@ object CampaignApi extends ApiModuleProvider[CampaignApi] {
     val (action, path)  = GET / "campaigns" / "{id}"
     val dataContainer = Some("campaigns")
   }
+  final case object DeleteCampaign extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Get a campaign model"
+    val (action, path)  = DELETE / "campaigns" / "{id}"
+    val dataContainer = None
+  }
   final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Get a campaign model"
     val (action, path)  = GET / "campaigns"  / "{id}" / "events"
     val dataContainer = Some("campaignEvents")
   }
-  final case object SaveCampaignEvent extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+  final case object SaveCampaignEvent extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
     val description = "Save a campaign event"
     val (action, path)  = POST / "campaigns" / "events" /  "{id}"
-    val dataContainer = Some("campaigns")
+    val dataContainer = Some("campaignEvents")
+  }
+  final case object DeleteCampaignEvent extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex { val z = implicitly[Line].value
+    val description = "Save a campaign event"
+    val (action, path)  = DELETE / "campaigns" / "events" /  "{id}"
+    val dataContainer = None
   }
   def endpoints: List[CampaignApi] = ca.mrvisser.sealerate.values[CampaignApi].toList.sortBy( _.z )
 }
@@ -323,7 +333,7 @@ object NodeApi extends ApiModuleProvider[NodeApi] {
     val description = "Ask given node to start a run with the given policy"
     val (action, path)  = POST / "nodes" / "{id}" / "applyPolicy"
   }
-  final case object CreateNodes extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+  final case object CreateNodes extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion16 with SortIndex {val z = implicitly[Line].value
     val description    = "Create one of more new nodes"
     val (action, path) = PUT / "nodes"
   }
@@ -950,11 +960,11 @@ object ArchiveApi extends ApiModuleProvider[ArchiveApi] {
    * - tech_ids = techniqueName/1.0[,other tech ids]
    * - scope = all (default), none, directives, techniques (implies directive), groups
    */
-  final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+  final case object ExportSimple extends ArchiveApi with ZeroParam with StartsAtVersion16 with SortIndex {val z = implicitly[Line].value
     val description    = "Export the list of objects with their dependencies in a policy archive"
     val (action, path) = GET / "archives" / "export"
   }
-  final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion15 with SortIndex {val z = implicitly[Line].value
+  final case object Import extends ArchiveApi with ZeroParam with StartsAtVersion16 with SortIndex {val z = implicitly[Line].value
     val description    = "Import policy archive"
     val (action, path) = POST / "archives" / "import"
   }

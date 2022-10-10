@@ -17,7 +17,7 @@ use rudder_resource_type::{
 
 // Configuration
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum Engine {
     Mustache,
@@ -81,7 +81,7 @@ impl Engine {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct TemplateParameters {
     /// Output file path

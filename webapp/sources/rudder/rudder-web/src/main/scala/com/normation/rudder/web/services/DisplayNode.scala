@@ -65,8 +65,7 @@ import com.normation.rudder.domain.reports.{ComplianceLevel, ComplianceLevelSeri
 import com.normation.rudder.services.reports.{NoReportInInterval, Pending}
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
-import org.joda.time.format.ISODateTimeFormat
-import xml.Utility.escape
+import scala.xml.Utility.escape
 
 /**
  * A service used to display details about a server
@@ -518,7 +517,7 @@ object DisplayNode extends Loggable {
                       case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
                       case Right(cert) => (
                         <div><label>SHA1 Fingerprint: </label> <samp>{SHA1.hash(cert.getEncoded).grouped(2).mkString(":")}</samp></div>
-                        <div><label>Expiration date: </label> {new DateTime(cert.getNotAfter).toString(ISODateTimeFormat.dateTimeNoMillis())}</div>
+                        <div><label>Expiration date: </label> {DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))}</div>
                       )
                     }
                 }}

@@ -38,10 +38,9 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.IOResult
-import com.normation.rudder.campaigns.CampaignEventState.Scheduled
 import com.normation.rudder.db.Doobie
 import doobie.Fragments
-import doobie.LogHandler
+import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits._
@@ -50,73 +49,147 @@ import doobie.implicits.toSqlInterpolator
 import org.joda.time.DateTime
 import zio.interop.catz._
 
-import java.sql.Timestamp
-
 
 trait CampaignEventRepository {
   def get(campaignEventId: CampaignEventId) : IOResult[CampaignEvent]
   def saveCampaignEvent(c : CampaignEvent) : IOResult[CampaignEvent]
+  def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int]
+  def deleteEvent(
+      id          : Option[CampaignEventId] = None
+    , states      : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId  : Option[CampaignId] = None
+    , afterDate   : Option[DateTime] = None
+    , beforeDate  : Option[DateTime] = None
+  ) : IOResult[Unit]
 
   /*
    * Semantic is:
    * - if Nil or None, clause is ignored
    * - if a value is provided, then it is use to filter things accordingly
    */
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]]
+  def getWithCriteria(
+      states : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId : Option[CampaignId] = None
+    , limit : Option[Int] = None
+    , offset: Option[Int] = None
+    , afterDate : Option[DateTime] = None
+    , beforeDate : Option[DateTime] = None
+    , order : Option[String]
+    , asc   : Option[String]
+  )  : IOResult[List[CampaignEvent]]
 }
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
   import doobie._
+  import CampaignSerializer._
+  import com.normation.rudder.db.json.implicits._
+  import Doobie.DateTimeMeta
 
-  implicit  val stateWrite : Write[CampaignEventState] = Write[String].contramap(_.value)
+
+  implicit  val stateWrite : Meta[CampaignEventState] = new Meta(pgDecoderGet, pgEncoderPut)
 
   implicit val eventWrite: Write[CampaignEvent] =
-    Write[(String,String,CampaignEventState,Timestamp,Timestamp, String)].contramap{
-      case event => (event.id.value,event.campaignId.value, event.state , new java.sql.Timestamp(event.start.getMillis), new java.sql.Timestamp(event.end.getMillis), event.campaignType.value)
+    Write[(String,String,String,CampaignEventState,DateTime,DateTime, String)].contramap{
+      case event => (event.id.value,event.campaignId.value, event.name, event.state , event.start, event.end, event.campaignType.value)
     }
 
   implicit val eventRead : Read[CampaignEvent] =
-    Read[(String,String,String,Timestamp,Timestamp,String)].map {
-      d : (String,String,String,Timestamp,Timestamp,String) =>
+    Read[(String,String,String,CampaignEventState,DateTime,DateTime,String)].map {
+      d : (String,String,String,CampaignEventState,DateTime,DateTime,String) =>
         CampaignEvent(
             CampaignEventId(d._1)
           , CampaignId(d._2)
-          , CampaignEventState.parse(d._3).getOrElse(Scheduled)
-          , new DateTime(d._4.getTime())
-          , new DateTime(d._5.getTime())
-          , campaignSerializer.campaignType(d._6)
+          , d._3
+          , d._4
+          , d._5
+          , d._6
+          , campaignSerializer.campaignType(d._7)
         )
     }
 
   def get(id : CampaignEventId): IOResult[CampaignEvent] = {
-    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents where eventId = '${id.value}'"
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents where eventId = ${id.value}"
     transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
   }
 
-  def getWithCriteria(states : List[CampaignEventState], campaignType: Option[CampaignType], campaignId : Option[CampaignId]) : IOResult[List[CampaignEvent]] = {
+  def getWithCriteria(
+    states : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId : Option[CampaignId] = None
+    , limit : Option[Int] = None
+    , offset: Option[Int] = None
+    , afterDate : Option[DateTime] = None
+    , beforeDate : Option[DateTime] = None
+    , order : Option[String]
+    , asc   : Option[String]
+  ) : IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list._
     val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery = states.toNel.map(s => Fragments.in(fr"state", s.map(_.value)))
-    val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery)
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
+    val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
+    val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
+    val where = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+
+    val limitQuery = limit.map(i => fr" limit $i").getOrElse(fr"")
+    val offsetQuery = offset.map(i => fr" offset $i").getOrElse(fr"")
 
 
-    val q = sql"select eventId, campaignId, state, startDate, endDate, campaignType from  CampaignEvents " ++ where
+    val orderBy = (order,asc) match {
+      case (Some("startDate")|Some("start"), None|Some("asc")) => fr" order by startDate asc"
+      case (Some("startDate")|Some("start"), Some("desc")) => fr" order by startDate desc"
+      case (Some("endDate")|Some("end"), None|Some("asc")) => fr" order by endDate asc"
+      case (Some("endDate")|Some("end"), Some("desc")) => fr" order by endDate desc"
+      case _ => fr" order by startDate desc"
+    }
 
-    transactIOResult(s"error when getting campaign events")(xa => q.queryWithLogHandler[CampaignEvent](LogHandler.jdkLogHandler).to[List].transact(xa))
+
+
+    val q = sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents " ++ where  ++ orderBy ++ limitQuery ++ offsetQuery
+
+    transactIOResult(s"error when getting campaign events")(xa => q.query[CampaignEvent].to[List].transact(xa))
+  }
+
+  def numberOfEventsByCampaign(campaignId : CampaignId) : IOResult[Int] = {
+    val q = sql"select count(*) from  CampaignEvents where campaignId = ${campaignId.value}"
+
+    transactIOResult(s"error when getting campaign events")(xa => q.query[Int].unique.transact(xa))
   }
 
   def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
     import doobie._
     val query =
-      sql"""insert into CampaignEvents  (eventId, campaignId, state, startDate, endDate, campaignType) values (${c})
+      sql"""insert into CampaignEvents  (eventId, campaignId, name, state, startDate, endDate, campaignType) values (${c})
            |  ON CONFLICT (eventId) DO UPDATE
-           |  SET state = ${c.state}; """.stripMargin
+           |  SET state = ${c.state}, name = ${c.name}, startDate = ${c.start}, endDate = ${c.end} ; """.stripMargin
 
-    transactIOResult(s"error when inserting event with id ${c.campaignId.value}")(xa => query.update.run.transact(xa)).map(_ => c)
+    transactIOResult(s"error when inserting event with id ${c.id.value}")(xa => query.update.run.transact(xa)).map(_ => c)
   }
 
+
+  def deleteEvent(
+      id          : Option[CampaignEventId] = None
+    , states      : List[String] = Nil
+    , campaignType: Option[CampaignType] = None
+    , campaignId  : Option[CampaignId] = None
+    , afterDate   : Option[DateTime] = None
+    , beforeDate  : Option[DateTime] = None
+  ) : IOResult[Unit] = {
+
+    import cats.syntax.list._
+    val eventIdQuery = id.map(c => fr"eventId = ${c.value}")
+    val campaignIdQuery = campaignId.map(c => fr"campaignId = ${c.value}")
+    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
+    val stateQuery = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
+    val afterQuery = afterDate.map(d => fr"endDate >= ${ new java.sql.Timestamp(d.getMillis)}")
+    val beforeQuery = beforeDate.map(d => fr"startDate <= ${ new java.sql.Timestamp(d.getMillis)}")
+    val where = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+    val query = sql"""delete from campaignEvents """ ++ where
+    transactIOResult(s"error when deleting campaign event")(xa => query.update.run.transact(xa).unit)
+  }
 }
 

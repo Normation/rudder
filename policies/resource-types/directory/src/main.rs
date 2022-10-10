@@ -14,7 +14,7 @@ use rudder_resource_type::{
 
 // Configuration
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum State {
     Present,
@@ -27,7 +27,7 @@ impl Default for State {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DirectoryParameters {
     path: PathBuf,

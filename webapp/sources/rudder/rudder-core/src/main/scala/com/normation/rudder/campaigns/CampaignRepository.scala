@@ -40,18 +40,19 @@ package com.normation.rudder.campaigns
 import better.files.File
 
 import com.normation.errors.IOResult
-import zio.*
-import zio.syntax.*
+import zio._
+import zio.syntax._
 import com.normation.errors.Unexpected
 
 trait CampaignRepository {
   def getAll(): IOResult[List[Campaign]]
   def get(id : CampaignId) : IOResult[Campaign]
+  def delete(id : CampaignId) : IOResult[CampaignId]
   def save(c : Campaign): IOResult[Campaign]
 }
 
 object CampaignRepositoryImpl {
-  def make(campaignSerializer: CampaignSerializer, path: File): IOResult[CampaignRepositoryImpl] = {
+  def make(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository): IOResult[CampaignRepositoryImpl] = {
     IOResult.effectM {
       if(path.exists) {
         if(!path.isDirectory|| !path.isWritable) {
@@ -61,27 +62,28 @@ object CampaignRepositoryImpl {
         path.createDirectoryIfNotExists(createParents = true).succeed
       }
     } *>
-    new CampaignRepositoryImpl(campaignSerializer, path).succeed
+    new CampaignRepositoryImpl(campaignSerializer, path,campaignEventRepository).succeed
   }
 }
 
-class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File) extends CampaignRepository {
+class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository) extends CampaignRepository {
 
   def getAll(): IOResult[List[Campaign]] = {
     for {
-      _ <- CampaignLogger.info(path.children.toList.map(_.extension).mkString(", "))
       jsonFiles <- IOResult.effect{path.collectChildren(_.extension.exists(_ ==".json"))}
       campaigns <- (ZIO.foreach(jsonFiles.toList) {
 
         json =>
           (for {
-            _ <- CampaignLogger.info(json.pathAsString)
             c <-
               campaignSerializer.parse(json.contentAsString)
           } yield {
             c
-          }).either.chainError("yo")
+          }).either.chainError("Error when getting all campaigns from filesystem")
       })
+      _ <- ZIO.foreach(  campaigns.partitionMap(identity)._1){
+             err => CampaignLogger.error(err.msg)
+           }
     } yield {
       campaigns.partitionMap(identity)._2
     }
@@ -105,11 +107,22 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File)
                 file.createFileIfNotExists(true)
                 file
               }
-      _       <- CampaignLogger.info(file.pathAsString)
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.effect { file.write(content) }
     } yield {
       c
     }
   }
+
+  def delete(id: CampaignId): IOResult[CampaignId] =
+    for {
+      campaign_deleted <- IOResult.effect (s"error when delete campaign file for campaign with id '${id.value}'"){
+        val file = path / (s"${id.value}.json")
+        file.delete()
+      }
+      events_deleted <- campaignEventRepository.deleteEvent(campaignId = Some(id))
+    } yield {
+      id
+    }
+
 }

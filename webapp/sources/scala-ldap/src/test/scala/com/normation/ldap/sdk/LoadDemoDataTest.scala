@@ -38,10 +38,12 @@
 package com.normation.ldap.sdk
 
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
+
 import com.unboundid.ldap.sdk.DN
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+
 import com.normation.zio._
 
 /**

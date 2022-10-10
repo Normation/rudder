@@ -19,7 +19,7 @@ pub mod parameters;
 ///
 /// These fields are the fields required by the library and need to be
 /// implemented by all promise types.
-#[derive(Debug, PartialEq, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
 pub struct ResourceTypeMetadata {
     name: String,
     version: String,
@@ -119,7 +119,7 @@ pub trait ResourceType0 {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum PolicyMode {
     Enforce,
@@ -152,7 +152,7 @@ pub type ValidateResult = Result<()>;
 /// * We want to abstract external concerns as much as possible and make the interface minimal.
 ///   It is up to the calling agent to map the outcome to the expected semantic.
 /// * To match CFEngine's behavior
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Outcome {
     Success(Option<String>),
     Repaired(String),
@@ -176,7 +176,7 @@ impl Outcome {
 pub type CheckApplyResult = Result<Outcome>;
 
 /// Init/Terminate result
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum ProtocolResult {
     /// Success
     Success,
@@ -260,7 +260,7 @@ pub mod backup {
 
     use rudder_commons::canonify;
 
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub enum Backup {
         BeforeEdit,
         Moved,

@@ -13,7 +13,7 @@ use crate::{
 
 const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct Class {
     inner: String,
@@ -34,7 +34,7 @@ impl FromStr for Class {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 //#[serde(default)]
 pub(crate) enum ActionPolicy {
@@ -49,7 +49,7 @@ impl Default for ActionPolicy {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 /// Promise validation outcomes
 pub(crate) enum ValidateOutcome {
@@ -73,7 +73,7 @@ impl From<ValidateResult> for ValidateOutcome {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 /// Promise evaluation outcomes
 pub(crate) enum EvaluateOutcome {
@@ -109,7 +109,7 @@ impl From<CheckApplyResult> for EvaluateOutcome {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 /// Result for init/terminate
 pub(crate) enum ProtocolOutcome {
@@ -138,26 +138,26 @@ impl From<ProtocolResult> for ProtocolOutcome {
 }
 
 // Little hack for constant tags in serialized JSON
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 enum ValidateOperation {
     ValidatePromise,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 enum EvaluateOperation {
     EvaluatePromise,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 enum TerminateOperation {
     Terminate,
 }
 
 // {"operation": "validate_promise", "log_level": "info", "promise_type": "git", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct ValidateRequest {
     operation: ValidateOperation,
     pub(crate) log_level: LevelFilter,
@@ -169,7 +169,7 @@ pub(crate) struct ValidateRequest {
 }
 
 // {"operation": "evaluate_promise", "log_level": "info", "promise_type": "git", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct EvaluateRequest {
     operation: EvaluateOperation,
     pub(crate) log_level: LevelFilter,
@@ -181,7 +181,7 @@ pub(crate) struct EvaluateRequest {
 }
 
 // {"operation": "terminate", "log_level": "info"}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct TerminateRequest {
     operation: TerminateOperation,
 }
@@ -189,7 +189,7 @@ pub(crate) struct TerminateRequest {
 ////////////////////////////////////
 
 // {"operation": "validate_promise", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}, "result": "valid"}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct ValidateResponse {
     operation: ValidateOperation,
     promiser: String,
@@ -209,7 +209,7 @@ impl ValidateResponse {
 }
 
 // {"operation": "evaluate_promise", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}, "result": "kept"}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct EvaluateResponse {
     operation: EvaluateOperation,
     promiser: String,
@@ -235,7 +235,7 @@ impl EvaluateResponse {
 }
 
 // {"operation": "terminate", "result": "success"}
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub(crate) struct TerminateResponse {
     operation: TerminateOperation,
     result: ProtocolOutcome,

@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueReader
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesInfo
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventMetadata
@@ -53,6 +54,8 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRRule
 import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -627,11 +630,12 @@ class ZipArchiveReaderImpl(
 ) extends ZipArchiveReader {
     import com.softwaremill.quicklens._
 
-  val techniqueRegex = """.*techniques/(.+)""".r
+  // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
+  val techniqueRegex = """(.*/|)techniques/(.+)""".r
   val metadataRegex = """(.+)/metadata.xml""".r
-  val directiveRegex = """.*directives/(.+.json)""".r
-  val groupRegex = """.*groups/(.+.json)""".r
-  val ruleRegex = """.*rules/(.+.json)""".r
+  val directiveRegex = """(.*/|)directives/(.+.json)""".r
+  val groupRegex = """(.*/|)groups/(.+.json)""".r
+  val ruleRegex = """(.*/|)rules/(.+.json)""".r
 
   /*
    * For technique, we are parsing metadata.xml.
@@ -725,16 +729,16 @@ class ZipArchiveReaderImpl(
 
     // sort files in rules, directives, groups, techniques
     val sortedEntries = zipEntries.foldLeft(SortedEntries.empty) { case (arch, (e, optContent)) => (e.getName, optContent) match {
-      case (techniqueRegex(x), Some(content)) =>
+      case (techniqueRegex(_, x), Some(content)) =>
         ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found technique file ${x}")
         arch.modify(_.techniques).using( _ :+ (x, content))
-      case (directiveRegex(x), Some(content)) =>
+      case (directiveRegex(_, x), Some(content)) =>
         ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found directive file ${x}")
         arch.modify(_.directives).using( _ :+ (x, content))
-      case (groupRegex(x), Some(content)) =>
+      case (groupRegex(_, x), Some(content)) =>
         ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group file ${x}")
         arch.modify(_.groups).using( _ :+ (x, content))
-      case (ruleRegex(x), Some(content)) =>
+      case (ruleRegex(_, x), Some(content)) =>
         ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found rule file ${x}")
         arch.modify(_.rules).using( _ :+ (x, content))
       case (name, Some(_)) =>
@@ -868,6 +872,8 @@ class SaveArchiveServicebyRepo(
   , woGroupRepos     : WoNodeGroupRepository
   , roRuleRepos      : RoRuleRepository
   , woRuleRepos      : WoRuleRepository
+  , techLibUpdate    : UpdateTechniqueLibrary
+  , asyncDeploy      : AsyncDeploymentActor
 ) extends SaveArchiveService {
 
 
@@ -883,6 +889,7 @@ class SaveArchiveServicebyRepo(
     val techniqueDir = File(techniqueArchiver.gitRepo.rootDirectory.pathAsString + "/" + techniqueArchiver.relativePath + "/" + t.category.mkString("/") + "/" + t.technique.id.serialize)
 
     for {
+      _        <- ApplicationLoggerPure.Archive.debug(s"Adding technique from archive: '${t.technique.name}' (${techniqueDir.pathAsString})")
       addedRef <- Ref.make(Chunk.fromIterable(t.files.map(_._1))) // path are relative to technique. Files we need to add as new in the end
       diffRef  <- Ref.make(Chunk[ResourceFile]())
       // get all file path (relative to technique dir)
@@ -901,13 +908,16 @@ class SaveArchiveServicebyRepo(
       updated <- diffRef.get
 
       // now, actually delete files marked so
+      _       <- ApplicationLoggerPure.Archive.trace(s"Deleting technique files for technique '${t.technique.id.serialize}': ${updated.collect {
+                   case f if(f.state == ResourceFileState.Deleted) => f.path }.mkString(", ") }")
       _       <- ZIO.foreach_(updated) { u =>
                    if(u.state == ResourceFileState.Deleted) {
-                     IOResult.effect(File(techniqueDir.pathAsString+ "/" + u.path).delete)
+                     IOResult.effect(File(techniqueDir.pathAsString+ "/" + u.path).delete())
                    } else ZIO.unit
                  }
       // now, write new/updated files
-      _       <- ZIO.foreach(t.files) { case (p, bytes) =>
+      _       <- ApplicationLoggerPure.Archive.trace(s"Writing for commit files for technique '${t.technique.id.serialize}': ${t.files.map(_._1).mkString(", ")} ")
+      _       <- ZIO.foreach_(t.files) { case (p, bytes) =>
                    val f = File(techniqueDir.pathAsString+"/"+p)
                    IOResult.effect{
                      f.parent.createDirectoryIfNotExists(createParents = true) // for when the technique, or subdirectories for resources are not existing yet
@@ -917,17 +927,20 @@ class SaveArchiveServicebyRepo(
       // finally commit
       _       <- techniqueArchiver.saveTechnique(t.technique.id, t.category, added++updated, eventMetadata.modId,
                                                  eventMetadata.actor, eventMetadata.msg.getOrElse(s"Committing technique '${t.technique.id.serialize}' from archive"))
+
     } yield ()
   }
 
   def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
     for {
       at <- roDirectiveRepos.getActiveTechnique(d.technique).notOptional(s"Technique '${d.technique.value}' is used in imported directive ${d.directive.name} but is not in Rudder")
+      _  <- ApplicationLoggerPure.Archive.debug(s"Adding directive from archive: '${d.directive.name}' (${d.directive.id.serialize})")
       _  <- woDirectiveRepos.saveDirective(at.id, d.directive, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
     } yield ()
   }
   def saveGroup(eventMetadata: EventMetadata, g: GroupArchive): IOResult[Unit] = {
     for {
+      _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       x <- roGroupRepos.getNodeGroupOpt(g.group.id)
       _ <- x match {
         case Some(value) => woGroupRepos.update(g.group, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
@@ -937,6 +950,7 @@ class SaveArchiveServicebyRepo(
   }
   def saveRule(eventMetadata: EventMetadata, r: Rule): IOResult[Unit] = {
     for {
+      _  <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
       x <- roRuleRepos.getOpt(r.id)
       _ <- x match {
         case Some(value) => woRuleRepos.update(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
@@ -958,6 +972,13 @@ class SaveArchiveServicebyRepo(
       _ <- ZIO.foreach(archive.directives) { saveDirective(eventMetadata, _) }
       _ <- ZIO.foreach(archive.groups) { saveGroup(eventMetadata, _) }
       _ <- ZIO.foreach(archive.rules) { saveRule(eventMetadata, _) }
+      // update technique lib, regenerate policies
+      _ <- ZIO.when(archive.techniques.nonEmpty) {
+             techLibUpdate.update(eventMetadata.modId, eventMetadata.actor, Some(s"Update Technique library after import of and archive")).toIO.chainError(
+               s"An error occurred during technique update after import of archive"
+             )
+           }
+      _ <- IOResult.effect(asyncDeploy ! AutomaticStartDeployment(eventMetadata.modId, eventMetadata.actor))
     } yield ()
   }
 }

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
-get:
+post:
   summary: Reload methods
   description: Reload methods metadata from file system
   operationId: reloadMethods

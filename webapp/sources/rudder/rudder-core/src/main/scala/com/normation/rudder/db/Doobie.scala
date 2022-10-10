@@ -37,6 +37,8 @@
 
 package com.normation.rudder.db
 
+import cats.Show
+
 import javax.sql.DataSource
 import org.joda.time.DateTime
 
@@ -46,28 +48,27 @@ import scala.xml.Elem
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
-
 import net.liftweb.common._
 import com.normation.rudder.services.reports.RunAndConfigInfo
-
 import org.slf4j.LoggerFactory
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
-import doobie.postgres.implicits._  // it is necessary whatever intellij/scalac tells
+import doobie.postgres.implicits._
 import doobie.implicits.javasql._
 import cats.data._
 import doobie._
-
 import zio._
 import zio.interop.catz._
 import com.normation.errors._
 import com.normation.zio._
 import com.normation.box._
 import com.normation.rudder.domain.policies.DirectiveId
-
 import zio.blocking.Blocking
 import zio.interop.catz.implicits.rts
-
+import zio.json.ast.Json
+import org.postgresql.util.PGobject
+import zio.json.JsonDecoder
+import zio.json.JsonEncoder
 /**
  *
  * That file contains Doobie connection
@@ -281,3 +282,47 @@ object Doobie {
       (_, _,  _) => sys.error("update not supported, sorry")
     )
 }
+
+// Same as doobie-circe , but for zio-json, did not find someone who already have done it, should be in a dependency
+package object json {
+  object implicits extends JsonInstances
+}
+
+trait JsonInstances {
+
+
+  import doobie.util._
+  import zio.json.DecoderOps
+  import zio.json.EncoderOps
+  import zio.json.ast.Json.Null
+
+  private implicit val showPGobject: Show[PGobject] = Show.show(_.getValue.take(250))
+  private implicit val showJson: Show[Json] = Show.show(_.toString().take(250))
+
+  implicit val jsonPut: Put[Json] =
+    Put.Advanced.other[PGobject](
+      NonEmptyList.of("jsonb")
+    ).tcontramap { a =>
+      val o = new PGobject
+      o.setType("jsonb")
+      o.setValue(a.toString())
+      o
+    }
+
+  implicit val jsonGet: Get[Json] = {
+    import Json.decoder
+    Get.Advanced.other[PGobject](
+      NonEmptyList.of("jsonb")
+    ).temap(a =>
+      a.getValue.fromJson
+    )
+  }
+
+  def pgEncoderPut[A: JsonEncoder]: Put[A] =
+    Put[Json].contramap(_.toJsonAST.getOrElse(Null))
+
+  def pgDecoderGet[A: JsonDecoder]: Get[A] =
+    Get[Json].temap(_.as)
+
+}
+
