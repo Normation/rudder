@@ -461,11 +461,7 @@ object DisplayDirectiveTree extends Loggable {
       }
       $$(".bsTooltip").bsTooltip({container: "${if(addEditLink){"#editRuleZonePortlet"}else{"#boxDirectiveTree"}}"})
     """))
-
-    val directives = directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name )
-    (directives.span(_.id.value != "ncf_techniques") match {
-      case (as, h::bs) => h :: as ++ bs
-      case _           => directives
-    }).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
+    directiveLib.subCategories.filterNot(_.isSystem).sortBy( _.name ).flatMap { cat => displayCategory(cat, cat.id.value).toXml }
   }
+
 }
