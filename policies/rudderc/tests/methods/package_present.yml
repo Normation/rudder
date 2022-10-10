@@ -2,31 +2,42 @@
 name: Package present
 description: Enforce the presence of a package
 documentation: "See [package_state](#_package_state) for documentation.\nSecond line of documentation."
-supported_targets: []
 class_prefix: package_present
 class_parameter: name
-source: ~
-deprecated: ~
-rename_to: ~
-action: ~
-method_name: package_present
-method_args:
+class_parameter_id: 1
+bundle_name: package_present
+bundle_args:
   - name
   - version
   - architecture
   - provider
-parameters:
-  name:
+agent_support:
+  - cfengine-community
+parameter:
+  - name: name
     description: "Name of the package, or path to a local package"
     constraints:
       allow_empty_string: false
       allow_whitespace_string: false
-      select: ~
-      regex: ~
       max_length: 16384
-    renamed_to: ~
-    p_type: String
-  provider:
+    type: string
+  - name: version
+    description: "Version of the package, can be \"latest\" for latest version or \"any\" for any version (defaults to \"any\")"
+    constraints:
+      allow_empty_string: true
+      allow_whitespace_string: false
+      max_length: 16384
+    type: here-string
+  - name: architecture
+    description: "Architecture of the package, can be an architecture name  or \"default\" (defaults to \"default\")"
+    constraints:
+      allow_empty_string: true
+      allow_whitespace_string: false
+      select: ~
+      regex: "^[a-z]$"
+      max_length: 16384
+    type: string
+  - name: provider
     description: "Package provider to use, can be \"yum\", \"apt\", \"zypper\", \"zypper_pattern\", \"slackpkg\", \"pkg\", \"ips\", \"nimclient\" or \"default\" for system default package manager (defaults to \"default\")"
     constraints:
       allow_empty_string: true
@@ -42,28 +53,5 @@ parameters:
         - pkg
         - ips
         - nimclient
-      regex: ~
       max_length: 16384
-    renamed_to: ~
-    p_type: String
-  architecture:
-    description: "Architecture of the package, can be an architecture name  or \"default\" (defaults to \"default\")"
-    constraints:
-      allow_empty_string: true
-      allow_whitespace_string: false
-      select: ~
-      regex: "^[a-z]$"
-      max_length: 16384
-    renamed_to: ~
-    p_type: String
-  version:
-    description: "Version of the package, can be \"latest\" for latest version or \"any\" for any version (defaults to \"any\")"
-    constraints:
-      allow_empty_string: true
-      allow_whitespace_string: false
-      select: ~
-      regex: ~
-      max_length: 16384
-    renamed_to: ~
-    p_type: HereString
-
+    type: string

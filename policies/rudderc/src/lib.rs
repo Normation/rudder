@@ -53,14 +53,14 @@ pub mod action {
     use anyhow::{Context, Result};
     use rudder_commons::Target;
 
-    pub use crate::compiler::{compile, describe_resources};
+    pub use crate::compiler::{compile, methods_description};
     use crate::logs::ok_output;
 
     /// Describe available resources
     pub fn describe(libraries: &[PathBuf], output: &Path) -> Result<()> {
         let mut file = File::create(output)
             .with_context(|| format!("Failed to create output file {}", output.display()))?;
-        file.write_all(describe_resources(libraries)?.as_bytes())?;
+        file.write_all(methods_description(libraries)?.as_bytes())?;
         ok_output("Wrote", output.display());
         Ok(())
     }

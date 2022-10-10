@@ -1,51 +1,56 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-//! Models of the classic "methods" methods of Rudder
+//! Models of the classic "generic methods" of Rudder
 //!
-//! Uses a method (function-like) based model.
+//! Use a method (function-like) based model.
 
-// Parseur de metadata à partir d'un .cf
-// C'est quoi l'interface d'une generic method ?
-// Faire la conversion vers une resource
-
-// transformer en "native resources" qui sont aussi définissables
-// à la main
-
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
-use rudder_commons::{Constraint, Constraints, ParameterType, Target};
+use rudder_commons::{Constraint, Constraints, ParameterType};
 
-pub type MethodName = String;
-pub type AttributeName = String;
+/// Supported agent for a legacy method, now replaced by `Target`
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Agent {
+    CfengineCommunity,
+    Dsc,
+}
 
 /// metadata about a "methods" CFEngine/DSC method
 ///
 /// Leaf yaml implemented by methods
+///
+/// We use legacy names and semantics here for clarity.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Method {
-    pub name: MethodName,
+    pub name: String,
+    pub bundle_name: String,
+    pub bundle_args: Vec<String>,
     pub description: String,
     /// Markdown formatted documentation
     pub documentation: String,
-    // FIXME
-    pub supported_targets: Vec<Target>,
+    pub agent_support: Vec<Agent>,
     pub class_prefix: String,
     pub class_parameter: String,
+    pub class_parameter_id: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub deprecated: Option<String>,
-    /// Renamed method
-    // FIXME separate struct for this?
-    pub rename_to: Option<MethodName>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rename_to: Option<String>,
     /// There can be a message about the cause
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
-    pub method_name: String,
-    pub method_args: Vec<String>,
-    pub parameters: HashMap<AttributeName, Parameter>,
+    pub parameter: Vec<Parameter>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub parameter_rename: Vec<ParameterRename>,
 }
 
 impl Method {
@@ -61,32 +66,52 @@ impl Method {
         }
 
         if self.name.is_empty() {
-            bail!("Empty method name")
+            bail!("Empty method name");
         }
         if self.description.is_empty() {
-            bail!("Empty method description")
+            bail!("Empty method description");
         }
-        if self.class_parameter.is_empty() {
-            bail!("Empty class parameter description")
+
+        self.class_parameter_id = match self
+            .bundle_args
+            .iter()
+            .position(|a| a == &self.class_parameter)
+        {
+            // Starts at 1 for some reason
+            Some(i) => i + 1,
+            None => bail!("Unknown class parameter"),
+        };
+
+        if self.agent_support.is_empty() {
+            // Assume CFEngine support for user-written methods
+            self.agent_support.push(Agent::CfengineCommunity)
         }
+
         Ok(self)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParameterRename {
+    old: String,
+    new: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameter {
+    pub name: String,
     pub description: String,
     pub constraints: Constraints,
-    pub renamed_to: Option<AttributeName>,
+    #[serde(rename = "type")]
     pub p_type: ParameterType,
 }
 
 impl Default for Parameter {
     fn default() -> Self {
         Self {
+            name: "".to_string(),
             description: "".to_string(),
             constraints: Constraints::default(),
-            renamed_to: None,
             p_type: ParameterType::String,
         }
     }
@@ -125,10 +150,35 @@ impl FromStr for Method {
             if let Some(caps) = attributes_tag_re.captures(line) {
                 let tag = &caps[1];
                 let parameter_name = &caps[3];
+
+                // Short circuit as it is a special case
+                if tag == "parameter_rename" {
+                    method.parameter_rename.push(ParameterRename {
+                        new: caps[4].to_string(),
+                        old: parameter_name.to_owned(),
+                    });
+                    continue;
+                }
+
+                // Insert parameter if it is not already there
+                if method
+                    .parameter
+                    .iter()
+                    .filter(|p| p.name == parameter_name)
+                    .next()
+                    .is_none()
+                {
+                    let mut new = Parameter::default();
+                    new.name = parameter_name.to_owned();
+                    method.parameter.push(new);
+                }
+                // Get mutable reference
                 let parameter = method
-                    .parameters
-                    .entry(parameter_name.to_string())
-                    .or_insert_with(Parameter::default);
+                    .parameter
+                    .iter_mut()
+                    .filter(|p| p.name == parameter_name)
+                    .next()
+                    .unwrap();
 
                 match tag {
                     "parameter" => parameter.description = caps[4].to_string(),
@@ -140,7 +190,6 @@ impl FromStr for Method {
                         parameter.constraints.update(constraint)?;
                     }
                     "parameter_type" => parameter.p_type = caps[4].parse()?,
-                    "parameter_rename" => parameter.renamed_to = Some(caps[4].to_string()),
                     _ => debug!("Unknown tag {}", tag),
                 }
                 continue;
@@ -170,6 +219,14 @@ impl FromStr for Method {
                     "action" => method.action = Some(caps[2].to_string()),
                     // Ignore for now, not used at the moment
                     "agent_version" | "agent_requirements" => (),
+                    "agent_support" => {
+                        if caps[2].contains("\"cfengine-community\"") {
+                            method.agent_support.push(Agent::CfengineCommunity)
+                        }
+                        if caps[2].contains("\"dsc\"") {
+                            method.agent_support.push(Agent::Dsc)
+                        }
+                    }
                     p if p.starts_with("parameter") => (),
                     _ => debug!("Unknown tag {}", tag),
                 }
@@ -204,20 +261,26 @@ impl FromStr for Method {
 
             // Bundle signature
             let bundle_re = regex!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*$");
-            if let Some(caps) = bundle_re.captures(line) {
-                method.method_name = (caps[1]).to_string();
-                method.method_args = match &caps.get(3) {
-                    Some(args) => args
-                        .as_str()
-                        .split(',')
-                        .map(|s| s.trim().to_string())
-                        .collect(),
-                    None => vec![],
-                };
-                // We're done with parsing, let's stop now
+            if bundle_re.captures(line).is_some() {
+                // We're done with metadata parsing, let's stop now
                 break;
             }
         }
+
+        // Bundle signature
+        let bundle_re = regex!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*");
+        if let Some(caps) = bundle_re.captures(s) {
+            method.bundle_name = (caps[1]).to_string();
+            method.bundle_args = match &caps.get(3) {
+                Some(args) => args
+                    .as_str()
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .collect(),
+                None => vec![],
+            };
+        }
+
         method.build()
     }
 }

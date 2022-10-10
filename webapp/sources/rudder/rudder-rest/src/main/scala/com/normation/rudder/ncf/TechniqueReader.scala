@@ -65,7 +65,7 @@ class TechniqueReader(
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
       techniques     <- foreach(techniqueFiles)( file =>
                           restExtractor.extractEditorTechnique(parse(file.contentAsString), methods, false, true).toIO
-                            .chainError("An Error occured while extracting data from techniques ncf API")
+                            .chainError("An Error occurred while extracting data from techniques ncf API")
                         )
     } yield {
       (techniques,methods)
@@ -107,11 +107,25 @@ private[this] def readMethodsMetadataFile(cache : (Instant, Map[BundleName, Gene
   }
 
   def updateMethodsMetadataFile: IOResult[CmdResult] = {
-    val cmd = Cmd("/usr/share/ncf/ncf", "write_all_methods" :: Nil, Map.empty)
+    // Comes with the rudder-server packages
+    val systemLib = "/usr/share/ncf/tree/30_generic_methods"
+    // User-defined methods + plugin methods (including windows)
+    val localLib = "/var/rudder/configuration-repository/ncf/30_generic_methods"
+
+    val methodLibs = if (File(localLib).exists) {
+      systemLib :: localLib :: Nil
+    } else {
+      systemLib :: Nil
+    }
+    val ruddercBin = "/opt/rudder/bin/rudderc"
+    val ruddercLibs = methodLibs.flatMap(l => "--library" :: l :: Nil)
+    val ruddercParams = "--resource-description" :: "--output" :: methodsFile.pathAsString :: Nil
+
+    val cmd = Cmd(ruddercBin, ruddercLibs ::: ruddercParams, Map.empty)
     for {
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
-      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occured while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}").fail)
+      _         <- ZIO.when(res.code != 0) (Inconsistency(s"An error occurred while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}").fail)
       // commit file
       modId     =  ModificationId(uuidGen.newUuid)
       ident     <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)

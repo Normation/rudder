@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -43,8 +44,10 @@ pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<St
     backend(target).generate(policy)
 }
 
-/// Compute the output of the file
-pub fn describe_resources(libraries: &[PathBuf]) -> Result<String> {
+/// Compute the output of the JSON file for the webapp
+///
+/// It replaces the legacy `generic_methods.json` produced by `ncf.py`.
+pub fn methods_description(libraries: &[PathBuf]) -> Result<String> {
     let mut methods: Vec<Method> = vec![];
     for library in libraries {
         let mut add = read_lib(library)?;
@@ -53,7 +56,13 @@ pub fn describe_resources(libraries: &[PathBuf]) -> Result<String> {
         ok_output("Read", format!("{} methods ({})", len, library.display()))
     }
 
+    // The webapp expects a map
+    let mut res = HashMap::new();
+    for method in methods {
+        res.insert(method.bundle_name.clone(), method);
+    }
+
     ok_output("Generating", format!("resources description"));
 
-    serde_yaml::to_string(&methods).context("Serializing resources")
+    serde_json::to_string_pretty(&res).context("Serializing resources")
 }

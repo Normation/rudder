@@ -28,6 +28,7 @@
 # @class_prefix package_install
 # @class_parameter name
 # @rename package_present
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent package_install(name)
 {
