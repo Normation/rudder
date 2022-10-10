@@ -2,7 +2,7 @@ module View exposing (..)
 
 import DataTypes exposing (..)
 import Html exposing (Html, button, div, i, span, text, h1, h3, ul, li, input, a, table, thead, tbody, tr, th, label)
-import Html.Attributes exposing (class, type_, placeholder, value, colspan, rowspan, style, tabindex, id, for, checked, disabled)
+import Html.Attributes exposing (checked, class, colspan, disabled, for, href, id, placeholder, rowspan, style, tabindex, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
@@ -33,7 +33,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled++classFocus), onClick (OpenRuleDetails item.id True)]
+        , a[class ("jstree-anchor"++classDisabled++classFocus), href ("/rudder/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
             [ badgePolicyMode model.policyMode item.policyMode
@@ -87,7 +87,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a [class ("jstree-anchor" ++ classFocus), onClick (OpenCategoryDetails item.id True)]
+                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClick (OpenCategoryDetails item.id True)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName tooltipable " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
