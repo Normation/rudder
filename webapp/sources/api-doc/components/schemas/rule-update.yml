@@ -24,11 +24,7 @@ properties:
       type: string
       description: "Directive id"
   targets:
-    type: array
-    description: Groups linked to the rule
-    items:
-      type: string
-      description: "Group id"
+    $ref: rule-targets.yml
   enabled:
     type: boolean
     description: Is the rule enabled
