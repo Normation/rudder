@@ -33,7 +33,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled++classFocus), href ("/rudder/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
+        , a[class ("jstree-anchor"++classDisabled++classFocus), href (model.contextPath ++ "/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName tooltipable"]
             [ badgePolicyMode model.policyMode item.policyMode
