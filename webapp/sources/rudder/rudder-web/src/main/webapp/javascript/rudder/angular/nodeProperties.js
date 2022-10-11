@@ -130,16 +130,21 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
     $scope.urlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId;
     var getUrlAPI = contextPath + '/secure/api/'+ objectName +'s/' + nodeId + '/displayInheritedProperties';
     $scope.fetchProperties = function() {
-      return $http.get(getUrlAPI).success( function (result) {
-        var res = objectName === 'node' ? result.data[0] : result.data.groups[0];
-        if(res !== undefined && res.properties !== undefined){
-          $scope.properties = res.properties
-        }else{
-          $scope.properties = [];
+      return $http.get(getUrlAPI).then(
+        function successCallback(response) {
+          var res = objectName === 'node' ? response.data.data[0] : response.data.data.groups[0];
+          if(res !== undefined && res.properties !== undefined){
+            $scope.properties = res.properties
+          }else{
+            $scope.properties = [];
+            createErrorNotification("Error while fetching "+objectName+" properties")
+          }
+        },
+        function errorCallback(response) {
           createErrorNotification("Error while fetching "+objectName+" properties")
         }
-      }).error(function(){createErrorNotification("Error while fetching "+objectName+" properties")});
-    };
+      );
+    }
     $scope.fetchProperties();
     new ClipboardJS('.btn-clipboard');
   }
