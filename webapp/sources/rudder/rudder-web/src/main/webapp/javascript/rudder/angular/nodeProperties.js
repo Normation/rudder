@@ -112,7 +112,7 @@ nodePropertiesApp.controller('nodePropertiesCtrl', function ($scope, $http, DTOp
       withOption("bLengthChange", true).
 	  withOption( "lengthMenu", [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]).
       withOption("pageLength", 25).
-      withOption("jQueryUI", true).
+      withOption("jQueryUI", false).
       withOption("bAutoWidth", false)
 
 

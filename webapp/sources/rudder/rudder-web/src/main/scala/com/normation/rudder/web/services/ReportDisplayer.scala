@@ -619,7 +619,7 @@ class ReportDisplayer(
                       return JSON.parse( localStorage.getItem('DataTables_${name2}') );
                     },
        "sPaginationType": "full_numbers",
-       "bJQueryUI": true,
+       "bJQueryUI": false,
        "oLanguage": {
          "sSearch": ""
        },
