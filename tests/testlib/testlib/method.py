@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """
 Lib used by the ncf sanity tests
-Defines the Method class, and make the interractions
+Defines the Method class, and make the interactions
 with the ncf python api to avoid using it in tests.
 """
 
@@ -12,7 +12,7 @@ import codecs
 from shutil import which
 DIRNAME = os.path.dirname(os.path.abspath(__file__))
 GIT_ROOT = DIRNAME + '/../../..'
-sys.path.insert(0, GIT_ROOT + '/tools/')
+sys.path.insert(0, GIT_ROOT + '/tests/')
 print(GIT_ROOT)
 import ncf
 

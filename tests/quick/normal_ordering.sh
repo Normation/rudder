@@ -12,7 +12,7 @@ ALL_TESTS=`find ${NCF_TREE} -name '*.cf' | grep -v 20_cfe_basics/cfengine`
 ERRORS=0
 for file in ${ALL_TESTS}
 do
-  ${NCF_TREE}/../tools/ordering.pl ${file}
+  ${NCF_TREE}/../tests/quick/ordering.pl ${file}
   if [ $? -ne 0 ]; then
     ERRORS=`expr ${ERRORS} + 1`
     echo "Test ${file} has a normal ordering error"

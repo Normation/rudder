@@ -29,16 +29,9 @@ localdepends:
 
 # Install ncf in DESTDIR
 install:
-	mkdir -p $(DESTDIR)/share/doc/ncf
-	$(CP_A) examples $(DESTDIR)/share/doc/ncf/
-	$(INSTALL) -m 644 README.md $(DESTDIR)/share/doc/ncf/
 	mkdir -p $(DESTDIR)/share/ncf
 	$(CP_A) tree $(DESTDIR)/share/ncf/
-	$(CP_A) tools $(DESTDIR)/share/ncf/
 	$(INSTALL) -m 755 ncf $(DESTDIR)/share/ncf/
-	mkdir -p $(DESTDIR)/bin
-	ln -sf ../share/ncf/ncf $(DESTDIR)/bin/ncf
-	mkdir -p $(DESTDIR)/share/man/man1
 
 test:
 	cd tests/acceptance/ && ./testall --info
