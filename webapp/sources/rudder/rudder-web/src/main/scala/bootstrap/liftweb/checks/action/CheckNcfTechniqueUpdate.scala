@@ -96,7 +96,9 @@ class CheckNcfTechniqueUpdate(
     def updateNcfTechniques = {
       for {
         _                       <- BootstrapLogger.info("started")
-        _                       <- techniqueReader.updateTechniquesMetadataFile
+        _                       <- techniqueReader.updateTechniquesMetadataFile.catchAll { err =>
+                                     BootstrapLogger.warn(s"An error occurred while updating techniques metadata ${err.msg}")
+                                   }
         _                       <- BootstrapLogger.info("techniques - update")
         res                     <- techniqueReader.readTechniquesMetadataFile
         (techniques, methods)    = res

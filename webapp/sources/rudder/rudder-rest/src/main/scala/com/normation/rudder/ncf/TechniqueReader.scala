@@ -1,6 +1,7 @@
 package com.normation.rudder.ncf
 
 import better.files._
+import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
@@ -150,9 +151,9 @@ class TechniqueReader(
       res       <- updateCmd.await
       _         <-
         ZIO.when(res.code != 0)(
-          Inconsistency(
-            s"An error occured while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-          ).fail
+          NamedZioLogger("update-techniques").warn(
+            s"An error occurred while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+          )
         )
     } yield {
       res
