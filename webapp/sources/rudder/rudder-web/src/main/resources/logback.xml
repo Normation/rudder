@@ -533,5 +533,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
 
+  <!-- Uncomment to have precise log about auth-backends plugin if installed -->
+<!--   <logger name="auth-backends" level="trace" /> -->
+
 
 </configuration>
