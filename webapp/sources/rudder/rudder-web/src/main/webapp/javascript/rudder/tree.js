@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -41,13 +41,13 @@
 var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
-  }).jstree({ 
-    "core" : { 
+  }).jstree({
+    "core" : {
         "animation" : 300
       , "html_titles" : true
       , "multiple" : false
     },
-    "ui" : { 
+    "ui" : {
       "initially_select" : [initially_select],
       "select_limit" : 1
     },
@@ -80,7 +80,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
           always_copy: true
         , is_draggable: function(nodes,event) {
           return nodes.some(function(node) {return node.type !== "category"})
-        } 
+        }
         },
       "plugins" : [ "types", "dnd", "search" ]
     })
@@ -92,8 +92,8 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
 var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
 	  data.instance.open_all();
-  }).jstree({ 
-    "core" : { 
+  }).jstree({
+    "core" : {
     "animation" : 300
     , "multiple" : false
     , "html_titles" : true,
@@ -109,7 +109,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
       return true;
       }
     },
-    "ui" : { 
+    "ui" : {
       "select_limit" : 1
     },
     "types" : {
@@ -148,7 +148,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
         "case_insensitive" : true,
         "show_only_matches": true
       },
-    "plugins" : [ "types", "dnd", "search" ] 
+    "plugins" : [ "types", "dnd", "search" ]
   })
 }
 
@@ -172,7 +172,7 @@ var buildRuleCategoryTree = function(id, initially_select , appContext) {
         "#" : {
         "valid_children" : [ "category" ]
         },
-        
+
         "category" : {
               "icon" : "fa fa-folder",
               "valid_children" : [ "category" ],
@@ -243,22 +243,22 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
     select_multiple_modifier = "";
     select_limit = 1;
   }
-  
+
   /**
    * We want to be able to select category on group
    * page.
    */
   if(select_node == undefined) {
-    select_node = false; 
-  } 
-  
+    select_node = false;
+  }
+
   /**
    * We want to select all nodes, including
    * system one, on the rule page
    * (so where category are not selectable
    */
   var select_system_node_allowed = false;
-  
+
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
     $(id+' .rudder-label').bsTooltip();
@@ -270,14 +270,14 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
       var idType = ""
       if(jsTreeId.startsWith("jstree-special:")) {
         var idGroupSystem = jsTreeId.slice(7, -7);
-        x.setAttribute("href", "/rudder/secure/nodeManager/groups#{\"target\":\"" + idGroupSystem + "\"}");
+        x.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"target\":\"" + idGroupSystem + "\"}");
       } else {
         var idGroupUser = jsTreeId.slice(13, -7);
-        x.setAttribute("href", "/rudder/secure/nodeManager/groups#{\"groupId\":\"" + idGroupUser + "\"}");
+        x.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"groupId\":\"" + idGroupUser + "\"}");
       }
     });
   }).jstree({
-    "core" : { 
+    "core" : {
       "animation" : 300,
       "html_titles" : true
     },
@@ -351,11 +351,11 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
       "drop_target" : false,
       "drag_target" : false
     },
-    "themes" : { 
+    "themes" : {
   	  "theme" : "rudder",
   	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search"  ] 
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search"  ]
     });
 }
 
@@ -370,12 +370,12 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.instance.open_all();
-    }).jstree({ 
-      "core" : { 
+    }).jstree({
+      "core" : {
       "animation" : 300,
       "html_titles" : true
       },
-     "ui" : { 
+     "ui" : {
         "initially_select" : [initially_select],
         "select_limit" : 1
       },
@@ -384,15 +384,15 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
             "valid_children" : [ "category" ]
           }
         , "category" : {
-              "icon" : "fa fa-folder" 
+              "icon" : "fa fa-folder"
             , "valid_children" : [ "category", "template" ]
           }
         , "template" : {
-              "icon" : "fa fa-gear" 
+              "icon" : "fa fa-gear"
             , "valid_children" : [ "directive" ]
           }
         , "directive" : {
-              "icon" : "fa fa-file-text" 
+              "icon" : "fa fa-file-text"
             , "valid_children" : [ "rule" ]
           }
         , "rule" : {
@@ -403,11 +403,11 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
             "valid_children" : "none"
           }
       },
-        "themes" : { 
+        "themes" : {
       	  "theme" : "rudder",
       	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
         },
-      "plugins" : [ "themes", "html_data", "ui", "types"] 
+      "plugins" : [ "themes", "html_data", "ui", "types"]
     })
 }
 
@@ -427,10 +427,10 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       nodes.forEach(function(x) {
         var jsTreeId = x.getAttribute("id");
         var idDirective = jsTreeId.slice(7, -7);
-        x.setAttribute("href", "/rudder/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
+        x.setAttribute("href", contextPath + "/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
       });
     }).jstree({
-      "core" : { 
+      "core" : {
         "animation" : 300,
         "html_titles" : true
       },
@@ -471,7 +471,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
         "show_only_matches": true
       },
 
-      "themes" : { 
+      "themes" : {
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
@@ -488,13 +488,13 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
  * Directive management
  */
 var buildChangesTree = function(id,appContext) {
-  $(id).jstree({ 
-      "core" : { 
+  $(id).jstree({
+      "core" : {
       "animation" : 300,
       "html_titles" : true,
       "initially_open" : [ "changes","directives","rules","groups", "params" ]
       },
-     "ui" : { 
+     "ui" : {
         "select_limit" : 1,
         "initially_select" : [ "changes"]
       },
@@ -519,7 +519,7 @@ var buildChangesTree = function(id,appContext) {
           , "valid_children" : "none"
          }
       },
-      "plugins" : [ "types" ]      
+      "plugins" : [ "types" ]
   })
 }
 
