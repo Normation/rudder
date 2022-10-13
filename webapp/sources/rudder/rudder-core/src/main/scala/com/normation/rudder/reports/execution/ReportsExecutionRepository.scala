@@ -113,7 +113,7 @@ class CachedReportsExecutionRepository(
   private[this] var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
 
-  override def clearCache(): Unit = semaphore.withPermit(IOResult.effect {
+  override def clearCache(): Unit = semaphore.withPermit(IOResult.attempt {
     cache = Map()
   }).runNow
 
@@ -138,7 +138,7 @@ class CachedReportsExecutionRepository(
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.effect {
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore.withPermit(IOResult.attempt {
     for {
       runs  <- readBackend.getNodesAndUncomputedCompliance()
     } yield {

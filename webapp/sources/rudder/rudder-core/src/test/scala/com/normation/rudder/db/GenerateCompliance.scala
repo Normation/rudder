@@ -50,7 +50,6 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import com.normation.zio.ZioRuntime
 import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import doobie._
@@ -107,7 +106,6 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
-    , blockingModule = ZioRuntime.environment
   )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
@@ -116,7 +114,6 @@ object GenerateCompliance {
     , properties.getProperty("ldap.host")
     , properties.getProperty("ldap.port").toInt
     , poolSize = 2
-    , blockingModule = ZioRuntime.environment
     )
 
   lazy val rudderDit = new RudderDit(new DN(properties.getProperty("ldap.rudder.base")))

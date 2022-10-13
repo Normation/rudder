@@ -40,20 +40,26 @@ package com.normation.rudder.reports.execution
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
+
 import net.liftweb.common._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
+
 import doobie._
 import doobie.implicits._
 import cats.implicits._
+
 import com.normation.errors.IOResult
-import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.reports.{ExpectedReportsSerialisation, NodeAndConfigId, NodeConfigId, NodeExpectedReports}
 import com.normation.rudder.services.reports.NodeConfigurationService
+
 import org.joda.time.DateTime
+
 import zio.interop.catz._
 import zio._
 import zio.syntax._
+import com.normation.zio._
 
 final case class RoReportsExecutionRepositoryImpl (
     db              : Doobie
@@ -76,8 +82,8 @@ final case class RoReportsExecutionRepositoryImpl (
   }
 
   def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
-    val n1 = System.currentTimeMillis
-    (for {
+    for {
+      n1 <- currentTimeMillis
       unprocessedRuns <- getUnprocessedRuns()
       // first evolution, get same behaviour than before, and returns only the last run per node
       // ignore those without a nodeConfigId
@@ -98,11 +104,11 @@ final case class RoReportsExecutionRepositoryImpl (
       }
       // and finally mark them read. It's so much easier to do it now than to carry all data all the way long
       _ <- writeBackend.setComplianceComputationDate(unprocessedRuns.toList)
+      n2 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
     } yield {
-      val n2 = System.currentTimeMillis
-      TimingDebugLogger.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
       runs
-    })
+    }
   }
 
 

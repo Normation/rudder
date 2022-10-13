@@ -25,7 +25,6 @@ import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.ldap.ldif._
 import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.syntax.UnboundidLDAPConnection
-import zio.blocking.Blocking
 import com.normation.zio._
 import zio._
 
@@ -41,7 +40,6 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     //for example for bootstrap datas
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DummyLDIFFileLogger()
-  , val blockingModule: Blocking
 ) extends LDAPConnectionProvider[CON] with OneConnectionProvider[CON] with UnboundidConnectionProvider {
 
   /**
@@ -61,7 +59,7 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
   override def newUnboundidConnection: UnboundidLDAPConnection = server.getConnection
 
   def newConnection: ZIO[Any, LDAPRudderError, CON] = {
-    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule).asInstanceOf[CON])
+    LDAPIOResult.attempt(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger).asInstanceOf[CON])
   }
 }
 
@@ -81,7 +79,7 @@ object InMemoryDsConnectionProvider {
     val schema = Schema.getSchema(schemaLDIFPaths:_*)
     val config = new InMemoryDirectoryServerConfig(baseDNs:_*)
     config.setSchema(schema)
-    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger, ZioRuntime.environment)
+    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger)
   }
 
 

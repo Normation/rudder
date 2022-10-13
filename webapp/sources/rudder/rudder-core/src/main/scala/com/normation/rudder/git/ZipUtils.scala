@@ -57,15 +57,25 @@ import scala.jdk.CollectionConverters._
 import zio.Chunk
 import zio.ZIO
 import zio.syntax._
+import com.normation.box.IOManaged
 
 object ZipUtils {
 
   final case class Zippable(path: String, useContent: Option[(InputStream => IOResult[Any]) => IOResult[Any]])
 
+  object Zippable {
+    def make(path: String, content: Option[IOManaged[InputStream]]): Zippable = {
+      def getUseContent(x: IOManaged[InputStream]): (InputStream => IOResult[Any]) => IOResult[Any] = {
+        (use: InputStream => IOResult[Any]) => ZIO.scoped(x.flatMap(use))
+      }
+      Zippable(path, content.map(x => getUseContent(x)))
+    }
+  }
+  
   // unzip from a file to another file/directory
   def unzip(zip: ZipFile, intoDir: File): IOResult[Unit] = {
     if (intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {
-      IOResult.effect(s"Error while unzipping file '${zip.getName}'") {
+      IOResult.attempt(s"Error while unzipping file '${zip.getName}'") {
         zip.entries.asScala.foreach { entry =>
           val file = new File(intoDir, entry.getName)
           if (entry.isDirectory()) {
@@ -99,7 +109,7 @@ object ZipUtils {
       }
     }
 
-    IOResult.effect(s"Error while unzipping file '${name}'") {
+    IOResult.attempt(s"Error while unzipping file '${name}'") {
       val zipis = new ZipInputStream(zip)
       var entry: ZipEntry = zipis.getNextEntry
       var entries = Chunk[(ZipEntry, Option[Array[Byte]])]()
@@ -126,10 +136,10 @@ object ZipUtils {
   def zip(zipout: OutputStream, toAdds: Seq[Zippable]): IOResult[Unit] = {
     // we must ensure that each entry is unique, else zip fails
     val unique = toAdds.distinctBy(_.path)
-    ZIO.bracket(IOResult.effect(new ZipOutputStream(zipout)))(zout => effectUioUnit(zout.close())) { zout =>
-      val addToZout = (is: InputStream) => IOResult.effect("Error when copying file")(IOUtils.copy(is, zout))
+    ZIO.acquireReleaseWith(IOResult.attempt(new ZipOutputStream(zipout)))(zout => effectUioUnit(zout.close())) { zout =>
+      val addToZout = (is: InputStream) => IOResult.attempt("Error when copying file")(IOUtils.copy(is, zout))
 
-      ZIO.foreach_(unique) { x =>
+      ZIO.foreachDiscard(unique) { x =>
         val name = x.useContent match {
           case None     =>
             if (x.path.endsWith("/")) {
@@ -142,7 +152,7 @@ object ZipUtils {
             } else {
               x.path
             }}
-        IOResult.effect(zout.putNextEntry(new ZipEntry(name))) *> (
+        IOResult.attempt(zout.putNextEntry(new ZipEntry(name))) *> (
                                                                   x.useContent match {
                                                                     case None    => ().succeed
                                                                     case Some(x) => x(addToZout)
@@ -200,8 +210,8 @@ object ZipUtils {
         }
       } else {
         def buildContent(use: InputStream => Any): IOResult[Any] = {
-          ZIO.bracket(IOResult.effect(new FileInputStream(f)))(is => effectUioUnit(is.close)) { is =>
-            IOResult.effect("Error when using file")(use(is))
+          ZIO.acquireReleaseWith(IOResult.attempt(new FileInputStream(f)))(is => effectUioUnit(is.close)) { is =>
+            IOResult.attempt("Error when using file")(use(is))
           }
         }
 

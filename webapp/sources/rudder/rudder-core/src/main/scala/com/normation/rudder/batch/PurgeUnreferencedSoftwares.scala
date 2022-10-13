@@ -41,7 +41,10 @@ package com.normation.rudder.batch
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.inventory.ldap.core.SoftwareService
 
-import scala.concurrent.duration._
+import com.github.ghik.silencer.silent
+
+import scala.concurrent.duration.FiniteDuration
+
 import com.normation.zio._
 import zio._
 
@@ -55,13 +58,13 @@ class PurgeUnreferencedSoftwares(
 
   val logger = ScheduledJobLogger
 
-  if (updateInterval < 1.hour) {
+  if (updateInterval < 1.hour.asScala) {
     logger.info(s"[purge unreferenced software] Disable automatic purge of unreferenced softwares (update interval cannot be less than 1 hour)")
   } else {
     logger.debug(s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()}")
     val prog = softwareService.deleteUnreferencedSoftware()
-    import zio.duration.Duration.{fromScala => zduration}
-    ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).forkDaemon)
+    import zio.Duration.{fromScala => zduration}
+    ZioRuntime.unsafeRun(prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon): @silent("a type was inferred to be `Any`")
   }
 }
 

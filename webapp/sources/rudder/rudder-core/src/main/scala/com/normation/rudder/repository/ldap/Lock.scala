@@ -22,9 +22,9 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
+
 import com.normation.errors._
-import com.normation.zio.ZioRuntime
-import zio.clock.Clock
+import zio.ZIO
 import com.normation.zio._
 import zio.stm.TReentrantLock
 
@@ -39,7 +39,6 @@ trait ScalaReadWriteLock {
 }
 
 trait ScalaLock {
-  def clock: Clock
 
   def name: String
 
@@ -52,18 +51,16 @@ class ZioTReentrantLock(name: String) extends ScalaReadWriteLock {
   val lock = TReentrantLock.make.commit.runNow
 
   override def readLock: ScalaLock = new ScalaLock {
-    override def clock: Clock = ZioRuntime.environment
     override val name: String = parent.name
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
-      lock.readLock.use(_ => block)
+      ZIO.scoped(lock.readLock.flatMap(_ => block))
     }
   }
 
   override def writeLock: ScalaLock = new ScalaLock {
-    override val clock: Clock = ZioRuntime.environment
     override val name: String = parent.name
     override def apply[T](block: => IOResult[T]): IOResult[T] = {
-      lock.writeLock.use(_ => block)
+      ZIO.scoped(lock.writeLock.flatMap(_ => block))
     }
   }
 }

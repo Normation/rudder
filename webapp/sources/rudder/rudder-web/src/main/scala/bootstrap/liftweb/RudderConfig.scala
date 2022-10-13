@@ -193,9 +193,7 @@ import net.liftweb.common._
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-import zio.IO
-import zio.Ref
-import zio.duration._
+import zio.{Scheduler => _, System => _, _}
 import zio.syntax._
 
 import java.io.File
@@ -246,7 +244,7 @@ object RudderProperties {
   /**
    * Where to go to look for properties
    */
-  val (configResource, overrideDir) = System.getProperty(JVM_CONFIG_FILE_KEY) match {
+  val (configResource, overrideDir) = java.lang.System.getProperty(JVM_CONFIG_FILE_KEY) match {
       case null | "" => //use default location in classpath
         ApplicationLogger.info(s"JVM property -D${JVM_CONFIG_FILE_KEY} is not defined, use configuration file in classpath")
         (ClassPathResource(DEFAULT_CONFIG_FILE_NAME), None)
@@ -362,7 +360,7 @@ object RudderConfig extends Loggable {
   private case class InitError(msg: String) extends Throwable(msg, null, false, false)
 
   // set the file location that contains mime info
-  System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
+  java.lang.System.setProperty("content.types.user.table", this.getClass.getClassLoader.getResource("content-types.properties").getPath)
 
   //
   // Public properties
@@ -794,19 +792,18 @@ object RudderConfig extends Loggable {
   //
 
   // we need that to be the first thing, and take care of Exception so that the error is
-  // human undertandable when the directory is not up
+  // human understandable when the directory is not up
 
 
   val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
   // test connection is up and try to make an human understandable error message.
   ApplicationLogger.debug(s"Test if LDAP connection is active")
-  // it seems that we need to call `ZioRuntime.internal.unsafeRun` in place of `.runNow` to avoir a deadlock (not clear)
-  ZioRuntime.internal.unsafeRun((for {
+  ZioRuntime.unsafeRun((for {
     con    <- roLdap
   } yield {
     con.backed.getConnectionName
   }).flip.option).foreach(err =>
-    throw new InitError("An error occured when testing for LDAP connection, please check it: " + err.fullMsg)
+    throw new InitError("An error occurred when testing for LDAP connection, please check it: " + err.fullMsg)
   )
 
   val pendingNodesDit: InventoryDit = pendingNodesDitImpl
@@ -1545,7 +1542,7 @@ object RudderConfig extends Loggable {
    */
   def init() : IO[SystemError, Unit] = {
 
-    IOResult.effect {
+    IOResult.attempt {
       import scala.jdk.CollectionConverters._
       val config = RudderProperties.config
       if(ApplicationLogger.isInfoEnabled) {
@@ -1818,7 +1815,6 @@ object RudderConfig extends Loggable {
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
       , poolSize = LDAP_MAX_POOL_SIZE
-      , blockingModule = ZioRuntime.environment
     )
   lazy val rwLdap =
     new RWPooledSimpleAuthConnectionProvider(
@@ -1827,7 +1823,6 @@ object RudderConfig extends Loggable {
       , authDn = LDAP_AUTHDN
       , authPw = LDAP_AUTHPW
       , poolSize = LDAP_MAX_POOL_SIZE
-      , blockingModule = ZioRuntime.environment
     )
 
   //query processor for accepted nodes
@@ -2700,11 +2695,10 @@ object RudderConfig extends Loggable {
                       new FetchDataServiceImpl(RudderConfig.nodeInfoService, RudderConfig.reportingService)
                     , writer
                     , gitLogger
-                    , ZioRuntime.environment
                     , DateTimeZone.UTC // never change log line
                   )
     cron       <- Scheduler.make(METRICS_NODES_MIN_PERIOD, METRICS_NODES_MAX_PERIOD, s => service.scheduledLog(s)
-                    , "Automatic recording of active nodes".succeed, ZioRuntime.environment
+                    , "Automatic recording of active nodes".succeed
                   )
     _          <- ScheduledJobLoggerPure.metrics.info(
                     s"Starting node count historization batch (min:${METRICS_NODES_MIN_PERIOD.render}; max:${METRICS_NODES_MAX_PERIOD.render})"

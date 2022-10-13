@@ -398,18 +398,18 @@ final class AsyncDeploymentActor(
              }
         _ <- (for {
                _   <- PolicyGenerationLoggerPure.manager.debug(s"Policy generation starts now!")
-               res <- deploymentService.deploy().toIO.foldM(
+               res <- deploymentService.deploy().toIO.foldZIO(
                           err => PolicyGenerationLoggerPure.manager.error(s"Error when updating policy, reason was: ${err.fullMsg}") *>
                                  Failure(err.fullMsg).succeed
                         , ok  => Full(ok).succeed
                       )
-               _   <- IOResult.effect(deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, res, nd.actor, nd.eventLogId))
-             } yield ()).delay(zio.duration.Duration.fromScala(d)).provide(ZioRuntime.environment)
+               _   <- IOResult.attempt(deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, res, nd.actor, nd.eventLogId))
+             } yield ()).delay(zio.Duration.fromScala(d))
       } yield ()
 
       val managedErr = prog.catchAll { err =>
         val failure = Failure(s"Exception caught during policy update process: ${err.fullMsg}")
-        IOResult.effect(
+        IOResult.attempt(
           deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, failure, nd.actor, nd.eventLogId)
         ).catchAll(fatal =>
           PolicyGenerationLoggerPure.manager.error(s"Fatal error when trying to send previous error to policy generation manager. First error was: ${err.fullMsg}. Fatal error is: ${fatal.fullMsg}")
@@ -418,6 +418,7 @@ final class AsyncDeploymentActor(
 
       bootSemaphore.await *> managedErr
     }
+
 
     override protected def messageHandler = {
       //

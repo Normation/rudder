@@ -50,7 +50,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldif.LDIFChangeRecord
 
-import zio.UIO
+import zio._
 import zio.syntax._
 
 /*
@@ -68,14 +68,13 @@ class PostCommitInventoryHooks(
   , HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends PostCommit[Seq[LDIFChangeRecord]] {
   import scala.jdk.CollectionConverters._
-  import zio.duration._
 
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
   override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]) : IOResult[Seq[LDIFChangeRecord]] = {
     val node = inventory.node.main
     val hooks = (for {
-      systemEnv <- IOResult.effect(System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
+      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq:_*))
       hooks     <- if(node.status == PendingInventory) {
                      RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-pending", HOOKS_IGNORE_SUFFIXES)
                    } else if(node.status == AcceptedInventory)  {
@@ -132,7 +131,7 @@ class FactRepositoryPostCommit(
                   case None =>
                     InventoryProcessingLogger.info(s"Node information relative to new node '${inventory.node.main.id.value}' " +
                                                    s"are missing, it will not be persisted in fact-repository") *>
-                    UIO.unit // does nothing
+                    ZIO.unit // does nothing
 
                   case Some(nodeInfo) =>
                     nodeFactsRepository.persist(nodeInfo, FullInventory(inventory.node, Some(inventory.machine)), inventory.applications)

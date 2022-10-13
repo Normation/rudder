@@ -98,12 +98,12 @@ object GitRepositoryProviderImpl {
      */
     def checkRootDirectory(dir: File): IOResult[Unit] = {
       if (!dir.exists) {
-        IOResult.effect(dir.createDirectories()).chainError(s"Directory '${dir.pathAsString}' was missing and we were " +
+        IOResult.attempt(dir.createDirectories()).chainError(s"Directory '${dir.pathAsString}' was missing and we were " +
                                                             s"unable to create it to init git repository").unit
       } else if (!dir.isOwnerWritable) {
         Inconsistency(s"Directory '${dir.pathAsString}' exists but it not writable and so it can't be use as a git repository root " +
                       s"directory. Please check that it's really a directory and that rights are correct").fail
-      } else UIO.unit
+      } else ZIO.unit
     }
 
     /**
@@ -111,7 +111,7 @@ object GitRepositoryProviderImpl {
      * If no git repos is found, create one.
      */
     def checkGitRepos(root:File) : IOResult[Repository] = {
-      IOResult.effect {
+      IOResult.attempt {
         val db = (new FileRepositoryBuilder().setWorkTree(root.toJava).build).asInstanceOf[FileRepository]
         if(!db.getConfig.getFile.exists) {
           GitRepositoryLogger.logEffect.info(s"Git directory was not initialised: create a new git repository into folder '${root.pathAsString}' and add all its content as initial release")
@@ -126,7 +126,7 @@ object GitRepositoryProviderImpl {
 
     val dir = File(gitRootPath)
     checkRootDirectory(dir) *>
-    checkGitRepos(dir).flatMap(db => IOResult.effect(new GitRepositoryProviderImpl(db, dir)))
+    checkGitRepos(dir).flatMap(db => IOResult.attempt(new GitRepositoryProviderImpl(db, dir)))
   }
 }
 

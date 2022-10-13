@@ -153,10 +153,10 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
                   result    <- semaphore.withPermit(
                                  for {
                                    t0_in    <- currentTimeNanos
-                                   template <- IOResult.effectNonBlocking(sourceTemplate.getInstanceOf())
-                                   _        <- vars.flatten.accumulate { case (name, value, errorMsg) => IOResult.effectNonBlocking(errorMsg)(template.setAttribute(name, value))}
+                                   template <- IOResult.attempt(sourceTemplate.getInstanceOf())
+                                   _        <- vars.flatten.accumulate { case (name, value, errorMsg) => IOResult.attempt(errorMsg)(template.setAttribute(name, value))}
                                    //return the actual template with replaced variable in case of success
-                                   result   <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
+                                   result   <- IOResult.attempt("An error occured when converting template to string")(template.toString())
                                    t1_in    <- currentTimeNanos
                                  } yield (result, t1_in - t0_in)
                                )
@@ -196,7 +196,7 @@ object FillTemplateThreadUnsafe {
        * content in case of success.
        */
       // return (variable name, variable value, error message)
-      template  <- IOResult.effectNonBlocking(sourceTemplate.getInstanceOf()).untraced
+      template  <- IOResult.attempt(sourceTemplate.getInstanceOf())
       t0        <- currentTimeNanos
       vars      <- variables.accumulate { variable =>
                     // Only System Variables have nullable entries
@@ -208,7 +208,7 @@ object FillTemplateThreadUnsafe {
                       Unexpected(s"Mandatory variable ${variable.name} is empty, can not write ${templateName}").fail
                     } else {
                       StringTemplateLogger.trace(s"Adding in ${templateName} variable '${variable.name}' with values [${variable.values.mkString(",")}]") *>
-                      IOResult.effectNonBlocking(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]"){
+                      IOResult.attempt(s"Error when trying to replace variable '${variable.name}' with values [${variable.values.mkString(",")}]"){
                         // if there is only one value in the value array, only set unique head value or else we encounter https://issues.rudder.io/issues/18205
                         // to sum up, if we pass an array here, StringTemplate will treat it as an array, and not an unique value, hence in the case of 18025,
                         // the Boolean value is used in a condition and string template will only check if the array is empty or notr and not look at the boolean value
@@ -217,9 +217,9 @@ object FillTemplateThreadUnsafe {
                         // avoid the cost of translation.
                         val value = if (variable.values.size == 1) {variable.values.head} else { variable.values.unsafeArray }
                         template.setAttribute(variable.name, value)
-                      }.untraced
+                      }
                     }
-                  }.untraced
+                  }
       // set the ST Variable for RudderUniqueID
       _         = replaceId match {
                        case None => // nothing
@@ -230,7 +230,7 @@ object FillTemplateThreadUnsafe {
       t1        <- currentTimeNanos
       _         <- timer.fill.update(_ + t1 - t0)
      //return the actual template with replaced variable in case of success
-     policy     <- IOResult.effectNonBlocking("An error occured when converting template to string")(template.toString())
+     policy     <- IOResult.attempt("An error occured when converting template to string")(template.toString())
                    // if the technique is multipolicy, replace rudderTag by reportId
      result     =  replaceId match {
                        case None => (policy, templateName)
@@ -245,7 +245,7 @@ object FillTemplateThreadUnsafe {
       _         <- timer.stringify.update(_ + delta)
     } yield {
       result
-    }).chainError(s"Error with template '${templateName}'").untraced.uninterruptible
+    }).chainError(s"Error with template '${templateName}'").uninterruptible
   }
 }
 
@@ -279,7 +279,7 @@ class FillTemplatesService {
                            for {
                              p <- Promise.make[RudderError, SynchronizedFileTemplate]
                              _ <- p.complete(for {
-                                    parsed  <- IOResult.effect(s"Error when trying to parse template '${templateName}'") {
+                                    parsed  <- IOResult.attempt(s"Error when trying to parse template '${templateName}'") {
                                                 new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
                                               }.either
                                     template = new SynchronizedFileTemplate(templateName, parsed)

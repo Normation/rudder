@@ -56,6 +56,6 @@ trait PersonIdentService {
 
 class TrivialPersonIdentService extends PersonIdentService {
   override def getPersonIdentOrDefault(username:String) : IOResult[PersonIdent] = {
-    zio.UIO(new PersonIdent(username, "email not set"))
+    zio.ZIO.succeed(new PersonIdent(username, "email not set"))
   }
 }

@@ -204,7 +204,7 @@ class NodeDetailsSerialize(
   }
 
   def parseAll(json: JValue): IOResult[List[Rest.NodeDetails]] = {
-    IOResult.effect(s"Error when deserializing a nodes for creation API")(json.extract[List[Rest.NodeDetails]])
+    IOResult.attempt(s"Error when deserializing a nodes for creation API")(json.extract[List[Rest.NodeDetails]])
   }
 }
 

@@ -25,7 +25,6 @@ import com.unboundid.ldap.sdk.{LDAPConnectionOptions, LDAPConnectionPool}
 import zio._
 import zio.syntax._
 import com.normation.ldap.sdk.LDAPIOResult._
-import zio.blocking.Blocking
 import com.normation.errors._
 import com.normation.ldap.sdk.syntax._
 import com.normation.zio.ZioRuntime
@@ -61,8 +60,8 @@ final class InternalConnection[LDAP <: RoLDAPConnection](provider: LDAPConnectio
 
 trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
 
-  protected def newConnection : ZIO[Blocking, LDAPRudderError, LDAP]
-  protected def getInternalConnection : ZIO[Blocking, LDAPRudderError, LDAP]
+  protected def newConnection : ZIO[Any, LDAPRudderError, LDAP]
+  protected def getInternalConnection : ZIO[Any, LDAPRudderError, LDAP]
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit]
   protected def releaseDefuncInternalConnection(con:LDAP) : UIO[Unit]
 
@@ -72,7 +71,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * return type is Unit.
    */
   def foreach(f: LDAP => Unit) : IOResult[Unit] = {
-    withConLdap[Unit] { con => f(con) ; UIO.unit }
+    withConLdap[Unit] { con => f(con) ; ZIO.unit }
   }
 
   /**
@@ -114,10 +113,10 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * user method sequence with exception handling.
    */
   protected[sdk] def withCon[E <:RudderError, A](f: LDAP => IO[E, A]) : IOResult[A] = {
-    ZIO.bracket(getInternalConnection)(releaseInternalConnection)(x => ZioRuntime.blocking(f(x))).provide(ZioRuntime.environment)
+    ZIO.acquireReleaseWith(getInternalConnection)(releaseInternalConnection)(f(_))
   }
   protected[sdk] def withConLdap[A](f: LDAP => LDAPIOResult[A]) : LDAPIOResult[A] = {
-    ZIO.bracket(getInternalConnection)(releaseInternalConnection)(x => ZioRuntime.blocking(f(x))).provide(ZioRuntime.environment)
+    ZIO.acquireReleaseWith(getInternalConnection)(releaseInternalConnection)(f(_))
   }
 }
 
@@ -188,7 +187,6 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
 trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProvider[LDAP] {
   self:UnboundidConnectionProvider =>
 
-  def blockingModule: Blocking
   def semaphore: Semaphore
   def ldifFileLogger:LDIFFileLogger
 
@@ -197,7 +195,7 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
   override def close : UIO[Unit] = {
     semaphore.withPermit(for {
       c <- connection.get
-      _ <- c.fold(UIO.unit)(c => UIO.effectTotal(c.close()))
+      _ <- c.fold(ZIO.unit)(c => ZIO.succeed(c.close()))
       _ <- connection.set(None)
     } yield ())
   }
@@ -214,14 +212,14 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
                  } else {
                    releaseInternalConnection(con) *> newConnection
                  }
-             }).provide(ZioRuntime.environment)
+             })
         _ <- connection.set(Some(n))
     } yield {
       n
     })
   }
-  override protected def releaseInternalConnection(con: LDAP): UIO[Unit] = UIO.unit
-  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit] = UIO.unit
+  override protected def releaseInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
+  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
 }
 
 /**
@@ -248,13 +246,13 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
       throw new Error(msg)
   }
 
-  override def close : UIO[Unit] = UIO.effectTotal(pool.close)
+  override def close : UIO[Unit] = ZIO.succeed(pool.close)
   protected def getInternalConnection = newConnection
   protected def releaseInternalConnection(con:LDAP) : UIO[Unit] = {
-    UIO.effectTotal(pool.releaseConnection(con.backed))
+    ZIO.succeed(pool.releaseConnection(con.backed))
   }
   protected def releaseDefuncInternalConnection(con:LDAP) : UIO[Unit] = {
-    UIO.effectTotal(pool.releaseDefunctConnection(con.backed))
+    ZIO.succeed(pool.releaseDefunctConnection(con.backed))
   }
 
 }
@@ -268,14 +266,13 @@ class ROAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  override val useSchemaInfos : Boolean = false
 ) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
 
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger))
   }
 }
 
@@ -287,14 +284,13 @@ class RWAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  override val useSchemaInfos : Boolean = false
 ) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
   override def semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
 
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger))
   }
 }
 
@@ -308,12 +304,11 @@ class ROPooledAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  override val poolSize : Int = 2
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
   override def poolname: String = s"rudder-anonymous-ro"
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RoLDAPConnection(pool.getConnection,ldifFileLogger))
   }
 }
 
@@ -326,12 +321,11 @@ class RWPooledAnonymousConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  override val poolSize : Int = 2
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
   override def poolname: String = s"rudder-anonymous-rw"
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RwLDAPConnection(pool.getConnection,ldifFileLogger))
   }
 }
 
@@ -346,14 +340,13 @@ class ROSimpleAuthConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  override val useSchemaInfos : Boolean = false
 ) extends SimpleAuthConnection with OneConnectionProvider[RoLDAPConnection] {
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
 
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RoLDAPConnection(newUnboundidConnection,ldifFileLogger))
   }
 }
 
@@ -368,14 +361,13 @@ class RWSimpleAuthConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
-  override val useSchemaInfos : Boolean = false,
-  val blockingModule: Blocking
+  override val useSchemaInfos : Boolean = false
 ) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection]{
   override val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
   override val connection = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
 
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RwLDAPConnection(newUnboundidConnection,ldifFileLogger))
   }
 }
 
@@ -390,12 +382,11 @@ class ROPooledSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  override val poolSize : Int = 2
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
   override def poolname: String = s"rudder-authenticated-ro"
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RoLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RoLDAPConnection(pool.getConnection,ldifFileLogger))
   }
 }
 
@@ -410,13 +401,12 @@ class RWPooledSimpleAuthConnectionProvider(
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
-  override val poolSize : Int = 2,
-  val blockingModule: Blocking
+  override val poolSize : Int = 2
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
 
   override def poolname: String = s"rudder-authenticated-rw"
 
   def newConnection = {
-    LDAPIOResult.effectNonBlocking(new RwLDAPConnection(pool.getConnection,ldifFileLogger,blockingModule=blockingModule))
+    LDAPIOResult.attempt(new RwLDAPConnection(pool.getConnection,ldifFileLogger))
   }
 }

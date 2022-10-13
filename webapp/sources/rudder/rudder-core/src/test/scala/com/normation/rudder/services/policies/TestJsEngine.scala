@@ -43,15 +43,20 @@ import org.specs2.runner._
 import org.specs2.matcher.MatchResult
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.cfclerk.domain.InputVariableSpec
+
 import org.specs2.matcher.Matcher
 
 import scala.util.matching.Regex
 import com.normation.cfclerk.domain.Variable
+
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine
 
-import scala.concurrent.duration._
+import com.github.ghik.silencer.silent
+
+import scala.concurrent.duration.FiniteDuration
+
 import com.normation.zio._
 import zio._
 import zio.syntax._
@@ -62,6 +67,7 @@ import zio.syntax._
  *
  */
 
+@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestJsEngine extends Specification {
 
@@ -101,8 +107,8 @@ class TestJsEngine extends Specification {
   def runSandboxed[T](maxThread: Int = 1)(script: SandboxedJsEngine => IOResult[T]): Either[RudderError, T] =
     JsEngine.SandboxedJsEngine.sandboxed(maxThread)(script).either.runNow
 
-  def contextEnabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, 1.second) (script).either.runNow
-  def contextDisabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, 1.second) (script).either.runNow
+  def contextEnabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, FiniteDuration(1, "second")) (script).either.runNow
+  def contextDisabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, FiniteDuration(1, "second")) (script).either.runNow
 
   /**
    * This is needed, because we set the security manager and then
@@ -125,7 +131,7 @@ class TestJsEngine extends Specification {
     }
 
     "let test have direct access to the engine" in {
-      val res = JsEngine.SandboxedJsEngine.getJsEngine(1).flatMap(_.buildContext.use(_.eval("js", "1 + 1").asInt().succeed)).runNow
+      val res = JsEngine.SandboxedJsEngine.getJsEngine(1).flatMap(c => ZIO.scoped(c.buildContext.flatMap(_.eval("js", "1 + 1").asInt().succeed))).runNow
       res === 2
     }
   }
@@ -149,8 +155,8 @@ class TestJsEngine extends Specification {
 
     "still be able to do dangerous things, because it's only the JsEngine which is sandboxed" in {
       runSandboxed() { box =>
-        val dir = new java.io.File(s"/tmp/rudder-test-${System.currentTimeMillis}")
-        val res = IOResult.effect((dir).createNewFile())
+        val dir = new java.io.File(s"/tmp/rudder-test-${java.lang.System.currentTimeMillis}")
+        val res = IOResult.attempt((dir).createNewFile())
         //but clean tmp after all :)
         dir.delete()
         res
@@ -165,7 +171,7 @@ class TestJsEngine extends Specification {
 
     "can be executed in parallel, safely even with more thread than wanted" in {
       val res: IOResult[List[String]] = JsEngine.SandboxedJsEngine.sandboxed(2)(js =>
-        ZIO.foreachParN(6)(Range(0,20).toList) { i => js.singleEval(s"'processing $i'", JsRudderLibBinding.Crypt.jsRudderLib)}
+        ZIO.foreachPar(Range(0,20).toList) { i => js.singleEval(s"'processing $i'", JsRudderLibBinding.Crypt.jsRudderLib)}.withParallelism(6)
       )
 
       res.runNow must containTheSameElementsAs(Range(0,20).map(i => s"processing $i"))

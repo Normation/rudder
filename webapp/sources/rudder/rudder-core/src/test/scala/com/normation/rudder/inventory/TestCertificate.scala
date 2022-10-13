@@ -92,7 +92,7 @@ class TestCertificate extends Specification with Loggable {
   // we need a callback after add to avoid flappy tests
   val reportSaver = new InventorySaver[Seq[LDIFChangeRecord]] {
     val postCommitCallback: Inventory => UIO[Unit] = callback
-    override def save(report: Inventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect {
+    override def save(report: Inventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.attempt {
       Thread.sleep(100) // false delay to be sure we match what is really inserted, not what is previously there
       repository += ((report.node.main.id, FullInventory(report.node, Some(report.machine))))
     }.map(_ => Nil).tap(_ => postCommitCallback(report))
@@ -108,7 +108,7 @@ class TestCertificate extends Specification with Loggable {
     override def get(id: NodeId): IOResult[Option[FullInventory]] = repository.get(id).succeed
 
     override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = get(id)
-    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.effect(
+    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = IOResult.attempt(
       repository += ((serverAndMachine.node.main.id, serverAndMachine))
     ).map(_ => Nil)
 
@@ -127,7 +127,7 @@ class TestCertificate extends Specification with Loggable {
   , 2
   , fullInventoryRepo
   , new InventoryDigestServiceV1(fullInventoryRepo)
-  , () => UIO.unit
+  , () => ZIO.unit
   , new InventoryDit(new DN("cn=test"), new DN("cn=soft"),"Pending Servers")
   )
 

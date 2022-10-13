@@ -48,7 +48,7 @@ import com.normation.ldap.sdk.BuildFilter.OR
 import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.DN
-import zio._
+import zio.{System => _, _}
 import zio.syntax._
 import com.normation.zio._
 
@@ -188,7 +188,7 @@ class ReadOnlySoftwareDAOImpl(
       mutSetSoftwares <- Ref.make[scala.collection.mutable.Set[SoftwareUuid]](scala.collection.mutable.Set())
       _               <- ZIO.foreach(nodes.grouped(NB_BATCH_NODES).to(Iterable)) { nodeEntries => // batch by 50 nodes to avoid destroying ram/ldap con
                            for {
-                             nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
+                             nodeIds       <- ZIO.foreach(nodeEntries) { e => IOResult.attempt(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
                              t2            <- currentTimeMillis
                              ids           <- {
                                 val orFilter =  BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
@@ -233,7 +233,7 @@ class ReadOnlySoftwareDAOImpl(
         for {
           soft <- ZIO.fromEither(mapper.softwareFromEntry(entry)).chainError(s"Error when mapping LDAP entry '${entry.dn}' to a software. Entry details: ${entry}")
           nodeEntries <- con.searchSub(dit.NODES.dn, BuildFilter.AND(IS(OC_NODE), EQ(A_SOFTWARE_DN, dit.SOFTWARE.SOFT.dn(soft.id).toString)), A_NODE_UUID)
-          nodeIds <- ZIO.foreach(nodeEntries) { e => IOResult.effect(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
+          nodeIds <- ZIO.foreach(nodeEntries) { e => IOResult.attempt(e(A_NODE_UUID).map(NodeId(_))).notOptional(s"Missing mandatory attribute '${A_NODE_UUID}'") }
         } yield {
           nodeIds.map((_,soft))
         }

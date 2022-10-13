@@ -114,7 +114,7 @@ class LdapConfigRepository(
                   val modId = ModificationId(uuidGen.newUuid)
                   eventLogRepository.saveModifyGlobalProperty(modId, info.actor, oldProperty, property, info.eventLogType, info.reason)
                 case _ =>
-                  UIO.unit
+                  ZIO.unit
               }
           } yield {
             property

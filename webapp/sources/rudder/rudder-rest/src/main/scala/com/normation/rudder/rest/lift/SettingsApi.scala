@@ -846,7 +846,7 @@ final case object RestContinueGenerationOnError extends RestBooleanSetting {
         nodeInfo <- nodeInfoService.getNodeInfo(NodeId(id))
         isServer <- nodeInfo match {
           case Some(info) if info.isPolicyServer =>
-            UIO.unit
+            ZIO.unit
           case Some(_) =>
             Inconsistency(s"Can get allowed networks of node with '${id}' because it is node a policy server (root or relay)").fail
           case None =>

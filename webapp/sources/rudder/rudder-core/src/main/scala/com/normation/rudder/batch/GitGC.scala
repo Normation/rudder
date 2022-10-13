@@ -46,7 +46,6 @@ import org.eclipse.jgit.lib.ProgressMonitor
 import org.joda.time.Duration
 
 import zio._
-import zio.clock.Clock
 import com.normation.errors.IOResult
 import com.normation.zio._
 
@@ -88,7 +87,7 @@ class GitGC(
   // must not fail, will be in a cron
   val gitgc: UIO[Unit] = for {
     t0 <- currentTimeMillis
-    _  <- gitRepo.semaphore.withPermit(IOResult.effect {
+    _  <- gitRepo.semaphore.withPermit(IOResult.attempt {
            gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
          }).catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
     t1 <- currentTimeMillis
@@ -99,7 +98,7 @@ class GitGC(
 
   // create the schedule gitgc cron or nothing if disabled.
   // Must not fail.
-  val prog: URIO[Any with Clock, Unit] = optCron match {
+  val prog: UIO[Unit] = optCron match {
     case None =>
       logger.info(s"Disable automatic git-gc on ${gitRepo.rootDirectory.name} (schedule: '${DISABLED}')")
     case Some(cron) =>
@@ -110,7 +109,7 @@ class GitGC(
 
   // start cron
   def start() = {
-    ZioRuntime.unsafeRun(prog.provide(ZioRuntime.environment).forkDaemon)
+    ZioRuntime.unsafeRun(prog.forkDaemon)
   }
 }
 

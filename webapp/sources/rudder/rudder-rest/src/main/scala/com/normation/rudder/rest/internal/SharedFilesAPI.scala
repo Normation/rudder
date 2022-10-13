@@ -75,7 +75,7 @@ class SharedFilesAPI(
 ) extends RestHelper with Loggable {
 
   def checkPathAndContinue(path : String, baseFolder : File)(fun : File => IOResult[LiftResponse]) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       val filePath = baseFolder /  path.dropWhile(_.equals('/'))
       if (baseFolder.contains(filePath, false)) {
         fun(filePath)
@@ -86,7 +86,7 @@ class SharedFilesAPI(
   }
   def serialize(file:File) : IOResult[JValue] = {
     import net.liftweb.json.JsonDSL._
-    IOResult.effect(s"Error when serializing file ${file.name}") {
+    IOResult.attempt(s"Error when serializing file ${file.name}") {
       val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow:_*).toMillis))
       ( ("name"  -> file.name)
       ~ ("size"  -> (try { file.size } catch {case _ : NoSuchFileException => 0L }))
@@ -113,7 +113,7 @@ class SharedFilesAPI(
     JsonResponse(content,Nil,Nil, 200)
   }
   def downloadFile(file : File) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
           val fileSize = file.size
@@ -133,7 +133,7 @@ class SharedFilesAPI(
   }
   def directoryContent(directory : File) : IOResult[LiftResponse] = {
 
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (directory.exists) {
         if (directory.isDirectory()) {
           val jsonFiles: IOResult[List[JValue]] = directory.children.toSeq.accumulate(serialize)
@@ -150,7 +150,7 @@ class SharedFilesAPI(
     }
   }
   def fileContent(file : File) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
           import net.liftweb.json.JsonDSL._
@@ -166,7 +166,7 @@ class SharedFilesAPI(
   }
 
   def editFile(content:String)(file : File) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
           file.write(content)
@@ -180,20 +180,20 @@ class SharedFilesAPI(
     }
   }
   def setPerms(rawPerms: String)(file : File) : IOResult[LiftResponse] = {
-    IOResult.effect {
+    IOResult.attempt {
       val perms = PosixFilePermissions.fromString(rawPerms).asScala.toSet
       file.setPermissions(perms)
       basicSuccessResponse
     }
   }
   def removeFile(file : File) : IOResult[LiftResponse] = {
-    IOResult.effect {
+    IOResult.attempt {
       file.delete(true)
       basicSuccessResponse
     }
   }
   def moveToDirectory(oldFile: File)( dir : File) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (oldFile.exists) {
         oldFile.moveToDirectory(dir)
         basicSuccessResponse.succeed
@@ -203,7 +203,7 @@ class SharedFilesAPI(
     }
   }
   def copyToDirectory(oldFile: File)( dir : File) : IOResult[LiftResponse] = {
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (oldFile.exists) {
         oldFile.copyToDirectory(dir)
         basicSuccessResponse.succeed
@@ -214,7 +214,7 @@ class SharedFilesAPI(
   }
   def renameFile(oldFile: File)( newFile : File) : IOResult[LiftResponse] = {
 
-    IOResult.effectM {
+    IOResult.attemptZIO {
       if (oldFile.exists) {
         oldFile.moveTo(newFile)
         basicSuccessResponse.succeed
@@ -224,7 +224,7 @@ class SharedFilesAPI(
     }
   }
   def createFolder(newdirectory : File) : IOResult[LiftResponse] = {
-    IOResult.effect {
+    IOResult.attempt {
       newdirectory.createDirectoryIfNotExists(false)
       basicSuccessResponse
     }
@@ -283,7 +283,7 @@ class SharedFilesAPI(
                 json \ itemName match {
                   case JString(path) =>
                     checkPathAndContinue(path, basePath) (f =>
-                      ( IOResult.effectM(s"An error occured while running action '${actionName}' ") {
+                      ( IOResult.attemptZIO(s"An error occured while running action '${actionName}' ") {
                         action(f)
                       } )
                     ).toBox

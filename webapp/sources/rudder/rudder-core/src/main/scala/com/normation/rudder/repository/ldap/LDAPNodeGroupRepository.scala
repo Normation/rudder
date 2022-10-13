@@ -602,7 +602,7 @@ class WoLDAPNodeGroupRepository(
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some((modId, commiter, reason)))
                                } yield archive
-                             } else UIO.unit)
+                             } else ZIO.unit)
       newCategory         <- getGroupCategory(that.id).chainError(s"The newly created category '${that.id.value}' was not found")
     } yield {
       newCategory
@@ -620,7 +620,7 @@ class WoLDAPNodeGroupRepository(
       exists           <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
       canAddByName     <- if (exists)
                             s"Cannot update the Node Group Category with name '${category.name}': a category with the same name exists at the same level".fail
-                          else UIO.unit
+                          else ZIO.unit
       result           <- con.save(categoryEntry, removeMissingAttributes = true)
       updated          <- getGroupCategory(category.id)
       // Maybe we have to check if the parents are system or not too
@@ -630,7 +630,7 @@ class WoLDAPNodeGroupRepository(
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some((modId, commiter, reason)))
                             } yield archive
-                          } else UIO.unit)
+                          } else ZIO.unit)
     } yield {
       updated
     })
@@ -650,7 +650,7 @@ class WoLDAPNodeGroupRepository(
       exists           <- categoryExists(con, category.name, newParent.dn, category.id)
       canAddByName     <- if (exists)
                             "Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name).fail
-                          else UIO.unit
+                          else ZIO.unit
       categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
       moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
                             LDIFNoopChangeRecord(oldCategoryEntry.dn).succeed
@@ -667,7 +667,7 @@ class WoLDAPNodeGroupRepository(
                               } yield {
                                 moved
                               }).chainError("Error when trying to archive automatically the category move")
-                            case _ => UIO.unit
+                            case _ => ZIO.unit
                           }
     } yield {
       updated
@@ -701,7 +701,7 @@ class WoLDAPNodeGroupRepository(
                                          } yield {
                                            archive
                                          }
-                                       } else UIO.unit).chainError("Error when trying to archive automatically the category deletion")
+                                       } else ZIO.unit).chainError("Error when trying to archive automatically the category deletion")
                       } yield {
                         id
                       }
@@ -723,7 +723,7 @@ class WoLDAPNodeGroupRepository(
       exists        <- checkNodeGroupExists(con, nodeGroup)
       exists        <- if(exists) {
                          Inconsistency(s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.serialize}) or name already exists").fail
-                       } else UIO.unit
+                       } else ZIO.unit
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
       entry         =  mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
       result        <- con.save(entry, true)
@@ -736,7 +736,7 @@ class WoLDAPNodeGroupRepository(
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some((modId, commiter, reason)))
                          } yield archived
-                       } else UIO.unit)
+                       } else ZIO.unit)
     } yield {
       diff
     })
@@ -795,10 +795,10 @@ class WoLDAPNodeGroupRepository(
               s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
             }
             onlyNodes <- if (!onlyUpdateNodes) {
-              UIO.unit
+              ZIO.unit
             } else { //check that nothing but the node list changed
               if (nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
-                UIO.unit
+                ZIO.unit
               } else {
                 logPure.debug(s"Inconsistency when modifying node lists for nodeGroup ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change") *>
                   "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
@@ -823,7 +823,7 @@ class WoLDAPNodeGroupRepository(
       result       <- con.save(entry, true).chainError(s"Error when saving entry: ${entry}")
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO.chainError(s"Error when mapping change record to a diff object: ${result}")
       loggedAction <- optDiff match {
-                        case None => UIO.unit
+                        case None => ZIO.unit
                         case Some(diff) =>
                           actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason).chainError( "Error when logging modification as an event")
                       }
@@ -879,7 +879,7 @@ class WoLDAPNodeGroupRepository(
                       } else Nil.succeed
       existing     <- getSGEntry(con, nodeGroupId).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize))
       oldGroup     <- mapper.entry2NodeGroup(existing).toIO.chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
-      systemCheck  <- if(oldGroup.isSystem) "You can not move system group".fail else UIO.unit
+      systemCheck  <- if(oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
 
       groupRDN     <- existing.rdn.notOptional("Error when retrieving RDN for an existing group - seems like a bug")
       name         <- checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId)
@@ -890,7 +890,7 @@ class WoLDAPNodeGroupRepository(
       result       <- con.move(existing.dn, newParentDn)
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result).toIO
       loggedAction <- optDiff match {
-                        case None => UIO.unit
+                        case None => ZIO.unit
                         case Some(diff) => actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason )
                       }
       res          <- getNodeGroup(nodeGroupId)

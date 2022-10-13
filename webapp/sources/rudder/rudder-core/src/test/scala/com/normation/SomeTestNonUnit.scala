@@ -27,7 +27,6 @@ package com.normation
 
 import java.io.File
 
-import _root_.zio.duration._
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -45,7 +44,7 @@ object TestAccumulate {
 
     val data = new TestNodeConfiguration("webapp/sources/rudder/rudder-core/")
 
-    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(1*1000)}.forever.forkDaemon.unit
+    def prog(s: String) = IOResult.attempt{println(s); Thread.sleep(1*1000)}.forever.forkDaemon.unit
 
 
     val pid = new java.io.File("/proc/self").getCanonicalFile().getName()
@@ -57,7 +56,7 @@ object TestAccumulate {
     (1 to 10).foreach(i => prog(s"zio $i").runNow)
     // on Lift threadpool
     (1 to 18).foreach(i => LAScheduler.execute(() => prog (s"lift $i").toBox))
-    (1 to 5).foreach(i => IOResult.effect(prog(s"mixed $i").toBox).runNow)
+    (1 to 5).foreach(i => IOResult.attempt(prog(s"mixed $i").toBox).runNow)
 
 
     val wait = 40.seconds
@@ -73,7 +72,7 @@ object TestAccumulate {
 object ThatDoesNotBlock {
   def main(args: Array[String]): Unit = {
 
-    def prog(s: String) = IOResult.effect{println(s); Thread.sleep(2*1000)}.forever.forkDaemon.unit
+    def prog(s: String) = IOResult.attempt{println(s); Thread.sleep(2*1000)}.forever.forkDaemon.unit
 
     val pid = new java.io.File("/proc/self").getCanonicalFile().getName()
     println(s"Test starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")
@@ -82,7 +81,7 @@ object ThatDoesNotBlock {
     (1 to 18).foreach(i => LAScheduler.execute(() => prog (s"lift $i").toBox))
    // on ZIO blocking threadpool
     (1 to 10).foreach(i => prog(s"zio $i").runNow)
-    (1 to 5).foreach(i => IOResult.effect(prog(s"mixed $i").toBox).runNow)
+    (1 to 5).foreach(i => IOResult.attempt(prog(s"mixed $i").toBox).runNow)
 
 
     val wait = 40.seconds
@@ -99,10 +98,10 @@ object SemaphoreReentrant {
 
     val sem = Semaphore.make(1).runNow
 
-    val prog1 = sem.withPermit(IOResult.effect(println("prog1")))
-    val prog2 = sem.withPermit(IOResult.effectM{
+    val prog1 = sem.withPermit(IOResult.attempt(println("prog1")))
+    val prog2 = sem.withPermit(IOResult.attemptZIO{
       for {
-        _ <- IOResult.effect(println("in prog2"))
+        _ <- IOResult.attempt(println("in prog2"))
         _ <- prog1
       } yield ()
     })

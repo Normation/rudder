@@ -665,7 +665,7 @@ class SystemApiService11(
 
   private[this] def restoreByDatetime(req:Req, list:() => IOResult[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => IOResult[GitCommitId], datetime:String, archiveType:String) : Either[String, JField] = {
     (for {
-      valideDate <- IOResult.effect(s"The given archive id is not a valid archive tag: ${datetime}")(DateFormaterService.gitTagFormat.parseDateTime(datetime))
+      valideDate <- IOResult.attempt(s"The given archive id is not a valid archive tag: ${datetime}")(DateFormaterService.gitTagFormat.parseDateTime(datetime))
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       tag        <- archives.get(valideDate).notOptional(s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map( _.toString(DateFormaterService.gitTagFormat)).mkString(", ")}")
@@ -709,13 +709,13 @@ class SystemApiService11(
   private[this] val allFiles = "groups" :: ruleFiles ::: directiveFiles ::: parameterFiles
 
   private[this] def getZip(commitId:String, paths:List[String], archiveType: String) : Either[String, (Array[Byte], List[(String, String)])] = {
-    (ZIO.bracket(IOResult.effect(new RevWalk(repo.db)))(rw => effectUioUnit(rw.dispose)) { rw =>
+    (ZIO.acquireReleaseWith(IOResult.attempt(new RevWalk(repo.db)))(rw => effectUioUnit(rw.dispose)) { rw =>
       for {
-        revCommit <- IOResult.effect(s"Error when retrieving commit revision for '${commitId}'") {
+        revCommit <- IOResult.attempt(s"Error when retrieving commit revision for '${commitId}'") {
                        val id = repo.db.resolve(commitId)
                        rw.parseCommit(id)
                      }
-        treeId      <- IOResult.effect(revCommit.getTree.getId)
+        treeId      <- IOResult.attempt(revCommit.getTree.getId)
         bytes       <- GitFindUtils.getZip(repo.db, treeId, paths)
       } yield {
         (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))

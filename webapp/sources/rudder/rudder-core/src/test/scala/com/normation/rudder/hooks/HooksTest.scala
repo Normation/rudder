@@ -44,7 +44,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import zio.duration._
 import better.files._
 import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
@@ -53,6 +52,7 @@ import com.normation.rudder.hooks.HookReturnCode.Warning
 import org.specs2.specification.AfterAll
 
 import scala.jdk.CollectionConverters._
+import zio.{System => _, _}
 
 /**
  * Test properties about NuProcess command, especially about
@@ -136,7 +136,7 @@ class HooksTest() extends Specification with AfterAll {
 //
 //    val many = (ZIO.foreach(0 until 1000) { i =>
 //      runOne
-//    }).timed.provide(ZioRuntime.environment).map(_._1.toMillis)
+//    }).timed.map(_._1.toMillis)
 //
 //    /* Typical results in a dell xps 8 cores:
 //     *  2838 ms

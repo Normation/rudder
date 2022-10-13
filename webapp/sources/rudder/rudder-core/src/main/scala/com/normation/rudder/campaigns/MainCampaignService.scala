@@ -38,20 +38,21 @@
 package com.normation.rudder.campaigns
 
 import cats.implicits._
+
 import com.normation.errors.IOResult
 import com.normation.errors.Inconsistency
 import com.normation.errors.RudderError
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio.ZioRuntime
+
 import org.joda.time.DateTime
+
 import zio.Queue
 import zio.ZIO
-import zio.clock.Clock
-import zio.duration._
 import zio.syntax._
-
 import scala.annotation.nowarn
+
+import zio.Duration
 
 
 trait CampaignHandler{
@@ -92,7 +93,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
-  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEventId], zclock: Clock) {
+  case class CampaignScheduler(main : MainCampaignService, queue:Queue[CampaignEventId]) {
 
     def queueCampaign(c: CampaignEvent) = {
       for {
@@ -207,7 +208,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           }
       } yield {
         ()
-      }).provide(zclock).catchAll(failingLog)
+      }).catchAll(failingLog)
 
 
     }
@@ -224,7 +225,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     def start() = loop().forever
   }
 
-  def nextDateFromDayTime(date : DateTime, start : DayTime) : DateTime = {
+  def nextDateFromDayTime(date : DateTime, start: DayTime) : DateTime = {
     (if ( date.getDayOfWeek > start.day.value
       || ( date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
       || ( date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
@@ -351,7 +352,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
   }
 
   def start(initQueue: Queue[CampaignEventId]) = {
-    val s = CampaignScheduler(this, initQueue, ZioRuntime.environment)
+    val s = CampaignScheduler(this, initQueue)
     inner = Some(s)
     for {
       _ <- CampaignLogger.info("Starting campaign scheduler")

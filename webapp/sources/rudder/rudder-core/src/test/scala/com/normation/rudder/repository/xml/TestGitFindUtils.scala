@@ -194,7 +194,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     unzip.mkdir()
 
     ZioRuntime.runNow(GitFindUtils.getZip(db, id).flatMap(bytes =>
-      IOResult.effect(FileUtils.writeByteArrayToFile(archive, bytes))
+      IOResult.attempt(FileUtils.writeByteArrayToFile(archive, bytes))
     ) *> ZipUtils.unzip(new ZipFile(archive), unzip))
 
     gitRoot must haveSameFilesAs(unzip).withFilter((file: File) => !file.getAbsolutePath.contains(".git"))

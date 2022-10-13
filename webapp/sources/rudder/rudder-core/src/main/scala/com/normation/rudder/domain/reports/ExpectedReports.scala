@@ -231,9 +231,11 @@ object ExpectedReportsSerialisation {
     val decoderPolicyMode = JsonDecoder[String].mapOrFail(PolicyMode.parse(_).left.map(_.fullMsg))
     JsonCodec(encoderPolicyMode, decoderPolicyMode)
   }
-  implicit val codecPolicyModeOverrides: JsonCodec[PolicyModeOverrides] = JsonCodec.boolean.xmap(
-    b => if(b) Always else Unoverridable, o => o == Always
-  )
+  implicit val codecPolicyModeOverrides: JsonCodec[PolicyModeOverrides] = {
+    implicit val enc: JsonEncoder[PolicyModeOverrides] = JsonEncoder.boolean.contramap(o => o == Always)
+    implicit val dec: JsonDecoder[PolicyModeOverrides] = JsonDecoder.boolean.map(b => if(b) Always else Unoverridable)
+    JsonCodec[PolicyModeOverrides](enc, dec)
+  }
   implicit val codecGlobalPolicyMode: JsonCodec[GlobalPolicyMode] = DeriveJsonCodec.gen
   implicit val codecRuleId: JsonCodec[RuleId] = {
     implicit val encoderRuleId: JsonEncoder[RuleId] = JsonEncoder[String].contramap[RuleId](_.serialize)
@@ -260,8 +262,8 @@ object ExpectedReportsSerialisation {
    * - if it doesn't work, we fallback in 7.0 version
    */
   implicit val decoderJsonNodeExpectedReportV: JsonDecoder[JsonNodeExpectedReportV] =
-    Version7_1.codecJsonNodeExpecteReports7_1.decoder.
-      orElse(Version7_0.codecJsonNodeExpecteReports7_0.decoder.widen)
+    Version7_1.decodeJsonNodeExpectedReports7_1.
+      orElse(Version7_0.decodeJsonNodeExpectedReports7_0.widen)
 
   object Version7_0 {
     /*
@@ -418,19 +420,25 @@ object ExpectedReportsSerialisation {
 
     ////////// json codec //////////
 
-    implicit val codecJsonAgentRun7_0: JsonCodec[JsonAgentRun7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonPolicy7_0: JsonCodec[JsonPolicy7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonJsonOverrides7_0: JsonCodec[JsonOverrides7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonModes7_0: JsonCodec[JsonModes7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonExpectedValueId7_0: JsonCodec[JsonExpectedValueId7_0] = DeriveJsonCodec.gen
-    implicit lazy val codecJsonExpectedValueMatch7_0: JsonCodec[JsonExpectedValueMatch7_0] = DeriveJsonCodec.gen
+    implicit lazy val decodeJsonAgentRun7_0: JsonDecoder[JsonAgentRun7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonAgentRun7_0: JsonEncoder[JsonAgentRun7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonPolicy7_0: JsonDecoder[JsonPolicy7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonPolicy7_0: JsonEncoder[JsonPolicy7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonJsonOverrides7_0: JsonDecoder[JsonOverrides7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonJsonOverrides7_0: JsonEncoder[JsonOverrides7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonModes7_0: JsonDecoder[JsonModes7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonModes7_0: JsonEncoder[JsonModes7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonExpectedValueId7_0: JsonDecoder[JsonExpectedValueId7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonExpectedValueId7_0: JsonEncoder[JsonExpectedValueId7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonExpectedValueMatch7_0: JsonDecoder[JsonExpectedValueMatch7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonExpectedValueMatch7_0: JsonEncoder[JsonExpectedValueMatch7_0] = DeriveJsonEncoder.gen
     implicit lazy val decoderJsonArrayValuesComponent7_0: JsonDecoder[JsonArrayValuesComponent7_0] = DeriveJsonDecoder.gen
-    implicit lazy val codecJsonExpectedValue7_0: JsonCodec[JsonExpectedValue7_0] = {
-      val decoder: JsonDecoder[JsonExpectedValue7_0] = codecJsonExpectedValueId7_0.decoder.orElse(
-        codecJsonExpectedValueMatch7_0.decoder.widen
-      )
-      // this is necessary to avoid having a surnemary `{ "JsonExpectedValueId7_0" : { ... } }`
-      val encoder = new JsonEncoder[JsonExpectedValue7_0] {
+    implicit lazy val decodeJsonExpectedValue7_0: JsonDecoder[JsonExpectedValue7_0] = {
+      decodeJsonExpectedValueId7_0.orElse(decodeJsonExpectedValueMatch7_0.widen)
+    }
+    implicit lazy val encodeJsonExpectedValue7_0: JsonEncoder[JsonExpectedValue7_0] = {
+      // this is necessary to avoid having a supernumerary `{ "JsonExpectedValueId7_0" : { ... } }`
+      new JsonEncoder[JsonExpectedValue7_0] {
         override def unsafeEncode(a: JsonExpectedValue7_0, indent: Option[Int], out: Write): Unit = {
           a match {
             case x: JsonExpectedValueId7_0  =>
@@ -440,16 +448,15 @@ object ExpectedReportsSerialisation {
           }
         }
       }
-      JsonCodec(encoder, decoder)
     }
-    implicit lazy val codecJsonComponentExpecteReports7_0: JsonCodec[JsonComponentExpectedReport7_0] = {
-      val decoder: JsonDecoder[JsonComponentExpectedReport7_0] = {
-        val d1 : JsonDecoder[JsonComponentExpectedReport7_0] = decoderJsonArrayValuesComponent7_0.orElse(
-          codecJsonBlockExpectedReport7_0.decoder.widen
-        )
-        d1.orElse(codecJsonValueExpectedReport7_0.decoder.widen)
-      }
-      val encoder = new JsonEncoder[JsonComponentExpectedReport7_0] {
+    implicit lazy val decodeJsonComponentExpectedReports7_0: JsonDecoder[JsonComponentExpectedReport7_0] = {
+      val d1 : JsonDecoder[JsonComponentExpectedReport7_0] = decoderJsonArrayValuesComponent7_0.orElse(
+        decodeJsonBlockExpectedReport7_0.widen
+      )
+      d1.orElse(decodeJsonValueExpectedReport7_0.widen)
+    }
+    implicit lazy val encodeJsonComponentExpectedReports7_0: JsonEncoder[JsonComponentExpectedReport7_0] = {
+      new JsonEncoder[JsonComponentExpectedReport7_0] {
         override def unsafeEncode(a: JsonComponentExpectedReport7_0, indent: Option[Int], out: Write): Unit = {
           a match {
             case x: JsonValueExpectedReport7_0  =>
@@ -461,13 +468,17 @@ object ExpectedReportsSerialisation {
           }
         }
       }
-      JsonCodec(encoder, decoder)
     }
-    implicit lazy val codecJsonBlockExpectedReport7_0: JsonCodec[JsonBlockExpectedReport7_0] = DeriveJsonCodec.gen
-    implicit lazy val codecJsonValueExpectedReport7_0: JsonCodec[JsonValueExpectedReport7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonDirectiveExpecteReports7_0: JsonCodec[JsonDirectiveExpecteReports7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonRuleExpectedReports7_0: JsonCodec[JsonRuleExpectedReports7_0] = DeriveJsonCodec.gen
-    implicit val codecJsonNodeExpecteReports7_0: JsonCodec[JsonNodeExpectedReports7_0]  = DeriveJsonCodec.gen
+    implicit lazy val decodeJsonValueExpectedReport7_0: JsonDecoder[JsonValueExpectedReport7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonValueExpectedReport7_0: JsonEncoder[JsonValueExpectedReport7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonBlockExpectedReport7_0: JsonDecoder[JsonBlockExpectedReport7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonBlockExpectedReport7_0: JsonEncoder[JsonBlockExpectedReport7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonDirectiveExpectedReports7_0: JsonDecoder[JsonDirectiveExpecteReports7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonDirectiveExpectedReports7_0: JsonEncoder[JsonDirectiveExpecteReports7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonRuleExpectedReports7_0: JsonDecoder[JsonRuleExpectedReports7_0] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonRuleExpectedReports7_0: JsonEncoder[JsonRuleExpectedReports7_0] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonNodeExpectedReports7_0: JsonDecoder[JsonNodeExpectedReports7_0]  = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonNodeExpectedReports7_0: JsonEncoder[JsonNodeExpectedReports7_0]  = DeriveJsonEncoder.gen
   }
 
   object Version7_1 {
@@ -657,7 +668,7 @@ object ExpectedReportsSerialisation {
       def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform))
     }
 
-    final case class JsonDirectiveExpecteReports7_1(
+    final case class JsonDirectiveExpectedReports7_1(
         did: DirectiveId
       , pm : Option[PolicyMode]
       , s  : Option[Boolean]
@@ -665,10 +676,10 @@ object ExpectedReportsSerialisation {
     ) {
       def transform = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
     }
-    implicit class _JsonDirectiveExpecteReports7_1(x: DirectiveExpectedReports) {
+    implicit class _JsonDirectiveExpectedReports7_1(x: DirectiveExpectedReports) {
       def transform = {
         val s = if(x.isSystem) Some(true) else None
-        JsonDirectiveExpecteReports7_1(
+        JsonDirectiveExpectedReports7_1(
           x.directiveId, x.policyMode, s, x.components.map(_.transform)
         )
       }
@@ -676,7 +687,7 @@ object ExpectedReportsSerialisation {
 
     final case class JsonRuleExpectedReports7_1(
         rid: RuleId
-      , ds : List[JsonDirectiveExpecteReports7_1]
+      , ds : List[JsonDirectiveExpectedReports7_1]
     ) {
       def transform = RuleExpectedReports(rid, ds.map(_.transform))
     }
@@ -698,36 +709,48 @@ object ExpectedReportsSerialisation {
 
 
     ////////// json codec //////////
+    ///// https://github.com/zio/zio-json/issues/622 force us to split codec into encoder & decoder
 
-    implicit val codecJsonGlobalPolicyMode7_1: JsonCodec[JsonGlobalPolicyMode7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonAgentRun7_1: JsonCodec[JsonAgentRun7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonPolicy7_1: JsonCodec[JsonPolicy7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonJsonOverrides7_1: JsonCodec[JsonOverrides7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonModes7_1: JsonCodec[JsonModes7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonExpectedValueId7_1: JsonCodec[JsonExpectedValueId7_1] = DeriveJsonCodec.gen
-    implicit lazy val codecJsonEitherValue: JsonCodec[Either[List[String],JsonExpectedValueId7_1]] = {
+    implicit lazy val decodeJsonGlobalPolicyMode7_1: JsonDecoder[JsonGlobalPolicyMode7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonGlobalPolicyMode7_1: JsonEncoder[JsonGlobalPolicyMode7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonAgentRun7_1: JsonDecoder[JsonAgentRun7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonAgentRun7_1: JsonEncoder[JsonAgentRun7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonPolicy7_1: JsonDecoder[JsonPolicy7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonPolicy7_1: JsonEncoder[JsonPolicy7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonJsonOverrides7_1: JsonDecoder[JsonOverrides7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonJsonOverrides7_1: JsonEncoder[JsonOverrides7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonModes7_1: JsonDecoder[JsonModes7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonModes7_1: JsonEncoder[JsonModes7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonExpectedValueId7_1: JsonDecoder[JsonExpectedValueId7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonExpectedValueId7_1: JsonEncoder[JsonExpectedValueId7_1] = DeriveJsonEncoder.gen
+
+    implicit lazy val decodeJsonEitherValue: JsonDecoder[Either[List[String],JsonExpectedValueId7_1]] = {
 
       // invariance is complicated
       def toRight(x: JsonExpectedValueId7_1): Either[List[String],JsonExpectedValueId7_1] = Right(x)
       def toLeft(x: List[String]): Either[List[String],JsonExpectedValueId7_1] = Left(x)
 
-      val decoder = JsonDecoder[List[String]].map(toLeft).orElse(codecJsonExpectedValueId7_1.decoder.map(toRight))
-      val encoder = new JsonEncoder[Either[List[String],JsonExpectedValueId7_1]] {
-        override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
-          a match {
-            case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
-            case Right(x) => codecJsonExpectedValueId7_1.unsafeEncode(x, indent, out)
-          }
+      JsonDecoder[List[String]].map(toLeft).orElse(decodeJsonExpectedValueId7_1.map(toRight))
+    }
+    implicit lazy val encodeJsonEitherValue = new JsonEncoder[Either[List[String],JsonExpectedValueId7_1]] {
+      override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
+        a match {
+          case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
+          case Right(x) => encodeJsonExpectedValueId7_1.unsafeEncode(x, indent, out)
         }
       }
-      JsonCodec(encoder, decoder)
     }
-    implicit lazy val codecJsonComponentExpecteReports7_1: JsonCodec[JsonComponentExpectedReport7_1] = {
+
+    implicit lazy val decodeJsonValueExpectedReport7_1: JsonDecoder[JsonValueExpectedReport7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonValueExpectedReport7_1: JsonEncoder[JsonValueExpectedReport7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonBlockExpectedReport7_1: JsonDecoder[JsonBlockExpectedReport7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonBlockExpectedReport7_1: JsonEncoder[JsonBlockExpectedReport7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonComponentExpectedReports7_1: JsonDecoder[JsonComponentExpectedReport7_1] = decodeJsonValueExpectedReport7_1.orElse(
+      decodeJsonBlockExpectedReport7_1.widen
+    )
+    implicit lazy val encodeJsonComponentExpectedReports7_1: JsonEncoder[JsonComponentExpectedReport7_1] = {
       // order is important: leaf first, else with recurring part first, we stackoverflow
-      val decoder: JsonDecoder[JsonComponentExpectedReport7_1] = codecJsonValueExpectedReport7_1.decoder.orElse(
-        codecJsonBlockExpectedReport7_1.decoder.widen
-      )
-      val encoder = new JsonEncoder[JsonComponentExpectedReport7_1] {
+      new JsonEncoder[JsonComponentExpectedReport7_1] {
         override def unsafeEncode(a: JsonComponentExpectedReport7_1, indent: Option[Int], out: Write): Unit = {
           a match {
             case x: JsonValueExpectedReport7_1  =>
@@ -737,13 +760,13 @@ object ExpectedReportsSerialisation {
           }
         }
       }
-      JsonCodec(encoder, decoder)
     }
-    implicit lazy val codecJsonValueExpectedReport7_1: JsonCodec[JsonValueExpectedReport7_1] = DeriveJsonCodec.gen
-    implicit lazy val codecJsonBlockExpectedReport7_1: JsonCodec[JsonBlockExpectedReport7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonDirectiveExpecteReports7_1: JsonCodec[JsonDirectiveExpecteReports7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonRuleExpectedReports7_1: JsonCodec[JsonRuleExpectedReports7_1] = DeriveJsonCodec.gen
-    implicit val codecJsonNodeExpecteReports7_1: JsonCodec[JsonNodeExpectedReports7_1]  = DeriveJsonCodec.gen
+    implicit lazy val decodeJsonDirectiveExpectedReports7_1: JsonDecoder[JsonDirectiveExpectedReports7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonDirectiveExpectedReports7_1: JsonEncoder[JsonDirectiveExpectedReports7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonRuleExpectedReports7_1: JsonDecoder[JsonRuleExpectedReports7_1] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonRuleExpectedReports7_1: JsonEncoder[JsonRuleExpectedReports7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonNodeExpectedReports7_1: JsonDecoder[JsonNodeExpectedReports7_1]  = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonNodeExpectedReports7_1: JsonEncoder[JsonNodeExpectedReports7_1]  = DeriveJsonEncoder.gen
   }
 
 

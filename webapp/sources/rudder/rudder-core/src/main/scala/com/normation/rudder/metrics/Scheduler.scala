@@ -41,8 +41,6 @@ import java.util.concurrent.TimeUnit
 
 import com.normation.errors._
 import zio._
-import zio.clock.Clock
-import zio.duration._
 import zio.syntax._
 
 
@@ -69,11 +67,11 @@ object Scheduler {
    * @param default: default value to use as parameter for `action` if it's not started by an event
    * @param zclock: clock to use in that cron
    */
-  def make[A](min: Duration, max: Duration, action: A => UIO[Unit], default: UIO[A], zclock: Clock): IOResult[Scheduler[A]] = {
+  def make[A](min: Duration, max: Duration, action: A => UIO[Unit], default: UIO[A]): IOResult[Scheduler[A]] = {
     if(min >= max) {
       Inconsistency(s"Scheduler maximum period (${max.render}) cannot be shorter than its minimum period (${min.render})").fail
     } else {
-      Queue.dropping[A](1).map(q => new Scheduler(min, max, q, action, default, zclock))
+      Queue.dropping[A](1).map(q => new Scheduler(min, max, q, action, default))
     }
   }
 }
@@ -87,7 +85,6 @@ class Scheduler[A](
   , queue  : Queue[A]
   , action : A => UIO[Unit]
   , default: UIO[A] // the default value to used for consumer started by cron, not event
-  , zclock : Clock
 ) {
 
   /**
@@ -95,10 +92,10 @@ class Scheduler[A](
    */
   def triggerSchedule(a: A): UIO[Unit] = {
     for {
-      n <- clock.currentTime(TimeUnit.MINUTES)
+      n <- ZIO.clockWith(_.currentTime(TimeUnit.MINUTES))
       - <- queue.offer(a).unit
     } yield ()
-  }.provide(zclock)
+  }
 
   // time between min and max time, ie time to wait before looking for events.
   val delta = Duration.fromNanos(max.toNanos-min.toNanos)
@@ -112,10 +109,10 @@ class Scheduler[A](
   val loop = {
     def oneStep(d: Duration) = {
       for {
-        a <- queue.take.race(UIO.unit.delay(d) *> default)
-        n <- clock.currentTime(TimeUnit.MINUTES)
+        a <- queue.take.race(ZIO.unit.delay(d) *> default)
+        n <- ZIO.clockWith(_.currentTime(TimeUnit.MINUTES))
         _ <- action(a)
-        _ <- clock.sleep(min)
+        _ <- ZIO.clockWith(_.sleep(min))
       } yield ()
     }
     oneStep(max) *> oneStep(delta).forever
@@ -124,7 +121,7 @@ class Scheduler[A](
   /*
    *  Start a forever running fiber.
    */
-  def start = loop.forkDaemon.provide(zclock)
+  def start = loop.forkDaemon
 }
 
 

@@ -232,7 +232,7 @@ object AgentInfoSerialisation {
    */
   def parseJson(s: String, optToken : Option[String]): IOResult[AgentInfo] = {
     for {
-      json      <- IO.effect { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
+      json      <- ZIO.attempt { parse(s) } mapError  { ex => InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage }", ex) }
       agentType <- (json \ "agentType") match {
                      case JString(tpe) => AgentType.fromValue(tpe).toIO
                      case JNothing     => InventoryError.SecurityToken("No value defined for security token").fail
@@ -246,7 +246,7 @@ object AgentInfoSerialisation {
                 case JObject(json) => parseSecurityToken(agentType, json, optToken)
                 case _             => parseSecurityToken(agentType, JNothing, optToken)
               }).toIO
-      capabilities <- IOResult.effect(json \ "capabilities" match {
+      capabilities <- IOResult.attempt(json \ "capabilities" match {
                         case JArray(capa) => capa.flatMap(c => c match {
                           case JString(s) => Some(AgentCapability(s))
                           case _          => None
@@ -274,7 +274,7 @@ object AgentInfoSerialisation {
                            s" or " +
                            s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
                          )
-          token       <- IO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
+          token       <- ZIO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
         } yield {
           AgentInfo(agentType, None, token, Set())
         }

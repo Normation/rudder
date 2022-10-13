@@ -74,7 +74,9 @@ import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.BoundPolicyDraft
+
 import org.apache.commons.io.FileUtils
+
 import zio.syntax._
 import com.normation.zio._
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths

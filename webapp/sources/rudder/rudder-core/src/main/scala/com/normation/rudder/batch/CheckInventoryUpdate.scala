@@ -43,8 +43,10 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+
+import com.github.ghik.silencer.silent
+
 import zio._
-import zio.duration._
 import com.normation.zio._
 import org.joda.time.DateTime
 
@@ -83,13 +85,14 @@ class CheckInventoryUpdate(
       lastSeen  <- lastUpdate.getAndUpdate(_ => cacheTime)
       _         <- if(lastSeen.isBefore(cacheTime)) {
                      logger.info("Update in node inventories main information detected: triggering a policy generation") *>
-                     IOResult.effectNonBlocking(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
+                     IOResult.attempt(asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
                    } else {
                      logger.trace("No update in node inventories main information detected")
                    }
     } yield ()).catchAll(err => logger.error(s"Error when trying to update node inventories information. Error is: ${err.fullMsg}"))
   }
 
-  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).provide(ZioRuntime.environment).forkDaemon)
+  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).forkDaemon): @silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+
 }
 

@@ -100,7 +100,7 @@ class FullInventoryRepositoryImpl(
    * find the first dn matching ID, starting with accepted, then pending, then deleted
    */
   private[this] def findDnForId[ID](con: RwLDAPConnection, id:ID, fdn:(ID, InventoryStatus) => DN): LDAPIOResult[Option[(DN, InventoryStatus)]] = {
-    IO.foldLeft(Seq(AcceptedInventory, PendingInventory, RemovedInventory))(Option.empty[(DN, InventoryStatus)]) { (current, inventory) =>
+    ZIO.foldLeft(Seq(AcceptedInventory, PendingInventory, RemovedInventory))(Option.empty[(DN, InventoryStatus)]) { (current, inventory) =>
       current match {
         case None     =>
           val testdn = fdn(id, inventory)
@@ -157,7 +157,7 @@ class FullInventoryRepositoryImpl(
 
     //only add keys for non empty node list
     for {
-      res <- IO.foreach(List(PendingInventory, AcceptedInventory, RemovedInventory)){ status =>
+      res <- ZIO.foreach(List(PendingInventory, AcceptedInventory, RemovedInventory)){ status =>
                machineForNodeStatus(con, status).map(r => (status, r))
              }
     } yield {
@@ -293,7 +293,7 @@ class FullInventoryRepositoryImpl(
                      }
       // we don't want that one error somewhere breaks everything
       nodes       <- ZIO.foreach(nodeTree.children.values) { tree =>
-                       mapper.nodeFromTree(tree).foldM(
+                       mapper.nodeFromTree(tree).foldZIO(
                          err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
                        , ok  => Some(ok).succeed
                        )
@@ -305,7 +305,7 @@ class FullInventoryRepositoryImpl(
                        case Some(tree) => tree.succeed
                      }
       machines    <- ZIO.foreach(machineTree.children.values){ tree =>
-                       mapper.machineFromTree(tree).foldM(
+                       mapper.machineFromTree(tree).foldZIO(
                          err => InventoryDataLogger.error(s"Error when mapping inventory data for entry '${tree.root.rdn.map(_.toString).getOrElse("")}': ${err.fullMsg}") *> None.succeed
                        , ok  => Some(ok).succeed
                        )
@@ -401,7 +401,7 @@ class FullInventoryRepositoryImpl(
                                      }
                            } yield {
                              res
-                           }).foldM(
+                           }).foldZIO(
                                 e => {
                                   InventoryProcessingLogger.warn(s"Error when trying to delete machine for server with id '${id.value}' and inventory status '${inventoryStatus.name}'. Message was: ${e.msg}") *>
                                   Seq().succeed
@@ -445,7 +445,7 @@ class FullInventoryRepositoryImpl(
                                       }
                       } yield {
                         moved
-                      }).foldM(
+                      }).foldZIO(
                         err => InventoryProcessingLogger.error(s"Error when updating the container value when moving nodes '${id.value}': ${err.msg}") *> Seq().succeed
                       , diff => diff.succeed
                       )

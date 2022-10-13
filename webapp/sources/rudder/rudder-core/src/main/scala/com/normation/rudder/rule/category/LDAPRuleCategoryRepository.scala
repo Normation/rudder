@@ -278,7 +278,7 @@ class WoLDAPRuleCategoryRepository(
       result           <- con.save(categoryEntry, removeMissingAttributes = true)
       updated          <- get(category.id)
       autoArchive      <- (moved, result) match {
-                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => UIO.unit
+                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => ZIO.unit
                             case _ if(autoExportOnModify && !updated.isSystem) =>
                               (for {
                                 parents  <- getParents(updated.id)
@@ -287,7 +287,7 @@ class WoLDAPRuleCategoryRepository(
                               } yield {
                                 moved
                               }).chainError("Error when trying to  automaticallyarchive the category move or update")
-                            case _ => UIO.unit
+                            case _ => ZIO.unit
                           }
     } yield {
       updated

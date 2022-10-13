@@ -105,7 +105,7 @@ class PluginApi (
       val json=
         for {
         json <- req.json.toIO
-        conf <- IOResult.effect(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json)))
+        conf <- IOResult.attempt(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json)))
         _ <- pluginSettingsService.writePluginSettings(conf)
 
       } yield {

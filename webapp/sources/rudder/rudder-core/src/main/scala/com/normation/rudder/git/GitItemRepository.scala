@@ -113,14 +113,14 @@ trait GitItemRepository {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
-        add    <- IOResult.effect(gitRepo.git.add.addFilepattern(gitPath).call)
-        status <- IOResult.effect(gitRepo.git.status.call)
+        add    <- IOResult.attempt(gitRepo.git.add.addFilepattern(gitPath).call)
+        status <- IOResult.attempt(gitRepo.git.status.call)
        //for debugging
         _      <- if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
                     GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git added files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                  } else UIO.unit
-        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-        commit <- IOResult.effect(GitCommitId(rev.getName))
+                  } else ZIO.unit
+        rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.attempt(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was added in commit '${commit.value}'")
       } yield {
         commit
@@ -137,13 +137,13 @@ trait GitItemRepository {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
-        rm     <- IOResult.effect(gitRepo.git.rm.addFilepattern(gitPath).call)
-        status <- IOResult.effect(gitRepo.git.status.call)
+        rm     <- IOResult.attempt(gitRepo.git.rm.addFilepattern(gitPath).call)
+        status <- IOResult.attempt(gitRepo.git.status.call)
         _      <- if(!status.getRemoved.contains(gitPath)) {
                     GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure: not found in gitRepo.git removed files: '${gitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                  } else UIO.unit
-        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-        commit <- IOResult.effect(GitCommitId(rev.getName))
+                  } else ZIO.unit
+        rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.attempt(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${gitPath}' was removed in commit '${commit.value}'")
       } yield {
         commit
@@ -162,17 +162,17 @@ trait GitItemRepository {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"move file '${oldGitPath}' from configuration repository to '${newGitPath}'")
-        update <- IOResult.effect {
+        update <- IOResult.attempt {
                     gitRepo.git.rm.addFilepattern(oldGitPath).call
                     gitRepo.git.add.addFilepattern(newGitPath).call
                     gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
                   }
-        status <- IOResult.effect(gitRepo.git.status.call)
+        status <- IOResult.attempt(gitRepo.git.status.call)
         _      <- if(!status.getAdded.asScala.exists( path => path.startsWith(newGitPath) ) ) {
                     GitArchiveLoggerPure.debug(s"Auto-archive gitRepo.git failure when moving directory (not found in added file): '${newGitPath}'. You can safely ignore that warning if the file was already existing in gitRepo.git and was not modified by that archive.")
-                  } else UIO.unit
-        rev    <- IOResult.effect(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
-        commit <- IOResult.effect(GitCommitId(rev.getName))
+                  } else ZIO.unit
+        rev    <- IOResult.attempt(gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call)
+        commit <- IOResult.attempt(GitCommitId(rev.getName))
         _      <- GitArchiveLoggerPure.debug(s"file '${oldGitPath}' was moved to '${newGitPath}' in commit '${commit.value}'")
       } yield {
         commit
@@ -251,7 +251,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    * The commitMessage is used in the commit.
    */
   def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : IOResult[GitArchiveId] = {
-    IOResult.effect {
+    IOResult.attempt {
       //remove existing and add modified
       gitRepo.git.add.setUpdate(true).addFilepattern(relativePath).call
       //also add new one
@@ -268,7 +268,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
   }
 
   def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId): IOResult[GitCommitId] = {
-    IOResult.effect {
+    IOResult.attempt {
       // We don't want any commit when we are restoring HEAD
       val head = gitRepo.db.resolve("HEAD")
       val target = gitRepo.db.resolve(commit.value)
@@ -307,7 +307,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
   def getTags() : IOResult[Map[DateTime, GitArchiveId]] = {
     for {
       revTags <- listTagWorkaround
-      res     <- IOResult.effect {
+      res     <- IOResult.attempt {
                    revTags.flatMap { revTag =>
                      val name = revTag.getTagName
                      if(name.startsWith(tagPrefix)) {
@@ -348,8 +348,8 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
 
     import scala.collection.mutable.ArrayBuffer
 
-    ZIO.bracket(IOResult.effect(new RevWalk(gitRepo.db)))(rw => effectUioUnit(rw.close)){ revWalk =>
-      IOResult.effect {
+    ZIO.acquireReleaseWith(IOResult.attempt(new RevWalk(gitRepo.db)))(rw => effectUioUnit(rw.close)){ revWalk =>
+      IOResult.attempt {
         val tags = ArrayBuffer[RevTag]()
         val refList = gitRepo.db.getRefDatabase().getRefsByPrefix(Constants.R_TAGS).asScala
         refList.foreach { ref =>

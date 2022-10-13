@@ -218,7 +218,7 @@ class ImportGroupLibraryImpl(
                         system
                       }).catchAll { e =>
                         logPure.error("Error when trying to load archived active technique library. Rollbaching to previous one.") *>
-                        restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).foldM(
+                        restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).foldZIO(
                           _ => Chained("Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value), e).fail
                         , _ => Chained("Error when trying to load archived active technique library. A rollback to previous state was executed", e).fail
                         )

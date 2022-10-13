@@ -51,8 +51,7 @@ import com.zaxxer.nuprocess.NuProcessBuilder
 import com.zaxxer.nuprocess.codec.NuAbstractCharsetHandler
 import com.zaxxer.nuprocess.internal.BasePosixProcess
 import zio._
-import zio.duration.Duration.Infinity
-import zio.duration._
+import zio.Duration.Infinity
 import zio.syntax._
 
 
@@ -129,7 +128,7 @@ object RunNuCommand {
     }
 
     override def onExit(exitCode: Int): Unit = {
-      ZioRuntime.internal.unsafeRun(promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)).untraced)
+      ZioRuntime.unsafeRun(promise.succeed(CmdResult(exitCode, stdout.toString, stderr.toString)))
     }
 
     def run = promise
@@ -183,7 +182,7 @@ object RunNuCommand {
       promise        <- Promise.make[Nothing, CmdResult]
       handler        =  new CmdProcessHandler(promise)
       processBuilder =  new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava)
-      _              <- IOResult.effectNonBlocking(errorMsg)(processBuilder.setProcessListener(handler))
+      _              <- IOResult.attempt(errorMsg)(processBuilder.setProcessListener(handler))
 
       /*
        * The start process is nasty:
@@ -195,20 +194,20 @@ object RunNuCommand {
        *
        * It is non blocking though, as the blocking part is done in the spwaned thread.
        */
-      process        <- IOResult.effectNonBlocking(errorMsg)(processBuilder.start())
+      process        <- IOResult.attempt(errorMsg)(processBuilder.start())
       _              <- if(process == null) {
                           Unexpected(s"Error: unable to start native command ${cmd.display}").fail
                         } else {
                           // that class#method does not accept interactive mode
                           // this part can block, waiting for things to complete
-                          IOResult.effect(errorMsg) {
+                          IOResult.attempt(errorMsg) {
                             process.closeStdin(true)
                             process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
                           }.forkDaemon
                         }
     } yield {
       promise
-    }).untraced
+    })
   }
 
 }

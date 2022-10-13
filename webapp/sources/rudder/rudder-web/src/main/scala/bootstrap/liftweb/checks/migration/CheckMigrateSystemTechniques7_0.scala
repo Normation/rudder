@@ -108,7 +108,7 @@ class CheckMigratedSystemTechniques(
 
 
   override def checks() : Unit = {
-    ZIO.whenM(checkMigrationNeeded())(
+    ZIO.whenZIO(checkMigrationNeeded())(
       for {
         servers <- getPolicyServerIds
         _       <- allowedNetworks6_x_7_0.createNewAllowedNetworks(servers)
@@ -287,7 +287,7 @@ class MigrateTechniques6_x_7_0(
       // touch can fail if the system technique is totally missing, for ex if update script failed, see #20336
       val touchAll = ZIO.foreach(PolicyServerConfigurationObjects.rootTechniques) { t =>
         val f = base / t / "1.0/placeholder"
-        IOResult.effect {
+        IOResult.attempt {
           f.createFileIfNotExists()
           f.append("force reload\n")
         }.chainError(s"Error when preparing reload of new system technique '${t}'. Please check that new system"+
@@ -296,8 +296,8 @@ class MigrateTechniques6_x_7_0(
 
       gitRepo.semaphore.withPermit(for {
         _ <- touchAll
-        _ <- IOResult.effect(gitRepo.git.add().addFilepattern("techniques/system").call())
-        _ <- IOResult.effect(gitRepo.git.commit().setMessage(s"Force reload of system technique v7.0").setCommitter(new PersonIdent("Rudder", "email not set")).call())
+        _ <- IOResult.attempt(gitRepo.git.add().addFilepattern("techniques/system").call())
+        _ <- IOResult.attempt(gitRepo.git.commit().setMessage(s"Force reload of system technique v7.0").setCommitter(new PersonIdent("Rudder", "email not set")).call())
       } yield ())
     }
 
@@ -313,7 +313,7 @@ class MigrateTechniques6_x_7_0(
                    s"It is necessary to be able to migrate old system configurations to 7.0.").fail
       } else {
         MigrationLoggerPure.info(s"System technique v7.0 present: '${t}'") *>
-        UIO.unit
+        ZIO.unit
       }
     ).unit
 

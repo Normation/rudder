@@ -175,7 +175,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
         case Right(x) => Right(x).succeed
         case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some(b)).either
       }
-    )).foldM(_ => error.fail, _=> inventory.succeed)
+    )).foldZIO(_ => error.fail, _=> inventory.succeed)
   }
 
   /**
@@ -192,10 +192,10 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
 
     checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => inventory).catchAll  { _ =>
         //perhaps we are on AIX ?
-        checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) .foldM (
+        checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) .foldZIO (
             _ => failure
           , x =>  if(x.toLowerCase == "aix") { //ok, check for OSVERSION
-            checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldM (
+            checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldZIO (
                 _ => aixFailure
               , kernelVersion => //update the inventory to put it in the right place
                   (new scala.xml.transform.RuleTransformer(

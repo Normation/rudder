@@ -161,7 +161,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
 import zio._
-import zio.duration._
 import zio.syntax._
 
 import java.nio.charset.StandardCharsets
@@ -585,7 +584,7 @@ class RestTestSetUp {
 
 
     override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeInfoService.nodeBase.update { nodes =>
+      mockNodes.nodeInfoService.nodeBase.updateZIO { nodes =>
 
         nodes.get(id) match {
           case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail

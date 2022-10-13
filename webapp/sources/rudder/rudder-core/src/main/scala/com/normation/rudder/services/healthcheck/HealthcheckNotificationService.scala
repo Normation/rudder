@@ -35,10 +35,11 @@
 */
 
 package com.normation.rudder.services.healthcheck
+import com.github.ghik.silencer.silent
+
 import com.normation.zio._
 import zio.Ref
 import zio._
-import zio.duration._
 
 
 class HealthcheckNotificationService(
@@ -75,6 +76,5 @@ class HealthcheckNotificationService(
   reloadCache(healthcheckCache)
     .repeat(Schedule.spaced(schedulerPeriod).forever)
     .forkDaemon
-    .provide(ZioRuntime.environment)
-    .runNow
+    .runNow : @silent("a type was inferred to be `Any`")
 }

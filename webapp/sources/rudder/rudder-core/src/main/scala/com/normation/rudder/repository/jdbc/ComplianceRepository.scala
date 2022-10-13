@@ -185,7 +185,7 @@ class ComplianceJdbcRepository(
     transactIOResult("Error when saving node compliances:")(xa => (for {
       updated  <- saveComplianceDetails
       levels   <- saveComplianceLevels
-    } yield ()).transact(xa)).foldM(
+    } yield ()).transact(xa)).foldZIO(
       err => {
         // we need to filter out `ERROR: duplicate key value violates unique constraint "nodecompliancelevels_pkey"`
         // see https://issues.rudder.io/issues/18188 for details

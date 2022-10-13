@@ -7,8 +7,8 @@ import cron4s.lib.javatime._
 import java.time.OffsetDateTime
 
 import zio.Schedule
-import zio.Schedule.Decision
-import zio.UIO
+import zio.Trace
+import zio.ZIO
 import com.normation.errors.PureResult
 import com.normation.errors.SystemError
 
@@ -42,12 +42,16 @@ object CronParser {
 
   implicit class CronConverter(c: CronExpr) {
     def toSchedule = {
-      def loop(now: OffsetDateTime, out: Any): UIO[Decision[Any, Any, Any]] =
-        c.next(now) match {
-          case Some(next) => UIO(Decision.Continue((), next, loop))
-          case None       => UIO(Decision.Done(()))
+      new Schedule[Any, Any, Any] {
+        type State = Unit
+        def initial: Unit = ()
+        def step(now: OffsetDateTime, in: Any, state: Unit)(implicit trace: Trace): ZIO[Any, Nothing, (Unit, Any, Schedule.Decision)] = {
+          ZIO.succeed((c.next(now))).map {
+            case Some(next) => (initial, in, Schedule.Decision.Continue(Schedule.Interval.after(next)))
+            case None       => (initial, in, Schedule.Decision.Done)
+          }
         }
-      Schedule(loop)
+      }
     }
   }
 }

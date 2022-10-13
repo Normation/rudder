@@ -25,7 +25,7 @@ import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.zio._
-import zio.RefM
+import zio.Ref
 
 class TechniqueReader(
     restExtractor                         : RestExtractorService
@@ -45,10 +45,10 @@ class TechniqueReader(
   def getAllTechniqueFiles(currentPath : File): IOResult[List[File]]= {
     import com.normation.errors._
     for {
-      subdirs       <- IOResult.effect (s"error when getting subdirectories of ${currentPath.pathAsString}") (currentPath.children.partition(_.isDirectory)._1.toList)
+      subdirs       <- IOResult.attempt (s"error when getting subdirectories of ${currentPath.pathAsString}") (currentPath.children.partition(_.isDirectory)._1.toList)
       checkSubdirs  <- foreach(subdirs)(getAllTechniqueFiles).map(_.flatten)
       techniqueFilePath : File = currentPath / "technique.json"
-      result        <- IOResult.effect(
+      result        <- IOResult.attempt(
                          if (techniqueFilePath.exists) {
                            techniqueFilePath :: checkSubdirs
                          } else {
@@ -72,21 +72,21 @@ class TechniqueReader(
     }
   }
 
-  private[this] val methodsCache = RefM.make((Instant.EPOCH, Map[BundleName, GenericMethod]())).runNow
+  private[this] val methodsCache = Ref.Synchronized.make((Instant.EPOCH, Map[BundleName, GenericMethod]())).runNow
   def getMethodsMetadata : IOResult[Map[BundleName, GenericMethod]] = {
     for {
-      cache <- methodsCache.updateAndGet(readMethodsMetadataFile )
+      cache <- methodsCache.updateAndGetZIO(readMethodsMetadataFile )
     } yield {
       cache._2
     }
   }
 private[this] def readMethodsMetadataFile(cache : (Instant, Map[BundleName, GenericMethod]) ) : IOResult[(Instant, Map[BundleName, GenericMethod])] = {
    for {
-     methodsFileModifiedTime <- IOResult.effect(methodsFile.lastModifiedTime())
+     methodsFileModifiedTime <- IOResult.attempt(methodsFile.lastModifiedTime())
      methods <-
        if (methodsFileModifiedTime.isAfter(cache._1)) {
          for {
-           genericMethodContent <- IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
+           genericMethodContent <- IOResult.attempt(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
            parsedMethods              <- parse(genericMethodContent) match {
              case JObject(fields) =>
                restExtractor.extractGenericMethod(JArray(fields.map(_.value))).map(_.map(m => (m.id, m)).toMap).toIO
@@ -124,7 +124,7 @@ private[this] def readMethodsMetadataFile(cache : (Instant, Map[BundleName, Gene
     import scala.jdk.CollectionConverters._
     for {
       // Need some environement variable especially PATH towrite techniques
-      env       <- IOResult.effect(System.getenv().asScala.toMap)
+      env       <- IOResult.attempt(System.getenv().asScala.toMap)
       cmd       =  Cmd("/usr/share/ncf/ncf", "write_all_techniques" :: Nil, env)
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await

@@ -3,7 +3,6 @@ package com.normation.rudder.services.nodes
 import com.normation.errors._
 import com.normation.zio._
 import zio.Ref
-import zio.UIO
 
 final case class EngineOption(name: String, value: String)
 
@@ -16,7 +15,7 @@ trait RudderPropertyEngine {
 trait PropertyEngineService {
   def process(engineName: String, namespace: List[String], opt: Option[List[EngineOption]]): IOResult[String]
 
-  def addEngine(engine: RudderPropertyEngine): UIO[Unit]
+  def addEngine(engine: RudderPropertyEngine): zio.UIO[Unit]
 }
 
 class PropertyEngineServiceImpl(listOfEngine: List[RudderPropertyEngine]) extends PropertyEngineService {
@@ -36,7 +35,7 @@ class PropertyEngineServiceImpl(listOfEngine: List[RudderPropertyEngine]) extend
     }
   }
 
-  def addEngine(engine: RudderPropertyEngine): UIO[Unit] = {
+  def addEngine(engine: RudderPropertyEngine): zio.UIO[Unit] = {
     for {
       _ <- engines.update(_ + (engine.name.toLowerCase -> engine))
     } yield ()

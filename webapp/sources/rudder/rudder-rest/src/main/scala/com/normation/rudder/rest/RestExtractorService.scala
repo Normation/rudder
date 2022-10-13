@@ -659,7 +659,7 @@ final case class RestExtractorService (
   // for the key, we don't have type / agent here. We are just looking if the string is a valid PEM
   // and choose between certificate / public key
   def parseAgentKey(key: String): Box[SecurityToken] = {
-    IO.effect {
+    ZIO.attempt {
       (new PEMParser(new StringReader(key))).readObject()
     }.mapError { ex =>
       InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)

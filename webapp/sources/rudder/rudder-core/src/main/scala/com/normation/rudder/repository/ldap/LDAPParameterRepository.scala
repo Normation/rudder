@@ -124,7 +124,7 @@ class WoLDAPParameterRepository(
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).flatMap {
                               case Some(entry) => Inconsistency(s"Cannot create a global parameter with name ${parameter.name} : there is already a parameter with the same name").fail
-                              case None => UIO.unit
+                              case None => ZIO.unit
                            }
         paramEntry      =  mapper.parameter2Entry(parameter)
         result          <- con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
@@ -154,7 +154,7 @@ class WoLDAPParameterRepository(
       for {
         con             <- ldap
         oldParameter    <- roLDAPParameterRepository.getGlobalParameter(parameter.name).notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
-        _               <- if(GenericProperty.canBeUpdated(oldParameter.provider, parameter.provider)) UIO.unit
+        _               <- if(GenericProperty.canBeUpdated(oldParameter.provider, parameter.provider)) ZIO.unit
                            else {
                              val newProvider = parameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
                              val oldProvider = oldParameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
@@ -172,7 +172,7 @@ class WoLDAPParameterRepository(
                               , result
                             ).toIO
         loggedAction    <-  optDiff match {
-                               case None => UIO.unit
+                               case None => ZIO.unit
                                case Some(diff) => actionLogger.saveModifyGlobalParameter(modId, principal = actor, modifyDiff = diff, reason = reason).chainError("Error when logging modification as an event")
                              }
         autoArchive     <- ZIO.when(autoExportOnModify  && optDiff.isDefined) {//only persists if modification are present
@@ -202,7 +202,7 @@ class WoLDAPParameterRepository(
                         case None                => None.succeed
                         case Some(oldParamEntry) =>
                           for {
-                            _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) UIO.unit
+                            _            <- if(GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) ZIO.unit
                                             else Inconsistency(s"Parameter '${oldParamEntry.name}' which has property provider '${debugString(oldParamEntry.provider)}' " +
                                                                s"can't be deleted by property provider '${debugString(provider)}'").fail
                             deleted      <- con.delete(roLDAPParameterRepository.rudderDit.PARAMETERS.parameterDN(parameterName)).chainError(s"Error when deleting Global Parameter with name ${parameterName}")
@@ -276,7 +276,7 @@ class WoLDAPParameterRepository(
                          }).catchAll(
                            e => //ok, so there, we have a problem
                              ApplicationLoggerPure.error(s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}") *>
-                             restore(con, existingParams).foldM(
+                             restore(con, existingParams).foldZIO(
                                err   => Chained(s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}", e).fail
                              , value => ApplicationLoggerPure.info("Rollback parameters: ok") *>
                                         Chained("Rollbacked imported parameters to previous state", e).fail

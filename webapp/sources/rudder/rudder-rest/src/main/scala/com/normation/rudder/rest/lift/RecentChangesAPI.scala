@@ -132,13 +132,13 @@ class RecentChangesAPI (
       (for {
         startDate <- req.params.get("start") match {
           case Some(start :: Nil) =>
-            IOResult.effect(DateTime.parse(start))
+            IOResult.attempt(DateTime.parse(start))
           case _ =>
             Inconsistency("No start date defined").fail
         }
         endDate <- req.params.get("end") match {
           case Some(end :: Nil) =>
-            IOResult.effect(DateTime.parse(end))
+            IOResult.attempt(DateTime.parse(end))
           case _ =>
             Inconsistency("No end date defined").fail
         }

@@ -280,7 +280,7 @@ class ArchiveApi(
       def parseArchive(archive: FileParamHolder): IOResult[PolicyArchive] = {
         val originalFilename = archive.fileName
 
-        IOResult.effect(archive.fileStream).bracket(is => effectUioUnit(is.close())) {is =>
+        ZIO.acquireReleaseWith(IOResult.attempt(archive.fileStream))(is => effectUioUnit(is.close())) {is =>
           ZipUtils.getZipEntries(originalFilename, is)
         }.flatMap(entries =>
           zipArchiveReader.readPolicyItems(originalFilename, entries)
@@ -366,7 +366,7 @@ class ZipArchiveBuilderService(
    */
   def getJsonZippableContent(json: String): (InputStream => IOResult[Any]) => IOResult[Any] = {
     (use: InputStream => IOResult[Any]) =>
-    IOResult.effect(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))).bracket(is => effectUioUnit(is.close)) { is =>
+    ZIO.acquireReleaseWith(IOResult.attempt(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))))(is => effectUioUnit(is.close)) { is =>
       use(is)
     }
   }
@@ -397,8 +397,8 @@ class ZipArchiveBuilderService(
    * Retrieve the technique using first the cache, then the config service, and update the
    * cache accordingly
    */
-  def getTechnique(techniqueId: TechniqueId, techniques: RefM[Map[TechniqueId, (Chunk[TechniqueCategoryName], Technique)]]): IOResult[(Chunk[TechniqueCategoryName], Technique)] = {
-    techniques.modify(cache => cache.get(techniqueId) match {
+  def getTechnique(techniqueId: TechniqueId, techniques: Ref.Synchronized[Map[TechniqueId, (Chunk[TechniqueCategoryName], Technique)]]): IOResult[(Chunk[TechniqueCategoryName], Technique)] = {
+    techniques.modifyZIO(cache => cache.get(techniqueId) match {
      case None =>
        for {
          t <- configRepo.getTechnique(techniqueId).notOptional(s"Technique with id ${techniqueId.serialize} was not found in Rudder")
@@ -428,7 +428,7 @@ class ZipArchiveBuilderService(
                    case None          => Zippable(techniquesDir + "/" + current, None):: Nil
                    case Some(parent)  => Zippable(parent.path + "/" + current, None) :: dirs
                  }
-               }.reverse ++ contents.map { case (p, opt) => Zippable(basePath + p, opt.map(_.use))}
+               }.reverse ++ contents.map { case (p, opt) => Zippable.make(basePath + p, opt) }
       _       <- ApplicationLoggerPure.Archive.debug(s"Building archive '${archiveName}': adding technique zipables: ${zips.map(_.path).mkString(", ")}")
     } yield {
       zips
@@ -505,7 +505,7 @@ class ZipArchiveBuilderService(
                             )
                           }.map(_.flatten)
       // directives need access to technique, but we don't want to look up several time the same one
-      techniques       <- RefM.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
+      techniques       <- Ref.Synchronized.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
 
       directivesDir    =  root + "/" + DIRECTIVES_DIR
       _                <- usedNames.update( _ + ((DIRECTIVES_DIR, Set.empty[String])))
@@ -658,15 +658,15 @@ class ZipArchiveReaderImpl(
     for {
       path    <- parseBasePath(basepath)
       (id, c) = path
-      optTech <- RefM.make(Option.empty[Technique])
+      optTech <- Ref.Synchronized.make(Option.empty[Technique])
       // update path in files, and parse metadata when found
       updated <- ZIO.foreach(files) { case (f, content) =>
                    val name = f.replaceFirst(basepath + "/", "")
                      ZIO.when(name.equalsIgnoreCase("metadata.xml")) {
                        for {
-                         xml <- IOResult.effect(XML.load(new ByteArrayInputStream(content)))
+                         xml <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
                          tech <- techniqueParser.parseXml(xml, id).toIO
-                         _ <- optTech.update {
+                         _ <- optTech.updateZIO {
                            case None    => Some(tech).succeed
                            case Some(_) => Unexpected(s"Error: archive contains several metadata.xml files for " +
                                                       s"techniques '${basepath}', exactly one expected"
@@ -893,12 +893,12 @@ class SaveArchiveServicebyRepo(
       addedRef <- Ref.make(Chunk.fromIterable(t.files.map(_._1))) // path are relative to technique. Files we need to add as new in the end
       diffRef  <- Ref.make(Chunk[ResourceFile]())
       // get all file path (relative to technique dir)
-      existing <- IOResult.effect(if(techniqueDir.exists) {
+      existing <- IOResult.attempt(if(techniqueDir.exists) {
                     techniqueDir.collectChildren(_ => true).toList.map(_.pathAsString.replaceFirst(techniqueDir.pathAsString + "/", ""))
                   } else { // technique or technique version does not exists
                     Chunk.empty
                   })
-      _        <- ZIO.foreach_(existing) { e =>
+      _        <- ZIO.foreachDiscard(existing) { e =>
                     for {
                       keep <- addedRef.modify(a => if(a.contains(e)) { (true, a.filterNot(_ == e)) } else { (false, a) } )
                       _    <- diffRef.update(_ :+ ResourceFile(e, if(keep) ResourceFileState.Modified else ResourceFileState.Deleted))
@@ -910,16 +910,16 @@ class SaveArchiveServicebyRepo(
       // now, actually delete files marked so
       _       <- ApplicationLoggerPure.Archive.trace(s"Deleting technique files for technique '${t.technique.id.serialize}': ${updated.collect {
                    case f if(f.state == ResourceFileState.Deleted) => f.path }.mkString(", ") }")
-      _       <- ZIO.foreach_(updated) { u =>
+      _       <- ZIO.foreachDiscard(updated) { u =>
                    if(u.state == ResourceFileState.Deleted) {
-                     IOResult.effect(File(techniqueDir.pathAsString+ "/" + u.path).delete())
+                     IOResult.attempt(File(techniqueDir.pathAsString+ "/" + u.path).delete())
                    } else ZIO.unit
                  }
       // now, write new/updated files
       _       <- ApplicationLoggerPure.Archive.trace(s"Writing for commit files for technique '${t.technique.id.serialize}': ${t.files.map(_._1).mkString(", ")} ")
-      _       <- ZIO.foreach_(t.files) { case (p, bytes) =>
+      _       <- ZIO.foreachDiscard(t.files) { case (p, bytes) =>
                    val f = File(techniqueDir.pathAsString+"/"+p)
-                   IOResult.effect{
+                   IOResult.attempt{
                      f.parent.createDirectoryIfNotExists(createParents = true) // for when the technique, or subdirectories for resources are not existing yet
                      f.writeBytes(bytes.iterator)
                    }
@@ -968,7 +968,7 @@ class SaveArchiveServicebyRepo(
     val eventMetadata = EventMetadata.withNewId(actor, Some(s"Importing archive '${archive.metadata.filename}'"))
     for {
       _ <- ZIO.foreach(archive.techniques) { saveTechnique(eventMetadata, _) }
-      _ <- IOResult.effect(techniqueReader.readTechniques)
+      _ <- IOResult.attempt(techniqueReader.readTechniques)
       _ <- ZIO.foreach(archive.directives) { saveDirective(eventMetadata, _) }
       _ <- ZIO.foreach(archive.groups) { saveGroup(eventMetadata, _) }
       _ <- ZIO.foreach(archive.rules) { saveRule(eventMetadata, _) }
@@ -978,7 +978,7 @@ class SaveArchiveServicebyRepo(
                s"An error occurred during technique update after import of archive"
              )
            }
-      _ <- IOResult.effect(asyncDeploy ! AutomaticStartDeployment(eventMetadata.modId, eventMetadata.actor))
+      _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(eventMetadata.modId, eventMetadata.actor))
     } yield ()
   }
 }

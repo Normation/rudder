@@ -167,7 +167,7 @@ class GitRuleCategoryArchiverImpl(
                      val commitMsg = s"Archive rule Category with ID '${category.id.value}' ${GET(reason)}"
                      commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
                    case None =>
-                     UIO.unit
+                     ZIO.unit
                  }
     } yield {
       GitPath(gitPath)
@@ -191,14 +191,14 @@ class GitRuleCategoryArchiverImpl(
     val gitPath = toGitPath(ruleCategoryFile)
     if(ruleCategoryFile.exists) {
       for {
-        deleted  <- IOResult.effect(FileUtils.forceDelete(ruleCategoryFile))
+        deleted  <- IOResult.attempt(FileUtils.forceDelete(ruleCategoryFile))
         _        <- logPure.debug("Deleted archive of rule: " + ruleCategoryFile.getPath)
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
                         val commitMsg = s"Delete archive of rule with ID '${categoryId.value} ${GET(reason)}"
                         commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
                       case None =>
-                        UIO.unit
+                        ZIO.unit
                     }
       } yield {
         GitPath(gitPath)
@@ -235,10 +235,10 @@ class GitRuleCategoryArchiverImpl(
                        ZIO.when(oldCategoryDir.isDirectory) {
                          //move content except category.xml
                          val filteredDir = oldCategoryDir.listFiles.toSeq.filter( f => f.getName != categoryFileName)
-                         ZIO.foreach(filteredDir) { f => IOResult.effect(FileUtils.moveToDirectory(f, newCategoryDir, false)) }
+                         ZIO.foreach(filteredDir) { f => IOResult.attempt(FileUtils.moveToDirectory(f, newCategoryDir, false)) }
                        } *>
                        //in all case, delete the file at the old directory path
-                       IOResult.effect(FileUtils.deleteQuietly(oldCategoryDir))
+                       IOResult.attempt(FileUtils.deleteQuietly(oldCategoryDir))
                      }
                    }
         commit  <- gitCommit match {
@@ -248,7 +248,7 @@ class GitRuleCategoryArchiverImpl(
                        val newPath = toGitPath(newCategoryDir)
                        commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
                      case None =>
-                       UIO.unit
+                       ZIO.unit
                    }
       } yield {
         GitPath(toGitPath(archive))

@@ -231,7 +231,7 @@ final class WoLDAPApiAccountRepository(
                                             case Some(diff) =>
                                               actionLogger.saveModifyApiAccount(modId, principal = actor, modifyDiff = diff, None).chainError("Error when logging modification of an API Account as an event")
                                             case None       =>
-                                              UIO.unit
+                                              ZIO.unit
                                           }
                               } yield {
                                 action

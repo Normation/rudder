@@ -314,7 +314,7 @@ class LDAPEntityMapper(
                        }
       // custom properties mapped as NodeProperties
       properties    <- ZIO.foreach(inventoryEntry.valuesFor(A_CUSTOM_PROPERTY)) { json =>
-                         GenericProperty.parseConfig(json).toIO.foldM(
+                         GenericProperty.parseConfig(json).toIO.foldZIO(
                            err  =>
                              logPure.error(Chained(s"Error when trying to deserialize Node Custom Property, it will be ignored", err).fullMsg) *>
                              None.succeed

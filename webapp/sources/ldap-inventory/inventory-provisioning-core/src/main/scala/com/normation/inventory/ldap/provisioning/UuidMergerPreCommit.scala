@@ -130,7 +130,7 @@ class UuidMergerPreCommit(
      * if the nodeId is present to find the correct status.
      */
 
-    finalNodeMachine <- mergeNode(node).foldM(
+    finalNodeMachine <- mergeNode(node).foldZIO(
       err => InventoryProcessingLogger.error(s"Error when merging node inventory. Reported message: ${err.fullMsg}. Remove machine for saving") *> err.fail
       , optNode => optNode match {
           case None =>

@@ -81,6 +81,26 @@ class ExpectedReportTest extends Specification {
   }
   sequential
 
+  "Just a block" >> {
+    import zio.json._
+    import ExpectedReportsSerialisation.Version7_1._
+    val jsonMin =
+      """
+      {
+        "vid": "Command execution",
+        "vs": [
+          [ "/bin/echo \"restore\"" ]
+         ]
+      }
+      """.stripMargin
+    val expected = ValueExpectedReport("Command execution", List(
+                  ExpectedValueMatch("/bin/echo \"restore\"","/bin/echo \"restore\"")
+               ))
+
+    (jsonMin.fromJson[JsonValueExpectedReport7_1].map(_.transform)) must beEqualTo(Right(expected))
+  }
+
+
   "Reading old expected reports" should {
 
     "correctly read node0" in {

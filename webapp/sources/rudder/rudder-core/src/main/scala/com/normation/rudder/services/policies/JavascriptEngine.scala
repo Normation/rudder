@@ -386,14 +386,14 @@ final object JsEngineProvider {
         val res = SandboxedJsEngine.sandboxed(maxThread, timeout) { engine => script(engine) }
 
         //we may want to debug hard to debug case here, especially when we had a stackoverflow below
-        res.foldM(
+        res.foldZIO(
           err =>
             (if(JsDirectiveParamLogger.isDebugEnabled) {
               import scala.util.{Properties => P}
               JsDirectiveParamLoggerPure.debug(s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';") *>
               // in the case of an exception and debug enable, print stack
               JsDirectiveParamLoggerPure.debug(err.fullMsg)
-            } else UIO.unit
+            } else ZIO.unit
             ) *> err.fail
           , res => res.succeed
         )
@@ -472,11 +472,11 @@ object JsEngine {
            Unexpected(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
                   +"is disabled. Please, either don't use the keyword or enable the feature").fail
       }
-    }.untraced
+    }
   }
 
   final case class GraalEngine(engine: Engine) {
-    def buildContext = Managed.make(IOResult.effect(Context.newBuilder("js").engine(engine)
+    def buildContext = ZIO.acquireRelease(IOResult.attempt(Context.newBuilder("js").engine(engine)
       .allowHostAccess(HostAccess.EXPLICIT)
       .allowIO(false)
       .allowCreateProcess(false)
@@ -486,7 +486,7 @@ object JsEngine {
   }
   final object SandboxedJsEngine {
     // we need to set the warning for interpreted mode to off, because, yeah for now, we are doing that only
-    System.setProperty("polyglot.engine.WarnInterpreterOnly","false")
+    java.lang.System.setProperty("polyglot.engine.WarnInterpreterOnly","false")
 
     /*
      * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
@@ -507,27 +507,27 @@ object JsEngine {
     def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 
-      val managedJsEngine = Managed.make(
+      val managedJsEngine = ZIO.acquireRelease(
         getJsEngine(maxThread).flatMap( jsEngine =>
-          IOResult.effect {
+          IOResult.attempt {
             val pool = Executors.newFixedThreadPool(maxThread)
             ManagedJsEnv(pool, new SandboxedJsEngine(jsEngine, pool, timeout))
           }
         )
       ) { managedJsEnv =>
-        IOResult.effect{
+        IOResult.attempt{
           //clear everything
           managedJsEnv.pool.shutdownNow()
           //check & clear interruption of the calling thread
           Thread.currentThread().isInterrupted()
           //restore the "none" security manager
-        }.foldM(
+        }.foldZIO(
           err => JsDirectiveParamLoggerPure.error(err.fullMsg)
         , ok  => ok.succeed
         )
       }
 
-      managedJsEngine.use(managedJsEnv => script(managedJsEnv.engine).untraced).untraced
+      ZIO.scoped(managedJsEngine.flatMap(managedJsEnv => script(managedJsEnv.engine)))
     }
 
     /*
@@ -538,7 +538,7 @@ object JsEngine {
      */
     protected[policies] def getJsEngine(number: Int): IOResult[GraalEngine] = {
       val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
-      IOResult.effect(message)(GraalEngine(Engine.create()))
+      IOResult.attempt(message)(GraalEngine(Engine.create()))
     }
   }
 
@@ -606,7 +606,7 @@ object JsEngine {
         copied <- variable.copyWithSavedValues(values).toIO
       } yield {
         copied
-      }).untraced
+      })
     }
 
     /**
@@ -617,7 +617,7 @@ object JsEngine {
      * to FS, Network, System (jvm), class loader, etc).
      */
     def singleEval(value: String, jsRudderLib: JsRudderLibImpl): IOResult[String] = {
-      jsEngine.buildContext.use(context =>
+      ZIO.scoped(jsEngine.buildContext.flatMap(context =>
         (safeExec(value) {
           try {
             context.getBindings("js").putMember("rudder", jsRudderLib)
@@ -629,8 +629,8 @@ object JsEngine {
           } catch {
             case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
           }
-        }).untraced
-      )
+        })
+      ))
     }
 
     /**
@@ -689,7 +689,7 @@ object JsEngine {
       } catch {
         case ex: RejectedExecutionException =>
           SystemError(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex).fail
-      }).untraced.uninterruptible
+      }).uninterruptible
     }
   }
 }

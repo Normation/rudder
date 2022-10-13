@@ -49,7 +49,7 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.zio.ZioRuntime
 import zio._
-import zio.duration.Duration
+import zio.Duration
 import zio.syntax._
 
 /**
@@ -93,7 +93,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
                   case _              => None
                 })}
       writen <- writeCertificatesToNew(allCertsNew, certs)
-      moved  <- IOResult.effect(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
+      moved  <- IOResult.attempt(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
       hook   <- execHook(reloadScriptPath)
     } yield ()
   }
@@ -107,12 +107,12 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     implicit val writeAppend = File.OpenOptions.append
 
     for {
-      _ <- ZIO.when(file.exists)(IOResult.effect(file.delete()))
+      _ <- ZIO.when(file.exists)(IOResult.attempt(file.delete()))
       _ <- ZIO.foreach(certs) { cert =>
-             IOResult.effect(file.writeText(cert + "\n"))
+             IOResult.attempt(file.writeText(cert + "\n"))
            }
       // Ensure that file exists even if no certificate exists
-      _ <- ZIO.when(file.notExists)(IOResult.effect(file.createFileIfNotExists()))
+      _ <- ZIO.when(file.notExists)(IOResult.attempt(file.createFileIfNotExists()))
     } yield ()
   }
 
@@ -121,25 +121,25 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     val parent = file.parent
 
     for {
-      _      <- IOResult.effectM(s"Error when trying to create parent directory for node certificate file: ${parent.pathAsString}") {
+      _      <- IOResult.attemptZIO(s"Error when trying to create parent directory for node certificate file: ${parent.pathAsString}") {
                   parent.createDirectoryIfNotExists(true)
-                  UIO.unit
+                  ZIO.unit
                 }
-      _      <- IOResult.effectM{
-                  if(parent.isDirectory) UIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a directory").fail
+      _      <- IOResult.attemptZIO{
+                  if(parent.isDirectory) ZIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a directory").fail
                 }
-      _      <- IOResult.effectM{
-                  if(parent.isWritable) UIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a writable directory").fail
+      _      <- IOResult.attemptZIO{
+                  if(parent.isWritable) ZIO.unit else Unexpected(s"Error: path '${parent.pathAsString}' must be a writable directory").fail
                 }
     } yield ()
   }
 
   def execHook(path: Option[String]): IOResult[Unit] = {
     path match {
-      case None      => UIO.unit
+      case None      => ZIO.unit
       case Some(cmd) =>
         cmd.split("""\s""").toList match {
-          case Nil => UIO.unit
+          case Nil => ZIO.unit
           // for the cmd, first arg is "cmd path", other are "parameters", and they must be splits
           case cmdPath :: args =>
 

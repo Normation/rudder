@@ -609,7 +609,7 @@ class DirectiveApiService14 (
       case (None               , _            ) =>
         Inconsistency("techniqueName should not be empty").fail
       case (Some(techniqueName), None         ) => // get last version of technique, with last revision in that case
-          IOResult.effect(techniqueRepository.getLastTechniqueByName(techniqueName)).notOptional( s"Error while fetching last version of technique ${techniqueName.value}")
+          IOResult.attempt(techniqueRepository.getLastTechniqueByName(techniqueName)).notOptional( s"Error while fetching last version of technique ${techniqueName.value}")
       case (Some(techniqueName), Some(version)) =>
         val id = TechniqueId(techniqueName, version)
         configRepository.getTechnique(id).notOptional(s" Technique '${techniqueName.value}' version '${version.serialize}' is not a valid Technique").map(_._2)
@@ -623,7 +623,7 @@ class DirectiveApiService14 (
       for {
         // Check if a directive exists with the current id
         _     <- readDirective.getDirective(newDirective.id.uid).flatMap {
-                   case None => UIO.unit
+                   case None => ZIO.unit
                    case Some(_) => Inconsistency(s"Cannot create a new Directive with id '${newDirective.id.uid.value}' already exists").fail
                  }
          // Check parameters of the new Directive
@@ -636,7 +636,7 @@ class DirectiveApiService14 (
         saved <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, params.reason).chainError(s"Could not save Directive ${newDirective.id.uid.value}" )
         // We need to deploy only if there is a saveDiff, that says that a deployment is needed
         _     <- ZIO.when(saved.map(_.needDeployment).getOrElse(false)) {
-                   IOResult.effect(asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor))
+                   IOResult.attempt(asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor))
                  }
       } yield {
         JRDirective.fromDirective(technique,newDirective, None)

@@ -89,7 +89,7 @@ object NodeConfigurationHashes {
 
   def fromJson(json: String): IOResult[NodeConfigurationHashes] = {
     for {
-      jval <- IOResult.effect(parse(json))
+      jval <- IOResult.attempt(parse(json))
       arr  <- (jval \ "hashes") match {
                 case JNothing | JNull => Nil.succeed
                 case JArray(arr) => arr.succeed
@@ -450,12 +450,12 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   def checkFile(file: File) : IOResult[Unit] = {
     (for {
-      _ <- ZIO.whenM(IOResult.effect(!hashesFile.parent.exists)) { IOResult.effect(hashesFile.parent.createDirectories()) }
-      _ <- ZIO.whenM(IOResult.effect(!(hashesFile.parent.isDirectory && hashesFile.parent.isWritable))) {
+      _ <- ZIO.whenZIO(IOResult.attempt(!hashesFile.parent.exists)) { IOResult.attempt(hashesFile.parent.createDirectories()) }
+      _ <- ZIO.whenZIO(IOResult.attempt(!(hashesFile.parent.isDirectory && hashesFile.parent.isWritable))) {
              ApplicationLoggerPure.error(s"File at path '${hashesFile.parent.pathAsString}' must be writtable directory")
            }
-      _ <- ZIO.whenM(IOResult.effect(!hashesFile.exists)) { IOResult.effect(hashesFile.touch()) }
-      _ <- ZIO.whenM(IOResult.effect(!(hashesFile.isRegularFile && hashesFile.isWritable))) {
+      _ <- ZIO.whenZIO(IOResult.attempt(!hashesFile.exists)) { IOResult.attempt(hashesFile.touch()) }
+      _ <- ZIO.whenZIO(IOResult.attempt(!(hashesFile.isRegularFile && hashesFile.isWritable))) {
              ApplicationLoggerPure.error(s"File at path '${hashesFile.pathAsString}' must be writtable file")
            }
     } yield ()).chainError(s"File to store node configuration hashes is not a regular file with write permission: ${file.pathAsString}")
@@ -469,8 +469,8 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   // read the file, of return the empty string if file does not exists
   def readHashesAsJsonString(): IOResult[String] = {
-    IOResult.effect(hashesFile.exists).flatMap {
-      case true  => IOResult.effect(hashesFile.contentAsString(StandardCharsets.UTF_8))
+    IOResult.attempt(hashesFile.exists).flatMap {
+      case true  => IOResult.attempt(hashesFile.contentAsString(StandardCharsets.UTF_8))
       case false => "".succeed
     }
   }
@@ -500,7 +500,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
     import java.nio.file.StandardOpenOption._
-    IOResult.effect(hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8))
+    IOResult.attempt(hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8))
   }
 
 
@@ -508,7 +508,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   override def deleteAllNodeConfigurations(): Box[Unit] = {
     timeLog(s => s"Deleting node configuration hashes took ${s}")(semaphore.withPermits(1)(
-      IOResult.effect(
+      IOResult.attempt(
         if(hashesFile.exists) hashesFile.delete() else () //ok, nothing to do
        ).unit
     )).toBox

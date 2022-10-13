@@ -71,6 +71,7 @@ import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
 
+import zio.ZIO
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.zio._
@@ -331,7 +332,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveDir = "archive-rule-with-dep"
     val unzipped = testDir / archiveDir
     // read zip entries, load archive
-    val p = IOResult.effect(File(unzipped.pathAsString + ".zip").newInputStream).bracket(is => effectUioUnit(is.close)) { is =>
+    val p = ZIO.acquireReleaseWith(IOResult.attempt(File(unzipped.pathAsString + ".zip").newInputStream))(is => effectUioUnit(is.close)) { is =>
       ZipUtils.getZipEntries(archiveDir + ".zip", is)
     }.flatMap(entries =>
       restTestSetUp.archiveAPIModule.zipArchiveReader.readPolicyItems(archiveDir + ".zip", entries)

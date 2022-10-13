@@ -426,7 +426,7 @@ class FusionInventoryParser(
       }
     }
 
-    checkNumberOfRudderTag.andThen(
+    checkNumberOfRudderTag *> (
       ( for {
         agents         <- agentList.map(_.flatten)
         agentOK        <- ZIO.when(agents.size < 1) {

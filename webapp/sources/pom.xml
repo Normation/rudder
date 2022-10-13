@@ -408,7 +408,7 @@ limitations under the License.
     <ipaddress-version>5.3.3</ipaddress-version>
     <snakeyaml-version>1.30</snakeyaml-version>
 
-    <zhttp-version>1.0.0.0-RC27</zhttp-version> <!-- used in datasources -->
+    <zio-http-version>2.0.0-RC11</zio-http-version> <!-- used in datasources -->
 
     <!--
       These one must be updated to work together
@@ -422,9 +422,9 @@ limitations under the License.
     <fs2-version>3.2.4</fs2-version>
     <shapeless-version>2.3.7</shapeless-version>
     <cats-effect-version>3.3.4</cats-effect-version>
-    <dev-zio-version>1.0.10</dev-zio-version>
-    <zio-cats-version>3.2.9.1</zio-cats-version> <!-- gives fs2 3.1.6, but doobie 1.0.0-RC1 is in 3.0.3 -->
-    <zio-json-version>0.2.0-M4</zio-json-version>
+    <dev-zio-version>2.0.2</dev-zio-version>
+    <zio-cats-version>3.3.0</zio-cats-version> <!-- gives fs2 3.1.6, but doobie 1.0.0-RC1 is in 3.0.3 -->
+    <zio-json-version>0.3.0</zio-json-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

@@ -402,7 +402,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             result
           }) match {
             case Full(res) =>
-              refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res)
+              refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").attempt("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res)
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
           }
@@ -437,7 +437,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           }) match {
             case Full(res) =>
               refreshTree() &
-              OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)"""
+              OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)"""
                   .format(sourceCatId)))
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
@@ -485,7 +485,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 }) match {
                 case Full(res) =>
                   val jsString = """setTimeout(function() { $("[activeTechniqueId=%s]")
-                    .effect("highlight", {}, 2000)}, 100)"""
+                    .attempt("highlight", {}, 2000)}, 100)"""
                 refreshTree() & JsRaw(jsString
                     .format(sourceactiveTechniqueId)) &
                     refreshBottomPanel(res.id)
@@ -506,7 +506,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def onSuccessReasonPopup(id : ActiveTechniqueId) : JsCmd =  {
     val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
-      .effect("highlight", {}, 2000)}, 100)"""
+      .attempt("highlight", {}, 2000)}, 100)"""
     refreshTree() &
     JsRaw(jsStr) & refreshBottomPanel(id)
   }

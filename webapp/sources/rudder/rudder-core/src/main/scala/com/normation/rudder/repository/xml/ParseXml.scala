@@ -56,7 +56,7 @@ object ParseXml {
   def apply(is: InputStream, filePath : Option[String] = None) : IOResult[Elem] = {
     val name = filePath.getOrElse("[unknown]")
     for {
-      doc <- Task(XML.load(is)).catchAll {
+      doc <- ZIO.attempt(XML.load(is)).catchAll {
                case e: SAXParseException =>
                  SystemError(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", e).fail
                case e: java.net.MalformedURLException =>

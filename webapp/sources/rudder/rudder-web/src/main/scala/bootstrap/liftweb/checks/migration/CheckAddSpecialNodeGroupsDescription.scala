@@ -72,7 +72,7 @@ class CheckAddSpecialNodeGroupsDescription(
   override def description: String = "Check if system groups hasPolicyServer-root and all-nodes-with-cfengine-agent have the correct description and name"
 
   override def checks() : Unit = {
-    ZIO.whenM(checkMigrationNeeded())(
+    ZIO.whenZIO(checkMigrationNeeded())(
       createSpecialTarget()
     ).catchAll(err =>
       MigrationLoggerPure.error(s"Error when trying to modify name and description of groups hasPolicyServer-root and all-nodes-with-cfengine-agent")
@@ -89,7 +89,7 @@ class CheckAddSpecialNodeGroupsDescription(
       con                            <- ldap
       allLinux                       <- con.get(all_nodeGroupDN).chainError(s"Error when trying to get entry for ${all_nodeGroupDN} to modified name and description")
       allLinuxPolicyServerModified <- con.get(all_nodeGroupPolicyServerDN).chainError(s"Error when trying to get entry for ${all_nodeGroupPolicyServerDN} to modified name and description")
-      isAllLinuxModified             <- IOResult.effect(s"Error when trying to get attributes `${A_NAME}` and `${A_DESCRIPTION}` for ${all_nodeGroupDN.toString}") {
+      isAllLinuxModified             <- IOResult.attempt(s"Error when trying to get attributes `${A_NAME}` and `${A_DESCRIPTION}` for ${all_nodeGroupDN.toString}") {
                                           allLinux match {
                                             case Some(entry) =>
                                               entry.getAttribute(A_NAME).getValue == allNodeGroupNewName &&
@@ -97,7 +97,7 @@ class CheckAddSpecialNodeGroupsDescription(
                                             case None => false
                                           }
                                         }
-      isAllLinuxPolicyServerModified <- IOResult.effect(s"Error when trying to get attributes `${A_NAME}` and `${A_DESCRIPTION}` for ${all_nodeGroupPolicyServerDN.toString}") {
+      isAllLinuxPolicyServerModified <- IOResult.attempt(s"Error when trying to get attributes `${A_NAME}` and `${A_DESCRIPTION}` for ${all_nodeGroupPolicyServerDN.toString}") {
                                           allLinuxPolicyServerModified match {
                                             case Some(entry) =>
                                               entry.getAttribute(A_NAME).getValue == allNodeGroupPolicyServerNewName &&

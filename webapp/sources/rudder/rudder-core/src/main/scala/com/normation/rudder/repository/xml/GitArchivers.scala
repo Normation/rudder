@@ -117,7 +117,7 @@ class GitRuleArchiverImpl(
       commit  <- doCommit match {
                    case Some((modId, commiter, reason)) =>
                      commitAddFileWithModId(modId, commiter, gitPath, s"Archive rule with ID '${rule.id.serialize}'${GET(reason)}")
-                   case None => UIO.unit
+                   case None => ZIO.unit
                  }
     } yield {
       GitPath(gitPath)
@@ -136,12 +136,12 @@ class GitRuleArchiverImpl(
     val gitPath = toGitPath(crFile)
     if(crFile.exists) {
       for {
-        deleted  <- IOResult.effect(FileUtils.forceDelete(crFile))
+        deleted  <- IOResult.attempt(FileUtils.forceDelete(crFile))
         _        <- logPure.debug("Deleted archive of rule: " + crFile.getPath)
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
                         commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of rule with ID '${ruleId.serialize}'${GET(reason)}")
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
       } yield {
         GitPath(gitPath)
@@ -222,9 +222,9 @@ class TechniqueArchiverImpl (
       ident   <- personIdentservice.getPersonIdentOrDefault(committer.name)
       // construct the path to the technique. Root category is "/", so we filter out all / to be sure
       categoryPath <- categories.filter(_ != "/").mkString("/").succeed
-      rm      <- IOResult.effect(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}").call())
+      rm      <- IOResult.attempt(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}/${techniqueId.serialize}").call())
 
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      commit  <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield {
       s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
@@ -277,17 +277,17 @@ class TechniqueArchiverImpl (
     val techniqueGitPath = s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
 
     (for {
-      metadata <- IOResult.effect(XML.load(Source.fromFile((gitRepo.rootDirectory / techniqueGitPath / "metadata.xml").toJava)))
+      metadata <- IOResult.attempt(XML.load(Source.fromFile((gitRepo.rootDirectory / techniqueGitPath / "metadata.xml").toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files    =  getFilesToCommit(tech, techniqueGitPath, resourcesStatus)
       ident    <- personIdentservice.getPersonIdentOrDefault(committer.name)
       added    <- ZIO.foreach(files.add) { f =>
-                    IOResult.effect(gitRepo.git.add.addFilepattern(f).call())
+                    IOResult.attempt(gitRepo.git.add.addFilepattern(f).call())
                   }
       removed <- ZIO.foreach(files.delete) { f =>
-                   IOResult.effect(gitRepo.git.rm.addFilepattern(f).call())
+                   IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call())
                  }
-      commit  <- IOResult.effect(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      commit  <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
@@ -358,7 +358,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
                            case None       =>
                              commitAddFileWithModId(modId, commiter, uptcGitPath, "Archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
                          }
-                       case None => UIO.unit
+                       case None => ZIO.unit
                     }
     } yield {
       GitPath(gitPath)
@@ -375,12 +375,12 @@ class GitActiveTechniqueCategoryArchiverImpl(
     if(uptcFile.exists) {
       for {
         //don't forget to delete the category *directory*
-        deleted  <- IOResult.effect(FileUtils.forceDelete(uptcFile))
+        deleted  <- IOResult.attempt(FileUtils.forceDelete(uptcFile))
         _        <- logPure.debug("Deleted archived technique library category: " + uptcFile.getPath)
         commited <- gitCommit match {
                       case Some((modId, commiter, reason)) =>
                         commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of technique library category with ID '${uptcId.value}'${GET(reason)}")
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
       } yield {
         GitPath(gitPath)
@@ -474,8 +474,8 @@ class UpdatePiOnActiveTechniqueEvent(
     }.map( _.flatten )
   }
 
-  override def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) = UIO.unit
-  override def onMove(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) = UIO.unit
+  override def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) = ZIO.unit
+  override def onMove(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) = ZIO.unit
 }
 
 /**
@@ -520,7 +520,7 @@ class GitActiveTechniqueArchiverImpl(
       callbacks <- ZIO.foreach(uptModificationCallback.toList) { _.onArchive(activeTechnique, parents, gitCommit) }
       _         <- gitCommit match {
                      case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, gitPath, s"Archive of technique library template for technique name '${activeTechnique.techniqueName.value}'${GET(reason)}")
-                     case None => UIO.unit
+                     case None => ZIO.unit
                    }
     } yield {
       (GitPath(gitPath), callbacks.toSeq.flatten)
@@ -530,18 +530,18 @@ class GitActiveTechniqueArchiverImpl(
   override def deleteActiveTechnique(ptName:TechniqueName, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) : IOResult[GitPath] = {
     for {
       atFile <- newActiveTechniqueFile(ptName, parents)
-      exists <- IOResult.effect(atFile.exists)
+      exists <- IOResult.attempt(atFile.exists)
       res    <- if(exists) {
                   for {
                     //don't forget to delete the category *directory*
-                    deleted <- IOResult.effect(FileUtils.forceDelete(atFile))
+                    deleted <- IOResult.attempt(FileUtils.forceDelete(atFile))
                     _       =  logPure.debug(s"Deleted archived technique library template: ${atFile.getPath}")
                     gitPath =  toGitPath(atFile)
                     callbacks <- ZIO.foreach(uptModificationCallback.toList) { _.onDelete(ptName, parents, None) }
                     commited <- gitCommit match {
                                   case Some((modId, commiter, reason)) =>
                                     commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of technique library template for technique name '${ptName.value}'${GET(reason)}")
-                                  case None => UIO.unit
+                                  case None => ZIO.unit
                                 }
                   } yield {
                     GitPath(gitPath)
@@ -569,13 +569,13 @@ class GitActiveTechniqueArchiverImpl(
     } else {
       for {
         oldActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, oldParents)
-        oldActiveTechniqueDirectory <- IOResult.effect(oldActiveTechniqueFile.getParentFile)
+        oldActiveTechniqueDirectory <- IOResult.attempt(oldActiveTechniqueFile.getParentFile)
         newActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, newParents)
-        newActiveTechniqueDirectory <- IOResult.effect(newActiveTechniqueFile.getParentFile)
-        existsNew                   <- IOResult.effect(newActiveTechniqueDirectory.exists)
-        clearNew                    <- ZIO.when(existsNew) { IOResult.effect(FileUtils.forceDelete(newActiveTechniqueDirectory)) }
-        existsOld                   <- IOResult.effect(oldActiveTechniqueDirectory.exists)
-        deleteOld                   <- ZIO.when(existsOld) { IOResult.effect(FileUtils.forceDelete(oldActiveTechniqueDirectory)) }
+        newActiveTechniqueDirectory <- IOResult.attempt(newActiveTechniqueFile.getParentFile)
+        existsNew                   <- IOResult.attempt(newActiveTechniqueDirectory.exists)
+        clearNew                    <- ZIO.when(existsNew) { IOResult.attempt(FileUtils.forceDelete(newActiveTechniqueDirectory)) }
+        existsOld                   <- IOResult.attempt(oldActiveTechniqueDirectory.exists)
+        deleteOld                   <- ZIO.when(existsOld) { IOResult.attempt(FileUtils.forceDelete(oldActiveTechniqueDirectory)) }
         archived                    <- archiveActiveTechnique(activeTechnique, newParents, gitCommit)
         commited                    <- gitCommit match {
                                          case Some((modId, commiter, reason)) =>
@@ -586,7 +586,7 @@ class GitActiveTechniqueArchiverImpl(
                                              , toGitPath(newActiveTechniqueDirectory)
                                              , "Move active technique for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
                                            )
-                                         case None => UIO.unit
+                                         case None => ZIO.unit
                                        }
       } yield {
         archived
@@ -642,7 +642,7 @@ class GitDirectiveArchiverImpl(
                  )
       commit  <- gitCommit match {
                    case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.uid.value,GET(reason)))
-                   case None => UIO.unit
+                   case None => ZIO.unit
                  }
     } yield {
       GitPath(gitPath)
@@ -662,16 +662,16 @@ class GitDirectiveArchiverImpl(
   ) : IOResult[GitPath] = {
     for {
       piFile <- newPiFile(directiveId, ptName, catIds)
-      exists <- IOResult.effect(piFile.exists)
+      exists <- IOResult.attempt(piFile.exists)
       res    <- if(exists) {
                   for {
-                    deleted  <- IOResult.effect(FileUtils.forceDelete(piFile))
+                    deleted  <- IOResult.attempt(FileUtils.forceDelete(piFile))
                     _        <- logPure.debug(s"Deleted archive of directive: '${piFile.getPath}'")
                     gitPath  =  toGitPath(piFile)
                     commited <- gitCommit match {
                                   case Some((modId, commiter, reason)) =>
                                     commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of directive with ID '${directiveId.value}'${GET(reason)}")
-                                  case None => UIO.unit
+                                  case None => ZIO.unit
                                 }
                   } yield {
                     GitPath(gitPath)
@@ -737,7 +737,7 @@ class GitNodeGroupArchiverImpl(
       gitPath    =  toGitPath(ngcFile)
       commit     <- gitCommit match {
                       case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, gitPath, "Archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
     } yield {
       GitPath(gitPath)
@@ -750,12 +750,12 @@ class GitNodeGroupArchiverImpl(
     if(ngcFile.exists) {
       for {
         //don't forget to delete the category *directory*
-        deleted  <- IOResult.effect(FileUtils.forceDelete(ngcFile))
+        deleted  <- IOResult.attempt(FileUtils.forceDelete(ngcFile))
         _        <- logPure.debug(s"Deleted archived node group category: ${ngcFile.getPath}")
         commited <- gitCommit match {
                       case Some((modId, commiter, reason)) =>
                         commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of node group category with ID '${ngcId.value}'${GET(reason)}")
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
       } yield {
         GitPath(gitPath)
@@ -792,20 +792,20 @@ class GitNodeGroupArchiverImpl(
                      , nodeGroupCategorySerialisation.serialise(ngc)
                      , "Archived node group category: " + newNgcXmlFile.getPath
                    )
-        canMove <- IOResult.effect(null != oldNgcDir && oldNgcDir.exists)
+        canMove <- IOResult.attempt(null != oldNgcDir && oldNgcDir.exists)
         moved   <- ZIO.when(canMove) {
-                     ZIO.whenM(IOResult.effect(oldNgcDir.isDirectory)) {
+                     ZIO.whenZIO(IOResult.attempt(oldNgcDir.isDirectory)) {
                          //move content except category.xml
                          ZIO.foreach(oldNgcDir.listFiles.toSeq.filter( f => f.getName != serializedCategoryName)) { f =>
-                           IOResult.effect(FileUtils.moveToDirectory(f, newNgcDir, false))
+                           IOResult.attempt(FileUtils.moveToDirectory(f, newNgcDir, false))
                          }
                      } *>
                      //in all case, delete the file at the old directory path
-                     IOResult.effect(FileUtils.deleteQuietly(oldNgcDir))
+                     IOResult.attempt(FileUtils.deleteQuietly(oldNgcDir))
                    }
         commit  <- gitCommit match {
                      case Some((modId, commiter, reason)) => commitMvDirectoryWithModId(modId, commiter, toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
-                     case None => UIO.unit
+                     case None => ZIO.unit
                    }
       } yield {
         GitPath(toGitPath(archive))
@@ -844,7 +844,7 @@ class GitNodeGroupArchiverImpl(
                     )
       commit     <- gitCommit match {
                       case Some((modId, commiter, reason)) => commitAddFileWithModId(modId, commiter, toGitPath(ngFile), "Archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize,GET(reason)))
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
     } yield {
       GitPath(toGitPath(archive))
@@ -855,16 +855,16 @@ class GitNodeGroupArchiverImpl(
     for {
       ngFile  <- newNgFile(ngId, getParents)
       gitPath = toGitPath(ngFile)
-      exists  <- IOResult.effect(ngFile.exists)
+      exists  <- IOResult.attempt(ngFile.exists)
       res     <- if(exists) {
                    for {
                      //don't forget to delete the category *directory*
-                     deleted  <- IOResult.effect(FileUtils.forceDelete(ngFile))
+                     deleted  <- IOResult.attempt(FileUtils.forceDelete(ngFile))
                      _        <- logPure.debug(s"Deleted archived node group: ${ngFile.getPath}")
                      commited <- gitCommit match {
                                    case Some((modId, commiter, reason)) =>
                                      commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of node group with ID '${ngId.withDefaultRev.serialize}'${GET(reason)}")
-                                   case None => UIO.unit
+                                   case None => ZIO.unit
                                  }
                    } yield {
                      GitPath(gitPath)
@@ -890,11 +890,11 @@ class GitNodeGroupArchiverImpl(
                           , "Archived node group: " + newNgXmlFile.getPath
                         )
         moved        <- ZIO.when(null != oldNgXmlFile && oldNgXmlFile.exists) {
-                           IOResult.effect(FileUtils.deleteQuietly(oldNgXmlFile))
+                           IOResult.attempt(FileUtils.deleteQuietly(oldNgXmlFile))
                          }
         commit       <- gitCommit match {
                           case Some((modId, commiter, reason)) => commitMvDirectoryWithModId(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize,GET(reason)))
-                          case None => UIO.unit
+                          case None => ZIO.unit
                         }
       } yield {
         GitPath(toGitPath(archive))
@@ -948,7 +948,7 @@ class GitParameterArchiverImpl(
                    case Some((modId, commiter, reason)) =>
                      val msg = "Archive parameter with name '%s'%s".format(parameter.name, GET(reason))
                      commitAddFileWithModId(modId, commiter, gitPath, msg)
-                   case None => UIO.unit
+                   case None => ZIO.unit
                  }
     } yield {
       GitPath(gitPath)
@@ -967,12 +967,12 @@ class GitParameterArchiverImpl(
     val gitPath = toGitPath(paramFile)
     if(paramFile.exists) {
       for {
-        deleted  <- IOResult.effect(FileUtils.forceDelete(paramFile))
+        deleted  <- IOResult.attempt(FileUtils.forceDelete(paramFile))
         _        <- logPure.debug(s"Deleted archive of parameter: ${paramFile.getPath}")
         commited <- doCommit match {
                       case Some((modId, commiter, reason)) =>
                         commitRmFileWithModId(modId, commiter, gitPath, s"Delete archive of parameter with name '${parameterName}'${GET(reason)}")
-                      case None => UIO.unit
+                      case None => ZIO.unit
                     }
       } yield {
         GitPath(gitPath)

@@ -84,9 +84,9 @@ class FileHistoryLogRepository[ID:ClassTag,T](
   //we don't want to catch exception here
   private def root: IOResult[File] = {
     for {
-      dir       <- UIO(new File(rootDir))
+      dir       <- ZIO.succeed(new File(rootDir))
       isValid   <- ZIO.when(dir.exists && !dir.isDirectory) { InventoryError.System(s"'${dir.getAbsolutePath}' exists and is not a directory").fail }
-      isCreated <- ZIO.when(!dir.exists) { Task.effect(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${rootDir}': ${e.getMessage}")) }
+      isCreated <- ZIO.when(!dir.exists) { ZIO.attempt(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${rootDir}': ${e.getMessage}")) }
     } yield {
       dir
     }
@@ -96,9 +96,9 @@ class FileHistoryLogRepository[ID:ClassTag,T](
   private def idDir(id:ID) = {
     for {
       r         <- root
-      dir       <- UIO(new File(r, converter.idToFilename(id)))
+      dir       <- ZIO.succeed(new File(r, converter.idToFilename(id)))
       isValid   <- ZIO.when(dir.exists && !dir.isDirectory) { InventoryError.System(s"'${dir.getAbsolutePath}' and is not a directory").fail }
-      isCreated <- ZIO.when(!dir.exists) { Task.effect(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${dir.getAbsolutePath}': '${e.getMessage}'")) }
+      isCreated <- ZIO.when(!dir.exists) { ZIO.attempt(dir.mkdirs).mapError(e => InventoryError.System(s"Error creating '${dir.getAbsolutePath}': '${e.getMessage}'")) }
     } yield {
       dir
     }
@@ -113,14 +113,14 @@ class FileHistoryLogRepository[ID:ClassTag,T](
     converter.idToFilename(id) match {
       case null | "" =>
         InventoryError.Inconsistency("History log name can not be null nor empty").fail
-      case s if(s.contains(System.getProperty("file.separator"))) =>
-        InventoryError.Inconsistency(s"UUID can not contains the char '${System.getProperty("file.separator")}'").fail
+      case s if(s.contains(java.lang.System.getProperty("file.separator"))) =>
+        InventoryError.Inconsistency(s"UUID can not contains the char '${java.lang.System.getProperty("file.separator")}'").fail
       case s =>
         val hlog = DefaultHLog(id, datetime, data)
 
         for {
           i     <- idDir(hlog.id)
-          file  <- UIO(new File(i,vToS(hlog.version)))
+          file  <- ZIO.succeed(new File(i,vToS(hlog.version)))
           datas <- parser.toFile(file,hlog.data)
         } yield hlog
     }
@@ -132,7 +132,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
   def getIds : IOResult[Seq[ID]] = {
     for {
       r   <- root
-      res <- Task.effect(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) }).mapError(e =>
+      res <- ZIO.attempt(r.listFiles.collect { case(f) if(f.isDirectory) => converter.filenameToId(f.getName) }).mapError(e =>
                 InventoryError.System(s"Error when trying to get file names")
               )
      } yield {
@@ -173,7 +173,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
   def get(id:ID, version:DateTime) : IOResult[HLog] = {
     for {
       i    <- idDir(id)
-      file <- UIO(new File(i,vToS(version)))
+      file <- ZIO.succeed(new File(i,vToS(version)))
       data <- parser.fromFile(file)
     }yield DefaultHLog(id,version,data)
   }
@@ -183,7 +183,7 @@ class FileHistoryLogRepository[ID:ClassTag,T](
   private def exists(id:ID) = {
     for{
       r   <- root
-      dir <- UIO(new File(r, converter.idToFilename(id)))
+      dir <- ZIO.succeed(new File(r, converter.idToFilename(id)))
     } yield {
       dir.exists && dir.isDirectory
     }
@@ -199,11 +199,11 @@ class FileHistoryLogRepository[ID:ClassTag,T](
     for {
       i  <- idDir(id)
       ok <- exists(id)
-      res <- if(ok) Task.effect(i.listFiles.toSeq.map(f => sToV(f.getName)).
+      res <- if(ok) ZIO.attempt(i.listFiles.toSeq.map(f => sToV(f.getName)).
               filter(_.isDefined).map(_.get).sortWith(_ .compareTo(_) > 0)).mapError(e =>
                 InventoryError.System(s"Error when listing file in '${i.getAbsolutePath}'")
               )
-             else UIO(Seq())
+             else ZIO.succeed(Seq())
     } yield res
   }
 
