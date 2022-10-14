@@ -36,7 +36,7 @@ impl Unix {
 
 impl Backend for Unix {
     fn generate(&self, policy: ir::Policy) -> Result<String> {
-        let mut bundle = Bundle::agent(policy.name.clone()).promise_group(vec![Promise::string(
+        let mut bundle = Bundle::agent(policy.id.clone()).promise_group(vec![Promise::string(
             "resources_dir",
             "${this.promise_dirname}/resources",
         )]);

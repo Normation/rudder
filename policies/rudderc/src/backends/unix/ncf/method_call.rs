@@ -45,8 +45,11 @@ impl MethodCall {
         Self { state, ..self }
     }
 
-    pub fn id(self, id: String) -> Self {
-        Self { id, ..self }
+    pub fn id<S: Into<String>>(self, id: S) -> Self {
+        Self {
+            id: id.into(),
+            ..self
+        }
     }
     pub fn disable_reporting(self, disable_reporting: bool) -> Self {
         Self {

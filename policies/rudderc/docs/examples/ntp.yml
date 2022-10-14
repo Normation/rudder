@@ -1,7 +1,12 @@
 ---
-format: 0
-name: ntp
+# Id of the technique
+id: "ntp"
+# Name of the technique
+name: "NTP configuration"
+# Version of the technique
 version: "0.1"
+description: "This technique configures the local ntp service"
+documentation: "**Markdown** formatted documentation."
 resources:
   - name: "NTP configuration"
     type: file

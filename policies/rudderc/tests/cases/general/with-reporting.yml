@@ -1,6 +1,7 @@
 ---
 format: 0
-name: ntp
+id: ntp
+name: NTP
 version: "0.1"
 resources:
   - name: "NTP configuration"
