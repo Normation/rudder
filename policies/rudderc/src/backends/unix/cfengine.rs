@@ -33,12 +33,6 @@ pub(crate) mod promise;
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
 
-/// Allows cosmetic simplification, skip always true conditions
-pub const TRUE_CLASSES: [&str; 4] = ["true", "any", "concat(\"any\")", "concat(\"true\")"];
-
-/// Allows cosmetic simplification, skip always false conditions
-pub const FALSE_CLASSES: [&str; 4] = ["false", "!any", "concat(\"!any\")", "concat(\"false\")"];
-
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
 pub fn quoted(s: &str) -> String {

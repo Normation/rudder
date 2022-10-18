@@ -25,7 +25,7 @@ impl fmt::Debug for Hash {
 impl Hash {
     pub fn new(hash_type: &str, hex_value: &str) -> Result<Hash, Error> {
         let hash_type = HashType::from_str(hash_type)?;
-        let value = hex::decode(&hex_value)?;
+        let value = hex::decode(hex_value)?;
 
         if hash_type.is_valid_hash(&value) {
             Ok(Hash { hash_type, value })

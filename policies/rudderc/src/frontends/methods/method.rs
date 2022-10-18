@@ -9,16 +9,24 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
+use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
 
-use rudder_commons::{Constraint, Constraints, ParameterType};
-
 /// Supported agent for a legacy method, now replaced by `Target`
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Agent {
     CfengineCommunity,
     Dsc,
+}
+
+impl From<Agent> for Target {
+    fn from(s: Agent) -> Target {
+        match s {
+            Agent::Dsc => Target::Windows,
+            Agent::CfengineCommunity => Target::Unix,
+        }
+    }
 }
 
 /// metadata about a "methods" CFEngine/DSC method
@@ -27,7 +35,7 @@ pub enum Agent {
 ///
 /// We use legacy names and semantics here for clarity.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct Method {
+pub struct MethodInfo {
     pub name: String,
     pub bundle_name: String,
     pub bundle_args: Vec<String>,
@@ -54,7 +62,7 @@ pub struct Method {
     pub parameter_rename: Vec<ParameterRename>,
 }
 
-impl Method {
+impl MethodInfo {
     // There is no specific builder type but let's treat it as is
     //
     // Check validity and clean thing up (trim, etc.)
@@ -133,11 +141,11 @@ macro_rules! regex {
     }};
 }
 
-impl FromStr for Method {
+impl FromStr for MethodInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut method = Method::default();
+        let mut method = MethodInfo::default();
         // Kept the same logic and regexes as methods.py for two big reasons:
         //
         // * compatibility

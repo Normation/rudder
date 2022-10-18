@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use anyhow::{bail, Error};
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
 
+use anyhow::{bail, Error};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
+
+use crate::{frontends::methods::method::MethodInfo, ir::condition::Condition};
 
 /// Valid id for techniques, methods, etc.
 ///
@@ -57,75 +58,94 @@ impl<'de> Deserialize<'de> for Id {
     }
 }
 
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+/// A Rudder technique (based on methods and/or resources)
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Policy {
+pub struct Technique {
     #[serde(default)]
     pub format: usize,
     pub id: Id,
     pub name: String,
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
-    pub resources: Vec<Resource>,
+    pub resources: Vec<ResourceKind>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub parameters: Vec<Parameter>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub files: Vec<PathBuf>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Parameter {
+    id: Id,
+    name: String,
+    description: Option<String>,
+    // FIXME represent as constraint?
+    may_be_empty: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Block {
+    #[serde(default)]
+    pub condition: Condition,
+    pub name: String,
+    pub resources: Vec<ResourceKind>,
+    pub id: Id,
+    #[serde(default)]
+    pub reporting: BlockReporting,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Resource {
-    BlockResource(BlockResource),
-    LeafResource(LeafResource),
+pub enum ResourceKind {
+    Block(Block),
+    Resource(Resource),
+    Method(Method),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BlockResource {
-    pub condition: String,
-    pub name: String,
-    pub params: HashMap<String, String>,
-    #[serde(rename = "type")]
-    pub resource_type: String,
-    // contains either states or resources
-    pub resources: Vec<Resource>,
-    pub id: Id,
-    pub reporting: Option<ReportingPolicy>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LeafResource {
-    pub name: String,
-    pub params: HashMap<String, String>,
-    #[serde(rename = "type")]
-    pub resource_type: String,
-    // contains either states or resources
-    pub states: Vec<State>,
-    pub id: Id,
-    pub reporting: Option<ReportingPolicy>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct State {
-    // TODO specific type with custom deserializer that check validity
-    // class regex or variables
-    pub condition: String,
-    pub id: Id,
-    pub meta: Value,
-    pub name: String,
-    pub params: HashMap<String, String>,
-    // comes from stdlib
-    pub report_parameter: String,
-    #[serde(rename = "type")]
-    pub state_type: String,
-    pub reporting: Option<ReportingPolicy>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReportingPolicy {
-    pub enabled: bool,
+pub struct Resource {
     #[serde(default)]
-    pub compute: ReportingCompute,
+    pub name: String,
+    pub meta: Value,
+    #[serde(default)]
+    pub condition: Condition,
+    pub params: HashMap<String, String>,
+    pub resource: String,
+    pub id: Id,
+    #[serde(default)]
+    pub reporting: LeafReporting,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ReportingCompute {
+pub struct Method {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub condition: Condition,
+    pub params: HashMap<String, String>,
+    pub method: String,
+    pub id: Id,
+    #[serde(default)]
+    pub reporting: LeafReporting,
+    #[serde(skip)]
+    pub info: Option<&'static MethodInfo>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BlockReporting {
     #[serde(rename = "worst-case-weighted-sum")]
     WorstCaseWeightedSum,
     #[serde(rename = "worst-case-weighted-one")]
@@ -133,20 +153,28 @@ pub enum ReportingCompute {
     #[serde(rename = "focus")]
     Focus(String),
     #[serde(rename = "weighted")]
+    #[serde(alias = "enabled")]
     Weighted,
+    #[serde(rename = "disabled")]
+    Disabled,
 }
 
-impl Default for ReportingPolicy {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LeafReporting {
+    #[serde(rename = "enabled")]
+    Enabled,
+    #[serde(rename = "disabled")]
+    Disabled,
+}
+
+impl Default for BlockReporting {
     fn default() -> Self {
-        ReportingPolicy {
-            enabled: true,
-            compute: ReportingCompute::default(),
-        }
+        BlockReporting::Weighted
     }
 }
 
-impl Default for ReportingCompute {
+impl Default for LeafReporting {
     fn default() -> Self {
-        ReportingCompute::Weighted
+        LeafReporting::Enabled
     }
 }

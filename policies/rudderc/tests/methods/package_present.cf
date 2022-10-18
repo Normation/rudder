@@ -26,7 +26,7 @@
 # @parameter_type       version HereString
 # @parameter            architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
 # @parameter_constraint architecture "allow_empty_string" : true
-# @parameter_constraint architecture "regex": "^[a-z]$"
+# @parameter_constraint architecture "regex": "^[a-z]*$"
 # @parameter            provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" or "default" for system default package manager (defaults to "default")
 # @parameter_constraint provider "allow_empty_string" : true
 # @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" ]

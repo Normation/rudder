@@ -8,12 +8,12 @@ use std::{fs::read_to_string, path::Path};
 use anyhow::{bail, Context, Result};
 use log::trace;
 
-use crate::ir::Policy;
+use crate::ir::Technique;
 
-pub fn read(input: &Path) -> Result<Policy> {
+pub fn read(input: &Path) -> Result<Technique> {
     let data = read_to_string(input)
         .with_context(|| format!("Failed to read input from {}", input.display()))?;
-    let policy: Policy = serde_yaml::from_str(&data)?;
+    let policy: Technique = serde_yaml::from_str(&data)?;
     trace!("Parsed input:\n{:#?}", policy);
 
     // Stop if unknown format

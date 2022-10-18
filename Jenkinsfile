@@ -236,7 +236,7 @@ pipeline {
                     }
                     steps {
                         dir('policies') {
-                            dir('rudderc/repos') {
+                            dir('target/repos') {
                                 dir('ncf') {
                                     git url: 'https://github.com/normation/ncf.git'
                                 }

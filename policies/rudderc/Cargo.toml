@@ -12,7 +12,7 @@ license = "GPL-3.0-or-later"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
-quick-xml = { version = "0.25", features = ["serialize"] }
+quick-xml = { version = "0.26", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.10"
 serde = { version = "1", features = ["derive"] }

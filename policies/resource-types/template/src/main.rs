@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use std::fs::read_to_string;
-use std::path::Path;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    fs::read_to_string,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context, Result};
+use rudder_resource_type::{
+    backup::Backup, parameters::Parameters, rudder_debug, run, CheckApplyResult, Outcome,
+    PolicyMode, ResourceType0, ResourceTypeMetadata, ValidateResult,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use rudder_resource_type::backup::Backup;
-use rudder_resource_type::{
-    parameters::Parameters, rudder_debug, run, CheckApplyResult, Outcome, PolicyMode,
-    ResourceType0, ResourceTypeMetadata, ValidateResult,
-};
 
 // Configuration
 
@@ -147,7 +147,7 @@ impl ResourceType0 for Template {
 
         // Check if already correct
         let already_correct = if already_present {
-            let content = read_to_string(&output_file)
+            let content = read_to_string(output_file)
                 .with_context(|| format!("Failed to read file {output_file_d}"))?;
             if content == output {
                 true

@@ -4,13 +4,12 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{bail, Context};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
 use rudder_resource_type::{
     parameters::Parameters, run, CheckApplyResult, Outcome, PolicyMode, ResourceType0,
     ResourceTypeMetadata, ValidateResult,
 };
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 // Configuration
 

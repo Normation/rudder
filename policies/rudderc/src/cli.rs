@@ -23,6 +23,10 @@ pub struct MainArgs {
     #[arg(short, long)]
     pub target: Option<Target>,
 
+    /// Output metadata.xml file
+    #[arg(short, long)]
+    pub metadata: Option<PathBuf>,
+
     /// Check mode
     #[arg(short, long)]
     pub check: bool,
@@ -39,9 +43,9 @@ pub struct MainArgs {
     #[arg(short, long, action = clap::ArgAction::Append)]
     pub library: Vec<PathBuf>,
 
-    /// Generate a description of available resources and exit
+    /// Generate information about available resources and exit
     #[arg(long)]
-    pub methods_description: bool,
+    pub resources: bool,
 }
 
 impl MainArgs {

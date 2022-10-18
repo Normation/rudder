@@ -16,22 +16,29 @@ test-docs: $(DOC_EXAMPLES_CF)
 test: libs
 	cargo test --locked
 	# Parse lib
-	cargo run --bin rudderc --quiet -- -o /tmp/test.cf rudderc/tests/cases/general/ntp.yml -l rudderc/repos/ncf/tree/30_generic_methods/ -l rudderc/repos/dsc/plugin/src/ncf/30_generic_methods/
+	cargo run --bin rudderc --quiet -- -o /tmp/test.cf rudderc/tests/cases/general/ntp.yml -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/
 
-%.cf: %.yml
-	cargo run --bin rudderc --quiet -- --quiet --output $@ --target cf $<
+%.cf: %.yml libs
+	cargo run --bin rudderc --quiet -- --quiet -l target/repos/ncf/tree/30_generic_methods/ --output $@ --target cf $<
 
 docs: test-docs
 	mkdir -p target/docs
 	cp -r rudderc/docs/images target/docs/
 	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs rudderc/docs/index.adoc
 
+libs-docs: libs
+	mkdir -p target/docs
+	cargo run --bin rudderc -- --library target/repos/ncf/tree/30_generic_methods/ \
+           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --resources --output target/methods.md
+	pandoc --standalone --metadata=mainfont:sans --metadata=title:"Rudder methods docs" \
+	       --from commonmark_x --to html5 --toc --toc-depth=2 --output target/docs/methods.html target/methods.md
+
 libs:
-	mkdir -p rudderc/repos
-	[ -d rudderc/repos/ncf ] || git clone git@github.com:Normation/ncf.git rudderc/repos/ncf
-	cd rudderc/repos/ncf && git checkout master && git pull origin master
-	[ -d rudderc/repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git rudderc/repos/dsc || mkdir -p repos/dsc/plugin/ncf/30_generic_methods/
-	cd rudderc/repos/dsc && git checkout master && git pull origin master || true
+	mkdir -p target/repos
+	[ -d target/repos/ncf ] || git clone git@github.com:Normation/ncf.git target/repos/ncf
+	cd target/repos/ncf && git checkout master && git pull origin master
+	[ -d target/repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git target/repos/dsc || mkdir -p target/repos/dsc/plugin/ncf/30_generic_methods/
+	cd target/repos/dsc && git checkout master && git pull origin master || true
 
 check: lint test test-docs
 

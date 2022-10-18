@@ -2,11 +2,9 @@
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
 // FIXME remove
-#![allow(dead_code)]
 
 use anyhow::Result;
-use clap::error::ErrorKind;
-use clap::CommandFactory;
+use clap::{error::ErrorKind, CommandFactory};
 use rudder_commons::Target;
 
 use crate::cli::MainArgs;
@@ -14,6 +12,7 @@ use crate::cli::MainArgs;
 pub mod backends;
 pub mod cli;
 pub mod compiler;
+mod doc;
 pub mod frontends;
 pub mod ir;
 pub mod logs;
@@ -25,11 +24,12 @@ pub mod logs;
 /// The current process is to stop at first error, and move it up to `main()` where it will
 /// be displayed.
 pub fn run(args: MainArgs) -> Result<()> {
-    if args.methods_description {
-        action::describe(args.library.as_slice(), args.output.as_ref())
+    // guess output target
+    let target = args.target()?;
+
+    if args.resources {
+        action::describe(args.library.as_slice(), args.output.as_ref(), target)
     } else {
-        // guess output target
-        let target = args.target()?;
         let input = match args.input {
             Some(input) => input,
             None => {
@@ -50,7 +50,14 @@ pub fn run(args: MainArgs) -> Result<()> {
                         .exit()
                 }
             };
-            action::write(args.library.as_slice(), &input, &output, target)
+            let output_metadata = args.metadata.as_ref();
+            action::write(
+                args.library.as_slice(),
+                &input,
+                &output,
+                target,
+                output_metadata,
+            )
         }
     }
 }
@@ -63,26 +70,32 @@ pub mod action {
         path::{Path, PathBuf},
     };
 
-    use anyhow::{Context, Result};
+    use anyhow::{bail, Context, Result};
     use rudder_commons::Target;
 
     pub use crate::compiler::{compile, methods_description};
-    use crate::logs::ok_output;
+    use crate::{
+        compiler::{metadata, methods_documentation},
+        logs::ok_output,
+    };
 
     /// Describe available resources
-    pub fn describe(libraries: &[PathBuf], output: Option<&PathBuf>) -> Result<()> {
-        let description_json = methods_description(libraries)?;
+    pub fn describe(libraries: &[PathBuf], output: Option<&PathBuf>, target: Target) -> Result<()> {
+        let data = match target {
+            Target::Metadata => methods_description(libraries)?,
+            Target::Docs => methods_documentation(libraries)?,
+            _ => bail!("resources flag requires a metadata target"),
+        };
 
         if let Some(out) = output {
             let mut file = File::create(out)
                 .with_context(|| format!("Failed to create output file {}", out.display()))?;
-            file.write_all(description_json.as_bytes())?;
+            file.write_all(data.as_bytes())?;
             ok_output("Wrote", out.display());
         } else {
             // If not output, write on stdout
-            io::stdout().write_all(description_json.as_bytes())?;
+            io::stdout().write_all(data.as_bytes())?;
         }
-
         Ok(())
     }
 
@@ -95,11 +108,26 @@ pub mod action {
     }
 
     /// Write output
-    pub fn write(libraries: &[PathBuf], input: &Path, output: &Path, target: Target) -> Result<()> {
+    pub fn write(
+        libraries: &[PathBuf],
+        input: &Path,
+        output: &Path,
+        target: Target,
+        output_metadata: Option<&PathBuf>,
+    ) -> Result<()> {
         let mut file = File::create(output)
             .with_context(|| format!("Failed to create output file {}", input.display()))?;
         file.write_all(compile(libraries, input, target)?.as_bytes())?;
         ok_output("Wrote", output.display());
+
+        if let Some(metadata_file) = output_metadata {
+            let mut file = File::create(metadata_file).with_context(|| {
+                format!("Failed to create metadata output file {}", input.display())
+            })?;
+            file.write_all(metadata(input)?.as_bytes())?;
+            ok_output("Wrote", metadata_file.display());
+        }
+
         Ok(())
     }
 }

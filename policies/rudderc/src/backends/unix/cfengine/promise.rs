@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted, FALSE_CLASSES, TRUE_CLASSES};
+use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
@@ -169,25 +169,19 @@ impl Promise {
 
     /// Shortcut for adding a condition
     pub fn if_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
-        // Don't use always true conditions
-        if !TRUE_CLASSES.iter().any(|c| c == &condition.as_ref()) {
-            self.attributes.insert(
-                AttributeType::If,
-                format!("concat(\"{}\")", condition.as_ref()),
-            );
-        }
+        self.attributes.insert(
+            AttributeType::If,
+            format!("concat(\"{}\")", condition.as_ref()),
+        );
         self
     }
 
     /// Shortcut for adding a condition
     pub fn unless_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
-        // Don't use always true conditions
-        if !FALSE_CLASSES.iter().any(|c| c == &condition.as_ref()) {
-            self.attributes.insert(
-                AttributeType::Unless,
-                format!("concat(\"{}\")", condition.as_ref()),
-            );
-        }
+        self.attributes.insert(
+            AttributeType::Unless,
+            format!("concat(\"{}\")", condition.as_ref()),
+        );
         self
     }
 

@@ -1,4 +1,4 @@
-= Template
+# Template
 
 Template resource type.
 

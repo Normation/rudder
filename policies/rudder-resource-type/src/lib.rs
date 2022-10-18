@@ -3,8 +3,7 @@
 
 //! Agent-side implementation of base resource_type types
 
-use std::fmt;
-use std::process::exit;
+use std::{fmt, process::exit};
 
 use anyhow::{Error, Result};
 use gumdrop::Options;
@@ -253,11 +252,12 @@ pub mod backup {
     //!
     //! Dates are all localtime.
 
-    use std::fmt;
-    use std::path::{Path, PathBuf};
+    use std::{
+        fmt,
+        path::{Path, PathBuf},
+    };
 
     use chrono::prelude::*;
-
     use rudder_commons::canonify;
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]

@@ -2,14 +2,12 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 pub mod unix {
-    use std::fs;
-    use std::path::Path;
+    use std::{fs, path::Path};
 
     use assert_cmd::{prelude::*, Command};
     use predicates::prelude::*;
-    use tempfile::tempdir;
-
     use rudder_resource_type::{CheckApplyResult, Outcome, PolicyMode};
+    use tempfile::tempdir;
 
     const CF_BIN_DIR: &str = "/opt/rudder/bin/";
 
@@ -37,7 +35,7 @@ pub mod unix {
         fs::write(policy_path, policy.as_bytes()).unwrap();
 
         let cmd = Command::new(cfe_dir.join("cf-agent"))
-            .args(&["--no-lock", "--workdir", &work_dir.path().to_string_lossy()])
+            .args(["--no-lock", "--workdir", &work_dir.path().to_string_lossy()])
             .env("TEST_DATA", data)
             .env("TEST_POLICY_MODE", &policy_mode.to_string())
             .unwrap();

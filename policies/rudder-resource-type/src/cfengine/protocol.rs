@@ -255,9 +255,8 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::{Map, Value};
 
-    use crate::PolicyMode;
-
     use super::*;
+    use crate::PolicyMode;
 
     #[test]
     fn it_rejects_wrong_classes() {

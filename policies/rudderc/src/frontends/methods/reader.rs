@@ -11,7 +11,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, warn};
 use walkdir::{DirEntry, WalkDir};
 
-use super::method::Method;
+use super::method::MethodInfo;
 
 /// Detect valid .cf source files, skip ignored ones (starting with _)
 fn is_cf_file(entry: &DirEntry) -> bool {
@@ -27,7 +27,7 @@ fn is_cf_file(entry: &DirEntry) -> bool {
    filelist2 = get_all_generic_methods_filenames_in_dir("/var/rudder/configuration-repository/methods/30_generic_methods")
 */
 
-pub fn read_lib(path: &Path) -> Result<Vec<Method>> {
+pub fn read_lib(path: &Path) -> Result<Vec<MethodInfo>> {
     let mut methods = vec![];
 
     if !path.exists() {
@@ -42,7 +42,7 @@ pub fn read_lib(path: &Path) -> Result<Vec<Method>> {
         debug!("Parsing {}", source.path().display());
         let data = read_to_string(source.path())?;
 
-        let method_result: Result<Method> = data
+        let method_result: Result<MethodInfo> = data
             .parse()
             .context(anyhow!("Error parsing {}", source.path().display()));
         match method_result {

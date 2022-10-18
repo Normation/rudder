@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use std::fs::read_to_string;
-use std::{env, fs, path::Path};
+use std::{env, fs, fs::read_to_string, path::Path};
 
 use anyhow::anyhow;
-use tempfile::tempdir;
-
 use rudder_commons_test::resource_type::unix;
 use rudder_resource_type::{Outcome, PolicyMode};
+use tempfile::tempdir;
 
 const BIN: &str = concat!("../../target/debug/", env!("CARGO_PKG_NAME"));
 

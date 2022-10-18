@@ -4,10 +4,9 @@
 use std::{env, fs, path::Path};
 
 use anyhow::anyhow;
-use tempfile::tempdir;
-
 use rudder_commons_test::resource_type::unix;
 use rudder_resource_type::{CheckApplyResult, Outcome, PolicyMode};
+use tempfile::tempdir;
 
 const BIN: &str = concat!("../../target/debug/", env!("CARGO_PKG_NAME"));
 

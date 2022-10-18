@@ -34,7 +34,7 @@ parameter:
       allow_empty_string: true
       allow_whitespace_string: false
       select: ~
-      regex: "^[a-z]$"
+      regex: "^[a-z]*$"
       max_length: 16384
     type: string
   - name: provider

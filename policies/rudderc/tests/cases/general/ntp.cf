@@ -3,21 +3,28 @@
 
 bundle agent ntp {
 
-  vars:
-    "resources_dir" string => "${this.promise_dirname}/resources";
+  methods:
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => call_d86ce2e5-d5b6-45cc-87e8-c11cca71d907("htop", "2.3.4", "", "");
+
+    "cf06e919-02b7-41a7-a03f-4239592f3c12" usebundle => call_cf06e919-02b7-41a7-a03f-4239592f3c12("ntp");
+
+}
+bundle agent call_d86ce2e5-d5b6-45cc-87e8-c11cca71d907(name, version, architecture, provider) {
 
   methods:
-    # Ensure correct ntp configuration
-    # 
-    # source:
-    # 
-    # 
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _method_reporting_context_v4("Ensure correct ntp configuration", "path", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => file_content("server ntp.org", "true"),
-                                             if => concat("(any).(debian)");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _classes_noop(canonify("${class_prefix}_file_content_path")),
-                                         unless => concat("(any).(debian)");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => log_rudder("Skipping method 'Ensure correct ntp configuration' with key parameter 'path' since condition '(any).(debian)' is not reached", "path", canonify("${class_prefix}_file_content_path"), canonify("${class_prefix}_file_content_path"), @{args}),
-                                         unless => concat("(any).(debian)");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _method_reporting_context_v4("Ensure correct ntp configuration", "${name}", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => package_present("htop", "2.3.4", "", ""),
+                                             if => concat("debian");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${name}")),
+                                         unless => concat("debian");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907" usebundle => log_rudder("Skipping method 'Ensure correct ntp configuration' with key parameter '${name}' since condition 'debian' is not reached", "${name}", canonify("${class_prefix}_package_present_${name}"), canonify("${class_prefix}_package_present_${name}"), @{args}),
+                                         unless => concat("debian");
+
+}
+bundle agent call_cf06e919-02b7-41a7-a03f-4239592f3c12(name) {
+
+  methods:
+    "cf06e919-02b7-41a7-a03f-4239592f3c12" usebundle => _method_reporting_context_v4("NTP service", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3c12");
+    "cf06e919-02b7-41a7-a03f-4239592f3c12" usebundle => package_install("ntp");
 
 }

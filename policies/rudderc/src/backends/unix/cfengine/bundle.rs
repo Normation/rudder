@@ -142,7 +142,12 @@ mod tests {
                 .parameters(vec!["file".to_string(), "lines".to_string()])
                 .promise_group(vec![Promise::usebundle("test", None, None, vec![])])
                 .to_string(),
-            "bundle agent test(file, lines) {\n\n  methods:\n    \"${report_data.directive_id}_0\"   usebundle => test();\n\n}"
+            r###"bundle agent test(file, lines) {
+
+  methods:
+    "${report_data.directive_id}_0"   usebundle => test();
+
+}"###
         );
     }
 }

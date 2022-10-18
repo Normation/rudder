@@ -6,6 +6,10 @@ use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 
+pub const ALL_TARGETS: &[Target] = &[Target::Unix, Target::Windows];
+
+pub const DEFAULT_MAX_PARAM_LENGTH: usize = 16384;
+
 /// Targets. A bit like (machine, vendor, operating-system) targets for system compiler like
 /// "x86_64-unknown-linux-gnu", it depends on several items.
 ///
@@ -16,6 +20,10 @@ pub enum Target {
     Unix,
     /// Actually (Windows, Dotnet + DSC, )
     Windows,
+    /// Pseudo-target for documentation
+    Docs,
+    /// Pseudo-target for metadata
+    Metadata,
 }
 
 impl Target {
@@ -24,6 +32,8 @@ impl Target {
         match self {
             Self::Unix => "cf",
             Self::Windows => "ps1",
+            Self::Docs => "md",
+            Self::Metadata => "json",
         }
     }
 }
@@ -51,6 +61,8 @@ impl fmt::Display for Target {
             match self {
                 Target::Unix => "unix",
                 Target::Windows => "windows",
+                Target::Docs => "documentation",
+                Target::Metadata => "metadata",
             }
         )
     }
@@ -63,6 +75,8 @@ impl FromStr for Target {
         match target {
             "cf" | "cfengine" | "CFEngine" | "unix" | "Unix" => Ok(Target::Unix),
             "ps1" | "powershell" | "dsc" | "windows" | "Windows" => Ok(Target::Windows),
+            "md" | "markdown" | "docs" => Ok(Target::Docs),
+            "json" | "metadata" => Ok(Target::Metadata),
             "yml" | "yaml" => bail!("YAML is not a valid target format but only a source"),
             _ => bail!("Could not recognize target {:?}", target),
         }
@@ -134,7 +148,8 @@ impl Constraints {
         if !self.allow_empty_string && value.is_empty() {
             bail!("value must not be empty");
         }
-        if !self.allow_whitespace_string && value.trim().is_empty() {
+        // allow_whitespace_string allows empty string
+        if !value.is_empty() && !self.allow_whitespace_string && value.trim().is_empty() {
             bail!("value must not be only whitespaces");
         }
         if value.len() > self.max_length {
@@ -177,7 +192,7 @@ impl Default for Constraints {
             allow_whitespace_string: false,
             select: None,
             regex: None,
-            max_length: 16384,
+            max_length: DEFAULT_MAX_PARAM_LENGTH,
         }
     }
 }
@@ -210,6 +225,14 @@ mod tests {
         assert!(constraints.is_valid("").is_err());
         assert!(constraints.is_valid("    ").is_err());
         assert!(constraints.is_valid("42").is_ok());
+
+        let constraints = Constraints {
+            allow_empty_string: true,
+            ..Default::default()
+        };
+        assert!(constraints.is_valid("").is_ok());
+        assert!(constraints.is_valid("42").is_ok());
+        assert!(constraints.is_valid(" ").is_err());
 
         let constraints = Constraints {
             max_length: 2,

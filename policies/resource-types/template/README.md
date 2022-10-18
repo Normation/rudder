@@ -1,3 +1,3 @@
-= Directory
+# Directory
 
 Directory resource type.

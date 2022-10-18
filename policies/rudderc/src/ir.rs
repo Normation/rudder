@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-pub use resource::Policy;
+pub use resource::Technique;
 
-mod native;
+pub mod condition;
 pub mod resource;
 
 // we probably need a CFEngine ${} parser

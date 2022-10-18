@@ -21,7 +21,7 @@ impl Windows {
 }
 
 impl Backend for Windows {
-    fn generate(&self, _policy: ir::Policy) -> Result<String> {
+    fn generate(&self, _policy: ir::Technique) -> Result<String> {
         unimplemented!()
     }
 }
