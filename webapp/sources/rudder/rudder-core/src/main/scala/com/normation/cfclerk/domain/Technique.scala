@@ -1,44 +1,44 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.cfclerk.domain
 
-import com.normation.utils.Utils._
 import com.normation.inventory.domain.AgentType
+import com.normation.utils.Utils._
 
 /**
  * A name, used as an identifier, for a policy.
@@ -62,9 +62,9 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  */
 final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
   // intended for debug/log, not serialization
-  def debugString = serialize
+  def debugString    = serialize
   // a technique
-  def serialize = name.value + "/" + version.serialize
+  def serialize      = name.value + "/" + version.serialize
   def withDefaultRev = TechniqueId(name, version.withDefaultRev)
 
   override def compare(that: TechniqueId): Int = {
@@ -83,19 +83,21 @@ object TechniqueId {
     s.split("/").toList match {
       case n :: v :: Nil =>
         TechniqueVersion.parse(v).map(x => TechniqueId(TechniqueName(n), x))
-      case _ =>
-        Left(s"Error when parsing '${s}' as a technique id. It should have format 'techniqueName/version+rev' (with +rev optional)")
+      case _             =>
+        Left(
+          s"Error when parsing '${s}' as a technique id. It should have format 'techniqueName/version+rev' (with +rev optional)"
+        )
     }
   }
 }
 
 object RunHook {
-/*
- * This data structure holds the agent specific
- * run hooks.
- * We can have pre- or post- hooks, but their
- * composition is the same
- */
+  /*
+   * This data structure holds the agent specific
+   * run hooks.
+   * We can have pre- or post- hooks, but their
+   * composition is the same
+   */
 
   // hooks report name and value
   final case class Report(name: String, value: Option[String])
@@ -116,18 +118,19 @@ object RunHook {
  * be run only one time per node per run.
  */
 final case class RunHook(
-    bundle    : String // name of the hook to execute. The actual, agent dependent bundle method name can be derived from it
-  , kind      : RunHook.Kind
-  , report    : RunHook.Report
-  , parameters: List[RunHook.Parameter]
+    bundle: String, // name of the hook to execute. The actual, agent dependent bundle method name can be derived from it
+
+    kind:       RunHook.Kind,
+    report:     RunHook.Report,
+    parameters: List[RunHook.Parameter]
 )
 
 final case class AgentConfig(
-    agentType      : AgentType
-  , templates      : List[TechniqueTemplate]
-  , files          : List[TechniqueFile]
-  , bundlesequence : List[BundleName]
-  , runHooks       : List[RunHook]
+    agentType:      AgentType,
+    templates:      List[TechniqueTemplate],
+    files:          List[TechniqueFile],
+    bundlesequence: List[BundleName],
+    runHooks:       List[RunHook]
 )
 
 /**
@@ -169,14 +172,14 @@ final object TechniqueGenerationMode {
 
   def parse(value: String): Option[TechniqueGenerationMode] = {
     val v = value.toLowerCase
-    allValues.find( _.name == v)
+    allValues.find(_.name == v)
   }
 }
 
 /**
  * A structure containing all informations about a technique deprecation
  */
-final case class TechniqueDeprecationInfo (message : String) extends AnyVal
+final case class TechniqueDeprecationInfo(message: String) extends AnyVal
 
 /**
  * A Policy is made of a name, a description, and the list of templates name relevant
@@ -187,19 +190,21 @@ final case class TechniqueDeprecationInfo (message : String) extends AnyVal
  *
  */
 final case class Technique(
-    id                     : TechniqueId
-  , name                   : String
-  , description            : String
-  , agentConfigs           : List[AgentConfig]
-  , trackerVariableSpec    : TrackerVariableSpec
-  , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
-  , deprecrationInfo       : Option[TechniqueDeprecationInfo]
-  , systemVariableSpecs    : Set[SystemVariableSpec] = Set()
-  , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
-  , longDescription        : String = ""
-  , isSystem               : Boolean = false
-  , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
-  , useMethodReporting     : Boolean = false
+    id:                  TechniqueId,
+    name:                String,
+    description:         String,
+    agentConfigs:        List[AgentConfig],
+    trackerVariableSpec: TrackerVariableSpec,
+    rootSection:         SectionSpec, // be careful to not split it from the TechniqueId, else you will not have the good spec for the version
+
+    deprecrationInfo:    Option[TechniqueDeprecationInfo],
+    systemVariableSpecs: Set[SystemVariableSpec] = Set(),
+    isMultiInstance:     Boolean = false, // true if we can have several instance of this policy
+
+    longDescription:    String = "",
+    isSystem:           Boolean = false,
+    generationMode:     TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives,
+    useMethodReporting: Boolean = false
 ) {
 
   require(null != id && !isEmpty(id.name.value), "ID is required in policy")
@@ -222,7 +227,7 @@ final case class Technique(
 /**
  * The representation of a bundle name, used for the bundlesequence
  */
-final case class BundleName(value : String) extends AnyVal
+final case class BundleName(value: String) extends AnyVal
 
 object Technique {
   def normalizeName(name: String): String = {

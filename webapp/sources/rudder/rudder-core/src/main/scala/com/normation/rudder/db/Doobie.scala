@@ -1,74 +1,73 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.db
 
 import cats.Show
-
-import javax.sql.DataSource
-import org.joda.time.DateTime
-
-import scala.xml.XML
-import java.sql.SQLXML
-import scala.xml.Elem
-import com.normation.rudder.domain.reports._
-import com.normation.rudder.domain.policies.RuleId
+import cats.data._
+import com.normation.box._
+import com.normation.errors._
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.services.reports.RunAndConfigInfo
-import org.slf4j.LoggerFactory
+import com.normation.zio._
+import doobie._
+import doobie.implicits.javasql._
+import doobie.postgres.implicits._
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
-import doobie.postgres.implicits._
-import doobie.implicits.javasql._
-import cats.data._
-import doobie._
-import zio._
-import zio.interop.catz._
-import com.normation.errors._
-import com.normation.zio._
-import com.normation.box._
-import com.normation.rudder.domain.policies.DirectiveId
-import zio.blocking.Blocking
-import zio.interop.catz.implicits.rts
-import zio.json.ast.Json
+import java.sql.SQLXML
+import javax.sql.DataSource
+import net.liftweb.common._
+import org.joda.time.DateTime
 import org.postgresql.util.PGobject
+import org.slf4j.LoggerFactory
+import scala.xml.Elem
+import scala.xml.XML
+import zio._
+import zio.blocking.Blocking
+import zio.interop.catz._
+import zio.interop.catz.implicits.rts
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
+import zio.json.ast.Json
+
 /**
  *
  * That file contains Doobie connection
@@ -109,51 +108,51 @@ object Doobie {
       override protected def _logger = LoggerFactory.getLogger("sql")
     }
 
-
     LogHandler {
       // we could log only if exec duration is more than X ms, etc.
       case doobie.util.log.Success(s, a, e1, e2) =>
         val total = (e1 + e2).toMillis
-        val msg = s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-          | arguments = [${a.mkString(", ")}]
+        val msg   = s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+                     |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+                     | arguments = [${a.mkString(", ")}]
         """.stripMargin
-        if(total > 100) { //more than that => debug level, not trace
+        if (total > 100) { // more than that => debug level, not trace
           DoobieLogger.debug(msg)
         } else {
           DoobieLogger.trace(msg)
         }
 
       case ProcessingFailure(s, a, e1, e2, t) =>
-        DoobieLogger.debug(s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-          | arguments = [${a.mkString(", ")}]
-          |   failure = ${t.getMessage}
-        """.stripMargin)
+        DoobieLogger.debug(
+          s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+             |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+             | arguments = [${a.mkString(", ")}]
+             |   failure = ${t.getMessage}
+        """.stripMargin
+        )
 
       case ExecFailure(s, a, e1, t) =>
         DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
-          |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-          | arguments = [${a.mkString(", ")}]
-          |   failure = ${t.getMessage}
+                              |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+                              | arguments = [${a.mkString(", ")}]
+                              |   failure = ${t.getMessage}
         """.stripMargin)
     }
   }
-
 
   /**
    * Utility method that maps a either into a Lift Box.
    * Implicitly, because there is ton of it needed.
    */
-  implicit def xorToBox[A](res: Either[Throwable, A]): Box[A] = res match {
-    case Left(e) => Failure(e.getMessage, Full(e), Empty)
+  implicit def xorToBox[A](res: Either[Throwable, A]):         Box[A] = res match {
+    case Left(e)  => Failure(e.getMessage, Full(e), Empty)
     case Right(a) => Full(a)
   }
   implicit class XorToBox[A](val res: Either[Throwable, A]) extends AnyVal {
     def box = xorToBox(res)
   }
   implicit def xorBoxToBox[A](res: Either[Throwable, Box[A]]): Box[A] = res match {
-    case Left(e) => Failure(e.getMessage, Full(e), Empty)
+    case Left(e)  => Failure(e.getMessage, Full(e), Empty)
     case Right(a) => a
   }
   implicit class XorBoxToBox[A](val res: Either[Throwable, Box[A]]) extends AnyVal {
@@ -170,24 +169,29 @@ object Doobie {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   implicit val DateTimeMeta: Meta[DateTime] =
-    Meta[java.sql.Timestamp].imap(
-       ts => new DateTime(ts.getTime())
-    )( dt => new java.sql.Timestamp(dt.getMillis)
-  )
+    Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime()))(dt => new java.sql.Timestamp(dt.getMillis))
 
-  implicit val ReadRuleId: Read[RuleId] = {
-    Read[String].map(r => RuleId.parse(r) match {
-      case Right(rid) => rid
-      case Left(err)  => throw new IllegalArgumentException(s"Error when unserializing a report from base: Can not parse rule ID: ${r}: ${err}.")
+  implicit val ReadRuleId:       Read[RuleId]       = {
+    Read[String].map(r => {
+      RuleId.parse(r) match {
+        case Right(rid) => rid
+        case Left(err)  =>
+          throw new IllegalArgumentException(s"Error when unserializing a report from base: Can not parse rule ID: ${r}: ${err}.")
+      }
     })
   }
-  implicit val WriteRuleId: Write[RuleId] = {
+  implicit val WriteRuleId:      Write[RuleId]      = {
     Write[String].contramap(_.serialize)
   }
-  implicit val ReadDirectiveId: Read[DirectiveId] = {
-    Read[String].map(r => DirectiveId.parse(r) match {
-      case Right(rid) => rid
-      case Left(err)  => throw new IllegalArgumentException(s"Error when unserializing a report from base: Can not parse directive ID: ${r}: ${err}.")
+  implicit val ReadDirectiveId:  Read[DirectiveId]  = {
+    Read[String].map(r => {
+      DirectiveId.parse(r) match {
+        case Right(rid) => rid
+        case Left(err)  =>
+          throw new IllegalArgumentException(
+            s"Error when unserializing a report from base: Can not parse directive ID: ${r}: ${err}."
+          )
+      }
     })
   }
   implicit val WriteDirectiveId: Write[DirectiveId] = {
@@ -196,25 +200,18 @@ object Doobie {
 
   implicit val ReportRead: Read[Reports] = {
     type R = (DateTime, RuleId, DirectiveId, NodeId, String, String, String, DateTime, String, String)
-    Read[R].map( (t: R) => Reports.factory(t._1,t._2,t._3,t._4,t._5,t._6,t._7,t._8,t._9,t._10) )
+    Read[R].map((t: R) => Reports.factory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10))
   }
 
-
-  implicit val NodesConfigVerionRead: Read[NodeConfigVersions] = {
-    Read[(NodeId, Option[List[String]])].map(
-        tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId)))
+  implicit val NodesConfigVerionRead:  Read[NodeConfigVersions]  = {
+    Read[(NodeId, Option[List[String]])].map(tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId)))
   }
   implicit val NodesConfigVerionWrite: Write[NodeConfigVersions] = {
-    Write[(NodeId, Option[List[String]])].contramap(
-        ncv   => (ncv.nodeId, Some(ncv.versions.map(_.value)))
-    )
+    Write[(NodeId, Option[List[String]])].contramap(ncv => (ncv.nodeId, Some(ncv.versions.map(_.value))))
   }
 
   implicit val NodeConfigIdComposite: Meta[Vector[NodeConfigIdInfo]] = {
-    Meta[String].imap(
-       tuple => NodeConfigIdSerializer.unserialize(tuple)
-    )( obj   => NodeConfigIdSerializer.serialize(obj)
-    )
+    Meta[String].imap(tuple => NodeConfigIdSerializer.unserialize(tuple))(obj => NodeConfigIdSerializer.serialize(obj))
   }
 
   /*
@@ -222,8 +219,8 @@ object Doobie {
    */
   implicit val SerializeNodeExpectedReportsWrite: Write[NodeExpectedReports] = {
     import ExpectedReportsSerialisation._
-    Write[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].contramap(
-      ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
+    Write[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].contramap(ner =>
+      (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
     )
   }
 
@@ -233,16 +230,15 @@ object Doobie {
    */
   implicit val DeserializeNodeExpectedReportsRead: Read[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
     import ExpectedReportsSerialisation._
-    Read[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].map( tuple =>
+    Read[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].map(tuple => {
       parseJsonNodeExpectedReports(tuple._5) match {
-        case Full(x)      =>
+        case Full(x) =>
           Right(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides))
         case eb: EmptyBox =>
           Left((tuple._1, tuple._2, tuple._3))
       }
-    )
+    })
   }
-
 
   implicit val CompliancePercentWrite: Write[CompliancePercent] = {
     import ComplianceLevelSerialisation._
@@ -265,22 +261,22 @@ object Doobie {
     Write[String].contramap(_.toCompactJson)
   }
 
-
   import doobie.enumerated.JdbcType.Other
-  implicit val XmlMeta: Meta[Elem] =
+  implicit val XmlMeta: Meta[Elem] = {
     Meta.Advanced.many[Elem](
       NonEmptyList.of(Other),
       NonEmptyList.of("xml"),
       (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
-      (ps, n,  e) => {
+      (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
-        val osw = new java.io.OutputStreamWriter(sqlXml.setBinaryStream)
+        val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream)
         XML.write(osw, e, "UTF-8", false, null)
         osw.close
         ps.setObject(n, sqlXml)
       },
-      (_, _,  _) => sys.error("update not supported, sorry")
+      (_, _, _) => sys.error("update not supported, sorry")
     )
+  }
 }
 
 // Same as doobie-circe , but for zio-json, did not find someone who already have done it, should be in a dependency
@@ -290,32 +286,34 @@ package object json {
 
 trait JsonInstances {
 
-
   import doobie.util._
   import zio.json.DecoderOps
   import zio.json.EncoderOps
   import zio.json.ast.Json.Null
 
-  private implicit val showPGobject: Show[PGobject] = Show.show(_.getValue.take(250))
-  private implicit val showJson: Show[Json] = Show.show(_.toString().take(250))
+  implicit private val showPGobject: Show[PGobject] = Show.show(_.getValue.take(250))
+  implicit private val showJson:     Show[Json]     = Show.show(_.toString().take(250))
 
-  implicit val jsonPut: Put[Json] =
-    Put.Advanced.other[PGobject](
-      NonEmptyList.of("jsonb")
-    ).tcontramap { a =>
-      val o = new PGobject
-      o.setType("jsonb")
-      o.setValue(a.toString())
-      o
-    }
+  implicit val jsonPut: Put[Json] = {
+    Put.Advanced
+      .other[PGobject](
+        NonEmptyList.of("jsonb")
+      )
+      .tcontramap { a =>
+        val o = new PGobject
+        o.setType("jsonb")
+        o.setValue(a.toString())
+        o
+      }
+  }
 
   implicit val jsonGet: Get[Json] = {
     import Json.decoder
-    Get.Advanced.other[PGobject](
-      NonEmptyList.of("jsonb")
-    ).temap(a =>
-      a.getValue.fromJson
-    )
+    Get.Advanced
+      .other[PGobject](
+        NonEmptyList.of("jsonb")
+      )
+      .temap(a => a.getValue.fromJson)
   }
 
   def pgEncoderPut[A: JsonEncoder]: Put[A] =
@@ -325,4 +323,3 @@ trait JsonInstances {
     Get[Json].temap(_.as)
 
 }
-

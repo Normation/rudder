@@ -1,78 +1,75 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.policies
 
+import ca.mrvisser.sealerate
+import com.github.ghik.silencer.silent
+import com.normation.cfclerk.domain.AbstactPassword
+import com.normation.cfclerk.domain.AixPasswordHashAlgo
+import com.normation.cfclerk.domain.HashAlgoConstraint._
+import com.normation.cfclerk.domain.Variable
+import com.normation.errors._
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.logger.JsDirectiveParamLogger
+import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
+import com.normation.rudder.services.policies.HashOsType._
+import com.normation.rudder.services.policies.JsEngine._
+import java.security.NoSuchAlgorithmException
 import java.util.concurrent._
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import com.normation.cfclerk.domain.HashAlgoConstraint._
-import com.normation.cfclerk.domain.Variable
-import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.services.policies.HashOsType._
-import com.normation.rudder.services.policies.JsEngine._
-import ca.mrvisser.sealerate
-
+import java.util.concurrent.TimeUnit
 import javax.script.Bindings
 import javax.script.ScriptException
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
-import com.normation.cfclerk.domain.AixPasswordHashAlgo
-import com.normation.cfclerk.domain.AbstactPassword
-
-import java.security.NoSuchAlgorithmException
-import com.github.ghik.silencer.silent
-import com.normation.rudder.domain.logger.JsDirectiveParamLogger
-import com.normation.errors._
-import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
 import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.proxy.ProxyObject
+import scala.concurrent.duration.FiniteDuration
 import zio._
 import zio.syntax._
-
-import scala.concurrent.duration.FiniteDuration
 
 sealed trait HashOsType
 
 object HashOsType {
   final case object AixHash   extends HashOsType
-  final case object CryptHash extends HashOsType //linux, bsd,...
+  final case object CryptHash extends HashOsType // linux, bsd,...
 
   def all = sealerate.values[HashOsType]
 }
@@ -81,7 +78,7 @@ object HashOsType {
  * Define implicit bytes from string methods
  */
 abstract class ImplicitGetBytes {
-  protected implicit def getBytes(s: String): Array[Byte] = {
+  implicit protected def getBytes(s: String): Array[Byte] = {
     s.getBytes("UTF-8")
   }
 }
@@ -93,13 +90,13 @@ abstract class ImplicitGetBytes {
 @HostAccess.Export
 class JsLibHash() extends ImplicitGetBytes {
   @HostAccess.Export
-  def md5    (s: String): String = MD5.hash(s)
+  def md5(s: String):    String = MD5.hash(s)
   @HostAccess.Export
-  def sha1   (s: String): String = SHA1.hash(s)
+  def sha1(s: String):   String = SHA1.hash(s)
   @HostAccess.Export
-  def sha256 (s: String): String = SHA256.hash(s)
+  def sha256(s: String): String = SHA256.hash(s)
   @HostAccess.Export
-  def sha512 (s: String): String = SHA512.hash(s)
+  def sha512(s: String): String = SHA512.hash(s)
 }
 
 @HostAccess.Export
@@ -108,116 +105,128 @@ trait JsLibPassword extends ImplicitGetBytes {
   /// Standard Unix (crypt) specific
 
   @HostAccess.Export
-  def cryptMd5    (s: String): String = Md5Crypt.md5Crypt(s)
+  def cryptMd5(s: String):    String = Md5Crypt.md5Crypt(s)
   @HostAccess.Export
-  def cryptSha256 (s: String): String = Sha2Crypt.sha256Crypt(s)
+  def cryptSha256(s: String): String = Sha2Crypt.sha256Crypt(s)
   @HostAccess.Export
-  def cryptSha512 (s: String): String = Sha2Crypt.sha512Crypt(s)
+  def cryptSha512(s: String): String = Sha2Crypt.sha512Crypt(s)
 
   @HostAccess.Export
-  def cryptMd5    (s: String, salt: String): String = Md5Crypt.md5Crypt(s, salt)
+  def cryptMd5(s: String, salt: String):    String = Md5Crypt.md5Crypt(s, salt)
   @HostAccess.Export
-  def cryptSha256 (s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
+  def cryptSha256(s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
   @HostAccess.Export
-  def cryptSha512 (s: String, salt: String): String = Sha2Crypt.sha512Crypt(s, "$6$" + salt)
+  def cryptSha512(s: String, salt: String): String = Sha2Crypt.sha512Crypt(s, "$6$" + salt)
 
   /// Aix specific
 
   @HostAccess.Export
-  def aixMd5    (s: String): String = AixPasswordHashAlgo.smd5(s)
+  def aixMd5(s: String):    String = AixPasswordHashAlgo.smd5(s)
   @HostAccess.Export
-  def aixSha256 (s: String): String = AixPasswordHashAlgo.ssha256(s)
+  def aixSha256(s: String): String = AixPasswordHashAlgo.ssha256(s)
   @HostAccess.Export
-  def aixSha512 (s: String): String = AixPasswordHashAlgo.ssha512(s)
+  def aixSha512(s: String): String = AixPasswordHashAlgo.ssha512(s)
 
   @HostAccess.Export
-  def aixMd5    (s: String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
+  def aixMd5(s: String, salt: String):    String = AixPasswordHashAlgo.smd5(s, Some(salt))
   @HostAccess.Export
-  def aixSha256 (s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
+  def aixSha256(s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
   @HostAccess.Export
-  def aixSha512 (s: String, salt: String): String = AixPasswordHashAlgo.ssha512(s, Some(salt))
+  def aixSha512(s: String, salt: String): String = AixPasswordHashAlgo.ssha512(s, Some(salt))
 
   /// one automatically choosing correct hash also based of the kind of HashOsType
   /// method accessible from JS
 
   @HostAccess.Export
-  def md5    (s: String): String
+  def md5(s:    String): String
   @HostAccess.Export
-  def sha256 (s: String): String
+  def sha256(s: String): String
   @HostAccess.Export
-  def sha512 (s: String): String
+  def sha512(s: String): String
 
   @HostAccess.Export
-  def md5    (s: String, salt: String): String
+  def md5(s:    String, salt: String): String
   @HostAccess.Export
-  def sha256 (s: String, salt: String): String
+  def sha256(s: String, salt: String): String
   @HostAccess.Export
-  def sha512 (s: String, salt: String): String
+  def sha512(s: String, salt: String): String
 
   /// Advertised methods
   @HostAccess.Export
   def unix(algo: String, s: String): String = {
     algo.toLowerCase match {
-      case "md5" => cryptMd5(s)
+      case "md5"                => cryptMd5(s)
       case "sha-256" | "sha256" => cryptSha256(s)
       case "sha-512" | "sha512" => cryptSha512(s)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'unix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 
   @HostAccess.Export
   def unix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => cryptMd5(s, salt)
+      case "md5"                => cryptMd5(s, salt)
       case "sha-256" | "sha256" => cryptSha256(s, salt)
       case "sha-512" | "sha512" => cryptSha512(s, salt)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 
   @HostAccess.Export
   def aix(algo: String, s: String): String = {
     algo.toLowerCase match {
-      case "md5" => aixMd5(s)
+      case "md5"                => aixMd5(s)
       case "sha-256" | "sha256" => aixSha256(s)
       case "sha-512" | "sha512" => aixSha512(s)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'aix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'aix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 
   @HostAccess.Export
   def aix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => aixMd5(s, salt)
+      case "md5"                => aixMd5(s, salt)
       case "sha-256" | "sha256" => aixSha256(s, salt)
       case "sha-512" | "sha512" => aixSha512(s, salt)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 
   @HostAccess.Export
   def auto(algo: String, s: String): String = {
     algo.toLowerCase match {
-      case "md5" => md5(s)
+      case "md5"                => md5(s)
       case "sha-256" | "sha256" => sha256(s)
       case "sha-512" | "sha512" => sha512(s)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'auto(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'auto(${algo}, ${s})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 
   @HostAccess.Export
   def auto(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => md5(s, salt)
+      case "md5"                => md5(s, salt)
       case "sha-256" | "sha256" => sha256(s, salt)
       case "sha-512" | "sha512" => sha512(s, salt)
-      case _ => // unknown value, fail
-        throw new NoSuchAlgorithmException(s"Evaluating script 'auto(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+      case _                    => // unknown value, fail
+        throw new NoSuchAlgorithmException(
+          s"Evaluating script 'auto(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized"
+        )
     }
   }
 }
@@ -262,7 +271,7 @@ trait JsLibPassword extends ImplicitGetBytes {
  */
 import org.graalvm.polyglot._
 final class JsRudderLibImpl(
-  hashKind: HashOsType
+    hashKind: HashOsType
 ) extends ProxyObject {
 
   ///// simple hash algorithms /////
@@ -274,66 +283,65 @@ final class JsRudderLibImpl(
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5    (s: String): String = super.cryptMd5(s)
+        def md5(s: String):    String = super.cryptMd5(s)
         @HostAccess.Export
-        def sha256 (s: String): String = super.cryptSha256(s)
+        def sha256(s: String): String = super.cryptSha256(s)
         @HostAccess.Export
-        def sha512 (s: String): String = super.cryptSha512(s)
+        def sha512(s: String): String = super.cryptSha512(s)
 
         @HostAccess.Export
-        def md5    (s: String, salt: String): String = super.cryptMd5(s, salt)
+        def md5(s: String, salt: String):    String = super.cryptMd5(s, salt)
         @HostAccess.Export
-        def sha256 (s: String, salt: String): String = super.cryptSha256(s, salt)
+        def sha256(s: String, salt: String): String = super.cryptSha256(s, salt)
         @HostAccess.Export
-        def sha512 (s: String, salt: String): String = super.cryptSha512(s, salt)
+        def sha512(s: String, salt: String): String = super.cryptSha512(s, salt)
 
       }
-    case AixHash =>
+    case AixHash   =>
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5    (s: String): String = super.aixMd5(s)
+        def md5(s: String):    String = super.aixMd5(s)
         @HostAccess.Export
-        def sha256 (s: String): String = super.aixSha256(s)
+        def sha256(s: String): String = super.aixSha256(s)
         @HostAccess.Export
-        def sha512 (s: String): String = super.aixSha512(s)
+        def sha512(s: String): String = super.aixSha512(s)
 
         @HostAccess.Export
-        def md5    (s: String, salt: String): String = super.aixMd5(s, salt)
+        def md5(s: String, salt: String):    String = super.aixMd5(s, salt)
         @HostAccess.Export
-        def sha256 (s: String, salt: String): String = super.aixSha256(s, salt)
+        def sha256(s: String, salt: String): String = super.aixSha256(s, salt)
         @HostAccess.Export
-        def sha512 (s: String, salt: String): String = super.aixSha512(s, salt)
+        def sha512(s: String, salt: String): String = super.aixSha512(s, salt)
 
       }
   }
 
   // nashorn
-  def getHash() = hash
+  def getHash()   = hash
   def getPassword = password
 
   // with the Proxy interface, it will be accessed with rudder.password... or rudder.hash...
   val members = Map(
-    ("password", password)
-  , ("hash", hash)
+    ("password", password),
+    ("hash", hash)
   )
 
-  override def getMember(key: String): AnyRef = members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
-  override def getMemberKeys: AnyRef = members.keys.toArray
-  override def hasMember(key: String): Boolean = members.isDefinedAt(key)
-  override def putMember(key: String, value: Value): Unit = ()
+  override def getMember(key: String):               AnyRef  =
+    members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
+  override def getMemberKeys:                        AnyRef  = members.keys.toArray
+  override def hasMember(key: String):               Boolean = members.isDefinedAt(key)
+  override def putMember(key: String, value: Value): Unit    = ()
 }
 
-
-
 sealed trait JsRudderLibBinding {
-  def bindings: Bindings
+  def bindings:    Bindings
   def jsRudderLib: JsRudderLibImpl
 }
 
 object JsRudderLibBinding {
 
-  import java.util.{ HashMap => JHMap }
+  import java.util.{HashMap => JHMap}
   import javax.script.SimpleBindings
 
   private[this] def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
@@ -351,12 +359,12 @@ object JsRudderLibBinding {
    */
   final object Aix extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(AixHash)
-    def bindings = toBindings("rudder", jsRudderLib)
+    def bindings    = toBindings("rudder", jsRudderLib)
   }
 
   final object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)
-    def bindings = toBindings("rudder", jsRudderLib)
+    def bindings    = toBindings("rudder", jsRudderLib)
   }
 }
 
@@ -380,22 +388,25 @@ final object JsEngineProvider {
    * have any for now.
    *
    */
-  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(script: JsEngine => IOResult[T]): IOResult[T] = {
+  def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(
+      script:                   JsEngine => IOResult[T]
+  ): IOResult[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
-        val res = SandboxedJsEngine.sandboxed(maxThread, timeout) { engine => script(engine) }
+        val res = SandboxedJsEngine.sandboxed(maxThread, timeout)(engine => script(engine))
 
-        //we may want to debug hard to debug case here, especially when we had a stackoverflow below
+        // we may want to debug hard to debug case here, especially when we had a stackoverflow below
         res.foldM(
           err =>
-            (if(JsDirectiveParamLogger.isDebugEnabled) {
-              import scala.util.{Properties => P}
-              JsDirectiveParamLoggerPure.debug(s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';") *>
-              // in the case of an exception and debug enable, print stack
-              JsDirectiveParamLoggerPure.debug(err.fullMsg)
-            } else UIO.unit
-            ) *> err.fail
-          , res => res.succeed
+            (if (JsDirectiveParamLogger.isDebugEnabled) {
+               import scala.util.{Properties => P}
+               JsDirectiveParamLoggerPure.debug(
+                 s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';"
+               ) *>
+               // in the case of an exception and debug enable, print stack
+               JsDirectiveParamLoggerPure.debug(err.fullMsg)
+             } else UIO.unit) *> err.fail,
+          res => res.succeed
         )
       case FeatureSwitch.Disabled =>
         script(DisabledEngine)
@@ -405,6 +416,7 @@ final object JsEngineProvider {
 }
 
 sealed trait JsEngine {
+
   /**
    *
    * Parse a value looking for EVAL keyword.
@@ -427,15 +439,15 @@ object JsEngine {
   final val EVALJS       = "evaljs:"
 
   final val PASSWORD_PREFIX       = "plain:"
-  final val DEFAULT_EVAL_PASSWORD = PASSWORD_PREFIX+DEFAULT_EVAL
-  final val EVALJS_PASSWORD       = PASSWORD_PREFIX+EVALJS
+  final val DEFAULT_EVAL_PASSWORD = PASSWORD_PREFIX + DEFAULT_EVAL
+  final val EVALJS_PASSWORD       = PASSWORD_PREFIX + EVALJS
 
   // From a variable, returns the two string we should check at the beginning of the variable value
   // For a password, check if it's a plain text or not, otherwise check simply the eval keywords
-  def getEvaluatorTuple(variable: Variable) : (String, String, Boolean) = {
+  def getEvaluatorTuple(variable: Variable): (String, String, Boolean) = {
     variable.spec.constraint.typeName match {
-        case t: AbstactPassword => (DEFAULT_EVAL_PASSWORD, EVALJS_PASSWORD, true)
-        case _                  => (DEFAULT_EVAL, EVALJS, false)
+      case t: AbstactPassword => (DEFAULT_EVAL_PASSWORD, EVALJS_PASSWORD, true)
+      case _ => (DEFAULT_EVAL, EVALJS, false)
     }
   }
 
@@ -446,7 +458,7 @@ object JsEngine {
      */
     def eval(variable: Variable, lib: JsRudderLibBinding): IOResult[Variable] = {
       val (default, js, _) = getEvaluatorTuple(variable)
-      variable.values.find( x => x.startsWith(default)) match {
+      variable.values.find(x => x.startsWith(default)) match {
         /*
          * Here, we need to chose between:
          * - fails when the feature is disabled, but the string starts with $eval,
@@ -460,33 +472,43 @@ object JsEngine {
          *
          * For now, failing because it seems to be the safe bet.
          */
-        case None =>
-          variable.values.find( x => x.startsWith(js)) match {
-            case None =>
+        case None    =>
+          variable.values.find(x => x.startsWith(js)) match {
+            case None    =>
               variable.succeed
             case Some(v) =>
-              Unexpected(s"Value '${v}' starts with the ${js} keyword, but the 'parameter evaluation feature' "
-                  +"is disabled. Please, either don't use the keyword or enable the feature").fail
-           }
+              Unexpected(
+                s"Value '${v}' starts with the ${js} keyword, but the 'parameter evaluation feature' "
+                + "is disabled. Please, either don't use the keyword or enable the feature"
+              ).fail
+          }
         case Some(v) =>
-           Unexpected(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
-                  +"is disabled. Please, either don't use the keyword or enable the feature").fail
+          Unexpected(
+            s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
+            + "is disabled. Please, either don't use the keyword or enable the feature"
+          ).fail
       }
     }.untraced
   }
 
   final case class GraalEngine(engine: Engine) {
-    def buildContext = Managed.make(IOResult.effect(Context.newBuilder("js").engine(engine)
-      .allowHostAccess(HostAccess.EXPLICIT)
-      .allowIO(false)
-      .allowCreateProcess(false)
-      .allowCreateThread(false)
-      .allowNativeAccess(false)
-      .build()))(x => effectUioUnit(x.close(true)))
+    def buildContext = Managed.make(
+      IOResult.effect(
+        Context
+          .newBuilder("js")
+          .engine(engine)
+          .allowHostAccess(HostAccess.EXPLICIT)
+          .allowIO(false)
+          .allowCreateProcess(false)
+          .allowCreateThread(false)
+          .allowNativeAccess(false)
+          .build()
+      )
+    )(x => effectUioUnit(x.close(true)))
   }
-  final object SandboxedJsEngine {
+  final object SandboxedJsEngine               {
     // we need to set the warning for interpreted mode to off, because, yeah for now, we are doing that only
-    System.setProperty("polyglot.engine.WarnInterpreterOnly","false")
+    System.setProperty("polyglot.engine.WarnInterpreterOnly", "false")
 
     /*
      * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
@@ -504,26 +526,28 @@ object JsEngine {
      * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
      * So you should minimize the number of time it is done.
      */
-    def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(script: SandboxedJsEngine => IOResult[T]): IOResult[T] = {
+    def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(
+        script:                 SandboxedJsEngine => IOResult[T]
+    ): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 
       val managedJsEngine = Managed.make(
-        getJsEngine(maxThread).flatMap( jsEngine =>
+        getJsEngine(maxThread).flatMap(jsEngine => {
           IOResult.effect {
             val pool = Executors.newFixedThreadPool(maxThread)
             ManagedJsEnv(pool, new SandboxedJsEngine(jsEngine, pool, timeout))
           }
-        )
+        })
       ) { managedJsEnv =>
-        IOResult.effect{
-          //clear everything
+        IOResult.effect {
+          // clear everything
           managedJsEnv.pool.shutdownNow()
-          //check & clear interruption of the calling thread
+          // check & clear interruption of the calling thread
           Thread.currentThread().isInterrupted()
-          //restore the "none" security manager
+          // restore the "none" security manager
         }.foldM(
-          err => JsDirectiveParamLoggerPure.error(err.fullMsg)
-        , ok  => ok.succeed
+          err => JsDirectiveParamLoggerPure.error(err.fullMsg),
+          ok => ok.succeed
         )
       }
 
@@ -537,7 +561,8 @@ object JsEngine {
      * Return a Queue filled with the number of conte
      */
     protected[policies] def getJsEngine(number: Int): IOResult[GraalEngine] = {
-      val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
+      val message =
+        s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
       IOResult.effect(message)(GraalEngine(Engine.create()))
     }
   }
@@ -553,6 +578,7 @@ object JsEngine {
   final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
 
     private[this] trait KillingThread {
+
       /**
        * Force stop the thread, throws a the ThreadDeath error.
        *
@@ -570,12 +596,12 @@ object JsEngine {
     }
 
     // If it's a password, we need to reconstruct the correct password structure
-    def reconstructPassword(value: String, isPassword: Boolean) : String = {
+    def reconstructPassword(value: String, isPassword: Boolean): String = {
       if (isPassword) {
-          (PASSWORD_PREFIX + value)
-       } else {
-         value
-       }
+        (PASSWORD_PREFIX + value)
+      } else {
+        value
+      }
     }
 
     /**
@@ -591,18 +617,20 @@ object JsEngine {
 
       (for {
         values <- ZIO.foreach(variable.values) { value =>
-          (if (value.startsWith(default)) {
-            val script = value.substring(default.length())
-            //do something with script
-            singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
-          } else if (value.startsWith(js)) {
-            val script = value.substring(js.length())
-            //do something with script
-            singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
-          } else {
-            value.succeed
-          }).chainError(s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax")
-        }
+                    (if (value.startsWith(default)) {
+                       val script = value.substring(default.length())
+                       // do something with script
+                       singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
+                     } else if (value.startsWith(js)) {
+                       val script = value.substring(js.length())
+                       // do something with script
+                       singleEval(script, lib.jsRudderLib).map(reconstructPassword(_, isPassword))
+                     } else {
+                       value.succeed
+                     }).chainError(
+                      s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
+                    )
+                  }
         copied <- variable.copyWithSavedValues(values).toIO
       } yield {
         copied
@@ -617,20 +645,20 @@ object JsEngine {
      * to FS, Network, System (jvm), class loader, etc).
      */
     def singleEval(value: String, jsRudderLib: JsRudderLibImpl): IOResult[String] = {
-      jsEngine.buildContext.use(context =>
+      jsEngine.buildContext.use(context => {
         (safeExec(value) {
           try {
             context.getBindings("js").putMember("rudder", jsRudderLib)
             val res = context.eval("js", value) match { // returned Value object is never null, it has a method to check that!
-              case x if(x.isNull) => Unexpected(s"The script '${value}' was evaluated to disallowed value 'null'").fail
-              case x              => x.toString().succeed
+              case x if (x.isNull) => Unexpected(s"The script '${value}' was evaluated to disallowed value 'null'").fail
+              case x               => x.toString().succeed
             }
             res
           } catch {
             case ex: ScriptException => SystemError("Error with script evaluation", ex).fail
           }
         }).untraced
-      )
+      })
     }
 
     /**
@@ -642,7 +670,7 @@ object JsEngine {
      * to FS, Network, System (jvm), class loader, etc).
      */
     def safeExec[T](name: String)(block: => IOResult[T]): IOResult[T] = {
-      //create the callable object
+      // create the callable object
       val scriptCallable = new Callable[IOResult[T]] with KillingThread() {
         def call() = {
           try {
@@ -658,37 +686,45 @@ object JsEngine {
         try {
           // submit to the pool and synchroniously retrieve the value with a timeout
           task.get(maxTime.toMillis, TimeUnit.MILLISECONDS)
-      } catch {
-        case ex: ExecutionException => //this can happen when jsengine get security exception... Yeah...
-          SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
+        } catch {
+          case ex: ExecutionException => // this can happen when jsengine get security exception... Yeah...
+            SystemError(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex).fail
 
-        case ex: TimeoutException =>
-          //try to interrupt the thread
-          try {
+          case ex: TimeoutException =>
+            // try to interrupt the thread
+            try {
               // try to gently terminate the task
-              if(!task.isDone) {
-               task.cancel(true)
+              if (!task.isDone) {
+                task.cancel(true)
               }
-              if(task.isCancelled || task.isDone) {
+              if (task.isCancelled || task.isDone) {
                 Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, aborting").fail
-            } else {
-              //not interrupted - force kill
-              scriptCallable.abortWithConsequences() //that throws TreadDead, the following is never reached
-                Unexpected(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls").fail
-            }
-          } catch {
-            case ex: ThreadDeath =>
-                SystemError(s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
-                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls", ex).fail
+              } else {
+                // not interrupted - force kill
+                scriptCallable.abortWithConsequences() // that throws TreadDead, the following is never reached
+                Unexpected(
+                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls"
+                ).fail
+              }
+            } catch {
+              case ex: ThreadDeath =>
+                SystemError(
+                  s"Evaluating script '${name}' took more than ${maxTime.toString()}, and " +
+                  "we were force to kill the thread. Check for infinite loop or uninterruptible system calls",
+                  ex
+                ).fail
 
-            case ex: InterruptedException =>
-              SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
-          }
-      }
+              case ex: InterruptedException =>
+                SystemError(s"Evaluating script '${name}' was forced interrupted, aborting.", ex).fail
+            }
+        }
       } catch {
         case ex: RejectedExecutionException =>
-          SystemError(s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?", ex).fail
+          SystemError(
+            s"Evaluating script '${name}' lead to a '${ex.getClass.getName}'. Perhaps the thread pool was stopped?",
+            ex
+          ).fail
       }).untraced.uninterruptible
     }
   }

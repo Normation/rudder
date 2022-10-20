@@ -1,17 +1,16 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.DispatchSnippet
 import com.normation.plugins.DefaultExtendableSnippet
-
+import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
 class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
   val userListProvider = RudderConfig.rudderUserListProvider
-  def mainDispatch = Map(
-    "display" -> { authForm:NodeSeq =>
-      if(userListProvider.authConfig.users.isEmpty) {
+  def mainDispatch     = Map(
+    "display" -> { authForm: NodeSeq =>
+      if (userListProvider.authConfig.users.isEmpty) {
         <div>
           <div class="logo-container">
             <img src="/images/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"/>

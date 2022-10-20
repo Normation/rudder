@@ -1,80 +1,79 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.policies._
-import com.normation.cfclerk.domain.Technique
-import net.liftweb.http.js._
-import JsCmds._
-import net.liftweb.util._
-import net.liftweb.http._
-import JE._
-import net.liftweb.common._
-
-import scala.xml._
-import net.liftweb.util.Helpers._
-import com.normation.rudder.web.model._
-import com.normation.rudder.domain.RudderLDAPConstants
-import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.web.components.popup.ModificationValidationPopup
+import com.normation.box._
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.domain.RudderLDAPConstants
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
+import com.normation.rudder.web.components.popup.ModificationValidationPopup
+import com.normation.rudder.web.model._
 import com.normation.rudder.web.services.CurrentUser
-import com.normation.box._
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util._
+import net.liftweb.util.Helpers._
+import scala.xml._
 
 object DirectiveEditForm {
 
   private def body = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil
-    , "component-body"
+    "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil,
+    "component-body"
   )
 
   private def crForm = ChooseTemplate(
-      "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil
-     , "component-form"
+    "templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil,
+    "component-form"
   )
 }
 
@@ -85,18 +84,18 @@ object DirectiveEditForm {
  * Parameters can not be null.
  */
 class DirectiveEditForm(
-    htmlId_policyConf       : String
-  , technique               : Technique
-  , activeTechnique         : ActiveTechnique
-  , techniques              : Map[TechniqueVersion, Technique]
-  , val directive           : Directive
-  , oldDirective            : Option[Directive]
-  , globalMode              : GlobalPolicyMode
-  , isADirectiveCreation    : Boolean = false
-  , onSuccessCallback       : (Either[Directive,ChangeRequestId]) => JsCmd
-  , onMigrationCallback     : (Directive, Option[Directive]) => JsCmd
-  , onFailureCallback       : () => JsCmd = { () => Noop }
-  , onRemoveSuccessCallBack : () => JsCmd = { () => Noop }
+    htmlId_policyConf:       String,
+    technique:               Technique,
+    activeTechnique:         ActiveTechnique,
+    techniques:              Map[TechniqueVersion, Technique],
+    val directive:           Directive,
+    oldDirective:            Option[Directive],
+    globalMode:              GlobalPolicyMode,
+    isADirectiveCreation:    Boolean = false,
+    onSuccessCallback:       (Either[Directive, ChangeRequestId]) => JsCmd,
+    onMigrationCallback:     (Directive, Option[Directive]) => JsCmd,
+    onFailureCallback:       () => JsCmd = { () => Noop },
+    onRemoveSuccessCallBack: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
   import DirectiveEditForm._
@@ -110,41 +109,44 @@ class DirectiveEditForm(
   private[this] val workflowLevelService   = RudderConfig.workflowLevelService
   private[this] val ncfTechniqueService    = RudderConfig.ncfTechniqueReader
 
-  private[this] val htmlId_save = htmlId_policyConf + "Save"
+  private[this] val htmlId_save     = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
     directiveEditorService.get(technique.id, directive.id.uid, directive.parameters) match {
-      case Full(pe) => pe
-      case Empty => {
+      case Full(pe)         => pe
+      case Empty            => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-            "(template %s). No error returned"
+          "(template %s). No error returned"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id))
       }
       case Failure(m, _, _) => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-            "(template %s). Error message: %s"
+          "(template %s). Error message: %s"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id, m))
       }
     }
   }
 
-  val rules = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
-  val rootCategory = roRuleCategoryRepo.getRootCategory().toBox.getOrElse(throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report."))
-  val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
-  def dispatch = {
-    case "showForm" => { _ => showForm() }
-  }
+  val rules        = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
+  val rootCategory = roRuleCategoryRepo
+    .getRootCategory()
+    .toBox
+    .getOrElse(
+      throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
+    )
+  val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
+  def dispatch     = { case "showForm" => { _ => showForm() } }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
-      res <- ncfTechniqueService.readTechniquesMetadataFile
+      res                        <- ncfTechniqueService.readTechniquesMetadataFile
       (techniquesEditor, methods) = res
-      ids = techniquesEditor.map(_.bundleName.value)
+      ids                         = techniquesEditor.map(_.bundleName.value)
     } yield {
       ids.contains(id.name.value)
     }
 
     test.toBox match {
-      case Full(res)    => res
+      case Full(res) => res
       case eb: EmptyBox => false
     }
   }
@@ -156,159 +158,179 @@ class DirectiveEditForm(
     )(body)
   }
 
-  def migrateButton(version : => TechniqueVersion, text: String, id:String = "migrationButton") = {
+  def migrateButton(version: => TechniqueVersion, text: String, id: String = "migrationButton") = {
     <lift:authz role="directive_write">
-      { SHtml.ajaxSubmit(
-        text
-        , () => {
+      {
+      SHtml.ajaxSubmit(
+        text,
+        () => {
           val newDirective = directive.copy(techniqueVersion = version)
-          onMigrationCallback(newDirective,Some(directive))
-        }
-        , ("id" -> id)
-        , ("class" -> "btn btn-default")
-      )}
+          onMigrationCallback(newDirective, Some(directive))
+        },
+        ("id"    -> id),
+        ("class" -> "btn btn-default")
+      )
+    }
     </lift:authz>
   }
 
   val displayDeprecationWarning = technique.deprecrationInfo match {
     case Some(info) =>
-      ( "#deprecation-message *" #> info.message &
-        "#migrate-button *" #> {
-            (for {
-              lastTechniqueVersion <- techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
-              if( lastTechniqueVersion.id.version != directive.techniqueVersion )
-            } yield {
-              Text("Please upgrade to a new version: ") ++
-              migrateButton(lastTechniqueVersion.id.version,"Migrate now!","deprecation-migration")
-            }).getOrElse(NodeSeq.Empty)
-        }
-      )
-    case None =>
-      ("#deprecation-warning [class+]" #> "hidden" )
+      ("#deprecation-message *" #> info.message &
+      "#migrate-button *" #> {
+        (for {
+          lastTechniqueVersion <- techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
+          if (lastTechniqueVersion.id.version != directive.techniqueVersion)
+        } yield {
+          Text("Please upgrade to a new version: ") ++
+          migrateButton(lastTechniqueVersion.id.version, "Migrate now!", "deprecation-migration")
+        }).getOrElse(NodeSeq.Empty)
+      })
+    case None       =>
+      ("#deprecation-warning [class+]" #> "hidden")
   }
 
   def showDirectiveForm(): NodeSeq = {
 
     val ruleDisplayer = {
       new RuleDisplayer(
-          Some(directiveApp)
-        , "view"
-        , (_ :Rule,_ : String)  => Noop
-        , (_ : Rule)         => Noop
-        , (_ : Option[Rule]) => Noop
-        , DisplayColumn.FromConfig
-        , DisplayColumn.FromConfig
-        ).display
+        Some(directiveApp),
+        "view",
+        (_: Rule, _: String) => Noop,
+        (_: Rule) => Noop,
+        (_: Option[Rule]) => Noop,
+        DisplayColumn.FromConfig,
+        DisplayColumn.FromConfig
+      ).display
     }
 
-    val versionSelect = if (isADirectiveCreation) {
+    val versionSelect               = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
         <label for="version" class="col-xs-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
-        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={directive.techniqueVersion.serialize}/></div>
+        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={
+        directive.techniqueVersion.serialize
+      }/></div>
       </div>
-     } else { directiveVersion.toForm_! }
-    val currentVersion = showDeprecatedVersion(directive.techniqueVersion)
+    } else { directiveVersion.toForm_! }
+    val currentVersion              = showDeprecatedVersion(directive.techniqueVersion)
     // It is always a Full, but in case add a warning
-    val versionSelectId = directiveVersion.uniqueFieldId match {
+    val versionSelectId             = directiveVersion.uniqueFieldId match {
       case Full(id) => id
-      case _ =>
+      case _        =>
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
-    val (disableMessage, enableBtn) = (activeTechnique.isEnabled, directive._isEnabled) match{
-      case(false, false) =>
-        ( "This Directive and its Technique are disabled."
-        , <span>
-            {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(DGModAction.Enable), ("class" ,"btn btn-sm btn-default"))}
-            <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"}>Edit Technique</a>
+    val (disableMessage, enableBtn) = (activeTechnique.isEnabled, directive._isEnabled) match {
+      case (false, false) =>
+        (
+          "This Directive and its Technique are disabled.",
+          <span>
+            {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(DGModAction.Enable), ("class", "btn btn-sm btn-default"))}
+            <a class="btn btn-sm btn-default" href={
+            s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"
+          }>Edit Technique</a>
           </span>
         )
-      case(false, true) =>
-        ( "The Technique of this Directive is disabled."
-        , <a class="btn btn-sm btn-default" href={s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"}>Edit Technique</a>
+      case (false, true)  =>
+        (
+          "The Technique of this Directive is disabled.",
+          <a class="btn btn-sm btn-default" href={
+            s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"
+          }>Edit Technique</a>
         )
-      case(true, false) =>
-        ( "This Directive is disabled."
-          , SHtml.ajaxSubmit("Enable", () => onSubmitDisable(DGModAction.Enable), ("class" ,"btn btn-sm btn-default"))
+      case (true, false)  =>
+        (
+          "This Directive is disabled.",
+          SHtml.ajaxSubmit("Enable", () => onSubmitDisable(DGModAction.Enable), ("class", "btn btn-sm btn-default"))
         )
-      case(true, true) =>
-        ( "" , NodeSeq.Empty )
+      case (true, true)   =>
+        ("", NodeSeq.Empty)
     }
     (
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
-      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
-        } &
+      "#pendingChangeRequestNotification" #> { xml: NodeSeq =>
+        PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
+      } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
-      ".topLevelAction" #> ( (xml:NodeSeq) =>
+      ".topLevelAction" #> ((xml: NodeSeq) => {
         if (isADirectiveCreation) NodeSeq.Empty
-        else xml ) andThen
+        else xml
+      }) andThen
       ClearClearable &
-      //activation button: show disactivate if activated
-      "#directiveTitle *" #> <span>{directive.name} { if(activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span> }</span> &
-      "#shortDescription" #> (if(directive.shortDescription.isEmpty) NodeSeq.Empty else <div class="header-description"><p>{directive.shortDescription}</p></div>) &
+      // activation button: show disactivate if activated
+      "#directiveTitle *" #> <span>{directive.name} {
+        if (activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
+      }</span> &
+      "#shortDescription" #> (if (directive.shortDescription.isEmpty) NodeSeq.Empty
+                              else <div class="header-description"><p>{directive.shortDescription}</p></div>) &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
-       } &
-       "#removeAction" #> {
-         SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"btn btn-danger"))
-       } &
-       "#desactivateAction" #> {
-         val status = directive.isEnabled ? DGModAction.Disable | DGModAction.Enable
-         SHtml.ajaxSubmit(status.name.capitalize, () => onSubmitDisable(status), ("class" ,"btn btn-default"))
-       } &
-       "#clone" #> SHtml.ajaxButton(
-            { Text("Clone") },
-            { () =>  clonePopup() },
-            {("class", "btn btn-default")},
-            {("type", "button")}
-       ) &
-       //form and form fields
+      } &
+      "#removeAction" #> {
+        SHtml.ajaxSubmit("Delete", () => onSubmitDelete(), ("class", "btn btn-danger"))
+      } &
+      "#desactivateAction" #> {
+        val status = directive.isEnabled ? DGModAction.Disable | DGModAction.Enable
+        SHtml.ajaxSubmit(status.name.capitalize, () => onSubmitDisable(status), ("class", "btn btn-default"))
+      } &
+      "#clone" #> SHtml.ajaxButton(
+        Text("Clone"),
+        () => clonePopup(),
+        ("class", "btn btn-default"),
+        ("type", "button")
+      ) &
+      // form and form fields
       "#techniqueName *" #> {
-          if (isNcfTechnique(technique.id)) {
-            <a href={"/secure/configurationManager/techniqueEditor/technique/" +
-              technique.id.name.value}>
+        if (isNcfTechnique(technique.id)) {
+          <a href={
+            "/secure/configurationManager/techniqueEditor/technique/" +
+            technique.id.name.value
+          }>
               {technique.name}
               version
               {technique.id.version}
             </a>
-          } else {
-            <a href={"/secure/administration/techniqueLibraryManagement/" +
-              technique.id.name.value}>
+        } else {
+          <a href={
+            "/secure/administration/techniqueLibraryManagement/" +
+            technique.id.name.value
+          }>
               {technique.name}
               version
               {technique.id.version}
             </a>
-          }
+        }
       } &
       "#techniqueID *" #> technique.id.name.value &
       "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
-        if (!activeTechnique.isEnabled || !directive.isEnabled)
+        if (!activeTechnique.isEnabled || !directive.isEnabled) {
           <div class="main-alert alert alert-warning">
             <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
             {disableMessage}
             {enableBtn}
           </div>
-        else NodeSeq.Empty
+        } else NodeSeq.Empty
       } &
-      "#nameField" #> {directiveName.toForm_!} &
+      "#nameField" #> { directiveName.toForm_! } &
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
-      "#directiveID *" #> {directive.id.uid.value} &
+      "#directiveID *" #> { directive.id.uid.value } &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
       "#policyModesLabel" #> policyModesLabel &
       "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect &
-      "#version *+" #> (if (isADirectiveCreation) NodeSeq.Empty else migrateButton(directiveVersion.get,"Migrate")) &
-      "#parameters" #> (
-        if(!parameterEditor.isEditable) <div class="alert alert-info">This Technique has no configurable parameters.</div> else NodeSeq.Empty ++
-        parameterEditor.toFormNodeSeq
-        ) &
+      "#version *+" #> (if (isADirectiveCreation) NodeSeq.Empty else migrateButton(directiveVersion.get, "Migrate")) &
+      "#parameters" #> (if (!parameterEditor.isEditable) {
+                          <div class="alert alert-info">This Technique has no configurable parameters.</div>
+                        } else {
+                          NodeSeq.Empty ++
+                          parameterEditor.toFormNodeSeq
+                        }) &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
@@ -316,22 +338,21 @@ class DirectiveEditForm(
       "#isSingle *" #> showIsSingle() &
       displayDeprecationWarning
     )(crForm) ++
-    Script(OnLoad(
-      JsRaw(
-        s"""activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
-           |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
-           |generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")
-           |$$('#technicalDetails').hide();
-           |$$("input").not("#treeSearch").keydown( function(event) {
-           |  processKey(event , '${htmlId_save}');
-           |} );
-           |checkMigrationButton("${currentVersion}","${versionSelectId}");
-           |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
-           |  checkMigrationButton("${currentVersion}","${versionSelectId}")
-           |} );
-           |$$(document).ready(function(){$$('.main-details').bsScrollSpy({ target: '#navbar-scrollspy' })});""".stripMargin)
-
-    )
+    Script(
+      OnLoad(
+        JsRaw(s"""activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
+                 |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
+                 |generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")
+                 |$$('#technicalDetails').hide();
+                 |$$("input").not("#treeSearch").keydown( function(event) {
+                 |  processKey(event , '${htmlId_save}');
+                 |} );
+                 |checkMigrationButton("${currentVersion}","${versionSelectId}");
+                 |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
+                 |  checkMigrationButton("${currentVersion}","${versionSelectId}")
+                 |} );
+                 |$$(document).ready(function(){$$('.main-details').bsScrollSpy({ target: '#navbar-scrollspy' })});""".stripMargin)
+      )
     )
   }
 
@@ -349,28 +370,28 @@ class DirectiveEditForm(
     showErrorNotifications()
   }
 
-  private[this] def onNothingToDo() : JsCmd = {
+  private[this] def onNothingToDo(): JsCmd = {
     formTracker.addFormError(error("There are no modifications to save."))
     showErrorNotifications()
   }
 
-  private[this] def showErrorNotifications() : JsCmd = {
+  private[this] def showErrorNotifications(): JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm())
   }
 
   private[this] def showIsSingle(): NodeSeq = {
     <span>
       {
-        if (technique.isMultiInstance) {
-          Text("Multi instance: Several Directives based on this Technique can be applied on any given node")
-        } else {
-          Text("Unique: Only ONE Directive based on this Technique can be applied on any given node")
-        }
+      if (technique.isMultiInstance) {
+        Text("Multi instance: Several Directives based on this Technique can be applied on any given node")
+      } else {
+        Text("Unique: Only ONE Directive based on this Technique can be applied on any given node")
       }
+    }
     </span>
   }
 
-  private[this] def displayPrivateDrafts : Option[NodeSeq] = {
+  private[this] def displayPrivateDrafts: Option[NodeSeq] = {
 //TODO
 //    for {
 //      drafts <- roDraftChangeRequestRepository.getAll(actor, directive.id)
@@ -378,68 +399,71 @@ class DirectiveEditForm(
     None
   }
 
-  private[this] def displayChangeRequests : Option[NodeSeq] = {
+  private[this] def displayChangeRequests: Option[NodeSeq] = {
     None
   }
 
   ///////////// fields for Directive settings ///////////////////
 
   private[this] val directiveName = new WBTextField("Name", directive.name) {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "form-control"
-    override def labelClassName = "col-xs-12"
+    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def className             = "form-control"
+    override def labelClassName        = "col-xs-12"
     override def subContainerClassName = "col-xs-12"
-    override def errorClassName = ""
-    override def validations =
+    override def errorClassName        = ""
+    override def validations           =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
   private[this] val directiveShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
-      override def className = "form-control"
-      override def labelClassName = "col-xs-12"
+      override def className             = "form-control"
+      override def labelClassName        = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override val maxLen = 255
-      override def validations = Nil
+      override def setFilter             = notNull _ :: trim _ :: Nil
+      override val maxLen                = 255
+      override def validations           = Nil
     }
   }
 
   private[this] val directiveLongDescription = {
     new WBTextAreaField("Description", directive.longDescription) {
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "form-control"
-      override def labelClassName = "row col-xs-12"
+      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def className             = "form-control"
+      override def labelClassName        = "row col-xs-12"
       override def subContainerClassName = "row col-xs-12"
-      override def containerClassName = "col-xs-6 row"
-      override def inputAttributes: Seq[(String, String)] = Seq(("rows","15"))
-      override def labelExtensions: NodeSeq =
-        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(" ") ++
+      override def containerClassName    = "col-xs-6 row"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
+      override def labelExtensions: NodeSeq               = {
+        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(
+          " "
+        ) ++
         <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
+      }
 
     }
   }
 
   private[this] val directivePriority = {
     val priorities = List(
-        ( 0, "Highest")
-      , ( 1, "+4")
-      , ( 2, "+3")
-      , ( 3, "+2")
-      , ( 4, "+1")
-      , ( 5, "Default")
-      , ( 6, "-1")
-      , ( 7, "-2")
-      , ( 8, "-3")
-      , ( 9, "-4")
-      , (10, "Lowest")
+      (0, "Highest"),
+      (1, "+4"),
+      (2, "+3"),
+      (3, "+2"),
+      (4, "+1"),
+      (5, "Default"),
+      (6, "-1"),
+      (7, "-2"),
+      (8, "-3"),
+      (9, "-4"),
+      (10, "Lowest")
     )
     new WBSelectObjField(
-        "Priority"
-      , priorities
-      , defaultValue = directive.priority
+      "Priority",
+      priorities,
+      defaultValue = directive.priority
     ) {
-      override val displayHtml =
+      override val displayHtml           = {
         <div>
           <b>Priority</b>
           <span>
@@ -455,35 +479,36 @@ class DirectiveEditForm(
             </div>
           </span>
         </div>
-      override def className = "form-control"
-      override def labelClassName = "col-xs-12"
+      }
+      override def className             = "form-control"
+      override def labelClassName        = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
     }
   }
 
   private[this] var newTags = directive.tags
 
-  def updateTag (boxTag : Box[Tags]) = {
+  def updateTag(boxTag: Box[Tags]) = {
     boxTag match {
       case Full(tags) => newTags = tags
-      case eb : EmptyBox =>
+      case eb: EmptyBox =>
         val failure = eb ?~! s"Error when updating directive ${directive.id.uid.value} tag"
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.uid.value)
+  def tagsEditForm                 = new TagsEditForm(directive.tags, directive.id.uid.value)
 
-  def showDeprecatedVersion (version : TechniqueVersion) = {
+  def showDeprecatedVersion(version: TechniqueVersion) = {
     // here, we use default revision to get deprecation info, but we should likely have a per revision
     // deprecation message possible
     val deprecationInfo = techniques(version.withDefaultRev).deprecrationInfo match {
       case Some(_) => "(deprecated)"
-      case None => ""
+      case None    => ""
     }
     s"${version.serialize} ${deprecationInfo}"
   }
-  private[this] val globalOverrideText = globalMode.overridable match {
-    case Always  =>
+  private[this] val globalOverrideText                 = globalMode.overridable match {
+    case Always        =>
       <div>
         You may override the agent policy mode on this directive.
         If set to <b>Audit</b> this directive will never be enforced.
@@ -496,7 +521,7 @@ class DirectiveEditForm(
       </p>
   }
 
-  private[this] val policyModesLabel =
+  private[this] val policyModesLabel = {
     <label class="wbBaseFieldLabel">
       <b>Policy mode</b>
       <span>
@@ -516,52 +541,53 @@ class DirectiveEditForm(
         </div>
       </span>
     </label>
+  }
 
   private[this] val policyModes = {
-    val l = Seq(
-        "global"
-      , "audit"
-      , "enforce"
+    val l           = Seq(
+      "global",
+      "audit",
+      "enforce"
     )
     val defaultMode = directive.policyMode match {
       case Some(Enforce) => "enforce"
-      case Some(Audit) => "audit"
-      case _ => "global"
+      case Some(Audit)   => "audit"
+      case _             => "global"
     }
     new WBRadioField(
       "Policy Mode",
       l,
       defaultMode,
       {
-        case "global"  => <span class="global-btn">Global mode (<span class={s"global-mode " ++ globalMode.mode.name}></span>)</span>
+        case "global"  =>
+          <span class="global-btn">Global mode (<span class={s"global-mode " ++ globalMode.mode.name}></span>)</span>
         case "audit"   => <span class="audit-btn">Audit</span>
         case "enforce" => <span class="enforce-btn">Enforce</span>
-        case _ => NodeSeq.Empty
+        case _         => NodeSeq.Empty
       }
     ) {
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "checkbox-group policymode-group"
-      override def labelClassName = "hidden"
+      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def className             = "checkbox-group policymode-group"
+      override def labelClassName        = "hidden"
       override def subContainerClassName = "col-xs-12"
     }
   }
 
-  val versions = techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
+  val versions = techniques.keys.map(v => (v, showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
   private[this] val directiveVersion = {
     val attributes = ("id" -> "selectVersion") ::
       (if (isADirectiveCreation) {
-        ("disabled" -> "true") :: Nil
-      }else {
-        Nil
-      })
+         ("disabled" -> "true") :: Nil
+       } else {
+         Nil
+       })
 
     new WBSelectObjField(
-      "Technique version"
-      , versions
-      , directive.techniqueVersion
-      , attributes
-
+      "Technique version",
+      versions,
+      directive.techniqueVersion,
+      attributes
     ) {
 
       override def className = "form-control"
@@ -573,19 +599,18 @@ class DirectiveEditForm(
   }
 
   private[this] val formTracker = {
-    val l = List(directiveName, directiveShortDescription, directiveLongDescription) //++ crReasons
+    val l = List(directiveName, directiveShortDescription, directiveLongDescription) // ++ crReasons
     new FormTracker(l)
   }
 
-  private[this] def error(msg: String) = <span class="error">{ msg }</span>
+  private[this] def error(msg: String) = <span class="error">{msg}</span>
 
   private[this] def checkVariables(): Unit = {
     for (vars <- parameterEditor.mapValueSeq) {
       try {
         val s = Seq((parameterEditor.variableSpecs(vars._1).toVariable(vars._2)))
         RudderLDAPConstants.variableToSeq(s)
-      }
-      catch {
+      } catch {
         case e: Exception => formTracker.addFormError(error(e.getMessage))
       }
     }
@@ -597,11 +622,11 @@ class DirectiveEditForm(
     if (formTracker.hasErrors) {
       onFailure()
     } else {
-      val (addRules,removeRules)= directiveApp.checkRulesToUpdate
-      val baseRules = (addRules ++ removeRules).sortBy(_.id.serialize)
+      val (addRules, removeRules) = directiveApp.checkRulesToUpdate
+      val baseRules               = (addRules ++ removeRules).sortBy(_.id.serialize)
 
-      val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
-      val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
+      val finalAdd     = addRules.map(r => r.copy(directiveIds = r.directiveIds + directive.id))
+      val finalRem     = removeRules.map(r => r.copy(directiveIds = r.directiveIds - directive.id))
       val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.serialize)
 
       val newPolicyMode = policyModes.get match {
@@ -613,77 +638,77 @@ class DirectiveEditForm(
       if (isADirectiveCreation) {
 
         // On creation, don't create workflow
-        //does some rules are assigned to that new directive ?
-        val action = if(baseRules.toSet == updatedRules.toSet) {
+        // does some rules are assigned to that new directive ?
+        val action = if (baseRules.toSet == updatedRules.toSet) {
           DGModAction.CreateSolo
         } else {
           DGModAction.CreateAndModRules
         }
 
         val newDirective = directive.copy(
-            parameters       = parameterEditor.mapValueSeq
-          , name             = directiveName.get
-          , shortDescription = directiveShortDescription.get
-          , priority         = directivePriority.get
-          , longDescription  = directiveLongDescription.get
-          , _isEnabled       = directive.isEnabled
-          , policyMode       = newPolicyMode
-          , tags             = newTags
+          parameters = parameterEditor.mapValueSeq,
+          name = directiveName.get,
+          shortDescription = directiveShortDescription.get,
+          priority = directivePriority.get,
+          longDescription = directiveLongDescription.get,
+          _isEnabled = directive.isEnabled,
+          policyMode = newPolicyMode,
+          tags = newTags
         )
 
         displayConfirmationPopup(
-            action
-          , newDirective
-          , baseRules
-          , updatedRules
+          action,
+          newDirective,
+          baseRules,
+          updatedRules
         )
       } else {
-        //check if it's a migration - old directive present with a different technique version
-        val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
+        // check if it's a migration - old directive present with a different technique version
+        val isMigration = oldDirective.map(_.techniqueVersion != directive.techniqueVersion).getOrElse(false)
 
         val updatedDirective = directive.copy(
-            parameters       = parameterEditor.mapValueSeq
-          , name             = directiveName.get
-          , shortDescription = directiveShortDescription.get
-          , priority         = directivePriority.get
-          , longDescription  = directiveLongDescription.get
-          , policyMode       = newPolicyMode
-          , tags             = newTags
+          parameters = parameterEditor.mapValueSeq,
+          name = directiveName.get,
+          shortDescription = directiveShortDescription.get,
+          priority = directivePriority.get,
+          longDescription = directiveLongDescription.get,
+          policyMode = newPolicyMode,
+          tags = newTags
         )
 
         if ((!isMigration && directive == updatedDirective && updatedRules.isEmpty)) {
           onNothingToDo()
         } else {
           displayConfirmationPopup(
-              DGModAction.Update
-            , updatedDirective
-            , baseRules
-            , updatedRules
+            DGModAction.Update,
+            updatedDirective,
+            baseRules,
+            updatedRules
           )
         }
       }
 
-      //display confirmation pop-up that also manage workflows
+      // display confirmation pop-up that also manage workflows
 
     }
   }
 
-  //action must be 'enable' or 'disable'
+  // action must be 'enable' or 'disable'
   private[this] def onSubmitDisable(action: DGModAction): JsCmd = {
     displayConfirmationPopup(
-        action
-      , directive.copy(_isEnabled = !directive._isEnabled)
-      , Nil
-      , Nil
+      action,
+      directive.copy(_isEnabled = !directive._isEnabled),
+      Nil,
+      Nil
     )
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
     displayConfirmationPopup(
-        DGModAction.Delete
-      , directive
-      , Nil
-      , Nil
+      DGModAction.Delete,
+      directive,
+      Nil,
+      Nil
     )
   }
 
@@ -691,15 +716,26 @@ class DirectiveEditForm(
    * Create the confirmation pop-up
    */
   private[this] def displayConfirmationPopup(
-      action       : DGModAction
-    , newDirective : Directive
-    , baseRules    : List[Rule]
-    , updatedRules : List[Rule]
-  ) : JsCmd = {
-    val optOriginal = { if(isADirectiveCreation) None else if(oldDirective.isEmpty) Some(directive) else oldDirective }
+      action:       DGModAction,
+      newDirective: Directive,
+      baseRules:    List[Rule],
+      updatedRules: List[Rule]
+  ): JsCmd = {
+    val optOriginal = { if (isADirectiveCreation) None else if (oldDirective.isEmpty) Some(directive) else oldDirective }
     // Find old root section if there is an initial State
-    val rootSection = optOriginal.flatMap(old => techniqueRepo.get(TechniqueId(activeTechnique.techniqueName,old.techniqueVersion)).map(_.rootSection)).getOrElse(technique.rootSection)
-    val change = DirectiveChangeRequest(action, technique.id.name, activeTechnique.id, rootSection, newDirective, optOriginal, baseRules, updatedRules)
+    val rootSection = optOriginal
+      .flatMap(old => techniqueRepo.get(TechniqueId(activeTechnique.techniqueName, old.techniqueVersion)).map(_.rootSection))
+      .getOrElse(technique.rootSection)
+    val change      = DirectiveChangeRequest(
+      action,
+      technique.id.name,
+      activeTechnique.id,
+      rootSection,
+      newDirective,
+      optOriginal,
+      baseRules,
+      updatedRules
+    )
 
     workflowLevelService.getForDirective(CurrentUser.actor, change) match {
       case eb: EmptyBox =>
@@ -710,42 +746,43 @@ class DirectiveEditForm(
         val popup = {
           // if it's not a creation and we have workflow, then we redirect to the CR
           val (successCallback, failureCallback) = {
-            if(workflowService.needExternalValidation()) {
+            if (workflowService.needExternalValidation()) {
               (
-                  (crId: ChangeRequestId) => onSuccessCallback(Right(crId))
-                , (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
+                (crId: ChangeRequestId) => onSuccessCallback(Right(crId)),
+                (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
               )
             } else {
               val success = {
                 if (action == DGModAction.Delete) {
-                  val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-                  (_: ChangeRequestId) => JsRaw("$('#basePopup').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
+                  val nSeq = <div id={htmlId_policyConf}>Directive successfully deleted</div>
+                  (_: ChangeRequestId) =>
+                    JsRaw("$('#basePopup').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
                     successNotification()
-                } else {
-                  (_: ChangeRequestId)  => JsRaw("$('#basePopup').bsModal('hide');") & successNotification() & onSuccessCallback(Left(newDirective))
+                } else { (_: ChangeRequestId) =>
+                  JsRaw("$('#basePopup').bsModal('hide');") & successNotification() & onSuccessCallback(Left(newDirective))
                 }
               }
 
               (
-                  success
-                , (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
+                success,
+                (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
               )
             }
           }
 
           new ModificationValidationPopup(
-              Left(change)
-            , workflowService
-            , onSuccessCallback = successCallback
-            , onFailureCallback = failureCallback
-            , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successNotification())
-            , onCreateFailureCallBack = onFailure _
-            , parentFormTracker = formTracker
+            Left(change),
+            workflowService,
+            onSuccessCallback = successCallback,
+            onFailureCallback = failureCallback,
+            onCreateSuccessCallBack = (result => onSuccessCallback(result) & successNotification()),
+            onCreateFailureCallBack = onFailure _,
+            parentFormTracker = formTracker
           )
         }
 
         popup.popupWarningMessages match {
-          case None =>
+          case None    =>
             popup.onSubmit()
           case Some(_) =>
             SetHtml("basePopup", popup.popupContent()) &
@@ -754,34 +791,36 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def updateAndDisplayNotifications() : NodeSeq = {
+  private[this] def updateAndDisplayNotifications(): NodeSeq = {
 
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
 
-    if(notifications.isEmpty) {
+    if (notifications.isEmpty) {
       NodeSeq.Empty
-    }
-    else {
+    } else {
       <div class="main-alert alert alert-danger">
-        <ul>{notifications.map( n => <li>{n}</li>) }</ul>
+        <ul>{notifications.map(n => <li>{n}</li>)}</ul>
       </div>
     }
   }
 
-  private[this] def newCreationPopup(technique:Technique, activeTechnique:ActiveTechnique) : NodeSeq = {
+  private[this] def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique): NodeSeq = {
 
     val popup = new CreateCloneDirectivePopup(
-      technique.name, technique.description,
-      technique.id.version, directive,
-      onSuccessCallback =  dir => onSuccessCallback(Left(dir)))
+      technique.name,
+      technique.description,
+      technique.id.version,
+      directive,
+      onSuccessCallback = dir => onSuccessCallback(Left(dir))
+    )
 
     popup.popupContent()
   }
 
   ///////////// success pop-up ///////////////
 
-  private[this] def successNotification() : JsCmd = {
+  private[this] def successNotification(): JsCmd = {
     JsRaw("""createSuccessNotification()""")
   }
 }

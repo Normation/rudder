@@ -1,31 +1,32 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.ldap.ldif
 
-import com.unboundid.ldif._
-import com.unboundid.ldap.sdk.{DN, Entry}
 import com.normation.ldap.sdk.LDAPTree
-import org.slf4j.LoggerFactory
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.Entry
+import com.unboundid.ldif._
 import java.io.File
 import java.util.regex.Pattern
+import org.slf4j.LoggerFactory
 
 /**
  * A service that allows to log LDAP objects into
@@ -41,35 +42,34 @@ trait LDIFFileLogger {
    * The name of the log unit to set to trace
    * to enable LDIF output.
    */
-  def loggerName : String
+  def loggerName: String
 
   /**
    * Root directory for LDIF traces.
    */
-  def ldifTraceRootDir : String
+  def ldifTraceRootDir: String
 
   /**
    * Write the given tree as a set of LDIF records in
    * the trace directory.
    */
-  def tree(tree:LDAPTree) : Unit
+  def tree(tree: LDAPTree): Unit
 
   /**
    * Write the given record in the trace directory.
    */
-  def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None) : Unit
+  def record(LDIFRecord: => LDIFRecord, comment: Option[String] = None): Unit
 
-  def records(LDIFRecords: => Seq[LDIFRecord]) : Unit
+  def records(LDIFRecords: => Seq[LDIFRecord]): Unit
 }
 
 class DummyLDIFFileLogger extends LDIFFileLogger {
-  def loggerName = "dummy logger - no output"
+  def loggerName       = "dummy logger - no output"
   val ldifTraceRootDir = "no a real ldifTraceRootDir"
-  def tree(tree:LDAPTree): Unit = {}
-  def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None): Unit = {}
-  def records(LDIFRecords: => Seq[LDIFRecord]): Unit = {}
+  def tree(tree: LDAPTree):                                              Unit = {}
+  def record(LDIFRecord: => LDIFRecord, comment: Option[String] = None): Unit = {}
+  def records(LDIFRecords: => Seq[LDIFRecord]):                          Unit = {}
 }
-
 
 /**
  * A simple logger that just print LDIF in a
@@ -78,20 +78,18 @@ class DummyLDIFFileLogger extends LDIFFileLogger {
  * only use to log.
  */
 object DefaultLDIFFileLogger {
-  val defaultTraceDir = System.getProperty("java.io.tmpdir") +
+  val defaultTraceDir   = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "ldifTrace"
   val defaultLoggerName = "trace.ldif.in.file"
 }
 
-
-
 class DefaultLDIFFileLogger(
-    override val loggerName:String = DefaultLDIFFileLogger.defaultLoggerName,
-    override val ldifTraceRootDir:String = DefaultLDIFFileLogger.defaultTraceDir
+    override val loggerName:       String = DefaultLDIFFileLogger.defaultLoggerName,
+    override val ldifTraceRootDir: String = DefaultLDIFFileLogger.defaultTraceDir
 ) extends Slf4jLDIFLogger {
-  override def isLogLevel : Boolean = logger.isTraceEnabled
-  override def log(s:String) : Unit = logger.trace(s)
-  override def logE(s:String,e:Exception): Unit = logger.trace(s,e)
+  override def isLogLevel:                    Boolean = logger.isTraceEnabled
+  override def log(s: String):                Unit    = logger.trace(s)
+  override def logE(s: String, e: Exception): Unit    = logger.trace(s, e)
 }
 
 /**
@@ -99,104 +97,101 @@ class DefaultLDIFFileLogger(
  * even if the idea is only to use a trace level.
  */
 trait Slf4jLDIFLogger extends LDIFFileLogger {
-  def isLogLevel : Boolean
-  def log(s:String) : Unit
-  def logE(s:String,e:Exception): Unit
+  def isLogLevel: Boolean
+  def log(s:  String): Unit
+  def logE(s: String, e: Exception): Unit
 
   val logger = LoggerFactory.getLogger(loggerName)
 
   def rootDir = {
     val dir = new File(ldifTraceRootDir)
-    if(!dir.exists()) dir.mkdirs
+    if (!dir.exists()) dir.mkdirs
     dir
   }
 
-  protected def traceFileName(dn:DN, opType:String) : String = {
-    val fileName = dn.getRDNStrings().map( _.replaceAll(Pattern.quote(File.separator), "|")).reverse.mkString("/")
+  protected def traceFileName(dn: DN, opType: String): String = {
+    val fileName = dn.getRDNStrings().map(_.replaceAll(Pattern.quote(File.separator), "|")).reverse.mkString("/")
     fileName + "-" + System.currentTimeMillis.toString + "-" + opType + ".ldif"
   }
 
-  protected def createTraceFile(fileName:String) : File = {
+  protected def createTraceFile(fileName: String): File = {
     new File(rootDir, fileName)
   }
 
-  private def errorMessage(e:Exception,filename:String) : Unit =
-    logE(s"Exception when loggin LDIF trace in ${filename} (ignored)",e)
+  private def errorMessage(e: Exception, filename: String): Unit =
+    logE(s"Exception when loggin LDIF trace in ${filename} (ignored)", e)
 
-
-  private def writeRecord(ldifWriter:LDIFWriter,LDIFRecord:LDIFRecord,comment:Option[String] = None): Unit = {
+  private def writeRecord(ldifWriter: LDIFWriter, LDIFRecord: LDIFRecord, comment: Option[String] = None): Unit = {
     comment match {
-      case None => ldifWriter.writeLDIFRecord(LDIFRecord)
-      case Some(c) => ldifWriter.writeLDIFRecord(LDIFRecord,c)
+      case None    => ldifWriter.writeLDIFRecord(LDIFRecord)
+      case Some(c) => ldifWriter.writeLDIFRecord(LDIFRecord, c)
     }
   }
 
-  override def tree(tree:LDAPTree): Unit = {
-    if(isLogLevel) {
+  override def tree(tree: LDAPTree): Unit = {
+    if (isLogLevel) {
       val filename = traceFileName(tree.root.dn, "CONTENT")
       try {
-        val ldif = createTraceFile(filename)
+        val ldif   = createTraceFile(filename)
         log("Printing LDIF trace of Entity Tree : " + ldif.getAbsolutePath)
         val writer = new LDIFWriter(ldif)
         try {
-          tree.foreach { e =>
-            writeRecord(writer,e.backed)
-          }
+          tree.foreach(e => writeRecord(writer, e.backed))
         } finally {
           writer.close
         }
       } catch {
-        case e:Exception => errorMessage(e,filename)
+        case e: Exception => errorMessage(e, filename)
       }
     }
   }
 
-  override def record(record: => LDIFRecord,comment:Option[String] = None): Unit = {
-    if(isLogLevel) {
-      var writer:LDIFWriter = null
-      val opType = record match {
-        case _:Entry => "CONTENT"
-        case _:LDIFAddChangeRecord => "ADD"
-        case _:LDIFDeleteChangeRecord => "DELETE"
-        case _:LDIFModifyChangeRecord => "MODIFY"
-        case _:LDIFModifyDNChangeRecord => "MODIFY_DN"
+  override def record(record: => LDIFRecord, comment: Option[String] = None): Unit = {
+    if (isLogLevel) {
+      var writer: LDIFWriter = null
+      val opType   = record match {
+        case _: Entry                    => "CONTENT"
+        case _: LDIFAddChangeRecord      => "ADD"
+        case _: LDIFDeleteChangeRecord   => "DELETE"
+        case _: LDIFModifyChangeRecord   => "MODIFY"
+        case _: LDIFModifyDNChangeRecord => "MODIFY_DN"
         case _ => "UNKNOWN_OP"
       }
-      val filename = traceFileName(record.getParsedDN,opType)
+      val filename = traceFileName(record.getParsedDN, opType)
 
       try {
         val ldif = createTraceFile(filename)
         log("Printing LDIF trace of unitary operation on record in : " + ldif.getAbsolutePath)
         writer = new LDIFWriter(ldif)
-        writeRecord(writer,record,comment)
+        writeRecord(writer, record, comment)
       } catch {
-        case e:Exception => errorMessage(e,filename)
+        case e: Exception => errorMessage(e, filename)
       } finally {
-        if(null != writer) writer.close
+        if (null != writer) writer.close
       }
     }
   }
 
   override def records(records: => Seq[LDIFRecord]): Unit = {
-    if(isLogLevel) {
-      var writer:LDIFWriter = null
+    if (isLogLevel) {
+      var writer: LDIFWriter = null
       val filename = traceFileName(records.head.getParsedDN, "RECORDS")
       try {
-        if(records.nonEmpty) { //don't check it if logger trace is not enabled
+        if (records.nonEmpty) { // don't check it if logger trace is not enabled
           val ldif = createTraceFile(filename)
-          //create parent directory if it does not exists
+          // create parent directory if it does not exists
           ldif.getParentFile().mkdirs()
-          //save ldif
+          // save ldif
           log("Printing LDIF trace of operations on records in : " + ldif.getAbsolutePath)
           writer = new LDIFWriter(ldif)
-          records.foreach { record => writeRecord(writer,record) }
+          records.foreach(record => writeRecord(writer, record))
         } else {
           log("Nothing to print as record list is empty")
         }
       } catch {
-        case e:Exception => errorMessage(e,filename)
+        case e: Exception => errorMessage(e, filename)
       } finally {
-        if(null != writer) writer.close
+        if (null != writer) writer.close
       }
     }
   }

@@ -1,51 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2020 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2020 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.nodes
 
 import cats.implicits._
 import com.normation.GitVersion
-
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -59,7 +58,6 @@ import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.nodes.GroupProp._
-
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigParseOptions
 import org.jgrapht.alg.connectivity.ConnectivityInspector
@@ -67,7 +65,6 @@ import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.traverse.TopologicalOrderIterator
-
 import scala.jdk.CollectionConverters._
 
 /**
@@ -92,17 +89,17 @@ import scala.jdk.CollectionConverters._
  *   and new keys are added.
  */
 
-
 /**
  * Utility that represents a group with just the interesting things for us.
  */
 final case class GroupProp(
-    properties  : List[GroupProperty]
-  , groupId     : NodeGroupId
-  , condition   : CriterionComposition
-  , isDynamic   : Boolean
-  , parentGroups: List[String] // groupd ids - a list because order is important!
-  , groupName   : String // for error
+    properties:   List[GroupProperty],
+    groupId:      NodeGroupId,
+    condition:    CriterionComposition,
+    isDynamic:    Boolean,
+    parentGroups: List[String], // groupd ids - a list because order is important!
+
+    groupName: String // for error
 )
 
 object GroupProp {
@@ -112,6 +109,7 @@ object GroupProp {
    * overriden for given node or group.
    */
   val INHERITANCE_PROVIDER = PropertyProvider("inherited")
+
   /**
    * This provider means that the property is inherited but also
    * overriden for given node or group.
@@ -122,10 +120,10 @@ object GroupProp {
     def toNodePropHierarchy: Map[String, NodePropertyHierarchy] = {
       g.properties.map { p =>
         (
-          p.name
-        , NodePropertyHierarchy(
-              NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER)
-            , ParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
+          p.name,
+          NodePropertyHierarchy(
+            NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER),
+            ParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
           )
         )
       }.toMap
@@ -135,30 +133,36 @@ object GroupProp {
   implicit class FromNodeGroup(group: NodeGroup) {
     def toGroupProp: PureResult[GroupProp] = {
       group.query match {
-        case None =>
+        case None    =>
           // if group doesn't has a query: not sure. Error ? Default ?
-          Right(GroupProp(
-              group.properties
-            , group.id
-            , And
-            , group.isDynamic
-            , Nil   // terminal leaf
-            , group.name
-          ))
+          Right(
+            GroupProp(
+              group.properties,
+              group.id,
+              And,
+              group.isDynamic,
+              Nil, // terminal leaf
+
+              group.name
+            )
+          )
         case Some(q) =>
-          Right(GroupProp(
-              group.properties
-            , group.id
-            , q.composition
-            , group.isDynamic
-            , q.criteria.flatMap {
+          Right(
+            GroupProp(
+              group.properties,
+              group.id,
+              q.composition,
+              group.isDynamic,
+              q.criteria.flatMap {
                 // we are only interested in subgroup criterion with AND, and we want to
                 // keep order for overriding priority.
-                case CriterionLine(_, a, _, value) if(q.composition == And && a.cType.isInstanceOf[SubGroupComparator]) => Some(value)
-                case _ => None
-              }
-            , group.name
-          ))
+                case CriterionLine(_, a, _, value) if (q.composition == And && a.cType.isInstanceOf[SubGroupComparator]) =>
+                  Some(value)
+                case _                                                                                                   => None
+              },
+              group.name
+            )
+          )
       }
     }
   }
@@ -174,16 +178,22 @@ object GroupProp {
       target.target match {
         case FullCompositeRuleTarget(t) =>
           Left(Unexpected(s"There is a composite target in group definition, it's likely a dev error: '${target.name}'"))
-        case FullOtherTarget(t) => //taget:all nodes, only root, only managed node, etc
-          Right(GroupProp(
-              Nil   // they don't have properties for now
-            , NodeGroupId(NodeGroupUid(t.target))
-            , And   // for simplification, since they don't have properties it doesn't matter
-            , true  // these special targets behave as dynamic groups
-            , Nil   // terminal leaf
-            , target.name
-          ))
-        case FullGroupTarget(t, g) =>
+        case FullOtherTarget(t)         => // taget:all nodes, only root, only managed node, etc
+          Right(
+            GroupProp(
+              Nil, // they don't have properties for now
+
+              NodeGroupId(NodeGroupUid(t.target)),
+              And, // for simplification, since they don't have properties it doesn't matter
+
+              true, // these special targets behave as dynamic groups
+
+              Nil, // terminal leaf
+
+              target.name
+            )
+          )
+        case FullGroupTarget(t, g)      =>
           g.toGroupProp
       }
     }
@@ -196,55 +206,85 @@ object MergeNodeProperties {
    * Merge that node properties with properties of groups which contain it.
    * Groups are not sorted, but all groups with that node are present.
    */
-  def forNode(node: NodeInfo, nodeTargets: List[FullRuleTargetInfo], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
+  def forNode(
+      node:         NodeInfo,
+      nodeTargets:  List[FullRuleTargetInfo],
+      globalParams: Map[String, GlobalParameter]
+  ): PureResult[List[NodePropertyHierarchy]] = {
     for {
       properties <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
-      mergeDefault(node.node.id.value, node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap).map(_._2).toList.sortBy(_.prop.name)
+      mergeDefault(node.node.id.value, node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap)
+        .map(_._2)
+        .toList
+        .sortBy(_.prop.name)
     }
   }
 
   /*
    * Find parent group for a given group and merge its properties
    */
-  def forGroup(groupId: NodeGroupId, allGroups: Map[NodeGroupId, FullGroupTarget], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
+  def forGroup(
+      groupId:      NodeGroupId,
+      allGroups:    Map[NodeGroupId, FullGroupTarget],
+      globalParams: Map[String, GlobalParameter]
+  ): PureResult[List[NodePropertyHierarchy]] = {
     // get parents till the top, recursively.
     // This can fail is a parent is missing from "all groups"
-    def withParents(currents: List[FullGroupTarget], allGroups: Map[NodeGroupId, FullGroupTarget], acc: Map[NodeGroupId, FullGroupTarget]): PureResult[Map[NodeGroupId, FullGroupTarget]] = {
+    def withParents(
+        currents:  List[FullGroupTarget],
+        allGroups: Map[NodeGroupId, FullGroupTarget],
+        acc:       Map[NodeGroupId, FullGroupTarget]
+    ): PureResult[Map[NodeGroupId, FullGroupTarget]] = {
       import cats.implicits._
       currents match {
         case Nil  => Right(acc)
-        case list => list.foldLeft(Right(acc): Either[RudderError, Map[NodeGroupId, FullGroupTarget]]) { case (optAcc, g) =>
-          optAcc match {
-            case Left(err)  => Left(err)
-            case Right(acc) =>
-              if(acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
-              else {
-                import com.normation.rudder.services.nodes.GroupProp._
-                for {
-                  prop    <- g.nodeGroup.toGroupProp
-                  parents <- prop.parentGroups.traverse { parentId =>
-                               NodeGroupId.parse(parentId).left.map(Inconsistency).flatMap(pId =>
-                                 if(acc.isDefinedAt(pId)) Right(Nil)
-                                 else allGroups.get(pId) match {
-                                   case None    => Left(Inconsistency(s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.serialize})"))
-                                   case Some(p) => Right(p :: Nil)
+        case list =>
+          list.foldLeft(Right(acc): Either[RudderError, Map[NodeGroupId, FullGroupTarget]]) {
+            case (optAcc, g) =>
+              optAcc match {
+                case Left(err)  => Left(err)
+                case Right(acc) =>
+                  if (acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
+                  else {
+                    import com.normation.rudder.services.nodes.GroupProp._
+                    for {
+                      prop    <- g.nodeGroup.toGroupProp
+                      parents <- prop.parentGroups.traverse { parentId =>
+                                   NodeGroupId
+                                     .parse(parentId)
+                                     .left
+                                     .map(Inconsistency)
+                                     .flatMap(pId => {
+                                       if (acc.isDefinedAt(pId)) Right(Nil)
+                                       else {
+                                         allGroups.get(pId) match {
+                                           case None    =>
+                                             Left(
+                                               Inconsistency(
+                                                 s"Parent group with id '${parentId}' is missing for group '${g.nodeGroup.name}'(${g.nodeGroup.id.serialize})"
+                                               )
+                                             )
+                                           case Some(p) => Right(p :: Nil)
+                                         }
+                                       }
+                                     })
                                  }
-                               )
-                             }
-                  rec     <- withParents(parents.flatten, allGroups, acc + (g.nodeGroup.id -> g))
-                } yield {
-                  rec
-                }
+                      rec     <- withParents(parents.flatten, allGroups, acc + (g.nodeGroup.id -> g))
+                    } yield {
+                      rec
+                    }
+                  }
               }
           }
-        }
       }
     }
     for {
       group       <- allGroups.get(groupId).notOptionalPure(s"Group with ID '${groupId.serialize}' was not found.")
-      hierarchy   <- withParents(group::Nil, allGroups, Map())
-      parents     =  (hierarchy-group.nodeGroup.id).values.map(g => FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem))
+      hierarchy   <- withParents(group :: Nil, allGroups, Map())
+      parents      = (hierarchy - group.nodeGroup.id).values.map(g =>
+                       FullRuleTargetInfo(g, g.nodeGroup.name, g.nodeGroup.description, g.nodeGroup.isEnabled, g.nodeGroup.isSystem)
+                     )
       hierarchies <- checkPropertyMerge(parents.toList, globalParams)
     } yield {
       val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
@@ -258,25 +298,31 @@ object MergeNodeProperties {
    * NodePropertyHierarchy with a non empty parent list means they were inherited and at least
    * partially overridden
    */
-  def mergeDefault[A <: GenericProperty[A]](objectId: String, properties: Map[String, A], defaults: Map[String, NodePropertyHierarchy]): Map[String, NodePropertyHierarchy] = {
+  def mergeDefault[A <: GenericProperty[A]](
+      objectId:   String,
+      properties: Map[String, A],
+      defaults:   Map[String, NodePropertyHierarchy]
+  ): Map[String, NodePropertyHierarchy] = {
     val fullyInherited = defaults.keySet -- properties.keySet
-    val fromNodeOnly = properties.keySet -- defaults.keySet
-    val merged = defaults.keySet.intersect(properties.keySet)
-    val overrided = merged.map { k =>
-      val p = properties(k)
-      val d = defaults(k)
+    val fromNodeOnly   = properties.keySet -- defaults.keySet
+    val merged         = defaults.keySet.intersect(properties.keySet)
+    val overrided      = merged.map { k =>
+      val p          = properties(k)
+      val d          = defaults(k)
       val mergedProp = NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)).withProvider(OVERRIDE_PROVIDER)
-      val obj = p match {
-        case x: NodeProperty    => ParentProperty.Node  ("this node" , NodeId(objectId)     , p.value)
-        case x: GroupProperty   => ParentProperty.Group ("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)
-        case x: GlobalParameter => ParentProperty.Global(                                     p.value)
+      val obj        = p match {
+        case x: NodeProperty    => ParentProperty.Node("this node", NodeId(objectId), p.value)
+        case x: GroupProperty   => ParentProperty.Group("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)
+        case x: GlobalParameter => ParentProperty.Global(p.value)
       }
       (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
     }.toMap
     (
-       defaults.filter(kv => fullyInherited.contains(kv._1))
-    ++ overrided
-    ++ properties.flatMap { case (k, v) => if(fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None }.toMap
+      defaults.filter(kv => fullyInherited.contains(kv._1))
+      ++ overrided
+      ++ properties.flatMap {
+        case (k, v) => if (fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None
+      }.toMap
     )
   }
 
@@ -289,7 +335,10 @@ object MergeNodeProperties {
    *
    * We know that we have all groups/subgroups in which the node is here.
    */
-  def checkPropertyMerge(targets: List[FullRuleTargetInfo], globalParams: Map[String, GlobalParameter]): PureResult[List[NodePropertyHierarchy]] = {
+  def checkPropertyMerge(
+      targets:      List[FullRuleTargetInfo],
+      globalParams: Map[String, GlobalParameter]
+  ): PureResult[List[NodePropertyHierarchy]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -316,20 +365,22 @@ object MergeNodeProperties {
      * The most prioritary is the last in the list
      */
     def overrideValues(overriding: List[Map[String, NodePropertyHierarchy]]): Map[String, NodePropertyHierarchy] = {
-      overriding.foldLeft(Map[String, NodePropertyHierarchy]()){ case (old, newer) =>
-        // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
-        // and merge its value for the next iteration.
-        val merged = newer.map { case(k, v) =>
-          old.get(k) match {
-            case None          => //ok, no merge needed
-              (k, v)
-            case Some(oldProp) => //merge prop and add old to parents
-              val config = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)
-              val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.hierarchy).using(_ ::: oldProp.hierarchy)
-              (k, mergedProp)
+      overriding.foldLeft(Map[String, NodePropertyHierarchy]()) {
+        case (old, newer) =>
+          // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
+          // and merge its value for the next iteration.
+          val merged = newer.map {
+            case (k, v) =>
+              old.get(k) match {
+                case None          => // ok, no merge needed
+                  (k, v)
+                case Some(oldProp) => // merge prop and add old to parents
+                  val config     = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)
+                  val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.hierarchy).using(_ ::: oldProp.hierarchy)
+                  (k, mergedProp)
+              }
           }
-        }
-        old ++ merged
+          old ++ merged
       }
     }
 
@@ -339,45 +390,57 @@ object MergeNodeProperties {
      */
     def mergeAll(propByTrees: List[NodePropertyHierarchy]): PureResult[List[NodePropertyHierarchy]] = {
       val grouped = propByTrees.groupBy(_.prop.name).map {
-        case (_, Nil)    => Left(Unexpected(s"A groupBY lead to an empty group. This is a developper bug, please report it."))
-        case (_, h::Nil) => Right(h)
-        case (k, h::more)   =>
-          if(more.forall(_.prop == h.prop)) {
+        case (_, Nil)       => Left(Unexpected(s"A groupBY lead to an empty group. This is a developper bug, please report it."))
+        case (_, h :: Nil)  => Right(h)
+        case (k, h :: more) =>
+          if (more.forall(_.prop == h.prop)) {
             // if it's exactly the same property everywhere, it's ok
             Right(h)
           } else {
             // faulty groups are the head of parent list of each parent list
-            val faulty = (h::more).map { p =>
+            val faulty = (h :: more).map { p =>
               p.hierarchy match {
-                case Nil        => "" // should not happen
-                case g::Nil     =>
+                case Nil          => "" // should not happen
+                case g :: Nil     =>
                   g.displayName
-                case g::parents =>
+                case g :: parents =>
                   s"${g.displayName} (with inheritance from: ${parents.map(_.displayName).mkString("; ")}"
               }
             }
-            Left(Inconsistency(s"Error when trying to find overrides for group property '${k}'. " +
-                             s"Several groups which are not in an inheritance relation define it. You will need to define " +
-                             s"a new group with all these groups as parent and choose the order on which you want to do " +
-                             s"the override by hand. Faulty groups: ${faulty.mkString(", ")}"
-            ))
+            Left(
+              Inconsistency(
+                s"Error when trying to find overrides for group property '${k}'. " +
+                s"Several groups which are not in an inheritance relation define it. You will need to define " +
+                s"a new group with all these groups as parent and choose the order on which you want to do " +
+                s"the override by hand. Faulty groups: ${faulty.mkString(", ")}"
+              )
+            )
           }
       }
       grouped.accumulatePure(identity)
     }
 
     for {
-      groups    <- targets.traverse (_.toGroupProp.map(g => (g.groupId.serialize, g))).map(_.toMap)
+      groups    <- targets.traverse(_.toGroupProp.map(g => (g.groupId.serialize, g))).map(_.toMap)
       sorted    <- sortGroups(groups)
       // add global values as the most default NodePropertyHierarchy
-      overridden =  sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy)))
+      overridden = sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy)))
       // now flatten properties from all groups so that we can check for duplicates
-      flatten   =  overridden.map(_.values).flatten
+      flatten    = overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)
-      globals   =  globalParams.toList.map { case (n, v) =>
-                     // TODO: no verion in param for now
-                     val config = GenericProperty.toConfig(n, GitVersion.DEFAULT_REV, v.value, v.inheritMode, Some (INHERITANCE_PROVIDER), None, ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'"))
-                     (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil))
+      globals    = globalParams.toList.map {
+                     case (n, v) =>
+                       // TODO: no verion in param for now
+                       val config = GenericProperty.toConfig(
+                         n,
+                         GitVersion.DEFAULT_REV,
+                         v.value,
+                         v.inheritMode,
+                         Some(INHERITANCE_PROVIDER),
+                         None,
+                         ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'")
+                       )
+                       (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil))
                    }
     } yield {
       // here, we add global parameters as a first default
@@ -414,19 +477,24 @@ object MergeNodeProperties {
                  Right(graph.addEdge(p, child))
                } catch {
                  case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
-                   Left(SystemError(s"Error when trying to build group hierarchy of group '${child.groupName}' " +
-                                    s"(${child.groupId.serialize}) for parent '${p.groupName}' (${p.groupId.serialize})", ex))
+                   Left(
+                     SystemError(
+                       s"Error when trying to build group hierarchy of group '${child.groupName}' " +
+                       s"(${child.groupId.serialize}) for parent '${p.groupName}' (${p.groupId.serialize})",
+                       ex
+                     )
+                   )
                }
              }
         g <- parents match {
-               case Nil  => Right(graph)
-               case h::t => recAddEdges(graph, h, t)
+               case Nil    => Right(graph)
+               case h :: t => recAddEdges(graph, h, t)
              }
       } yield g
     }
 
     // we are in java highly mutable land - this algo can't be parallelized without going to ZIO
-    val graph = new DefaultDirectedGraph[GroupProp, DefaultEdge](classOf[DefaultEdge])
+    val graph     = new DefaultDirectedGraph[GroupProp, DefaultEdge](classOf[DefaultEdge])
     val groupList = groups.values.toList
     for {
       // we need to proceed in two pass because all vertices need to be added before edges
@@ -436,7 +504,12 @@ object MergeNodeProperties {
                     Right(graph.addVertex(group))
                   } catch {
                     case ex: Exception => // At least NPE, IllegalArgEx, UnsupportedException...
-                      Left(SystemError(s"Error when trying to build group hierarchy of group '${group.groupName}' ${group.groupId.serialize})", ex))
+                      Left(
+                        SystemError(
+                          s"Error when trying to build group hierarchy of group '${group.groupName}' ${group.groupId.serialize})",
+                          ex
+                        )
+                      )
                   }
                 }
       // add edges
@@ -445,13 +518,17 @@ object MergeNodeProperties {
                     parents <- group.parentGroups.traverse { p =>
                                  groups.get(p) match {
                                    case None    =>
-                                     Left(Inconsistency(s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
-                                                        s"[${group.groupId.serialize}]. Please check criterium for that group."))
+                                     Left(
+                                       Inconsistency(
+                                         s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
+                                         s"[${group.groupId.serialize}]. Please check criterium for that group."
+                                       )
+                                     )
                                    case Some(g) =>
                                      Right(g)
                                  }
                                }
-                               // reverse parents here, because we need to start from child and go up hierarchy
+                    // reverse parents here, because we need to start from child and go up hierarchy
                     _       <- recAddEdges(graph, group, parents.reverse)
                   } yield ()
                 }
@@ -464,17 +541,21 @@ object MergeNodeProperties {
       sorted <- sets.toList.traverse { set =>
                   try {
                     val subgraph = new AsSubgraph[GroupProp, DefaultEdge](graph, set, null)
-                    val sort = new TopologicalOrderIterator[GroupProp, DefaultEdge](subgraph)
+                    val sort     = new TopologicalOrderIterator[GroupProp, DefaultEdge](subgraph)
                     // can throw if there is cycles
                     Right(sort.asScala.toList)
                   } catch {
                     case ex: Exception =>
-                      Left(SystemError(s"Error when creating a direct acyclic graph of all groups: there is cycles in parent hierarchy or in their" +
-                                       s" priority order. Please ensure that `group` criteria are always in the same order for all groups", ex))
+                      Left(
+                        SystemError(
+                          s"Error when creating a direct acyclic graph of all groups: there is cycles in parent hierarchy or in their" +
+                          s" priority order. Please ensure that `group` criteria are always in the same order for all groups",
+                          ex
+                        )
+                      )
                   }
                 }
     } yield sorted
   }
 
 }
-

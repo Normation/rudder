@@ -1,10 +1,9 @@
 package com.normation.rudder.web.snippet
 
-import net.liftweb.http.DispatchSnippet
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.services.CurrentUser
-
+import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
 class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
@@ -20,7 +19,7 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
   def init(xml: NodeSeq): NodeSeq = {
     CurrentUser.get match {
       case None    => ApplicationLogger.warn("Authz.init called but user not authenticated")
-      case Some(_) => //expected
+      case Some(_) => // expected
     }
     xml
   }

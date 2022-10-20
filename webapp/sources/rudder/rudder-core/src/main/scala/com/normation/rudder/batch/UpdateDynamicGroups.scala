@@ -1,58 +1,57 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.batch
 
-import com.normation.rudder.services.queries._
-import com.normation.rudder.domain.nodes.NodeGroupId
-import net.liftweb.common._
-import net.liftweb.actor._
-import org.joda.time._
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.utils.Utils.DateToIsoString
-
 import com.normation.box._
 import com.normation.errors._
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.services.queries._
 import com.normation.rudder.utils.ParseMaxParallelism
+import com.normation.utils.StringUuidGenerator
+import com.normation.utils.Utils.DateToIsoString
+import net.liftweb.actor._
+import net.liftweb.common._
+import org.joda.time._
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 
@@ -61,17 +60,24 @@ final object GroupUpdateMessage {
   final case object ManualStartUpdate extends GroupUpdateMessage
   final case object ForceStartUpdate  extends GroupUpdateMessage
   final case object DelayedUpdate     extends GroupUpdateMessage
-  final case class  DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Box[ List[(NodeGroupId, Either[RudderError, DynGroupDiff])]]) extends GroupUpdateMessage
+  final case class DynamicUpdateResult(
+      id:      Long,
+      modId:   ModificationId,
+      start:   DateTime,
+      end:     DateTime,
+      results: Box[List[(NodeGroupId, Either[RudderError, DynGroupDiff])]]
+  ) extends GroupUpdateMessage
 }
 
 //a container to hold the list of dynamic group to update
-final case class GroupsToUpdate(idsWithoutDependencies:Seq[NodeGroupId], idsWithDependencies:Seq[NodeGroupId])
+final case class GroupsToUpdate(idsWithoutDependencies: Seq[NodeGroupId], idsWithDependencies: Seq[NodeGroupId])
 
 sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
 final case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
-final case class StartDynamicUpdate(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends DynamicGroupUpdaterStates
+final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: DateTime, groupIds: GroupsToUpdate)
+    extends DynamicGroupUpdaterStates
 
 /**
  * A class that periodically update all dynamic groups to see if
@@ -83,31 +89,32 @@ final case class StartDynamicUpdate(id:Long, modId:ModificationId, started: Date
  * - else, use the given value.
  */
 class UpdateDynamicGroups(
-    dynGroupService              : DynGroupService
-  , dynGroupUpdaterService       : DynGroupUpdaterService
-  , asyncDeploymentAgent         : AsyncDeploymentActor
-  , uuidGen                      : StringUuidGenerator
-  , updateInterval               : Int // in minutes
-  , getComputeDynGroupParallelism: () => Box[String]
+    dynGroupService:        DynGroupService,
+    dynGroupUpdaterService: DynGroupUpdaterService,
+    asyncDeploymentAgent:   AsyncDeploymentActor,
+    uuidGen:                StringUuidGenerator,
+    updateInterval:         Int, // in minutes
+
+    getComputeDynGroupParallelism: () => Box[String]
 ) {
 
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
-  val logger = ScheduledJobLogger
+  val logger               = ScheduledJobLogger
 
   protected lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager
-  //start batch
-  if(updateInterval < 1) {
+  // start batch
+  if (updateInterval < 1) {
     logger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Dynamic Group Update batch *****")
     laUpdateDyngroupManager ! GroupUpdateMessage.StartUpdate
   }
 
-  def startManualUpdate : Unit = {
+  def startManualUpdate: Unit = {
     laUpdateDyngroupManager ! GroupUpdateMessage.ManualStartUpdate
   }
 
-  def forceStartUpdate : Unit = {
+  def forceStartUpdate: Unit = {
     laUpdateDyngroupManager ! GroupUpdateMessage.ForceStartUpdate
   }
 
@@ -128,13 +135,13 @@ class UpdateDynamicGroups(
 
     val logger = ScheduledJobLogger
 
-    private var updateId = 0L
+    private var updateId       = 0L
     private var lastUpdateTime = new DateTime(0)
-    private var avoidedUpdate = 0L
+    private var avoidedUpdate  = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
-    private var onePending = false
-    private var needDeployment = false
-    private[this] val isAutomatic = updateInterval > 0
+    private var onePending               = false
+    private var needDeployment           = false
+    private[this] val isAutomatic        = updateInterval > 0
     private[this] val realUpdateInterval = {
       if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small, using '${DYNGROUP_MINIMUM_UPDATE_INTERVAL}'")
@@ -150,7 +157,7 @@ class UpdateDynamicGroups(
       val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
       // if there was a delayedUpdate, we need to force recomputation of groups, or
       // if there is one pending (which
-      if(need || force || onePending) {
+      if (need || force || onePending) {
         logger.trace("***** Start a new update")
 
         currentState match {
@@ -158,25 +165,32 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroupsWithandWithoutDependencies() match {
               case Full(groupIds) =>
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds._1, groupIds._2))
-              case e:EmptyBox =>
-                val error = (e?~! "Error when trying to get the list of dynamic group to update")
-                logger.error( error.messageChain )
+                LAUpdateDyngroup ! StartDynamicUpdate(
+                  updateId,
+                  ModificationId(uuidGen.newUuid),
+                  DateTime.now,
+                  GroupsToUpdate(groupIds._1, groupIds._2)
+                )
+              case e: EmptyBox =>
+                val error = (e ?~! "Error when trying to get the list of dynamic group to update")
+                logger.error(error.messageChain)
 
             }
-          case _:StartDynamicUpdate if(!onePending) => onePending = true
-          case _ =>
+          case _: StartDynamicUpdate if (!onePending) => onePending = true
+          case _                =>
             logger.debug("Ignoring start dynamic group update request because another update is in progress")
         }
       } else {
         avoidedUpdate = avoidedUpdate + 1
-        logger.debug(s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toIsoStringNoMillis} (total ${avoidedUpdate} times avoided)")
+        logger.debug(
+          s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toIsoStringNoMillis} (total ${avoidedUpdate} times avoided)"
+        )
       }
     }
 
-    private[this] def displayNodechange (nodes : Set[NodeId]) : String = {
+    private[this] def displayNodechange(nodes: Set[NodeId]): String = {
       if (nodes.nonEmpty) {
-        nodes.map(_.value).mkString("[ ",", "," ]")
+        nodes.map(_.value).mkString("[ ", ", ", " ]")
       } else {
         "nothing"
       }
@@ -185,32 +199,32 @@ class UpdateDynamicGroups(
     override protected def messageHandler = {
 
       //
-      //Ask for a new dynamic group update
+      // Ask for a new dynamic group update
       //
       case GroupUpdateMessage.StartUpdate =>
         if (isAutomatic) {
           // schedule next update, in minutes
-          LAPinger.schedule(this, GroupUpdateMessage.StartUpdate, realUpdateInterval*1000L*60)
+          LAPinger.schedule(this, GroupUpdateMessage.StartUpdate, realUpdateInterval * 1000L * 60)
         } // no else part as there is nothing to do (would only be Unit)
         processUpdate(false)
 
       case GroupUpdateMessage.ManualStartUpdate =>
         processUpdate(true)
 
-      case GroupUpdateMessage.ForceStartUpdate =>
+      case GroupUpdateMessage.ForceStartUpdate                                    =>
         lastUpdateTime = new DateTime(0)
         processUpdate(true)
 
       // This case is launched when an update was pending, it only launch the process
       // and it does not schedule a new update.
-      case GroupUpdateMessage.DelayedUpdate =>
+      case GroupUpdateMessage.DelayedUpdate                                       =>
         onePending = false
         processUpdate(true)
 
       //
-      //Process a dynamic group update response
+      // Process a dynamic group update response
       //
-      case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => //TODO: other log ?
+      case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => // TODO: other log ?
         logger.trace(s"***** Get result for process: ${id}")
         lastUpdateTime = start
         currentState = IdleGroupUpdater
@@ -221,28 +235,30 @@ class UpdateDynamicGroups(
         val delayDeployment = onePending
 
         // Maybe should be done at the end, when we know it's ok to start deployment ...
-        if(onePending) {
+        if (onePending) {
           logger.debug("Immediatly start another dynamic groups update process: pending request")
           this ! GroupUpdateMessage.DelayedUpdate
         }
 
-        //log some information
-        logger.debug(s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toIsoStringNoMillis}, ended at ${end.toIsoStringNoMillis})")
+        // log some information
+        logger.debug(
+          s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toIsoStringNoMillis}, ended at ${end.toIsoStringNoMillis})"
+        )
 
         for {
-          result <- results
-          (id,eitherRes) <- result
+          result          <- results
+          (id, eitherRes) <- result
         } {
           eitherRes match {
-            case Left(e) =>
+            case Left(e)     =>
               val error = (e.fullMsg + s" Error when updating dynamic group '${id.serialize}'")
               logger.error(error)
             case Right(diff) =>
-              val addedNodes = displayNodechange(diff.added)
+              val addedNodes   = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
               logger.debug(s"Group ${id.serialize}: adding ${addedNodes}, removing ${removedNodes}")
-              //if the diff is not empty, start a new deploy
-              if(diff.added.nonEmpty || diff.removed.nonEmpty) {
+              // if the diff is not empty, start a new deploy
+              if (diff.added.nonEmpty || diff.removed.nonEmpty) {
                 logger.info(s"Dynamic group ${id.serialize}: added node with id: ${addedNodes}, removed: ${removedNodes}")
                 // we need to trigger a deployment in this case
                 needDeployment = true
@@ -257,16 +273,16 @@ class UpdateDynamicGroups(
         }
 
       //
-      //Unexpected messages
+      // Unexpected messages
       //
-      case x => logger.debug(s"Dynamic group updater can't process this message: '${x}'")
+      case x                                                                      => logger.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
 
     private[this] object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
 
       override protected def messageHandler = {
         //
-        //Process a dynamic group update
+        // Process a dynamic group update
         //
         case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds)) => {
           logger.trace(s"Start a new dynamic group update, id: ${processId}")
@@ -276,36 +292,67 @@ class UpdateDynamicGroups(
             // We want to limit the number of parallel execution and threads to the number of core/2 (minimum 1) by default.
             // This is taken from the system environment variable because we really want to be able to change it at runtime.
             val maxParallelism = ParseMaxParallelism(
-                getComputeDynGroupParallelism().getOrElse("1")
-              , 1
-              , "rudder_compute_dyngroups_max_parallelism"
-              , (s:String) => logger.warn(s)
+              getComputeDynGroupParallelism().getOrElse("1"),
+              1,
+              "rudder_compute_dyngroups_max_parallelism",
+              (s: String) => logger.warn(s)
             )
 
-            logger.debug(s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies")
+            logger.debug(
+              s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies"
+            )
             val initialTime = System.currentTimeMillis
-            val result = (for {
-              results <- dynGroupIds.accumulateParN(maxParallelism) { case dynGroupId =>
-                dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
-              }
+            val result      = (for {
+              results <- dynGroupIds.accumulateParN(maxParallelism) {
+                           case dynGroupId =>
+                             dynGroupUpdaterService
+                               .update(
+                                 dynGroupId,
+                                 modId,
+                                 RudderEventActor,
+                                 Some("Update group due to batch update of dynamic groups")
+                               )
+                               .toIO
+                               .either
+                               .map(x => (dynGroupId, x))
+                         }
 
               timeComputeNonDependantGroups = (System.currentTimeMillis - initialTime)
               _                             = logger.debug(s"Computing dynamic groups without dependencies finished in ${timeComputeNonDependantGroups} ms")
               preComputeDependantGroups     = System.currentTimeMillis
 
-              results2 <- dynGroupsWithDependencyIds.accumulateParN(1) { case dynGroupId =>
-                dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")).toIO.either.map(x => (dynGroupId, x))
+              results2 <- dynGroupsWithDependencyIds.accumulateParN(1) {
+                            case dynGroupId =>
+                              dynGroupUpdaterService
+                                .update(
+                                  dynGroupId,
+                                  modId,
+                                  RudderEventActor,
+                                  Some("Update group due to batch update of dynamic groups")
+                                )
+                                .toIO
+                                .either
+                                .map(x => (dynGroupId, x))
+                          }
+              _         = {
+                logger.debug(
+                  s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
+                )
               }
-              _                             = logger.debug(s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms")
             } yield {
               results ++ results2
             }).toBox
 
             updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
           } catch {
-            case e:Exception => updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime,DateTime.now,
-              Failure("Exception caught during update process.", Full(e), Empty)
-            )
+            case e: Exception =>
+              updateManager ! GroupUpdateMessage.DynamicUpdateResult(
+                processId,
+                modId,
+                startTime,
+                DateTime.now,
+                Failure("Exception caught during update process.", Full(e), Empty)
+              )
           }
         }
       }

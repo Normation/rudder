@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.components
 
@@ -53,43 +53,41 @@ package com.normation.rudder.web.components
  * limitations under the License.
  */
 
-
-import _root_.scala.xml.Elem
 import _root_.net.liftweb.common._
-import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
 import _root_.net.liftweb.http.js._
-import JsCmds._
-import JE._
-import S._
-import Helpers._
+import _root_.net.liftweb.util._
+import _root_.scala.xml.Elem
+import net.liftweb.http.S._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers._
 
 /**
  * A modified version of AutoComplete that accepts an OnSubmit with a JsCmd, and
  * submits automatically when an entry is selected
  */
 object AutoCompleteAutoSubmit {
- def apply(start: String,
-            options: (String, Int) => Seq[String],
-            onSubmit: String => JsCmd,
-            attrs: (String, String)*) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs:_*)
+  def apply(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*) =
+    new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs: _*)
 
-  def apply(start: String,
-            options: (String, Int) => Seq[String],
-            onSubmit: String => JsCmd,
-            jsonOptions: List[(String,String)],
-            attrs: (String, String)*) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions ,attrs:_*)
+  def apply(
+      start:       String,
+      options:     (String, Int) => Seq[String],
+      onSubmit:    String => JsCmd,
+      jsonOptions: List[(String, String)],
+      attrs:       (String, String)*
+  ) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions, attrs: _*)
 
-  def autocompleteObj[T](options: Seq[(T, String)],
-                         default: Box[T],
-                         onSubmit: T => JsCmd): Elem = new AutoCompleteAutoSubmit().autocompleteObj(options, default, onSubmit)
+  def autocompleteObj[T](options: Seq[(T, String)], default: Box[T], onSubmit: T => JsCmd): Elem =
+    new AutoCompleteAutoSubmit().autocompleteObj(options, default, onSubmit)
 
-  def autocompleteObj[T](options: Seq[(T, String)],
-                          default: Box[T],
-                          jsonOptions: List[(String,String)],
-                          onSubmit: T => JsCmd): Elem = new AutoCompleteAutoSubmit().autocompleteObj(options, default, jsonOptions, onSubmit)
-
-
+  def autocompleteObj[T](
+      options:     Seq[(T, String)],
+      default:     Box[T],
+      jsonOptions: List[(String, String)],
+      onSubmit:    T => JsCmd
+  ): Elem = new AutoCompleteAutoSubmit().autocompleteObj(options, default, jsonOptions, onSubmit)
 
   /**
    * register the resources with lift (typically in boot)
@@ -97,86 +95,89 @@ object AutoCompleteAutoSubmit {
   def init(): Unit = {
     import net.liftweb.http.ResourceServer
 
-    ResourceServer.allow({
-        case "autocomplete" :: _ => true
-     })
+    ResourceServer.allow { case "autocomplete" :: _ => true }
   }
 
 }
-
 
 class AutoCompleteAutoSubmit {
 
   /**
    * Create an autocomplete form based on a sequence.
    */
-  def autocompleteObj[T](options: Seq[(T, String)],
-                         default: Box[T],
-                         onSubmit: T => JsCmd): Elem = {
-     val jsonOptions :List[(String,String)] = List()
-     autocompleteObj(options, default, jsonOptions, onSubmit)
+  def autocompleteObj[T](options: Seq[(T, String)], default: Box[T], onSubmit: T => JsCmd): Elem = {
+    val jsonOptions: List[(String, String)] = List()
+    autocompleteObj(options, default, jsonOptions, onSubmit)
   }
 
   /**
    * Create an autocomplete form based on a sequence.
    */
-   def autocompleteObj[T](options: Seq[(T, String)],
-                          default: Box[T],
-                          jsonOptions: List[(String,String)],
-                          onSubmit: T => JsCmd): Elem = {
+  def autocompleteObj[T](
+      options:     Seq[(T, String)],
+      default:     Box[T],
+      jsonOptions: List[(String, String)],
+      onSubmit:    T => JsCmd
+  ): Elem = {
     val (nonces, defaultNonce, secureOnSubmit) = secureOptions(options, default, onSubmit)
-    val defaultString = default.flatMap(d => options.find(_._1 == d).map(_._2))
+    val defaultString                          = default.flatMap(d => options.find(_._1 == d).map(_._2))
 
     autocomplete_*(nonces, defaultString, defaultNonce, secureOnSubmit, jsonOptions)
   }
 
-  private def autocomplete_*(options: Seq[(String, String)], default: Box[String],
-                     defaultNonce: Box[String], onSubmit: AFuncHolder, jsonOptions: List[(String,String)]): Elem = {
+  private def autocomplete_*(
+      options:      Seq[(String, String)],
+      default:      Box[String],
+      defaultNonce: Box[String],
+      onSubmit:     AFuncHolder,
+      jsonOptions:  List[(String, String)]
+  ): Elem = {
     val id = Helpers.nextFuncName
 
-    fmapFunc(onSubmit){hidden =>
+    fmapFunc(onSubmit) { hidden =>
+      val data = JsArray(options.map { case (nonce, name) => JsObj("name" -> name, "nonce" -> nonce) }: _*)
 
-      val data = JsArray(options.map {
-        case (nonce, name) => JsObj("name" -> name, "nonce" -> nonce)
-      } :_*)
-
-    /* merge the options that the user wants */
-      val jqOptions =  ("minChars","0") ::
-                       ("matchContains","true") ::
-                       ("formatItem","function(row, i, max) { return row.name; }") ::
-                       Nil ::: jsonOptions
-    val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
+      /* merge the options that the user wants */
+      val jqOptions           = ("minChars", "0") ::
+        ("matchContains", "true") ::
+        ("formatItem", "function(row, i, max) { return row.name; }") ::
+        Nil ::: jsonOptions
+      val json                = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
       val autocompleteOptions = JsRaw(json)
 
       val onLoad = JsRaw("""
       jQuery(document).ready(function(){
-        var data = """+data.toJsCmd+""";
-        jQuery("#"""+id+"""").autocomplete(data, """+autocompleteOptions.toJsCmd+""").result(function(event, dt, formatted) {
-          jQuery("#"""+hidden+"""").val(formatted);
+        var data = """ + data.toJsCmd + """;
+        jQuery("#""" + id + """").autocomplete(data, """ + autocompleteOptions.toJsCmd + """).result(function(event, dt, formatted) {
+          jQuery("#""" + hidden + """").val(formatted);
         });
       });""")
 
       <span>
         <head>
-          <link rel="stylesheet" href={"/" + LiftRules.resourceServerPath +"/autocomplete/jquery.autocomplete.css"} type="text/css" />
-          <script type="text/javascript" src={"/" + LiftRules.resourceServerPath +"/autocomplete/jquery.autocomplete.js"} />
+          <link rel="stylesheet" href={
+        "/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.css"
+      } type="text/css" />
+          <script type="text/javascript" src={"/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.js"} />
           {Script(onLoad)}
         </head>
         <input type="text" id={id} value={default.openOr("")} />
         <input type="hidden" name={hidden} id={hidden} value={defaultNonce.openOr("")} />
       </span>
-     }
+    }
   }
 
-  private def secureOptions[T](options: Seq[(T, String)], default: Box[T],
-                                     onSubmit: T => JsCmd): (Seq[(String, String)], Box[String], AFuncHolder) = {
-    val secure = options.map{case (obj, txt) => (obj, randomString(20), txt)}
+  private def secureOptions[T](
+      options:  Seq[(T, String)],
+      default:  Box[T],
+      onSubmit: T => JsCmd
+  ): (Seq[(String, String)], Box[String], AFuncHolder) = {
+    val secure       = options.map { case (obj, txt) => (obj, randomString(20), txt) }
     val defaultNonce = default.flatMap(d => secure.find(_._1 == d).map(_._2))
-    val nonces = secure.map{case (obj, nonce, txt) => (nonce, txt)}
+    val nonces       = secure.map { case (obj, nonce, txt) => (nonce, txt) }
     def process(nonce: String): Unit = secure.find(_._2 == nonce).map(x => onSubmit(x._1))
     (nonces, defaultNonce, SFuncHolder(process))
   }
-
 
   /**
    * Render a text field with Ajax autocomplete support
@@ -185,13 +186,10 @@ class AutoCompleteAutoSubmit {
    * @param option - the function to be called when user is typing text. The text and th options limit is provided to this functions
    * @param attrs - the attributes that can be added to the input text field
    */
-  def render(start: String,
-             options: (String, Int) => Seq[String],
-             onSubmit: String => JsCmd,
-             attrs: (String, String)*): Elem = {
+  def render(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*): Elem = {
 
-    val jsonOptions :List[(String,String)] = List()
-    render(start, options, onSubmit, jsonOptions, attrs:_*)
+    val jsonOptions: List[(String, String)] = List()
+    render(start, options, onSubmit, jsonOptions, attrs: _*)
 
   }
 
@@ -203,47 +201,49 @@ class AutoCompleteAutoSubmit {
    * @param attrs - the attributes that can be added to the input text field
    * @param jsonOptions - a list of pairs that will be send along to the jQuery().AutoComplete call (for customization purposes)
    */
-   def render(start: String,
-              options: (String, Int) => Seq[String],
-              onSubmit: String => JsCmd,
-              jsonOptions: List[(String,String)],
-              attrs: (String, String)*): Elem = {
+  def render(
+      start:       String,
+      options:     (String, Int) => Seq[String],
+      onSubmit:    String => JsCmd,
+      jsonOptions: List[(String, String)],
+      attrs:       (String, String)*
+  ): Elem = {
 
     val f = (ignore: String) => {
-      val q = S.param("q").openOr("")
+      val q     = S.param("q").openOr("")
       val limit = S.param("limit").flatMap(asInt).openOr(10)
-      PlainTextResponse(options(q, limit).map(s => s+"|"+s).mkString("\n"))
+      PlainTextResponse(options(q, limit).map(s => s + "|" + s).mkString("\n"))
     }
 
-
-    fmapFunc(SFuncHolder(f)){ func =>
-      val what: String = encodeURL(S.contextPath + "/" + LiftRules.liftPath+"/ajax?"+func+"=foo")
+    fmapFunc(SFuncHolder(f)) { func =>
+      val what: String = encodeURL(S.contextPath + "/" + LiftRules.liftPath + "/ajax?" + func + "=foo")
 
       val id = Helpers.nextFuncName
-      fmapFunc(SFuncHolder(onSubmit)){hidden =>
+      fmapFunc(SFuncHolder(onSubmit)) { hidden =>
+        /* merge the options that the user wants */
+        val jqOptions           = ("minChars", "0") ::
+          ("matchContains", "true") ::
+          ("selectFirst", "false") ::
+          Nil ::: jsonOptions
+        val json                = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
+        val autocompleteOptions = JsRaw(json)
 
-     /* merge the options that the user wants */
-      val jqOptions =  ("minChars","0") ::
-                       ("matchContains","true") ::
-                       ("selectFirst", "false") ::
-                       Nil ::: jsonOptions
-      val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
-      val autocompleteOptions = JsRaw(json)
-
-      val onLoad = JsRaw("""
+        val onLoad = JsRaw("""
       jQuery(document).ready(function(){
-        var data = """+what.encJs+""";
-        jQuery("#"""+id+"""").autocomplete(data, """+autocompleteOptions.toJsCmd+""").result(function(event, dt, formatted) {
-          jQuery("#"""+hidden+"""").val(formatted);
-          jQuery("#"""+hidden+"""").parents('form:first').submit();
+        var data = """ + what.encJs + """;
+        jQuery("#""" + id + """").autocomplete(data, """ + autocompleteOptions.toJsCmd + """).result(function(event, dt, formatted) {
+          jQuery("#""" + hidden + """").val(formatted);
+          jQuery("#""" + hidden + """").parents('form:first').submit();
         });
-        jQuery("#"""+id+"""").click(function() { $(this).select(); });
+        jQuery("#""" + id + """").click(function() { $(this).select(); });
       });""")
 
-      <span class="table">
+        <span class="table">
         <head>
-          <link rel="stylesheet" href={"/" + LiftRules.resourceServerPath +"/autocomplete/jquery.autocomplete.css"} type="text/css" />
-          <script type="text/javascript" src={"/" + LiftRules.resourceServerPath +"/autocomplete/jquery.autocomplete.js"} />
+          <link rel="stylesheet" href={
+          "/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.css"
+        } type="text/css" />
+          <script type="text/javascript" src={"/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.js"} />
           {Script(onLoad)}
         </head>
         <label class="input-group-addon" for={id}>
@@ -254,7 +254,7 @@ class AutoCompleteAutoSubmit {
         }
         <input type="hidden" name={hidden} id={hidden} value={start} />
       </span>
+      }
     }
-   }
   }
 }

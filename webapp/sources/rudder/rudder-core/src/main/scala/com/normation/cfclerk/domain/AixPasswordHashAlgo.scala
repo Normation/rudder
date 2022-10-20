@@ -1,53 +1,52 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.cfclerk.domain
 
-import javax.crypto.spec.PBEKeySpec
-import org.apache.commons.codec.digest.Md5Crypt
-import javax.crypto.SecretKeyFactory
-import net.liftweb.common.Loggable
 import java.security.NoSuchAlgorithmException
-import scala.util.Random
-import net.liftweb.common.Full
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import net.liftweb.common.Box
-import net.liftweb.common.Failure
 import net.liftweb.common.EmptyBox
-
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import org.apache.commons.codec.digest.Md5Crypt
+import scala.util.Random
 
 /*
  * This file contains the implementation of the 4 supported algorithms in
@@ -75,7 +74,7 @@ import net.liftweb.common.EmptyBox
  * Hope this decription may help other people find there way to generate AIX hash string.
  */
 object AixPasswordHashAlgo extends Loggable {
-  import java.lang.{ StringBuilder => JStringBuilder }
+  import java.lang.{StringBuilder => JStringBuilder}
 
   /**
    * Table with characters for Sha-Crypt Base64 transformation,
@@ -97,7 +96,7 @@ object AixPasswordHashAlgo extends Loggable {
     var w = ((b2 << 16) & 0x00ffffff) | ((b1 << 8) & 0x00ffff) | (b0 & 0xff)
     // It's effectively a "for" loop but kept to resemble the original C code.
     val n = outNumChars
-    for(i <- 0 until n) {
+    for (i <- 0 until n) {
       buffer.append(SCB64Table.charAt(w & 0x3f))
       w >>= 6
     }
@@ -119,7 +118,6 @@ object AixPasswordHashAlgo extends Loggable {
 
     sb.toString
   }
-
 
   /*
    * Generic implementation of AIX {ssha*} hash scheme.
@@ -173,20 +171,21 @@ object AixPasswordHashAlgo extends Loggable {
     ssha512impl(pwd, salt, cost)
   }
 
-
   /////
   /////          Implementation details
   ///// (if you are looking to understand how AIX hashes its
   /////  passwords, that the part of interest)
   /////
 
-  protected[domain] final def getSecretKeFactory(sha: ShaSpec): Box[SecretKeyFactory] = {
+  final protected[domain] def getSecretKeFactory(sha: ShaSpec): Box[SecretKeyFactory] = {
     try {
       Full(SecretKeyFactory.getInstance(s"PBKDF2WithHmac${sha.name}"))
     } catch {
       case ex: NoSuchAlgorithmException =>
-        Failure(s"Your current Java installation does not support PBKDF2WithHmac${sha.name} algorithm, " +
-            "which is necessary for {ssha256} hash")
+        Failure(
+          s"Your current Java installation does not support PBKDF2WithHmac${sha.name} algorithm, " +
+          "which is necessary for {ssha256} hash"
+        )
     }
   }
 
@@ -197,41 +196,46 @@ object AixPasswordHashAlgo extends Loggable {
   /////
 
   /// ssha1 revert to smd5 - but all post-java6 JVM should be ok
-  private[this] final lazy val ssha1impl = getSecretKeFactory(ShaSpec.SHA1) match {
-    case Full(skf)  => doSsha(ShaSpec.SHA1, skf) _
-    case e:EmptyBox =>
+  final private[this] lazy val ssha1impl = getSecretKeFactory(ShaSpec.SHA1) match {
+    case Full(skf) => doSsha(ShaSpec.SHA1, skf) _
+    case e: EmptyBox =>
       // this should not happen, because PBKDF2WithHmacSHA1 is
       // in standard Java since Java6. But who knows..
       // Fallback to md5 hash.
-      logger.error("Your current Java installation does not support PBKDF2WithHmacSHA1 algorithm, " +
-          "which is necessary for {ssha1} hash. Falling back to {smd5} hashing scheme")
+      logger.error(
+        "Your current Java installation does not support PBKDF2WithHmacSHA1 algorithm, " +
+        "which is necessary for {ssha1} hash. Falling back to {smd5} hashing scheme"
+      )
 
       (pwd: String, salt: Option[String], cost: Int) => smd5(pwd, salt)
   }
 
-
   /// ssha256 reverts to ssha1 - not so bad
-  private[this] final lazy val ssha256impl = getSecretKeFactory(ShaSpec.SHA256) match {
+  final private[this] lazy val ssha256impl = getSecretKeFactory(ShaSpec.SHA256) match {
     case Full(skf) => doSsha(ShaSpec.SHA256, skf) _
-    case e:EmptyBox =>
+    case e: EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA256
       // was introduced in Java 8.
       // Fallback to ssha1 hash.
-      logger.error("Your current Java installation does not support PBKDF2WithHmacSHA256 algorithm, " +
-          "which is necessary for {ssha256} hash. Falling back to {ssha1} hashing scheme")
+      logger.error(
+        "Your current Java installation does not support PBKDF2WithHmacSHA256 algorithm, " +
+        "which is necessary for {ssha256} hash. Falling back to {ssha1} hashing scheme"
+      )
 
       ssha1impl
   }
 
   /// ssha512 reverts to ssha1 - no so bad
-  private[this] final lazy val ssha512impl = getSecretKeFactory(ShaSpec.SHA512) match {
+  final private[this] lazy val ssha512impl = getSecretKeFactory(ShaSpec.SHA512) match {
     case Full(skf) => doSsha(ShaSpec.SHA512, skf) _
-    case e:EmptyBox =>
+    case e: EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA512
       // was introduced in Java 8.
       // Fallback to ssha1 hash.
-      logger.error("Your current Java installation does not support PBKDF2WithHmacSHA512 algorithm, " +
-          "which is necessary for {ssha256} hash. Falling back to {ssha1} hashing scheme")
+      logger.error(
+        "Your current Java installation does not support PBKDF2WithHmacSHA512 algorithm, " +
+        "which is necessary for {ssha256} hash. Falling back to {ssha1} hashing scheme"
+      )
 
       ssha1impl
   }
@@ -239,10 +243,13 @@ object AixPasswordHashAlgo extends Loggable {
   /*
    * This one is not public - the caller must ensure that sha and SecretKeyFactory are compatible
    */
-  protected[domain] final def doSsha(sha: ShaSpec, skf: SecretKeyFactory)(pwd: String, salt: Option[String], cost: Int): String = {
-    val rounds = 2 << (cost-1)
-    val s = salt.getOrElse(getRandomSalt(16)).getBytes("UTF-8")
-    val spec: PBEKeySpec = new PBEKeySpec(pwd.toCharArray, s, rounds, 8*sha.byteNumber)
+  final protected[domain] def doSsha(
+      sha: ShaSpec,
+      skf: SecretKeyFactory
+  )(pwd:   String, salt: Option[String], cost: Int): String = {
+    val rounds = 2 << (cost - 1)
+    val s      = salt.getOrElse(getRandomSalt(16)).getBytes("UTF-8")
+    val spec: PBEKeySpec = new PBEKeySpec(pwd.toCharArray, s, rounds, 8 * sha.byteNumber)
 
     val sb = new java.lang.StringBuilder()
     sb.append(sha.prefix)
@@ -253,7 +260,6 @@ object AixPasswordHashAlgo extends Loggable {
     (sb.toString)
   }
 
-
   /*
    * Generic trait denoting the specificities of each
    * SHA variant in term of name, number of output
@@ -261,7 +267,7 @@ object AixPasswordHashAlgo extends Loggable {
    */
   sealed trait ShaSpec {
     // SHA version: SHA1, SHA256, SHA512
-    def name      : String
+    def name: String
 
     // algo prefix prepended in the final hash string.
     final lazy val prefix = s"{s${name.toLowerCase}}"
@@ -281,50 +287,49 @@ object AixPasswordHashAlgo extends Loggable {
     // specific implementation for SHA1, SHA256 and SHA512
 
     final case object SHA1 extends ShaSpec {
-      val name   = "SHA1"
+      val name       = "SHA1"
       val byteNumber = 20
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {
-        b64from24bit(bytes( 0), bytes( 1), bytes( 2), 4, buffer)
-        b64from24bit(bytes( 3), bytes( 4), bytes( 5), 4, buffer)
-        b64from24bit(bytes( 6), bytes( 7), bytes( 8), 4, buffer)
-        b64from24bit(bytes( 9), bytes(10), bytes(11), 4, buffer)
+        b64from24bit(bytes(0), bytes(1), bytes(2), 4, buffer)
+        b64from24bit(bytes(3), bytes(4), bytes(5), 4, buffer)
+        b64from24bit(bytes(6), bytes(7), bytes(8), 4, buffer)
+        b64from24bit(bytes(9), bytes(10), bytes(11), 4, buffer)
         b64from24bit(bytes(12), bytes(13), bytes(14), 4, buffer)
         b64from24bit(bytes(15), bytes(16), bytes(17), 4, buffer)
-        b64from24bit(bytes(18), bytes(19), 0        , 3, buffer)
+        b64from24bit(bytes(18), bytes(19), 0, 3, buffer)
 
         buffer
       }
     }
 
     final case object SHA256 extends ShaSpec {
-      val name   = "SHA256"
+      val name       = "SHA256"
       val byteNumber = 32
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {
-        b64from24bit(bytes( 0), bytes( 1), bytes( 2), 4, buffer)
-        b64from24bit(bytes( 3), bytes( 4), bytes( 5), 4, buffer)
-        b64from24bit(bytes( 6), bytes( 7), bytes( 8), 4, buffer)
-        b64from24bit(bytes( 9), bytes(10), bytes(11), 4, buffer)
+        b64from24bit(bytes(0), bytes(1), bytes(2), 4, buffer)
+        b64from24bit(bytes(3), bytes(4), bytes(5), 4, buffer)
+        b64from24bit(bytes(6), bytes(7), bytes(8), 4, buffer)
+        b64from24bit(bytes(9), bytes(10), bytes(11), 4, buffer)
         b64from24bit(bytes(12), bytes(13), bytes(14), 4, buffer)
         b64from24bit(bytes(15), bytes(16), bytes(17), 4, buffer)
         b64from24bit(bytes(18), bytes(19), bytes(20), 4, buffer)
         b64from24bit(bytes(21), bytes(22), bytes(23), 4, buffer)
         b64from24bit(bytes(24), bytes(25), bytes(26), 4, buffer)
         b64from24bit(bytes(27), bytes(28), bytes(29), 4, buffer)
-        b64from24bit(bytes(30), bytes(31), 0        , 3, buffer)
+        b64from24bit(bytes(30), bytes(31), 0, 3, buffer)
 
         buffer
       }
     }
 
-
     final case object SHA512 extends ShaSpec {
-      val name   = "SHA512"
+      val name       = "SHA512"
       val byteNumber = 64
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {
-        b64from24bit(bytes( 0), bytes( 1), bytes( 2), 4, buffer)
-        b64from24bit(bytes( 3), bytes( 4), bytes( 5), 4, buffer)
-        b64from24bit(bytes( 6), bytes( 7), bytes( 8), 4, buffer)
-        b64from24bit(bytes( 9), bytes(10), bytes(11), 4, buffer)
+        b64from24bit(bytes(0), bytes(1), bytes(2), 4, buffer)
+        b64from24bit(bytes(3), bytes(4), bytes(5), 4, buffer)
+        b64from24bit(bytes(6), bytes(7), bytes(8), 4, buffer)
+        b64from24bit(bytes(9), bytes(10), bytes(11), 4, buffer)
         b64from24bit(bytes(12), bytes(13), bytes(14), 4, buffer)
         b64from24bit(bytes(15), bytes(16), bytes(17), 4, buffer)
         b64from24bit(bytes(18), bytes(19), bytes(20), 4, buffer)
@@ -342,7 +347,7 @@ object AixPasswordHashAlgo extends Loggable {
         b64from24bit(bytes(54), bytes(55), bytes(56), 4, buffer)
         b64from24bit(bytes(57), bytes(58), bytes(59), 4, buffer)
         b64from24bit(bytes(60), bytes(61), bytes(62), 4, buffer)
-        b64from24bit(bytes(63), 0        , 0        , 2, buffer)
+        b64from24bit(bytes(63), 0, 0, 2, buffer)
 
         buffer
       }
@@ -364,4 +369,3 @@ object AixPasswordHashAlgo extends Loggable {
   }
 
 }
-

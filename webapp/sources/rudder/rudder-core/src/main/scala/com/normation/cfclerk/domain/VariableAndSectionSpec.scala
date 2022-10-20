@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.cfclerk.domain
 
@@ -49,7 +49,6 @@ import com.normation.errors.Unexpected
  * A section may contains other section or variables.
  */
 
-
 /**
  * Generic trait for object in a section.
  */
@@ -58,30 +57,31 @@ sealed trait SectionChildSpec {
 
   def getVariables: Seq[VariableSpec] = this match {
     case variable: SectionVariableSpec => Seq(variable)
-    case section: SectionSpec => section.children.flatMap { child =>
-      child match {
-        case v: VariableSpec => Seq(v)
-        case _ => Seq()
+    case section:  SectionSpec         =>
+      section.children.flatMap { child =>
+        child match {
+          case v: VariableSpec => Seq(v)
+          case _ => Seq()
+        }
       }
-    }
   }
 
   def getAllSections: Seq[SectionSpec] = this match {
-    case v:SectionVariableSpec => Seq()
-    case s:SectionSpec => s +: s.children.flatMap( _.getAllSections )
+    case v: SectionVariableSpec => Seq()
+    case s: SectionSpec         => s +: s.children.flatMap(_.getAllSections)
   }
 
   // get current variables and variables in sub section
   def getAllVariables: Seq[VariableSpec] = this match {
     case variable: SectionVariableSpec => Seq(variable)
-    case section: SectionSpec =>
+    case section:  SectionSpec         =>
       section.children.flatMap(_.getAllVariables)
   }
 
   // get current variables and variables in sub section
-  def getAllVariablesBySection(parents : List[SectionSpec]): Seq[(List[SectionSpec], VariableSpec)] = this match {
+  def getAllVariablesBySection(parents: List[SectionSpec]): Seq[(List[SectionSpec], VariableSpec)] = this match {
     case variable: SectionVariableSpec => Seq((parents, variable))
-    case section: SectionSpec =>
+    case section:  SectionSpec         =>
       section.children.flatMap(_.getAllVariablesBySection(section :: parents))
   }
 
@@ -89,7 +89,7 @@ sealed trait SectionChildSpec {
     val root = if (this.name == name) Seq(this) else Seq()
 
     val others = this match {
-      case section: SectionSpec =>
+      case section:  SectionSpec         =>
         section.children.flatMap(_.filterByName(name))
       case variable: SectionVariableSpec => Seq()
     }
@@ -97,42 +97,42 @@ sealed trait SectionChildSpec {
   }
 }
 
-
 /**
  * Metadata about a section object.
  */
 final case class SectionSpec(
-    name            : String
-  , isMultivalued   : Boolean = false
-  , isComponent     : Boolean = false
-  , componentKey    : Option[String] = None
-  , displayPriority : DisplayPriority = HighDisplayPriority
-  , description     : String = ""
-  , children        : Seq[SectionChildSpec] = Seq()
-  , reportingLogic  : Option[ReportingLogic] = None
-  , id              : Option[String] = None
+    name:            String,
+    isMultivalued:   Boolean = false,
+    isComponent:     Boolean = false,
+    componentKey:    Option[String] = None,
+    displayPriority: DisplayPriority = HighDisplayPriority,
+    description:     String = "",
+    children:        Seq[SectionChildSpec] = Seq(),
+    reportingLogic:  Option[ReportingLogic] = None,
+    id:              Option[String] = None
 ) extends SectionChildSpec {
 
-  lazy val getDirectVariables : Seq[VariableSpec] = {
-    children.collect { case v:VariableSpec => v }
+  lazy val getDirectVariables: Seq[VariableSpec] = {
+    children.collect { case v: VariableSpec => v }
   }
 
-  lazy val getDirectSections : Seq[SectionSpec] = {
-    children.collect { case s:SectionSpec => s }
+  lazy val getDirectSections: Seq[SectionSpec] = {
+    children.collect { case s: SectionSpec => s }
   }
 
-  def copyWithoutSystemVars: SectionSpec =
+  def copyWithoutSystemVars: SectionSpec = {
     filterChildren {
-      case _ : PredefinedValuesVariableSpec => false
-      case variable: VariableSpec => !variable.isSystem
+      case _:        PredefinedValuesVariableSpec => false
+      case variable: VariableSpec                 => !variable.isSystem
       case _ => true
     }
+  }
 
   // do recursively a filter on each SectionChild
   def filterChildren(f: SectionChildSpec => Boolean): SectionSpec = {
     val kept = children.filter(f) map { child =>
       child match {
-        case secSpec: SectionSpec => secSpec.filterChildren(f)
+        case secSpec: SectionSpec         => secSpec.filterChildren(f)
         case varSpec: SectionVariableSpec => varSpec
       }
     }
@@ -140,16 +140,22 @@ final case class SectionSpec(
   }
 
   def cloneVariablesInMultivalued: Either[LoadTechniqueError, SectionSpec] = {
-    if(isMultivalued) recCloneMultivalued
-    else Left(LoadTechniqueError.Consistancy("Trying to clone multivariable value in a non multivariable variable. It's likely a bug."))
+    if (isMultivalued) recCloneMultivalued
+    else {
+      Left(
+        LoadTechniqueError.Consistancy("Trying to clone multivariable value in a non multivariable variable. It's likely a bug.")
+      )
+    }
   }
 
   private def recCloneMultivalued: Either[LoadTechniqueError, SectionSpec] = {
-    val multivaluedChildren = children.toList.traverse { child => child match {
-      case s: SectionSpec =>
+    val multivaluedChildren = children.toList.traverse { child =>
+      child match {
+        case s: SectionSpec         =>
           s.recCloneMultivalued.toValidatedNel
-      case v: SectionVariableSpec => v.cloneSetMultivalued.validNel
-    } }.leftMap(errs => LoadTechniqueError.Accumulated(errs)).toEither
+        case v: SectionVariableSpec => v.cloneSetMultivalued.validNel
+      }
+    }.leftMap(errs => LoadTechniqueError.Accumulated(errs)).toEither
 
     for {
       x <- multivaluedChildren
@@ -170,10 +176,10 @@ object SectionSpec {
  */
 sealed trait VariableSpec {
   type T <: VariableSpec
-  type V <: Variable //type of variable linked to that variable spec
+  type V <: Variable // type of variable linked to that variable spec
 
-  def name: String
-  def description: String
+  def name:            String
+  def description:     String
   def longDescription: String
 
   def multivalued: Boolean
@@ -182,7 +188,7 @@ sealed trait VariableSpec {
   // Some value shouldn't be checked : when we set their value, we don't check anything
   def checked: Boolean
 
-  //create a new variable from that spec
+  // create a new variable from that spec
   def toVariable(values: Seq[String] = Seq()): V
 
   /*
@@ -198,37 +204,34 @@ sealed trait VariableSpec {
   def isSystem: Boolean = {
     this match {
       case _: SystemVariableSpec | _: TrackerVariableSpec => true
-      case _ => false
+      case _                                              => false
     }
   }
 
   def constraint: Constraint
 
-  def id :Option[String]
+  def id: Option[String]
 }
 
 // A SystemVariable is automatically filled by Rudder
 // It has the RAW constraint, meaning it is *NOT* escaped
 final case class SystemVariableSpec(
-    override val name: String
-  , val description: String
-  , val longDescription: String = ""
-  , val valueslabels: Seq[ValueLabel] = Seq()
-  , val multivalued: Boolean
+    override val name:   String,
+    val description:     String,
+    val longDescription: String = "",
+    val valueslabels:    Seq[ValueLabel] = Seq(),
+    val multivalued:     Boolean, // we expect that by default the variable will be checked
 
-  // we expect that by default the variable will be checked
-  , val checked: Boolean = true
+    val checked: Boolean = true, // A system variable is always of the "raw" type, meaning it won't be escaped
 
-  // A system variable is always of the "raw" type, meaning it won't be escaped
-  , val constraint: Constraint = Constraint(RawVType)
-  , val id : Option[String] = None
-
+    val constraint: Constraint = Constraint(RawVType),
+    val id:         Option[String] = None
 ) extends VariableSpec {
 
   override type T = SystemVariableSpec
   override type V = SystemVariable
-  override def cloneSetMultivalued: SystemVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = Seq()): SystemVariable = SystemVariable(this, values)
+  override def cloneSetMultivalued:            SystemVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = Seq()): SystemVariable     = SystemVariable(this, values)
 }
 
 /**
@@ -238,24 +241,24 @@ final case class SystemVariableSpec(
  * keep track of directive and rule ids.
  */
 final case class TrackerVariableSpec(
-    val boundingVariable: Option[String] = None
-  , val id : Option[String]
+    val boundingVariable: Option[String] = None,
+    val id:               Option[String]
 ) extends VariableSpec {
 
   override type T = TrackerVariableSpec
   override type V = TrackerVariable
 
-  override val name: String = TRACKINGKEY
+  override val name:        String = TRACKINGKEY
   override val description: String = "Variable which kept information about the policy"
 
   override val checked: Boolean = false
 
   val constraint: Constraint = Constraint()
 
-  override val multivalued = true
+  override val multivalued     = true
   override val longDescription = ""
-  override def cloneSetMultivalued: TrackerVariableSpec = this.copy()
-  def toVariable(values: Seq[String] = constraint.default.toSeq): TrackerVariable = TrackerVariable(this, values)
+  override def cloneSetMultivalued:                               TrackerVariableSpec = this.copy()
+  def toVariable(values: Seq[String] = constraint.default.toSeq): TrackerVariable     = TrackerVariable(this, values)
 }
 
 /**
@@ -267,7 +270,7 @@ sealed trait SectionVariableSpec extends SectionChildSpec with VariableSpec {
 }
 
 final case class ValueLabel(value: String, label: String) {
-  def tuple = (value, label)
+  def tuple   = (value, label)
   def reverse = ValueLabel(label, value)
 }
 
@@ -279,44 +282,42 @@ trait ValueLabelVariableSpec extends SectionVariableSpec {
  * A "list of checkbox" kind of select
  */
 final case class SelectVariableSpec(
-    override val name: String
-  , val description: String
-  , val longDescription: String = ""
-  , val valueslabels: Seq[ValueLabel] = Seq()
-  , val multivalued: Boolean = false
-  // we expect that by default the variable will be checked
-  , val checked: Boolean = true
-  , val constraint: Constraint = Constraint()
-  , val id : Option[String]
+    override val name:   String,
+    val description:     String,
+    val longDescription: String = "",
+    val valueslabels:    Seq[ValueLabel] = Seq(),
+    val multivalued:     Boolean = false, // we expect that by default the variable will be checked
 
+    val checked:    Boolean = true,
+    val constraint: Constraint = Constraint(),
+    val id:         Option[String]
 ) extends ValueLabelVariableSpec {
 
   override type T = SelectVariableSpec
   override type V = SelectVariable
-  override def cloneSetMultivalued: SelectVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectVariable = SelectVariable(this, values)
+  override def cloneSetMultivalued:                               SelectVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectVariable     = SelectVariable(this, values)
 }
 
 /**
  * A button-like or dropdown kind of select
  */
 final case class SelectOneVariableSpec(
-    override val name: String
-  , val description: String
-  , val longDescription: String = ""
-  , val valueslabels: Seq[ValueLabel] = Seq()
-  , val multivalued: Boolean = false
-  // we expect that by default the variable will be checked
-  , val checked: Boolean = true
-  , val constraint: Constraint = Constraint()
-  , val id : Option[String]
+    override val name:   String,
+    val description:     String,
+    val longDescription: String = "",
+    val valueslabels:    Seq[ValueLabel] = Seq(),
+    val multivalued:     Boolean = false, // we expect that by default the variable will be checked
 
+    val checked:    Boolean = true,
+    val constraint: Constraint = Constraint(),
+    val id:         Option[String]
 ) extends ValueLabelVariableSpec {
 
   override type T = SelectOneVariableSpec
   override type V = SelectOneVariable
-  override def cloneSetMultivalued: SelectOneVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectOneVariable = SelectOneVariable(this, values)
+  override def cloneSetMultivalued:                               SelectOneVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectOneVariable     = SelectOneVariable(this, values)
 }
 
 /**
@@ -325,19 +326,19 @@ final case class SelectOneVariableSpec(
  * won't be able to change them.
  */
 final case class PredefinedValuesVariableSpec(
-    override val name: String
-  , val description: String
-    //The list of predefined values, provided
-    //directly in the variable spec
-    //that list can not be empty (but Scala does not have a NonEmptyList type)
-    //Values are ordered.
-  , val providedValues: (String, Seq[String])
-  , val longDescription: String = ""
-  , val multivalued: Boolean = true
-    // we expect that by default the variable will be checked
-  , val checked: Boolean = true
-  , val constraint: Constraint = Constraint()
-  , val id : Option[String]
+    override val name: String,
+    val description:   String, // The list of predefined values, provided
+    // directly in the variable spec
+    // that list can not be empty (but Scala does not have a NonEmptyList type)
+    // Values are ordered.
+
+    val providedValues:  (String, Seq[String]),
+    val longDescription: String = "",
+    val multivalued:     Boolean = true, // we expect that by default the variable will be checked
+
+    val checked:    Boolean = true,
+    val constraint: Constraint = Constraint(),
+    val id:         Option[String]
 ) extends SectionVariableSpec {
 
   def nelOfProvidedValues = providedValues._1 :: providedValues._2.toList
@@ -346,30 +347,28 @@ final case class PredefinedValuesVariableSpec(
   override type V = PredefinedValuesVariable
   override def cloneSetMultivalued: PredefinedValuesVariableSpec = this.copy(multivalued = true)
 
-  //to create the variable from that spec, just use the provided values.
+  // to create the variable from that spec, just use the provided values.
   def toVariable(values: Seq[String] = nelOfProvidedValues): PredefinedValuesVariable = PredefinedValuesVariable(this, values)
 }
-
 
 /**
  * Standard, unique input (text field)
  */
 final case class InputVariableSpec(
-    override val name: String
-  , val description: String
-  , val longDescription: String = ""
-  , val multivalued: Boolean = false
-    // we expect that by default the variable will be checked
-  , val checked: Boolean = true
-  , val constraint: Constraint = Constraint()
-  , val id : Option[String]
+    override val name:   String,
+    val description:     String,
+    val longDescription: String = "",
+    val multivalued:     Boolean = false, // we expect that by default the variable will be checked
 
+    val checked:    Boolean = true,
+    val constraint: Constraint = Constraint(),
+    val id:         Option[String]
 ) extends SectionVariableSpec {
 
   override type T = InputVariableSpec
   override type V = InputVariable
-  override def cloneSetMultivalued: InputVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): InputVariable = InputVariable(this, values)
+  override def cloneSetMultivalued:                               InputVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): InputVariable     = InputVariable(this, values)
 }
 
 /**
@@ -389,32 +388,41 @@ object SectionVariableSpec {
    * Some of the arguments are not used by all implementations of Variable.
    */
   def apply(
-      varName        : String
-    , description    : String
-    , markerName     : String
-    , longDescription: String = ""
-    , valueslabels   : Seq[ValueLabel]
-    , multivalued    : Boolean = false
-    , checked        : Boolean = true
-    , constraint     : Constraint = Constraint()
-    , providedValues : Seq[String]
-    , id             : Option[String]
-
+      varName:         String,
+      description:     String,
+      markerName:      String,
+      longDescription: String = "",
+      valueslabels:    Seq[ValueLabel],
+      multivalued:     Boolean = false,
+      checked:         Boolean = true,
+      constraint:      Constraint = Constraint(),
+      providedValues:  Seq[String],
+      id:              Option[String]
   ): SectionVariableSpec = {
 
     markerName match {
-      case INPUT =>
-        InputVariableSpec(varName, description, longDescription, multivalued, checked, constraint,id)
-      case SELECT =>
+      case INPUT       =>
+        InputVariableSpec(varName, description, longDescription, multivalued, checked, constraint, id)
+      case SELECT      =>
         SelectVariableSpec(varName, description, longDescription, valueslabels, multivalued, checked, constraint, id)
-      case SELECT1 =>
+      case SELECT1     =>
         SelectOneVariableSpec(varName, description, longDescription, valueslabels, multivalued, checked, constraint, id)
       case REPORT_KEYS =>
-        if(providedValues.isEmpty)
+        if (providedValues.isEmpty) {
           throw EmptyReportKeysValue(varName)
-        else
-          PredefinedValuesVariableSpec(varName, description, (providedValues.head, providedValues.tail), longDescription, multivalued, checked, constraint,id)
-      case x => throw new IllegalArgumentException("Unknown variable kind: " + x)
+        } else {
+          PredefinedValuesVariableSpec(
+            varName,
+            description,
+            (providedValues.head, providedValues.tail),
+            longDescription,
+            multivalued,
+            checked,
+            constraint,
+            id
+          )
+        }
+      case x           => throw new IllegalArgumentException("Unknown variable kind: " + x)
     }
   }
 }
@@ -425,7 +433,7 @@ object SectionVariableSpec {
  * to high
  */
 sealed trait DisplayPriority {
-  def priority : String
+  def priority: String
 }
 
 final case object HighDisplayPriority extends DisplayPriority {
@@ -436,9 +444,8 @@ final case object LowDisplayPriority extends DisplayPriority {
   val priority = "low"
 }
 
-
 object DisplayPriority {
-  def apply(s: String) : Option[DisplayPriority] = {
+  def apply(s: String): Option[DisplayPriority] = {
     s.toLowerCase match {
       case HighDisplayPriority.priority => Some(HighDisplayPriority)
       case LowDisplayPriority.priority  => Some(LowDisplayPriority)
@@ -461,7 +468,7 @@ object DisplayPriority {
  *    to the sum of weight of all sub components.
  */
 sealed trait ReportingLogic {
-  def value : String
+  def value: String
 }
 
 sealed trait WorstReportReportingLogic extends ReportingLogic
@@ -471,7 +478,7 @@ object ReportingLogic {
   object FocusReport {
     val key = "focus"
   }
-  final case class FocusReport(component : String) extends ReportingLogic {
+  final case class FocusReport(component: String) extends ReportingLogic {
     val value = s"${FocusReport.key}:${component}"
   }
   final case object WorstReportWeightedOne extends WorstReportReportingLogic {
@@ -483,7 +490,7 @@ object ReportingLogic {
   final case object WeightedReport extends ReportingLogic {
     val value = "weighted"
   }
-  def parse(value : String, defaultFocusKey: String = "") : PureResult[ReportingLogic] = {
+  def parse(value: String, defaultFocusKey: String = ""): PureResult[ReportingLogic] = {
     value.toLowerCase match {
       case WorstReportWeightedOne.value => Right(WorstReportWeightedOne)
       case WorstReportWeightedSum.value => Right(WorstReportWeightedSum)

@@ -1,29 +1,29 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.history
 
 import com.normation.errors._
 import org.joda.time.DateTime
 
-trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
+trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
 
   /**
    * Save an inventory and return the ID of the saved inventory, and
@@ -31,16 +31,16 @@ trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    * @param historyLog
    * @return
    */
-  def save(id:ID,data:T,datetime:DateTime = DateTime.now) : IOResult[HLog]
+  def save(id: ID, data: T, datetime: DateTime = DateTime.now): IOResult[HLog]
 
 }
 
-trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
+trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
 
   /**
    * Retrieve all ids known by the repository
    */
-  def getIds : IOResult[Seq[ID]]
+  def getIds: IOResult[Seq[ID]]
 
   /**
    * Get the list of record for the given ID
@@ -50,7 +50,7 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    *   Full(seq) if that id exists. Seq may be empty
    *     if no version are available.
    */
-  def getAll(id:ID) : IOResult[Seq[HLog]]
+  def getAll(id: ID): IOResult[Seq[HLog]]
 
   /**
    * Get the last record for the given ID.
@@ -59,7 +59,7 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    *     if the id does not exists or has no recorded history
    *   Full(hlog) the last recorded version of hlog
    */
-  def getLast(id:ID) : IOResult[HLog]
+  def getLast(id: ID): IOResult[HLog]
 
   /**
    * Get the last record for the given ID and version.
@@ -69,8 +69,7 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    *     recorded history
    *   Full(hlog) the recorded version of hlog
    */
-  def get(id:ID, version:V) : IOResult[HLog]
-
+  def get(id: ID, version: V): IOResult[HLog]
 
   /**
    * Return the list of version for ID.
@@ -82,9 +81,8 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    *     Seq is sorted with last version (most recent) first
    *     and so ( versions.head > versions.head.head )
    */
-  def versions(id:ID) : IOResult[Seq[V]]
+  def versions(id: ID): IOResult[Seq[V]]
 }
 
-trait HistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] extends
-  WriteOnlyHistoryLogRepository[ID, V, T, HLog] with
-  ReadOnlyHistoryLogRepository[ID, V, T, HLog] {}
+trait HistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]]
+    extends WriteOnlyHistoryLogRepository[ID, V, T, HLog] with ReadOnlyHistoryLogRepository[ID, V, T, HLog] {}

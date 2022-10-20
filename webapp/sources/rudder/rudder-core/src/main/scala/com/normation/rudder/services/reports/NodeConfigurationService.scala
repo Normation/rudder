@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2021 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2021 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.reports
 
@@ -60,12 +60,13 @@ import zio.syntax._
  * if an entry exists but wthout the right nodeconfigid, it will query the database (but not update the cache)
  */
 trait NodeConfigurationService {
+
   /**
    * retrieve expected reports by config version
    */
   def findNodeExpectedReports(
-         nodeConfigIds: Set[NodeAndConfigId]
-      ): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
+      nodeConfigIds: Set[NodeAndConfigId]
+  ): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
 
   /**
    * get the current expected reports
@@ -80,16 +81,14 @@ trait NodeConfigurationService {
   def findNodesApplyingRule(ruleId: RuleId): IOResult[Set[NodeId]]
 }
 
-
 trait NewExpectedReportsAvailableHook {
   def newExpectedReports(action: CacheExpectedReportAction): IOResult[Unit]
 }
 
 class CachedNodeConfigurationService(
-    val confExpectedRepo: FindExpectedReportRepository
-  , val nodeInfoService : NodeInfoService
+    val confExpectedRepo: FindExpectedReportRepository,
+    val nodeInfoService:  NodeInfoService
 ) extends NodeConfigurationService with CachedRepository with InvalidateCache[CacheExpectedReportAction] {
-
 
   val semaphore = Semaphore.make(1).runNow
 
@@ -103,11 +102,12 @@ class CachedNodeConfigurationService(
    * Workaround is to define hooks that will do the dirty works
    * Introduced in https://issues.rudder.io/issues/19740
    */
-  var hooks : List[NewExpectedReportsAvailableHook] = Nil
+  var hooks: List[NewExpectedReportsAvailableHook] = Nil
 
   def addHook(hook: NewExpectedReportsAvailableHook): Unit = {
     hooks = hook :: hooks
   }
+
   /**
    * The cache is managed node by node.
    * A missing nodeId mean that the cache wasn't initialized for
@@ -143,19 +143,18 @@ class CachedNodeConfigurationService(
    */
   private[this] val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
 
-
   // Init to do
   // what's the best method ? init directly from db, fetching all nodeconfigurations
   // that are empty
   // or initing it with all nodes, and nothing in it, and only then fetching by batch
   // batching saves memory, but is slower
   // i think it's safer to do the batching part, but i'd like to be sure of that
-  def init() : IOResult[Unit] = {
+  def init(): IOResult[Unit] = {
     for {
       _       <- logger.debug("Init cache in NodeConfigurationService")
       // first, get all nodes
       nodeIds <- nodeInfoService.getAllNodesIds()
-                 // void the cache
+      // void the cache
       _       <- semaphore.withPermit(cache.set(nodeIds.map(_ -> None).toMap))
     } yield ()
   }
@@ -164,14 +163,15 @@ class CachedNodeConfigurationService(
    * Update logic. We take message from queue one at a time, and process.
    * we need to keep order
    */
-  val updateCacheFromRequest: IO[Nothing, Unit] = invalidateNodeConfigurationRequest.take.flatMap(invalidatedIds =>
-    ZIO.foreach_(invalidatedIds.map(_._2) : List[CacheExpectedReportAction])(action =>
-      performAction(action).catchAll(err =>
+  val updateCacheFromRequest: IO[Nothing, Unit] = invalidateNodeConfigurationRequest.take.flatMap(invalidatedIds => {
+    ZIO.foreach_(invalidatedIds.map(_._2): List[CacheExpectedReportAction])(action => {
+      performAction(action).catchAll(err => {
         // when there is an error with an action on the cache, it can becomes inconsistant and we need to (try to) reinit it
         logger.error(s"Error when updating NodeConfiguration cache for node: [${action.nodeId.value}]: ${err.fullMsg}") *>
-        init().catchAll(err => logger.error(s"NodeConfiguration cache re-init after error failed, please try to restart app")))
-    )
-  )
+        init().catchAll(err => logger.error(s"NodeConfiguration cache re-init after error failed, please try to restart app"))
+      })
+    })
+  })
 
   // start updating
   updateCacheFromRequest.forever.forkDaemon.runNow
@@ -185,7 +185,6 @@ class CachedNodeConfigurationService(
     logger.logEffect.debug("Node expected reports cache cleared")
   }
 
-
   /**
    * Do something with the action we received
    */
@@ -194,13 +193,13 @@ class CachedNodeConfigurationService(
     // in a semaphore
     semaphore.withPermit(
       (action match {
-                          case insert: InsertNodeInCache => cache.update( data => data + (insert.nodeId -> None))
-                          case delete: RemoveNodeInCache => cache.update( data => data.removed(delete.nodeId) )
-                          case update: UpdateNodeConfiguration =>
-                            cache.update( data => data + (update.nodeId -> Some(update.nodeConfiguration)))
-                   }) *>
-        ZIO.foreach_(hooks) { hook => hook.newExpectedReports(action)}
-     // complianceCache.get.invalidateWithAction(Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action))))
+        case insert: InsertNodeInCache       => cache.update(data => data + (insert.nodeId -> None))
+        case delete: RemoveNodeInCache       => cache.update(data => data.removed(delete.nodeId))
+        case update: UpdateNodeConfiguration =>
+          cache.update(data => data + (update.nodeId -> Some(update.nodeConfiguration)))
+      }) *>
+      ZIO.foreach_(hooks)(hook => hook.newExpectedReports(action))
+      // complianceCache.get.invalidateWithAction(Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action))))
     )
   }
 
@@ -210,12 +209,14 @@ class CachedNodeConfigurationService(
    */
   override def invalidateWithAction(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     ZIO.when(actions.nonEmpty) {
-      logger.debug(s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._2).mkString(",")}]") *>
-        invalidateMergeUpdateSemaphore.withPermit(for {
-          elements     <- invalidateNodeConfigurationRequest.takeAll
-          allActions   =  (elements.flatten ++ actions)
-          _            <- invalidateNodeConfigurationRequest.offer(allActions)
-        } yield ())
+      logger.debug(
+        s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._2).mkString(",")}]"
+      ) *>
+      invalidateMergeUpdateSemaphore.withPermit(for {
+        elements  <- invalidateNodeConfigurationRequest.takeAll
+        allActions = (elements.flatten ++ actions)
+        _         <- invalidateNodeConfigurationRequest.offer(allActions)
+      } yield ())
     }
   }
 
@@ -224,7 +225,9 @@ class CachedNodeConfigurationService(
    */
   def getCurrentExpectedReports(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[NodeExpectedReports]]] = {
     // add logging, to ensure that semaphoring the whole is not too blocking
-    logger.logEffect.trace(s"Calling getCurrentExpectedReports - before semaphore for nodes ${nodeIds.map(_.value).mkString(", ")}")
+    logger.logEffect.trace(
+      s"Calling getCurrentExpectedReports - before semaphore for nodes ${nodeIds.map(_.value).mkString(", ")}"
+    )
     val before_semaphoreTime = System.currentTimeMillis
 
     // In a semaphore, nothing should change the cache
@@ -233,13 +236,13 @@ class CachedNodeConfigurationService(
       _               <- logger.trace(s"Entered the semaphore after ${timeInSemaphore - before_semaphoreTime} ms")
 
       // First, get all nodes from cache (even the none)
-      dataFromCache <- cache.get.map(_.filter{  case (nodeId, _) => nodeIds.contains(nodeId) })
+      dataFromCache    <- cache.get.map(_.filter { case (nodeId, _) => nodeIds.contains(nodeId) })
       // now fetch others from database, if necessary
       // if the configuration is none, then cache isn't inited for it
-      _ <- logger.trace(s"data from cache for expected reports is ${dataFromCache.values.mkString(", \n")}")
-      dataUninitialized = dataFromCache.filter{ case (nodeId, option) => option.isEmpty}.keySet
-      fromDb     <- confExpectedRepo.getCurrentExpectedsReports(dataUninitialized).toIO
-      _          <- logger.trace(s"Fetch from DB ${fromDb.size} current expected reports")
+      _                <- logger.trace(s"data from cache for expected reports is ${dataFromCache.values.mkString(", \n")}")
+      dataUninitialized = dataFromCache.filter { case (nodeId, option) => option.isEmpty }.keySet
+      fromDb           <- confExpectedRepo.getCurrentExpectedsReports(dataUninitialized).toIO
+      _                <- logger.trace(s"Fetch from DB ${fromDb.size} current expected reports")
 
       // ? question ?
       // how to properly ensure that cache is synchro ?
@@ -247,7 +250,7 @@ class CachedNodeConfigurationService(
       // it a "none" config from db, well it was already that in `dataUninitialized`
       // All updates which could insert newer data in cache are processed in `performAction`, but blocked by the semaphore
       // So we can just merge the cache here
-      _         <- cache.updateAndGet(_ ++ fromDb)
+      _ <- cache.updateAndGet(_ ++ fromDb)
     } yield {
       // returns only the requested nodes
       dataFromCache ++ fromDb
@@ -261,14 +264,18 @@ class CachedNodeConfigurationService(
   def findNodesApplyingRule(ruleId: RuleId): IOResult[Set[NodeId]] = {
     // this don't need to be in a semaphore, since it's only one atomic cache read
     for {
-      nodeConfs       <- cache.get
-      nodesNotInCache =  nodeConfs.collect { case (k, value) if(value.isEmpty) => k }.toSet
-      dataFromCache   =  nodeConfs.collect { case (k, Some(nodeExpectedReports)) if(nodeExpectedReports.ruleExpectedReports.map(_.ruleId).contains(ruleId)) => k}.toSet
-      fromRepo        <- if (nodesNotInCache.isEmpty) {
-                           Set.empty[NodeId].succeed
-                         } else { // query the repo
-                           confExpectedRepo.findCurrentNodeIdsForRule(ruleId, nodesNotInCache)
-                         }
+      nodeConfs      <- cache.get
+      nodesNotInCache = nodeConfs.collect { case (k, value) if (value.isEmpty) => k }.toSet
+      dataFromCache   = {
+        nodeConfs.collect {
+          case (k, Some(nodeExpectedReports)) if (nodeExpectedReports.ruleExpectedReports.map(_.ruleId).contains(ruleId)) => k
+        }.toSet
+      }
+      fromRepo       <- if (nodesNotInCache.isEmpty) {
+                          Set.empty[NodeId].succeed
+                        } else { // query the repo
+                          confExpectedRepo.findCurrentNodeIdsForRule(ruleId, nodesNotInCache)
+                        }
     } yield {
       dataFromCache ++ fromRepo
     }
@@ -277,46 +284,50 @@ class CachedNodeConfigurationService(
   /**
    * retrieve expected reports by config version
    */
-  def findNodeExpectedReports(nodeConfigIds: Set[NodeAndConfigId]): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
+  def findNodeExpectedReports(
+      nodeConfigIds: Set[NodeAndConfigId]
+  ): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
     // first get the config which are current (no enddate) from cache. It should be the majority, hopefully
     for {
-      allCached <- cache.get
-      inCache   =  allCached.map { case (id, expected) => expected match {
-                    case None => None
-                    case Some(nodeExpectedReport) =>
-                      val nodeAndConfigId = NodeAndConfigId(id, nodeExpectedReport.nodeConfigId)
-                      if (nodeConfigIds.contains(nodeAndConfigId)) {
-                        Some((nodeAndConfigId, expected)) // returns from the cache if it match
-                      } else {
-                        None
-                      }
-                  }}.flatten.toMap
+      allCached           <- cache.get
+      inCache              = allCached.map {
+                               case (id, expected) =>
+                                 expected match {
+                                   case None                     => None
+                                   case Some(nodeExpectedReport) =>
+                                     val nodeAndConfigId = NodeAndConfigId(id, nodeExpectedReport.nodeConfigId)
+                                     if (nodeConfigIds.contains(nodeAndConfigId)) {
+                                       Some((nodeAndConfigId, expected)) // returns from the cache if it match
+                                     } else {
+                                       None
+                                     }
+                                 }
+                             }.flatten.toMap
       // search for all others in repo
       // here, we could do something clever by filtering all those with None enddate and add them in repo
       // but I don't want to be double clever
       missingNodeConfigIds = nodeConfigIds -- inCache.keySet
-      fromDb <- confExpectedRepo.getExpectedReports(missingNodeConfigIds).toIO
+      fromDb              <- confExpectedRepo.getExpectedReports(missingNodeConfigIds).toIO
     } yield {
       fromDb ++ inCache
     }
   }
 }
 
-
-
 /**
  * simple implementation
  * simply call the repo, as a passthrough
  */
 class NodeConfigurationServiceImpl(
-  confExpectedRepo: FindExpectedReportRepository
+    confExpectedRepo: FindExpectedReportRepository
 ) extends NodeConfigurationService {
+
   /**
    * retrieve expected reports by config version
    */
   def findNodeExpectedReports(
-        nodeConfigIds: Set[NodeAndConfigId]
-      ): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
+      nodeConfigIds: Set[NodeAndConfigId]
+  ): IOResult[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
     confExpectedRepo.getExpectedReports(nodeConfigIds).toIO
   }
 
@@ -336,4 +347,3 @@ class NodeConfigurationServiceImpl(
     confExpectedRepo.findCurrentNodeIds(ruleId).toIO
   }
 }
-

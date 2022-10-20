@@ -1,67 +1,63 @@
 /*
-*************************************************************************************
-* Copyright 2019 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.inventory
 
-import com.normation.inventory.domain.InventoryProcessingLogger
-
 import better.files._
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.TrueFileFilter
-import org.joda.time.DateTime
-
+import com.normation.box.IOManaged
+import com.normation.errors.IOResult
+import com.normation.errors.RudderError
+import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.zio._
+import com.normation.zio.ZioRuntime
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.StandardWatchEventKinds
 import java.util.concurrent.TimeUnit
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.TrueFileFilter
+import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext
-
 import zio._
 import zio.clock.Clock
 import zio.duration._
 import zio.syntax._
-import com.normation.box.IOManaged
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
-import com.normation.zio._
-import com.normation.zio.ZioRuntime
-
 
 /*
  * This file manage incoming inventories, but not their processing.
@@ -87,14 +83,16 @@ object InventoryProcessingUtils {
   val signExtension = ".sign"
 
   def logDirPerm(dir: File, name: String) = {
-    if(dir.isDirectory && dir.isWritable) {
+    if (dir.isDirectory && dir.isWritable) {
       InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
-      InventoryProcessingLogger.logEffect.error(s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existence and file permission.")
+      InventoryProcessingLogger.logEffect.error(
+        s"${name} inventories directory: ${dir.pathAsString} is not writable. Please check existence and file permission."
+      )
     }
   }
 
-  def hasValidInventoryExtension(file : File) = {
+  def hasValidInventoryExtension(file: File) = {
     val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
     inventoryExtensions.contains(ext)
   }
@@ -102,37 +100,42 @@ object InventoryProcessingUtils {
   def makeManagedStream(file: File, kind: String = "inventory") = IOManaged.makeM[InputStream] {
     IOResult.effect(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
   }(_.close())
-  def makeFileExists(file: File) = IOManaged.make[Boolean](file.exists)(_ => ())
+  def makeFileExists(file: File)                                = IOManaged.make[Boolean](file.exists)(_ => ())
 }
 
 /**
  * That class holds the different bits of inventory processing
  */
 class InventoryFileWatcher(
-    fileProcessor                 : HandleIncomingInventoryFile
-  , incomingInventoryPath         : String
-  , updatedInventoryPath          : String
-  , maxOldInventoryAge            : Duration // when do we delete old inventories still there
-  , collectOldInventoriesFrequency: Duration // how often you check for old inventories
+    fileProcessor:         HandleIncomingInventoryFile,
+    incomingInventoryPath: String,
+    updatedInventoryPath:  String,
+    maxOldInventoryAge:    Duration, // when do we delete old inventories still there
+
+    collectOldInventoriesFrequency: Duration // how often you check for old inventories
 ) {
 
   val takeCareOfUnprocessedFileAfter = 3.minutes
-  val semaphore = Semaphore.make(1).runNow
-
+  val semaphore                      = Semaphore.make(1).runNow
 
   val incoming = File(incomingInventoryPath)
   InventoryProcessingUtils.logDirPerm(incoming, "Incoming")
-  val updated = File(updatedInventoryPath)
+  val updated  = File(updatedInventoryPath)
   InventoryProcessingUtils.logDirPerm(updated, "Accepted nodes updates")
 
-
   // service for cleaning
-  val cleaner = new CheckExistingInventoryFilesImpl(fileProcessor, incoming :: updated :: Nil, maxOldInventoryAge, takeCareOfUnprocessedFileAfter, InventoryProcessingUtils.hasValidInventoryExtension)
+  val cleaner       = new CheckExistingInventoryFilesImpl(
+    fileProcessor,
+    incoming :: updated :: Nil,
+    maxOldInventoryAge,
+    takeCareOfUnprocessedFileAfter,
+    InventoryProcessingUtils.hasValidInventoryExtension
+  )
   // the cron that look for old files (or existing ones on startup/watcher restart)
   val cronForMissed = new SchedulerMissedNotify(
-      cleaner
-    , collectOldInventoriesFrequency
-    , ZioRuntime.environment
+    cleaner,
+    collectOldInventoriesFrequency,
+    ZioRuntime.environment
   )
 
   def startGarbageCollection: Unit = {
@@ -146,49 +149,57 @@ class InventoryFileWatcher(
   // That reference holds watcher instance to be able to stop them if asked
   val ref = RefM.make(Option.empty[Watchers]).runNow
 
-  def startWatcher() = semaphore.withPermit(
-    ref.update(opt =>
-      opt match {
-        case Some(_) => // does nothing
-          InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
-          opt.succeed
+  def startWatcher() = semaphore
+    .withPermit(
+      ref.update(opt => {
+        opt match {
+          case Some(_) => // does nothing
+            InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
+            opt.succeed
 
-        case None    =>
-          val w = Watchers(incoming, updated, fileProcessor, cleaner)
-          (for {
-            _ <- w.start()
-                 // start scheduler for old file, it will take care of inventories
-            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started")
-          } yield Some((w)) ).catchAll(err =>
-            InventoryProcessingLogger.error(s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}") *>
-            err.fail
-          )
-      }
+          case None =>
+            val w = Watchers(incoming, updated, fileProcessor, cleaner)
+            (for {
+              _ <- w.start()
+              // start scheduler for old file, it will take care of inventories
+              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started")
+            } yield Some((w))).catchAll(err => {
+              InventoryProcessingLogger.error(
+                s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
+              ) *>
+              err.fail
+            })
+        }
+      })
     )
-  ).either.runNow
+    .either
+    .runNow
 
-  def stopWatcher() = semaphore.withPermit(
-    ref.update(opt =>
-      opt match {
-        case None    => //ok
-          InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).")*>
-          None.succeed
+  def stopWatcher() = semaphore
+    .withPermit(
+      ref.update(opt => {
+        opt match {
+          case None => // ok
+            InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).") *>
+            None.succeed
 
-        case Some(w) =>
-          (for {
-            _ <- w.stop()
-            _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
-          } yield None).catchAll(err =>
-              InventoryProcessingLogger.error(s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}.") *>
+          case Some(w) =>
+            (for {
+              _ <- w.stop()
+              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
+            } yield None).catchAll(err => {
+              InventoryProcessingLogger.error(
+                s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
+              ) *>
               // in all case, remove the previous watcher, it's most likely in a dead state
               err.fail
-          )
-      }
+            })
+        }
+      })
     )
-  ).either.runNow
+    .either
+    .runNow
 }
-
-
 
 /*
  * This class is the actual watcher for incoming files. It only manages
@@ -204,7 +215,7 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
       Right(())
     }
   }
-  def stop(): IOResult[Unit] = {
+  def stop():  IOResult[Unit] = {
     IOResult.effect {
       incoming.close()
       updates.close()
@@ -212,9 +223,14 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
     }
   }
 }
-object Watchers {
+object Watchers                                                   {
 
-  def apply(incoming: File, updates: File, checkNew: HandleIncomingInventoryFile, checkOld: CheckExistingInventoryFiles): Watchers = {
+  def apply(
+      incoming: File,
+      updates:  File,
+      checkNew: HandleIncomingInventoryFile,
+      checkOld: CheckExistingInventoryFiles
+  ): Watchers = {
     def newWatcher(directory: File): FileMonitor = {
       new FileMonitor(directory, recursive = false) {
         private var stopRequired = false
@@ -226,13 +242,14 @@ object Watchers {
         val overflowFiber = ZioRuntime.unsafeRun((for {
           _ <- tempoOverflow.take
           // if we are overflowing, we got at least a couple hundred inventories. Wait one minute before continuing
-          _ <- InventoryProcessingLogger.info("Inotify watcher event overflow: waiting a minute before checking what inventories need to be processed")
+          _ <- InventoryProcessingLogger.info(
+                 "Inotify watcher event overflow: waiting a minute before checking what inventories need to be processed"
+               )
           _ <- UIO.unit.delay(1.minutes)
           // clean-up other overflow that happened during that time
           _ <- tempoOverflow.takeAll
           _ <- checkOld.checkFilesOlderThan(0.milli)
         } yield ()).forever.forkDaemon.provideLayer(ZioRuntime.layers))
-
 
         /*
          * when a file is written, depending about how it is handle, by what process, and at which rate,
@@ -246,7 +263,7 @@ object Watchers {
         override def onCreate(file: File, count: Int): Unit = onModify(file, count)
         override def onModify(file: File, count: Int): Unit = {
           // we want to avoid processing some file
-          if( InventoryProcessingUtils.hasValidInventoryExtension(file) ) {
+          if (InventoryProcessingUtils.hasValidInventoryExtension(file)) {
             checkNew.addFile(file)
           } else {
             val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
@@ -254,21 +271,24 @@ object Watchers {
           }
         }
 
-
         override def onUnknownEvent(event: file.WatchEvent[_]): Unit = {
           event.kind() match {
             case StandardWatchEventKinds.OVERFLOW =>
               tempoOverflow.offer(()).runNow
 
             case _ =>
-              InventoryProcessingLogger.logEffect.debug(s"Inotify sent an unknown event: ${event.getClass.getName}: ${event.kind()} ; ${event.context()}")
+              InventoryProcessingLogger.logEffect.debug(
+                s"Inotify sent an unknown event: ${event.getClass.getName}: ${event.kind()} ; ${event.context()}"
+              )
           }
         }
 
         override def onException(exception: Throwable): Unit = {
-          InventoryProcessingLogger.logEffect.error(s"Error with inotify inventory watcher. If new inventory are not immediately processed," +
-                                          s" you may need to restart watcher (see https://docs.rudder.io/api/#tag/Inventories/operation/fileWatcherRestart):" +
-                                          s"${exception.getClass.getName}: ${exception.getMessage}")
+          InventoryProcessingLogger.logEffect.error(
+            s"Error with inotify inventory watcher. If new inventory are not immediately processed," +
+            s" you may need to restart watcher (see https://docs.rudder.io/api/#tag/Inventories/operation/fileWatcherRestart):" +
+            s"${exception.getClass.getName}: ${exception.getMessage}"
+          )
         }
 
         // When we call "stop" on the FileMonitor, it always throws a ClosedWatchServiceException.
@@ -282,15 +302,16 @@ object Watchers {
                 k <- IOResult.effect(service.take())
                 _ <- IOResult.effect(process(k))
               } yield ()).forever
-            ).catchAll(err =>
+            ).catchAll(err => {
               err.cause match {
-                case ex: ClosedWatchServiceException if(stopRequired) => //ignored
+                case ex: ClosedWatchServiceException if (stopRequired) => // ignored
                   InventoryProcessingLogger.debug(s"Exception ClosedWatchServiceException ignored because watcher is stopping")
                 case _ =>
                   InventoryProcessingLogger.error(s"Error when processing inventory: ${err.fullMsg}")
               }
-            )
-          ).forkDaemon.runNow
+            })
+          ).forkDaemon
+            .runNow
         }
 
         override def close() = {
@@ -319,12 +340,11 @@ trait HandleIncomingInventoryFile {
  * The garbage collection
  */
 
-
 final case class ToClean(file: File, why: String)
 final case class FilteredFiles(
-    toIgnore: List[File]
-  , toClean: List[ToClean]
-  , toKeep: List[File]
+    toIgnore: List[File],
+    toClean:  List[ToClean],
+    toKeep:   List[File]
 )
 
 // A class that filter and add back inventory files
@@ -333,36 +353,44 @@ trait CheckExistingInventoryFiles {
 }
 
 class CheckExistingInventoryFilesImpl(
-    fileProcessor: HandleIncomingInventoryFile
-  , directories: List[File]
-  , purgeAfter: Duration // time after which old inventories are deleted
-  , waitingSignatureTime: Duration
-  , hasValidExtension: File => Boolean
+    fileProcessor: HandleIncomingInventoryFile,
+    directories:   List[File],
+    purgeAfter:    Duration, // time after which old inventories are deleted
+
+    waitingSignatureTime: Duration,
+    hasValidExtension:    File => Boolean
 ) extends CheckExistingInventoryFiles {
 
   def processOldFiles(files: List[File]): UIO[Unit] = {
-    val now = DateTime.now()
-    val purgeTime = now.minusMillis(purgeAfter.toMillis.toInt)
-    val orphanTime = now.minusMillis(waitingSignatureTime.toMillis.toInt)
+    val now           = DateTime.now()
+    val purgeTime     = now.minusMillis(purgeAfter.toMillis.toInt)
+    val orphanTime    = now.minusMillis(waitingSignatureTime.toMillis.toInt)
     val filteredFiles = filterFiles(purgeTime, orphanTime, files)
 
     deleteFiles(filteredFiles.toClean) *> addFiles(filteredFiles.toKeep)
   }
 
   def addFiles(files: List[File]): UIO[Unit] = {
-    ZIO.foreach_(files)(file => fileProcessor.addFilePure(file).catchAll(err =>
-      InventoryProcessingLogger.error(s"Error when processing old inventory file '${file.path}': ${err.fullMsg}")
-    ))
+    ZIO.foreach_(files)(file => {
+      fileProcessor
+        .addFilePure(file)
+        .catchAll(err =>
+          InventoryProcessingLogger.error(s"Error when processing old inventory file '${file.path}': ${err.fullMsg}")
+        )
+    })
   }
 
   def deleteFiles(files: List[ToClean]): UIO[Unit] = {
     ZIO.foreach_(files) { f =>
-      (ZIO.effect(f.file.delete()) *> InventoryProcessingLogger.info(s"Deleting file '${f.file.name}': ${f.why}")).catchAll(err =>
-        InventoryProcessingLogger.error(s"Error when trying to delete inventory file '${f.file.name}' (${f.why}): ${err.getMessage}")
+      (ZIO.effect(f.file.delete()) *> InventoryProcessingLogger.info(s"Deleting file '${f.file.name}': ${f.why}")).catchAll(
+        err => {
+          InventoryProcessingLogger.error(
+            s"Error when trying to delete inventory file '${f.file.name}' (${f.why}): ${err.getMessage}"
+          )
+        }
       )
     }
   }
-
 
   // we only want to keep:
   // - file without supported extensions
@@ -370,47 +398,58 @@ class CheckExistingInventoryFilesImpl(
   // - and the one that are not in pair (if older than waitingSignatureTime
   def filterFiles(maxAgeGlobal: DateTime, maxAgeOrphan: DateTime, files: List[File]): FilteredFiles = {
     import com.softwaremill.quicklens._
-    val (filtered, pairs) = files.foldLeft((FilteredFiles(Nil, Nil, Nil), Map[String, List[File]]())) { case ((filteredFiles, pairs), file) =>
-      if(hasValidExtension(file)) {
-        val fileLastModTime = file.lastModifiedTime.toEpochMilli
-        // if file is very recent, just ignore, it can still be processed
-        if(maxAgeOrphan.isBefore(fileLastModTime)) { // too yound, ignore
-          (filteredFiles.modify(_.toIgnore).using( file :: _), pairs)
-        } else {
-          // is file to old ?
-          if(maxAgeGlobal.isAfter(fileLastModTime)) { // too old
-            (filteredFiles.modify(_.toClean).using( ToClean(file, s"Inventory file '${file.name}' is older than max duration before cleaning") :: _), pairs)
+    val (filtered, pairs) = files.foldLeft((FilteredFiles(Nil, Nil, Nil), Map[String, List[File]]())) {
+      case ((filteredFiles, pairs), file) =>
+        if (hasValidExtension(file)) {
+          val fileLastModTime = file.lastModifiedTime.toEpochMilli
+          // if file is very recent, just ignore, it can still be processed
+          if (maxAgeOrphan.isBefore(fileLastModTime)) { // too yound, ignore
+            (filteredFiles.modify(_.toIgnore).using(file :: _), pairs)
           } else {
-            // add the file to file that need pairing. key is filename without extension
-            val key = file.nameWithoutExtension(true)
-            val exiting = pairs.get(key) match {
-              case None    => Nil
-              case Some(l) => l
+            // is file to old ?
+            if (maxAgeGlobal.isAfter(fileLastModTime)) { // too old
+              (
+                filteredFiles
+                  .modify(_.toClean)
+                  .using(ToClean(file, s"Inventory file '${file.name}' is older than max duration before cleaning") :: _),
+                pairs
+              )
+            } else {
+              // add the file to file that need pairing. key is filename without extension
+              val key     = file.nameWithoutExtension(true)
+              val exiting = pairs.get(key) match {
+                case None    => Nil
+                case Some(l) => l
+              }
+              (filteredFiles, pairs + ((key, file :: exiting)))
             }
-            (filteredFiles, pairs + ((key, file :: exiting)))
           }
-        }
-      } else (filteredFiles.modify(_.toIgnore).using( file :: _), pairs)
+        } else (filteredFiles.modify(_.toIgnore).using(file :: _), pairs)
     }
 
     // now, try to group potential pairs into actual pairs and remove orphans
-    pairs.foldLeft(filtered) { case (filteredFinal, (filename, files)) =>
-      files match {
-        case Nil => filteredFinal // should not happens
-        case file :: Nil => // it's an old orphans, delete it
-          filteredFinal.modify(_.toClean).using( ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
-        case files =>
-          // count signature files, it should have at least one and less than all
-          val sigs = files.filter(_.name.contains(".sign"))
-          val n = sigs.length
-          if(n > 0 && n < files.length) { // ok
-            filteredFinal.modify(_.toKeep).using( files ::: _ )
-          } else { // we only have signatures or inventories, deleting
-            files.foldLeft(filteredFinal) { case (c, file) =>
-              c.modify(_.toClean).using( ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
+    pairs.foldLeft(filtered) {
+      case (filteredFinal, (filename, files)) =>
+        files match {
+          case Nil         => filteredFinal // should not happens
+          case file :: Nil =>               // it's an old orphans, delete it
+            filteredFinal
+              .modify(_.toClean)
+              .using(ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
+          case files       =>
+            // count signature files, it should have at least one and less than all
+            val sigs = files.filter(_.name.contains(".sign"))
+            val n    = sigs.length
+            if (n > 0 && n < files.length) { // ok
+              filteredFinal.modify(_.toKeep).using(files ::: _)
+            } else { // we only have signatures or inventories, deleting
+              files.foldLeft(filteredFinal) {
+                case (c, file) =>
+                  c.modify(_.toClean)
+                    .using(ToClean(file, s"Inventory file '${file.name}' is not an (inventory, signature) pair, cleaning") :: _)
+              }
             }
-          }
-      }
+        }
     }
   }
 
@@ -425,25 +464,35 @@ class CheckExistingInventoryFilesImpl(
     (for {
       // if that fails, just exit
       ageLimit <- IOResult.effect(DateTime.now().minusMillis(d.toMillis.toInt))
-      filter   =  (f: File) => if (f.exists && InventoryProcessingUtils.hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))) Some(f) else None
+      filter    = (f: File) => {
+                    if (
+                      f.exists && InventoryProcessingUtils
+                        .hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))
+                    ) Some(f)
+                    else None
+                  }
       // if the listing fails, just exit
-      children <- ZIO.foreach(directories)(d => IOResult.effect(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala))
+      children <- ZIO.foreach(directories)(d =>
+                    IOResult.effect(FileUtils.listFilesAndDirs(d.toJava, TrueFileFilter.TRUE, TrueFileFilter.TRUE).asScala)
+                  )
       // filter file by file. In case of error, just skip it. Specifically ignore FileNotFound (davfs temp files disapear)
       filtered <- ZIO.foreach(children.flatten) { file =>
                     IO.effect(filter(File(file.toPath))).catchAll {
-                      case _: FileNotFoundException => // just ignore
-                        InventoryProcessingLogger.trace(s"Ignoring file '${file.toString}' when processing old inventories: " +
-                                                        s"FileNotFoundException (likely it disappeared between directory listing and filtering)"
+                      case _:  FileNotFoundException => // just ignore
+                        InventoryProcessingLogger.trace(
+                          s"Ignoring file '${file.toString}' when processing old inventories: " +
+                          s"FileNotFoundException (likely it disappeared between directory listing and filtering)"
                         ) *> UIO.effectTotal(None)
-                      case ex: Throwable            => // log and switch to the next
-                        InventoryProcessingLogger.warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
+                      case ex: Throwable             => // log and switch to the next
+                        InventoryProcessingLogger
+                          .warn(s"Error when processing file in old inventories: '${file.toString}': ${ex.getMessage}") *>
                         UIO.effectTotal(None)
                     }
                   }
-      } yield (filtered.flatten)).catchAll(err =>
-        InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}") *>
-        Nil.succeed
-      )
+    } yield (filtered.flatten)).catchAll(err => {
+      InventoryProcessingLogger.warn(s"Error when looking for old inventories that weren't processed: ${err.fullMsg}") *>
+      Nil.succeed
+    })
   }
 
   def checkFilesOlderThan(d: Duration): UIO[Unit] = for {
@@ -459,10 +508,10 @@ class CheckExistingInventoryFilesImpl(
  * A class that periodically add inventories that we likely missed by inotify
  */
 class SchedulerMissedNotify(
-    checker: CheckExistingInventoryFiles
-  , period : Duration
-  , zclock : Clock
-){
+    checker: CheckExistingInventoryFiles,
+    period:  Duration,
+    zclock:  Clock
+) {
   val schedule = {
     def loop(d: Duration) = for {
       _ <- checker.checkFilesOlderThan(d)
@@ -487,15 +536,15 @@ object WatchEvent {
  * For that, it needs signature and inventory file.
  */
 class ProcessFile(
-    inventoryProcessor : ProcessInventoryService
-  , prioIncomingDirPath: String
+    inventoryProcessor:  ProcessInventoryService,
+    prioIncomingDirPath: String
 ) extends HandleIncomingInventoryFile {
 
   val prioIncomingDir = File(prioIncomingDirPath)
-  val sign = if(InventoryProcessingUtils.signExtension.charAt(0) == '.') {
+  val sign            = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
     InventoryProcessingUtils.signExtension
   } else {
-    "."+InventoryProcessingUtils.signExtension
+    "." + InventoryProcessingUtils.signExtension
   }
 
   /*
@@ -511,7 +560,6 @@ class ProcessFile(
    * trigger that is automatically fired after that threshold, and it's that
    * trigger which actually say "hey, look, we have a new file!"
    */
-
 
   // time after the last mod event after which we consider that a file is written
   val fileWrittenThreshold = Duration(500, TimeUnit.MILLISECONDS)
@@ -536,9 +584,7 @@ class ProcessFile(
   def processMessage(): UIO[Unit] = {
     watchEventQueue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
-        toBeProcessed.update[Any, Nothing](s =>
-          (s - file).succeed
-        ).unit
+        toBeProcessed.update[Any, Nothing](s => (s - file).succeed).unit
 
       case WatchEvent.Mod(file) =>
         // look if the file is already here. If so, interrupt. In all case, create a new task.
@@ -550,20 +596,23 @@ class ProcessFile(
             // - then execute on different IO scheduler
             // - if the map wasn't interrupted in the first 500 ms, it is not interruptible anymore
 
-            val effect = ZioRuntime.blocking(
-              UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
-              *> (watchEventQueue.offer(WatchEvent.End(file))
-                 *> processFile(file).catchAll(err =>
-                      InventoryProcessingLogger.error(s"Error when adding new inventory file '${file.path}' to processing: ${err.fullMsg}")
-                    )
-                 ).uninterruptible
-            ).forkDaemon
+            val effect = ZioRuntime
+              .blocking(
+                UIO.unit.delay(fileWrittenThreshold).provide(ZioRuntime.environment)
+                *> (watchEventQueue.offer(WatchEvent.End(file))
+                *> processFile(file).catchAll(err => {
+                  InventoryProcessingLogger.error(
+                    s"Error when adding new inventory file '${file.path}' to processing: ${err.fullMsg}"
+                  )
+                })).uninterruptible
+              )
+              .forkDaemon
 
             effect.map(e => s + (file -> e))
           }
 
           s.get(file) match {
-            case None =>
+            case None           =>
               newMap
             case Some(existing) =>
               existing.interrupt.unit *> newMap
@@ -572,7 +621,7 @@ class ProcessFile(
     }
   }
 
-  //start the process
+  // start the process
   ZioRuntime.internal.unsafeRunSync(processMessage().forever.forkDaemon)
 
   def addFilePure(file: File): IOResult[Unit] = {
@@ -614,31 +663,37 @@ class ProcessFile(
       // The canonical way seems to be to try to get a write lock on the file and see if
       // it works. We assume that once we successfully get the lock, it means that
       // the file is written (so we can immediately release it).
-      _ <- if(file.name.endsWith(".gz")) {
+      _ <- if (file.name.endsWith(".gz")) {
              val dest = File(file.parent, file.nameWithoutExtension(includeAll = false))
              InventoryProcessingLogger.debug(s"Dealing with zip file '${file.name}'") *>
              IOResult.effect {
                file.unGzipTo(dest)
                file.delete()
              }.unit
-           } else if(file.name.endsWith(sign)) { // a signature
+           } else if (file.name.endsWith(sign)) { // a signature
              val inventory = File(file.parent, file.nameWithoutExtension(includeAll = false))
 
-             if(inventory.exists) {
+             if (inventory.exists) {
                // process !
-               InventoryProcessingLogger.debug(s"Watch new inventory file '${inventory.name}' with signature available: process.") *>
+               InventoryProcessingLogger.debug(
+                 s"Watch new inventory file '${inventory.name}' with signature available: process."
+               ) *>
                saveInventoryBuffer.offer(InventoryPair(inventory, file))
              } else {
-               InventoryProcessingLogger.debug(s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting")
+               InventoryProcessingLogger.debug(
+                 s"Watch incoming signature file '${file.pathAsString}' but no corresponding inventory available: waiting"
+               )
              }
            } else { // an inventory
-             val signature = File(file.pathAsString+sign)
-             if(signature.exists) {
+             val signature = File(file.pathAsString + sign)
+             if (signature.exists) {
                // process !
                InventoryProcessingLogger.debug(s"Watch new inventory file '${file.name}' with signature available: process.") *>
                saveInventoryBuffer.offer(InventoryPair(file, signature))
              } else { // wait for expiration time and exec without signature
-               InventoryProcessingLogger.debug(s"Watch incoming inventory file '${file.pathAsString}' but no corresponding signature available: waiting")
+               InventoryProcessingLogger.debug(
+                 s"Watch incoming inventory file '${file.pathAsString}' but no corresponding signature available: waiting"
+               )
              }
            }
     } yield ()
@@ -655,17 +710,17 @@ class ProcessFile(
    */
   val saveInventoryBufferProcessing = {
     for {
-      fst <- saveInventoryBuffer.take
+      fst  <- saveInventoryBuffer.take
       // deduplicate and prioritize file in 'incoming', which are new inventories. TakeAll is not blocking
-      all <- saveInventoryBuffer.takeAll
-      inv =  (fst::all).find { _.inventory.parent == prioIncomingDir }.getOrElse(fst)
+      all  <- saveInventoryBuffer.takeAll
+      inv   = (fst :: all).find(_.inventory.parent == prioIncomingDir).getOrElse(fst)
       // process
-      _ <- InventoryProcessingLogger.info(s"Received new inventory file '${inv.inventory.name}' with signature available: process.")
-      _ <- inventoryProcessor.saveInventoryBlocking(inv)
+      _    <-
+        InventoryProcessingLogger.info(s"Received new inventory file '${inv.inventory.name}' with signature available: process.")
+      _    <- inventoryProcessor.saveInventoryBlocking(inv)
       all2 <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
-      _    <- saveInventoryBuffer.offerAll((all++all2).filterNot { inv.inventory.name == _.inventory.name })
+      _    <- saveInventoryBuffer.offerAll((all ++ all2).filterNot(inv.inventory.name == _.inventory.name))
     } yield ()
   }
-  saveInventoryBufferProcessing.forever.forkDaemon.runNow}
-
-
+  saveInventoryBufferProcessing.forever.forkDaemon.runNow
+}

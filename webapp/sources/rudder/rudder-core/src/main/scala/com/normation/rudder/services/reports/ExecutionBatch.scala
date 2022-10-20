@@ -1,60 +1,58 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.reports
 
-import org.joda.time._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger._
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
-import net.liftweb.common.Loggable
-
-import java.util.regex.Pattern
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
-import com.normation.rudder.domain.policies.RuleId
+import java.util.regex.Pattern
+import net.liftweb.common.Loggable
 import org.apache.commons.lang3.StringUtils
-
+import org.joda.time._
 import scala.annotation.tailrec
 
 /*
@@ -121,11 +119,11 @@ sealed trait LastRunAvailable extends RunAndConfigInfo {
   // (local node time of the starts of the run)
   def lastRunDateTime: DateTime
 
-  //this is not an option even if we must take care of nodes
-  //upgrading from previous version of Rudder without
-  //config id because we must have some logic to find WHAT
-  //is the applicable version in all case - it's one of the
-  //major goal of ExecutionBatch#computeNodeRunInfo
+  // this is not an option even if we must take care of nodes
+  // upgrading from previous version of Rudder without
+  // config id because we must have some logic to find WHAT
+  // is the applicable version in all case - it's one of the
+  // major goal of ExecutionBatch#computeNodeRunInfo
   def lastRunConfigId: NodeConfigId
 
   // most of the time, we do have the corresponding
@@ -147,8 +145,8 @@ final case object NoRunNoExpectedReport extends ErrorNoConfigData
  * not yet initialized)
  */
 final case class NoExpectedReport(
-    lastRunDateTime: DateTime
-  , lastRunConfigId: Option[NodeConfigId]
+    lastRunDateTime: DateTime,
+    lastRunConfigId: Option[NodeConfigId]
 ) extends ErrorNoConfigData
 
 /*
@@ -157,20 +155,19 @@ final case class NoExpectedReport(
  * we must complain loudly to the users
  */
 final case class RunWithoutExpectedReport(
-    lastRunDateTime: DateTime
-  , expectedConfig : NodeExpectedReports
+    lastRunDateTime: DateTime,
+    expectedConfig:  NodeExpectedReports
 )
 /*
  * No Rules defined, but run was ok
  */
 final case class NoUserRulesDefined(
-    lastRunDateTime: DateTime
-  , expectedConfig : NodeExpectedReports
-  , lastRunConfigId: NodeConfigId
-  , lastRunConfigInfo: Option[NodeExpectedReports]
-  , expirationDateTime: DateTime
+    lastRunDateTime:    DateTime,
+    expectedConfig:     NodeExpectedReports,
+    lastRunConfigId:    NodeConfigId,
+    lastRunConfigInfo:  Option[NodeExpectedReports],
+    expirationDateTime: DateTime
 ) extends NoReport with LastRunAvailable
-
 
 /*
  * No report of interest (either none, or
@@ -179,8 +176,8 @@ final case class NoUserRulesDefined(
  * and we out to recompute it to serialize again a NoReportInInterval
  */
 final case class NoReportInInterval(
-    expectedConfig    : NodeExpectedReports
-  , expirationDateTime: DateTime
+    expectedConfig:     NodeExpectedReports,
+    expirationDateTime: DateTime
 ) extends NoReport
 
 /*
@@ -188,14 +185,14 @@ final case class NoReportInInterval(
  * we are on the correct mode for that
  */
 final case class ReportsDisabledInInterval(
-    expectedConfig    : NodeExpectedReports
-  , expirationDateTime: DateTime
+    expectedConfig:     NodeExpectedReports,
+    expirationDateTime: DateTime
 ) extends NoReport
 
 final case class Pending(
-    expectedConfig     : NodeExpectedReports
-  , optLastRun         : Option[(DateTime, NodeExpectedReports)]
-  , expirationDateTime : DateTime
+    expectedConfig:     NodeExpectedReports,
+    optLastRun:         Option[(DateTime, NodeExpectedReports)],
+    expirationDateTime: DateTime
 ) extends NoReport with ExpiringStatus
 
 /*
@@ -204,12 +201,12 @@ final case class Pending(
  * and we don't have a version is an error
  */
 final case class UnexpectedVersion(
-    lastRunDateTime   : DateTime
-  , lastRunConfigInfo : Some[NodeExpectedReports]
-  , lastRunExpiration : DateTime
-  , expectedConfig    : NodeExpectedReports
-  , expectedExpiration: DateTime
-  , expirationDateTime: DateTime
+    lastRunDateTime:    DateTime,
+    lastRunConfigInfo:  Some[NodeExpectedReports],
+    lastRunExpiration:  DateTime,
+    expectedConfig:     NodeExpectedReports,
+    expectedExpiration: DateTime,
+    expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigId = lastRunConfigInfo.get.nodeConfigId
 }
@@ -220,12 +217,12 @@ final case class UnexpectedVersion(
  * in the server for that node
  */
 final case class UnexpectedNoVersion(
-    lastRunDateTime   : DateTime
-  , lastRunConfigId   : NodeConfigId
-  , lastRunExpiration : DateTime
-  , expectedConfig    : NodeExpectedReports
-  , expectedExpiration: DateTime
-  , expirationDateTime: DateTime
+    lastRunDateTime:    DateTime,
+    lastRunConfigId:    NodeConfigId,
+    lastRunExpiration:  DateTime,
+    expectedConfig:     NodeExpectedReports,
+    expectedExpiration: DateTime,
+    expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo = None
 }
@@ -237,21 +234,20 @@ final case class UnexpectedNoVersion(
  * in the server for that node
  */
 final case class UnexpectedUnknowVersion(
-    lastRunDateTime   : DateTime
-  , lastRunConfigId   : NodeConfigId
-  , expectedConfig    : NodeExpectedReports
-  , expectedExpiration: DateTime
-  , expirationDateTime: DateTime
+    lastRunDateTime:    DateTime,
+    lastRunConfigId:    NodeConfigId,
+    expectedConfig:     NodeExpectedReports,
+    expectedExpiration: DateTime,
+    expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo = None
 }
 
-
 final case class ComputeCompliance(
-    lastRunDateTime    : DateTime
-  , expectedConfig     : NodeExpectedReports
-  , expirationDateTime : DateTime
-) extends Ok with LastRunAvailable  {
+    lastRunDateTime:    DateTime,
+    expectedConfig:     NodeExpectedReports,
+    expirationDateTime: DateTime
+) extends Ok with LastRunAvailable {
   val lastRunConfigId   = expectedConfig.nodeConfigId
   val lastRunConfigInfo = Some(expectedConfig)
 }
@@ -301,9 +297,8 @@ final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBeh
   def set(opt: UnexpectedReportBehavior) = UnexpectedReportInterpretation(options + opt)
 
   // return a copy of that interpretation with the given value removed
-  def unset(opt: UnexpectedReportBehavior) = UnexpectedReportInterpretation(options.filter( _ != opt))
+  def unset(opt: UnexpectedReportBehavior) = UnexpectedReportInterpretation(options.filter(_ != opt))
 }
-
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -311,21 +306,21 @@ final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBeh
  */
 
 object ExecutionBatch extends Loggable {
-  //these patterns must be reluctant matches to avoid strange things
-  //when two variables are presents, or something like: ${foo}xxxxxx}.
-  //Note: the method checkExpectedVariable expects that a $ is in the pattern
-  final val matchCFEngineVars = """.*\$(\{.+?\}|\(.+?\)).*""".r
+  // these patterns must be reluctant matches to avoid strange things
+  // when two variables are presents, or something like: ${foo}xxxxxx}.
+  // Note: the method checkExpectedVariable expects that a $ is in the pattern
+  final val matchCFEngineVars           = """.*\$(\{.+?\}|\(.+?\)).*""".r
   final private val replaceCFEngineVars = """\$\{.+?\}|\$\(.+?\)"""
 
   /**
    * containers to store common information about "what are we
    * talking about in that merge ?"
    */
-  private[reports] final case class MergeInfo(
-      nodeId        : NodeId
-    , run           : Option[DateTime]
-    , configId      : Option[NodeConfigId]
-    , expirationTime: DateTime
+  final private[reports] case class MergeInfo(
+      nodeId:         NodeId,
+      run:            Option[DateTime],
+      configId:       Option[NodeConfigId],
+      expirationTime: DateTime
   )
 
   /**
@@ -355,13 +350,13 @@ object ExecutionBatch extends Loggable {
    * in ".*" quoted with \Q...\E.
    * For example, "${foo}(bar)$(baz)foo" => "\Q\E.*\Q(bar)\E.*\Qfoo\E"
    */
-  final def replaceCFEngineVars(x : String) : Pattern = {
-    Pattern.compile("""\Q"""+ x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
+  final def replaceCFEngineVars(x: String): Pattern = {
+    Pattern.compile("""\Q""" + x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
-  final def checkExpectedVariable(expected: ExpectedValue, effective: ResultReports) : Boolean = {
+  final def checkExpectedVariable(expected: ExpectedValue, effective: ResultReports): Boolean = {
     expected match {
-      case ExpectedValueId(_,id) =>
+      case ExpectedValueId(_, id)          =>
         id == effective.reportId
       case ExpectedValueMatch(expected, _) =>
         if (expected == effective.keyValue) {
@@ -382,9 +377,9 @@ object ExecutionBatch extends Loggable {
     }
   }
 
-final case class ContextForNoAnswer(
-      agentExecutionInterval: Int
-    , complianceMode        : ComplianceMode
+  final case class ContextForNoAnswer(
+      agentExecutionInterval: Int,
+      complianceMode:         ComplianceMode
   )
 
   /*
@@ -392,7 +387,7 @@ final case class ContextForNoAnswer(
    * the log message is actually sync with the info type.
    */
   private[this] def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
-    val msg = if(traceMessage.trim.isEmpty) "" else ": " + traceMessage
+    val msg = if (traceMessage.trim.isEmpty) "" else ": " + traceMessage
     ComplianceDebugLogger.node(nodeId).debug(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
     runType
   }
@@ -409,15 +404,16 @@ final case class ContextForNoAnswer(
       // If exists, the last run received for these nodes is coupled with the
       // corresponding expected node configuration for that run, which will allow to know what
       // config option to apply.
-      runs              : Map[NodeId, Option[AgentRunWithNodeConfig]]
-      // the current expected node configurations for all nodes.
+      runs: Map[NodeId, Option[AgentRunWithNodeConfig]], // the current expected node configurations for all nodes.
       // This is useful for nodes without runs (ex in no-report mode), node with a run not for the
       // last config (show diff etc). It may be none for ex. when a node was added since last generation
-    , currentNodeConfigs: Map[NodeId, Option[NodeExpectedReports]]
-      // other config information to allows better reporting on error
-    , nodeConfigIdInfos: Map[NodeId, Option[Seq[NodeConfigIdInfo]]]
-  ): Map[NodeId, RunAndConfigInfo] = {
 
+      currentNodeConfigs: Map[NodeId, Option[
+        NodeExpectedReports
+      ]], // other config information to allows better reporting on error
+
+      nodeConfigIdInfos: Map[NodeId, Option[Seq[NodeConfigIdInfo]]]
+  ): Map[NodeId, RunAndConfigInfo] = {
 
     /*
      * How long time a run is valid AFTER AN UPDATE (i.e, not in permanent regime).
@@ -429,75 +425,88 @@ final case class ContextForNoAnswer(
     /*
      * How long time a run is valid before receiving any report (but not after an update)
      */
-    def runValidityDuration(runIntervalInfo: ResolvedAgentRunInterval, complianceMode: ComplianceMode) = complianceMode.mode match {
-      case ChangesOnly =>
-        //expires after run*heartbeat period - we need an other run before that.
-        val heartbeat = Duration.standardMinutes((runIntervalInfo.interval.getStandardMinutes * runIntervalInfo.heartbeatPeriod ))
-        heartbeat.plus(GRACE_TIME_PENDING)
-      case FullCompliance | ReportsDisabled =>
-        updateValidityDuration(runIntervalInfo)
+    def runValidityDuration(runIntervalInfo: ResolvedAgentRunInterval, complianceMode: ComplianceMode) = {
+      complianceMode.mode match {
+        case ChangesOnly                      =>
+          // expires after run*heartbeat period - we need an other run before that.
+          val heartbeat =
+            Duration.standardMinutes((runIntervalInfo.interval.getStandardMinutes * runIntervalInfo.heartbeatPeriod))
+          heartbeat.plus(GRACE_TIME_PENDING)
+        case FullCompliance | ReportsDisabled =>
+          updateValidityDuration(runIntervalInfo)
+      }
     }
 
     /** Compute expiration date from a datetime (run in most case, but can be now in case of no run)
      * and the configured interval */
-    def computeExpirationDate(date:DateTime, runIntervalInfo: ResolvedAgentRunInterval, complianceMode: ComplianceMode): DateTime = {
+    def computeExpirationDate(
+        date:            DateTime,
+        runIntervalInfo: ResolvedAgentRunInterval,
+        complianceMode:  ComplianceMode
+    ): DateTime = {
       date.plus(runValidityDuration(runIntervalInfo, complianceMode))
     }
 
     val now = DateTime.now
 
-    runs.map { case (nodeId, optRun) =>
-      implicit val _n = nodeId
+    runs.map {
+      case (nodeId, optRun) =>
+        implicit val _n = nodeId
 
-      //all the problem is to find the correct NodeRunInfo from the optRun and other information
-      val nodeRunInfo = optRun match {
+        // all the problem is to find the correct NodeRunInfo from the optRun and other information
+        val nodeRunInfo = optRun match {
 
-        //
-        // [I] First case: we don't have (recent) runs for that node
-        // Perhaps its a new node (with or without a generation), or are we in ReportsDisabled
-        // So we don't have matching expected reports either.
-        //
-        case None =>
-          // Let try to see what is currently expected from that node
-          currentNodeConfigs.get(nodeId).flatten match {
-            case None =>
-              //let's see if the node has ANY config info
-              nodeConfigIdInfos.getOrElse(nodeId, None) match {
-                case None =>
-                  //ok, it's a node without any config (so without runs, of course). Perhaps a new node ?
-                  runType(s"nodeId has no configuration ID version, perhaps it's a new Node?", NoRunNoExpectedReport)
-                case Some(configs) =>
-                  //so, the node has existed at some point, but not now. Strange.
-                  runType("nodeId exists in DB but has no version (due to cleaning, migration, synchro, etc)", NoRunNoExpectedReport)
-              }
-
-            case Some(currentConfig) =>
-              // expiration time in no reports when expired or disabled is so based on now
-              val complianceComputationExpirationTime = computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
-
-              if(currentConfig.complianceMode.mode == ReportsDisabled) { // oh, so in fact it's normal to not have runs!
-
-                runType(s"compliance mode is set to '${ReportsDisabled.name}', it's ok to not having reports", ReportsDisabledInInterval(currentConfig, complianceComputationExpirationTime))
-              } else { //let's further examine the situation
-                val expireTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
-
-                if(expireTime.isBefore(now)) {
-                  runType("no run (ever or too old)", NoReportInInterval(currentConfig, complianceComputationExpirationTime))
-                } else {
-                  runType(s"no run (ever or too old), Pending until ${expireTime}"
-                  , Pending(currentConfig, None, expireTime)
-                  )
+          //
+          // [I] First case: we don't have (recent) runs for that node
+          // Perhaps its a new node (with or without a generation), or are we in ReportsDisabled
+          // So we don't have matching expected reports either.
+          //
+          case None           =>
+            // Let try to see what is currently expected from that node
+            currentNodeConfigs.get(nodeId).flatten match {
+              case None =>
+                // let's see if the node has ANY config info
+                nodeConfigIdInfos.getOrElse(nodeId, None) match {
+                  case None          =>
+                    // ok, it's a node without any config (so without runs, of course). Perhaps a new node ?
+                    runType(s"nodeId has no configuration ID version, perhaps it's a new Node?", NoRunNoExpectedReport)
+                  case Some(configs) =>
+                    // so, the node has existed at some point, but not now. Strange.
+                    runType(
+                      "nodeId exists in DB but has no version (due to cleaning, migration, synchro, etc)",
+                      NoRunNoExpectedReport
+                    )
                 }
-              }
-          }
 
-        //
-        // [II] Second case: we DO have a run.
-        // We need to look if it has an associated expected configuration,
-        // and if not try to gather piece of information from elsewhere.
-        // Then analyse the consistancy of the result.
-        //
-        case Some(runInfos) =>
+              case Some(currentConfig) =>
+                // expiration time in no reports when expired or disabled is so based on now
+                val complianceComputationExpirationTime =
+                  computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+
+                if (currentConfig.complianceMode.mode == ReportsDisabled) { // oh, so in fact it's normal to not have runs!
+
+                  runType(
+                    s"compliance mode is set to '${ReportsDisabled.name}', it's ok to not having reports",
+                    ReportsDisabledInInterval(currentConfig, complianceComputationExpirationTime)
+                  )
+                } else { // let's further examine the situation
+                  val expireTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
+
+                  if (expireTime.isBefore(now)) {
+                    runType("no run (ever or too old)", NoReportInInterval(currentConfig, complianceComputationExpirationTime))
+                  } else {
+                    runType(s"no run (ever or too old), Pending until ${expireTime}", Pending(currentConfig, None, expireTime))
+                  }
+                }
+            }
+
+          //
+          // [II] Second case: we DO have a run.
+          // We need to look if it has an associated expected configuration,
+          // and if not try to gather piece of information from elsewhere.
+          // Then analyse the consistancy of the result.
+          //
+          case Some(runInfos) =>
 //          ComplianceDebugLogger.node(nodeId).debug(s"Node run configuration: ${(nodeId, complianceMode, runInfos).toLog }")
 //
 //          val computed =    computeNodeRunInfo(
@@ -506,156 +515,193 @@ final case class ContextForNoAnswer(
 //                  , now, run
 //              )
 
-          (runInfos, currentNodeConfigs.get(nodeId).flatten) match {
+            (runInfos, currentNodeConfigs.get(nodeId).flatten) match {
 
-            //
-            // #1 : What the hell ?
-            //      that's not good. Why a run without expected config ?
-            //      More over, we group together the cases where we have config for the run, because without
-            //      a current expected config, it should be impossible (no way to paired it with that run).
-            //      Just log an error for dev.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), optConfigId, _)), None) =>
-              if(nodeConfigIdInfos.isDefinedAt(nodeId)) {
-                runType("nodeId exists in DB but has no version (due to cleaning?). Need regeneration, no expected report yet.", NoExpectedReport(t, None))
-              } else {
-                runType("nodeId was not found in DB but is sending reports. It is likely a new node. Need regeneration, no expected report yet."
-                , NoExpectedReport(t, None)
-                )
-              }
-
-            //
-            // #2 : run without config ID (neither in it nor found)
-            //      no expected config for the run. Why so? At least, a recent config.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), None, _)), Some(currentConfig)) =>
-              /*
-               * Here, we want to check two things:
-               * - does the run should have contain a config id ?
-               *   It should if the oldest config was created a long time ago,
-               *   and if it is the case most likelly the node can't get
-               *   its updated promises.
-               *   The logic is that only nodes with initial promises send reports without a config Id. So
-               *   if a node is in that case, it is because it never got genererated promises.
-               *   If the first generated promises for that node are beyond the grace period, it means that
-               *   the run should have used theses promises, and we have a (DNS) problem because it didn't.
-               *
-               * - else, we look at the most recent
-               *   config and decide between pending / no answer
-               *
-               * Note: we must use value from current expected config for modes,
-               *       because we don't have anything else really.
-               */
-              val oldestConfigId = nodeConfigIdInfos.get(nodeId).flatten.getOrElse(Seq(currentConfig.configInfo)).minBy( _.creation.getMillis)
-              val oldestExpiration = oldestConfigId.creation.plus(updateValidityDuration(currentConfig.agentRun))
-
-              // expiration time is based on now as run is invalid and we can't get proper data
-              val complianceComputationExpirationTime = computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
-
-              if(oldestExpiration.isBefore(t) ) {
-                //we had a config set a long time ago, then interval+grace time happen, and then
-                //we get a run without any config id => the node didn't updated its promises
-
-                runType(s"node send reports without nodeConfigId but the oldest configId (${oldestConfigId.configId.value}) expired since ${oldestExpiration})"
-                , UnexpectedNoVersion(t, oldestConfigId.configId, oldestExpiration, currentConfig, oldestExpiration, complianceComputationExpirationTime)
-                )
-              } else {
-                val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
-                if(configurationExpirationTime.isBefore(t)) {
-                  runType(s"node should have sent reports for configId ${currentConfig.nodeConfigId.value} before ${configurationExpirationTime} but got a report at ${t} without any configId"
-                  , NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+              //
+              // #1 : What the hell ?
+              //      that's not good. Why a run without expected config ?
+              //      More over, we group together the cases where we have config for the run, because without
+              //      a current expected config, it should be impossible (no way to paired it with that run).
+              //      Just log an error for dev.
+              case ((AgentRunWithNodeConfig(AgentRunId(_, t), optConfigId, _)), None)                                =>
+                if (nodeConfigIdInfos.isDefinedAt(nodeId)) {
+                  runType(
+                    "nodeId exists in DB but has no version (due to cleaning?). Need regeneration, no expected report yet.",
+                    NoExpectedReport(t, None)
                   )
                 } else {
-                  runType(s"waiting for node to send reports for configId ${currentConfig.nodeConfigId.value} before ${configurationExpirationTime} (last run at ${t} didn't have any configId"
-                  , Pending(currentConfig, None, configurationExpirationTime) //here, "None" even if we have a old run, because we don't have expectedConfig for it.
+                  runType(
+                    "nodeId was not found in DB but is sending reports. It is likely a new node. Need regeneration, no expected report yet.",
+                    NoExpectedReport(t, None)
                   )
                 }
-              }
 
+              //
+              // #2 : run without config ID (neither in it nor found)
+              //      no expected config for the run. Why so? At least, a recent config.
+              case ((AgentRunWithNodeConfig(AgentRunId(_, t), None, _)), Some(currentConfig))                        =>
+                /*
+                 * Here, we want to check two things:
+                 * - does the run should have contain a config id ?
+                 *   It should if the oldest config was created a long time ago,
+                 *   and if it is the case most likelly the node can't get
+                 *   its updated promises.
+                 *   The logic is that only nodes with initial promises send reports without a config Id. So
+                 *   if a node is in that case, it is because it never got genererated promises.
+                 *   If the first generated promises for that node are beyond the grace period, it means that
+                 *   the run should have used theses promises, and we have a (DNS) problem because it didn't.
+                 *
+                 * - else, we look at the most recent
+                 *   config and decide between pending / no answer
+                 *
+                 * Note: we must use value from current expected config for modes,
+                 *       because we don't have anything else really.
+                 */
+                val oldestConfigId   =
+                  nodeConfigIdInfos.get(nodeId).flatten.getOrElse(Seq(currentConfig.configInfo)).minBy(_.creation.getMillis)
+                val oldestExpiration = oldestConfigId.creation.plus(updateValidityDuration(currentConfig.agentRun))
 
-            //
-            // #3 : run with a version ID !
-            //      But no corresponding expected Node. A
-            //      And no current one.
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv,None)), _)), Some(currentConfig)) =>
-              //it's a bad version, but we have config id in DB => likelly a corruption on node
-              //expirationTime is the date after which we must have gotten a report for the current version
-              val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
-              // expiration time is based on now as run is invalid and we can't get proper data
-              val complianceComputationExpirationTime = computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+                // expiration time is based on now as run is invalid and we can't get proper data
+                val complianceComputationExpirationTime =
+                  computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
 
-              runType(s"nodeId exists in DB and has configId, expected configId is ${currentConfig.nodeConfigId.value}, but ${rv.value} was not found (node corruption?)",
-                  UnexpectedUnknowVersion(t, rv, currentConfig, configurationExpirationTime, complianceComputationExpirationTime)
-              )
+                if (oldestExpiration.isBefore(t)) {
+                  // we had a config set a long time ago, then interval+grace time happen, and then
+                  // we get a run without any config id => the node didn't updated its promises
 
-            //
-            // #4 : run with an ID ! And a matching expected config ! And a current expected config !
-            //      So this is the standard case.
-            //      We have to check if run version == expected, if it's the case: nominal case.
-            //      Else, we need to check if the node version is not too old,
-            case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, Some(runConfig))), _)), Some(currentConfig)) =>
-              runConfig.endDate match {
-
-                case None =>
-                  val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
-                  if(expirationTime.isBefore(now)) {
-                    // expiration time is based on now as run is invalid and we can't get proper data
-                    val complianceComputationExpirationTime = computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
-
-                    //take care of the potential case where currentConfig != runConfig in the log message
-                    runType(s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configIf ${currentConfig.nodeConfigId.value} before ${expirationTime}"
-                    , NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                  runType(
+                    s"node send reports without nodeConfigId but the oldest configId (${oldestConfigId.configId.value}) expired since ${oldestExpiration})",
+                    UnexpectedNoVersion(
+                      t,
+                      oldestConfigId.configId,
+                      oldestExpiration,
+                      currentConfig,
+                      oldestExpiration,
+                      complianceComputationExpirationTime
                     )
-                  } else { //nominal case
-                    //here, we have to verify that the config id are different, because we can
-                    //be in the middle of a generation of have a badly closed node configuration on base
-                    if(runConfig.nodeConfigId != currentConfig.nodeConfigId) {
-                      //standard case: we changed version and are waiting for a run with the new one.
-                      runType(s"last run at ${t} was for previous configId ${runConfig.nodeConfigId.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${expirationTime}, Pending"
-                      , Pending(currentConfig, Some((t, runConfig)), expirationTime)
-                      )
-                    } else {
-                      // the node is answering current config, on time
-                      runType(s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance"
-                      , ComputeCompliance(t, currentConfig, expirationTime)
-                      )
-                    }
-                  }
-
-                case Some(eol) =>
-                  //check if the run is not too old for the version, i.e if endOflife + grace is before run
-
-                  // a more recent version exists, so we are either awaiting reports
-                  // for it, or in some error state (completely unexpected version or "just" no report
-                  val eolExpiration = eol.plus(updateValidityDuration(runConfig.agentRun))
+                  )
+                } else {
                   val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
-                  if(eolExpiration.isBefore(t)) {
-                    // compliance expiration time is based on run time
-                    val complianceComputationExpirationTime = computeExpirationDate(t, currentConfig.n.agentRun, currentConfig.complianceMode)
-
-                    //we should have had a more recent run
-                    runType(s"node sent reports at ${t} for configId ${rv.value} (which expired at ${eol}) but should have been for configId ${currentConfig.nodeConfigId.value}"
-                    , UnexpectedVersion(t, Some(runConfig), eolExpiration, currentConfig, configurationExpirationTime, complianceComputationExpirationTime)
+                  if (configurationExpirationTime.isBefore(t)) {
+                    runType(
+                      s"node should have sent reports for configId ${currentConfig.nodeConfigId.value} before ${configurationExpirationTime} but got a report at ${t} without any configId",
+                      NoReportInInterval(currentConfig, complianceComputationExpirationTime)
                     )
                   } else {
-                    if(configurationExpirationTime.isBefore(now)) {
-                      // compliance expiration time in no reports when expired or disabled is so based on now
-                      val complianceComputationExpirationTime = computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+                    runType(
+                      s"waiting for node to send reports for configId ${currentConfig.nodeConfigId.value} before ${configurationExpirationTime} (last run at ${t} didn't have any configId",
+                      Pending(
+                        currentConfig,
+                        None,
+                        configurationExpirationTime
+                      ) // here, "None" even if we have a old run, because we don't have expectedConfig for it.
+                    )
+                  }
+                }
 
-                      runType(s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value} (one was expected before ${configurationExpirationTime})"
-                      , NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+              //
+              // #3 : run with a version ID !
+              //      But no corresponding expected Node. A
+              //      And no current one.
+              case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, None)), _)), Some(currentConfig))            =>
+                // it's a bad version, but we have config id in DB => likelly a corruption on node
+                // expirationTime is the date after which we must have gotten a report for the current version
+                val configurationExpirationTime         = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
+                // expiration time is based on now as run is invalid and we can't get proper data
+                val complianceComputationExpirationTime =
+                  computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+
+                runType(
+                  s"nodeId exists in DB and has configId, expected configId is ${currentConfig.nodeConfigId.value}, but ${rv.value} was not found (node corruption?)",
+                  UnexpectedUnknowVersion(t, rv, currentConfig, configurationExpirationTime, complianceComputationExpirationTime)
+                )
+
+              //
+              // #4 : run with an ID ! And a matching expected config ! And a current expected config !
+              //      So this is the standard case.
+              //      We have to check if run version == expected, if it's the case: nominal case.
+              //      Else, we need to check if the node version is not too old,
+              case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, Some(runConfig))), _)), Some(currentConfig)) =>
+                runConfig.endDate match {
+
+                  case None =>
+                    val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
+                    if (expirationTime.isBefore(now)) {
+                      // expiration time is based on now as run is invalid and we can't get proper data
+                      val complianceComputationExpirationTime =
+                        computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+
+                      // take care of the potential case where currentConfig != runConfig in the log message
+                      runType(
+                        s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configIf ${currentConfig.nodeConfigId.value} before ${expirationTime}",
+                        NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                      )
+                    } else { // nominal case
+                      // here, we have to verify that the config id are different, because we can
+                      // be in the middle of a generation of have a badly closed node configuration on base
+                      if (runConfig.nodeConfigId != currentConfig.nodeConfigId) {
+                        // standard case: we changed version and are waiting for a run with the new one.
+                        runType(
+                          s"last run at ${t} was for previous configId ${runConfig.nodeConfigId.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${expirationTime}, Pending",
+                          Pending(currentConfig, Some((t, runConfig)), expirationTime)
+                        )
+                      } else {
+                        // the node is answering current config, on time
+                        runType(
+                          s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance",
+                          ComputeCompliance(t, currentConfig, expirationTime)
+                        )
+                      }
+                    }
+
+                  case Some(eol) =>
+                    // check if the run is not too old for the version, i.e if endOflife + grace is before run
+
+                    // a more recent version exists, so we are either awaiting reports
+                    // for it, or in some error state (completely unexpected version or "just" no report
+                    val eolExpiration               = eol.plus(updateValidityDuration(runConfig.agentRun))
+                    val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
+                    if (eolExpiration.isBefore(t)) {
+                      // compliance expiration time is based on run time
+                      val complianceComputationExpirationTime =
+                        computeExpirationDate(t, currentConfig.n.agentRun, currentConfig.complianceMode)
+
+                      // we should have had a more recent run
+                      runType(
+                        s"node sent reports at ${t} for configId ${rv.value} (which expired at ${eol}) but should have been for configId ${currentConfig.nodeConfigId.value}",
+                        UnexpectedVersion(
+                          t,
+                          Some(runConfig),
+                          eolExpiration,
+                          currentConfig,
+                          configurationExpirationTime,
+                          complianceComputationExpirationTime
+                        )
                       )
                     } else {
-                      //standard case: we changed version and are waiting for a run with the new one.
-                      runType(s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${configurationExpirationTime}, Pending"
-                      , Pending(currentConfig, Some((t, runConfig)), eolExpiration)
-                      )
-                    }
-                  }
-              }
-          }
-      }
+                      if (configurationExpirationTime.isBefore(now)) {
+                        // compliance expiration time in no reports when expired or disabled is so based on now
+                        val complianceComputationExpirationTime =
+                          computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
 
-      // now that we finally have the runInfo, returned it coupled with nodeId for final result
-      (nodeId, nodeRunInfo)
+                        runType(
+                          s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value} (one was expected before ${configurationExpirationTime})",
+                          NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                        )
+                      } else {
+                        // standard case: we changed version and are waiting for a run with the new one.
+                        runType(
+                          s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${configurationExpirationTime}, Pending",
+                          Pending(currentConfig, Some((t, runConfig)), eolExpiration)
+                        )
+                      }
+                    }
+                }
+            }
+        }
+
+        // now that we finally have the runInfo, returned it coupled with nodeId for final result
+        (nodeId, nodeRunInfo)
     }.toMap
   }
 
@@ -670,67 +716,81 @@ final case class ContextForNoAnswer(
    *  It returns a properly merged NodeStatusReports
    */
   def getNodeStatusReports(
-      nodeId                  : NodeId
-      // run info: if we have a run, we have a datetime for it
+      nodeId: NodeId, // run info: if we have a run, we have a datetime for it
       // and perhaps a configId
-    , runInfo                 : RunAndConfigInfo
-      // reports we get on the last know run
-    , agentExecutionReports   : Seq[Reports]
-    , unexpectedInterpretation: UnexpectedReportInterpretation
-  ) : NodeStatusReport = {
 
+      runInfo: RunAndConfigInfo, // reports we get on the last know run
+
+      agentExecutionReports:    Seq[Reports],
+      unexpectedInterpretation: UnexpectedReportInterpretation
+  ): NodeStatusReport = {
 
     // UnexpectedVersion are always called for only one node
     // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by constuct, different configid
-    def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedConfig: NodeExpectedReports, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]): Set[RuleNodeStatusReport] = {
+    def buildUnexpectedVersion(
+        runTime:            DateTime,
+        runVersion:         Option[NodeConfigIdInfo],
+        runExpiration:      DateTime,
+        expectedConfig:     NodeExpectedReports,
+        expectedExpiration: DateTime,
+        nodeStatusReports:  Seq[ResultReports]
+    ): Set[RuleNodeStatusReport] = {
       // we have 2 separate status: the missing and the expected, so two different RuleNodeStatusReport that will never merge
-      //all expected missing
+      // all expected missing
       buildRuleNodeStatusReport(
-          MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration)
-        , expectedConfig
-        , ReportType.Missing
+        MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration),
+        expectedConfig,
+        ReportType.Missing
       ) ++
       buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
 
     }
 
-    //only interesting reports: for that node, with a status
-    val nodeStatusReports = agentExecutionReports.collect{ case r: ResultReports if(r.nodeId == nodeId) => r }
+    // only interesting reports: for that node, with a status
+    val nodeStatusReports = agentExecutionReports.collect { case r: ResultReports if (r.nodeId == nodeId) => r }
 
     ComplianceDebugLogger.node(nodeId).debug(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
-    val t1 = System.currentTimeMillis
+    val t1                    = System.currentTimeMillis
     val ruleNodeStatusReports = runInfo match {
 
       case ReportsDisabledInInterval(expectedConfig, _) =>
-        ComplianceDebugLogger.node(nodeId).debug(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .debug(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
         buildRuleNodeStatusReport(
-            //these reports don't really expires - without change, it will
-            //always be the same.
-            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME)
-          , expectedConfig
-          , ReportType.Disabled
+          // these reports don't really expires - without change, it will
+          // always be the same.
+          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME),
+          expectedConfig,
+          ReportType.Disabled
         )
 
       case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
-        ComplianceDebugLogger.node(nodeId).debug(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .debug(
+            s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}"
+          )
         mergeCompareByRule(
-            MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime)
-          , nodeStatusReports
-          , expectedConfig
-          , expectedConfig
-          , unexpectedInterpretation
+          MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime),
+          nodeStatusReports,
+          expectedConfig,
+          expectedConfig,
+          unexpectedInterpretation
         )
 
       case Pending(expectedConfig, optLastRun, expirationTime) =>
         optLastRun match {
           case None =>
-            ComplianceDebugLogger.node(nodeId).debug(s"Node is Pending with no reports from a previous run, everything is pending")
+            ComplianceDebugLogger
+              .node(nodeId)
+              .debug(s"Node is Pending with no reports from a previous run, everything is pending")
             // we don't have previous run, so we can simply say that all component in node are Pending
             buildRuleNodeStatusReport(
-                MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime)
-              , expectedConfig
-              , ReportType.Pending
+              MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+              expectedConfig,
+              ReportType.Pending
             )
 
           case Some((runTime, runConfig)) =>
@@ -740,57 +800,98 @@ final case class ContextForNoAnswer(
              * component in new expected config BUT NOT is the one for which we have the run,
              * set pending.
              */
-            ComplianceDebugLogger.node(nodeId).debug("Node is Pending with reports from previous run, using merge/compare strategy between last "
-                                                    + s"reports from run ${runConfig.toLog} and expect reports ${expectedConfig.toLog}")
+            ComplianceDebugLogger
+              .node(nodeId)
+              .debug(
+                "Node is Pending with reports from previous run, using merge/compare strategy between last "
+                + s"reports from run ${runConfig.toLog} and expect reports ${expectedConfig.toLog}"
+              )
             mergeCompareByRule(
-                MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime)
-              , nodeStatusReports
-              , runConfig
-              , expectedConfig
-              , unexpectedInterpretation
+              MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime),
+              nodeStatusReports,
+              runConfig,
+              expectedConfig,
+              unexpectedInterpretation
             )
         }
 
       case NoReportInInterval(expectedConfig, expirationTime) =>
-        ComplianceDebugLogger.node(nodeId).debug(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .debug(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
         buildRuleNodeStatusReport(
-            //these reports need to expire, so that we can recompute them automatically
-            // at expiration, and store that the nodes were not answering
-            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime)
-          , expectedConfig
-          , ReportType.NoAnswer
+          // these reports need to expire, so that we can recompute them automatically
+          // at expiration, and store that the nodes were not answering
+          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+          expectedConfig,
+          ReportType.NoAnswer
         )
 
       case UnexpectedVersion(runTime, Some(runConfig), runExpiration, expectedConfig, expectedExpiration, _) =>
-        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runConfig.nodeConfigId.value}' but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
-        buildUnexpectedVersion(runTime, Some(runConfig.configInfo), runExpiration, expectedConfig, expectedExpiration, nodeStatusReports)
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runConfig.nodeConfigId.value}' but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+          )
+        buildUnexpectedVersion(
+          runTime,
+          Some(runConfig.configInfo),
+          runExpiration,
+          expectedConfig,
+          expectedExpiration,
+          nodeStatusReports
+        )
 
-      case UnexpectedNoVersion(runTime, runId, runExpiration, expectedConfig, expectedExpiration, _) => //same as unextected, different log
-        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
+      case UnexpectedNoVersion(
+            runTime,
+            runId,
+            runExpiration,
+            expectedConfig,
+            expectedExpiration,
+            _
+          ) => // same as unextected, different log
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+          )
         buildUnexpectedVersion(runTime, None, runExpiration, expectedConfig, expectedExpiration, nodeStatusReports)
 
-      case UnexpectedUnknowVersion(runTime, runId, expectedConfig, expectedExpiration, _) => //same as unextected, different log
-        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
+      case UnexpectedUnknowVersion(runTime, runId, expectedConfig, expectedExpiration, _) => // same as unextected, different log
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+          )
         buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
 
-
-      case NoUserRulesDefined(runTime, expectedConfig, runId, _, _) => //same as unextected, different log
+      case NoUserRulesDefined(runTime, expectedConfig, runId, _, _) => // same as unextected, different log
         val expectedExpiration = expectedConfig.beginDate.plus(expectedConfig.agentRun.interval.plus(GRACE_TIME_PENDING))
-        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+          )
         buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
 
       case NoExpectedReport(runTime, optConfigId) =>
         // these reports where not expected
-        ComplianceDebugLogger.node(nodeId).warn(s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${
-          optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")
-        }). No expected configuration matches these reports.")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")}). No expected configuration matches these reports."
+          )
         buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports)
 
       case NoRunNoExpectedReport =>
         /*
          * Really, this node exists ? Shouldn't we just declare Ragnarök at that point ?
          */
-        ComplianceDebugLogger.node(nodeId).warn(s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)")
+        ComplianceDebugLogger
+          .node(nodeId)
+          .warn(
+            s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)"
+          )
         Set[RuleNodeStatusReport]()
 
     }
@@ -801,64 +902,67 @@ final case class ContextForNoAnswer(
      */
 
     val t2 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: getNodeStatusReports - computing compliance for node ${nodeId}: ${t2-t1}ms")
+    TimingDebugLogger.trace(s"Compliance: getNodeStatusReports - computing compliance for node ${nodeId}: ${t2 - t1}ms")
 
     val status = {
       val abort = agentExecutionReports.collect {
-        case r: LogReports if(r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
+        case r: LogReports if (r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
           RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
       }.toSet
-      val mixed = ruleNodeStatusReports.collect { case r => r.directives.collect { case (_, d) if (d.compliance.badPolicyMode > 0) =>
-        RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
-                                                             " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
-                                                             " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode")
-      }.toSet }.flatten
+      val mixed = ruleNodeStatusReports.collect {
+        case r =>
+          r.directives.collect {
+            case (_, d) if (d.compliance.badPolicyMode > 0) =>
+              RunComplianceInfo.PolicyModeError.TechniqueMixedMode(
+                s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
+                " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
+                " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode"
+              )
+          }.toSet
+      }.flatten
 
       (abort ++ mixed).toList match {
         case Nil  => RunComplianceInfo.OK
         case list => RunComplianceInfo.PolicyModeInconsistency(list)
       }
     }
-    val t3 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3-t2}ms")
+    val t3     = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3 - t2}ms")
 
     val overrides = runInfo match {
       case x: ExpectedConfigAvailable => x.expectedConfig.overrides
-      case x: LastRunAvailable        => x.lastRunConfigInfo.map( _.overrides ).getOrElse(Nil).toList
-      case _                          => Nil
+      case x: LastRunAvailable        => x.lastRunConfigInfo.map(_.overrides).getOrElse(Nil).toList
+      case _ => Nil
     }
 
     NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
   }
 
-
   // utility method to find how missing report should be reported given the compliance
   // mode of the node.
   private[reports] def missingReportType(complianceMode: ComplianceMode, policyMode: PolicyMode) = complianceMode.mode match {
     case FullCompliance  => ReportType.Missing
-    case ChangesOnly     => policyMode match {
-      case PolicyMode.Enforce => ReportType.EnforceSuccess
-      case PolicyMode.Audit   => ReportType.AuditCompliant
-    }
+    case ChangesOnly     =>
+      policyMode match {
+        case PolicyMode.Enforce => ReportType.EnforceSuccess
+        case PolicyMode.Audit   => ReportType.AuditCompliant
+      }
     case ReportsDisabled => ReportType.Disabled
   }
-
-
-
 
   class ComputeComplianceTimer() {
     var u1, u2, u3, u4 = 0L
   }
 
   private[reports] def getComplianceForRule(
-      mergeInfo               : MergeInfo
-      // only report for that ruleId, for that nodeid, of type ResultReports,
+      mergeInfo: MergeInfo, // only report for that ruleId, for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
-    , reportsForThatNodeRule  : Seq[ResultReports]
-    , modes                   : NodeModeConfig
-    , ruleExpectedReports     : RuleExpectedReports
-    , unexpectedInterpretation: UnexpectedReportInterpretation
-    , timer                   : ComputeComplianceTimer
+
+      reportsForThatNodeRule:   Seq[ResultReports],
+      modes:                    NodeModeConfig,
+      ruleExpectedReports:      RuleExpectedReports,
+      unexpectedInterpretation: UnexpectedReportInterpretation,
+      timer:                    ComputeComplianceTimer
   ): RuleNodeStatusReport = {
 
     // An effective expected component contains only the component path from the root component to a unique Value
@@ -866,46 +970,48 @@ final case class ContextForNoAnswer(
     // Value is the in just a shortcut the last leaf of the component
     // This will allow  to analyse each component path separately so that reports are affected accordingly with blocks
     // In case there is no block, the component is the same than the value
-    case class EffectiveExpectedComponent (
-      component : ComponentExpectedReport
-    , value     : ValueExpectedReport
+    case class EffectiveExpectedComponent(
+        component: ComponentExpectedReport,
+        value:     ValueExpectedReport
     )
 
-    def getExpectedComponents(component : ComponentExpectedReport) : List[EffectiveExpectedComponent] = {
+    def getExpectedComponents(component: ComponentExpectedReport): List[EffectiveExpectedComponent] = {
       component match {
-        case c : ValueExpectedReport => EffectiveExpectedComponent(c, c) :: Nil
-        case c : BlockExpectedReport => c.subComponents.flatMap(getExpectedComponents).map(exp => exp.copy(component = c.copy(subComponents = exp.component :: Nil)))
+        case c: ValueExpectedReport => EffectiveExpectedComponent(c, c) :: Nil
+        case c: BlockExpectedReport =>
+          c.subComponents
+            .flatMap(getExpectedComponents)
+            .map(exp => exp.copy(component = c.copy(subComponents = exp.component :: Nil)))
       }
     }
 
     val RuleExpectedReports(ruleId, directives) = ruleExpectedReports
-    val t1 = System.nanoTime
-    //here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
+    val t1                                      = System.nanoTime
+    // here, we had at least one report, even if it not a ResultReports (i.e: run start/end is meaningful
 
-    val reports = reportsForThatNodeRule.groupBy(x => x.directiveId )
+    val reports = reportsForThatNodeRule.groupBy(x => x.directiveId)
 
     val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = (for {
-      directive  <- directives
-      policyMode =  PolicyMode.directivePolicyMode(
-                           modes.globalPolicyMode
-                         , modes.nodePolicyMode
-                         , directive.policyMode
-                         , directive.isSystem
-                    )
+      directive          <- directives
+      policyMode          = PolicyMode.directivePolicyMode(
+                              modes.globalPolicyMode,
+                              modes.nodePolicyMode,
+                              directive.policyMode,
+                              directive.isSystem
+                            )
       // the status to use for ACTUALLY missing reports, i.e for reports for which
       // we have a run but are not here. Basically, it's "missing" when on
       // full compliance and "success" when on changes only - but that success
       // depends upon the policy mode
       missingReportStatus = missingReportType(modes.globalComplianceMode, policyMode)
-      component  <- directive.components
+      component          <- directive.components
 
     } yield {
 
       ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus))
     }).toMap
     val t2 = System.nanoTime
-    timer.u1 += t2-t1
-
+    timer.u1 += t2 - t1
 
     /*
      * now we have three cases:
@@ -918,59 +1024,68 @@ final case class ContextForNoAnswer(
     val okKeys = reportKeys.intersect(expectedKeys)
 
     val t3 = System.nanoTime
-    timer.u2 += t3-t2
+    timer.u2 += t3 - t2
 
-    //unexpected contains the one with unexpected key and all non matching serial/version
+    // unexpected contains the one with unexpected key and all non matching serial/version
     val unexpected = (if (okKeys.size != reportKeys.size) {
-      buildUnexpectedDirectives(
-        reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
-      )
-    } else {
-      Seq[DirectiveStatusReport]()
-    })
+                        buildUnexpectedDirectives(
+                          reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
+                        )
+                      } else {
+                        Seq[DirectiveStatusReport]()
+                      })
 
     val t4 = System.nanoTime
-    timer.u3 += t4-t3
+    timer.u3 += t4 - t3
 
     // okKeys is DirectiveId, ComponentName
-    val expected: Iterable[DirectiveStatusReport] =
+    val expected: Iterable[DirectiveStatusReport] = {
       expectedComponents.groupBy(_._1._1).map {
         case (directiveId, expectedComponentsForDirective) =>
-          DirectiveStatusReport(directiveId, expectedComponentsForDirective.flatMap {
-            case ((directiveId, components), (policyMode, missingReportStatus)) =>
-              val filteredReports = reports.get(directiveId).getOrElse(Seq())
-              // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
-              val r = components.map { c =>
-                // HEre reports need to be filtered to only match values that are expected for the Value that is at the end of the component path
-                // and its component nae
-                // The component used to analyse reports is the component at the top of our structure that we recreate the whole tree
-                checkExpectedComponentWithReports(c.component, filteredReports, missingReportStatus, policyMode, unexpectedInterpretation)
-              }
-              // Merge all components together
-              ComponentStatusReport.merge(r.flatten)
-          }.toList)
+          DirectiveStatusReport(
+            directiveId,
+            expectedComponentsForDirective.flatMap {
+              case ((directiveId, components), (policyMode, missingReportStatus)) =>
+                val filteredReports = reports.get(directiveId).getOrElse(Seq())
+                // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
+                val r               = components.map { c =>
+                  // HEre reports need to be filtered to only match values that are expected for the Value that is at the end of the component path
+                  // and its component nae
+                  // The component used to analyse reports is the component at the top of our structure that we recreate the whole tree
+                  checkExpectedComponentWithReports(
+                    c.component,
+                    filteredReports,
+                    missingReportStatus,
+                    policyMode,
+                    unexpectedInterpretation
+                  )
+                }
+                // Merge all components together
+                ComponentStatusReport.merge(r.flatten)
+            }.toList
+          )
       }
-
+    }
 
     val t5 = System.nanoTime
-    timer.u4 += t5-t4
+    timer.u4 += t5 - t4
 
     // if there is no missing nor unexpected, then data is already correct, otherwise we need to merge it
     val directiveStatusReports = {
       if (unexpected.nonEmpty) {
         DirectiveStatusReport.merge((expected ++ unexpected).toList)
       } else {
-        expected.map( dir => (dir.directiveId, dir)).toMap
+        expected.map(dir => (dir.directiveId, dir)).toMap
       }
     }
 
     RuleNodeStatusReport(
-        mergeInfo.nodeId
-      , ruleId
-      , mergeInfo.run
-      , mergeInfo.configId
-      , directiveStatusReports
-      , mergeInfo.expirationTime
+      mergeInfo.nodeId,
+      ruleId,
+      mergeInfo.run,
+      mergeInfo.configId,
+      directiveStatusReports,
+      mergeInfo.expirationTime
     )
 
   }
@@ -980,16 +1095,16 @@ final case class ContextForNoAnswer(
    *
    */
   private[reports] def getComplianceForRun(
-      mergeInfo               : MergeInfo
-      // only report for that nodeid, of type ResultReports,
+      mergeInfo: MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
-    , executionReports        : Seq[ResultReports]
-    , lastRunNodeConfig       : NodeExpectedReports
-    , unexpectedInterpretation: UnexpectedReportInterpretation
+
+      executionReports:         Seq[ResultReports],
+      lastRunNodeConfig:        NodeExpectedReports,
+      unexpectedInterpretation: UnexpectedReportInterpretation
   ): Map[RuleId, RuleNodeStatusReport] = {
 
     val timer = new ComputeComplianceTimer()
-    val t0 = System.currentTimeMillis
+    val t0    = System.currentTimeMillis
 
     val reportsPerRule = executionReports.groupBy(_.ruleId)
     val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
@@ -997,28 +1112,42 @@ final case class ContextForNoAnswer(
     } yield {
 
       val reportsForThatNodeRule: Seq[ResultReports] = reportsPerRule.getOrElse(ruleExpectedReport.ruleId, Seq[ResultReports]())
-      val ruleCompliance = getComplianceForRule(mergeInfo, reportsForThatNodeRule, lastRunNodeConfig.modes, ruleExpectedReport, unexpectedInterpretation, timer)
-      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Expected reports for rule '${ruleCompliance.ruleId.serialize}': ${
-        ruleExpectedReport.directives.map(_.toString).mkString("\n [expected] ","\n [expected] ","\n")}")
-      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Reports for rule '${ruleCompliance.ruleId.serialize}': ${
-        reportsForThatNodeRule.map(_.toString).mkString("\n [report] ","\n [report] ","\n")}")
-      ComplianceDebugLogger.node(ruleCompliance.nodeId).trace(s"Compliance for rule '${ruleCompliance.ruleId.serialize}': ${ruleCompliance}")
+      val ruleCompliance = getComplianceForRule(
+        mergeInfo,
+        reportsForThatNodeRule,
+        lastRunNodeConfig.modes,
+        ruleExpectedReport,
+        unexpectedInterpretation,
+        timer
+      )
+      ComplianceDebugLogger
+        .node(ruleCompliance.nodeId)
+        .trace(
+          s"Expected reports for rule '${ruleCompliance.ruleId.serialize}': ${ruleExpectedReport.directives.map(_.toString).mkString("\n [expected] ", "\n [expected] ", "\n")}"
+        )
+      ComplianceDebugLogger
+        .node(ruleCompliance.nodeId)
+        .trace(
+          s"Reports for rule '${ruleCompliance.ruleId.serialize}': ${reportsForThatNodeRule.map(_.toString).mkString("\n [report] ", "\n [report] ", "\n")}"
+        )
+      ComplianceDebugLogger
+        .node(ruleCompliance.nodeId)
+        .trace(s"Compliance for rule '${ruleCompliance.ruleId.serialize}': ${ruleCompliance}")
 
       (ruleExpectedReport.ruleId, ruleCompliance)
     }).toMap
 
     val t1 = System.currentTimeMillis
 
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${timer.u1/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${timer.u2/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${timer.u3/1000}µs")
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${timer.u4/1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - prepare data: ${timer.u1 / 1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - get missing reports: ${timer.u2 / 1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - unexpected directives computation: ${timer.u3 / 1000}µs")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - expected directives computation: ${timer.u4 / 1000}µs")
 
-    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t1-t0}ms")
+    TimingDebugLogger.trace(s"Compliance: Compute complianceForRun map: ${t1 - t0}ms")
 
     complianceForRun
   }
-
 
   /**
    * That method only take care of the low level logic of comparing
@@ -1046,13 +1175,13 @@ final case class ContextForNoAnswer(
    * to the "serial" of rule.
    */
   private[reports] def mergeCompareByRule(
-      mergeInfo               : MergeInfo
-      // only report for that nodeid, of type ResultReports,
+      mergeInfo: MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
-    , executionReports        : Seq[ResultReports]
-    , lastRunNodeConfig       : NodeExpectedReports
-    , currentConfig           : NodeExpectedReports
-    , unexpectedInterpretation: UnexpectedReportInterpretation
+
+      executionReports:         Seq[ResultReports],
+      lastRunNodeConfig:        NodeExpectedReports,
+      currentConfig:            NodeExpectedReports,
+      unexpectedInterpretation: UnexpectedReportInterpretation
   ): Set[RuleNodeStatusReport] = {
 
     val t0 = System.currentTimeMillis()
@@ -1061,123 +1190,163 @@ final case class ContextForNoAnswer(
 
     val t10 = System.currentTimeMillis()
 
-    //now, for all current expected reports, choose between the computed value and the default one
+    // now, for all current expected reports, choose between the computed value and the default one
 
     // note: isn't there something specific to do for unexpected reports ? Keep them all ?
 
     val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
-    val t11 = System.currentTimeMillis
+    val t11               = System.currentTimeMillis
 
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11-t10}ms")
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11 - t10}ms")
 
-    val (computed, newStatus) = currentRunReports.foldLeft((List[RuleNodeStatusReport](), List[RuleNodeStatusReport]())) { case ( (c,n), currentStatusReports) =>
-      complianceForRun.get(currentStatusReports.ruleId) match {
-        case None => //the whole rule is new!
-          //here, the reports are ACTUALLY pending, not missing.
-          (c,  currentStatusReports :: n )
+    val (computed, newStatus) = currentRunReports.foldLeft((List[RuleNodeStatusReport](), List[RuleNodeStatusReport]())) {
+      case ((c, n), currentStatusReports) =>
+        complianceForRun.get(currentStatusReports.ruleId) match {
+          case None => // the whole rule is new!
+            // here, the reports are ACTUALLY pending, not missing.
+            (c, currentStatusReports :: n)
 
-        case Some(runStatusReport) => //look for added / removed directive
-          val runDirectives = runStatusReport.directives
-          val currentDirectives = currentStatusReports.directives
+          case Some(runStatusReport) => // look for added / removed directive
+            val runDirectives     = runStatusReport.directives
+            val currentDirectives = currentStatusReports.directives
 
-          //don't keep directive that were removed between the two configs
-          val toKeep = runDirectives.view.filterKeys(k => currentDirectives.keySet.contains(k)).toMap
+            // don't keep directive that were removed between the two configs
+            val toKeep = runDirectives.view.filterKeys(k => currentDirectives.keySet.contains(k)).toMap
 
-          //now override currentDirective with the one to keep in currentReport
-          val updatedDirectives = currentDirectives ++ toKeep
-          val newCompliance = runStatusReport.copy(directives = updatedDirectives)
+            // now override currentDirective with the one to keep in currentReport
+            val updatedDirectives = currentDirectives ++ toKeep
+            val newCompliance     = runStatusReport.copy(directives = updatedDirectives)
 
-          (newCompliance :: c, n)
-      }
+            (newCompliance :: c, n)
+        }
     }
 
     val t12 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute compliance : ${t12-t11}ms")
-
+    TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute compliance : ${t12 - t11}ms")
 
     if (ComplianceDebugLogger.node(mergeInfo.nodeId).isTraceEnabled) {
-      ComplianceDebugLogger.node(mergeInfo.nodeId).trace(s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${
-        computed.map { x => s"[${x.ruleId.serialize}]" }.mkString("")
-      };" + s" rule updated since run: ${
-        newStatus.map { x => s"${x.ruleId.serialize}" }.mkString("[", "][", "]")
-      }")
+      ComplianceDebugLogger
+        .node(mergeInfo.nodeId)
+        .trace(
+          s"Compute compliance for node ${mergeInfo.nodeId.value} using: rules for which compliance is based on run reports: ${computed.map {
+              x => s"[${x.ruleId.serialize}]"
+            }.mkString("")};" + s" rule updated since run: ${newStatus.map(x => s"${x.ruleId.serialize}").mkString("[", "][", "]")}"
+        )
     }
 
     val t13 = System.currentTimeMillis
-    TimingDebugLogger.debug(s"Compliance: mergeCompareByRule global cost : ${t13-t0}ms")
+    TimingDebugLogger.debug(s"Compliance: mergeCompareByRule global cost : ${t13 - t0}ms")
 
     (computed ::: newStatus).toSet
   }
 
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
-    reports.groupBy(x => x.ruleId).map { case (ruleId, seq) =>
-      RuleNodeStatusReport(
-        mergeInfo.nodeId
-        , ruleId
-        , mergeInfo.run
-        , mergeInfo.configId
-        , seq.groupBy(_.directiveId).map{ case (directiveId, reportsByDirectives) =>
-          (directiveId, DirectiveStatusReport(directiveId, reportsByDirectives.groupBy(_.component).toList.map { case (component, reportsByComponents) =>
-            ValueStatusReport(component, component, reportsByComponents.groupBy(_.keyValue).toList.map { case (keyValue, reportsByComponent) =>
-              ComponentValueStatusReport(keyValue, keyValue, reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList)
-            })
-            })
-          )}
-        , mergeInfo.expirationTime
-      )
-    }.toSet
+    reports
+      .groupBy(x => x.ruleId)
+      .map {
+        case (ruleId, seq) =>
+          RuleNodeStatusReport(
+            mergeInfo.nodeId,
+            ruleId,
+            mergeInfo.run,
+            mergeInfo.configId,
+            seq.groupBy(_.directiveId).map {
+              case (directiveId, reportsByDirectives) =>
+                (
+                  directiveId,
+                  DirectiveStatusReport(
+                    directiveId,
+                    reportsByDirectives.groupBy(_.component).toList.map {
+                      case (component, reportsByComponents) =>
+                        ValueStatusReport(
+                          component,
+                          component,
+                          reportsByComponents.groupBy(_.keyValue).toList.map {
+                            case (keyValue, reportsByComponent) =>
+                              ComponentValueStatusReport(
+                                keyValue,
+                                keyValue,
+                                reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
+                              )
+                          }
+                        )
+                    }
+                  )
+                )
+            },
+            mergeInfo.expirationTime
+          )
+      }
+      .toSet
   }
+
   /**
    * Build unexpected reports for the given reports
    */
   private[this] def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
-      DirectiveStatusReport(r.directiveId,
-        ValueStatusReport(r.component, r.component, ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil) :: Nil
-        ) :: Nil)
+      DirectiveStatusReport(
+        r.directiveId,
+        ValueStatusReport(
+          r.component,
+          r.component,
+          ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil) :: Nil
+        ) :: Nil
+      )
 
     }
   }
 
-  private[reports] def componentExpectedReportToStatusReport (reportType: ReportType, c : ComponentExpectedReport) : ComponentStatusReport = {
-       c match {
-         case c : ValueExpectedReport =>
-              ValueStatusReport(c.componentName,c.componentName, c.componentsValues.map {
-                case ExpectedValueId(v,_) => (v,v)
-                case ExpectedValueMatch(v,u) => (v,u)
-              }.map { case(v,u) =>
-                  ComponentValueStatusReport(v, u, MessageStatusReport(reportType, None) :: Nil)
-                  })
-            case c : BlockExpectedReport =>
-              BlockStatusReport(c.componentName, c.reportingLogic, c.subComponents.map(componentExpectedReportToStatusReport(reportType, _)))
+  private[reports] def componentExpectedReportToStatusReport(
+      reportType: ReportType,
+      c:          ComponentExpectedReport
+  ): ComponentStatusReport = {
+    c match {
+      case c: ValueExpectedReport =>
+        ValueStatusReport(
+          c.componentName,
+          c.componentName,
+          c.componentsValues.map {
+            case ExpectedValueId(v, _)    => (v, v)
+            case ExpectedValueMatch(v, u) => (v, u)
+          }.map {
+            case (v, u) =>
+              ComponentValueStatusReport(v, u, MessageStatusReport(reportType, None) :: Nil)
           }
+        )
+      case c: BlockExpectedReport =>
+        BlockStatusReport(
+          c.componentName,
+          c.reportingLogic,
+          c.subComponents.map(componentExpectedReportToStatusReport(reportType, _))
+        )
+    }
 
-        }
-
+  }
 
   // by construct, NodeExpectedReports are correctly grouped by Rule/Directive/Component
   private[reports] def buildRuleNodeStatusReport(
-      mergeInfo      : MergeInfo
-    , expectedReports: NodeExpectedReports
-    , status         : ReportType
-    , message        : String = ""
+      mergeInfo:       MergeInfo,
+      expectedReports: NodeExpectedReports,
+      status:          ReportType,
+      message:         String = ""
   ): Set[RuleNodeStatusReport] = {
-    expectedReports.ruleExpectedReports.map { case RuleExpectedReports(ruleId, directives) =>
-      val d = directives.map { d =>
-        (d.directiveId, DirectiveStatusReport(d.directiveId,
-          d.components.map { c =>
-            componentExpectedReportToStatusReport(status, c)
-          }
+    expectedReports.ruleExpectedReports.map {
+      case RuleExpectedReports(ruleId, directives) =>
+        val d = directives.map { d =>
+          (
+            d.directiveId,
+            DirectiveStatusReport(d.directiveId, d.components.map(c => componentExpectedReportToStatusReport(status, c)))
+          )
+        }.toMap
+        RuleNodeStatusReport(
+          mergeInfo.nodeId,
+          ruleId,
+          mergeInfo.run,
+          mergeInfo.configId,
+          d,
+          mergeInfo.expirationTime
         )
-        )}.toMap
-      RuleNodeStatusReport(
-          mergeInfo.nodeId
-        , ruleId
-        , mergeInfo.run
-        , mergeInfo.configId
-        , d
-        , mergeInfo.expirationTime
-      )
     }.toSet
   }
 
@@ -1203,20 +1372,23 @@ final case class ContextForNoAnswer(
    * The visibility is for allowing tests
    */
   private[reports] def checkExpectedComponentWithReports(
-      expectedComponent       : ComponentExpectedReport
-    , filteredReports         : Seq[ResultReports]
-    , noAnswerType            : ReportType
-    , policyMode              : PolicyMode //the one of the directive, or node, or global
-    , unexpectedInterpretation: UnexpectedReportInterpretation
-  ) : List[ComponentStatusReport] = {
+      expectedComponent: ComponentExpectedReport,
+      filteredReports:   Seq[ResultReports],
+      noAnswerType:      ReportType,
+      policyMode:        PolicyMode, // the one of the directive, or node, or global
+
+      unexpectedInterpretation: UnexpectedReportInterpretation
+  ): List[ComponentStatusReport] = {
     // an utility class that store an expected value and the list of matching reports for it
     final case class Value(
-        expectedValue: ExpectedValueMatch
-      , cardinality: Int // number of expected reports, most of the time '1'
-      , isVar: Boolean
-      , pattern: Option[Pattern]
-      , specificity: Int // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
-      , matchingReports: List[Reports]
+        expectedValue: ExpectedValueMatch,
+        cardinality:   Int, // number of expected reports, most of the time '1'
+
+        isVar:       Boolean,
+        pattern:     Option[Pattern],
+        specificity: Int, // how specific the pattern is. ".*" is 0 (not specific at all), "foobarbaz" is 9.
+
+        matchingReports: List[Reports]
     )
     /*
      * This function recursively try to pair the first report from input list with one of the component
@@ -1226,7 +1398,13 @@ final case class ContextForNoAnswer(
      * - the report is variable AND UnexpectedReportBehavior.UnboundVarValues is set
      */
     @tailrec
-    def recPairReports(reports: List[ResultReports], freeValues: List[Value], pairedValues: List[Value], unexpected: List[ResultReports], mode: UnexpectedReportInterpretation): (List[Value], List[ResultReports]) = {
+    def recPairReports(
+        reports:      List[ResultReports],
+        freeValues:   List[Value],
+        pairedValues: List[Value],
+        unexpected:   List[ResultReports],
+        mode:         UnexpectedReportInterpretation
+    ): (List[Value], List[ResultReports]) = {
       // utility function: given a list of Values and one report, try to find a value whose pattern matches reports component value.
       // the first matching value is used (they must be sorted by specificity).
       // Returns (list of unmatched values, Option[matchedValue])
@@ -1239,47 +1417,56 @@ final case class ContextForNoAnswer(
       //   values (or if not runtime, at least a sequence obtained through a variable).
       // Be careful: the list of values must be kept sorted in the same order as paramater!
       def findMatchingValue(
-          report: ResultReports
-        , values: List[Value]
-        , incrementCardinality: (Value, ResultReports) => Boolean
+          report:               ResultReports,
+          values:               List[Value],
+          incrementCardinality: (Value, ResultReports) => Boolean
       ): (List[Value], Option[Value]) = {
-        val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) { case ((stack, found), value) =>
-          found match {
-            case Some(x) => (value :: stack, Some(x))
-            case None =>
-              // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
-              if (((!value.isVar) && (value.expectedValue.value == report.keyValue)) || (value.isVar && (value.pattern.get.matcher(report.keyValue).matches()))) {
-                val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
-                (stack, Some(value.copy(
-                  cardinality = card
-                  , matchingReports = report :: value.matchingReports
-                )))
-              } else {
-                (value :: stack, None)
-              }
-          }
+        val (stack, found) = values.foldLeft(((Nil: List[Value]), Option.empty[Value])) {
+          case ((stack, found), value) =>
+            found match {
+              case Some(x) => (value :: stack, Some(x))
+              case None    =>
+                // We don't need to match if it's not a variable. By construct, if it is a var, there is a pattern
+                if (
+                  ((!value.isVar) && (value.expectedValue.value == report.keyValue)) || (value.isVar && (value.pattern.get
+                    .matcher(report.keyValue)
+                    .matches()))
+                ) {
+                  val card = value.cardinality + (if (incrementCardinality(value, report)) 1 else 0)
+                  (
+                    stack,
+                    Some(
+                      value.copy(
+                        cardinality = card,
+                        matchingReports = report :: value.matchingReports
+                      )
+                    )
+                  )
+                } else {
+                  (value :: stack, None)
+                }
+            }
         }
         (stack.reverse, found)
       }
 
       reports match {
-        case Nil => (freeValues ::: pairedValues, unexpected)
+        case Nil            => (freeValues ::: pairedValues, unexpected)
         case report :: tail =>
           // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
           // else (all free values, None).
           // never increment the cardinality for free value.
-          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues,  (value, report) => false)
+          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (value, report) => false)
 
           logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
 
           tryPair match {
             case Some(v) =>
               recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
-            case None =>
+            case None    =>
               // here, we don't have found any free value for that report. We are not done yet because it can be an
               // unexpected reports bound to an already existing value (and so the whole component should be
               // unexpected or if mode allows duplicates or unbound var values, it can be ok.
-
 
               val unboundedVar = (value: Value, report: ResultReports) => {
                 mode.isSet(UnexpectedReportBehavior.UnboundVarValues) && {
@@ -1293,34 +1480,37 @@ final case class ContextForNoAnswer(
               logger.trace(s"Found paired again value for ${report.keyValue}? " + pairedAgain)
 
               pairedAgain match {
-                case None => //really unexpected after all
+                case None    => // really unexpected after all
                   recPairReports(tail, newFreeValues, newPairedValues, report :: unexpected, mode)
-                case Some(v) => //found a new pair!
+                case Some(v) => // found a new pair!
                   recPairReports(tail, newFreeValues, v :: newPairedValues, unexpected, mode)
               }
           }
       }
     }
 
-
     val componentGotAtLeastOneReport = filteredReports.nonEmpty
 
     expectedComponent match {
       case g: BlockExpectedReport =>
-        BlockStatusReport(g.componentName, g.reportingLogic, g.subComponents.flatMap { case e =>
-          checkExpectedComponentWithReports(e, filteredReports, noAnswerType, policyMode, unexpectedInterpretation)
-        }) :: Nil
+        BlockStatusReport(
+          g.componentName,
+          g.reportingLogic,
+          g.subComponents.flatMap {
+            case e =>
+              checkExpectedComponentWithReports(e, filteredReports, noAnswerType, policyMode, unexpectedInterpretation)
+          }
+        ) :: Nil
 
       case expectedComponent: ValueExpectedReport =>
-
-        val (matchValue, matchId) = expectedComponent.componentsValues.partitionMap{
+        val (matchValue, matchId) = expectedComponent.componentsValues.partitionMap {
           case e: ExpectedValueMatch => Left(e)
           case e: ExpectedValueId    => Right(e)
         }
 
         // 1. start with the easy case: expected reports with a report ID
 
-        val (matched,last_unexpected) =  matchId.foldLeft((List.empty[ComponentStatusReport],filteredReports)) {
+        val (matched, last_unexpected) = matchId.foldLeft((List.empty[ComponentStatusReport], filteredReports)) {
           case ((acc, reports), expectedValueId) =>
             val (matched, left) = reports.partition(_.reportId == expectedValueId.id)
 
@@ -1329,50 +1519,67 @@ final case class ContextForNoAnswer(
             // else it's unexpected, appart if they contains a variable.
             // We also assume that we await AT LEAST one report, but that more reports is OK to account for iterators
 
-            val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) { case ((ok, unexp), next) =>
+            val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) {
+              case ((ok, unexp), next) =>
+                val componentOk = next.component == expectedComponent.componentName || replaceCFEngineVars(
+                  expectedComponent.componentName
+                ).matcher(next.component).matches()
+                val valueOk     = next.keyValue == expectedValueId.value || replaceCFEngineVars(expectedValueId.value)
+                  .matcher(next.keyValue)
+                  .matches()
 
-              val componentOk = next.component == expectedComponent.componentName || replaceCFEngineVars(expectedComponent.componentName).matcher(next.component).matches()
-              val valueOk = next.keyValue == expectedValueId.value || replaceCFEngineVars(expectedValueId.value).matcher(next.keyValue).matches()
-
-              if( componentOk && valueOk ) {
-                (next :: ok, unexp)
-              } else {
-                val msg = List(
-                    if(componentOk) None else Some(s"component '${next.component}' does not match '${expectedComponent.componentName}'")
-                  , if(valueOk) None else Some(s"value '${next.keyValue}' does not match '${expectedValueId.value}'")
-                ).flatten.mkString(" and ")
-                ComplianceDebugLogger.node(next.nodeId).trace(s"Report unexpected because ${msg}: ${next}")
-                (ok, next :: unexp)
-              }
+                if (componentOk && valueOk) {
+                  (next :: ok, unexp)
+                } else {
+                  val msg = List(
+                    if (componentOk) None
+                    else Some(s"component '${next.component}' does not match '${expectedComponent.componentName}'"),
+                    if (valueOk) None else Some(s"value '${next.keyValue}' does not match '${expectedValueId.value}'")
+                  ).flatten.mkString(" and ")
+                  ComplianceDebugLogger.node(next.nodeId).trace(s"Report unexpected because ${msg}: ${next}")
+                  (ok, next :: unexp)
+                }
             }
 
-
-            val okRes: List[ComponentStatusReport] = ok.groupBy(_.component).toList.map { case (component, r) =>
-              val cv = r.groupBy(_.keyValue).toList.map { case (key, r) =>
-                ComponentValueStatusReport(key, expectedValueId.value, r.map(_.toMessageStatusReport(policyMode)))
-              }
-              ValueStatusReport(component, expectedComponent.componentName, cv)
+            val okRes: List[ComponentStatusReport] = ok.groupBy(_.component).toList.map {
+              case (component, r) =>
+                val cv = r.groupBy(_.keyValue).toList.map {
+                  case (key, r) =>
+                    ComponentValueStatusReport(key, expectedValueId.value, r.map(_.toMessageStatusReport(policyMode)))
+                }
+                ValueStatusReport(component, expectedComponent.componentName, cv)
             }
-
 
             val missingRes: List[ComponentStatusReport] = if (ok.isEmpty) {
-              ValueStatusReport(expectedComponent.componentName, expectedComponent.componentName, ComponentValueStatusReport( expectedValueId.value,  expectedValueId.value,  MessageStatusReport(noAnswerType, "Missing report") :: Nil) :: Nil) :: Nil
+              ValueStatusReport(
+                expectedComponent.componentName,
+                expectedComponent.componentName,
+                ComponentValueStatusReport(
+                  expectedValueId.value,
+                  expectedValueId.value,
+                  MessageStatusReport(noAnswerType, "Missing report") :: Nil
+                ) :: Nil
+              ) :: Nil
             } else {
               Nil
             }
 
-            val unexpectedRes : List[ComponentStatusReport] = unexpected.groupBy(_.component).toList.map { case (component, r) =>
-              val cv = r.groupBy(_.keyValue).toList.map { case (key, r) =>
-                ComponentValueStatusReport(key, expectedValueId.value, r.map(r => MessageStatusReport(ReportType.Unexpected, r.message)))
-              }
-              ValueStatusReport(component, expectedComponent.componentName, cv)
+            val unexpectedRes: List[ComponentStatusReport] = unexpected.groupBy(_.component).toList.map {
+              case (component, r) =>
+                val cv = r.groupBy(_.keyValue).toList.map {
+                  case (key, r) =>
+                    ComponentValueStatusReport(
+                      key,
+                      expectedValueId.value,
+                      r.map(r => MessageStatusReport(ReportType.Unexpected, r.message))
+                    )
+                }
+                ValueStatusReport(component, expectedComponent.componentName, cv)
             }
-
-
 
             val koRes = missingRes ::: unexpectedRes
             // we still attach the unexpected with that component since they have its reportId
-            ( ComponentStatusReport.merge(okRes ::: koRes ::: acc), left)
+            (ComponentStatusReport.merge(okRes ::: koRes ::: acc), left)
         }
 
         // 2. now the complicated case - do what we used to do for expected report without a reportId
@@ -1383,14 +1590,17 @@ final case class ContextForNoAnswer(
         // the lenght of the pattern when \Q\E.* are removed.
         //
         val values = matchValue.map { v =>
-          val isVar = matchCFEngineVars.pattern.matcher(v.value).matches()
-          val pattern = if (isVar) { // If this is not a var, there isn't anything to replace.
+          val isVar       = matchCFEngineVars.pattern.matcher(v.value).matches()
+          val pattern     = if (isVar) { // If this is not a var, there isn't anything to replace.
             Some(replaceCFEngineVars(v.value))
           } else {
             None
           }
-          //If this is not a variable, we use the variable itself
-          val specificity = pattern.map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", "")).getOrElse(v.value).size
+          // If this is not a variable, we use the variable itself
+          val specificity = pattern
+            .map(_.toString.replaceAll("""\\Q""", "").replaceAll("""\\E""", "").replaceAll("""\.\*""", ""))
+            .getOrElse(v.value)
+            .size
           // default cardinality for a value is 1
           // default duplicate is 0 (and hopefully will remain so)
           Value(v, 1, isVar, pattern, specificity, Nil)
@@ -1405,48 +1615,56 @@ final case class ContextForNoAnswer(
         if (logger.isTraceEnabled)
           logger.trace("sorted reports: \n - " + sortedReports.map(_.keyValue).mkString("\n - "))
 
-        val (pairedValue, unexpected) = recPairReports(sortedReports.toList.filter(_.component == expectedComponent.componentName), values, Nil, Nil, unexpectedInterpretation)
+        val (pairedValue, unexpected) = recPairReports(
+          sortedReports.toList.filter(_.component == expectedComponent.componentName),
+          values,
+          Nil,
+          Nil,
+          unexpectedInterpretation
+        )
 
         if (logger.isTraceEnabled) {
           logger.trace("paires: \n + " + pairedValue.mkString("\n + "))
           logger.trace("unexpected: " + unexpected)
         }
         val pairedReportStatus = pairedValue.map { v =>
-          //here, we need to lie a little about the cardinality. It should be 1 (because it's only one component value),
-          //but it may be more if we accept duplicate/unboundVar. So just use the max(1, number of paired reports)
+          // here, we need to lie a little about the cardinality. It should be 1 (because it's only one component value),
+          // but it may be more if we accept duplicate/unboundVar. So just use the max(1, number of paired reports)
           buildComponentValueStatus(
-              v.expectedValue
-            , v.matchingReports
-            , componentGotAtLeastOneReport
-            , v.cardinality
-            , noAnswerType
-            , policyMode
+            v.expectedValue,
+            v.matchingReports,
+            componentGotAtLeastOneReport,
+            v.cardinality,
+            noAnswerType,
+            policyMode
           )
         }
 
-
-      /*
-       * And now, merge all values into a component.
-       */
-       if (pairedReportStatus.isEmpty) {
-         matched
-       } else {
-         ValueStatusReport(
-           expectedComponent.componentName
-           , expectedComponent.componentName
-           , ComponentValueStatusReport.merge(pairedReportStatus)
-         ) :: matched
-       }
+        /*
+         * And now, merge all values into a component.
+         */
+        if (pairedReportStatus.isEmpty) {
+          matched
+        } else {
+          ValueStatusReport(
+            expectedComponent.componentName,
+            expectedComponent.componentName,
+            ComponentValueStatusReport.merge(pairedReportStatus)
+          ) :: matched
+        }
     }
   }
-
 
   implicit class ToMessageStatusReport(val r: Reports) extends AnyVal {
     // build the resulting reportType from a report, checking that the
     // policy mode is the one expected
     def toMessageStatusReport(mode: PolicyMode) = {
       ReportType(r, mode) match {
-        case BadPolicyMode => MessageStatusReport(BadPolicyMode, s"PolicyMode is configured to ${mode.name} but we get: '${r.severity}': ${r.message}")
+        case BadPolicyMode =>
+          MessageStatusReport(
+            BadPolicyMode,
+            s"PolicyMode is configured to ${mode.name} but we get: '${r.severity}': ${r.message}"
+          )
         case x             => MessageStatusReport(x, r.message)
       }
     }
@@ -1461,26 +1679,27 @@ final case class ContextForNoAnswer(
    *
    */
   private[this] def buildComponentValueStatus(
-      expectedValue       : ExpectedValue
-    , filteredReports     : Seq[Reports]
-    , componentGotReports : Boolean // does the component got at least one report?
-    , cardinality         : Int
-    , noAnswerType        : ReportType
-    , policyMode          : PolicyMode
-  ) : ComponentValueStatusReport = {
+      expectedValue:       ExpectedValue,
+      filteredReports:     Seq[Reports],
+      componentGotReports: Boolean, // does the component got at least one report?
+
+      cardinality:  Int,
+      noAnswerType: ReportType,
+      policyMode:   PolicyMode
+  ): ComponentValueStatusReport = {
 
     val messageStatusReports = {
       filteredReports.size match {
         /* Nothing was received at all for that component so : No Answer or Pending */
         case 0 if !componentGotReports =>
           MessageStatusReport(noAnswerType, None) :: Nil
-        case x if(x <= cardinality) =>
+        case x if (x <= cardinality)   =>
           filteredReports.map(_.toMessageStatusReport(policyMode)).toList ++
           /* We need to complete the list of correct with missing, if some are missing */
-          (x until cardinality).map( i => MessageStatusReport(ReportType.Missing, s"[Missing report #${i}]")).toList
-        //check if cardinality is ok
-        case x if(x > cardinality) =>
-          filteredReports.map { r => MessageStatusReport(ReportType.Unexpected, r.message) }.toList
+          (x until cardinality).map(i => MessageStatusReport(ReportType.Missing, s"[Missing report #${i}]")).toList
+        // check if cardinality is ok
+        case x if (x > cardinality)    =>
+          filteredReports.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
       }
     }
 
@@ -1493,11 +1712,10 @@ final case class ContextForNoAnswer(
      * Note: we DO use expanded values to merge with reports.
      */
     ComponentValueStatusReport(
-        expectedValue.value
-      , expectedValue.value
-      , messageStatusReports
+      expectedValue.value,
+      expectedValue.value,
+      messageStatusReports
     )
   }
-
 
 }

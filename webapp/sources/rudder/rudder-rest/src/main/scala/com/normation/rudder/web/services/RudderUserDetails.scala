@@ -1,49 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2019 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 package com.normation.rudder.web.services
 
-import java.util.Collection
-import com.normation.rudder.{AuthorizationType, Rights, Role, RudderAccount}
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
+import com.normation.rudder.Role
+import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.ApiAuthorization
-
+import java.util.Collection
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-
 import scala.jdk.CollectionConverters._
 
 /**
@@ -61,7 +62,6 @@ sealed trait RudderAuthType {
   def grantedAuthorities: Collection[GrantedAuthority]
 }
 
-
 final object RudderAuthType {
   // build a GrantedAuthority from the string
   private def buildAuthority(s: String): Collection[GrantedAuthority] = {
@@ -71,7 +71,7 @@ final object RudderAuthType {
   final case object User extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_USER")
   }
-  final case object Api extends RudderAuthType {
+  final case object Api  extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = new Rights(AuthorizationType.NoRights)
@@ -86,18 +86,18 @@ final object RudderAuthType {
  * Don't make it final as SSO kind of authentication may need to extend it.
  */
 case class RudderUserDetail(
-  account : RudderAccount
-  , roles   : Set[Role]
-  , apiAuthz: ApiAuthorization
+    account:  RudderAccount,
+    roles:    Set[Role],
+    apiAuthz: ApiAuthorization
 ) extends UserDetails {
   // merge roles rights
-  val authz = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq:_*)
+  val authz                                               = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq: _*)
   override val (getUsername, getPassword, getAuthorities) = account match {
-    case RudderAccount.User(login, password) => (login         , password       , RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
     case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
   }
-  override val isAccountNonExpired        = true
-  override val isAccountNonLocked         = true
-  override val isCredentialsNonExpired    = true
-  override val isEnabled                  = true
+  override val isAccountNonExpired                        = true
+  override val isAccountNonLocked                         = true
+  override val isCredentialsNonExpired                    = true
+  override val isEnabled                                  = true
 }

@@ -1,55 +1,54 @@
 /*
-*************************************************************************************
-* Copyright 2017 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2017 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.rest
 
+import cats.data._
+import cats.implicits._
+import com.normation.eventlog.EventActor
+import com.normation.rudder.RudderAccount
+import com.normation.rudder.UserService
+import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
-import com.normation.rudder.api.HttpAction
-import com.normation.rudder.api.ApiAclElement
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
-import com.normation.rudder.UserService
-import com.normation.eventlog.EventActor
-import cats.implicits._
-import cats.data._
-import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountKind
-
+import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.api.HttpAction
 
 /*
  * This trait allows to check for autorisation on a given boundedendpoint
@@ -65,34 +64,31 @@ trait ApiAuthorization[T] {
   def checkAuthz(endpoint: Endpoint, requestPath: ApiPath): Either[ApiError, T]
 }
 
-
 /*
  * A simple class used by API and which hold authentication actor.
  * We only need the authz token/user name
  */
 final case class AuthzToken(actor: EventActor)
 
-
 /*
  * This service allows to know if the ACL module is set
  */
 trait ApiAuthorizationLevelService {
   def aclEnabled: Boolean
-  def name: String
+  def name:       String
 }
 
 // and default implementation is: no
 class DefaultApiAuthorizationLevel(logger: Log) extends ApiAuthorizationLevelService {
-  private[this] var level: Option[ApiAuthorizationLevelService] = None
-  def overrideLevel(l: ApiAuthorizationLevelService): Unit = {
+  private[this] var level:                            Option[ApiAuthorizationLevelService] = None
+  def overrideLevel(l: ApiAuthorizationLevelService): Unit                                 = {
     logger.info(s"Update API authorization level to '${l.name}'")
     level = Some(l)
   }
-  override def aclEnabled: Boolean = level.map( _.aclEnabled ).getOrElse(false)
+  override def aclEnabled:                            Boolean                              = level.map(_.aclEnabled).getOrElse(false)
 
   override def name: String = "Default implementation (RO/RW authorization)"
 }
-
 
 /*
  * Default authentication scheme. It will check for ACL enabled by the plugin.
@@ -102,12 +98,12 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
   def checkAuthz(endpoint: Endpoint, requestPath: ApiPath): Either[ApiError, AuthzToken] = {
     def checkRO(action: HttpAction): Option[String] = {
-      if(action == HttpAction.GET || action == HttpAction.HEAD) Some("ok")
+      if (action == HttpAction.GET || action == HttpAction.HEAD) Some("ok")
       else None
     }
 
     def checkACL(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Option[String] = {
-      if(AclCheck(acl, path, endpoint.schema.action)) {
+      if (AclCheck(acl, path, endpoint.schema.action)) {
         Some("ok")
       } else {
         None
@@ -121,38 +117,42 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
       ok   <- ((aclEnabled(), user.getApiAuthz, user.account) match {
                 /*
-                 * We need to check the account type. It is ok for a user account to have that
-                 * kind of ACL rights, because it's the way we use to map actual user account role to internal API
-                 * access (for ex: an user with role "node r/w/e" can change node properties, which use "update setting"
-                 * API, so he must have access to that, but not to other configuration API).
-                 * On the other hand, if we are dealing with an actual API account, we need to check its kind more
-                 * preciselly:
-                 * - a system account keep ACL eval (most likelly equiv to RW)
-                 * - a standard account get RO (we can broke third party app behovior but don't open too big security
-                 *   hole with updates)
-                 * - an user API account is disabled.
-                 */
+               * We need to check the account type. It is ok for a user account to have that
+               * kind of ACL rights, because it's the way we use to map actual user account role to internal API
+               * access (for ex: an user with role "node r/w/e" can change node properties, which use "update setting"
+               * API, so he must have access to that, but not to other configuration API).
+               * On the other hand, if we are dealing with an actual API account, we need to check its kind more
+               * preciselly:
+               * - a system account keep ACL eval (most likelly equiv to RW)
+               * - a standard account get RO (we can broke third party app behovior but don't open too big security
+               *   hole with updates)
+               * - an user API account is disabled.
+               */
                 // without plugin, api account linked to user are disabled
-                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _))) =>
-                  logger.warn(s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled.")
-                  None //token link to user account is a plugin only feature
+                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _)))                         =>
+                  logger.warn(
+                    s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled."
+                  )
+                  None // token link to user account is a plugin only feature
 
                 // without plugin but ACL configured, standard api account are change to "no right" to avoid unwanted mod
                 // (making them "ro" could give the token MORE rights than with the plugin - ex: token only have "ro" on compliance)
-                case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _:ApiAccountKind.PublicApi, _, _, _, _, _, _))) =>
-                  logger.info(s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token.")
+                case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _))) =>
+                  logger.info(
+                    s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token."
+                  )
                   None
 
                 // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
-                case (_ , ApiAuthz.None, _)    =>
+                case (_, ApiAuthz.None, _)                                                                                       =>
                   logger.debug(s"Acount '${user.actor.name}' does not have any authorizations.")
                   None
 
-                case (_, ApiAuthz.RO, _   )    =>
+                case (_, ApiAuthz.RO, _) =>
                   logger.debug(s"Account '${user.actor.name}' has RO authorization.")
                   checkRO(endpoint.schema.action)
 
-                case (_, ApiAuthz.RW, _   )    =>
+                case (_, ApiAuthz.RW, _) =>
                   logger.debug(s"Account '${user.actor.name}' has full RW authorization.")
                   Some("ok")
 
@@ -160,15 +160,21 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                   logger.debug(s"Account '${user.actor.name}' has ACL authorizations.")
                   checkACL(acl, path, endpoint.schema.action)
 
-              }).map(_ => Right(AuthzToken(EventActor(user.actor.name)))).getOrElse(
-                Left(ApiError.Authz(s"User '${user.actor.name}' is not allowed to access ${endpoint.schema.action.name.toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}", endpoint.schema.name))
-              )
+              }).map(_ => Right(AuthzToken(EventActor(user.actor.name))))
+                .getOrElse(
+                  Left(
+                    ApiError.Authz(
+                      s"User '${user.actor.name}' is not allowed to access ${endpoint.schema.action.name
+                          .toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}",
+                      endpoint.schema.name
+                    )
+                  )
+                )
     } yield {
       ok
     }
   }
 }
-
 
 /*
  * A simple object that gives the canonical API authorization
@@ -177,19 +183,21 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 object AuthzForApi {
 
   def apply(api: EndpointSchema): ApiAclElement = {
-    val aclPathSegments = api.path.parts.map { p => p match {
-      case ApiPathSegment.Resource(v) => AclPathSegment.Wildcard
-      case ApiPathSegment.Segment (v) => AclPathSegment.Segment(v)
-    } }
+    val aclPathSegments = api.path.parts.map { p =>
+      p match {
+        case ApiPathSegment.Resource(v) => AclPathSegment.Wildcard
+        case ApiPathSegment.Segment(v)  => AclPathSegment.Segment(v)
+      }
+    }
     ApiAclElement(AclPath.FullPath(aclPathSegments), Set(api.action))
   }
 
   def withValues(api: EndpointSchema, values: List[AclPathSegment]): ApiAclElement = {
     def recReplace(api: List[ApiPathSegment], values: List[AclPathSegment]): List[AclPathSegment] = {
       api match {
-        case Nil => Nil
-        case ApiPathSegment.Segment(v)  :: t => AclPathSegment.Segment(v) :: recReplace(t, values)
-        case ApiPathSegment.Resource(v) :: t => //if we have a replacement value, use it
+        case Nil                             => Nil
+        case ApiPathSegment.Segment(v) :: t  => AclPathSegment.Segment(v) :: recReplace(t, values)
+        case ApiPathSegment.Resource(v) :: t => // if we have a replacement value, use it
           values match {
             case Nil     => AclPathSegment.Wildcard :: recReplace(t, Nil)
             case v :: vv => v :: recReplace(t, vv)
@@ -200,7 +208,6 @@ object AuthzForApi {
     ApiAclElement(AclPath.FullPath(NonEmptyList.fromListUnsafe(recReplace(api.path.parts.toList, values))), Set(api.action))
   }
 }
-
 
 /*
  * Actual logic to check if a path is accepted by an ACL
@@ -232,12 +239,11 @@ object AclCheck {
    */
   def apply(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Boolean = {
     // we look for the FIRS ACL whose path matches
-    acl.find(x => matches( x.path, path ) ) match {
+    acl.find(x => matches(x.path, path)) match {
       case None                            => false
       case Some(ApiAclElement(_, actions)) => actions.contains(action)
     }
   }
-
 
   /*
    * Check if an ACL path matches the provided URL path
@@ -248,18 +254,15 @@ object AclCheck {
       import ApiPathSegment.{Segment => ApiSegment}
 
       (p1, p2) match {
-        case ( Nil                  , Nil                  ) => true
+        case (Nil, Nil)                                   => true
         // "**" must be in last position. We don't make it matches anything else
-        case ( DoubleWildcard :: Nil, _                    ) => true
-        case ( Wildcard       :: t1 , _ :: t2              ) => recMatches(t1, t2)
-        case ( AclSegment(n1) :: t1 , ApiSegment(n2) :: t2 ) => n1 == n2 && recMatches(t1, t2)
-        case _                                               => false
+        case (DoubleWildcard :: Nil, _)                   => true
+        case (Wildcard :: t1, _ :: t2)                    => recMatches(t1, t2)
+        case (AclSegment(n1) :: t1, ApiSegment(n2) :: t2) => n1 == n2 && recMatches(t1, t2)
+        case _                                            => false
       }
     }
     recMatches(aclPath.parts.toList, path.parts.toList)
   }
 
 }
-
-
-
