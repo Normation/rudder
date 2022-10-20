@@ -1,47 +1,41 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.hooks
-
-import java.nio.CharBuffer
-import java.nio.charset.CoderResult
-import java.nio.charset.StandardCharsets
-import java.nio.file.Path
-import java.util
 
 import com.normation.NamedZioLogger
 import com.normation.errors._
@@ -50,10 +44,14 @@ import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
 import com.zaxxer.nuprocess.codec.NuAbstractCharsetHandler
 import com.zaxxer.nuprocess.internal.BasePosixProcess
+import java.nio.CharBuffer
+import java.nio.charset.CoderResult
+import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.util
 import zio._
 import zio.Duration.Infinity
 import zio.syntax._
-
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -69,7 +67,6 @@ import zio.syntax._
  *
  * Hooks are asynchronously executed by default, in a Future.
  */
-
 
 /*
  * Information to run a set of commands.
@@ -92,7 +89,7 @@ object RunNuCommand {
   object SilentLogger extends BasePosixProcess(null) {
     import java.util.logging._
     override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = null
-    override def run(command: util.List[String], environment: Array[String], cwd: Path): Unit = {}
+    override def run(command: util.List[String], environment: Array[String], cwd: Path):   Unit      = {}
     def silent() = {
       BasePosixProcess.LOGGER.setLevel(java.util.logging.Level.WARNING)
       BasePosixProcess.LOGGER.setUseParentHandlers(false)
@@ -100,7 +97,7 @@ object RunNuCommand {
       h.setFormatter(new SimpleFormatter() {
         private val format = "[%1$tFT%1$tT%1$tz] %2$-7s %3$s: %4$s\n"
         override def format(lr: LogRecord): String = {
-          val msg = if(lr.getMessage == "Failed to start process") {
+          val msg = if (lr.getMessage == "Failed to start process") {
             "Failed to execute shell command from Rudder"
           } else lr.getMessage
           String.format(format, new java.util.Date(lr.getMillis), lr.getLevel.getName, msg, lr.getThrown.getMessage)
@@ -116,15 +113,16 @@ object RunNuCommand {
    * command and signal the completion to the caller.
    * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
-  private[this] class CmdProcessHandler(promise: Promise[Nothing, CmdResult]) extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
+  private[this] class CmdProcessHandler(promise: Promise[Nothing, CmdResult])
+      extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
     val stderr = new java.lang.StringBuilder()
     val stdout = new java.lang.StringBuilder()
 
     override def onStderrChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      while(!closed && buffer.hasRemaining) { stderr.append(buffer.get()) }
+      while (!closed && buffer.hasRemaining) { stderr.append(buffer.get()) }
     }
     override def onStdoutChars(buffer: CharBuffer, closed: Boolean, coderResult: CoderResult): Unit = {
-      while(!closed && buffer.hasRemaining) { stdout.append(buffer.get()) }
+      while (!closed && buffer.hasRemaining) { stdout.append(buffer.get()) }
     }
 
     override def onExit(exitCode: Int): Unit = {
@@ -173,16 +171,17 @@ object RunNuCommand {
     import scala.jdk.CollectionConverters._
     val errorMsg = s"Error when executing command ${cmd.display}"
 
-
     (for {
-      _              <- ZIO.when(limit == Infinity|| limit.toMillis <= 0) {
-                          logger.warn(s"No duration limit set for command '${cmd.display}'. " +
-                              "That can create a pill of zombies if termination of the command is not correct")
-                        }
-      promise        <- Promise.make[Nothing, CmdResult]
-      handler        =  new CmdProcessHandler(promise)
-      processBuilder =  new NuProcessBuilder((cmd.cmdPath::cmd.parameters).asJava, cmd.environment.asJava)
-      _              <- IOResult.attempt(errorMsg)(processBuilder.setProcessListener(handler))
+      _             <- ZIO.when(limit == Infinity || limit.toMillis <= 0) {
+                         logger.warn(
+                           s"No duration limit set for command '${cmd.display}'. " +
+                           "That can create a pill of zombies if termination of the command is not correct"
+                         )
+                       }
+      promise       <- Promise.make[Nothing, CmdResult]
+      handler        = new CmdProcessHandler(promise)
+      processBuilder = new NuProcessBuilder((cmd.cmdPath :: cmd.parameters).asJava, cmd.environment.asJava)
+      _             <- IOResult.attempt(errorMsg)(processBuilder.setProcessListener(handler))
 
       /*
        * The start process is nasty:
@@ -194,22 +193,22 @@ object RunNuCommand {
        *
        * It is non blocking though, as the blocking part is done in the spwaned thread.
        */
-      process        <- IOResult.attempt(errorMsg)(processBuilder.start())
-      _              <- if(process == null) {
-                          Unexpected(s"Error: unable to start native command ${cmd.display}").fail
-                        } else {
-                          // that class#method does not accept interactive mode
-                          // this part can block, waiting for things to complete
-                          IOResult.attempt(errorMsg) {
-                            process.closeStdin(true)
-                            process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
-                          }.forkDaemon
-                        }
+      process <- IOResult.attempt(errorMsg)(processBuilder.start())
+      _       <- if (process == null) {
+                   Unexpected(s"Error: unable to start native command ${cmd.display}").fail
+                 } else {
+                   // that class#method does not accept interactive mode
+                   // this part can block, waiting for things to complete
+                   IOResult
+                     .attempt(errorMsg) {
+                       process.closeStdin(true)
+                       process.waitFor(limit.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS)
+                     }
+                     .forkDaemon
+                 }
     } yield {
       promise
     })
   }
 
 }
-
-

@@ -1,22 +1,22 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.utils
 
@@ -34,11 +34,11 @@ object Control {
    * Transform a TraversableOnce[Box] into a Box[Iterable]
    * note: I don't how to say T<:TravesableOnce , T[Box[U]] => Box[T[U]]
    */
-  def boxSequence[U](seq:Seq[Box[U]]) : Box[Seq[U]] = {
+  def boxSequence[U](seq: Seq[Box[U]]): Box[Seq[U]] = {
     val buf = scala.collection.mutable.Buffer[U]()
     seq.foreach {
       case Full(u) => buf += u
-      case e:EmptyBox => return e
+      case e: EmptyBox => return e
     }
     Full(buf.toSeq)
   }
@@ -48,12 +48,14 @@ object Control {
    * If the result of f is Full, continue, else abort the procesing,
    * returning the Empty or Failure.
    */
-  def sequence[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
+  def sequence[U, T](seq: Seq[U])(f: U => Box[T]): Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
-    seq.foreach { u => f(u) match {
-      case e:EmptyBox => return e
-      case Full(x) => buf += x
-    } }
+    seq.foreach { u =>
+      f(u) match {
+        case e: EmptyBox => return e
+        case Full(x) => buf += x
+      }
+    }
     Full(buf.toSeq)
   }
 
@@ -63,23 +65,25 @@ object Control {
    * In case of error, it provides a failure with all accumulated
    * other failure that leads to it
    */
-  def bestEffort[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
-    val buf = scala.collection.mutable.Buffer[T]()
+  def bestEffort[U, T](seq: Seq[U])(f: U => Box[T]): Box[Seq[T]] = {
+    val buf    = scala.collection.mutable.Buffer[T]()
     var errors = Option.empty[Failure]
-    seq.foreach { u => f(u) match {
-      case e:EmptyBox =>
-        val fail = e match {
-          case f:Failure => f
-          // these case should never happen, because Empty is verbotten, so took a
-          // not to bad solution - u.toString can be very ugly, so limit size.
-          case Empty => Failure(s"An error occured while processing: ${u.toString().take(20)}")
-        }
-        errors match {
-          case None => errors = Some(fail)
-          case Some(f) => errors = Some(Failure(fail.msg, Empty, Full(f)))
-        }
-      case Full(x) => buf += x
-    } }
+    seq.foreach { u =>
+      f(u) match {
+        case e: EmptyBox =>
+          val fail = e match {
+            case f: Failure => f
+            // these case should never happen, because Empty is verbotten, so took a
+            // not to bad solution - u.toString can be very ugly, so limit size.
+            case Empty => Failure(s"An error occured while processing: ${u.toString().take(20)}")
+          }
+          errors match {
+            case None    => errors = Some(fail)
+            case Some(f) => errors = Some(Failure(fail.msg, Empty, Full(f)))
+          }
+        case Full(x) => buf += x
+      }
+    }
     errors.getOrElse(Full(buf.toSeq))
   }
 
@@ -97,11 +101,11 @@ object Control {
    *   }
    * } yield { processingOk } //match on Failure / Full(report)
    */
-  def pipeline[T,U](seq: Seq[T],init:U)(call:(T,U) => Box[U]) : Box[U] = {
-    seq.foldLeft(Full(init):Box[U]){ (currentValue, nextProcessor) =>
+  def pipeline[T, U](seq: Seq[T], init: U)(call: (T, U) => Box[U]): Box[U] = {
+    seq.foldLeft(Full(init): Box[U]) { (currentValue, nextProcessor) =>
       currentValue match {
-        case x:EmptyBox => return x //interrupt pipeline early
-        case Full(value) => call(nextProcessor,value)
+        case x: EmptyBox => return x // interrupt pipeline early
+        case Full(value) => call(nextProcessor, value)
       }
     }
   }

@@ -1,58 +1,57 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.web.model
 
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import net.liftweb.http.S
-import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies.RuleTarget
-import net.liftweb.http.js.JsCmds.RedirectTo
-import net.liftweb.http.js.JsCmd
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-
 import com.normation.zio._
+import net.liftweb.common.Loggable
+import net.liftweb.http.S
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds.RedirectTo
 
 /**
  * That class helps user to create valide JS initialisation context
@@ -62,76 +61,76 @@ import com.normation.zio._
  * and then we have two functions, the link, with the context, and the JsCmd to redirect to this page
  * without the Context, as the JS already embed the context in its redirect
  */
-class LinkUtil (
-    roRuleRepository      : RoRuleRepository
-  , roGroupRepository     : RoNodeGroupRepository
-  , roDirectiveRepository : RoDirectiveRepository
-  , nodeInfoService       : NodeInfoService
+class LinkUtil(
+    roRuleRepository:      RoRuleRepository,
+    roGroupRepository:     RoNodeGroupRepository,
+    roDirectiveRepository: RoDirectiveRepository,
+    nodeInfoService:       NodeInfoService
 ) extends Loggable {
-  def baseGroupLink(id:NodeGroupId) =
+  def baseGroupLink(id: NodeGroupId) =
     s"""/secure/nodeManager/groups#{"groupId":"${id.serialize}"}"""
 
   def baseTargetLink(target: RuleTarget) =
     s"""/secure/nodeManager/groups#{"target":"${target.target}"}"""
 
-  def groupLink(id:NodeGroupId) =
+  def groupLink(id: NodeGroupId) =
     s"""${S.contextPath}${baseGroupLink(id)}"""
 
   def targetLink(target: RuleTarget) =
     s"""${S.contextPath}${baseTargetLink(target)}"""
 
-  def redirectToGroupLink(id:NodeGroupId) : JsCmd=
+  def redirectToGroupLink(id: NodeGroupId): JsCmd =
     RedirectTo(baseGroupLink(id))
 
-  def redirectToTargteLink(target:RuleTarget) : JsCmd=
+  def redirectToTargteLink(target: RuleTarget): JsCmd =
     RedirectTo(baseTargetLink(target))
 
-  def baseRuleLink(id:RuleId) =
+  def baseRuleLink(id: RuleId) =
     s"""/secure/configurationManager/ruleManagement/rule/${id.serialize}"""
 
-  def ruleLink(id:RuleId) =
+  def ruleLink(id: RuleId) =
     s"""${S.contextPath}${baseRuleLink(id)}"""
 
-  def redirectToRuleLink(id:RuleId) : JsCmd =
+  def redirectToRuleLink(id: RuleId): JsCmd =
     RedirectTo(baseRuleLink(id))
 
-  def baseDirectiveLink(id:DirectiveUid) =
+  def baseDirectiveLink(id: DirectiveUid) =
     s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
-  def directiveLink(id:DirectiveUid) =
+  def directiveLink(id: DirectiveUid) =
     s"""${S.contextPath}${baseDirectiveLink(id)}"""
 
-  def redirectToDirectiveLink(id:DirectiveUid) : JsCmd =
+  def redirectToDirectiveLink(id: DirectiveUid): JsCmd =
     RedirectTo(baseDirectiveLink(id))
 
-  def baseNodeLink(id:NodeId) =
+  def baseNodeLink(id: NodeId) =
     s"""/secure/nodeManager/node/${id.value}"""
 
-  def nodeLink(id:NodeId) =
+  def nodeLink(id: NodeId) =
     s"""${S.contextPath}${baseNodeLink(id)}"""
 
-  def redirectToNodeLink(id:NodeId) : JsCmd =
-     RedirectTo(baseNodeLink(id))
+  def redirectToNodeLink(id: NodeId): JsCmd =
+    RedirectTo(baseNodeLink(id))
 
-  def baseGlobalParameterLink(name:String) =
+  def baseGlobalParameterLink(name: String) =
     s"/secure/configurationManager/parameterManagement"
 
-  def globalParameterLink(name:String) =
+  def globalParameterLink(name: String) =
     s"${S.contextPath}${baseGlobalParameterLink(name)}"
 
-  def redirectToGlobalParameterLink(name:String) : JsCmd =
-     RedirectTo(baseGlobalParameterLink(name))
+  def redirectToGlobalParameterLink(name: String): JsCmd =
+    RedirectTo(baseGlobalParameterLink(name))
 
-  def baseChangeRequestLink(id:ChangeRequestId) =
+  def baseChangeRequestLink(id: ChangeRequestId) =
     s"/secure/plugins/changes/changeRequest/${id.value}"
 
-  def changeRequestLink(id:ChangeRequestId) =
+  def changeRequestLink(id: ChangeRequestId) =
     s"${S.contextPath}${baseChangeRequestLink(id)}"
 
-  def redirectToChangeRequestLink(id:ChangeRequestId) : JsCmd =
-     RedirectTo(baseChangeRequestLink(id))
+  def redirectToChangeRequestLink(id: ChangeRequestId): JsCmd =
+    RedirectTo(baseChangeRequestLink(id))
 
-  def createRuleLink(id:RuleId) = {
+  def createRuleLink(id: RuleId) = {
     roRuleRepository.get(id).either.runNow match {
       case Right(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.serialize})</span>
       case Left(err)   =>
@@ -140,16 +139,16 @@ class LinkUtil (
     }
   }
 
-  def createGroupLink(id:NodeGroupId) = {
+  def createGroupLink(id: NodeGroupId) = {
     roGroupRepository.getNodeGroup(id).either.runNow match {
-      case Right((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.serialize})</span>
-      case Left(err)        =>
+      case Right((group, _)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.serialize})</span>
+      case Left(err)         =>
         logger.error(s"Could not find NodeGroup with Id ${id.serialize}. Error was: ${err.fullMsg}")
         <span> {id.serialize} </span>
     }
   }
 
-  def createDirectiveLink(id:DirectiveUid) = {
+  def createDirectiveLink(id: DirectiveUid) = {
     roDirectiveRepository.getDirective(id).either.runNow match {
       case Right(Some(directive)) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
       case Right(None)            =>
@@ -160,16 +159,16 @@ class LinkUtil (
     }
   }
 
-  def createNodeLink(id: NodeId) = {
+  def createNodeLink(id: NodeId)              = {
     nodeInfoService.getNodeInfo(id).either.runNow match {
       case Right(Some(node)) =>
         <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
-      case _ =>
+      case _                 =>
         <span>Node {id.value}</span>
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page
-  def createGlobalParameterLink(name:String) = {
-      <span> <a href={baseGlobalParameterLink(name)}>{name}</a></span>
+  def createGlobalParameterLink(name: String) = {
+    <span> <a href={baseGlobalParameterLink(name)}>{name}</a></span>
   }
 }

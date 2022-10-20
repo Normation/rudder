@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.domain.nodes
 
@@ -50,9 +50,9 @@ import com.normation.rudder.domain.queries.SubGroupComparator
  * UUId type for Node Groups, so that they
  * can be uniquely identified in our world.
  */
-final case class NodeGroupUid(value:String) extends AnyVal {
+final case class NodeGroupUid(value: String) extends AnyVal {
   def debugString: String = value
-  def serialize: String = value
+  def serialize:   String = value
 }
 final case class NodeGroupId(uid: NodeGroupUid, rev: Revision = GitVersion.DEFAULT_REV) {
   def debugString: String = serialize
@@ -67,9 +67,10 @@ final case class NodeGroupId(uid: NodeGroupUid, rev: Revision = GitVersion.DEFAU
 object NodeGroupId {
 
   // parse a directiveId which was serialize by "id.serialize"
-  def parse(s: String) : Either[String, NodeGroupId] = {
-    GitVersion.parseUidRev(s).map { case (id, rev) =>
-      NodeGroupId(NodeGroupUid(id), rev)
+  def parse(s: String): Either[String, NodeGroupId] = {
+    GitVersion.parseUidRev(s).map {
+      case (id, rev) =>
+        NodeGroupId(NodeGroupUid(id), rev)
     }
   }
 }
@@ -107,10 +108,10 @@ object NodeGroup {
    * Check if one criteria is a "subgroup" one and id matches
    */
   def isSubgroupByCriterion(subgroup: Seq[CriterionLine], group: NodeGroupId): Boolean = {
-    subgroup.exists(line =>
+    subgroup.exists(line => {
       line.attribute.cType.isInstanceOf[SubGroupComparator] &&
       line.value == group.serialize
-    )
+    })
   }
 
 }
@@ -126,16 +127,16 @@ object NodeGroup {
  *
  */
 final case class NodeGroup(
-    id         : NodeGroupId
-  , name       : String
-  , description: String
-  , properties : List[GroupProperty]
-  , query      : Option[QueryTrait]
-  , isDynamic  : Boolean = true
-  , serverList : Set[NodeId]
-  , _isEnabled : Boolean
-  , isSystem   : Boolean = false
+    id:          NodeGroupId,
+    name:        String,
+    description: String,
+    properties:  List[GroupProperty],
+    query:       Option[QueryTrait],
+    isDynamic:   Boolean = true,
+    serverList:  Set[NodeId],
+    _isEnabled:  Boolean,
+    isSystem:    Boolean = false
 ) {
-  //system object must ALWAYS be ENABLED.
+  // system object must ALWAYS be ENABLED.
   def isEnabled = _isEnabled || isSystem
 }

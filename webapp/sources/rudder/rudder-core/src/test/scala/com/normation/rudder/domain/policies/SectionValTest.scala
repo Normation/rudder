@@ -1,51 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.domain.policies
 
+import com.normation.cfclerk.domain._
+import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
 
 @RunWith(classOf[JUnitRunner])
 class SectionValTest extends Specification with Loggable {
-
 
   "A simple section" should {
     /*
@@ -56,39 +55,37 @@ class SectionValTest extends Specification with Loggable {
      * </section>
      */
     val simpleSpec = SectionSpec(
-        name = "root"
-      , children =
-          SectionSpec(
-              name = "section1"
-            , children =
-                InputVariableSpec(
-                    name = "var1"
-                  , description = ""
-                  , id = None
-                ) ::
-                Nil
-          ) ::
+      name = "root",
+      children = SectionSpec(
+        name = "section1",
+        children = InputVariableSpec(
+          name = "var1",
+          description = "",
+          id = None
+        ) ::
           Nil
+      ) ::
+        Nil
     )
 
     val sectionVal = SectionVal(
-        sections = Map(
-            "section1" -> Seq(
-                SectionVal(
-                  variables = Map("var1" -> "var1A")
-                )
-            )
+      sections = Map(
+        "section1" -> Seq(
+          SectionVal(
+            variables = Map("var1" -> "var1A")
+          )
         )
+      )
     )
 
     val emptySectionVal = SectionVal(
-        sections = Map(
-            "section1" -> Seq(
-                SectionVal(
-                  variables = Map("var1" -> "")
-                )
-            )
+      sections = Map(
+        "section1" -> Seq(
+          SectionVal(
+            variables = Map("var1" -> "")
+          )
         )
+      )
     )
 
     val mapOk = Map("var1" -> Seq("var1A"))
@@ -98,11 +95,11 @@ class SectionValTest extends Specification with Loggable {
     }
 
     "be idempotent starting from the map" in {
-      mapOk ===  SectionVal.toMapVariables(SectionVal.directiveValToSectionVal(simpleSpec, mapOk))
+      mapOk === SectionVal.toMapVariables(SectionVal.directiveValToSectionVal(simpleSpec, mapOk))
     }
 
     "be idempotent starting from the sectionVal" in {
-      sectionVal ===  SectionVal.directiveValToSectionVal(simpleSpec, SectionVal.toMapVariables(sectionVal))
+      sectionVal === SectionVal.directiveValToSectionVal(simpleSpec, SectionVal.toMapVariables(sectionVal))
     }
 
     "accept empty values for vars" in {
@@ -113,7 +110,6 @@ class SectionValTest extends Specification with Loggable {
       SectionVal.directiveValToSectionVal(simpleSpec, Map("foo" -> Seq("bar"))) === emptySectionVal
     }
   }
-
 
   "A section with multivalued subsection" should {
 
@@ -142,49 +138,40 @@ class SectionValTest extends Specification with Loggable {
      * </section>
      */
     val spec = SectionSpec(
-        name = "root"
-      , children =
-          SectionSpec(
-              name = "sec0"
-            , children =
-                InputVariableSpec(name = "var0", description = "", id = None ) ::
-                Nil
-          ) ::
-          SectionSpec(
-              name = "sec1"
-            , isMultivalued = true
-            , children =
-                InputVariableSpec(name = "var1", description = "", id = None ) ::
-                SectionSpec(
-                    name = "sec2"
-                  , children =
-                      InputVariableSpec(name = "var2", description = "", id = None ) ::
-                      Nil
-                ) ::
-                Nil
-
-          ) ::
-          SectionSpec(
-              name = "sec3"
-            , children =
-                InputVariableSpec(name = "var3", description = "", id = None ) ::
-                SectionSpec(
-                    name = "sec4"
-                  , isMultivalued = true
-                  , children =
-                      InputVariableSpec(name = "var4", description = "", id = None ) ::
-                      SectionSpec(
-                          name = "sec5"
-                        , children =
-                            InputVariableSpec(name = "var5", description = "", id = None ) ::
-                            Nil
-                      ) ::
-                      Nil
-                ) ::
-                Nil
-
-          ) ::
+      name = "root",
+      children = SectionSpec(
+        name = "sec0",
+        children = InputVariableSpec(name = "var0", description = "", id = None) ::
           Nil
+      ) ::
+        SectionSpec(
+          name = "sec1",
+          isMultivalued = true,
+          children = InputVariableSpec(name = "var1", description = "", id = None) ::
+            SectionSpec(
+              name = "sec2",
+              children = InputVariableSpec(name = "var2", description = "", id = None) ::
+                Nil
+            ) ::
+            Nil
+        ) ::
+        SectionSpec(
+          name = "sec3",
+          children = InputVariableSpec(name = "var3", description = "", id = None) ::
+            SectionSpec(
+              name = "sec4",
+              isMultivalued = true,
+              children = InputVariableSpec(name = "var4", description = "", id = None) ::
+                SectionSpec(
+                  name = "sec5",
+                  children = InputVariableSpec(name = "var5", description = "", id = None) ::
+                    Nil
+                ) ::
+                Nil
+            ) ::
+            Nil
+        ) ::
+        Nil
     )
 
     /*
@@ -199,91 +186,91 @@ class SectionValTest extends Specification with Loggable {
      *                  var5A    var5B    var5C
      */
     val mapOK1 = Map(
-        "var0" -> Seq("var0A")
-      , "var1" -> Seq("var1A", "var1B")
-      , "var2" -> Seq("var2A", "var2B")
-      , "var3" -> Seq("var3A")
-      , "var4" -> Seq("var4A", "var4B", "var4C")
-      , "var5" -> Seq("var5A", "var5B", "var5C")
+      "var0" -> Seq("var0A"),
+      "var1" -> Seq("var1A", "var1B"),
+      "var2" -> Seq("var2A", "var2B"),
+      "var3" -> Seq("var3A"),
+      "var4" -> Seq("var4A", "var4B", "var4C"),
+      "var5" -> Seq("var5A", "var5B", "var5C")
     )
 
     val sectionVal = SectionVal(
-        sections  = Map(
-            "sec0" -> (
-              SectionVal(
-                  variables = Map("var0" -> "var0A")
-              ) :: Nil
+      sections = Map(
+        "sec0" -> (
+          SectionVal(
+            variables = Map("var0" -> "var0A")
+          ) :: Nil
+        ),
+        "sec1" -> (
+          SectionVal(
+            variables = Map("var1" -> "var1A"),
+            sections = Map(
+              "sec2" -> (
+                SectionVal(
+                  variables = Map("var2" -> "var2A")
+                ) ::
+                Nil
+              )
             )
-         ,  "sec1" -> (
-              SectionVal(
-                  variables = Map("var1" -> "var1A")
-                , sections = Map(
-                    "sec2" -> (
-                      SectionVal(
-                        variables = Map("var2" -> "var2A")
-                      ) ::
-                      Nil
-                    )
-                  )
-              ) ::
-              SectionVal(
-                  variables = Map("var1" -> "var1B")
-                , sections = Map(
-                    "sec2" -> (
-                      SectionVal(
-                        variables = Map("var2" -> "var2B")
-                      ) ::
-                      Nil
-                    )
-                  )
-              ) ::
-              Nil
+          ) ::
+          SectionVal(
+            variables = Map("var1" -> "var1B"),
+            sections = Map(
+              "sec2" -> (
+                SectionVal(
+                  variables = Map("var2" -> "var2B")
+                ) ::
+                Nil
+              )
             )
-          , "sec3" -> (
-              SectionVal(
-                  variables = Map("var3" -> "var3A")
-                , sections = Map(
-                    "sec4" ->  (
+          ) ::
+          Nil
+        ),
+        "sec3" -> (
+          SectionVal(
+            variables = Map("var3" -> "var3A"),
+            sections = Map(
+              "sec4" -> (
+                SectionVal(
+                  variables = Map("var4" -> "var4A"),
+                  sections = Map(
+                    "sec5" -> (
                       SectionVal(
-                          variables = Map("var4" -> "var4A")
-                        , sections = Map(
-                            "sec5" -> (
-                              SectionVal(
-                                  variables = Map("var5" -> "var5A")
-                              ) :: Nil
-                            )
-                          )
-                      ) ::
-                      SectionVal(
-                          variables = Map("var4" -> "var4B")
-                        , sections = Map(
-                            "sec5" -> (
-                              SectionVal(
-                                  variables = Map("var5" -> "var5B")
-                              ) :: Nil
-                            )
-                          )
-                      ) ::
-                      SectionVal(
-                          variables = Map("var4" -> "var4C")
-                        , sections = Map(
-                            "sec5" -> (
-                              SectionVal(
-                                  variables = Map("var5" -> "var5C")
-                              ) :: Nil
-                            )
-                          )
-                      ) ::
-                      Nil
+                        variables = Map("var5" -> "var5A")
+                      ) :: Nil
                     )
                   )
-              ) :: Nil
-          )
-       )
+                ) ::
+                SectionVal(
+                  variables = Map("var4" -> "var4B"),
+                  sections = Map(
+                    "sec5" -> (
+                      SectionVal(
+                        variables = Map("var5" -> "var5B")
+                      ) :: Nil
+                    )
+                  )
+                ) ::
+                SectionVal(
+                  variables = Map("var4" -> "var4C"),
+                  sections = Map(
+                    "sec5" -> (
+                      SectionVal(
+                        variables = Map("var5" -> "var5C")
+                      ) :: Nil
+                    )
+                  )
+                ) ::
+                Nil
+              )
+            )
+          ) :: Nil
+        )
+      )
     )
 
     "be correctly map to a SectionVal" in {
-      SectionVal.directiveValToSectionVal(spec,mapOK1) === sectionVal
+      SectionVal.directiveValToSectionVal(spec, mapOK1) === sectionVal
     }
 
   }

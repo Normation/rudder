@@ -1,52 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.provisioning
 package fusion
 
+import com.normation.errors._
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryError
-import com.normation.errors._
-
-import scala.xml.NodeSeq
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.NodeIdRegex
-
 import scala.xml.Elem
+import scala.xml.NodeSeq
 import zio._
 import zio.syntax._
 
@@ -67,12 +65,12 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
    *
    * If any of these variable are not set, just abort
    */
-  override def apply(inventory:NodeSeq) : IOResult[NodeSeq] = {
-    val agentTagContent = getInTags(inventory, "AGENT")
+  override def apply(inventory: NodeSeq): IOResult[NodeSeq] = {
+    val agentTagContent  = getInTags(inventory, "AGENT")
     val rudderTagContent = getInTags(inventory, "RUDDER")
 
-    //hostname is now only check in FusionInventoryParser 
-    val checks =
+    // hostname is now only check in FusionInventoryParser
+    val checks = {
       checkId(rudderTagContent) _ ::
       checkRoot(agentTagContent) _ ::
       checkPolicyServer(agentTagContent) _ ::
@@ -81,56 +79,65 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
       checkAgentType(agentTagContent) _ ::
       checkSecurityToken(agentTagContent) _ ::
       Nil
-
-    ZIO.foldLeft(checks)(inventory) { (currentInventory, check) =>
-      check(currentInventory)
     }
+
+    ZIO.foldLeft(checks)(inventory)((currentInventory, check) => check(currentInventory))
   }
 
   // Utilitary method to get only once the RUDDER and the AGENT
-  private[this] def getInTags(xml:NodeSeq, tag:String) : NodeSeq = {
+  private[this] def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
     xml \\ tag
   }
 
-  private[this] def checkWithinNodeSeq(nodes:NodeSeq, child:String) : IOResult[String] = {
+  private[this] def checkWithinNodeSeq(nodes: NodeSeq, child: String): IOResult[String] = {
     val nodes2 = nodes \ child
 
     nodes2 match {
       case NodeSeq.Empty => s"Missing XML element: '${child}.".inconsistency
-      case x => x.head.text match {
-        case null | "" => s"Tag ${child} content is empty".inconsistency
-        case s => s.succeed
-      }
+      case x             =>
+        x.head.text match {
+          case null | "" => s"Tag ${child} content is empty".inconsistency
+          case s         => s.succeed
+        }
     }
   }
 
-
-  private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : IOResult[String] = {
-    val nodes = (
-      if(directChildren) (xml \ tag)
-      else (xml \\ tag)
-    )
+  private[this] def checkNodeSeq(
+      xml:            NodeSeq,
+      tag:            String,
+      directChildren: Boolean = false,
+      optChild:       Option[String] = None
+  ): IOResult[String] = {
+    val nodes = {
+      (
+        if (directChildren) (xml \ tag)
+        else (xml \\ tag)
+      )
+    }
 
     val nodes2 = optChild match {
-      case None => nodes
+      case None    => nodes
       case Some(t) => nodes \ t
     }
 
     nodes2 match {
       case NodeSeq.Empty => s"Missing XML element: '${optChild.getOrElse(tag)}'. ".inconsistency
-      case x => x.head.text match {
-        case null | "" => s"Tag '${optChild.getOrElse(tag)}' content is empty".inconsistency
-        case s => s.succeed
-      }
+      case x             =>
+        x.head.text match {
+          case null | "" => s"Tag '${optChild.getOrElse(tag)}' content is empty".inconsistency
+          case s         => s.succeed
+        }
     }
   }
 
-  private[this] def checkId(rudderNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkId(rudderNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val tag = "UUID"
     for {
       tagHere <- {
-        checkWithinNodeSeq(rudderNodeSeq, tag)  catchAll { _ =>
-          checkNodeSeq(inventory, tag, true).chainError(s"Missing node ID attribute '${tag}' in inventory. This attribute is mandatory and must contains node ID.")
+        checkWithinNodeSeq(rudderNodeSeq, tag) catchAll { _ =>
+          checkNodeSeq(inventory, tag, true).chainError(
+            s"Missing node ID attribute '${tag}' in inventory. This attribute is mandatory and must contains node ID."
+          )
         }
       }
       uuidOK  <- NodeIdRegex.checkNodeId(tagHere).toIO
@@ -139,12 +146,15 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkRoot(agentNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkRoot(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "OWNER"
-    val tag = "USER"
+    val tag      = "USER"
     for {
       tagHere <- {
-        checkWithinNodeSeq(agentNodeSeq,agentTag) catchAll  { _ => checkNodeSeq(inventory, tag).chainError(s"Missing administrator attribute '${tag}' in inventory. This attribute is mandatory and must contains node local administrator login.")
+        checkWithinNodeSeq(agentNodeSeq, agentTag) catchAll { _ =>
+          checkNodeSeq(inventory, tag).chainError(
+            s"Missing administrator attribute '${tag}' in inventory. This attribute is mandatory and must contains node local administrator login."
+          )
         }
       }
     } yield {
@@ -152,30 +162,39 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkPolicyServer(agentNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkPolicyServer(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "POLICY_SERVER_UUID"
-    val tag = "POLICY_SERVER"
+    val tag      = "POLICY_SERVER"
     for {
       tagHere <- {
-        checkWithinNodeSeq(agentNodeSeq,agentTag) catchAll  { _ => checkNodeSeq(inventory, tag).chainError(s"Missing rudder policy server attribute '${tag}' in inventory. This attribute is mandatory and must contain Rudder ID pour policy server."
-        )}
+        checkWithinNodeSeq(agentNodeSeq, agentTag) catchAll { _ =>
+          checkNodeSeq(inventory, tag).chainError(
+            s"Missing rudder policy server attribute '${tag}' in inventory. This attribute is mandatory and must contain Rudder ID pour policy server."
+          )
+        }
       }
     } yield {
       inventory
     }
   }
 
-  private[this] def checkOS(inventory:NodeSeq) : IOResult[NodeSeq] = {
-    //VERSION is not mandatory on windows, it can't be added in that list
-    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
-    val error = InventoryError.Inconsistency(s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory")
+  private[this] def checkOS(inventory: NodeSeq): IOResult[NodeSeq] = {
+    // VERSION is not mandatory on windows, it can't be added in that list
+    val tags  = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
+    val error = InventoryError.Inconsistency(
+      s"Missing tags ${tags.map(t => s"OPERATINGSYSTEM/${t}").mkString(", ")}. At least one of them is mandatory"
+    )
     val zero: Either[RudderError, String] = Left(error)
-    ZIO.absolve(ZIO.foldLeft(tags)(zero)( (a, b) =>
-      a match {
-        case Right(x) => Right(x).succeed
-        case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some(b)).either
-      }
-    )).foldZIO(_ => error.fail, _=> inventory.succeed)
+    ZIO
+      .absolve(
+        ZIO.foldLeft(tags)(zero)((a, b) => {
+          a match {
+            case Right(x) => Right(x).succeed
+            case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some(b)).either
+          }
+        })
+      )
+      .foldZIO(_ => error.fail, _ => inventory.succeed)
   }
 
   /**
@@ -185,48 +204,54 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
    * - (on AIX and non empty HARDWARE > OSVERSION )
    * Other cases are failure (missing required info)
    */
-  private[this] def checkKernelVersion(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkKernelVersion(inventory: NodeSeq): IOResult[NodeSeq] = {
 
-    val failure = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in inventory. This attribute is mandatory".inconsistency
+    val failure    = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in inventory. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in inventory. This attribute is mandatory".inconsistency
 
-    checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => inventory).catchAll  { _ =>
-        //perhaps we are on AIX ?
-        checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) .foldZIO (
-            _ => failure
-          , x =>  if(x.toLowerCase == "aix") { //ok, check for OSVERSION
-            checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldZIO (
-                _ => aixFailure
-              , kernelVersion => //update the inventory to put it in the right place
+    checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => inventory).catchAll { _ =>
+      // perhaps we are on AIX ?
+      checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME"))
+        .foldZIO(
+          _ => failure,
+          x => {
+            if (x.toLowerCase == "aix") { // ok, check for OSVERSION
+              checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldZIO(
+                _ => aixFailure,
+                kernelVersion => { // update the inventory to put it in the right place
                   (new scala.xml.transform.RuleTransformer(
-                      new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
+                    new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
                   ).transform(inventory).head).succeed
+                }
               )
             } else {
-              //should not be empty given checkOS, but if so, fails. Also fails is not aix.
+              // should not be empty given checkOS, but if so, fails. Also fails is not aix.
               failure
             }
-        ).map(n => n:NodeSeq)
+          }
+        )
+        .map(n => n: NodeSeq)
     }
   }
 
-  //for check kernel version
+  // for check kernel version
   private[this] class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
     override def transform(n: scala.xml.Node) = n match {
       case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child @ _*) =>
-        Elem(prefix, label, attribs, scope, false, child ++ newChild : _*)
-      case other => other
+        Elem(prefix, label, attribs, scope, false, child ++ newChild: _*)
+      case other                                                       => other
     }
   }
 
-
-  private[this] def checkAgentType(agentNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkAgentType(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "AGENT_NAME"
-    val tag = "AGENTNAME"
+    val tag      = "AGENTNAME"
     for {
       tagHere <- {
-        checkWithinNodeSeq(agentNodeSeq,agentTag) catchAll  { _ =>
-          checkNodeSeq(inventory, tag).chainError(s"Missing agent name attribute ${agentTag} in inventory. This attribute is mandatory and must contains agent type.")
+        checkWithinNodeSeq(agentNodeSeq, agentTag) catchAll { _ =>
+          checkNodeSeq(inventory, tag).chainError(
+            s"Missing agent name attribute ${agentTag} in inventory. This attribute is mandatory and must contains agent type."
+          )
         }
       }
     } yield {
@@ -235,15 +260,17 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // since Rudder 4.3, a security token is mandatory
-  private[this] def checkSecurityToken(agentNodeSeq : NodeSeq)(inventory:NodeSeq) : IOResult[NodeSeq] = {
+  private[this] def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     for {
-      tagHere <- checkWithinNodeSeq(agentNodeSeq, "CFENGINE_KEY").orElse(checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT")).chainError(
-                             "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
-                             "in inventory. This attribute is mandatory and must contains agent certificate or public key.")
+      tagHere <- checkWithinNodeSeq(agentNodeSeq, "CFENGINE_KEY")
+                   .orElse(checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT"))
+                   .chainError(
+                     "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
+                     "in inventory. This attribute is mandatory and must contains agent certificate or public key."
+                   )
     } yield {
       inventory
     }
   }
-
 
 }

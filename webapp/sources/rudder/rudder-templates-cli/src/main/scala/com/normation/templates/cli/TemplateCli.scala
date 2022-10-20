@@ -1,60 +1,57 @@
 /*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.templates.cli
 
-import java.io.File
-
+import com.normation.errors._
 import com.normation.templates.FillTemplatesService
+import com.normation.templates.FillTemplateTimer
 import com.normation.templates.STVariable
+import com.normation.zio._
+import java.io.File
+import java.nio.charset.StandardCharsets
 import net.liftweb.common._
 import net.liftweb.json._
-import scopt.OptionParser
-import java.nio.charset.StandardCharsets
-
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
+import scala.collection.immutable.ArraySeq
+import scopt.OptionParser
 import zio.{System => _, _}
 import zio.syntax._
-import com.normation.errors._
-import com.normation.templates.FillTemplateTimer
-import com.normation.zio._
-
-import scala.collection.immutable.ArraySeq
 
 /**
  * The configuration object for our CLI.
@@ -66,19 +63,19 @@ import scala.collection.immutable.ArraySeq
  */
 
 final case class Config(
-    variables      : File      = new File("variables.json")
-  , templates      : Seq[File] = Seq()
-  , outdir         : File      = new File(".")
-  , verbose        : Boolean   = false
-  , inputExtension : String    = ".st"
-  , outputExtension: String    = ""
-  , showStackTrace : Boolean   = false
-  , outputToStdout : Boolean   = false
+    variables:       File = new File("variables.json"),
+    templates:       Seq[File] = Seq(),
+    outdir:          File = new File("."),
+    verbose:         Boolean = false,
+    inputExtension:  String = ".st",
+    outputExtension: String = "",
+    showStackTrace:  Boolean = false,
+    outputToStdout:  Boolean = false
 )
 
 object Tryor {
-  //the lazy param is of course necessary, else the exception is thrown
-  //before going to the block, never caught.
+  // the lazy param is of course necessary, else the exception is thrown
+  // before going to the block, never caught.
   def apply[T](cmd: => T, errorMsg: String): Box[T] = {
     try {
       Full(cmd)
@@ -95,52 +92,57 @@ object TemplateCli {
   val parser = new OptionParser[Config]("Rudder template cli") {
     head("rudder-templates-cli", "4.0.x")
 
-    opt[File]("outdir") valueName("<file>") action { (x, c) =>
-      c.copy(outdir = x) } text("output directory for filled template, default is '.'")
+    opt[File]("outdir") valueName ("<file>") action { (x, c) =>
+      c.copy(outdir = x)
+    } text ("output directory for filled template, default is '.'")
 
-    opt[String]("inext").optional() valueName("<input file extension>") action { (x, c) =>
-       c.copy(inputExtension = x) } text("extension of input templates. Default is '.st'")
+    opt[String]("inext").optional() valueName ("<input file extension>") action { (x, c) =>
+      c.copy(inputExtension = x)
+    } text ("extension of input templates. Default is '.st'")
 
-    opt[String]("outext").optional() valueName("<output file extension>") action { (x, c) =>
-       c.copy(outputExtension = x) } text("extension of templates after processing. Default is '' (no extension added)")
+    opt[String]("outext").optional() valueName ("<output file extension>") action { (x, c) =>
+      c.copy(outputExtension = x)
+    } text ("extension of templates after processing. Default is '' (no extension added)")
 
-    opt[File]('p', "params").optional() valueName("<variable.json>") action { (x, c) =>
-      c.copy(variables = x) } text("JSON file defining variables. Default is 'variables.json'. See below for format details.")
+    opt[File]('p', "params").optional() valueName ("<variable.json>") action { (x, c) =>
+      c.copy(variables = x)
+    } text ("JSON file defining variables. Default is 'variables.json'. See below for format details.")
 
-    opt[Unit]('X', "stackTrace").optional() action { (_, c) =>
-      c.copy(showStackTrace = true) } text("Print stack trace on error")
+    opt[Unit]('X', "stackTrace").optional() action { (_, c) => c.copy(showStackTrace = true) } text ("Print stack trace on error")
 
-    opt[Unit]("stdout").optional() action { (_, c) =>
-      c.copy(outputToStdout = true) } text("Print stack trace on error")
+    opt[Unit]("stdout").optional() action { (_, c) => c.copy(outputToStdout = true) } text ("Print stack trace on error")
 
     arg[File]("<template.st>...").optional().unbounded() action { (x, c) =>
-      c.copy(templates = c.templates:+ x) } text("""list of templates to fill. Only file with the correct extension (by default '.st') will
-        | be processed. The extension will be replaced by '.cf' by default, ounce processed.""".stripMargin)
+      c.copy(templates = c.templates :+ x)
+    } text ("""list of templates to fill. Only file with the correct extension (by default '.st') will
+               | be processed. The extension will be replaced by '.cf' by default, ounce processed.""".stripMargin)
 
-    help("help") text("prints this usage text")
+    help("help") text ("prints this usage text")
 
-    note("""The expected format for variables.json is a simple key:value file, with value being only string, boolean or Array of string. 'system' and 'optioannal' properties can also be specified:
-       | {
-       |     "key1": true
-       |   , "key2": "some value"
-       |   , "key3": "42"
-       |   , "key4": [ "some", "more", "values", true, false ]
-       |   , "key5": { "value": "k5", "system": true, "optional": false }
-       |   , "key6": { "value": [ "a1", "a2", "a3" ], "system": false, "optional": true }
-       |   , "key7": ""
-       |   , "key8": { "value": [] }
-       | }
-      """.stripMargin)
+    note(
+      """The expected format for variables.json is a simple key:value file, with value being only string, boolean or Array of string. 'system' and 'optioannal' properties can also be specified:
+        | {
+        |     "key1": true
+        |   , "key2": "some value"
+        |   , "key3": "42"
+        |   , "key4": [ "some", "more", "values", true, false ]
+        |   , "key5": { "value": "k5", "system": true, "optional": false }
+        |   , "key6": { "value": [ "a1", "a2", "a3" ], "system": false, "optional": true }
+        |   , "key7": ""
+        |   , "key8": { "value": [] }
+        | }
+      """.stripMargin
+    )
   }
 
   def main(args: Array[String]): Unit = {
 
-    //in case of error with args, stop and display usage
+    // in case of error with args, stop and display usage
     val config = parser.parse(args, Config()).getOrElse {
-        parser.showUsage()
-        System.exit(1)
-        //just for type inference, never reached
-        Config()
+      parser.showUsage()
+      System.exit(1)
+      // just for type inference, never reached
+      Config()
     }
 
     process(config).either.runNow match {
@@ -149,13 +151,12 @@ object TemplateCli {
         System.exit(1)
 
       case Right(()) =>
-        //ok
-        //here, we can't call System.exit(0), because maven.
-        //seriously: http://maven.apache.org/surefire/maven-surefire-plugin/faq.html#vm-termination
-        // """Surefire does not support tests or any referenced libraries calling System.exit() at any time."""
+      // ok
+      // here, we can't call System.exit(0), because maven.
+      // seriously: http://maven.apache.org/surefire/maven-surefire-plugin/faq.html#vm-termination
+      // """Surefire does not support tests or any referenced libraries calling System.exit() at any time."""
     }
   }
-
 
   /**
    * An utility method so that I can actually test things,
@@ -166,19 +167,20 @@ object TemplateCli {
     for {
       timer     <- FillTemplateTimer.make()
       variables <- ParseVariables.fromFile(config.variables)
-      _         <- if(config.templates.nonEmpty) {
-                     val filler = //if we are writing to stdout, use a different filler and ignore outputExtension
-                                if(config.outputToStdout) {
-                                  fillToStdout(variables.toSeq, config.inputExtension, timer) _
-                                } else {
-                                  fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension, timer) _
-                                }
-                     config.templates.accumulate { filler }
+      _         <- if (config.templates.nonEmpty) {
+                     val filler = { // if we are writing to stdout, use a different filler and ignore outputExtension
+                       if (config.outputToStdout) {
+                         fillToStdout(variables.toSeq, config.inputExtension, timer) _
+                       } else {
+                         fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension, timer) _
+                       }
+                     }
+                     config.templates.accumulate(filler)
                    } else {
                      /*
-                      * If no templates are given, try to read from stdin.
-                      * In that case, --stdout is forced.
-                      */
+              * If no templates are given, try to read from stdin.
+              * In that case, --stdout is forced.
+              */
                      for {
                        content <- readStdin()
                        ok      <- filledAndWriteToStdout(variables.toSeq, content, "stdin", timer)
@@ -192,9 +194,10 @@ object TemplateCli {
   def readStdin(): IOResult[String] = {
     for {
       in      <- IOResult.attempt("Error when trying to access stdin")(new java.io.InputStreamReader(System.in))
-      ready   <- if(in.ready) ZIO.unit else Inconsistency("Can not get template content from stdin and no template file given").fail
+      ready   <-
+        if (in.ready) ZIO.unit else Inconsistency("Can not get template content from stdin and no template file given").fail
       content <- IOResult.attempt("Error when trying to read content from stdin")(IOUtils.toString(System.in, "UTF-8"))
-      ok      <- if(content.length > 0) {
+      ok      <- if (content.length > 0) {
                    content.succeed
                  } else {
                    Inconsistency("Can not get template content from stdin and no template file given").fail
@@ -212,14 +215,23 @@ object TemplateCli {
    * Only file with inputExtension are processed.
    * inputExtension is replaced by outputExtension.
    */
-  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
+  def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(
+      template:       File
+  ): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { ZIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
-      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
+      ok      <- if (template.getName.endsWith(inputExtension)) { ZIO.unit }
+                 else {
+                   Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail
+                 }
+      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(
+                   FileUtils.readFileToString(template, StandardCharsets.UTF_8)
+                 )
       filled  <- fillerService.fill(template.getAbsolutePath, content, variables, timer)
       name     = template.getName
-      out      = new File(outDir, name.substring(0, name.size-inputExtension.size)+outputExtension)
-      writed  <- IOResult.attempt( s"Error when writting filled template into ${out.getAbsolutePath}")(FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8))
+      out      = new File(outDir, name.substring(0, name.size - inputExtension.size) + outputExtension)
+      writed  <- IOResult.attempt(s"Error when writting filled template into ${out.getAbsolutePath}")(
+                   FileUtils.writeStringToFile(out, filled, StandardCharsets.UTF_8)
+                 )
     } yield {
       out.getAbsolutePath
     }
@@ -228,10 +240,17 @@ object TemplateCli {
   /**
    * Same as fill, but print everything to stdout
    */
-  def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(template: File): IOResult[String] = {
+  def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(
+      template:               File
+  ): IOResult[String] = {
     for {
-      ok      <- if(template.getName.endsWith(inputExtension)) { ZIO.unit } else { Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail }
-      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(FileUtils.readFileToString(template, StandardCharsets.UTF_8))
+      ok      <- if (template.getName.endsWith(inputExtension)) { ZIO.unit }
+                 else {
+                   Inconsistency(s"Ignoring file ${template.getName} because it does not have extension '${inputExtension}'").fail
+                 }
+      content <- IOResult.attempt(s"Error when reading variables from ${template.getAbsolutePath}")(
+                   FileUtils.readFileToString(template, StandardCharsets.UTF_8)
+                 )
       writed  <- filledAndWriteToStdout(variables, content, template.getName, timer)
     } yield {
       writed
@@ -240,8 +259,8 @@ object TemplateCli {
 
   def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String, timer: FillTemplateTimer) = {
     for {
-      filled  <- fillerService.fill(templateName, content, variables, timer)
-      writed  <- IOResult.attempt(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
+      filled <- fillerService.fill(templateName, content, variables, timer)
+      writed <- IOResult.attempt(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))
     } yield {
       templateName
     }
@@ -271,9 +290,10 @@ object TemplateCli {
  */
 object ParseVariables extends Loggable {
 
-  def fromFile(file: File):  IOResult[Set[STVariable]] = {
+  def fromFile(file: File): IOResult[Set[STVariable]] = {
     for {
-      jsonString <- IOResult.attempt(s"Error when trying to read file ${file.getAbsolutePath}")(FileUtils.readFileToString(file, "UTF-8"))
+      jsonString <-
+        IOResult.attempt(s"Error when trying to read file ${file.getAbsolutePath}")(FileUtils.readFileToString(file, "UTF-8"))
       vars       <- fromString(jsonString)
     } yield {
       vars
@@ -286,28 +306,32 @@ object ParseVariables extends Loggable {
       v match {
         case JString(value) => ArraySeq(value)
         case JBool(value)   => ArraySeq(value)
-        case JArray(arr)    => arr.map { x => x match {
-                                 case JString(value) => value
-                                 case JBool(value)   => value
-                                 //at that level, any other thing, including array, is parser as a simple string
-                                 case value          => compactRender(value)
-                               } }.to(ArraySeq)
-        case value            => ArraySeq(compactRender(value))
+        case JArray(arr)    =>
+          arr.map { x =>
+            x match {
+              case JString(value) => value
+              case JBool(value)   => value
+              // at that level, any other thing, including array, is parser as a simple string
+              case value          => compactRender(value)
+            }
+          }.to(ArraySeq)
+        case value          => ArraySeq(compactRender(value))
       }
     }
 
-    //the whole logic
+    // the whole logic
     for {
-      json       <- IOResult.attempt(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
+      json <- IOResult.attempt(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
     } yield {
       json match {
-        case JObject(fields) => fields.flatMap { x =>
+        case JObject(fields) =>
+          fields.flatMap { x =>
             x match {
-              case field@JField(name, JObject(values)) => // in that case, only value is mandatory
+              case field @ JField(name, JObject(values)) => // in that case, only value is mandatory
                 val map = values.map { case JField(n, v) => (n, v) }.toMap
 
                 map.get("value") match {
-                  case None =>
+                  case None        =>
                     logger.info(s"Missing mandatory field 'value' in object ${compactRender(JObject(field))}")
                     None
                   case Some(value) =>
@@ -315,7 +339,7 @@ object ParseVariables extends Loggable {
                       case Some(JBool(b)) => b
                       case _              => true
                     }
-                    val system = map.get("system") match {
+                    val system   = map.get("system") match {
                       case Some(JBool(b)) => b
                       case _              => false
                     }
@@ -323,10 +347,10 @@ object ParseVariables extends Loggable {
                     Some(STVariable(name, optional, parseAsValue(value), system))
                 }
 
-              //in any other case, parse as value
-              case JField(name, value) => Some(STVariable(name, true, parseAsValue(value), false))
+              // in any other case, parse as value
+              case JField(name, value)                   => Some(STVariable(name, true, parseAsValue(value), false))
 
-              //and if not a field, well just abort
+              // and if not a field, well just abort
               case _ => None
 
             }
@@ -337,5 +361,3 @@ object ParseVariables extends Loggable {
     }
   }
 }
-
-

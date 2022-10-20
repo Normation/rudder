@@ -1,58 +1,56 @@
 /*
-*************************************************************************************
-* Copyright 2021 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2021 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.facts.nodes
 
+import better.files.File
+import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.inventory.domain._
 import com.normation.rudder.apidata.FullDetailLevel
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
-
-import better.files.File
-import net.liftweb.json.prettyRender
-import net.liftweb.json.JsonDSL._
 import com.softwaremill.quicklens._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.prettyRender
 import org.eclipse.jgit.lib.PersonIdent
-
 import zio._
 import zio.syntax._
-import com.normation.errors._
 
 /*
  * This file contains the base to persist facts into a git repository. There is a lot of question
@@ -97,7 +95,6 @@ import com.normation.errors._
  * event as if, but well we want to have readable text files for users in our git repos)
  */
 
-
 /*
  * write node facts.
  */
@@ -115,8 +112,6 @@ trait NodeFactRepository {
 
 }
 
-
-
 /*
  * Serialize a fact type (to/from JSON), for example nodes.
  * The format is versionned so that we are able to unserialize old files into newer domain representation.
@@ -131,7 +126,7 @@ trait NodeFactRepository {
 trait SerializeFacts[A, B] {
 
   def fileFormat: String
-  def entity: String
+  def entity:     String
 
   def toJson(data: B): IOResult[String]
 
@@ -139,7 +134,6 @@ trait SerializeFacts[A, B] {
   def getEntityPath(id: A): String
 
 }
-
 
 /*
  * We have only one git for all fact repositories. This is the one managing semaphore, init, etc.
@@ -150,17 +144,14 @@ trait SerializeFacts[A, B] {
  * etc
  */
 
-
 class GitNodeFactRepository(
-    override val gitRepo   : GitRepositoryProvider
-  ,              groupOwner: String
-) extends
-  NodeFactRepository with
-  GitItemRepository with
-  SerializeFacts[(NodeId, InventoryStatus),(NodeInfo, FullInventory, Seq[Software])] {
+    override val gitRepo: GitRepositoryProvider,
+    groupOwner:           String
+) extends NodeFactRepository with GitItemRepository
+    with SerializeFacts[(NodeId, InventoryStatus), (NodeInfo, FullInventory, Seq[Software])] {
 
   override val relativePath = "nodes"
-  override val entity: String = "node"
+  override val entity:     String = "node"
   override val fileFormat: String = "1"
   val commiter = new PersonIdent("rudder-fact", "email not set")
 
@@ -168,39 +159,53 @@ class GitNodeFactRepository(
     s"${id._2.name}/${id._1.value}.json"
   }
 
-
   def getFile(id: NodeId, status: InventoryStatus): File = {
     gitRepo.rootDirectory / relativePath / getEntityPath((id, status))
   }
 
   /*
-     * serialize the inventory into a normalized JSON string.
-     * As we want it to be human readable and searchable, we will use an indented format.
-     */
+   * serialize the inventory into a normalized JSON string.
+   * As we want it to be human readable and searchable, we will use an indented format.
+   */
   def toJson(data: (NodeInfo, FullInventory, Seq[Software])): IOResult[String] = {
     val (nodeInfo, inventory, software) = data
     // we want to store objects alphabetically
-    val inv = inventory
-                .modify(_.node.accounts).using(_.sorted)
-                .modify(_.node.customProperties).using(_.sortBy(_.name))
-                .modify(_.node.environmentVariables).using(_.sortBy(_.name))
-                .modify(_.node.fileSystems).using(_.sortBy(_.name))
-                .modify(_.node.networks).using(_.sortBy(_.name))
-                .modify(_.node.processes).using(_.sortBy(_.commandName))
-                .modify(_.machine.each.bios).using(_.sortBy(_.name))
-                .modify(_.machine.each.controllers).using(_.sortBy(_.name))
-                .modify(_.machine.each.memories).using(_.sortBy(_.name))
-                .modify(_.machine.each.ports).using(_.sortBy(_.name))
-                .modify(_.machine.each.processors).using(_.sortBy(_.name))
-                .modify(_.machine.each.slots).using(_.sortBy(_.name))
-                .modify(_.machine.each.sounds).using(_.sortBy(_.name))
-                .modify(_.machine.each.storages).using(_.sortBy(_.name))
-                .modify(_.machine.each.videos).using(_.sortBy(_.name))
+    val inv                             = inventory
+      .modify(_.node.accounts)
+      .using(_.sorted)
+      .modify(_.node.customProperties)
+      .using(_.sortBy(_.name))
+      .modify(_.node.environmentVariables)
+      .using(_.sortBy(_.name))
+      .modify(_.node.fileSystems)
+      .using(_.sortBy(_.name))
+      .modify(_.node.networks)
+      .using(_.sortBy(_.name))
+      .modify(_.node.processes)
+      .using(_.sortBy(_.commandName))
+      .modify(_.machine.each.bios)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.controllers)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.memories)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.ports)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.processors)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.slots)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.sounds)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.storages)
+      .using(_.sortBy(_.name))
+      .modify(_.machine.each.videos)
+      .using(_.sortBy(_.name))
 
-
-    val json = FullDetailLevel.toJson(nodeInfo, inventory.node.main.status, None, Some(inv), software.sortBy(_.name.getOrElse("")))
+    val json =
+      FullDetailLevel.toJson(nodeInfo, inventory.node.main.status, None, Some(inv), software.sortBy(_.name.getOrElse("")))
     // add entity type and file format at the begining
-    ("entity" -> entity ) ~ ( "fileFormat" -> fileFormat ) ~ json
+    ("entity" -> entity) ~ ("fileFormat" -> fileFormat) ~ json
 
     // save in human readable format (ie with indentation and git diff compatible)
     // prettyRender throws exception when it encounters "JNothing"
@@ -209,33 +214,42 @@ class GitNodeFactRepository(
 
   override def persist(nodeInfo: NodeInfo, inventory: FullInventory, software: Seq[Software]): IOResult[Unit] = {
     for {
-      json    <- toJson((nodeInfo, inventory, software))
-      file    =  getFile(nodeInfo.id, inventory.node.main.status)
-      _       <- IOResult.attempt(file.write(json))
-      _       <- IOResult.attempt(file.setGroup(groupOwner))
-      gitPath =  toGitPath(file.toJava)
-      saved   <- commitAddFile(commiter, gitPath, s"Save inventory facts for ${inventory.node.main.status.name} node '${nodeInfo.hostname}' (${nodeInfo.id.value})")
+      json   <- toJson((nodeInfo, inventory, software))
+      file    = getFile(nodeInfo.id, inventory.node.main.status)
+      _      <- IOResult.attempt(file.write(json))
+      _      <- IOResult.attempt(file.setGroup(groupOwner))
+      gitPath = toGitPath(file.toJava)
+      saved  <- commitAddFile(
+                  commiter,
+                  gitPath,
+                  s"Save inventory facts for ${inventory.node.main.status.name} node '${nodeInfo.hostname}' (${nodeInfo.id.value})"
+                )
     } yield ()
   }
-
 
   override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[Unit] = {
     // pending and accepted are symetric, utility function for the two cases
     def move(from: InventoryStatus) = {
-      val to = if(from == AcceptedInventory) PendingInventory else AcceptedInventory
+      val to = if (from == AcceptedInventory) PendingInventory else AcceptedInventory
 
       val fromFile = getFile(nodeId, from)
-      val toFile = getFile(nodeId, to)
+      val toFile   = getFile(nodeId, to)
       // check if fact already where it should
       ZIO.ifZIO(IOResult.attempt(fromFile.exists))(
         // however toFile exists, move, because if present it may be because a deletion didn't work and
         // we need to overwritte
         IOResult.attempt(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
-        commitMvDirectory(commiter, toGitPath(fromFile.toJava), toGitPath(toFile.toJava), s"Updating facts for node '${nodeId.value}': accepted")
+        commitMvDirectory(
+          commiter,
+          toGitPath(fromFile.toJava),
+          toGitPath(toFile.toJava),
+          s"Updating facts for node '${nodeId.value}': accepted"
+        ), // if source file does not exist, check if dest is present. If present, assume it's ok, else error
 
-        // if source file does not exist, check if dest is present. If present, assume it's ok, else error
-      , ZIO.whenZIO(IOResult.attempt(!toFile.exists)) {
-          Inconsistency(s"Error when trying to move fact for node '${nodeId.value}' from '${fromFile.pathAsString}' to '${toFile.pathAsString}': missing files").fail
+        ZIO.whenZIO(IOResult.attempt(!toFile.exists)) {
+          Inconsistency(
+            s"Error when trying to move fact for node '${nodeId.value}' from '${fromFile.pathAsString}' to '${toFile.pathAsString}': missing files"
+          ).fail
         }
       )
     }
@@ -258,7 +272,6 @@ class GitNodeFactRepository(
     }).unit
   }
 
-
   /*
    * check that everything is ok for that repo entities (typically: subfolder created, perm ok, etc)
    */
@@ -267,19 +280,22 @@ class GitNodeFactRepository(
     dirs.accumulate { dir =>
       val d = gitRepo.rootDirectory / relativePath / dir
       for {
-        _ <- ZIO.whenZIO(IOResult.attempt(d.notExists)) {
-               IOResult.attempt {
-                 d.createDirectories()
-                 d.setGroup(groupOwner)
+        _ <- ZIO
+               .whenZIO(IOResult.attempt(d.notExists)) {
+                 IOResult.attempt {
+                   d.createDirectories()
+                   d.setGroup(groupOwner)
+                 }
                }
-             }.chainError(s"Error when creating directory '${d.pathAsString}' for historising inventories: ${}")
+               .chainError(s"Error when creating directory '${d.pathAsString}' for historising inventories: ${}")
         _ <- ZIO.whenZIO(IOResult.attempt(!d.isOwnerWritable)) {
-               Inconsistency(s"Error, directory '${d.pathAsString}' must be a writable directory to allow inventory historisation").fail
+               Inconsistency(
+                 s"Error, directory '${d.pathAsString}' must be a writable directory to allow inventory historisation"
+               ).fail
              }
       } yield ()
     }.unit
   }
 }
-
 
 // TODO Access node facts: history, for a date, etc

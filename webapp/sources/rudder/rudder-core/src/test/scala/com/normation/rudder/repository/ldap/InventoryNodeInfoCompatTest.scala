@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository.ldap
 
@@ -53,13 +53,12 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Entry
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-
-import com.normation.zio._
 
 /**
  * A test to check that an node inventory entry
@@ -70,32 +69,33 @@ class InventoryNodeInfoCompatTest extends Specification {
   val mapper: LDAPEntityMapper = {
     val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
     val acceptedNodesDitImpl: InventoryDit = new InventoryDit(
-        new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration")
-      , softwareDN
-      , "Accepted inventories"
+      new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration"),
+      softwareDN,
+      "Accepted inventories"
     )
-    val pendingNodesDitImpl: InventoryDit = new InventoryDit(
-        new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration")
-      , softwareDN
-      , "Pending inventories"
+    val pendingNodesDitImpl:  InventoryDit = new InventoryDit(
+      new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration"),
+      softwareDN,
+      "Pending inventories"
     )
     val removedNodesDitImpl = new InventoryDit(
-        new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration")
-      , softwareDN
-      ,"Removed Servers"
+      new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration"),
+      softwareDN,
+      "Removed Servers"
     )
-    val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+    val inventoryDitService: InventoryDitService =
+      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
 
     val inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
 
-    val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
-    val nodeDit = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
+    val rudderDit       = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
+    val nodeDit         = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
     val cmdbQueryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer { val criterionObjects = Map() }
 
     new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
   }
 
-  val linux41Ldif =
+  val linux41Ldif = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -121,8 +121,9 @@ class InventoryNodeInfoCompatTest extends Specification {
       |inventoryDate: 20180713130033.000Z
       |receiveDate: 20180713130534.772Z
       |agentName: {"agentType":"Community","version":"4.1.14"}""".stripMargin
+  }
 
-  val linux42Ldif =
+  val linux42Ldif = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -147,8 +148,9 @@ class InventoryNodeInfoCompatTest extends Specification {
       |inventoryDate: 20180716134036.000Z
       |receiveDate: 20180716134537.505Z
       |agentName: {"agentType":"cfengine-community","version":"4.2.8","securityToken":{"value":"publickey","type":"publicKey"}}""".stripMargin
+  }
 
-  val linux43Ldif =
+  val linux43Ldif = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -174,56 +176,63 @@ class InventoryNodeInfoCompatTest extends Specification {
       |inventoryDate: 20180717000031.000Z
       |receiveDate: 20180717000527.050Z
       |lastLoggedUserTime: 20000714084300.000Z""".stripMargin
+  }
 
-  val dsc42Ldif =
+  val dsc42Ldif = {
     s"""dn: nodeId=aff80e6d-68fb-43dd-9a33-a5204b7e3153,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-      |nodeId: aff80e6d-68fb-43dd-9a33-a5204b7e3153
-      |objectClass: node
-      |objectClass: top
-      |objectClass: windowsNode
-      |osName: Windows2012R2
-      |windowsRegistrationCompany: Vagrant
-      |windowsKey: PN79T-M7QXW-R8FVX-FDF89-7XKCB
-      |windowsId: 00252-00105-69793-AA339
-      |osFullName: Microsoft Windows Server 2012 R2 Standard
-      |osVersion: N/A
-      |osKernelVersion: 6.3.9600
-      |localAdministratorAccountName: vagrant-2012-r2
-      |nodeHostname: vagrant-2012-r2
-      |keyStatus: undefined
-      |policyServerId: root
-      |ram: 535822336
-      |osArchitectureType: x86_64
-      |lastLoggedUser: vagrant
-      |inventoryDate: 20180716104920.000Z
-      |receiveDate: 20180716135035.945Z
-      |agentName: {"agentType":"dsc","version":"4.2-1.9","securityToken": {"value":"certificate","type":"certificate"}}
-      |timezoneName: Pacific Standard Time
-      |timezoneOffset: -0700""".stripMargin
-
+       |nodeId: aff80e6d-68fb-43dd-9a33-a5204b7e3153
+       |objectClass: node
+       |objectClass: top
+       |objectClass: windowsNode
+       |osName: Windows2012R2
+       |windowsRegistrationCompany: Vagrant
+       |windowsKey: PN79T-M7QXW-R8FVX-FDF89-7XKCB
+       |windowsId: 00252-00105-69793-AA339
+       |osFullName: Microsoft Windows Server 2012 R2 Standard
+       |osVersion: N/A
+       |osKernelVersion: 6.3.9600
+       |localAdministratorAccountName: vagrant-2012-r2
+       |nodeHostname: vagrant-2012-r2
+       |keyStatus: undefined
+       |policyServerId: root
+       |ram: 535822336
+       |osArchitectureType: x86_64
+       |lastLoggedUser: vagrant
+       |inventoryDate: 20180716104920.000Z
+       |receiveDate: 20180716135035.945Z
+       |agentName: {"agentType":"dsc","version":"4.2-1.9","securityToken": {"value":"certificate","type":"certificate"}}
+       |timezoneName: Pacific Standard Time
+       |timezoneOffset: -0700""".stripMargin
+  }
 
   def node(ldif: String): NodeInfo = {
-    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq:_*))
+    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq: _*))
     mapper.convertEntriesToSpecialNodeInfos(nodeEntry, None).runNow
   }
 
   "Agent type " should {
     "correctly unserialize Linux node from 4_1" in {
-      node(linux41Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey"), Set()))
+      node(linux41Ldif).agentsName(0) must beEqualTo(
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey"), Set())
+      )
     }
 
     "correctly unserialize Linux node from 4_2" in {
-      node(linux42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey"), Set()))
+      node(linux42Ldif).agentsName(0) must beEqualTo(
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey"), Set())
+      )
     }
 
     "correctly unserialize Linux node from 4_3" in {
-      node(linux43Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey"), Set()))
+      node(linux43Ldif).agentsName(0) must beEqualTo(
+        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey"), Set())
+      )
     }
 
-
     "correctly unserialize DSC node from 4_2" in {
-      node(dsc42Ldif).agentsName(0) must beEqualTo(AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set()))
+      node(dsc42Ldif).agentsName(0) must beEqualTo(
+        AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set())
+      )
     }
   }
 }
-

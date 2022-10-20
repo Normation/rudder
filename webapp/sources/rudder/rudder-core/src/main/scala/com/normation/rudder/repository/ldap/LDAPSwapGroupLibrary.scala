@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository.ldap
 
@@ -41,6 +41,7 @@ import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.nodes._
@@ -52,85 +53,91 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import scala.annotation.tailrec
 import zio._
 import zio.syntax._
-import com.normation.ldap.sdk.syntax._
-
-import scala.annotation.tailrec
 
 trait LDAPImportLibraryUtil extends NamedZioLogger {
 
-  //move user lib to archive branch
-  def moveToArchive(connection:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : IOResult[Unit] = {
+  // move user lib to archive branch
+  def moveToArchive(connection: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
     for {
-      ok <- connection.move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN)) .chainError("Error when arching current Library with DN '%s' to LDAP".format(targetArchiveDN))
-    } yield {
-      {}
-    }
+      ok <- connection
+              .move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN))
+              .chainError("Error when arching current Library with DN '%s' to LDAP".format(targetArchiveDN))
+    } yield {}
   }
 
-  //copy back system categories/groups if includeSystem is FALSE
-  def copyBackSystemEntrie(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : IOResult[Unit] = {
-    //the only hard part could be for system group in non system categories, because
-    //we may miss a parent. But it should not be allowed, so we consider such cases
-    //as errors
+  // copy back system categories/groups if includeSystem is FALSE
+  def copyBackSystemEntrie(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
+    // the only hard part could be for system group in non system categories, because
+    // we may miss a parent. But it should not be allowed, so we consider such cases
+    // as errors
     import com.normation.ldap.sdk.BuildFilter.EQ
     import com.normation.ldap.sdk._
 
-
-    //a method that change the root of a dn from archive to user lib root
-    def setUserLibRoot(dn:DN) : Option[DN] = {
-      def recParent(x:DN) : Option[List[RDN]] = {
-        if(null == x) None
-        else if(x == targetArchiveDN) Some(Nil)
-        else recParent(x.getParent).map( x.getRDN :: _ )
+    // a method that change the root of a dn from archive to user lib root
+    def setUserLibRoot(dn: DN): Option[DN] = {
+      def recParent(x: DN): Option[List[RDN]] = {
+        if (null == x) None
+        else if (x == targetArchiveDN) Some(Nil)
+        else recParent(x.getParent).map(x.getRDN :: _)
       }
 
       @tailrec
-      def recBuildDN(root:DN, rdns:List[RDN]) : DN = rdns match {
-        case Nil => root
-        case h::t => recBuildDN(new DN(h,root),t)
+      def recBuildDN(root: DN, rdns: List[RDN]): DN = rdns match {
+        case Nil    => root
+        case h :: t => recBuildDN(new DN(h, root), t)
       }
 
       val relatives = recParent(dn)
-      relatives.map( rdns => recBuildDN(sourceLibraryDN, rdns.reverse))
+      relatives.map(rdns => recBuildDN(sourceLibraryDN, rdns.reverse))
     }
 
     for {
-      entries <- con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM,true.toLDAPString))
-      allDNs  =  entries.map( _.dn ).toSet
-      //update DN to UserLib DN, remove root entry and entries without parent in that set
-      updatedDNEntries =  (entries.collect {
-                                case entry if(entry.dn == targetArchiveDN) =>
-                                  logEffect.trace("Skipping root entry, already taken into account")
-                                  None
-                                case entry if(allDNs.exists( _ == entry.dn.getParent)) =>
-                                  //change the DN to user lib
-                                  setUserLibRoot(entry.dn) match {
-                                    case None =>
-                                      logEffect.error("Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN))
-                                      None
-                                    case Some(dn) =>
-                                      Some(LDAPEntry(dn, entry.attributes))
-                                  }
-                                case entry =>
-                                  logEffect.error("Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?".format(entry.dn))
-                                  None
-                              }).flatten
-     //actually save system entries in User Lib
-       _ <- ZIO.foreach(updatedDNEntries.sortWith( (x,y) => DN.compare(x.dn.toString, y.dn.toString) < 0)) { entry =>
-              con.save(entry) .chainError("Error when copying back system entry '%s' from archive '%s'".format(entry.dn, targetArchiveDN))
+      entries         <- con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM, true.toLDAPString))
+      allDNs           = entries.map(_.dn).toSet
+      // update DN to UserLib DN, remove root entry and entries without parent in that set
+      updatedDNEntries = {
+        (entries.collect {
+          case entry if (entry.dn == targetArchiveDN)            =>
+            logEffect.trace("Skipping root entry, already taken into account")
+            None
+          case entry if (allDNs.exists(_ == entry.dn.getParent)) =>
+            // change the DN to user lib
+            setUserLibRoot(entry.dn) match {
+              case None     =>
+                logEffect.error(
+                  "Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN)
+                )
+                None
+              case Some(dn) =>
+                Some(LDAPEntry(dn, entry.attributes))
             }
+          case entry                                             =>
+            logEffect.error(
+              "Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?"
+                .format(entry.dn)
+            )
+            None
+        }).flatten
+      }
+      // actually save system entries in User Lib
+      _               <- ZIO.foreach(updatedDNEntries.sortWith((x, y) => DN.compare(x.dn.toString, y.dn.toString) < 0)) { entry =>
+                           con
+                             .save(entry)
+                             .chainError("Error when copying back system entry '%s' from archive '%s'".format(entry.dn, targetArchiveDN))
+                         }
     } yield {
       ()
     }
   }
 
-  //restore in case of error
-  def restoreArchive(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : IOResult[Unit] = {
+  // restore in case of error
+  def restoreArchive(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
     for {
       exists    <- con.exists(sourceLibraryDN)
-      delete    <- if(exists) {
+      delete    <- if (exists) {
                      con.delete(sourceLibraryDN)
                    } else "ok".succeed
       movedBack <- con.move(targetArchiveDN, sourceLibraryDN.getParent, Some(sourceLibraryDN.getRDN))
@@ -142,10 +149,10 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
 }
 
 class ImportGroupLibraryImpl(
-    rudderDit    : RudderDit
-  , ldap         : LDAPConnectionProvider[RwLDAPConnection]
-  , mapper       : LDAPEntityMapper
-  , groupLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    rudderDit:     RudderDit,
+    ldap:          LDAPConnectionProvider[RwLDAPConnection],
+    mapper:        LDAPEntityMapper,
+    groupLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ImportGroupLibrary with LDAPImportLibraryUtil {
 
   override def loggerName: String = this.getClass.getName
@@ -156,7 +163,7 @@ class ImportGroupLibraryImpl(
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapGroupLibrary(rootCategory:NodeGroupCategoryContent, includeSystem:Boolean = false) : IOResult[Unit] = {
+  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false): IOResult[Unit] = {
     /*
      * Hight level behaviour:
      * - check that Group Library respects global rules
@@ -173,57 +180,71 @@ class ImportGroupLibraryImpl(
      *
      */
 
-    //as far atomic as we can :)
-    //don't bother with system and consistency here, it is taken into account elsewhere
-    def atomicSwap(userLib:NodeGroupCategoryContent) : IOResult[NodeGroupLibraryArchiveId] = {
-      //save the new one
-      //we need to keep the git commit id
-      def saveUserLib(con:RwLDAPConnection, userLib:NodeGroupCategoryContent) : IOResult[Unit] = {
-        def recSaveUserLib(parentDN:DN, content:NodeGroupCategoryContent) : IOResult[Unit] = {
-          //start with the category
-          //then with technique/directive for that category
-          //then recurse on sub-categories
+    // as far atomic as we can :)
+    // don't bother with system and consistency here, it is taken into account elsewhere
+    def atomicSwap(userLib: NodeGroupCategoryContent): IOResult[NodeGroupLibraryArchiveId] = {
+      // save the new one
+      // we need to keep the git commit id
+      def saveUserLib(con: RwLDAPConnection, userLib: NodeGroupCategoryContent): IOResult[Unit] = {
+        def recSaveUserLib(parentDN: DN, content: NodeGroupCategoryContent): IOResult[Unit] = {
+          // start with the category
+          // then with technique/directive for that category
+          // then recurse on sub-categories
           val categoryEntry = mapper.nodeGroupCategory2ldap(content.category, parentDN)
 
           for {
-            category      <- con.save(categoryEntry) .chainError("Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn))
+            category      <-
+              con.save(categoryEntry).chainError("Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn))
             groups        <- ZIO.foreach(content.groups) { nodeGroup =>
                                val nodeGroupEntry = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
-                               con.save(nodeGroupEntry,true) .chainError("Error when persisting group entry with DN '%s' in LDAP".format(nodeGroupEntry.dn))
+                               con
+                                 .save(nodeGroupEntry, true)
+                                 .chainError("Error when persisting group entry with DN '%s' in LDAP".format(nodeGroupEntry.dn))
                              }
-            subCategories <- ZIO.foreach(content.categories) { cat =>
-                               recSaveUserLib(categoryEntry.dn, cat)
-                             }
+            subCategories <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat))
           } yield {
             () // unit is expected
           }
         }
 
-        recSaveUserLib(rudderDit.GROUP.dn.getParent,userLib)
+        recSaveUserLib(rudderDit.GROUP.dn.getParent, userLib)
       }
 
-      val archiveId = NodeGroupLibraryArchiveId(DateTime.now().toString(ISODateTimeFormat.dateTime))
+      val archiveId       = NodeGroupLibraryArchiveId(DateTime.now().toString(ISODateTimeFormat.dateTime))
       val targetArchiveDN = rudderDit.ARCHIVES.groupLibDN(archiveId)
 
-      //the sequence of operation to actually perform the swap with rollback
+      // the sequence of operation to actually perform the swap with rollback
       for {
         con      <- ldap
         archived <- moveToArchive(con, rudderDit.GROUP.dn, targetArchiveDN)
         finished <- {
-                      (for {
-                        saved  <- saveUserLib(con, userLib)
-                        system <- if(includeSystem) "OK".succeed
-                                  else copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN) .chainError("Error when copying back system entries in the imported library")
-                      } yield {
-                        system
-                      }).catchAll { e =>
-                        logPure.error("Error when trying to load archived active technique library. Rollbaching to previous one.") *>
-                        restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).foldZIO(
-                          _ => Chained("Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value), e).fail
-                        , _ => Chained("Error when trying to load archived active technique library. A rollback to previous state was executed", e).fail
+          (for {
+            saved  <- saveUserLib(con, userLib)
+            system <- if (includeSystem) "OK".succeed
+                      else {
+                        copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN).chainError(
+                          "Error when copying back system entries in the imported library"
                         )
                       }
-                    }
+          } yield {
+            system
+          }).catchAll { e =>
+            logPure.error("Error when trying to load archived active technique library. Rollbaching to previous one.") *>
+            restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN).foldZIO(
+              _ =>
+                Chained(
+                  "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value),
+                  e
+                ).fail,
+              _ => {
+                Chained(
+                  "Error when trying to load archived active technique library. A rollback to previous state was executed",
+                  e
+                ).fail
+              }
+            )
+          }
+        }
       } yield {
         archiveId
       }
@@ -236,92 +257,119 @@ class ImportGroupLibraryImpl(
      * - all ids must be uniques
      * + remove system library if we don't want them
      */
-    def checkUserLibConsistance(userLib:NodeGroupCategoryContent) : IOResult[NodeGroupCategoryContent] = {
+    def checkUserLibConsistance(userLib: NodeGroupCategoryContent): IOResult[NodeGroupCategoryContent] = {
       import scala.collection.mutable.Map
       import scala.collection.mutable.Set
-      val nodeGroupIds = Set[NodeGroupId]()
-      val nodeGroupNames = Map[String, NodeGroupId]()
-      val categoryIds = Set[NodeGroupCategoryId]()
+      val nodeGroupIds          = Set[NodeGroupId]()
+      val nodeGroupNames        = Map[String, NodeGroupId]()
+      val categoryIds           = Set[NodeGroupCategoryId]()
       // for a name, all Category already containing a child with that name.
       val categoryNamesByParent = Map[String, List[NodeGroupCategoryId]]()
 
-      def sanitizeNodeGroup(nodeGroup:NodeGroup) : Option[NodeGroup] = {
+      def sanitizeNodeGroup(nodeGroup: NodeGroup): Option[NodeGroup] = {
 
-        if(nodeGroup.isSystem && includeSystem == false) None
-        else if(nodeGroupIds.contains(nodeGroup.id)) {
+        if (nodeGroup.isSystem && includeSystem == false) None
+        else if (nodeGroupIds.contains(nodeGroup.id)) {
           logEffect.error("Ignoring Active Technique because is ID was already processed: " + nodeGroup)
           None
-        } else nodeGroupNames.get(nodeGroup.name) match {
-          case Some(id) =>
-            logEffect.error("Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'".format(
-                nodeGroup.id.serialize, nodeGroup.name, id.serialize
-            ))
-            None
-          case None =>
-            Some(nodeGroup)
+        } else {
+          nodeGroupNames.get(nodeGroup.name) match {
+            case Some(id) =>
+              logEffect.error(
+                "Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'"
+                  .format(
+                    nodeGroup.id.serialize,
+                    nodeGroup.name,
+                    id.serialize
+                  )
+              )
+              None
+            case None     =>
+              Some(nodeGroup)
+          }
         }
       }
 
-      def recSanitizeCategory(content: NodeGroupCategoryContent, parent: NodeGroupCategory, isRoot: Boolean) : Option[NodeGroupCategoryContent] = {
+      def recSanitizeCategory(
+          content: NodeGroupCategoryContent,
+          parent:  NodeGroupCategory,
+          isRoot:  Boolean
+      ): Option[NodeGroupCategoryContent] = {
         val cat = content.category
-        if( !isRoot && content.category.isSystem && includeSystem == false) None
-        else if(categoryIds.contains(cat.id)) {
+        if (!isRoot && content.category.isSystem && includeSystem == false) None
+        else if (categoryIds.contains(cat.id)) {
           logEffect.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
           None
-        } else if(cat.name == null || cat.name.size < 1) {
+        } else if (cat.name == null || cat.name.size < 1) {
           logEffect.error("Ignoring Active Technique Category because its name is empty: " + cat)
           None
-        } else categoryNamesByParent.get(cat.name) match { //name is mandatory
-          case Some(list) if list.contains(parent.id) =>
-            logEffect.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'".format(
-                cat.id.value, cat.name, parent.name, parent.id.value
-            ))
-            None
-          case _ => //OK, process PT and sub categories !
-            categoryIds += cat.id
-            categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
+        } else {
+          categoryNamesByParent.get(cat.name) match { // name is mandatory
+            case Some(list) if list.contains(parent.id) =>
+              logEffect.error(
+                "Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'"
+                  .format(
+                    cat.id.value,
+                    cat.name,
+                    parent.name,
+                    parent.id.value
+                  )
+              )
+              None
+            case _                                      => // OK, process PT and sub categories !
+              categoryIds += cat.id
+              categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false) ).toSet
-            val subNodeGroups = content.groups.flatMap( sanitizeNodeGroup(_) ).toSet
+              val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false)).toSet
+              val subNodeGroups = content.groups.flatMap(sanitizeNodeGroup(_)).toSet
 
-            //remove from sub cat groups that where not correct
-            val directiveTargetInfos = cat.items.filter { info =>
-              info.target match {
-                case GroupTarget(id) => subNodeGroups.exists(g => g.id == id )
-                case x => true
+              // remove from sub cat groups that where not correct
+              val directiveTargetInfos = cat.items.filter { info =>
+                info.target match {
+                  case GroupTarget(id) => subNodeGroups.exists(g => g.id == id)
+                  case x               => true
+                }
               }
-            }
 
-            Some(content.copy(
-                category  = cat.copy(
-                                children = subCategories.toList.map( _.category.id )
-                              , items = directiveTargetInfos
-                            )
-              , categories = subCategories
-              , groups     = subNodeGroups
-            ))
+              Some(
+                content.copy(
+                  category = cat.copy(
+                    children = subCategories.toList.map(_.category.id),
+                    items = directiveTargetInfos
+                  ),
+                  categories = subCategories,
+                  groups = subNodeGroups
+                )
+              )
+          }
         }
       }
 
-      recSanitizeCategory(userLib, userLib.category, true).notOptional("Error when trying to sanitize serialised user library for consistency errors")
+      recSanitizeCategory(userLib, userLib.category, true).notOptional(
+        "Error when trying to sanitize serialised user library for consistency errors"
+      )
     }
 
-    //all the logic for a library swap.
+    // all the logic for a library swap.
     for {
       cleanLib <- checkUserLibConsistance(rootCategory)
-      moved    <- groupLibMutex.writeLock { atomicSwap(cleanLib) } .chainError("Error when swapping serialised library and existing one in LDAP")
+      moved    <- groupLibMutex
+                    .writeLock(atomicSwap(cleanLib))
+                    .chainError(
+                      "Error when swapping serialised library and existing one in LDAP"
+                    )
     } yield {
-      //delete archive - not a real error if fails
+      // delete archive - not a real error if fails
       val dn = rudderDit.ARCHIVES.groupLibDN(moved)
       (for {
         con     <- ldap
         deleted <- con.delete(dn)
       } yield {
         deleted
-      }).unit.catchAll[Any, RudderError, Unit](e =>  // type annotation needed to avoid warning
-          // unit is expected
-          logPure.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
-      )
+      }).unit.catchAll[Any, RudderError, Unit](e => { // type annotation needed to avoid warning
+        // unit is expected
+        logPure.warn(s"Error when deleting archived library in LDAP with DN '${dn}': ${e.msg}")
+      })
     }
   }
 }

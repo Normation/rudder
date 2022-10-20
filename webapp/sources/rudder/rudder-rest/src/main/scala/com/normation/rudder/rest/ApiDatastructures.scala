@@ -1,47 +1,46 @@
 /*
-*************************************************************************************
-* Copyright 2017 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2017 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.rest
 
-import cats.implicits._
 import cats.data._
+import cats.implicits._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
-
 
 /*
  * This file defined data structures describing what is an (abstract) API in Rudder,
@@ -75,13 +74,12 @@ import com.normation.rudder.api.HttpAction
  *   the actual API from the path/version, when authz is done, etc).
  */
 
-
 //Api supported range version
 sealed trait ApiV extends Any
 object ApiV {
-final case object OnlyLatest                 extends ApiV
-final case class  From(from: Int           ) extends AnyVal with ApiV
-final case class  FromTo(from: Int, to: Int) extends ApiV //from must be <= to
+  final case object OnlyLatest                extends ApiV
+  final case class From(from: Int)            extends AnyVal with ApiV
+  final case class FromTo(from: Int, to: Int) extends ApiV // from must be <= to
 }
 
 /*
@@ -94,7 +92,7 @@ final case class  FromTo(from: Int, to: Int) extends ApiV //from must be <= to
  * API need an authenticated user in session.
  */
 sealed trait ApiKind { def name: String }
-object ApiKind {
+object ApiKind       {
   final case object Internal extends ApiKind { val name = "internal" }
   final case object Public   extends ApiKind { val name = "public"   }
   final case object General  extends ApiKind { val name = "general"  }
@@ -109,29 +107,31 @@ sealed trait ApiPathSegment extends Any { def value: String }
 object ApiPathSegment {
   // a variable used to identify a resources
   final case class Resource(value: String) extends AnyVal with ApiPathSegment
-  final case class Segment (value: String) extends AnyVal with ApiPathSegment
+  final case class Segment(value: String)  extends AnyVal with ApiPathSegment
 }
 
 final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
-  //canonical representation: variable in {}
-  override def toString() = parts.map { p => p match {
-    case ApiPathSegment.Resource(v) => "{"+v+"}"
-    case ApiPathSegment.Segment (v) => v
-  } }.toList.mkString("/") //no string at the end
+  // canonical representation: variable in {}
+  override def toString() = parts.map { p =>
+    p match {
+      case ApiPathSegment.Resource(v) => "{" + v + "}"
+      case ApiPathSegment.Segment(v)  => v
+    }
+  }.toList.mkString("/") // no string at the end
 
   def value = toString()
 
   // create a new path by adding a subpath at the end
   def /(p: ApiPath): ApiPath = ApiPath(parts.concatNel(p.parts))
-  def /(s: String ): ApiPath = /(ApiPath.of(s))
+  def /(s: String):  ApiPath = /(ApiPath.of(s))
 
   def drop(prefix: ApiPath): Either[String, ApiPath] = {
     @scala.annotation.tailrec
     def dropRec(p: List[ApiPathSegment], path: List[ApiPathSegment]): Either[String, ApiPath] = {
       (p, path) match {
-        case (h1 :: Nil, h2 :: g :: t) if(h1 == h2) => Right(ApiPath(NonEmptyList(g, t)))
-        case (h1 :: t1 , h2 :: t2) => dropRec(t1, t2)
-        case _ => Left(s"Path '${prefix.value}' is not a prefix of path '${this.value}'")
+        case (h1 :: Nil, h2 :: g :: t) if (h1 == h2) => Right(ApiPath(NonEmptyList(g, t)))
+        case (h1 :: t1, h2 :: t2)                    => dropRec(t1, t2)
+        case _                                       => Left(s"Path '${prefix.value}' is not a prefix of path '${this.value}'")
       }
     }
     dropRec(prefix.parts.toList, this.parts.toList)
@@ -140,8 +140,8 @@ final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
 
 object ApiPath {
   def toPathElement(s: String): ApiPathSegment = {
-    if(s.startsWith("{") && s.endsWith("}") ) {
-      ApiPathSegment.Resource(s.substring(1, s.size-1))
+    if (s.startsWith("{") && s.endsWith("}")) {
+      ApiPathSegment.Resource(s.substring(1, s.size - 1))
     } else {
       ApiPathSegment.Segment(s)
     }
@@ -153,11 +153,11 @@ object ApiPath {
   // we don't accept empty string and ignore empty subpart, but appart
   // from that everything works
   def parse(path: String): Either[String, ApiPath] = {
-    path.trim.split("/").filter( _.nonEmpty).toList match {
+    path.trim.split("/").filter(_.nonEmpty).toList match {
       case Nil    =>
         Left("The given is empty, it can't be a Rudder API path")
       case h :: t =>
-        Right(ApiPath.of(h, t:_*))
+        Right(ApiPath.of(h, t: _*))
     }
   }
 
@@ -168,8 +168,8 @@ object ApiPath {
     import ApiPathSegment._
     (p1.parts.size == p2.parts.size) && (p1.parts.toList.lazyZip(p2.parts.toList)).forall {
       case (Segment(a), Segment(b)) => a == b
-      case (Resource(_), _) => true
-      case (_, Resource(_)) => true
+      case (Resource(_), _)         => true
+      case (_, Resource(_))         => true
     }
   }
 }
@@ -192,7 +192,7 @@ trait ApiModuleProvider[A <: EndpointSchema] {
 trait EndpointSchema {
 
   // canonical path of that api
-  def path: ApiPath
+  def path:   ApiPath
   // the unique action for that end point. One
   // endpoint schema can have only one action.
   def action: HttpAction
@@ -204,7 +204,7 @@ trait EndpointSchema {
   // same name, but not the same path.
   def name: String = {
     val n = this.getClass.getSimpleName()
-    n(0).toLower.toString + n.substring(1, n.size-1) // also remove the last '$'
+    n(0).toLower.toString + n.substring(1, n.size - 1) // also remove the last '$'
   }
 
   // the kind of API
@@ -218,14 +218,13 @@ trait EndpointSchema {
   // we should be able to tell "only latest", for ex. for modules.
   def versions: ApiV
 
-  //the type of parameter parsed from Path: Unit, (String), (String, Int), etc
+  // the type of parameter parsed from Path: Unit, (String), (String, Int), etc
   type RESOURCES
   def getResources(path: ApiPath): Either[ApiError.BadParam, RESOURCES]
 
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
 }
-
 
 trait EndpointSchema0 extends EndpointSchema {
   type RESOURCES = Unit
@@ -234,25 +233,25 @@ trait EndpointSchema0 extends EndpointSchema {
 object EndpointSchema {
   object syntax {
     // syntaxt to build endpoints
-    implicit class BuildPath(val action: HttpAction) extends AnyVal {
+    implicit class BuildPath(val action: HttpAction)        extends AnyVal {
       def /(s: String) = (action, ApiPath.of(s))
     }
     implicit class AddPath(val pair: (HttpAction, ApiPath)) extends AnyVal {
-      def /(s: String) = (pair._1, pair._2 / s)
+      def /(s: String)     = (pair._1, pair._2 / s)
       def /(path: ApiPath) = (pair._1, ApiPath(pair._2.parts.concatNel(path.parts)))
     }
   }
 }
 
 // utility extension trait to define "version from N to latest"
-trait StartsAtVersion2  extends EndpointSchema { val versions = ApiV.From(2 ) }
-trait StartsAtVersion3  extends EndpointSchema { val versions = ApiV.From(3 ) }
-trait StartsAtVersion4  extends EndpointSchema { val versions = ApiV.From(4 ) }
-trait StartsAtVersion5  extends EndpointSchema { val versions = ApiV.From(5 ) }
-trait StartsAtVersion6  extends EndpointSchema { val versions = ApiV.From(6 ) }
-trait StartsAtVersion7  extends EndpointSchema { val versions = ApiV.From(7 ) }
-trait StartsAtVersion8  extends EndpointSchema { val versions = ApiV.From(8 ) }
-trait StartsAtVersion9  extends EndpointSchema { val versions = ApiV.From(9 ) }
+trait StartsAtVersion2  extends EndpointSchema { val versions = ApiV.From(2)  }
+trait StartsAtVersion3  extends EndpointSchema { val versions = ApiV.From(3)  }
+trait StartsAtVersion4  extends EndpointSchema { val versions = ApiV.From(4)  }
+trait StartsAtVersion5  extends EndpointSchema { val versions = ApiV.From(5)  }
+trait StartsAtVersion6  extends EndpointSchema { val versions = ApiV.From(6)  }
+trait StartsAtVersion7  extends EndpointSchema { val versions = ApiV.From(7)  }
+trait StartsAtVersion8  extends EndpointSchema { val versions = ApiV.From(8)  }
+trait StartsAtVersion9  extends EndpointSchema { val versions = ApiV.From(9)  }
 trait StartsAtVersion10 extends EndpointSchema { val versions = ApiV.From(10) }
 trait StartsAtVersion11 extends EndpointSchema { val versions = ApiV.From(11) }
 trait StartsAtVersion12 extends EndpointSchema { val versions = ApiV.From(12) }
@@ -280,9 +279,9 @@ object PathMatcher {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[Unit] = {
       (schema, path) match {
-        case (Nil, Nil) => Some(())
-        case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if(a == b) => compare(t1, t2)
-        case _ => None
+        case (Nil, Nil)                                                                     => Some(())
+        case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
+        case _                                                                              => None
       }
     }
   }
@@ -291,10 +290,10 @@ object PathMatcher {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[String] = {
       (schema, path) match {
-        case (Nil, Nil) => None // where would be my free variable value, hum?
-        case (ApiPathSegment.Segment(a)  :: t1, ApiPathSegment.Segment(b) :: t2) if(a == b) => compare(t1, t2)
-        case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2) => Zero.compare(t1, t2).map( _ => b)
-        case _ => None
+        case (Nil, Nil)                                                                     => None // where would be my free variable value, hum?
+        case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
+        case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2)            => Zero.compare(t1, t2).map(_ => b)
+        case _                                                                              => None
       }
     }
   }
@@ -303,37 +302,37 @@ object PathMatcher {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[(String, String)] = {
       (schema, path) match {
-        case (Nil, Nil) => None // where would be my free variable value, hum?
-        case (ApiPathSegment.Segment(a)  :: t1, ApiPathSegment.Segment(b) :: t2) if(a == b) => compare(t1, t2)
-        case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2) => One.compare(t1, t2).map(c => (b, c))
-        case _ => None
+        case (Nil, Nil)                                                                     => None // where would be my free variable value, hum?
+        case (ApiPathSegment.Segment(a) :: t1, ApiPathSegment.Segment(b) :: t2) if (a == b) => compare(t1, t2)
+        case (ApiPathSegment.Resource(_) :: t1, ApiPathSegment.Segment(b) :: t2)            => One.compare(t1, t2).map(c => (b, c))
+        case _                                                                              => None
       }
     }
   }
 }
 
 trait ZeroParam extends EndpointSchema0 {
-  override def getResources(p: ApiPath) : Either[ApiError.BadParam, Unit] = {
+  override def getResources(p: ApiPath): Either[ApiError.BadParam, Unit] = {
     PathMatcher.Zero.compare(path.parts.toList, p.parts.toList) match {
-      case None => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
+      case None     => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
       case Some(()) => Right(())
     }
   }
 }
-trait OneParam extends EndpointSchema {
+trait OneParam  extends EndpointSchema  {
   type RESOURCES = String
-  override def getResources(p: ApiPath) : Either[ApiError.BadParam, String] =  {
+  override def getResources(p: ApiPath): Either[ApiError.BadParam, String] = {
     PathMatcher.One.compare(path.parts.toList, p.parts.toList) match {
-      case None => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
+      case None    => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
       case Some(x) => Right(x)
     }
   }
 }
-trait TwoParam extends EndpointSchema {
+trait TwoParam  extends EndpointSchema  {
   type RESOURCES = (String, String)
-  override def getResources(p: ApiPath) : Either[ApiError.BadParam, (String, String)] =  {
+  override def getResources(p: ApiPath): Either[ApiError.BadParam, (String, String)] = {
     PathMatcher.Two.compare(path.parts.toList, p.parts.toList) match {
-      case None => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
+      case None    => Left(ApiError.BadParam("Endpoint scheme define more resource parameters than expected", this.name))
       case Some(x) => Right(x)
     }
   }
@@ -342,8 +341,6 @@ trait TwoParam extends EndpointSchema {
 //////////
 /// Now for the Rudder API logic (with abstract REQ / RESPONSE)
 //////////
-
-
 
 /**
  * This algbra describe how an endpoint maybe serve a request.
@@ -356,22 +353,22 @@ trait TwoParam extends EndpointSchema {
 
 // Generic errors that may happen when processing requests
 sealed trait ApiError extends Exception {
-  def msg    : String
+  def msg:     String
   def apiName: String
 }
 object ApiError {
-  final case class Authz     (msg: String, apiName: String) extends ApiError
+  final case class Authz(msg: String, apiName: String)      extends ApiError
   final case class BadRequest(msg: String, apiName: String) extends ApiError
-  final case class BadParam  (msg: String, apiName: String) extends ApiError
+  final case class BadParam(msg: String, apiName: String)   extends ApiError
 }
 
 // information needed from a request to be able to process it
 final case class RequestInfo(
-    action          : HttpAction
-  , path            : ApiPath
-    // this the version from a specified parameter, not
+    action:           HttpAction,
+    path:             ApiPath, // this the version from a specified parameter, not
     // one deducted from path
-  , versionFromParam: Option[ApiVersion]
+
+    versionFromParam: Option[ApiVersion]
 )
 
 /**
@@ -383,7 +380,7 @@ final case class Endpoint(schema: EndpointSchema, prefix: ApiPath, version: ApiV
 
 trait ApiModule[REQ, RESP, T, P] {
   val schema: EndpointSchema
-  def getParam(req: REQ): Either[ApiError.BadParam, P]
+  def getParam(req:    REQ): Either[ApiError.BadParam, P]
   def handler(version: ApiVersion, path: ApiPath, resources: schema.RESOURCES, req: REQ, params: P, authzToken: T): RESP
 }
 
@@ -405,7 +402,7 @@ trait ApiModule0[REQ, RESP, T, P] extends ApiModule[REQ, RESP, T, P] {
  * This trait allows to bind an endpoint (i.e: some logic) to several path.
  */
 trait ConnectEndpoint {
-  //bind path to endpoint (an endpoint logic can be served by several urls)
+  // bind path to endpoint (an endpoint logic can be served by several urls)
   def withVersion(endpoint: EndpointSchema, supportedVersions: List[ApiVersion]): List[Endpoint]
 }
 
@@ -415,8 +412,8 @@ trait ConnectEndpoint {
 trait Log {
   def trace(msg: => String): Unit
   def debug(msg: => String): Unit
-  def info (msg: => String): Unit
-  def warn (msg: => String): Unit
+  def info(msg:  => String): Unit
+  def warn(msg:  => String): Unit
   def error(msg: => String): Unit
 }
 
@@ -434,13 +431,10 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
   val publicBase   = ApiPath.of("api")
   val internalBase = ApiPath.of("secure", "api")
 
-
   // from a base path and versions, builed "base/v1", "base/v2", "...", "base/latest"
   // return the couple (version, path), because we need the actual version in Endpoint
   def prefix(base: ApiPath, versions: List[ApiVersion], latest: ApiVersion): List[(ApiVersion, ApiPath)] = {
-    versions.flatMap { v =>
-      (v, base / v.value.toString) :: (if(v == latest) (v, base / "latest") :: Nil else Nil)
-    }
+    versions.flatMap(v => (v, base / v.value.toString) :: (if (v == latest) (v, base / "latest") :: Nil else Nil))
   }
 
   /*
@@ -449,14 +443,14 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
    * return (include latest, set of defined version)
    */
   def definedVersion(endointVersions: ApiV, currentApiVersions: NonEmptyList[ApiVersion]): (List[ApiVersion], ApiVersion) = {
-    //at least one version in supported API, so we know which is "latest"
-    val versions = currentApiVersions.sortBy( _.value )
-    val latest = versions.last
+    // at least one version in supported API, so we know which is "latest"
+    val versions    = currentApiVersions.sortBy(_.value)
+    val latest      = versions.last
     // build the list of version for that API.
     val apiVersions = endointVersions match {
-        case ApiV.OnlyLatest   => List(latest)
-        case ApiV.From(i)      => versions.toList.dropWhile( v => v.value < i) //latest is in that set if first <= latest
-        case ApiV.FromTo(i, j) => versions.toList.dropWhile( v => v.value < i).takeWhile(v => v.value <= j)
+      case ApiV.OnlyLatest   => List(latest)
+      case ApiV.From(i)      => versions.toList.dropWhile(v => v.value < i) // latest is in that set if first <= latest
+      case ApiV.FromTo(i, j) => versions.toList.dropWhile(v => v.value < i).takeWhile(v => v.value <= j)
     }
     (apiVersions, latest)
   }
@@ -465,39 +459,37 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
     supportedVersions match {
       case Nil    => Nil
       case h :: t =>
-
         val (versions, latest) = definedVersion(endpointSchema.versions, NonEmptyList(h, t))
-        val publicEndpoints = endpointSchema.kind match {
-          case ApiKind.Internal => Nil //don't add these endpoints for internal only API
+        val publicEndpoints    = endpointSchema.kind match {
+          case ApiKind.Internal => Nil // don't add these endpoints for internal only API
           case _                =>
-
             // path with version in it
-            val versionnedPath =  prefix(publicBase, versions, latest).map { case (version, path) =>
-              //for each supported path, bind the endpoint schema
-              Endpoint(endpointSchema, path, version)
+            val versionnedPath = prefix(publicBase, versions, latest).map {
+              case (version, path) =>
+                // for each supported path, bind the endpoint schema
+                Endpoint(endpointSchema, path, version)
             }
             // the "include all" path - bind it one time for each version
-            val headerPath = versions.map { version =>
-              Endpoint(endpointSchema, publicBase, version)
-            }
+            val headerPath     = versions.map(version => Endpoint(endpointSchema, publicBase, version))
             versionnedPath ::: headerPath
-          }
+        }
 
-          val internalEndpoint = endpointSchema.kind match {
-            case ApiKind.Public => Nil // don't add these endpoints for public only API
-            case _              =>
-              List(Endpoint(endpointSchema, internalBase, latest))
-          }
+        val internalEndpoint = endpointSchema.kind match {
+          case ApiKind.Public => Nil // don't add these endpoints for public only API
+          case _              =>
+            List(Endpoint(endpointSchema, internalBase, latest))
+        }
 
-          val endpoints = internalEndpoint ::: publicEndpoints
+        val endpoints = internalEndpoint ::: publicEndpoints
 
-          logger.trace(s"Connecting '${endpointSchema.name}', request type '${endpointSchema.action.name.toUpperCase()}' "+
-                       s"to URLs: ${endpoints.map(e => s"[v${e.version.value}] ${(e.prefix / endpointSchema.path).value}").mkString("; ")}")
-          endpoints
+        logger.trace(
+          s"Connecting '${endpointSchema.name}', request type '${endpointSchema.action.name.toUpperCase()}' " +
+          s"to URLs: ${endpoints.map(e => s"[v${e.version.value}] ${(e.prefix / endpointSchema.path).value}").mkString("; ")}"
+        )
+        endpoints
     }
   }
 }
-
 
 /*
  * We want to defined the application that allows, for a given ApiModule and a given
@@ -510,10 +502,10 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
  */
 trait BuildHandler[REQ, RESP, T, P] {
   // external service nneeded
-  def authz            : ApiAuthorization[T]
-  def connectEndpoint  : ConnectEndpoint
+  def authz:             ApiAuthorization[T]
+  def connectEndpoint:   ConnectEndpoint
   def supportedVersions: List[ApiVersion]
-  def logger           : Log
+  def logger:            Log
 
   def apis(): List[ApiModule[REQ, RESP, T, P]]
 
@@ -523,63 +515,80 @@ trait BuildHandler[REQ, RESP, T, P] {
   // we also try to collect the version from header. If we don't have it,
   // we will need to get it from path.
   def getRequestInfo(req: REQ, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo]
-  def toResponse(error: ApiError): RESP
+  def toResponse(error:   ApiError): RESP
 
   // an utility method used to log request information
-  def logReq(req: REQ): String
+  def logReq(req:  REQ): String
   def logBody(req: REQ): String
-
 
   // discriminate endpoint based on path / action / version
   // Here, we must not considere the missing endpoint as an error, as perhaps some other endpoint will
   // handle it. It must be different from a real error (version missing or mismatch, etc)
   def findEndpoint(endpoints: List[Endpoint], info: RequestInfo): Either[ApiError, Option[Endpoint]] = {
-    //find endpoints for that request type and path (can have 0 => not a managed endpoint by that api,
-    //1 => most likely ok (but double check version), N > 1 => discriminate on version
-    val collected = endpoints.flatMap { case x@Endpoint(e, p, v) =>
-      def msg = s"Check handle: ${e.action} == ${info.action} && version = ${v.value} && compatible(${info.path} , ${p / e.path}) =>"
+    // find endpoints for that request type and path (can have 0 => not a managed endpoint by that api,
+    // 1 => most likely ok (but double check version), N > 1 => discriminate on version
+    val collected = endpoints.flatMap {
+      case x @ Endpoint(e, p, v) =>
+        def msg =
+          s"Check handle: ${e.action} == ${info.action} && version = ${v.value} && compatible(${info.path} , ${p / e.path}) =>"
 
-      if(e.action == info.action && ApiPath.compatible(info.path, (p / e.path))) {
-        logger.trace( msg + " YES")
-        Some(x)
-      } else {
-        logger.trace( msg + " NO ")
-        None
-      }
+        if (e.action == info.action && ApiPath.compatible(info.path, (p / e.path))) {
+          logger.trace(msg + " YES")
+          Some(x)
+        } else {
+          logger.trace(msg + " NO ")
+          None
+        }
 
     }
 
     logger.trace(s"Potential candidate: [${collected.mkString("; ")}]")
     collected match {
-      case Nil => // that api doesn't manage it
+      case Nil      => // that api doesn't manage it
         Right(None)
       case e :: Nil => // one candidate, double check version
         info.versionFromParam match {
-          case None => //ok
+          case None    => // ok
             logger.trace(s"Found endpoint for handling: ${e}")
             Right(Some(e))
           case Some(v) => // check that the requested version matches the provided one
-            if(v == e.version) {
+            if (v == e.version) {
               logger.trace(s"Found endpoint for handling: ${e}")
               Right(Some(e))
             } else {
               logger.debug(s"Candidate endpoint ${e} has non compatible version, required ${v.value}")
-              Left(ApiError.BadRequest(s"Request is requiring version '${v.value}' but the available endpoints only provide version '${e.version.value}'", e.schema.name))
+              Left(
+                ApiError.BadRequest(
+                  s"Request is requiring version '${v.value}' but the available endpoints only provide version '${e.version.value}'",
+                  e.schema.name
+                )
+              )
             }
         }
-      case es =>
+      case es       =>
         // in that case, we beed to have the version provided in request parameters
         info.versionFromParam match {
-          case None =>
+          case None    =>
             logger.debug(s"Several candidate endpoints, but version required in request parameter for them and it is missing")
-            Left(ApiError.BadRequest(s"Request is missing a version but the version is required for '${info.action.name.toUpperCase()} ${info.path.value}'. "+
-                s"Available versions: ${es.map( _.version.value).mkString("'","'","'")}", "unknow"))
+            Left(
+              ApiError.BadRequest(
+                s"Request is missing a version but the version is required for '${info.action.name.toUpperCase()} ${info.path.value}'. " +
+                s"Available versions: ${es.map(_.version.value).mkString("'", "'", "'")}",
+                "unknow"
+              )
+            )
           case Some(v) =>
-            es.find( _.version == v) match {
-              case None =>
+            es.find(_.version == v) match {
+              case None    =>
                 logger.debug(s"Several candidate endpoints, but none with the one provided in request parameter")
-                Left(ApiError.BadRequest(s"Request is requiring version '${v.value}' but that version is not available for '${info.action.name.toUpperCase()} ${info.path.value}'. "+
-                    s"Available versions: ${es.map( _.version.value).mkString("'","'","'")}", "unknow"))
+                Left(
+                  ApiError.BadRequest(
+                    s"Request is requiring version '${v.value}' but that version is not available for '${info.action.name
+                        .toUpperCase()} ${info.path.value}'. " +
+                    s"Available versions: ${es.map(_.version.value).mkString("'", "'", "'")}",
+                    "unknow"
+                  )
+                )
               case Some(e) => // finally!
                 logger.trace(s"Found endpoint for handling: ${e}")
                 Right(Some(e))
@@ -587,7 +596,6 @@ trait BuildHandler[REQ, RESP, T, P] {
         }
     }
   }
-
 
   /*
    * This is the actual application with the handling logic for and api:
@@ -620,9 +628,11 @@ trait BuildHandler[REQ, RESP, T, P] {
       // and if so handle the request (even if it's to fail with an error "no endpoint can handle that api request")
       (req: REQ) =>
         (for {
-          //try to get interesting info
+          // try to get interesting info
           info        <- getRequestInfo(req, supportedVersions)
-          _           =  logger.trace(s"Check if API '${api.schema.name}' has endpoints for '${info.action.name.toUpperCase()} ${info.path.value}'")
+          _            = logger.trace(
+                           s"Check if API '${api.schema.name}' has endpoints for '${info.action.name.toUpperCase()} ${info.path.value}'"
+                         )
           // find the matching endpoint
           optEndpoint <- findEndpoint(endpoints, info)
 
@@ -630,55 +640,62 @@ trait BuildHandler[REQ, RESP, T, P] {
 
           ///// END OF EVAL FOR ALL WEBAPP REQUESTS /////
 
-          //handle the optionnality and so the fact that API may not handle that path
+          // handle the optionnality and so the fact that API may not handle that path
           optEndpoint match {
             case None           => Option.empty[() => RESP]
-            case Some(endpoint) => Some(() => {
-              //here we are allowed to do time-consuming side effects
-              // we do handle that request ! Now for actual handling;
-              // in all case an response, even if an error (so Some(() => Full(...)))
-              logger.debug(s"Processing request: ${logReq(req)}")
-              logger.debug(logBody(req))
-              logger.debug(s"Found a valid endpoint handler: '${endpoint.schema.name}' on [${endpoint.schema.action.name.toUpperCase} ${endpoint.schema.path}] with version '${endpoint.version.value}'")
-              val response: RESP = (for {
-                token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>
-                                   logger.error(s"Authorization error for '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
-                                   error
-                                 }
-                // we know from the find that we can drop prefix from path, but well...
-                canonicalPath <- info.path.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
-                //extracts params from path
-                resources     <- api.schema.getResources(canonicalPath).leftMap { error =>
-                                   logger.error(s"Error when extracting request path resources from '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
-                                   error
-                                 }
-                // extract modul parameters from request
-                params        <- api.getParam(req).leftMap { error =>
-                                   logger.error(s"Error when extracting request parameters from '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}")
-                                   error
-                                 }
-                // here, we would like to have a an abstraction of the parameter to give to handler, so that
-                // we don't actually have to give REQ to handler. It would require to parameter ApiModule
-                // notice that it may be hard, because it could depend of the version to get the correct REQ parameter
-                // Next iteration !
-              } yield {
-                // congrats!
-                // we always return information to the user, even if something failed
-                // when the response is created.
+            case Some(endpoint) =>
+              Some(() => {
+                // here we are allowed to do time-consuming side effects
+                // we do handle that request ! Now for actual handling;
+                // in all case an response, even if an error (so Some(() => Full(...)))
+                logger.debug(s"Processing request: ${logReq(req)}")
+                logger.debug(logBody(req))
+                logger.debug(
+                  s"Found a valid endpoint handler: '${endpoint.schema.name}' on [${endpoint.schema.action.name.toUpperCase} ${endpoint.schema.path}] with version '${endpoint.version.value}'"
+                )
+                val response: RESP = (for {
+                  token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>
+                                     logger.error(
+                                       s"Authorization error for '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}"
+                                     )
+                                     error
+                                   }
+                  // we know from the find that we can drop prefix from path, but well...
+                  canonicalPath <- info.path.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
+                  // extracts params from path
+                  resources     <- api.schema.getResources(canonicalPath).leftMap { error =>
+                                     logger.error(s"Error when extracting request path resources from '${info.action.name
+                                         .toUpperCase()} ${info.path.value}': ${error.msg}")
+                                     error
+                                   }
+                  // extract modul parameters from request
+                  params        <- api.getParam(req).leftMap { error =>
+                                     logger.error(s"Error when extracting request parameters from '${info.action.name
+                                         .toUpperCase()} ${info.path.value}': ${error.msg}")
+                                     error
+                                   }
+                  // here, we would like to have a an abstraction of the parameter to give to handler, so that
+                  // we don't actually have to give REQ to handler. It would require to parameter ApiModule
+                  // notice that it may be hard, because it could depend of the version to get the correct REQ parameter
+                  // Next iteration !
+                } yield {
+                  // congrats!
+                  // we always return information to the user, even if something failed
+                  // when the response is created.
 
-                val start = System.currentTimeMillis()
-                logger.trace(s"Executing handler for '${info.action.name.toUpperCase()} ${info.path.value}'")
-                val exec = api.handler(endpoint.version, info.path, resources, req, params, token)
-                logger.debug(s"Handler for '${info.action.name.toUpperCase()} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms")
-                exec
-              }).fold(error => toResponse(error), identity) // align left (i.e error) and righ type
+                  val start = System.currentTimeMillis()
+                  logger.trace(s"Executing handler for '${info.action.name.toUpperCase()} ${info.path.value}'")
+                  val exec  = api.handler(endpoint.version, info.path, resources, req, params, token)
+                  logger.debug(
+                    s"Handler for '${info.action.name.toUpperCase()} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms"
+                  )
+                  exec
+                }).fold(error => toResponse(error), identity) // align left (i.e error) and righ type
 
-              response
-            })
+                response
+              })
           }
         }).fold(error => Some(() => toResponse(error)), identity) // align left (i.e error) and righ type
     }
   }
 }
-
-

@@ -1,39 +1,39 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.inventory.ldap.core
 
@@ -45,18 +45,18 @@ import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 
-
 /**
  * A DIT is only composed with ENTRY
  */
-abstract class ENTRY[T<:Product](val rdnAttribute:T, val rdnValue: T) {
+abstract class ENTRY[T <: Product](val rdnAttribute: T, val rdnValue: T) {
+
   /**
    * Build an RDN with the RDN attribute and the N values
    * Only expose to subclass, as the "toString" is a little fishy
    * and so implementation should take care of the "toStringibility"
    * of rdn values (for example, it won't work well with JPEG...)
    */
-  protected def rdn(rdnValues:T) : RDN = new RDN(
+  protected def rdn(rdnValues: T): RDN = new RDN(
     rdnAttribute.productIterator.map(_.toString).toArray,
     rdnValues.productIterator.map(_.toString).toArray
   )
@@ -79,7 +79,7 @@ abstract class ENTRY[T<:Product](val rdnAttribute:T, val rdnValue: T) {
  * A DIT always has a BASE_DN
  */
 trait AbstractDit {
-  val BASE_DN:DN
+  val BASE_DN: DN
   private[this] val ditEntries = scala.collection.mutable.Buffer[LDAPEntry]()
 
   /**
@@ -87,7 +87,7 @@ trait AbstractDit {
    * that entry is missing from the target directory, the software won't be able to work)
    * @param entry
    */
-  def register(entry: LDAPEntry) : Unit = ditEntries.append(entry)
+  def register(entry: LDAPEntry): Unit = ditEntries.append(entry)
 
   /**
    * Find all required entries for that DIT structure. These entries and only
@@ -103,11 +103,11 @@ trait AbstractDit {
    * the parent dn match some other parent dn (generally defined
    * from the position in the DIT).
    */
-  protected def buildId[T](dn:DN, parentDn:DN, fid: String=>T) : Option[T] = {
-    if(dn.getParent == parentDn) {
+  protected def buildId[T](dn: DN, parentDn: DN, fid: String => T): Option[T] = {
+    if (dn.getParent == parentDn) {
       dn.getRDN.getAttributeValues()(0) match {
         case null => None
-        case v => Some(fid(v))
+        case v    => Some(fid(v))
       }
     } else None
   }
@@ -124,11 +124,10 @@ trait AbstractDit {
  * @param SOFTWARE_BASE_DN
  *   the DN under which Software OU is
  */
-final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit {
+final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val name: String) extends AbstractDit {
   dit =>
 
   implicit val DIT = dit
-
 
   dit.register(SOFTWARE.model)
   dit.register(NODES.model)
@@ -137,16 +136,16 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) { software =>
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
 
-        def idFromDN(dn:DN) : Either[MalformedDN, SoftwareUuid] = {
-          if(dn.getParent == software.dn) {
-            val rdn = dn.getRDN
-            if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_SOFTWARE_UUID) {
-              Right(SoftwareUuid(rdn.getAttributeValues()(0)))
-            } else {
-              Left(MalformedDN("Unexpected RDN for a software ID"))
-            }
-          } else Left(MalformedDN(s"DN ${dn.toString} does not belong to software inventories DN ${software.dn.toString}"))
-        }
+      def idFromDN(dn: DN): Either[MalformedDN, SoftwareUuid] = {
+        if (dn.getParent == software.dn) {
+          val rdn = dn.getRDN
+          if (!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_SOFTWARE_UUID) {
+            Right(SoftwareUuid(rdn.getAttributeValues()(0)))
+          } else {
+            Left(MalformedDN("Unexpected RDN for a software ID"))
+          }
+        } else Left(MalformedDN(s"DN ${dn.toString} does not belong to software inventories DN ${software.dn.toString}"))
+      }
     }
   }
 
@@ -154,106 +153,116 @@ final case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:
 
     object NODE extends UUID_ENTRY[NodeId](OC_NODE, A_NODE_UUID, servers.dn) {
 
-      def genericModel(id:NodeId) : LDAPEntry = {
+      def genericModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_NODE).toSeq: _*)
         mod
       }
 
-      def linuxModel(id:NodeId) : LDAPEntry = {
+      def linuxModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_LINUX_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_LINUX_NODE).toSeq: _*)
         mod
       }
 
-      def windowsModel(id:NodeId) : LDAPEntry = {
+      def windowsModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_WINDOWS_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_WINDOWS_NODE).toSeq: _*)
         mod
       }
 
-      def solarisModel(id:NodeId) : LDAPEntry = {
+      def solarisModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_SOLARIS_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_SOLARIS_NODE).toSeq: _*)
         mod
       }
 
-      def aixModel(id:NodeId) : LDAPEntry = {
+      def aixModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_AIX_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_AIX_NODE).toSeq: _*)
         mod
       }
 
-      def bsdModel(id:NodeId) : LDAPEntry = {
+      def bsdModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC,OC.objectClassNames(OC_BSD_NODE).toSeq:_*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_BSD_NODE).toSeq: _*)
         mod
       }
 
-      def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
+      def dn(uuid: String) = new DN(this.rdn(uuid), servers.dn)
 
-      def idFromDN(dn:DN) : InventoryMappingPure[NodeId] = {
-        if(dn.getParent == servers.dn) {
-            val rdn = dn.getRDN
-            if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_NODE_UUID) {
-              Right(NodeId(rdn.getAttributeValues()(0)))
-            } else {
-              Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a node ID"))
-            }
-          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn.toString}' does not belong to server inventories DN '${servers.dn.toString}'"))
+      def idFromDN(dn: DN): InventoryMappingPure[NodeId] = {
+        if (dn.getParent == servers.dn) {
+          val rdn = dn.getRDN
+          if (!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_NODE_UUID) {
+            Right(NodeId(rdn.getAttributeValues()(0)))
+          } else {
+            Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a node ID"))
+          }
+        } else {
+          Left(
+            InventoryMappingRudderError.MalformedDN(
+              s"DN '${dn.toString}' does not belong to server inventories DN '${servers.dn.toString}'"
+            )
+          )
+        }
       }
     }
 
-    object NETWORK extends NODE_ELT(NODE,OC_NET_IF,A_NETWORK_NAME, NODE)
-    object FILESYSTEM extends NODE_ELT(NODE,OC_FS,A_MOUNT_POINT, NODE)
-    object VM extends NODE_ELT(NODE,OC_VM_INFO,A_VM_ID, NODE)
+    object NETWORK    extends NODE_ELT(NODE, OC_NET_IF, A_NETWORK_NAME, NODE)
+    object FILESYSTEM extends NODE_ELT(NODE, OC_FS, A_MOUNT_POINT, NODE)
+    object VM         extends NODE_ELT(NODE, OC_VM_INFO, A_VM_ID, NODE)
   }
 
   object MACHINES extends OU("Machines", BASE_DN) { machines =>
-    object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE,A_MACHINE_UUID,machines.dn) {
+    object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE, A_MACHINE_UUID, machines.dn) {
 
-        def idFromDN(dn:DN) : InventoryMappingPure[MachineUuid] = {
-          if(dn.getParent == machines.dn) {
-            val rdn = dn.getRDN
-            if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_MACHINE_UUID) {
-              Right(MachineUuid(rdn.getAttributeValues()(0)))
-            } else {
-              Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a machine ID"))
-            }
-          } else Left(InventoryMappingRudderError.MalformedDN(s"DN '${dn.toString}' does not belong to machine inventories DN '${machines.dn.toString}'"))
+      def idFromDN(dn: DN): InventoryMappingPure[MachineUuid] = {
+        if (dn.getParent == machines.dn) {
+          val rdn = dn.getRDN
+          if (!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_MACHINE_UUID) {
+            Right(MachineUuid(rdn.getAttributeValues()(0)))
+          } else {
+            Left(InventoryMappingRudderError.MalformedDN("Unexpected RDN for a machine ID"))
+          }
+        } else {
+          Left(
+            InventoryMappingRudderError.MalformedDN(
+              s"DN '${dn.toString}' does not belong to machine inventories DN '${machines.dn.toString}'"
+            )
+          )
         }
+      }
     }
 
-    object BIOS extends MACHINE_ELT(MACHINE,OC_BIOS,A_BIOS_NAME, MACHINE)
-    object CONTROLLER extends MACHINE_ELT(MACHINE,OC_CONTROLLER,A_CONTROLLER_NAME, MACHINE)
-    object CPU extends MACHINE_ELT(MACHINE,OC_PROCESSOR,A_PROCESSOR_NAME, MACHINE)
-    object MEMORY extends MACHINE_ELT(MACHINE,OC_MEMORY,A_MEMORY_SLOT_NUMBER, MACHINE)
-    object PORT extends MACHINE_ELT(MACHINE,OC_PORT,A_PORT_NAME, MACHINE)
-    object SLOT extends MACHINE_ELT(MACHINE,OC_SLOT,A_SLOT_NAME, MACHINE)
-    object SOUND extends MACHINE_ELT(MACHINE,OC_SOUND,A_SOUND_NAME, MACHINE)
-    object STORAGE extends MACHINE_ELT(MACHINE,OC_STORAGE,A_STORAGE_NAME, MACHINE)
-    object VIDEO extends MACHINE_ELT(MACHINE,OC_VIDEO,A_VIDEO_NAME, MACHINE)
+    object BIOS       extends MACHINE_ELT(MACHINE, OC_BIOS, A_BIOS_NAME, MACHINE)
+    object CONTROLLER extends MACHINE_ELT(MACHINE, OC_CONTROLLER, A_CONTROLLER_NAME, MACHINE)
+    object CPU        extends MACHINE_ELT(MACHINE, OC_PROCESSOR, A_PROCESSOR_NAME, MACHINE)
+    object MEMORY     extends MACHINE_ELT(MACHINE, OC_MEMORY, A_MEMORY_SLOT_NUMBER, MACHINE)
+    object PORT       extends MACHINE_ELT(MACHINE, OC_PORT, A_PORT_NAME, MACHINE)
+    object SLOT       extends MACHINE_ELT(MACHINE, OC_SLOT, A_SLOT_NAME, MACHINE)
+    object SOUND      extends MACHINE_ELT(MACHINE, OC_SOUND, A_SOUND_NAME, MACHINE)
+    object STORAGE    extends MACHINE_ELT(MACHINE, OC_STORAGE, A_STORAGE_NAME, MACHINE)
+    object VIDEO      extends MACHINE_ELT(MACHINE, OC_VIDEO, A_VIDEO_NAME, MACHINE)
 
   }
 
 }
-
 
 /*
  * Plombing to be able to define the DIT as it was
  * (what is an Entry, an OU, a MACHINE_ELT, etc)
  */
 
-
-
 /**
  * A special case of ENTRY whose RDN is built from one Attribute
  */
-abstract class ENTRY1(override val rdnAttribute:Tuple1[String],override val rdnValue:Tuple1[String] = new Tuple1("")) extends ENTRY[Tuple1[String]](rdnAttribute,rdnValue) {
-  def this(rdnAttribute:String, rdnValue:String) = this(Tuple1(rdnAttribute),Tuple1(rdnValue))
-  def this(rdnAttribute:String) = this(Tuple1(rdnAttribute))
+abstract class ENTRY1(override val rdnAttribute: Tuple1[String], override val rdnValue: Tuple1[String] = new Tuple1(""))
+    extends ENTRY[Tuple1[String]](rdnAttribute, rdnValue) {
+  def this(rdnAttribute: String, rdnValue: String) = this(Tuple1(rdnAttribute), Tuple1(rdnValue))
+  def this(rdnAttribute: String) = this(Tuple1(rdnAttribute))
 
-  def rdn(rdnValue:String) : RDN = super.rdn(Tuple1(rdnValue))
+  def rdn(rdnValue: String): RDN = super.rdn(Tuple1(rdnValue))
 }
 
 /**
@@ -267,16 +276,16 @@ abstract class ENTRY1(override val rdnAttribute:Tuple1[String],override val rdnV
  * A special vase of ENTRY whose RDN is built from one
  * attribute and that attribute is also an UUID object
  */
-class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:String, val parentDN:DN) extends
-  ENTRY1(Tuple1(rdnAttributeName),Tuple1("")) {
+class UUID_ENTRY[U <: Uuid](val entryObjectClass: String, val rdnAttributeName: String, val parentDN: DN)
+    extends ENTRY1(Tuple1(rdnAttributeName), Tuple1("")) {
 
-  def rdn(u:U) = new RDN(rdnAttributeName,u.value)
+  def rdn(u: U) = new RDN(rdnAttributeName, u.value)
 
-  def dn(u:U) = new DN(rdn(u),parentDN)
+  def dn(u: U) = new DN(rdn(u), parentDN)
 
-  def model(uuid:U) : LDAPEntry = {
+  def model(uuid: U): LDAPEntry = {
     val mod = LDAPEntry(dn(uuid))
-    mod.resetValuesTo(A_OC, OC.objectClassNames(entryObjectClass).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(entryObjectClass).toSeq: _*)
     mod
   }
 }
@@ -284,14 +293,14 @@ class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:Str
 /**
  * An Organizational Unit
  */
-class OU(ouName:String,parentDn:DN) extends ENTRY1("ou",ouName) {
+class OU(ouName: String, parentDn: DN) extends ENTRY1("ou", ouName) {
   ou =>
 
-  lazy val rdn : RDN = this.rdn(this.rdnValue._1)
+  lazy val rdn: RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDn)
   def model: LDAPEntry = {
     val mod = LDAPEntry(dn)
-    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_OU).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_OU).toSeq: _*)
     mod
   }
 }
@@ -302,18 +311,22 @@ class OU(ouName:String,parentDn:DN) extends ENTRY1("ou",ouName) {
  * They are expected to be under a root element, whose DN can be calculated from
  * UUID and parent DN
  */
-class ELT[U <: Uuid](eltObjectClass:String, override val rdnAttribute:Tuple1[String], parentEntry:UUID_ENTRY[U]) extends ENTRY1(rdnAttribute._1,"") {
-  def dn(uuid:U,y:String) = new DN(rdn(y), parentEntry.dn(uuid))
-  def model( uuid:U, y:String ) : LDAPEntry = {
+class ELT[U <: Uuid](eltObjectClass: String, override val rdnAttribute: Tuple1[String], parentEntry: UUID_ENTRY[U])
+    extends ENTRY1(rdnAttribute._1, "") {
+  def dn(uuid: U, y: String) = new DN(rdn(y), parentEntry.dn(uuid))
+  def model(uuid: U, y: String): LDAPEntry = {
     val mod = LDAPEntry(new DN(rdn(y), parentEntry.dn(uuid)))
-    mod.resetValuesTo(A_OC, OC.objectClassNames(eltObjectClass).toSeq:_*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(eltObjectClass).toSeq: _*)
     mod
   }
 }
 
-class NODE_ELT(server:UUID_ENTRY[NodeId], eltObjectClass:String, val attributeName:String, nodeParentEntry:UUID_ENTRY[NodeId]) extends
-  ELT[NodeId](eltObjectClass,Tuple1(attributeName), nodeParentEntry) {}
+class NODE_ELT(server: UUID_ENTRY[NodeId], eltObjectClass: String, val attributeName: String, nodeParentEntry: UUID_ENTRY[NodeId])
+    extends ELT[NodeId](eltObjectClass, Tuple1(attributeName), nodeParentEntry) {}
 
-class MACHINE_ELT(machine:UUID_ENTRY[MachineUuid], eltObjectClass:String, val attributeName:String, machineParentEntry:UUID_ENTRY[MachineUuid]) extends
-  ELT[MachineUuid](eltObjectClass,Tuple1(attributeName),machineParentEntry) {}
-
+class MACHINE_ELT(
+    machine:            UUID_ENTRY[MachineUuid],
+    eltObjectClass:     String,
+    val attributeName:  String,
+    machineParentEntry: UUID_ENTRY[MachineUuid]
+) extends ELT[MachineUuid](eltObjectClass, Tuple1(attributeName), machineParentEntry) {}

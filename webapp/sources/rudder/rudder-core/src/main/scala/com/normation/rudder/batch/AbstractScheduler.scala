@@ -1,68 +1,65 @@
 /*
-*************************************************************************************
-* Copyright 2013 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2013 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.batch
 
-import net.liftweb.actor.LAPinger
-import net.liftweb.common._
-import org.joda.time.DateTime
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
+import net.liftweb.common._
+import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-
 
 // -----------------------------------------------------
 // Constants and private objects and classes
 // -----------------------------------------------------
 
-
 sealed trait AbstractActorUpdateMessage
 final object AbstractActorUpdateMessage {
-  final case object StartUpdate extends AbstractActorUpdateMessage
-  final case class  UpdateResult[T](id:Long, start: DateTime, end:DateTime, result: Box[T]) extends AbstractActorUpdateMessage
+  final case object StartUpdate                                                              extends AbstractActorUpdateMessage
+  final case class UpdateResult[T](id: Long, start: DateTime, end: DateTime, result: Box[T]) extends AbstractActorUpdateMessage
 }
-
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
-final case object IdleUpdater extends UpdaterStates
+final case object IdleUpdater                                 extends UpdaterStates
 //an update is currently running for the given nodes
-final case class StartProcessing(id:Long, started: DateTime) extends UpdaterStates
+final case class StartProcessing(id: Long, started: DateTime) extends UpdaterStates
 //the process gave a result
 
 /**
@@ -85,9 +82,9 @@ trait AbstractScheduler {
   val schedulerMinimumIntervalTime = 1
   val schedulerMaximumIntervalTime = 300
   def updateInterval: Int // in seconds
-  def executeTask: Long => Box[T]
-  def displayName : String
-  def propertyName : String
+  def executeTask:    Long => Box[T]
+  def displayName:    String
+  def propertyName:   String
 
   val logger = ScheduledJobLogger
 
@@ -117,14 +114,18 @@ trait AbstractScheduler {
 
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater
-    private var onePending = false
+    private var onePending         = false
     private val realUpdateInterval = {
-      if(updateInterval < schedulerMinimumIntervalTime) {
-        logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'")
+      if (updateInterval < schedulerMinimumIntervalTime) {
+        logger.warn(
+          s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'"
+        )
         schedulerMinimumIntervalTime
       } else {
-        if(updateInterval > schedulerMaximumIntervalTime) {
-          logger.warn(s"Value '${updateInterval}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'")
+        if (updateInterval > schedulerMaximumIntervalTime) {
+          logger.warn(
+            s"Value '${updateInterval}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'"
+          )
           schedulerMaximumIntervalTime
         } else {
           logger.info(s"Starting [${displayName}] scheduler with a period of ${updateInterval} s")
@@ -138,14 +139,13 @@ trait AbstractScheduler {
       // --------------------------------------------
       // Ask for a new process
       // --------------------------------------------
-      case AbstractActorUpdateMessage.StartUpdate =>
-
+      case AbstractActorUpdateMessage.StartUpdate                          =>
         currentState match {
           case IdleUpdater =>
             logger.debug(s"[${displayName}] Scheduled task starting")
             updateId = updateId + 1
             TaskProcessor ! StartProcessing(updateId, new DateTime)
-          case _ : StartProcessing if(!onePending) =>
+          case _: StartProcessing if (!onePending) =>
             logger.trace(s"Add a pending task for [${displayName}] scheduler")
             onePending = true
           case _ =>
@@ -155,36 +155,41 @@ trait AbstractScheduler {
       // --------------------------------------------
       // Process a successful update response
       // --------------------------------------------
-      case AbstractActorUpdateMessage.UpdateResult(id,start,end,result) =>
+      case AbstractActorUpdateMessage.UpdateResult(id, start, end, result) =>
         logger.trace(s"Get result for [${displayName}] scheduler task's id '${id}'")
 
         currentState = IdleUpdater
-        //if one update is pending, immediatly start one other
+        // if one update is pending, immediatly start one other
 
-        //schedule next update, in minutes
-        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval*1000L)
+        // schedule next update, in minutes
+        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval * 1000L)
 
-        //log some information
+        // log some information
         val format = ISODateTimeFormat.dateTimeNoMillis()
 
         result match {
-          case e:EmptyBox =>
-            val error = (e ?~! s"Error when executing [${displayName}] scheduler task started at ${start.toString(format)}, ended at ${end.toString(format)}.")
+          case e: EmptyBox =>
+            val error = {
+              (e ?~! s"Error when executing [${displayName}] scheduler task started at ${start.toString(format)}, ended at ${end
+                  .toString(format)}.")
+            }
             logger.error(error.messageChain)
           case Full(x) =>
             val executionTime = end.getMillis() - start.getMillis()
-            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTime} ms (started at ${start.toString(format)}, finished at ${end.toString(format)})")
-            if (executionTime >= updateInterval*1000) {
-              ApplicationLogger.warn(s"[${displayName}] Task frequency is set too low! Last task took ${executionTime} ms but tasks are scheduled every ${updateInterval*1000} ms. Adjust ${propertyName} if this problem persists.")
+            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTime} ms (started at ${start
+                .toString(format)}, finished at ${end.toString(format)})")
+            if (executionTime >= updateInterval * 1000) {
+              ApplicationLogger.warn(
+                s"[${displayName}] Task frequency is set too low! Last task took ${executionTime} ms but tasks are scheduled every ${updateInterval * 1000} ms. Adjust ${propertyName} if this problem persists."
+              )
             }
         }
 
       // --------------------------------------------
       // Unexpected messages
       // --------------------------------------------
-      case x => logger.debug(s"[${displayName}] scheduler don't know how to process message: '${x}'")
+      case x                                                               => logger.debug(s"[${displayName}] scheduler don't know how to process message: '${x}'")
     }
-
 
     private[this] object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
 
@@ -197,17 +202,19 @@ trait AbstractScheduler {
           try {
             val result = executeTask(processId)
 
-            if (updateManager!=null)
+            if (updateManager != null)
               updateManager ! AbstractActorUpdateMessage.UpdateResult(processId, startTime, new DateTime, result)
-              else this !  StartProcessing(processId, startTime)
+            else this ! StartProcessing(processId, startTime)
           } catch {
-            case e:Throwable => e match {
-              case x:ThreadDeath => throw x
-              case x:InterruptedException => throw x
-              case e => logger.error(e)
-                //updateManager ! UpdateResult(processId,startTime,new DateTime, Failure("Exception caught during update process.",Full(e), Empty))
-                throw e
-            }
+            case e: Throwable =>
+              e match {
+                case x: ThreadDeath          => throw x
+                case x: InterruptedException => throw x
+                case e =>
+                  logger.error(e)
+                  // updateManager ! UpdateResult(processId,startTime,new DateTime, Failure("Exception caught during update process.",Full(e), Empty))
+                  throw e
+              }
           }
         }
       }

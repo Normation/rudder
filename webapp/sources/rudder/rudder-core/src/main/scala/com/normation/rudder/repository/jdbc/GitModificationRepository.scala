@@ -1,6 +1,5 @@
 package com.normation.rudder.repository.jdbc
 
-
 import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
@@ -11,7 +10,7 @@ import doobie.implicits._
 import zio.interop.catz._
 
 class GitModificationRepositoryImpl(
-    db : Doobie
+    db: Doobie
 ) extends GitModificationRepository {
   import db._
 
@@ -32,8 +31,7 @@ class GitModificationRepositoryImpl(
       select gitcommit from gitcommit where modificationid=${modificationId.value}
     """.query[String].option
 
-    transactIOResult(s"Error when trying to get Git Commit for modification ID '${modificationId.value}'")(xa => sql.transact(xa)).map(x =>
-      x.map(id => GitCommitId(id))
-    )
+    transactIOResult(s"Error when trying to get Git Commit for modification ID '${modificationId.value}'")(xa => sql.transact(xa))
+      .map(x => x.map(id => GitCommitId(id)))
   }
 }

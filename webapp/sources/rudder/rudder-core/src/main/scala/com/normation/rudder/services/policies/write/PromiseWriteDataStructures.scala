@@ -1,53 +1,53 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.templates.STVariable
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.IOResult
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.OsDetails
+import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
+import com.normation.templates.STVariable
 
 /**
  * That file store utility case classes about information used to
@@ -64,21 +64,20 @@ import com.normation.rudder.services.policies.PolicyId
  * can be written as CFEngine rules)
  */
 final case class AgentNodeConfiguration(
-    config   : NodeConfiguration
-  , agentType: AgentType
-  , paths    : NodePoliciesPaths
+    config:    NodeConfiguration,
+    agentType: AgentType,
+    paths:     NodePoliciesPaths
 )
-
 
 /**
  * A data structure which handle the minimum information that allows to
  * qualify the agent "kind": agentType, os details, policy server and rudder roles, etc.
  */
 final case class AgentNodeProperties(
-    nodeId        : NodeId
-  , agentType     : AgentType
-  , osDetails     : OsDetails
-  , isPolicyServer: Boolean
+    nodeId:         NodeId,
+    agentType:      AgentType,
+    osDetails:      OsDetails,
+    isPolicyServer: Boolean
 )
 
 /**
@@ -96,8 +95,8 @@ final case class AgentNodeProperties(
  * but just the an effectful function to access it when we need it.
  */
 final case class PolicyServerCertificates(
-    root : IOResult[String]
-  , relay: Option[IOResult[String]]
+    root:  IOResult[String],
+    relay: Option[IOResult[String]]
 )
 
 /**
@@ -109,12 +108,12 @@ final case class PolicyServerCertificates(
  * - the expected reports csv file content
  */
 final case class AgentNodeWritableConfiguration(
-    agentNodeProps    : AgentNodeProperties
-  , paths             : NodePoliciesPaths
-  , preparedTechniques: Seq[PreparedTechnique]
-  , systemVariables   : Map[String, Variable]
-  , policies          : List[Policy]
-  , policyServerCerts : PolicyServerCertificates
+    agentNodeProps:     AgentNodeProperties,
+    paths:              NodePoliciesPaths,
+    preparedTechniques: Seq[PreparedTechnique],
+    systemVariables:    Map[String, Variable],
+    policies:           List[Policy],
+    policyServerCerts:  PolicyServerCertificates
 )
 
 /**
@@ -123,10 +122,12 @@ final case class AgentNodeWritableConfiguration(
  * A back-up folder is also provided to save a copy.
  */
 final case class NodePoliciesPaths(
-    nodeId      : NodeId
-  , baseFolder  : String // /var/rudder/share/xxxx-xxxxx-xxxx/rules/cfengine-community
-  , newFolder   : String // /var/rudder/share/xxxx-xxxxx-xxxx/rules.new/cfengine-community
-  , backupFolder: Option[String]
+    nodeId:     NodeId,
+    baseFolder: String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules/cfengine-community
+
+    newFolder: String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules.new/cfengine-community
+
+    backupFolder: Option[String]
 )
 
 /**
@@ -135,10 +136,10 @@ final case class NodePoliciesPaths(
  * parameter in them.
  */
 final case class PreparedTechnique(
-    templatesToProcess  : Set[TechniqueTemplateCopyInfo]
-  , environmentVariables: Seq[STVariable]
-  , filesToCopy         : Set[TechniqueFile]
-  , reportIdToReplace   : Option[PolicyId] // if the technique is multi-instance multi-policy, the id to use in replacement
+    templatesToProcess:   Set[TechniqueTemplateCopyInfo],
+    environmentVariables: Seq[STVariable],
+    filesToCopy:          Set[TechniqueFile],
+    reportIdToReplace:    Option[PolicyId] // if the technique is multi-instance multi-policy, the id to use in replacement
 )
 
 /**
@@ -146,18 +147,17 @@ final case class PreparedTechnique(
  * It gives what template to copy where.
  */
 final case class TechniqueTemplateCopyInfo(
-    id         : TechniqueResourceId
-  , destination: String
-  , content    : String //template content as a file
+    id:          TechniqueResourceId,
+    destination: String,
+    content:     String // template content as a file
 ) {
   override def toString() = s"Technique template ${id.name}; destination ${destination}"
 }
 
-
 final case class TechniqueResourceCopyInfo(
-    id         : TechniqueResourceId
-  , destination: String
-  , content    : Array[Byte] //template resource as a file
+    id:          TechniqueResourceId,
+    destination: String,
+    content:     Array[Byte] // template resource as a file
 ) {
   override def toString() = s"Technique resource ${id.name}; destination ${destination}"
 }

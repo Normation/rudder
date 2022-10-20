@@ -1,76 +1,75 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.marshalling
 
-import scala.xml.{Node => XNode}
-import scala.xml.NodeSeq
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import net.liftweb.common.Box
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.rule.category.RuleCategory
-
+import net.liftweb.common.Box
+import scala.xml.{Node => XNode}
+import scala.xml.NodeSeq
 
 trait XmlUnserializer {
 
-  val rule        : RuleUnserialisation
-  val directive   : DirectiveUnserialisation
-  val group       : NodeGroupUnserialisation
-  val globalParam : GlobalParameterUnserialisation
-  val ruleCat     : RuleCategoryUnserialisation
+  val rule:        RuleUnserialisation
+  val directive:   DirectiveUnserialisation
+  val group:       NodeGroupUnserialisation
+  val globalParam: GlobalParameterUnserialisation
+  val ruleCat:     RuleCategoryUnserialisation
 
 }
 
-
 trait DeploymentStatusUnserialisation {
+
   /**
    * Version 2:
    * <deploymentStatus fileFormat="2">
@@ -88,7 +87,7 @@ trait DeploymentStatusUnserialisation {
           <errorMessage>{d.failure}</errorMessage>
      </deploymentStatus>
    */
-  def unserialise(xml:XNode) : Box[CurrentDeploymentStatus]
+  def unserialise(xml: XNode): Box[CurrentDeploymentStatus]
 
 }
 
@@ -101,6 +100,7 @@ trait DeploymentStatusUnserialisation {
  *
  */
 trait NodeGroupCategoryUnserialisation {
+
   /**
    * Version 2:
      <nodeGroupCategory fileFormat="2">
@@ -110,7 +110,7 @@ trait NodeGroupCategoryUnserialisation {
         <isSystem>{cat.isSystem}</isSystem>
       </nodeGroupCategory>
    */
-  def unserialise(xml:XNode): Box[NodeGroupCategory]
+  def unserialise(xml: XNode): Box[NodeGroupCategory]
 }
 
 /**
@@ -118,6 +118,7 @@ trait NodeGroupCategoryUnserialisation {
  * Node Group from an XML file.
  */
 trait NodeGroupUnserialisation {
+
   /**
    * Version 2.0
      <nodeGroup fileFormat="2">
@@ -134,7 +135,7 @@ trait NodeGroupUnserialisation {
        </nodeIds>
      </nodeGroup>
    */
-  def unserialise(xml:XNode) : Box[NodeGroup]
+  def unserialise(xml: XNode): Box[NodeGroup]
 }
 
 /**
@@ -142,6 +143,7 @@ trait NodeGroupUnserialisation {
  * rule from an XML file.
  */
 trait RuleUnserialisation {
+
   /**
    * Version 5:
      <rule fileFormat="5">
@@ -159,13 +161,14 @@ trait RuleUnserialisation {
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  def unserialise(xml:XNode) : Box[Rule]
+  def unserialise(xml: XNode): Box[Rule]
 }
 
 /**
  * That trait allows to unserialise Rule categories from an XML file.
  */
 trait RuleCategoryUnserialisation {
+
   /**
    * Version 5: (rc: nodeGroupCategory)
      <ruleCategory fileFormat="5">
@@ -175,7 +178,7 @@ trait RuleCategoryUnserialisation {
         <isSystem>{ngc.isSystem}</isSystem>
       </ruleCategory>
    */
-  def unserialise(xml:XNode): Box[RuleCategory]
+  def unserialise(xml: XNode): Box[RuleCategory]
 }
 
 /**
@@ -187,6 +190,7 @@ trait RuleCategoryUnserialisation {
  *
  */
 trait ActiveTechniqueCategoryUnserialisation {
+
   /**
    * Version 2:
      <activeTechniqueCategory fileFormat="2">
@@ -196,7 +200,7 @@ trait ActiveTechniqueCategoryUnserialisation {
         <isSystem>{uptc.isSystem}</isSystem>
       </activeTechniqueCategory>
    */
-  def unserialise(xml:XNode): Box[ActiveTechniqueCategory]
+  def unserialise(xml: XNode): Box[ActiveTechniqueCategory]
 }
 
 /**
@@ -206,6 +210,7 @@ trait ActiveTechniqueCategoryUnserialisation {
  * BE CAREFUL: directive will be empty as they are not serialized.
  */
 trait ActiveTechniqueUnserialisation {
+
   /**
    * Version 2:
      <activeTechnique fileFormat="2">
@@ -220,7 +225,7 @@ trait ActiveTechniqueUnserialisation {
         </versions>
       </activeTechnique>
    */
-  def unserialise(xml:XNode): Box[ActiveTechnique]
+  def unserialise(xml: XNode): Box[ActiveTechnique]
 }
 
 /**
@@ -228,6 +233,7 @@ trait ActiveTechniqueUnserialisation {
  * directive from an XML file.
  */
 trait DirectiveUnserialisation {
+
   /**
    * Version 2.0
      <directive fileFormat="2">
@@ -253,8 +259,7 @@ trait DirectiveUnserialisation {
        </section>
      </directive>
    */
-  def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)]
-
+  def unserialise(xml: XNode): Box[(TechniqueName, Directive, SectionVal)]
 
   /**
    * A section val look like:
@@ -277,7 +282,7 @@ trait DirectiveUnserialisation {
    *
    * We await for a node that contains an unique <section>
    */
-  def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
+  def parseSectionVal(xml: NodeSeq): Box[SectionVal]
 }
 
 /**
@@ -285,6 +290,7 @@ trait DirectiveUnserialisation {
  * Global Parameter from an XML
  */
 trait GlobalParameterUnserialisation {
+
   /**
    * Version 3:
      <globalParameter fileFormat="3">
@@ -294,7 +300,7 @@ trait GlobalParameterUnserialisation {
        <overridable>{param.overridable}</overridable>
      </globalParameter>
    */
-  def unserialise(xml:XNode) : Box[GlobalParameter]
+  def unserialise(xml: XNode): Box[GlobalParameter]
 }
 
 /**
@@ -302,6 +308,7 @@ trait GlobalParameterUnserialisation {
  * API Account from an XML
  */
 trait ApiAccountUnserialisation {
+
   /**
    * Version 4:
      <apiAccount fileFormat="4">
@@ -314,7 +321,7 @@ trait ApiAccountUnserialisation {
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
      </apiAccount>
    */
-   def unserialise(xml:XNode) : Box[ApiAccount]
+  def unserialise(xml: XNode): Box[ApiAccount]
 }
 
 /**
@@ -322,6 +329,7 @@ trait ApiAccountUnserialisation {
  *
  */
 trait ChangeRequestChangesUnserialisation {
+
   /**
    * Version 2:
      <changeRequest fileFormat="4">
@@ -404,7 +412,14 @@ trait ChangeRequestChangesUnserialisation {
         </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[String,GlobalParameterChanges])]
+  def unserialise(xml: XNode): Box[
+    (
+        Box[Map[DirectiveId, DirectiveChanges]],
+        Map[NodeGroupId, NodeGroupChanges],
+        Map[RuleId, RuleChanges],
+        Map[String, GlobalParameterChanges]
+    )
+  ]
 }
 
 /**
@@ -412,5 +427,5 @@ trait ChangeRequestChangesUnserialisation {
  * Secret from an XML
  */
 trait SecretUnserialisation {
-  def unserialise(xml:XNode) : Box[Secret]
+  def unserialise(xml: XNode): Box[Secret]
 }

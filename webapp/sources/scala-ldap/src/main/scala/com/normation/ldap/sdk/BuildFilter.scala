@@ -1,22 +1,22 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-*************************************************************************************
-*/
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************************
+ */
 
 package com.normation.ldap.sdk
 
@@ -29,8 +29,7 @@ object BuildFilter {
    * Create a non filtering filter
    * equivalent to (objectClass=*)
    */
-  val ALL : Filter = HAS("objectClass")
-
+  val ALL: Filter = HAS("objectClass")
 
   /**
    * Creates a new AND search filter with the provided components.
@@ -40,7 +39,7 @@ object BuildFilter {
    *
    * @return  The created AND search filter.
    */
-  def AND(andComponents:Filter*) = createANDFilter(andComponents:_*)
+  def AND(andComponents: Filter*) = createANDFilter(andComponents: _*)
 
   /**
    * Creates a new OR search filter with the provided components.
@@ -50,9 +49,7 @@ object BuildFilter {
    *
    * @return  The created OR search filter.
    */
-  def OR(orComponents:Filter*) = createORFilter(orComponents:_*)
-
-
+  def OR(orComponents: Filter*) = createORFilter(orComponents: _*)
 
   /**
    * Creates a new NOT search filter with the provided component.
@@ -62,7 +59,7 @@ object BuildFilter {
    *
    * @return  The created NOT search filter.
    */
-  def NOT(notComponent:Filter) = createNOTFilter(notComponent)
+  def NOT(notComponent: Filter) = createNOTFilter(notComponent)
 
   /**
    * Creates a new equality search filter with the provided information.
@@ -74,7 +71,7 @@ object BuildFilter {
    *
    * @return  The created equality search filter.
    */
-  def EQ(attributeName:String, assertionValue:String) = createEqualityFilter(attributeName,assertionValue)
+  def EQ(attributeName: String, assertionValue: String) = createEqualityFilter(attributeName, assertionValue)
 
   /**
    * Creates a new equality search filter with the provided information.
@@ -86,12 +83,12 @@ object BuildFilter {
    *
    * @return  The created equality search filter.
    */
-  def EQ(attributeName:String, assertionValue:Array[Byte]) = createEqualityFilter(attributeName,assertionValue)
+  def EQ(attributeName: String, assertionValue: Array[Byte]) = createEqualityFilter(attributeName, assertionValue)
 
   /**
    * A special case of EQ for object class
    */
-  def IS(assertionValue:String) = createEqualityFilter("objectClass",assertionValue)
+  def IS(assertionValue: String) = createEqualityFilter("objectClass", assertionValue)
 
   /**
    * Creates a new substring search filter with the provided information.  At
@@ -107,9 +104,8 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName:String, subInitial:String, subAny:Array[String],subFinal:String) =
+  def SUB(attributeName: String, subInitial: String, subAny: Array[String], subFinal: String) =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
-
 
   /**
    * Creates a new substring search filter with the provided information.  At
@@ -125,9 +121,20 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName:String, subInitial:Array[Byte], subAny:Array[Array[Byte]],subFinal:Array[Byte]) =
+  def SUB(attributeName: String, subInitial: Array[Byte], subAny: Array[Array[Byte]], subFinal: Array[Byte]) =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
 
+  /**
+   * Creates a new greater-or-equal search filter with the provided information.
+   *
+   * @param  attributeName   The attribute name for this greater-or-equal
+   *                         filter.  It must not be {null}.
+   * @param  assertionValue  The assertion value for this greater-or-equal
+   *                         filter.  It must not be {null}.
+   *
+   * @return  The created greater-or-equal search filter.
+   */
+  def GTEQ(attributeName: String, assertionValue: String) = createGreaterOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new greater-or-equal search filter with the provided information.
@@ -139,19 +146,7 @@ object BuildFilter {
    *
    * @return  The created greater-or-equal search filter.
    */
-  def GTEQ(attributeName:String, assertionValue:String) = createGreaterOrEqualFilter(attributeName,assertionValue)
-
-  /**
-   * Creates a new greater-or-equal search filter with the provided information.
-   *
-   * @param  attributeName   The attribute name for this greater-or-equal
-   *                         filter.  It must not be {null}.
-   * @param  assertionValue  The assertion value for this greater-or-equal
-   *                         filter.  It must not be {null}.
-   *
-   * @return  The created greater-or-equal search filter.
-   */
-  def GTEQ(attributeName:String, assertionValue:Array[Byte]) = createGreaterOrEqualFilter(attributeName,assertionValue)
+  def GTEQ(attributeName: String, assertionValue: Array[Byte]) = createGreaterOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new less-or-equal search filter with the provided information.
@@ -163,7 +158,7 @@ object BuildFilter {
    *
    * @return  The created less-or-equal search filter.
    */
-  def LTEQ(attributeName:String, assertionValue:String) = createLessOrEqualFilter(attributeName,assertionValue)
+  def LTEQ(attributeName: String, assertionValue: String) = createLessOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new less-or-equal search filter with the provided information.
@@ -175,7 +170,7 @@ object BuildFilter {
    *
    * @return  The created less-or-equal search filter.
    */
-  def LTEQ(attributeName:String, assertionValue:Array[Byte]) = createLessOrEqualFilter(attributeName,assertionValue)
+  def LTEQ(attributeName: String, assertionValue: Array[Byte]) = createLessOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new presence search filter with the provided information.
@@ -185,21 +180,7 @@ object BuildFilter {
    *
    * @return  The created presence search filter.
    */
-  def HAS(attributeName:String) = createPresenceFilter(attributeName)
-
-
-  /**
-   * Creates a new approximate match search filter with the provided
-   * information.
-   *
-   * @param  attributeName   The attribute name for this approximate match
-   *                         filter.  It must not be {null}.
-   * @param  assertionValue  The assertion value for this approximate match
-   *                         filter.  It must not be {null}.
-   *
-   * @return  The created approximate match search filter.
-   */
-  def MATCH(attributeName:String, assertionValue:String) = createApproximateMatchFilter(attributeName,assertionValue)
+  def HAS(attributeName: String) = createPresenceFilter(attributeName)
 
   /**
    * Creates a new approximate match search filter with the provided
@@ -212,7 +193,20 @@ object BuildFilter {
    *
    * @return  The created approximate match search filter.
    */
-  def MATCH(attributeName:String, assertionValue:Array[Byte]) = createApproximateMatchFilter(attributeName,assertionValue)
+  def MATCH(attributeName: String, assertionValue: String) = createApproximateMatchFilter(attributeName, assertionValue)
+
+  /**
+   * Creates a new approximate match search filter with the provided
+   * information.
+   *
+   * @param  attributeName   The attribute name for this approximate match
+   *                         filter.  It must not be {null}.
+   * @param  assertionValue  The assertion value for this approximate match
+   *                         filter.  It must not be {null}.
+   *
+   * @return  The created approximate match search filter.
+   */
+  def MATCH(attributeName: String, assertionValue: Array[Byte]) = createApproximateMatchFilter(attributeName, assertionValue)
 
   /**
    * Creates a new extensible match search filter with the provided
@@ -230,7 +224,7 @@ object BuildFilter {
    *
    * @return  The created extensible match search filter.
    */
-  def MATCHEX(attributeName:String, matchingRuleID:String, dnAttributes:Boolean, assertionValue:Array[Byte]) =
+  def MATCHEX(attributeName: String, matchingRuleID: String, dnAttributes: Boolean, assertionValue: Array[Byte]) =
     createExtensibleMatchFilter(attributeName, matchingRuleID, dnAttributes, assertionValue)
 
   /**
@@ -244,6 +238,6 @@ object BuildFilter {
    * @throws  LDAPException  If the provided string cannot be decoded as a valid
    *                         LDAP search filter.
    */
-  def apply(filterString:String) = create(filterString)
+  def apply(filterString: String) = create(filterString)
 
 }

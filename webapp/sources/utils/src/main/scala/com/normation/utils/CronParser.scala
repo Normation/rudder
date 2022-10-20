@@ -1,16 +1,14 @@
 package com.normation.utils
 
+import com.normation.errors.PureResult
+import com.normation.errors.SystemError
 import cron4s.Cron
 import cron4s.CronExpr
 import cron4s.lib.javatime._
-
 import java.time.OffsetDateTime
-
 import zio.Schedule
 import zio.Trace
 import zio.ZIO
-import com.normation.errors.PureResult
-import com.normation.errors.SystemError
 
 /**
  * An utility library that parses a cron expression and make it available as a ZIO Schedule
@@ -45,7 +43,9 @@ object CronParser {
       new Schedule[Any, Any, Any] {
         type State = Unit
         def initial: Unit = ()
-        def step(now: OffsetDateTime, in: Any, state: Unit)(implicit trace: Trace): ZIO[Any, Nothing, (Unit, Any, Schedule.Decision)] = {
+        def step(now: OffsetDateTime, in: Any, state: Unit)(implicit
+            trace:    Trace
+        ): ZIO[Any, Nothing, (Unit, Any, Schedule.Decision)] = {
           ZIO.succeed((c.next(now))).map {
             case Some(next) => (initial, in, Schedule.Decision.Continue(Schedule.Interval.after(next)))
             case None       => (initial, in, Schedule.Decision.Done)

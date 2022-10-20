@@ -1,56 +1,58 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.plugins
 
-import scala.xml.NodeSeq
+import bootstrap.liftweb.ClassPathResource
+import bootstrap.liftweb.ConfigResource
+import bootstrap.liftweb.FileSystemResource
+import bootstrap.liftweb.RudderProperties
 import com.normation.rudder.domain.logger.ApplicationLogger
-
-import com.typesafe.config.{Config, ConfigFactory}
-import bootstrap.liftweb.{ClassPathResource, ConfigResource, FileSystemResource, RudderProperties}
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.utils._
 import com.normation.utils.PartType._
-import com.normation.utils.VersionPart._
 import com.normation.utils.Separator.Dot
 import com.normation.utils.Separator.Minus
-
+import com.normation.utils.VersionPart._
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
+import scala.xml.NodeSeq
 
 final case class PluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
@@ -59,11 +61,14 @@ final case class PluginVersion private (rudderAbi: Version, pluginVersion: Versi
 
 object PluginVersion {
 
-
   // a special value used to indicate a plugin version parsing error
   def PARSING_ERROR(badVersion: String) = {
     val vr = Version(0, Numeric(0), After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: Nil)
-    val vp = Version(0, Numeric(0), After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: After(Minus, Chars("ERROR-PARSING-VERSION: " + badVersion)) :: Nil)
+    val vp = Version(
+      0,
+      Numeric(0),
+      After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: After(Minus, Chars("ERROR-PARSING-VERSION: " + badVersion)) :: Nil
+    )
     new PluginVersion(vr, vp)
   }
 
@@ -85,7 +90,7 @@ object PluginVersion {
     // pattern "-digit" happens only one time.
     val pattern = """(\S+)-(\d\S+)?""".r.pattern
     val matcher = pattern.matcher(version)
-    if( matcher.matches ) {
+    if (matcher.matches) {
 
       (ParseVersion.parse(matcher.group(1)), ParseVersion.parse(matcher.group(2))) match {
         case (Right(rv), Right(pv)) => Some(PluginVersion(rv, pv))
@@ -97,16 +102,16 @@ object PluginVersion {
     }
   }
 
-    // normalize rudderVersion and pluginVersion to have at least 3 digits
+  // normalize rudderVersion and pluginVersion to have at least 3 digits
   def normalize(v: Version): Version = {
     v match {
       // at least 3 digits
-      case ok@Version(_, _, After(Dot, _:Numeric) :: After(Dot, _:Numeric) :: tail) => ok
+      case ok @ Version(_, _, After(Dot, _: Numeric) :: After(Dot, _: Numeric) :: tail) => ok
       // only 2 - add one 0
-      case Version(epoch, major, After(Dot, minor:Numeric) :: tail) =>
+      case Version(epoch, major, After(Dot, minor: Numeric) :: tail)                    =>
         Version(epoch, major, After(Dot, minor) :: After(Dot, Numeric(0)) :: tail)
       // only 1 - add two 0
-      case Version(epoch, major, tail) =>
+      case Version(epoch, major, tail)                                                  =>
         Version(epoch, major, After(Dot, Numeric(0)) :: After(Dot, Numeric(0)) :: tail)
     }
   }
@@ -116,8 +121,8 @@ object PluginVersion {
   }
 }
 
-final case class PluginName(value:String) {
-  if(null == value || value.length == 0) {
+final case class PluginName(value: String) {
+  if (null == value || value.length == 0) {
     ApplicationLogger.error("A plugin name can not be null nor empty")
     throw new IllegalArgumentException("A plugin name can not be null nor empty")
   }
@@ -136,7 +141,7 @@ trait RudderPluginDef {
    * The fully qualified name of the plugin definition
    * class will be used as an id (not that one).
    */
-  def name : PluginName
+  def name: PluginName
 
   /**
    * Plugin short-name as a string. It can be used as an identifier
@@ -145,7 +150,7 @@ trait RudderPluginDef {
    */
   def shortName: String
 
-  def displayName : String = name.value
+  def displayName: String = name.value
 
   /**
    * The id of the plugin. It uniquely identify a
@@ -159,7 +164,7 @@ trait RudderPluginDef {
    * A description of the module, expected to be displayed to
    * end user.
    */
-  def description : NodeSeq
+  def description: NodeSeq
 
   /**
    * Full (i.e with Rudder version) version of the plugin.
@@ -169,12 +174,12 @@ trait RudderPluginDef {
    * (ie the 7.1.5 part in version example)
    * And of plugin own version (ie the 2.3.0 part in version example).
    */
-  def version : PluginVersion
+  def version: PluginVersion
 
   /**
    * Additional information about the version. I.E : "technical preview"
    */
-  def versionInfo : Option[String]
+  def versionInfo: Option[String]
 
   /*
    * Information about the plugin activation status
@@ -187,7 +192,7 @@ trait RudderPluginDef {
   /*
    * If the plugin contributes APIs, they must be declared here.
    */
-  def apis: Option[LiftApiModuleProvider[_<: EndpointSchema]] = None
+  def apis: Option[LiftApiModuleProvider[_ <: EndpointSchema]] = None
 
   /*
    * A visual representation of status/license information, with a
@@ -220,19 +225,19 @@ trait RudderPluginDef {
           <td>Allowed number of nodes:</td> <td>{i.maxNodes.map(_.toString).getOrElse("Unlimited")}</td>
         </tr>
         {
-          if(i.others.isEmpty) {
-            NodeSeq.Empty
-          } else {
-            <tr>
+        if (i.others.isEmpty) {
+          NodeSeq.Empty
+        } else {
+          <tr>
               <td>Other properties for that license:</td>
               <td>
                 <ul>
-                  {i.others.toList.sortBy(_._1).map { case (k,v) => <li>{s"${k}: ${v}"}</li>}}
+                  {i.others.toList.sortBy(_._1).map { case (k, v) => <li>{s"${k}: ${v}"}</li> }}
                 </ul>
               </td>
             </tr>
-          }
         }
+      }
       </table>
     }
 
@@ -242,33 +247,33 @@ trait RudderPluginDef {
 
       case PluginStatusInfo.Disabled(msg, optDetails) =>
         (".license-card [class+]" #> "critical" andThen
-        ".license-information-details"  #> (
+        ".license-information-details" #> (
           <div>{
             optDetails match {
-              case None    => <p><i class="txt-critical fa fa-exclamation-triangle"></i>It was impossible to read information about the license.</p>
+              case None    =>
+                <p><i class="txt-critical fa fa-exclamation-triangle"></i>It was impossible to read information about the license.</p>
               case Some(i) => details(i)
-            } }
+            }
+          }
             <p class="txt-critical">{msg}</p>
           </div>
-          )
-        )(info)
+        ))(info)
 
       case PluginStatusInfo.EnabledWithLicense(i) =>
-        val (callout, warningTxt) = if(i.endDate.minusMonths(1).isBeforeNow) {
+        val (callout, warningTxt) = if (i.endDate.minusMonths(1).isBeforeNow) {
           ("warning", <p class="txt-warning"><i class="fa fa-exclamation-triangle"></i>Plugin license expires in a few days.</p>)
         } else {
           ("", NodeSeq.Empty)
         }
 
         (".license-card [class+]" #> callout andThen
-         ".license-information-details"  #> (
-           <p>This binary version of this plugin is suject to license with the following information:</p>
+        ".license-information-details" #> (
+          <p>This binary version of this plugin is suject to license with the following information:</p>
            <div>
              {details(i)}
              {warningTxt}
            </div>
-         )
-        )(info)
+        ))(info)
     }
   }
 
@@ -280,15 +285,15 @@ trait RudderPluginDef {
    * On the other hand, snippet registration
    * and the like should go here.
    */
-  def init : Unit
+  def init: Unit
 
   /**
    * Provide a sitemap mutator to add that
    * plugin entries in the menu
    */
-  def updateSiteMap(menus:List[Menu]) : List[Menu] = menus
+  def updateSiteMap(menus: List[Menu]): List[Menu] = menus
 
-  def basePackage : String
+  def basePackage: String
 
   /**
    * A list of config files to get properties from.
@@ -300,23 +305,23 @@ trait RudderPluginDef {
   /**
    * Build the map of config properties.
    */
-  lazy val config : Config = {
+  lazy val config: Config = {
     val configs = configFiles.map {
-      case ClassPathResource(name) => ConfigFactory.load(name)
+      case ClassPathResource(name)  => ConfigFactory.load(name)
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
     }
 
-    if(configs.isEmpty) {
+    if (configs.isEmpty) {
       RudderProperties.config
     } else {
-      configs.reduceLeft[Config] { case (config, newConfig) =>
-        newConfig.withFallback(config)
+      configs.reduceLeft[Config] {
+        case (config, newConfig) =>
+          newConfig.withFallback(config)
       }
     }
   }
 
 }
-
 
 /*
  * The plugin modules: it provides a pluginDef.

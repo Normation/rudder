@@ -27,7 +27,8 @@ class PropertyEngineServiceImpl(listOfEngine: List[RudderPropertyEngine]) extend
   override def process(engine: String, namespace: List[String], opt: Option[List[EngineOption]]): IOResult[String] = {
     for {
       engineMap            <- engines.get
-      engineProp           <- engineMap.get(engine.toLowerCase)
+      engineProp           <- engineMap
+                                .get(engine.toLowerCase)
                                 .notOptional(s"Engine '${engine}' not found. Can not be expanded")
       interpolatedValueRes <- engineProp.process(namespace, opt)
     } yield {

@@ -1,70 +1,69 @@
 /*
-*************************************************************************************
-* Copyright 2017 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2017 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.services.policies
 
+import cats.data.NonEmptyList
+import com.normation.cfclerk.domain.AgentConfig
+import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueGenerationMode
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
+import com.normation.errors._
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-
-import scala.collection.immutable.TreeMap
-import org.joda.time.DateTime
-import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.NodeId
-import cats.data.NonEmptyList
-import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.cfclerk.domain.RunHook
-import com.normation.cfclerk.domain.SystemVariableSpec
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.AgentConfig
-import com.normation.cfclerk.domain.TechniqueGenerationMode
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors._
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.reports.NodeModeConfig
 import com.typesafe.config.ConfigValue
+import org.joda.time.DateTime
+import scala.collection.immutable.TreeMap
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -101,17 +100,17 @@ object BundleOrder {
 
   def compareList(a: List[BundleOrder], b: List[BundleOrder]): Int = {
 
-    //only works on list of the same size
+    // only works on list of the same size
     def compareListRec(a: List[BundleOrder], b: List[BundleOrder]): Int = {
       (a, b) match {
         case (ha :: ta, hb :: tb) =>
-          val comp = compare(ha,hb)
-          if(comp == 0) {
+          val comp = compare(ha, hb)
+          if (comp == 0) {
             compareList(ta, tb)
           } else {
             comp
           }
-        case _ => //we know they have the same size by construction, so it's a real equality
+        case _                    => // we know they have the same size by construction, so it's a real equality
           0
       }
     }
@@ -122,18 +121,18 @@ object BundleOrder {
   }
 }
 
-sealed trait GenericInterpolationContext[PARAM]{
-  def nodeInfo        : NodeInfo
+sealed trait GenericInterpolationContext[PARAM] {
+  def nodeInfo:         NodeInfo
   def policyServerInfo: NodeInfo
   def globalPolicyMode: GlobalPolicyMode
   // parameters for this node
-  //must be a case SENSITIVE Map !!!!
-  def parameters      : Map[String, PARAM]
-  //the depth of the interpolation context evaluation
-  //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-  //for ex: param a => param b => param c => ..... => param a
-  //should not be evaluated
-  def depth           : Int
+  // must be a case SENSITIVE Map !!!!
+  def parameters:       Map[String, PARAM]
+  // the depth of the interpolation context evaluation
+  // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+  // for ex: param a => param b => param c => ..... => param a
+  // should not be evaluated
+  def depth:            Int
 }
 
 /**
@@ -142,34 +141,34 @@ sealed trait GenericInterpolationContext[PARAM]{
  * It is by nature node dependent.
  */
 final case class ParamInterpolationContext(
-        nodeInfo        : NodeInfo
-      , policyServerInfo: NodeInfo
-      , globalPolicyMode: GlobalPolicyMode
-        // parameters for this node
-        //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, ParamInterpolationContext => IOResult[String]]
-        //the depth of the interpolation context evaluation
-        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-        //for ex: param a => param b => param c => ..... => param a
-        //should not be evaluated
-      , depth           : Int = 0
+    nodeInfo:         NodeInfo,
+    policyServerInfo: NodeInfo,
+    globalPolicyMode: GlobalPolicyMode,                                           // parameters for this node
+    // must be a case SENSITIVE Map !!!!
+
+    parameters:       Map[String, ParamInterpolationContext => IOResult[String]], // the depth of the interpolation context evaluation
+    // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+    // for ex: param a => param b => param c => ..... => param a
+    // should not be evaluated
+
+    depth:            Int = 0
 ) extends GenericInterpolationContext[ParamInterpolationContext => IOResult[String]]
 
 final case class InterpolationContext(
-        nodeInfo        : NodeInfo
-      , policyServerInfo: NodeInfo
-      , globalPolicyMode: GlobalPolicyMode
-        //environment variable for that server
-        //must be a case insensitive Map !!!!
-      , nodeContext     : TreeMap[String, Variable]
-        // parameters for this node
-        //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, ConfigValue]
-        //the depth of the interpolation context evaluation
-        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-        //for ex: param a => param b => param c => ..... => param a
-        //should not be evaluated
-      , depth           : Int
+    nodeInfo:         NodeInfo,
+    policyServerInfo: NodeInfo,
+    globalPolicyMode: GlobalPolicyMode,          // environment variable for that server
+    // must be a case insensitive Map !!!!
+
+    nodeContext:      TreeMap[String, Variable], // parameters for this node
+    // must be a case SENSITIVE Map !!!!
+
+    parameters:       Map[String, ConfigValue],  // the depth of the interpolation context evaluation
+    // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+    // for ex: param a => param b => param c => ..... => param a
+    // should not be evaluated
+
+    depth:            Int
 ) extends GenericInterpolationContext[ConfigValue]
 
 object InterpolationContext {
@@ -178,30 +177,30 @@ object InterpolationContext {
   }
 
   def apply(
-        nodeInfo        : NodeInfo
-      , policyServerInfo: NodeInfo
-      , globalPolicyMode: GlobalPolicyMode
-        //environment variable for that server
-        //must be a case insensitive Map !!!!
-      , nodeContext     : Map[String, Variable]
-        // parameters for this node
-        //must be a case SENSITIVE Map !!!!
-      , parameters      : Map[String, ConfigValue]
-        //the depth of the interpolation context evaluation
-        //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
-        //for ex: param a => param b => param c => ..... => param a
-        //should not be evaluated
-      , depth           : Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq:_*), parameters, depth)
+      nodeInfo:         NodeInfo,
+      policyServerInfo: NodeInfo,
+      globalPolicyMode: GlobalPolicyMode, // environment variable for that server
+      // must be a case insensitive Map !!!!
+
+      nodeContext: Map[String, Variable], // parameters for this node
+      // must be a case SENSITIVE Map !!!!
+
+      parameters: Map[String, ConfigValue], // the depth of the interpolation context evaluation
+      // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
+      // for ex: param a => param b => param c => ..... => param a
+      // should not be evaluated
+
+      depth: Int = 0
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq: _*), parameters, depth)
 }
 
 final case class ParameterForConfiguration(
-    name       : String
-  , value      : String
+    name:  String,
+    value: String
 )
 
 final case object ParameterForConfiguration {
-  def fromParameter(param: GlobalParameter) : ParameterForConfiguration = {
+  def fromParameter(param: GlobalParameter): ParameterForConfiguration = {
     // here, we need to go back to a string for resolution of
     // things like ${rudder.param[foo] | default = ... }
     ParameterForConfiguration(param.name, param.valueAsString)
@@ -214,18 +213,18 @@ final case object ParameterForConfiguration {
  * get methods, and @Bean doesn't seem to do the trick
  */
 final case class ParameterEntry(
-    parameterName : String
-  , escapedValue  : String
-  , agentType     : AgentType
+    parameterName: String,
+    escapedValue:  String,
+    agentType:     AgentType
 ) {
   // returns the name of the parameter
-  def getParameterName() : String = {
+  def getParameterName(): String = {
     parameterName
   }
 
   // returns the _escaped_ value of the parameter,
   // compliant with the syntax of CFEngine
-  def getEscapedValue() : String = {
+  def getEscapedValue(): String = {
     escapedValue
   }
 }
@@ -244,27 +243,28 @@ final object NodeRunHook {
  * This one is the merged version, for a given node.
  */
 final case class NodeRunHook(
-    bundle    : String // the kind of hook. The bundle method to call can be derived from that
-  , kind      : RunHook.Kind
-  , reports   : List[NodeRunHook.ReportOn]
-  , parameters: List[RunHook.Parameter]
+    bundle: String, // the kind of hook. The bundle method to call can be derived from that
+
+    kind:       RunHook.Kind,
+    reports:    List[NodeRunHook.ReportOn],
+    parameters: List[RunHook.Parameter]
 )
 
 final case class NodeConfiguration(
-    nodeInfo    : NodeInfo
-  , modesConfig : NodeModeConfig
-    // sorted list of policies for the node.
-  , policies    : List[Policy]
-    // the merged pre-/post-run hooks
-  , runHooks    : List[NodeRunHook]
-    //environment variable for that server
-  , nodeContext : Map[String, Variable]
-  , parameters  : Set[ParameterForConfiguration]
-  , isRootServer: Boolean = false
+    nodeInfo:    NodeInfo,
+    modesConfig: NodeModeConfig, // sorted list of policies for the node.
+
+    policies: List[Policy], // the merged pre-/post-run hooks
+
+    runHooks: List[NodeRunHook], // environment variable for that server
+
+    nodeContext:  Map[String, Variable],
+    parameters:   Set[ParameterForConfiguration],
+    isRootServer: Boolean = false
 ) {
 
-  def getTechniqueIds() : Set[TechniqueId] = {
-    policies.map( _.technique.id ).toSet
+  def getTechniqueIds(): Set[TechniqueId] = {
+    policies.map(_.technique.id).toSet
   }
 }
 
@@ -284,7 +284,7 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
    */
   def getReportId = value + "@@0" // as of Rudder 4.3, serial is always 0
 
-  lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""","_")
+  lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""", "_")
 }
 
 /**
@@ -301,34 +301,35 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
  */
 case class ComponentId(value: String, parents: List[String], reportId: Option[String])
 
-
 /*
  * A policy "vars" is all the var data for a policy (expandedVars, originalVars,
  * trackingKey). They are grouped together in policy because some policy can
  * be the result of merging several BoundPolicyDraft
  */
 final case class PolicyVars(
-    policyId       : PolicyId
-  , policyMode     : Option[PolicyMode]
-  , expandedVars   : Map[ComponentId, Variable]
-  , originalVars   : Map[ComponentId, Variable] // variable with non-expanded ${node.prop etc} values
-  , trackerVariable: TrackerVariable
-)
+    policyId:     PolicyId,
+    policyMode:   Option[PolicyMode],
+    expandedVars: Map[ComponentId, Variable],
+    originalVars: Map[ComponentId, Variable], // variable with non-expanded ${node.prop etc} values
 
+    trackerVariable: TrackerVariable
+)
 
 /*
  * The technique bounded to a policy. It is specific to exactly one agent
  */
 final case class PolicyTechnique(
-    id                     : TechniqueId
-  , agentConfig            : AgentConfig
-  , trackerVariableSpec    : TrackerVariableSpec
-  , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
-  , systemVariableSpecs    : Set[SystemVariableSpec]
-  , isMultiInstance        : Boolean = false // true if we can have several instance of this policy
-  , isSystem               : Boolean = false
-  , generationMode         : TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives
-  , useMethodReporting     : Boolean = false
+    id:                  TechniqueId,
+    agentConfig:         AgentConfig,
+    trackerVariableSpec: TrackerVariableSpec,
+    rootSection:         SectionSpec, // be careful to not split it from the TechniqueId, else you will not have the good spec for the version
+
+    systemVariableSpecs: Set[SystemVariableSpec],
+    isMultiInstance:     Boolean = false, // true if we can have several instance of this policy
+
+    isSystem:           Boolean = false,
+    generationMode:     TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives,
+    useMethodReporting: Boolean = false
 ) {
 
   val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
@@ -338,19 +339,25 @@ final case class PolicyTechnique(
 
 final object PolicyTechnique {
   def forAgent(technique: Technique, agentType: AgentType): Either[String, PolicyTechnique] = {
-    technique.agentConfigs.find( _.agentType == agentType) match {
-      case None    => Left(s"Error: Technique '${technique.name}' (${technique.id.debugString}) does not support agent type '${agentType.displayName}'")
-      case Some(x) => Right(PolicyTechnique(
-          id                     = technique.id
-        , agentConfig            = x
-        , trackerVariableSpec    = technique.trackerVariableSpec
-        , rootSection            = technique.rootSection
-        , systemVariableSpecs    = technique.systemVariableSpecs
-        , isMultiInstance        = technique.isMultiInstance
-        , isSystem               = technique.isSystem
-        , generationMode         = technique.generationMode
-        , useMethodReporting     = technique.useMethodReporting
-      ))
+    technique.agentConfigs.find(_.agentType == agentType) match {
+      case None    =>
+        Left(
+          s"Error: Technique '${technique.name}' (${technique.id.debugString}) does not support agent type '${agentType.displayName}'"
+        )
+      case Some(x) =>
+        Right(
+          PolicyTechnique(
+            id = technique.id,
+            agentConfig = x,
+            trackerVariableSpec = technique.trackerVariableSpec,
+            rootSection = technique.rootSection,
+            systemVariableSpecs = technique.systemVariableSpecs,
+            isMultiInstance = technique.isMultiInstance,
+            isSystem = technique.isSystem,
+            generationMode = technique.generationMode,
+            useMethodReporting = technique.useMethodReporting
+          )
+        )
     }
   }
 }
@@ -386,31 +393,34 @@ final object PolicyTechnique {
  *
  */
 final case class Policy(
-    id                 : PolicyId
-  , ruleName           : String // human readable name of the original rule, for ex for log
-  , directiveName      : String // human readable name of the original directive, for ex for log
-  , technique          : PolicyTechnique
-  , techniqueUpdateTime: DateTime
-  , policyVars         : NonEmptyList[PolicyVars]
-  , priority           : Int
-  , policyMode         : Option[PolicyMode]
-  , ruleOrder          : BundleOrder
-  , directiveOrder     : BundleOrder
-  , overrides          : Set[PolicyId] //a set of other draft overriden by that one
-)  {
+    id:       PolicyId,
+    ruleName: String, // human readable name of the original rule, for ex for log
+
+    directiveName: String, // human readable name of the original directive, for ex for log
+
+    technique:           PolicyTechnique,
+    techniqueUpdateTime: DateTime,
+    policyVars:          NonEmptyList[PolicyVars],
+    priority:            Int,
+    policyMode:          Option[PolicyMode],
+    ruleOrder:           BundleOrder,
+    directiveOrder:      BundleOrder,
+    overrides:           Set[PolicyId] // a set of other draft overriden by that one
+) {
 
   // here, it is extremely important to keep sorted order
   // List[Map[id, List[Variable]]
   // == map .values (keep order) ==> Iterator[List[Variable]]
   // == .toList (keep order)     ==> List[List[Variable]]
   // == flatten (keep order)     ==> List[Variable]
-  def expandedVars    = Policy.mergeVars(policyVars.map( _.expandedVars.values).toList.flatten)
-  val trackerVariable = policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
+  def expandedVars    = Policy.mergeVars(policyVars.map(_.expandedVars.values).toList.flatten)
+  val trackerVariable =
+    policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
 final object Policy {
 
-  val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
+  val TAG_OF_RUDDER_ID           = "@@RUDDER_ID@@"
   val TAG_OF_RUDDER_MULTI_POLICY = "RudderUniqueID"
 
   /*
@@ -437,26 +447,30 @@ final object Policy {
     val mergedVars = scala.collection.mutable.Map[String, Variable]()
     for (variable <- vars) {
       variable match {
-        case _     : TrackerVariable => // nothing, it's been dealt with already
+        case _:      TrackerVariable => // nothing, it's been dealt with already
         case newVar: Variable        =>
           // TODO: #10625 : checked is not used anymore
           if ((!newVar.spec.checked) || (newVar.spec.isSystem)) {
             // Only user defined variables should need to be agregated
           } else {
             val variable = mergedVars.get(newVar.spec.name) match {
-              case None =>
+              case None                   =>
                 Variable.matchCopy(newVar, setMultivalued = true)
               case Some(existingVariable) => // value is already there
                 // hope it is multivalued, otherwise BAD THINGS will happen
                 if (!existingVariable.spec.multivalued) {
-                  PolicyGenerationLogger.warn(s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug.")
+                  PolicyGenerationLogger.warn(
+                    s"Attempt to append value into a non multivalued variable '${existingVariable.spec.name}', please report the problem as a bug."
+                  )
                 }
                 existingVariable.copyWithAppendedValues(newVar.values) match {
                   case Left(err) =>
-                    PolicyGenerationLogger.error(s"Error when merging variables '${existingVariable.spec.name}' (init: ${existingVariable.values.toString} ; " +
-                                                 s"new val: ${newVar.values.toString}. This is most likely a bug, please report it")
+                    PolicyGenerationLogger.error(
+                      s"Error when merging variables '${existingVariable.spec.name}' (init: ${existingVariable.values.toString} ; " +
+                      s"new val: ${newVar.values.toString}. This is most likely a bug, please report it"
+                    )
                     existingVariable
-                  case Right(v) => v
+                  case Right(v)  => v
                 }
             }
             mergedVars.put(newVar.spec.name, variable)
@@ -473,37 +487,40 @@ final object Policy {
  * - before these parameters are contextualize
  */
 final case class ParsedPolicyDraft(
-    id               : PolicyId
-  , ruleName         : String // human readable name of the original rule, for ex for log
-  , directiveName    : String // human readable name of the original directive, for ex for log
-  , technique        : Technique
-  , acceptationDate  : DateTime
-  , priority         : Int
-  , isSystem         : Boolean
-  , policyMode       : Option[PolicyMode]
-  , trackerVariable  : TrackerVariable
-  , variables        : InterpolationContext => IOResult[Map[ComponentId,Variable]]
-  , originalVariables: Map[ComponentId, Variable] // the original variable, unexpanded
-  , ruleOrder        : BundleOrder
-  , directiveOrder   : BundleOrder
+    id:       PolicyId,
+    ruleName: String, // human readable name of the original rule, for ex for log
+
+    directiveName: String, // human readable name of the original directive, for ex for log
+
+    technique:         Technique,
+    acceptationDate:   DateTime,
+    priority:          Int,
+    isSystem:          Boolean,
+    policyMode:        Option[PolicyMode],
+    trackerVariable:   TrackerVariable,
+    variables:         InterpolationContext => IOResult[Map[ComponentId, Variable]],
+    originalVariables: Map[ComponentId, Variable], // the original variable, unexpanded
+
+    ruleOrder:      BundleOrder,
+    directiveOrder: BundleOrder
 ) {
 
-  def toBoundedPolicyDraft(expandedVars: Map[ComponentId,Variable]) = {
+  def toBoundedPolicyDraft(expandedVars: Map[ComponentId, Variable]) = {
     BoundPolicyDraft(
-        id             = id
-      , ruleName       = ruleName
-      , directiveName  = directiveName
-      , technique      = technique
-      , acceptationDate= acceptationDate
-      , expandedVars   = expandedVars
-      , originalVars   = originalVariables
-      , trackerVariable= trackerVariable
-      , priority       = priority
-      , isSystem       = isSystem
-      , policyMode     = policyMode
-      , ruleOrder      = ruleOrder
-      , directiveOrder = directiveOrder
-      , overrides      = Set()
+      id = id,
+      ruleName = ruleName,
+      directiveName = directiveName,
+      technique = technique,
+      acceptationDate = acceptationDate,
+      expandedVars = expandedVars,
+      originalVars = originalVariables,
+      trackerVariable = trackerVariable,
+      priority = priority,
+      isSystem = isSystem,
+      policyMode = policyMode,
+      ruleOrder = ruleOrder,
+      directiveOrder = directiveOrder,
+      overrides = Set()
     )
   }
 
@@ -515,20 +532,24 @@ final case class ParsedPolicyDraft(
  * pre-merge, pre-filtering Techniques).
  */
 final case class BoundPolicyDraft(
-    id             : PolicyId
-  , ruleName       : String // human readable name of the original rule, for ex for log
-  , directiveName  : String // human readable name of the original directive, for ex for log
-  , technique      : Technique
-  , acceptationDate: DateTime
-  , expandedVars   : Map[ComponentId,Variable] // contains vars with expanded parameters
-  , originalVars   : Map[ComponentId,Variable] // contains original, pre-compilation, variable values
-  , trackerVariable: TrackerVariable
-  , priority       : Int
-  , isSystem       : Boolean
-  , policyMode     : Option[PolicyMode]
-  , ruleOrder      : BundleOrder
-  , directiveOrder : BundleOrder
-  , overrides      : Set[PolicyId] //a set of other draft overriden by that one
+    id:       PolicyId,
+    ruleName: String, // human readable name of the original rule, for ex for log
+
+    directiveName: String, // human readable name of the original directive, for ex for log
+
+    technique:       Technique,
+    acceptationDate: DateTime,
+    expandedVars:    Map[ComponentId, Variable], // contains vars with expanded parameters
+
+    originalVars: Map[ComponentId, Variable], // contains original, pre-compilation, variable values
+
+    trackerVariable: TrackerVariable,
+    priority:        Int,
+    isSystem:        Boolean,
+    policyMode:      Option[PolicyMode],
+    ruleOrder:       BundleOrder,
+    directiveOrder:  BundleOrder,
+    overrides:       Set[PolicyId] // a set of other draft overriden by that one
 ) {
 
   /**
@@ -537,15 +558,18 @@ final case class BoundPolicyDraft(
    * Can throw a lot of exceptions if something fails
    */
   def getDirectiveVariable(): (TrackerVariable, Seq[Variable]) = {
-      trackerVariable.spec.boundingVariable match {
-        case None | Some("") | Some(null) => (trackerVariable, Seq(trackerVariable))
-        case Some(value) =>
-          originalVars.filter(_._1.value == value).values.toList match {
-            //should not happen, techniques consistency are checked
-            case Nil=> throw new IllegalArgumentException("No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString)
-            case variable => (trackerVariable, variable)
-          }
-      }
+    trackerVariable.spec.boundingVariable match {
+      case None | Some("") | Some(null) => (trackerVariable, Seq(trackerVariable))
+      case Some(value)                  =>
+        originalVars.filter(_._1.value == value).values.toList match {
+          // should not happen, techniques consistency are checked
+          case Nil      =>
+            throw new IllegalArgumentException(
+              "No valid bounding found for trackerVariable " + trackerVariable.spec.name + " found in directive " + id.directiveId.debugString
+            )
+          case variable => (trackerVariable, variable)
+        }
+    }
   }
 
   /**
@@ -557,37 +581,43 @@ final case class BoundPolicyDraft(
    */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
-      expandedVars.values.collectFirst { case v if(!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
+      expandedVars.values.collectFirst { case v if (!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
         case Some(v) =>
-          Left(s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
-               s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]")
-        case None =>
-          Right(Policy(
-              id
-            , ruleName
-            , directiveName
-            , pt
-            , acceptationDate
-            , NonEmptyList.of(PolicyVars(
-                  id
-                , policyMode
-                , expandedVars
-                , originalVars
-                , trackerVariable
-              ))
-            , priority
-            , policyMode
-            , ruleOrder
-            , directiveOrder
-            , overrides
-          ))
+          Left(
+            s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
+            s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]"
+          )
+        case None    =>
+          Right(
+            Policy(
+              id,
+              ruleName,
+              directiveName,
+              pt,
+              acceptationDate,
+              NonEmptyList.of(
+                PolicyVars(
+                  id,
+                  policyMode,
+                  expandedVars,
+                  originalVars,
+                  trackerVariable
+                )
+              ),
+              priority,
+              policyMode,
+              ruleOrder,
+              directiveOrder,
+              overrides
+            )
+          )
       }
     }
   }
 }
 
 final case class RuleVal(
-    ruleId            : RuleId
-  , nodeIds           : Set[NodeId]
-  , parsedPolicyDrafts: Seq[ParsedPolicyDraft]
+    ruleId:             RuleId,
+    nodeIds:            Set[NodeId],
+    parsedPolicyDrafts: Seq[ParsedPolicyDraft]
 )

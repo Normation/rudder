@@ -30,4 +30,3 @@ class CmdbQueryTest extends Specification {
     }
   }
 }
-

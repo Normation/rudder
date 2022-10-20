@@ -1,51 +1,50 @@
 /*
-*************************************************************************************
-* Copyright 2019 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.plugins
 
-import java.nio.charset.StandardCharsets
-
 import better.files.File
+import com.normation.errors._
+import java.nio.charset.StandardCharsets
+import net.liftweb.json._
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import zio._
 import zio.syntax._
-import com.normation.errors._
-import net.liftweb.json._
-import org.joda.time.format.ISODateTimeFormat
 
 /*
  * This file is able to read information from /var/rudder/packages/index.json
@@ -53,25 +52,25 @@ import org.joda.time.format.ISODateTimeFormat
  */
 
 // this is only used internally but liftweb can't hand it if not top level
-protected final case class JsonPluginFile(plugins: Map[String, JValue])
+final protected case class JsonPluginFile(plugins: Map[String, JValue])
 
 // this is only used internally but liftweb can't hand it if not top level
-protected final case class JsonPluginRaw(
-    name          : String
-  , version       : String
-  , files         : List[String]
-  , `jar-files`   : List[String]
-  , `build-commit`: String
-  , `build-date`  : String
+final protected case class JsonPluginRaw(
+    name:           String,
+    version:        String,
+    files:          List[String],
+    `jar-files`:    List[String],
+    `build-commit`: String,
+    `build-date`:   String
 )
 
 final case class JsonPluginDef(
-    name       : String
-  , version    : PluginVersion
-  , files      : List[String]
-  , jars       : List[String]
-  , buildCommit: String
-  , buildDate  : DateTime
+    name:        String,
+    version:     PluginVersion,
+    files:       List[String],
+    jars:        List[String],
+    buildCommit: String,
+    buildDate:   DateTime
 )
 
 /*
@@ -113,8 +112,9 @@ class ReadPluginPackageInfo(path: String) {
   }
 
   def decode(plugin: JsonPluginFile): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    ZIO.foreach(plugin.plugins.toList) { case (name, jvalue) =>
-      decodeOne(jvalue).mapError(err => Chained(s"Error when decoding plugin information for entry '${name}'", err)).either
+    ZIO.foreach(plugin.plugins.toList) {
+      case (name, jvalue) =>
+        decodeOne(jvalue).mapError(err => Chained(s"Error when decoding plugin information for entry '${name}'", err)).either
     }
   }
 
@@ -124,10 +124,9 @@ class ReadPluginPackageInfo(path: String) {
 
   def getInfo(): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
     IOResult.attempt(index.exists).flatMap { exists =>
-      if(exists) check *> readIndex().flatMap(parseJson)
+      if (exists) check *> readIndex().flatMap(parseJson)
       else List().succeed
     }
   }
-
 
 }

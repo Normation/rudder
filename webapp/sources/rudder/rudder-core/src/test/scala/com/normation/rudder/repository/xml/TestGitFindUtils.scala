@@ -1,125 +1,122 @@
 /*
-*************************************************************************************
-* Copyright 2011 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2011 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.repository.xml
 
-import java.io.File
-import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.internal.storage.file.FileRepository
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.AfterAll
-import net.liftweb.common.Loggable
-import org.joda.time.DateTime
-
-import java.nio.charset.StandardCharsets
-import java.util.zip.ZipFile
 import com.normation.errors._
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.ZipUtils
 import com.normation.zio._
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.util.zip.ZipFile
+import net.liftweb.common.Loggable
+import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
+import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+import org.specs2.specification.AfterAll
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable with AfterAll with ContentMatchers {
 
   ////////// set up / clean-up and utilities //////////
 
-  lazy val root = new File("/tmp/test-jgit-"+ DateTime.now().toString())
+  lazy val root    = new File("/tmp/test-jgit-" + DateTime.now().toString())
   lazy val gitRoot = new File(root, "repo")
 
-
   override def afterAll(): Unit = {
-    if(System.getProperty("tests.clean.tmp") != "false") {
+    if (System.getProperty("tests.clean.tmp") != "false") {
       logger.debug("Deleting directory " + root.getAbsolutePath)
       FileUtils.deleteDirectory(root)
     }
   }
 
-
-  //create a file with context = its name, creating its parent dir if needed
-  def mkfile(relativePath:String, name:String) = {
+  // create a file with context = its name, creating its parent dir if needed
+  def mkfile(relativePath: String, name: String) = {
     val d = new File(gitRoot, relativePath)
     d.mkdirs
-    FileUtils.writeStringToFile(new File(d,name), name, StandardCharsets.UTF_8)
+    FileUtils.writeStringToFile(new File(d, name), name, StandardCharsets.UTF_8)
   }
-
 
   ////////// init test directory structure //////////
 
-  //init the file layout
-  val all =
-    ("a"      , "root.txt") ::
-    ("a"      , "root.pdf") ::
-    ("a/a"    , "f.txt")    ::
-    ("b"      , "root.txt") ::
-    ("b"      , "root.pdf") ::
-    ("b/a"    , "f.txt")    ::
-    ("b/a"    , "f.plop")   ::
-    ("x/f.txt", "f.txt")    ::
+  // init the file layout
+  val all = {
+    ("a", "root.txt") ::
+    ("a", "root.pdf") ::
+    ("a/a", "f.txt") ::
+    ("b", "root.txt") ::
+    ("b", "root.pdf") ::
+    ("b/a", "f.txt") ::
+    ("b/a", "f.plop") ::
+    ("x/f.txt", "f.txt") ::
     Nil
-
-
-  //build
-  all.foreach { case (path, file) =>
-    mkfile(path, file)
   }
 
-  val allPaths = all.map { case(d,f) => d+"/"+f }
-  val allPdf = all.collect { case(d,f) if f.endsWith(".pdf") => d+"/"+f }
-  val allTxt = all.collect { case(d,f) if f.endsWith(".txt") => d+"/"+f }
-  val allDirA  = all.collect { case(d,f) if d.startsWith("a") => d+"/"+f }
-  val allDirAA = all.collect { case(d,f) if d.startsWith("a/a") => d+"/"+f }
-  val allDirB  = all.collect { case(d,f) if d.startsWith("b") => d+"/"+f }
+  // build
+  all.foreach {
+    case (path, file) =>
+      mkfile(path, file)
+  }
+
+  val allPaths = all.map { case (d, f) => d + "/" + f }
+  val allPdf   = all.collect { case (d, f) if f.endsWith(".pdf") => d + "/" + f }
+  val allTxt   = all.collect { case (d, f) if f.endsWith(".txt") => d + "/" + f }
+  val allDirA  = all.collect { case (d, f) if d.startsWith("a") => d + "/" + f }
+  val allDirAA = all.collect { case (d, f) if d.startsWith("a/a") => d + "/" + f }
+  val allDirB  = all.collect { case (d, f) if d.startsWith("b") => d + "/" + f }
   val allDirX  = List("x/f.txt/f.txt")
 
-  val db = ((new FileRepositoryBuilder).setWorkTree(gitRoot).build).asInstanceOf[FileRepository]
-  if(!db.getConfig.getFile.exists) {
+  val db  = ((new FileRepositoryBuilder).setWorkTree(gitRoot).build).asInstanceOf[FileRepository]
+  if (!db.getConfig.getFile.exists) {
     db.create()
   }
   val git = new Git(db)
   git.add.addFilepattern(".").call
-  val id = ZioRuntime.runNow(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
+  val id  = ZioRuntime.runNow(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
 
-  def list(rootDirectories:List[String], endPaths: List[String]) =
+  def list(rootDirectories: List[String], endPaths: List[String]) =
     ZioRuntime.runNow(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
 
   ////////// actual tests //////////
@@ -128,47 +125,47 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
 
   "the walk" should {
     "return all results when no filter provided" in {
-      list(Nil,Nil) must contain(exactly(allPaths:_*))
+      list(Nil, Nil) must contain(exactly(allPaths: _*))
     }
 
     "return all results when all dir are provided as filter" in {
-      list(List("a", "b", "x"),Nil) must contain(exactly(allPaths:_*))
+      list(List("a", "b", "x"), Nil) must contain(exactly(allPaths: _*))
     }
 
     "return all results when all extension are provided" in {
-      list(Nil,List("pdf", "txt", "plop")) must contain(exactly(allPaths:_*))
+      list(Nil, List("pdf", "txt", "plop")) must contain(exactly(allPaths: _*))
     }
 
     "return only files under a when filter for 'a'" in {
-      list(List("a"),Nil) must contain(exactly(allDirA:_*))
+      list(List("a"), Nil) must contain(exactly(allDirA: _*))
     }
 
     "return only files under a when filter for a/" in {
-      list(List("a/"),Nil) must contain(exactly(allDirA:_*))
+      list(List("a/"), Nil) must contain(exactly(allDirA: _*))
     }
 
     "return only files under a when filter for a/a" in {
-      list(List("a/a"),Nil) must contain(exactly(allDirAA:_*))
+      list(List("a/a"), Nil) must contain(exactly(allDirAA: _*))
     }
 
     "return only files under a when filter for 'b'" in {
-      list(List("b"),Nil) must contain(exactly(allDirB:_*))
+      list(List("b"), Nil) must contain(exactly(allDirB: _*))
     }
 
     "return both files under 'a' and 'b'" in {
-      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB:_*))
+      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB: _*))
     }
 
     "return all .txt" in {
-      list(Nil, List(".txt")) must contain(exactly(allTxt:_*))
+      list(Nil, List(".txt")) must contain(exactly(allTxt: _*))
     }
 
     "return all .txt and .pdf" in {
-      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf:_*))
+      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf: _*))
     }
 
     "return x/f.txt/f.txt" in {
-      list(List("x"), List(".txt")) must contain(exactly(allDirX:_*))
+      list(List("x"), List(".txt")) must contain(exactly(allDirX: _*))
     }
 
     "return nothing" in {
@@ -176,11 +173,11 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "ignore empty path" in {
-      list(List("x", ""), Nil) must contain(exactly(allDirX:_*))
+      list(List("x", ""), Nil) must contain(exactly(allDirX: _*))
     }
 
     "ignore empty extension" in {
-      list(Nil, List("txt", "")) must contain(exactly(allTxt:_*))
+      list(Nil, List("txt", "")) must contain(exactly(allTxt: _*))
     }
 
   }
@@ -193,9 +190,10 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     val unzip = new File(root, "unzip")
     unzip.mkdir()
 
-    ZioRuntime.runNow(GitFindUtils.getZip(db, id).flatMap(bytes =>
-      IOResult.attempt(FileUtils.writeByteArrayToFile(archive, bytes))
-    ) *> ZipUtils.unzip(new ZipFile(archive), unzip))
+    ZioRuntime.runNow(
+      GitFindUtils.getZip(db, id).flatMap(bytes => IOResult.attempt(FileUtils.writeByteArrayToFile(archive, bytes))) *> ZipUtils
+        .unzip(new ZipFile(archive), unzip)
+    )
 
     gitRoot must haveSameFilesAs(unzip).withFilter((file: File) => !file.getAbsolutePath.contains(".git"))
   }
@@ -203,9 +201,18 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
   // all modification
   def allModif(s: Status): List[String] = {
     import scala.jdk.CollectionConverters._
-    List(s.getAdded, s.getChanged, s.getConflicting, s.getIgnoredNotInIndex, s.getMissing
-       , s.getModified, s.getRemoved, s.getUncommittedChanges, s.getUntracked, s.getUntrackedFolders
-    ).map(_.asScala).reduce(_++_).toList.sorted
+    List(
+      s.getAdded,
+      s.getChanged,
+      s.getConflicting,
+      s.getIgnoredNotInIndex,
+      s.getMissing,
+      s.getModified,
+      s.getRemoved,
+      s.getUncommittedChanges,
+      s.getUntracked,
+      s.getUntrackedFolders
+    ).map(_.asScala).reduce(_ ++ _).toList.sorted
   }
 
   "give correct status" in {
@@ -220,31 +227,30 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     mkfile("d", "added")
     git.add().addFilepattern("d/added").call
 
-
     val all = GitFindUtils.getStatus(git, Nil).runNow
 
     val a = GitFindUtils.getStatus(git, List("a")).runNow
 
     val ad = GitFindUtils.getStatus(git, "a" :: "d" :: Nil).runNow
 
-    git.add().setUpdate(true).addFilepattern(".").call() // deleted and modified
+    git.add().setUpdate(true).addFilepattern(".").call()  // deleted and modified
     git.add().setUpdate(false).addFilepattern(".").call() // untracked
     git.commit().setMessage("Commit all").call()
 
     val x = GitFindUtils.getStatus(git, Nil).runNow
 
     (allModif(all) === List("a/a/f.txt", "a/root.pdf", "a/root.txt", "c", "c/untracked", "d/added")) and
-    (allModif(a)   === List("a/a/f.txt", "a/root.pdf", "a/root.txt")) and
-    (allModif(ad)  === List("a/a/f.txt", "a/root.pdf", "a/root.txt", "d/added")) and
-    (allModif(x)   === List())
+    (allModif(a) === List("a/a/f.txt", "a/root.pdf", "a/root.txt")) and
+    (allModif(ad) === List("a/a/f.txt", "a/root.pdf", "a/root.txt", "d/added")) and
+    (allModif(x) === List())
   }
 
   "give correct status with sub git repos - BUG IN JGIT, BE CAREFULL" in {
 
     // create a sub dir that is going to be a repos.
     mkfile("subgit", "file")
-    val db2 = ((new FileRepositoryBuilder).setWorkTree(new File(gitRoot, "subgit")).build).asInstanceOf[FileRepository]
-    if(!db2.getConfig.getFile.exists) {
+    val db2  = ((new FileRepositoryBuilder).setWorkTree(new File(gitRoot, "subgit")).build).asInstanceOf[FileRepository]
+    if (!db2.getConfig.getFile.exists) {
       db2.create()
     }
     val git2 = new Git(db2)
@@ -263,13 +269,11 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     git2.commit().setMessage("second commit").call()
 
     (
-          (allModif(GitFindUtils.getStatus(git2, Nil).runNow) === Nil)
-      and (allModif(GitFindUtils.getStatus(git , Nil).runNow) === List("subgit"))
+      (allModif(GitFindUtils.getStatus(git2, Nil).runNow) === Nil)
+      and (allModif(GitFindUtils.getStatus(git, Nil).runNow) === List("subgit"))
       // not sure why but subgit is created as a submodule
       // comment until https://bugs.eclipse.org/bugs/show_bug.cgi?id=565251 is corrected
 //      and (allModif(GitFindUtils.getStatus(git , List("a")).runNow) === Nil)
     )
   }
 }
-
-

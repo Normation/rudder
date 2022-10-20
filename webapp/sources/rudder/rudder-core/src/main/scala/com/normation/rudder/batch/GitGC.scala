@@ -1,54 +1,51 @@
 /*
-*************************************************************************************
-* Copyright 2021 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-*
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-*
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+ *************************************************************************************
+ * Copyright 2021 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
+ *
+ *************************************************************************************
+ */
 
 package com.normation.rudder.batch
 
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.GitRepositoryLogger
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.utils.CronParser._
-
+import com.normation.zio._
 import cron4s.CronExpr
 import org.eclipse.jgit.lib.ProgressMonitor
 import org.joda.time.Duration
-
 import zio._
-import com.normation.errors.IOResult
-import com.normation.zio._
-
 
 /**
  * A scheduler which run a git gc every day.
@@ -57,8 +54,8 @@ import com.normation.zio._
  * Code derived from https://github.com/centic9/jgit-cookbook/blob/master/src/main/java/org/dstadler/jgit/porcelain/CollectGarbage.java
  */
 class GitGC(
-    gitRepo: GitRepositoryProvider
-  , optCron: Option[CronExpr]
+    gitRepo: GitRepositoryProvider,
+    optCron: Option[CronExpr]
 ) {
 
   val logger = GitRepositoryLogger
@@ -87,23 +84,25 @@ class GitGC(
   // must not fail, will be in a cron
   val gitgc: UIO[Unit] = for {
     t0 <- currentTimeMillis
-    _  <- gitRepo.semaphore.withPermit(IOResult.attempt {
-           gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
-         }).catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
+    _  <- gitRepo.semaphore
+            .withPermit(IOResult.attempt {
+              gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
+            })
+            .catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
     t1 <- currentTimeMillis
     _  <- logger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${new Duration(t1 - t0).toString}")
   } yield ()
 
-
-
   // create the schedule gitgc cron or nothing if disabled.
   // Must not fail.
   val prog: UIO[Unit] = optCron match {
-    case None =>
+    case None       =>
       logger.info(s"Disable automatic git-gc on ${gitRepo.rootDirectory.name} (schedule: '${DISABLED}')")
     case Some(cron) =>
       val schedule = cron.toSchedule
-      logger.info(s"Automatic git-gc starts on ${gitRepo.rootDirectory.name} (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')") *>
+      logger.info(
+        s"Automatic git-gc starts on ${gitRepo.rootDirectory.name} (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')"
+      ) *>
       gitgc.schedule(schedule).unit
   }
 
@@ -112,4 +111,3 @@ class GitGC(
     ZioRuntime.unsafeRun(prog.forkDaemon)
   }
 }
-
