@@ -179,6 +179,7 @@ pipeline {
                     steps {
                         sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                         dir('webapp/sources') {
+                            sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
                             sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                         }
                     }
