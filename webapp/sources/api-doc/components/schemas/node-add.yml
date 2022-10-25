@@ -54,7 +54,7 @@ items:
       type: string
       description: Node lifecycle state. Can only be specified when status=accepted. If not specified, enable is used
       enum:
-        - enable
+        - enabled
         - ignored
         - empty-policies
         - initializing
