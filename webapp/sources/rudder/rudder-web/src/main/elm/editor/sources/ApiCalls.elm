@@ -87,7 +87,7 @@ saveTechnique  technique creation internalId model  =
       request
         { method  = if creation then "PUT" else "POST"
         , headers = []
-        , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.name++"/"++technique.version)
+        , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.id.value++"/"++technique.version)
         , body    = encoder |> jsonBody
         , expect  = Detailed.expectJson SaveTechnique ( Json.Decode.at ["data", "techniques", "technique" ] ( decodeTechnique ))
         , timeout = Nothing
