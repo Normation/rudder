@@ -269,7 +269,7 @@ function doughnutChart (id,data,count,colors) {
                           objectType: "software"
                         , attribute : "softwareVersion"
                         , comparator: "regex"
-                        , value     : data.replace(/\./g, "(\.|~)") + ".*"
+                        , value     : "(\\d+:)?" + data[0]._model.label.replace(/\./g, "(\.|~)") + ".*"
                       }];
                       break;
                   case 'nodeMachine':
