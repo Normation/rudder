@@ -55,7 +55,7 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
         map(tag("R: WARNING"), |_| "log_warn"),
         // CFEngine stdlib log
         map(tag("R: DEBUG"), |_| "log_warn"),
-        // Untagged non-Rudder reports report, assume info
+        // Untagged non-Rudder report, assume info
         non_rudder_report_begin,
     ))(i)?;
     // Allow colon after any log level as wild reports are not very consistent
@@ -129,7 +129,7 @@ fn multilines(i: &str) -> IResult<&str, Vec<&str>> {
 
 /// take_until separator but handles multiline (date prefix and CRLF ending)
 fn multilines_metadata(i: &str) -> IResult<&str, Vec<&str>> {
-    let (i, res) = many1(simpleline_until_metadata)(i)?;
+    let (i, res) = many0(simpleline_until_metadata)(i)?;
     Ok((i, res))
 }
 
@@ -178,6 +178,14 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     let (i, node_id) = take_until("@#")(i)?;
     let (i, _) = tag("@#")(i)?;
     let (i, msg) = multilines(i)?;
+
+    let key_value = key_value.join("\n");
+    let key_value = if key_value.is_empty() {
+        "None".to_string()
+    } else {
+        key_value
+    };
+
     Ok((
         i,
         Ok(RawReport {
@@ -188,9 +196,14 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
                 node_id: node_id.to_string(),
                 rule_id: rule_id.to_string(),
                 directive_id: directive_id.to_string(),
-                report_id: report_id.to_string(),
+                // When empty, set "0" value as it is what the webapp expects
+                report_id: if report_id.is_empty() {
+                    "0".to_string()
+                } else {
+                    report_id.to_string()
+                },
                 component: component.to_string(),
-                key_value: key_value.join("\n"),
+                key_value,
                 start_datetime,
                 event_type: event_type.to_string(),
                 msg: msg.join("\n"),
@@ -650,7 +663,7 @@ mod tests {
                 logs: vec![],
             }
         );
-        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
         let (i, e) = maybe_report(report).unwrap();
         assert!(e.is_err());
         assert_eq!(
@@ -685,7 +698,7 @@ mod tests {
             maybe_report(report).unwrap().1,
             Err("2018-08-24T15:55:01+00:00 R: @@Common@@broken".to_string())
         );
-        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@multi\r\n2018-08-24T15:55:01+00:00 line@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        let report = "garbage\n2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@@@CRON Daemon@@multi\r\n2018-08-24T15:55:01+00:00 line@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
         let (i, e) = maybe_report(report).unwrap();
         assert!(e.is_err());
         assert_eq!(
