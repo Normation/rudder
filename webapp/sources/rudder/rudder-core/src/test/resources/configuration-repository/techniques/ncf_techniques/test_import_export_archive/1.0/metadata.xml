@@ -1,0 +1,31 @@
+<TECHNIQUE name="test_import_export_archive">
+  <DESCRIPTION></DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>test import export archive</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Toto</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" id="483b4b60-f940-4b65-834a-4d8ddd085c34" name="Command execution">
+      <REPORTKEYS>
+        <VALUE id="483b4b60-f940-4b65-834a-4d8ddd085c34">touch /tmp/toto</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

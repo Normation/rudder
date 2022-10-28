@@ -400,6 +400,20 @@ class MockDirectives(mockTechniques: MockTechniques) {
       true // short desc / policyMode / long desc / prio / enabled / system
     )
 
+    val archiveTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("test_import_export_archive"), TV("1.0")))
+    val archiveDirective = Directive(
+      DirectiveId(DirectiveUid("test_import_export_archive_directive"), GitVersion.DEFAULT_REV),
+      TV("1.0"),
+      Map(),
+      "test_import_export_archive_directive",
+      "",
+      None,
+      "",
+      5,
+      true,
+      false
+    )
+
     // we have one rule with several system technique for root server config
 
     def simpleServerPolicy(name: String) = {
@@ -657,6 +671,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
       (gvdTechnique, gvdDirective1 :: gvdDirective2 :: Nil),
       (ncf1Technique, ncf1Directive :: Nil),
       (pkgTechnique, pkgDirective :: Nil),
+      (archiveTechnique, archiveDirective :: Nil),
       (rpmTechnique, rpmDirective :: Nil)
     )
   }

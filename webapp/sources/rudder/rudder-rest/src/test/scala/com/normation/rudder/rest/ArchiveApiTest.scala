@@ -46,6 +46,9 @@ import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.MockDirectives
+import com.normation.rudder.MockGitConfigRepo
+import com.normation.rudder.MockTechniques
 import com.normation.rudder.apidata.JsonQueryObjects.JQRule
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -55,6 +58,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
+import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import java.io.FileOutputStream
@@ -78,6 +82,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest      = new RestTest(restTestSetUp.liftRules)
+  val mockGitRepo   = new MockGitConfigRepo("")
+
+  val mockTechniques = MockTechniques(mockGitRepo)
+  val mockDirectives = new MockDirectives(mockTechniques)
 
   val testDir = File(s"/tmp/test-rudder-response-content-${DateFormaterService.serialize(DateTime.now())}")
   testDir.createDirectoryIfNotExists(true)
@@ -123,7 +131,6 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   }
 
   // FROM THERE, FEATURE IS ENABLED
-
   "when the feature switch is enabled, request" should {
     "succeed in GET /archives/export" in {
       // feature switch change needs to be at that level and not under "should" directly,
@@ -217,6 +224,66 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
       case err => ko(s"I got an error in test: ${err}")
     }
+  }
+
+  "correctly export and import a directive with a user technique inside" >> {
+    val fileName    = "test_import_export_archive_directive.json"
+    val archiveName = "test_import_export_archive_directive"
+    val zipFile     = testDir / s"${archiveName}.zip"
+
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testGETResponse("/api/archives/export?directives=test_import_export_archive_directive&include=all") {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        (children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(List(fileName))) and
+        (children(testDir / s"${archiveName}/groups").isEmpty must beTrue) and
+        (children(testDir / s"${archiveName}/rules").isEmpty must beTrue) and
+        (children(testDir / s"${archiveName}/techniques").nonEmpty must beTrue)
+
+      case err => ko(s"I got an error in test: ${err}")
+    } and {
+      val tech      = restTestSetUp.mockTechniques.techniqueRepo
+        .get(
+          TechniqueId(
+            TechniqueName("test_import_export_archive"),
+            TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException("test"))
+          )
+        )
+        .getOrElse(throw new IllegalArgumentException("test"))
+      val directive = restTestSetUp.mockDirectives.directiveRepo
+        .getDirective(
+          DirectiveUid("test_import_export_archive_directive")
+        )
+        .runNow
+        .getOrElse(throw new IllegalArgumentException("test"))
+      restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+      restTest.testBinaryPOSTResponse(s"/api/archives/import", "archive", zipFile.name, zipFile.newInputStream.readAllBytes()) {
+        case Full(LiftJsonResponse(res, _, 200)) =>
+          restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
+            case None    => ko(s"No policies were saved")
+            case Some(p) =>
+              (p.techniques(0).technique must beEqualTo(tech)) and
+              (p.directives(0).directive must beEqualTo(directive))
+          }
+
+        case err => ko(s"I got an error in test: ${err}")
+      }
+    }
+  }
+
+  "correctly checks if techniques already exists" >> {
+    val checks    = new CheckArchiveServiceImpl(restTestSetUp.mockTechniques.techniqueRepo)
+    val archive   =
+      restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow.getOrElse(throw new IllegalArgumentException("test"))
+    val techInfos = restTestSetUp.mockTechniques.techniqueRepo.getTechniquesInfo()
+
+    checks.checkTechnique(techInfos, archive.techniques(0)).runNow must beEqualTo(())
   }
 
   "correctly build an archive of one group" >> {

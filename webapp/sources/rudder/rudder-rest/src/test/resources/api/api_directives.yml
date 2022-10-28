@@ -369,6 +369,27 @@ response:
             "tags":[
 
             ]
+          },
+          {
+            "id":"test_import_export_archive_directive",
+            "displayName":"test_import_export_archive_directive",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"test_import_export_archive",
+            "techniqueVersion":"1.0",
+            "parameters":{
+              "section":{
+                "name":"sections",
+                "sections":[]
+              }
+            },
+            "priority":5,
+            "enabled":true,
+            "system":false,
+            "policyMode":"default",
+            "tags":[
+    
+            ]
           }
         ]
       }
@@ -2023,6 +2044,31 @@ response:
                     "id": "technique_with_blocks",
                     "name": "technique with blocks",
                     "directives": []
+                  },
+                  {
+                    "id": "test_import_export_archive",
+                    "name": "test_import_export_archive",
+                    "directives": [
+                      {
+                        "id": "test_import_export_archive_directive",
+                        "displayName": "test_import_export_archive_directive",
+                        "shortDescription": "",
+                        "longDescription": "",
+                        "techniqueName": "test_import_export_archive",
+                        "techniqueVersion": "1.0",
+                        "parameters":{
+                          "section":{
+                            "name":"sections",
+                            "sections":[]
+                          }
+                        },
+                        "priority":5,
+                        "enabled": true,
+                        "system": false,
+                        "policyMode": "default",
+                        "tags": []
+                      }
+                    ]
                   }
                 ]
               },
