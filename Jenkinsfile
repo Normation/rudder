@@ -405,40 +405,6 @@ pipeline {
                         }
                     }
                 }
-                /*stage('language') {
-                    agent {
-                        dockerfile { 
-                            filename 'language/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
-                            // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
-                        }
-                    }
-                    steps {
-                        dir('language') {
-                            dir('repos') {
-                                dir('ncf') {
-                                    git url: 'https://github.com/normation/ncf.git'
-                                }
-                                dir('dsc') {
-                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                }
-                            }
-                            sh script: 'make docs', label: 'language docs'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
-                            }
-                        }
-                    }
-                }*/
             }
         }
     }
