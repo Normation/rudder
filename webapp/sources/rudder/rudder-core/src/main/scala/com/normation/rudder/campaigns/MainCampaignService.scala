@@ -263,12 +263,17 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       .withMillisOfSecond(0)
   }
 
-  def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[(DateTime, DateTime)] = {
+  def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[Option[(DateTime, DateTime)]] = {
     schedule match {
       case OneShot(start, end)        =>
         if (start.isBefore(end)) {
-          (start, end).succeed
+          if (end.isAfter(date)) {
+            Some((start, end)).succeed
+          } else {
+            None.succeed
+          }
         } else {
+
           Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
               .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
         }
@@ -276,7 +281,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
         val startDate = nextDateFromDayTime(date, start)
         val endDate   = nextDateFromDayTime(startDate, end)
 
-        (startDate, endDate).succeed
+        Some((startDate, endDate)).succeed
 
       case MonthlySchedule(position, start, end) =>
         val realHour    = start.realHour
@@ -327,38 +332,51 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
            })
         }
         val endDate     = nextDateFromDayTime(startDate, end)
-        (startDate, endDate).succeed
+        Some((startDate, endDate)).succeed
     }
   }
 
-  def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[CampaignEvent] = {
-    for {
-      nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-      events     <- repo.getWithCriteria(Running.value :: Nil, None, Some(campaign.info.id), None, None, None, None, None, None)
-      _          <- repo.deleteEvent(None, Scheduled.value :: Nil, None, Some(campaign.info.id), None, None)
+  def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]] = {
 
-      lastEventDate = events match {
-                        case Nil => date
-                        case _   =>
-                          val maxEventDate = events.maxBy(_.end.getMillis).start
-                          if (maxEventDate.isAfter(date)) maxEventDate else date
+    campaign.info.status match {
+      case Enabled                      =>
+        for {
+          nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
+          events     <- repo.getWithCriteria(Running.value :: Nil, None, Some(campaign.info.id), None, None, None, None, None, None)
+          _          <- repo.deleteEvent(None, Scheduled.value :: Nil, None, Some(campaign.info.id), None, None)
 
-                      }
-      dates        <- nextCampaignDate(campaign.info.schedule, lastEventDate)
-      (start, end)  = dates
-      newEvent      = CampaignEvent(
-                        CampaignEventId(uuidGen.newUuid),
-                        campaign.info.id,
-                        s" ${campaign.info.name} #${nbOfEvents + 1}",
-                        Scheduled,
-                        start,
-                        end,
-                        campaign.campaignType
-                      )
-      _            <- repo.saveCampaignEvent(newEvent)
-      _            <- queueCampaign(newEvent)
-    } yield {
-      newEvent
+          lastEventDate = events match {
+                            case Nil => date
+                            case _   =>
+                              val maxEventDate = events.maxBy(_.end.getMillis).start
+                              if (maxEventDate.isAfter(date)) maxEventDate else date
+
+                          }
+          dates        <- nextCampaignDate(campaign.info.schedule, lastEventDate)
+          newEvent     <- dates match {
+                            case Some((start, end)) =>
+                              val ev = CampaignEvent(
+                                CampaignEventId(uuidGen.newUuid),
+                                campaign.info.id,
+                                s" ${campaign.info.name} #${nbOfEvents + 1}",
+                                Scheduled,
+                                start,
+                                end,
+                                campaign.campaignType
+                              )
+                              for {
+                                _ <- repo.saveCampaignEvent(ev)
+                                _ <- queueCampaign(ev)
+                              } yield {
+                                Some(ev)
+                              }
+                            case None               => None.succeed
+                          }
+
+        } yield {
+          newEvent
+        }
+      case Disabled(_) | Archived(_, _) => None.succeed
     }
   }
 
@@ -373,10 +391,12 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
           _                <- s.queue.takeAll // empty queue, we will enqueue all existing events again
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.debug("queued events, check campaigns")
-          campaigns        <- campaignRepo.getAll()
+          allCampaigns     <- campaignRepo.getAll()
+          campaigns         = allCampaigns.filter(_.info.status == Enabled)
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
-          newEvents        <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))
+          optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))
+          newEvents         = optNewEvents.collect { case Some(ev) => ev }
           _                <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
           _                <- ZIO.foreach(newEvents)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.info(s"Campaign Scheduler initialized with ${alreadyScheduled.size + newEvents.size} events")
