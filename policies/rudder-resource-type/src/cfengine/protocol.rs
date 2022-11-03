@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn it_parses_validate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","sensitive": false,"backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -280,6 +280,7 @@ mod tests {
             backup_dir: "/backup".into(),
             rudder_resource_protocol: "0".into(),
             policy_mode: PolicyMode::Enforce,
+            sensitive: false,
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -301,7 +302,7 @@ mod tests {
 
     #[test]
     fn it_parses_evaluate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_resource_protocol": "0","temporary_dir": "","sensitive": false,"backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -314,6 +315,7 @@ mod tests {
             backup_dir: "/backup".into(),
             rudder_resource_protocol: "0".into(),
             policy_mode: PolicyMode::Enforce,
+            sensitive: false,
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,

@@ -87,3 +87,23 @@ fn it_check_correct_mini_jinja() {
     let output = read_to_string(&test_path).unwrap();
     assert_eq!("Hello World!", output);
 }
+
+#[test]
+fn it_check_incorrect_mini_jinja() {
+    let root_dir = tempdir().unwrap();
+    let test_path = root_dir.path().join("output");
+    fs::write(&test_path, "Hello!").unwrap();
+
+    unix::test(
+        Path::new(BIN),
+        &format!(
+            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
+            test_path.display(),
+            "mini_jinja"
+        ),
+        PolicyMode::Audit,
+        Ok(Outcome::success()),
+    );
+    let output = read_to_string(&test_path).unwrap();
+    assert_eq!("Hello World!", output);
+}

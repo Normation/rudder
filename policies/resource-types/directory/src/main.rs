@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2021 Normation SAS
+// SPDX-FileCopyrightText&: 2021 Normation SAS
 
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, Error};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use rudder_resource_type::{
     parameters::Parameters, run, CheckApplyResult, Outcome, PolicyMode, ResourceType0,
-    ResourceTypeMetadata, ValidateResult,
+    ResourceTypeMetadata, StateResult, ValidateResult,
 };
 
 // Configuration
@@ -24,6 +27,27 @@ pub enum State {
 impl Default for State {
     fn default() -> Self {
         Self::Present
+    }
+}
+
+impl TryFrom<&Path> for State {
+    type Error = Error;
+
+    fn try_from(value: &Path) -> Result<Self, Self::Error> {
+        let res = if value.exists() {
+            if value.is_dir() {
+                State::Present
+            } else {
+                bail!(
+                    "{} is not a directory but a {:?}",
+                    value.display(),
+                    value.metadata()?.file_type()
+                )
+            }
+        } else {
+            State::Absent
+        };
+        Ok(res)
     }
 }
 
@@ -62,11 +86,7 @@ impl ResourceType0 for Directory {
         let directory = parameters.path.as_path();
         let dir = directory.display();
 
-        let current_state = if directory.exists() {
-            State::Present
-        } else {
-            State::Absent
-        };
+        let current_state: State = directory.try_into()?;
 
         let outcome = match (mode, parameters.state, current_state) {
             // Ok
@@ -90,6 +110,18 @@ impl ResourceType0 for Directory {
             _ => unreachable!(),
         };
         Ok(outcome)
+    }
+
+    fn state(&self, parameters: &Parameters) -> StateResult {
+        assert!(self.validate(parameters).is_ok());
+        let parameters: DirectoryParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let directory = parameters.path.as_path();
+
+        let current_state: State = directory.try_into()?;
+        let value = serde_json::to_value(current_state)?;
+
+        Ok(Some(value))
     }
 }
 

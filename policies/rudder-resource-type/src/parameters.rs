@@ -20,6 +20,9 @@ pub struct Parameters {
     pub backup_dir: PathBuf,
     /// Unique node identifier
     pub node_id: Option<String>,
+    /// Report confidentiality mode
+    #[serde(default)]
+    pub sensitive: bool,
     /// Policy mode
     ///
     /// Default is enforce.

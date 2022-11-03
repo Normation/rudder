@@ -4,11 +4,13 @@
 //! Agent-side implementation of base resource_type types
 
 use std::fmt;
+use std::fmt::Write;
 use std::process::exit;
 
 use anyhow::{Error, Result};
 use gumdrop::Options;
 use serde::{Deserialize, Serialize};
+use similar::{ChangeTag, TextDiff};
 
 use crate::{cfengine::CfengineRunner, parameters::Parameters};
 
@@ -111,6 +113,15 @@ pub trait ResourceType0 {
     /// either parse it completely into structs or leave some generic parts (arbitrary key value, etc.).
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult;
 
+    /// Return the current state of the resource in a structured way
+    ///
+    /// A resource type that does not model a state should return `None`.
+    //
+    // FIXME: what are the parameters? the subset of parameters that define the resource. Does the output include these?
+    fn state(&self, _parameters: &Parameters) -> StateResult {
+        Ok(None)
+    }
+
     /// Run before normal executor termination,
     ///
     /// can be used for clean up tasks.
@@ -145,6 +156,7 @@ impl Default for PolicyMode {
     }
 }
 
+pub type StateResult = Result<Option<serde_json::Value>>;
 pub type ValidateResult = Result<()>;
 
 /// We don't map detailed Rudder types here (`compliance_` vs. `result_`, _na, etc.) for two reasons:
@@ -316,4 +328,54 @@ pub mod backup {
             assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_2022_05_30T20_41_45_00_00_cf_before_edit");
         }
     }
+}
+
+struct Line(Option<usize>);
+
+impl fmt::Display for Line {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.0 {
+            None => write!(f, "    "),
+            Some(idx) => write!(f, "{:<4}", idx + 1),
+        }
+    }
+}
+
+// https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
+pub fn diff(old: &str, new: &str) -> String {
+    let mut result = String::new();
+    let diff = TextDiff::from_lines(old, new);
+    for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
+        if idx > 0 {
+            write!(result, "{:-^1$}", "-", 80).unwrap();
+        }
+        for op in group {
+            for change in diff.iter_inline_changes(op) {
+                let sign = match change.tag() {
+                    ChangeTag::Delete => "-",
+                    ChangeTag::Insert => "+",
+                    ChangeTag::Equal => " ",
+                };
+                writeln!(
+                    result,
+                    "{}{} |{}",
+                    Line(change.old_index()),
+                    Line(change.new_index()),
+                    sign,
+                )
+                .unwrap();
+                for (emphasized, value) in change.iter_strings_lossy() {
+                    if emphasized {
+                        writeln!(result, "{}", value).unwrap();
+                    } else {
+                        writeln!(result, "{}", value).unwrap();
+                    }
+                }
+                if change.missing_newline() {
+                    writeln!(result).unwrap();
+                }
+            }
+        }
+    }
+    result
 }
