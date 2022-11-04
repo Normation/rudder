@@ -515,14 +515,15 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       )
     }
 
-    "parse node properties 'default:string' with unterminate quote lead to understandable message" in {
+    "parse node properties 'default:string' with unterminated quote lead to understandable message" in {
       val s = """some text and ${node.properties[datacenter]|default= "missing end quote}  and some more text"""
-      PropertyParser.parse(s) must beLeft(
-        beEqualTo(
-          Unexpected(
-            """Error when parsing value (without ''): 'some text and ${node.properties[datacenter]|default= "missing end quote}  and some more text'. Error message is: Expected (string | emptyString | variable):1:54, found "\"missing e""""
-          )
+      val err: RudderError = {
+        Unexpected(
+          """Error when parsing value (without ''): 'some text and ${node.properties[datacenter]|default= "missing end quote}  and some more text'. Error message is: Expected (string | emptyString | variable):1:54, found "\"missing e""""
         )
+      }
+      PropertyParser.parse(s) must beLeft(
+        beEqualTo(err)
       )
     }
 
