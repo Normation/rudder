@@ -1,7 +1,7 @@
 module ApiCalls exposing (..)
 
 import DataTypes exposing (Model, Msg(..), AccountSettings, MetricsState)
-import Http exposing (emptyBody, expectJson, jsonBody, request, send)
+import Http exposing (emptyBody, expectJson, jsonBody, request)
 import Json.Encode
 import JsonDecoder exposing (decodeGetAccountSettings, decodeGetMetricsSettings, decodeSetupDone)
 import JsonEncoder exposing (encodeAccountSettings, encodeMetricsSettings)
@@ -12,19 +12,15 @@ getUrl m url =
 
 getAccountSettings : Model -> Cmd Msg
 getAccountSettings model =
-  let
-    req =
-      request
-        { method          = "GET"
-        , headers         = []
-        , url             = getUrl model "/plugins/settings"
-        , body            = emptyBody
-        , expect          = expectJson decodeGetAccountSettings
-        , timeout         = Nothing
-        , withCredentials = False
-        }
-  in
-    send GetAccountSettings req
+  request
+    { method          = "GET"
+    , headers         = []
+    , url             = getUrl model "/plugins/settings"
+    , body            = emptyBody
+    , expect          = expectJson GetAccountSettings decodeGetAccountSettings
+    , timeout         = Nothing
+    , tracker         = Nothing
+    }
 
 {-
 getMetricsSettings : Model -> Cmd Msg
@@ -45,19 +41,16 @@ getMetricsSettings model =
 -}
 postAccountSettings : Model -> AccountSettings -> Cmd Msg
 postAccountSettings model accountSettings =
-  let
-    req =
-      request
-        { method          = "POST"
-        , headers         = []
-        , url             = getUrl model "/plugins/settings"
-        , body            = jsonBody (encodeAccountSettings accountSettings)
-        , expect          = expectJson decodeGetAccountSettings
-        , timeout         = Nothing
-        , withCredentials = False
-        }
-  in
-    send PostAccountSettings req
+  request
+    { method          = "POST"
+    , headers         = []
+    , url             = getUrl model "/plugins/settings"
+    , body            = jsonBody (encodeAccountSettings accountSettings)
+    , expect          = expectJson PostAccountSettings decodeGetAccountSettings
+    , timeout         = Nothing
+    , tracker         = Nothing
+    }
+
 {-
 postMetricsSettings : Model -> MetricsState -> Cmd Msg
 postMetricsSettings model metrics =
@@ -78,16 +71,12 @@ postMetricsSettings model metrics =
 
 setupDone : Model -> Bool -> Cmd Msg
 setupDone model res =
-  let
-    req =
-      request
-        { method          = "POST"
-        , headers         = []
-        , url             = getUrl model "/settings/rudder_setup_done"
-        , body            = jsonBody (Json.Encode.object [ ("value", Json.Encode.bool res)])
-        , expect          = expectJson decodeSetupDone
-        , timeout         = Nothing
-        , withCredentials = False
-        }
-  in
-    send SetupDone req
+  request
+    { method          = "POST"
+    , headers         = []
+    , url             = getUrl model "/settings/rudder_setup_done"
+    , body            = jsonBody (Json.Encode.object [ ("value", Json.Encode.bool res)])
+    , expect          = expectJson SetupDone decodeSetupDone
+    , timeout         = Nothing
+    , tracker         = Nothing
+    }
