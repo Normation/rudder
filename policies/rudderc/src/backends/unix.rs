@@ -10,7 +10,7 @@ use crate::{
         cfengine::{bundle::Bundle, promise::Promise},
         ncf::technique::Technique,
     },
-    ir::{self, condition::Condition, resource::ResourceKind},
+    ir::{self, condition::Condition, technique::ResourceKind},
 };
 
 // TODO support macros at the policy or bundle level

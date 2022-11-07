@@ -1,0 +1,47 @@
+<TECHNIQUE name="Configure NTP">
+  <DESCRIPTION>This is a description</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>package_present</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>Package-Present</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf">
+        <INCLUDED>true</INCLUDED>
+        <OUTPATH>CIS_5_OS_Services/1.0/resources/rudder-square.png</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Variable string match" reporting="weighted" component="true" multivalued="true">
+      <SECTION name="Variable dict" id="f6810347-f367-4465-96be-3a50860f4cb1" component="true" multivalued="true">
+        <VALUE id="5dbfb761-f15f-40b5-9f75-b3d88b81483e">
+          <VALUE>key</VALUE>
+        </VALUE>
+      </SECTION>
+      <SECTION name="Technique parameters">
+        <INPUT>
+          <NAME>server</NAME>
+          <DESCRIPTION>My parameter</DESCRIPTION>
+          <LONGDESCRIPTION>My interesting parameter</LONGDESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>string</TYPE>
+            <MAYBEEMPTY>false</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

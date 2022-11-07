@@ -1,0 +1,33 @@
+<TECHNIQUE name="NTP">
+  <DESCRIPTION/>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>min</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Min</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Package present" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
+      <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">
+        <VALUE>htop</VALUE>
+      </VALUE>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

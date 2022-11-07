@@ -287,7 +287,7 @@ pub mod backup {
         }
 
         pub fn backup_file_timestamp(self, source: &Path, timestamp: i64) -> PathBuf {
-            let now: DateTime<Utc> = Utc.timestamp(timestamp, 0);
+            let now: DateTime<Utc> = Utc.timestamp_opt(timestamp, 0).unwrap();
             let file = format!(
                 "{}_{}_{}_{}",
                 source.to_string_lossy(),

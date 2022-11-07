@@ -33,7 +33,7 @@ impl Target {
             Self::Unix => "cf",
             Self::Windows => "ps1",
             Self::Docs => "md",
-            Self::Metadata => "json",
+            Self::Metadata => "xml",
         }
     }
 }
@@ -98,6 +98,25 @@ impl<'de> Deserialize<'de> for Target {
 pub enum ParameterType {
     String,
     HereString,
+}
+
+impl fmt::Display for ParameterType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::String => "string",
+                Self::HereString => "here-string",
+            }
+        )
+    }
+}
+
+impl Default for ParameterType {
+    fn default() -> Self {
+        Self::String
+    }
 }
 
 impl FromStr for ParameterType {

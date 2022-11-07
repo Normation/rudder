@@ -10,9 +10,11 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 anyhow = "1"
+askama = "0.11.1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
-quick-xml = { version = "0.26", features = ["serialize"] }
+# to get pretty-printing serializer, we'll switch to 0.27 when released
+quick-xml = { git = "https://github.com/tafia/quick-xml", rev = "a54f6c2", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.10"
 serde = { version = "1", features = ["derive"] }

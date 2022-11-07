@@ -11,13 +11,12 @@ use std::convert::TryFrom;
 
 use anyhow::{bail, Error};
 
-use crate::backends::unix::cfengine::bundle::Bundle;
 use crate::{
-    backends::unix::cfengine::{promise::Promise, quoted},
+    backends::unix::cfengine::{bundle::Bundle, promise::Promise, quoted},
     frontends::methods::method::Agent,
     ir::{
         condition::Condition,
-        resource::{LeafReporting, Method},
+        technique::{LeafReporting, Method},
     },
 };
 

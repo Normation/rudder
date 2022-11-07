@@ -17,7 +17,7 @@ use crate::{
         methods::{method::MethodInfo, reader::read_lib},
         yaml,
     },
-    ir::resource::{Method, ResourceKind},
+    ir::technique::{Method, ResourceKind},
     logs::ok_output,
 };
 

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt, str::FromStr};
 
 use anyhow::{bail, Error};
+use rudder_commons::ParameterType;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
 
@@ -84,16 +85,62 @@ pub struct Technique {
     pub parameters: Vec<Parameter>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub files: Vec<PathBuf>,
+    // Don't use path, let's assume UTF-8 everywhere
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parameter {
-    id: Id,
-    name: String,
-    description: Option<String>,
-    // FIXME represent as constraint?
-    may_be_empty: bool,
+    pub id: Id,
+    pub name: String,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub _type: ParameterType,
+    // TODO: one day, merge with constraint on methods parameters
+    #[serde(default = "Parameter::may_be_empty_default")]
+    pub may_be_empty: bool,
+}
+
+impl Parameter {
+    fn may_be_empty_default() -> bool {
+        false
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum ResourceKind {
+    Block(Block),
+    Resource(Resource),
+    Method(Method),
+}
+
+// Same as untagged deserialization, but with improved error messages
+impl<'de> Deserialize<'de> for ResourceKind {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let parsed = Value::deserialize(deserializer)?;
+        let Some(map) = parsed.as_mapping() else {
+            return Err(de::Error::custom("Resources should be a map"))
+        };
+        // Pre-guess the type to provide relevant error messages in case of incorrect fields
+        match (map.get("resources"), map.get("method"), map.get("resource")) {
+            (Some(_), _, _) => Ok(ResourceKind::Block(
+                Block::deserialize(parsed).map_err(de::Error::custom)?,
+            )),
+            (_, Some(_), _) => Ok(ResourceKind::Method(
+                Method::deserialize(parsed).map_err(de::Error::custom)?,
+            )),
+            (_, _, Some(_)) => Ok(ResourceKind::Resource(
+                Resource::deserialize(parsed).map_err(de::Error::custom)?,
+            )),
+            (None, None, None) => Err(de::Error::custom("Missing required parameters in resource")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -105,14 +152,6 @@ pub struct Block {
     pub id: Id,
     #[serde(default)]
     pub reporting: BlockReporting,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ResourceKind {
-    Block(Block),
-    Resource(Resource),
-    Method(Method),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -157,6 +196,22 @@ pub enum BlockReporting {
     Weighted,
     #[serde(rename = "disabled")]
     Disabled,
+}
+
+impl fmt::Display for BlockReporting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Disabled => "disabled".to_string(),
+                Self::Weighted => "weighted".to_string(),
+                Self::WorstCaseWeightedOne => "worst-case-weighted-one".to_string(),
+                Self::WorstCaseWeightedSum => "worst-case-weighted-sum".to_string(),
+                Self::Focus(s) => format!("focus({s})"),
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

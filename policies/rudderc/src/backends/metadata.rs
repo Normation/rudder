@@ -6,17 +6,18 @@
 //! Contains information about expected reports for the Rudder app
 //!
 //! WARNING: We do not implement the format exhaustively but only the parts we need to
-//! generate our metadata file. There are parts that are probably optional, and others missing.
+//! generate our metadata file. There are parts that are could be made optional, and others are missing.
 
 use anyhow::Result;
-use quick_xml::{se::Serializer, Writer};
+use quick_xml::se::Serializer;
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
 
+use crate::backends::Windows;
 use crate::{
     backends::Backend,
     ir,
-    ir::resource::{Id, ResourceKind},
+    ir::technique::{Id, ResourceKind},
 };
 
 pub struct Metadata;
@@ -30,64 +31,85 @@ impl Backend for Metadata {
 
 impl Metadata {
     fn xml(technique: Technique) -> Result<String> {
-        let mut buffer = Vec::new();
-        // FIXME indent does not seem to work
-        let writer = Writer::new_with_indent(&mut buffer, b' ', 2);
-        let mut ser = Serializer::with_root(writer, Some("TECHNIQUE"));
-        technique.serialize(&mut ser)?;
-        Ok(String::from_utf8(buffer.clone())?)
+        let mut ser = Serializer::with_root(String::new(), Some("TECHNIQUE")).unwrap();
+        ser.indent(' ', 2);
+        Ok(technique.serialize(ser)?)
     }
 }
 
 impl From<ir::Technique> for Technique {
     fn from(src: ir::Technique) -> Self {
-        let sections: Vec<Section> = Section::from(src.resources.clone());
-        let agents = ALL_TARGETS
+        let agent = ALL_TARGETS
             .iter()
-            .map(|t| Agent::from(src.resources.clone(), *t))
+            .map(|t| Agent::from(src.id.to_string(), *t, src.files.clone()))
             .collect();
+        let multi_instance = !src.parameters.is_empty();
+        let policy_generation = if src.parameters.is_empty() {
+            // merged for compatibility?
+            "separated"
+        } else {
+            "separated-with-parameters"
+        };
+
+        // First parse block et reports sections
+        let mut sections: Vec<SectionType> = SectionType::from(src.resources.clone());
+        // Now let's add INPUT sections
+        let input: Vec<Input> = src
+            .parameters
+            .into_iter()
+            .map(|p| Input {
+                name: p.id.to_string().to_uppercase(),
+                description: Some(p.name),
+                long_description: p.description,
+                constraint: Constraint {
+                    _type: "textarea".to_string(),
+                    may_be_empty: p.may_be_empty,
+                },
+            })
+            .collect();
+        if !input.is_empty() {
+            let section = SectionInput {
+                name: "Technique parameters".to_string(),
+                input,
+            };
+            sections.push(SectionType::SectionInput(section));
+        }
 
         Technique {
             name: src.name,
-            description: src.description.map(|d| Description { value: d }),
+            description: src.description,
             // false is for legacy techniques, we only use the modern reporting
-            use_method_reporting: UseMethodReporting { value: true },
-            agent: agents,
+            use_method_reporting: true,
+            agent,
+            multi_instance,
+            policy_generation: policy_generation.to_string(),
             sections: Sections { section: sections },
         }
     }
 }
 
-// For examples of serde serialization in quick-xml:
-// https://github.com/tafia/quick-xml/blob/master/tests/serde-se.rs
-
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct Technique {
+    #[serde(rename = "@name")]
     name: String,
-    description: Option<Description>,
-    #[serde(rename = "usemethodreporting")]
-    use_method_reporting: UseMethodReporting,
+    description: Option<String>,
+    #[serde(rename = "USEMETHODREPORTING")]
+    use_method_reporting: bool,
+    #[serde(rename = "MULTIINSTANCE")]
+    multi_instance: bool,
+    #[serde(rename = "POLICYGENERATION")]
+    policy_generation: String,
     agent: Vec<Agent>,
     sections: Sections,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
-struct Description {
-    #[serde(rename = "$value")]
-    value: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-struct UseMethodReporting {
-    #[serde(rename = "$value")]
-    value: bool,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct Agent {
-    #[serde(rename = "type")]
+    #[serde(rename = "@type")]
     _type: String,
-    bundles: Bundles,
+    bundles: Bundle,
     files: Files,
 }
 
@@ -101,125 +123,176 @@ impl Agent {
         }
     }
 
-    fn from(_resources: Vec<ResourceKind>, target: Target) -> Agent {
+    fn from(technique_name: String, target: Target, attached_files: Vec<String>) -> Agent {
+        let name = match target {
+            Target::Unix => technique_name,
+            Target::Windows => Windows::technique_name(&technique_name),
+            _ => unreachable!(),
+        };
+
+        let mut files = vec![File {
+            name: format!("technique.{}", target.extension()),
+            included: true,
+            out_path: None,
+        }];
+        // FIXME: add /resources/ prefix?
+        for file in attached_files {
+            files.push(File {
+                name: file.clone(),
+                included: false,
+                out_path: Some(file),
+            })
+        }
+
         Agent {
             _type: Self::type_from_target(target).to_string(),
-            // FIXME we need bundle names from methods metadata
-            bundles: Bundles {
-                name: vec![Name {
-                    value: "package_present".to_string(),
-                }],
-            },
-            files: Files { file: vec![] },
+            bundles: Bundle { name },
+            files: Files { file: files },
         }
     }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct Files {
     file: Vec<File>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct File {
+    #[serde(rename = "@name")]
     name: String,
-    included: Included,
-    #[serde(rename = "outpath")]
-    out_path: Option<OutPath>,
+    included: bool,
+    #[serde(rename = "OUTPATH")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    out_path: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
-struct Included {
-    #[serde(rename = "$value")]
-    value: bool,
+#[serde(rename_all = "UPPERCASE")]
+struct Bundle {
+    name: String,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
-struct OutPath {
-    #[serde(rename = "$value")]
-    value: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-struct Bundles {
-    name: Vec<Name>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-struct Name {
-    #[serde(rename = "$value")]
-    value: String,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct Sections {
-    section: Vec<Section>,
+    section: Vec<SectionType>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(untagged)]
+enum SectionType {
+    Section(Section),
+    SectionBlock(SectionBlock),
+    SectionInput(SectionInput),
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct Section {
+    #[serde(rename = "@name")]
     name: String,
+    #[serde(rename = "@id")]
     id: Id,
+    #[serde(rename = "@component")]
     component: bool,
+    #[serde(rename = "@multivalued")]
     multivalued: bool,
     value: Vec<ReportKey>,
-    section: Vec<Section>,
 }
 
-impl Section {
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct SectionBlock {
+    #[serde(rename = "@name")]
+    name: String,
+    #[serde(rename = "@reporting")]
+    reporting: String,
+    #[serde(rename = "@component")]
+    component: bool,
+    #[serde(rename = "@multivalued")]
+    multivalued: bool,
+    section: Vec<SectionType>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct SectionInput {
+    #[serde(rename = "@name")]
+    name: String,
+    input: Vec<Input>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct Input {
+    // actually, the id
+    name: String,
+    // actually, the name
+    description: Option<String>,
+    #[serde(rename = "LONGDESCRIPTION")]
+    // actually, the description
+    long_description: Option<String>,
+    constraint: Constraint,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct Constraint {
+    #[serde(rename = "TYPE")]
+    _type: String,
+    #[serde(rename = "MAYBEEMPTY")]
+    may_be_empty: bool,
+}
+
+impl SectionType {
     fn from(resources: Vec<ResourceKind>) -> Vec<Self> {
         // recursive function to handle blocks. Block recursion levels shouldn't be a
         // stack overflow threat.
         resources
             .into_iter()
             .map(|r| match r {
-                ResourceKind::Block(b) => Section {
+                ResourceKind::Block(b) => SectionType::SectionBlock(SectionBlock {
                     name: b.name,
-                    id: b.id,
                     component: true,
                     multivalued: true,
-                    value: vec![],
-                    section: Section::from(b.resources),
-                },
-                ResourceKind::Method(m) => Section {
+                    section: SectionType::from(b.resources),
+                    reporting: b.reporting.to_string(),
+                }),
+                ResourceKind::Method(m) => SectionType::Section(Section {
                     name: m.name,
                     id: m.id.clone(),
                     component: true,
                     multivalued: true,
-                    // FIXME ReportKey values
                     value: vec![ReportKey {
-                        value: "key".to_string(),
+                        // the class_parameter value
+                        value: m
+                            .params
+                            .get(&m.info.unwrap().class_parameter)
+                            .unwrap()
+                            .clone(),
                         id: m.id,
                     }],
-                    section: vec![],
-                },
-                ResourceKind::Resource(r) => Section {
-                    name: r.name,
-                    id: r.id.clone(),
-                    component: true,
-                    multivalued: true,
-                    // FIXME ReportKey values
-                    value: vec![ReportKey {
-                        value: "key".to_string(),
-                        id: r.id,
-                    }],
-                    section: vec![],
-                },
+                }),
+                ResourceKind::Resource(_r) => todo!(),
             })
             .collect()
     }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct ReportKey {
-    #[serde(rename = "$value")]
     value: String,
+    #[serde(rename = "@id")]
     id: Id,
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{fs::read_to_string, str::FromStr};
 
     use pretty_assertions::assert_eq;
 
@@ -227,76 +300,84 @@ mod tests {
 
     #[test]
     fn it_computes_metadata_xml() {
-        let t =   Technique {
-            name: "Configure NTP".into(),
-            description: Some(Description {
-                value: "This is a description".into(),
-            }),
-            use_method_reporting: UseMethodReporting {
-                value: true,
-            },
-            agent: vec![
-                Agent {
-                    _type: "dsc".to_string(),
-                    bundles: Bundles {
-                        name: vec![Name {
-                            value: "package_present".to_string(),
-                        }],
-                    },
-                    files: Files {
-                        file: vec![
-                            File { name: "RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.ps1".to_string(),
-                                included: Included {value: true},
-                                out_path: None,}
-                        ],
-                    },
-                },
-                Agent {
-                    _type: "cfengine-community,cfengine-nova".to_string(),
-                    bundles: Bundles {
-                        name: vec![Name {
-                            value: "Package-Present".to_string(),
-                        }],
-                    },
-                    files: Files {
-                        file: vec![
-                            File {
-                                name: "RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf".to_string(),
-                                included: Included {value: true},
-                                out_path: Some(
-                                    OutPath {
-                                        value: "CIS_5_OS_Services/1.0/resources/rudder-square.png".to_string()
-                                    }
-                                )
-                            }
-                        ],
-                    },
-                },
-            ],
-            sections: Sections {
-                section: vec![Section {
-                    name: "Variable string match".to_string(),
-                    id: Id::from_str("1e65ca00-6c33-4455-94b1-3a3c9f6eb36f").unwrap(),
-                    component: true,
-                    multivalued: true,
-                    value: vec![ReportKey {
-                        value: "key".to_string(), id: Id::from_str("5dbfb761-f15f-40b5-9f75-b3d88b81483e").unwrap(),
-                    }],
-                    section: vec![Section {
+        let sections = Sections {
+            section: vec![SectionType::SectionBlock(SectionBlock {
+                name: "Variable string match".to_string(),
+                component: true,
+                multivalued: true,
+                reporting: "weighted".to_string(),
+                section: vec![
+                    SectionType::Section(Section {
                         name: "Variable dict".to_string(),
                         id: Id::from_str("f6810347-f367-4465-96be-3a50860f4cb1").unwrap(),
                         component: true,
                         multivalued: true,
-                        value: vec![],
-                        section: vec![],
-                    }],
-                }],
+                        value: vec![ReportKey {
+                            value: "key".to_string(),
+                            id: Id::from_str("5dbfb761-f15f-40b5-9f75-b3d88b81483e").unwrap(),
+                        }],
+                    }),
+                    SectionType::SectionInput(SectionInput {
+                        name: "Technique parameters".to_string(),
+                        input: vec![Input {
+                            name: "server".to_string(),
+                            description: Some("My parameter".to_string()),
+                            long_description: Some("My interesting parameter".to_string()),
+                            constraint: Constraint {
+                                _type: "string".to_string(),
+                                may_be_empty: false,
+                            },
+                        }],
+                    }),
+                ],
+            })],
+        };
+        let agent = vec![
+            Agent {
+                _type: "dsc".to_string(),
+                bundles: Bundle {
+                    name: "package_present".to_string(),
+                },
+                files: Files {
+                    file: vec![
+                        File {
+                            name: "RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.ps1".to_string(),
+                            included: true,
+                            out_path: None,
+                        }
+                    ],
+                },
             },
+            Agent {
+                _type: "cfengine-community,cfengine-nova".to_string(),
+                bundles: Bundle {
+                    name: "Package-Present".to_string(),
+                },
+                files: Files {
+                    file: vec![
+                        File {
+                            name: "RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf".to_string(),
+                            included: true,
+                            out_path: Some("CIS_5_OS_Services/1.0/resources/rudder-square.png".to_string()
+                            ),
+                        }
+                    ],
+                },
+            },
+        ];
+
+        let t = Technique {
+            name: "Configure NTP".into(),
+            description: Some("This is a description".into()),
+            use_method_reporting: true,
+            multi_instance: true,
+            policy_generation: "separated-with-parameters".to_string(),
+            agent,
+            sections,
         };
         assert_eq!(
-            Metadata::xml(t).unwrap(),
-            r#"<TECHNIQUE name="Configure NTP"><description>This is a description</description><usemethodreporting>true</usemethodreporting><agent type="dsc"><bundles><name>package_present</name></bundles><files><file name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.ps1"><included>true</included></file></files></agent><agent type="cfengine-community,cfengine-nova"><bundles><name>Package-Present</name></bundles><files><file name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf"><included>true</included><outpath>CIS_5_OS_Services/1.0/resources/rudder-square.png</outpath></file></files></agent><sections><section name="Variable string match" id="1e65ca00-6c33-4455-94b1-3a3c9f6eb36f" component="true" multivalued="true"><value id="5dbfb761-f15f-40b5-9f75-b3d88b81483e">key</value><section name="Variable dict" id="f6810347-f367-4465-96be-3a50860f4cb1" component="true" multivalued="true"/></section></sections>
-</TECHNIQUE>"#
+            read_to_string("tests/metadata/serialized.xml").unwrap(),
+            Metadata::xml(t).unwrap()
         );
     }
 }

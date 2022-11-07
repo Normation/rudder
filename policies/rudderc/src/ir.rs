@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-pub use resource::Technique;
+pub use technique::Technique;
 
 pub mod condition;
-pub mod resource;
+pub mod technique;
 
 // we probably need a CFEngine ${} parser
 // it would be good to be able to warn on undefined variables

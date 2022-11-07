@@ -3,6 +3,7 @@
 
 //! Target != Backend, we could have different target compiled by the same backend
 
+use crate::backends::metadata::Metadata;
 use anyhow::Result;
 use rudder_commons::Target;
 
@@ -27,10 +28,11 @@ pub fn backend(target: Target) -> Box<dyn Backend> {
     match target {
         Target::Unix => Box::new(Unix::new()),
         Target::Windows => Box::new(Windows::new()),
-        Target::Docs | Target::Metadata => unreachable!(),
+        Target::Metadata => Box::new(Metadata),
+        Target::Docs => unreachable!(),
     }
 }
 
 pub fn metadata_backend() -> impl Backend {
-    metadata::Metadata
+    Metadata
 }

@@ -1,0 +1,59 @@
+<TECHNIQUE name="NTP">
+  <DESCRIPTION/>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>ntp</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="file.cfg">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>file.cfg</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Ntp</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="file.cfg">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>file.cfg</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Ensure correct ntp configuration" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
+      <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">
+        <VALUE>htop</VALUE>
+      </VALUE>
+    </SECTION>
+    <SECTION name="my block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+      <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
+        <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
+          <VALUE>ntp</VALUE>
+        </VALUE>
+      </SECTION>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
+        <DESCRIPTION>server</DESCRIPTION>
+        <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

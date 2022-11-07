@@ -15,8 +15,9 @@ use test_generator::test_resources;
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.
 #[test_resources("tests/cases/*/*.yml")]
 fn compile(filename: &str) {
-    compile_file(Path::new(filename), Target::Unix);
-    //compile_file(Path::new(filename), &Format::DSC);
+    for t in [Target::Unix, Target::Windows, Target::Metadata] {
+        compile_file(Path::new(filename), t);
+    }
 }
 
 /// Compile the given source file with the given target. Panics if compilation fails.
