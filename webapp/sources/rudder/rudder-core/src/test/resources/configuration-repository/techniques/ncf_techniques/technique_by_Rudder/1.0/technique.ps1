@@ -6,7 +6,7 @@
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
       [parameter(Mandatory=$true)]
-      [string]$TechniqueParameter,
+      [string]$technique_parameter,
       [switch]$auditOnly
   )
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
