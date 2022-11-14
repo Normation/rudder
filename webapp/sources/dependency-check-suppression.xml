@@ -45,24 +45,18 @@
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: postgresql-42.2.25.jar 
+   file name: spring-core-5.3.23.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.postgresql/postgresql@42.2.25$</packageUrl>
-   <cve>CVE-2022-26520</cve>
-</suppress>
-<suppress>
-   <notes><![CDATA[
-   file name: spring-core-5.3.20.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.3.20$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.3.23$</packageUrl>
    <cve>CVE-2016-1000027</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: spring-security-core-5.6.5.jar
+   file name: spring-security-core-5.7.5.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.6.5$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.7.5$</packageUrl>
    <cve>CVE-2016-1000027</cve>
+   <cve>CVE-2020-5408</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
@@ -77,12 +71,5 @@
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
    <cpe>cpe:/a:vmware:spring_framework</cpe>
-</suppress>
-<suppress>
-   <notes><![CDATA[
-   file name: postgresql-42.2.25.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.postgresql/postgresql@.*$</packageUrl>
-   <cve>CVE-2022-31197</cve>
 </suppress>
 </suppressions>
