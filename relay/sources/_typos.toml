@@ -5,3 +5,5 @@ ede = "ede"
 passin = "passin"
 # crate name
 flate = "flate"
+# html...
+thead = "thead"

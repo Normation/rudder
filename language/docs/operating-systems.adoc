@@ -46,7 +46,7 @@ Several degrees of accuracy can be chosen when defining a condition:
 
 Yet any _sub-enum_ is a standalone, meaning it is directly defined on its own: `ubuntu_20`.
 
-NOTE: The fact `ubuntu_20` is part of `ubuntu` -> `linux` -> `system` is only important for accuracy sake: `if linux` evaluates to true on `ubunutu_20`
+NOTE: The fact `ubuntu_20` is part of `ubuntu` -> `linux` -> `system` is only important for accuracy sake: `if linux` evaluates to true on `ubuntu_20`
 
 === Example with `ubuntu_20_10` as the targeted OS
 

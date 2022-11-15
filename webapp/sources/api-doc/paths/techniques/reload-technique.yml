@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2022 Normation SAS
 post:
   summary: Reload techniques
-  description: Reload all techniques metada from file system
+  description: Reload all techniques metadata from file system
   operationId: techniques
   responses:
     "200":

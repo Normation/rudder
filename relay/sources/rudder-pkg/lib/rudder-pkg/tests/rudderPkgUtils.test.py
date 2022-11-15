@@ -66,7 +66,7 @@ class TestRun(unittest.TestCase):
 
 
 class TestExtract(unittest.TestCase):
-    def test_metada(self):
+    def test_metadata(self):
         rpkgPath = os.path.dirname(os.path.realpath(__file__)) + '/assets/helloworld.rpkg'
         with TemporaryDirectory() as tempDir:
             self.assertEqual(
