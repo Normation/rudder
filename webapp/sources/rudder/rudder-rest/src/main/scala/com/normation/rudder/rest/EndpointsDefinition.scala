@@ -61,7 +61,7 @@ trait SortIndex {
   protected[rest] def z: Int
 }
 
-sealed trait CampaignApi extends EndpointSchema with InternalApi with SortIndex
+sealed trait CampaignApi extends EndpointSchema with GeneralApi with SortIndex
 object CampaignApi       extends ApiModuleProvider[CampaignApi] {
   final case object GetCampaigns              extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex {
     val z              = implicitly[Line].value
