@@ -2,7 +2,7 @@
 
 This directory contains libraries with utility bodies that can be reused. Most notably, it contains the cfengine standard library.
 
-The `cfengine` folder contains the CFEngine stdlib from 3.15.1.
+The `cfengine` folder contains the CFEngine stdlib from 3.18.3.
 
 The changes made are:
 
@@ -13,4 +13,5 @@ The changes made are:
 * Rename package_present and package_absent in packages.cf to `_legacy` to avoid conflict with the generic methods
 * Use cache expire from `ncf_def` instead of `def` bundle in `packages.cf`
 * Set `common_knowledge.list_update_ifelapsed` in `packages.cf` to `${node.properties[rudder][packages][updates_cache_expire]}`
+* Don't use CFEngine's python path workarounds in package bodies
 * Removing file used to manage repository: vcs.cf

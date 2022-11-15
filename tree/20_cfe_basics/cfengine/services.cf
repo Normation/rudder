@@ -287,6 +287,32 @@ bundle agent standard_services(service,state)
 
 }
 
+body action fresh_systemd_state
+# @brief An 'action' body ensuring the state information for a systemd service is always fresh
+#
+# This 'action' body disables caching for functions, in particular the
+# execresult*() family of functions.
+#
+# Although it's now the same as the 'immediate' action body, this may change in
+# the future.
+{
+    cfengine::
+      # ^Needed for versions 3.15.x and older that did not
+      # support empty bodies. When 3.15.x is no longer
+      # supported, this can be removed.
+
+@if minimum_version(3.18.1)
+      # Beginning with 3.18.1 ifelapsed being set to 0 results in bypassing of
+      # function caching. In versions prior to 3.18, if an action body with
+      # ifelapsed set to 0 was used in a vars type promise a warning was
+      # emitted. This is guarded to suppress that warning in older versions
+      # where this setting would not change the behavior.
+
+    ifelapsed => "0";
+@endif
+
+}
+
 bundle agent systemd_services(service,state)
 # @brief Manage systemd service state
 # @author Bryan Burke
@@ -336,7 +362,8 @@ bundle agent systemd_services(service,state)
 
       "systemd_service_info"
         slist => string_split(execresult("$(call_systemctl) $(systemd_properties) show $(service)",
-                                         "noshell"), "\n", "10");
+                                         "noshell"), "\n", "10"),
+        action => fresh_systemd_state;  # Ensure this info is always fresh and not cached [CFE-3753]
 
   classes:
     systemd::
@@ -411,7 +438,7 @@ bundle agent systemd_services(service,state)
         if => "action_custom";
 
   reports:
-    systemd.service_notfound.(inform_mode|verbose_mode)::
+    systemd.service_notfound.(start|restart|reload).(inform_mode|verbose_mode)::
       "$(this.bundle): Could not find service: $(service)";
 }
 
