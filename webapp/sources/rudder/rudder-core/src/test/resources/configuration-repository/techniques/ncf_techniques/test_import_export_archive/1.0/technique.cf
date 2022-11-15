@@ -1,0 +1,24 @@
+# @name test import/export archive
+# @description 
+# @version 1.0
+
+
+bundle agent test_import_export_archive
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+  methods:
+    "483b4b60-f940-4b65-834a-4d8ddd085c34_${report_data.directive_id}" usebundle => test_import_export_archive_gm_0("Command execution", "touch /tmp/toto", "483b4b60-f940-4b65-834a-4d8ddd085c34", "touch /tmp/toto"),
+                                                                              if => concat("any");
+
+}
+
+bundle agent test_import_export_archive_gm_0(c_name, c_key, report_id, command) {
+  methods:
+    "483b4b60-f940-4b65-834a-4d8ddd085c34_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "483b4b60-f940-4b65-834a-4d8ddd085c34_${report_data.directive_id}" usebundle => command_execution("${command}");
+}

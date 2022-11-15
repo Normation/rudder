@@ -925,12 +925,12 @@ class CheckArchiveServiceImpl(
 
     // check that the imported technique category is the same than the one already existing, if any
     techInfo.techniquesCategory.collectFirst {
-      case (TechniqueId(name, _), catId) if (name.value == techArchive.technique.name) => catId
+      case (TechniqueId(name, _), catId) if (name.value == techArchive.technique.id.name.value) => catId
     } match {
       case None        => // technique not present, ok
         ZIO.unit
       case Some(catId) =>
-        val existing = catId.getPathFromRoot.map(_.value).mkString("/")
+        val existing = catId.getPathFromRoot.map(_.value).tail.mkString("/")
         val archive  = techArchive.category.mkString("/")
         if (existing == archive) {
           ZIO.unit
@@ -1040,7 +1040,7 @@ class SaveArchiveServicebyRepo(
            )
       _ <- ZIO.foreachDiscard(updated) { u =>
              if (u.state == ResourceFileState.Deleted) {
-               IOResult.attempt(File(techniqueDir.pathAsString + "/" + u.path).delete())
+               IOResult.attempt(File(techniqueDir.pathAsString).delete())
              } else ZIO.unit
            }
       // now, write new/updated files

@@ -72,6 +72,12 @@ response:
             ]
           },
           {
+            "name":"test_import_export_archive",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
             "name":"rudder-service-apache",
             "versions":[
               "1.0"

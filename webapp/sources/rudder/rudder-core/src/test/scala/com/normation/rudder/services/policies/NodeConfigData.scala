@@ -919,6 +919,21 @@ class TestNodeConfiguration(
     )
   }
 
+  val archiveTechnique =
+    techniqueRepository.unsafeGet(TechniqueId(TechniqueName("test_import_export_archive"), TechniqueVersionHelper("1.0")))
+  val archiveDirective = Directive(
+    DirectiveId(DirectiveUid("test_import_export_archive_directive"), GitVersion.DEFAULT_REV),
+    TechniqueVersionHelper("1.0"),
+    Map(),
+    "test_import_export_archive_directive",
+    "",
+    None,
+    "",
+    5,
+    true,
+    false
+  )
+
   // we have one rule with several system technique for root server config
 
   // get variable's values based on the kind of spec for that: if the values are provided, use them.
