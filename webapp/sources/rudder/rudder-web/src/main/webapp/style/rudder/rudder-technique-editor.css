@@ -898,7 +898,10 @@ button.btn.clipboard:hover {
 }
 
 .method-details .form-group{
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+}
+.method-details .form-group .form-group:last-child{
+  margin-bottom: 0;
 }
 .method-details textarea + ul.list-unstyled{
   min-height: 19px;
@@ -1075,7 +1078,7 @@ ul li.hide-method {
 }
 .method .method-condition{
   word-break: break-word;
-  padding-right: 50px;
+  padding-right: 300px;
 }
 .name-content {
   cursor: text;
@@ -1111,8 +1114,9 @@ ul li.hide-method {
   background-color: #8fb92a;
 }
 
-.method .method-condition ~ div:before,
-.method .method-condition ~ label:before {
+.method .method-info.closed .method-condition:not(.hidden) ~ div:before,
+.method .method-info .method-condition:not(.hidden) ~ div:not(.method-name):before,
+.method .method-condition:not(.hidden) ~ label:before {
   content: "";
   position: absolute;
   top: 0;
@@ -1121,7 +1125,7 @@ ul li.hide-method {
   width: 3px;
   background-color: #337ab7;
 }
-.method .method-condition ~ div{
+.method .method-info.closed .method-condition ~ div{
   padding-left: 10px;
 }
 .method .method-name {
@@ -1151,6 +1155,7 @@ ul li.hide-method {
   display: inline-block;
   color: #738195;
   cursor: pointer;
+  margin-right: 4px;
 }
 .label-value {
   cursor: text;
@@ -1158,6 +1163,10 @@ ul li.hide-method {
 .method-condition > label{
   display: inline-block;
   color: #337ab7;
+  margin: 0 4px 0 10px;
+}
+.method-info.closed .method-condition > label{
+  margin-left: 0;
 }
 .method-param > .form-control,
 .method-condition > .form-control{
@@ -1527,15 +1536,13 @@ ul li.hide-method {
   margin-left:10px;
 }
 .title-input-name {
-  position: absolute;
-  margin-top: 14px;
   font-size: 14px;
   font-weight: bold;
+  margin-top: 14px;
 }
 .gm-label-name {
   font-size:11px;
   opacity:0.9;
-  margin-top : -2px;
   display: inline-block;
   padding-left: 10px;
   padding-right: 10px;
@@ -1546,9 +1553,19 @@ ul li.hide-method {
   line-height: 25px;
   border-radius: 0 0 5px 5px;
   z-index:10;
-  float:right;
-  margin-bottom:10px;
-  margin-right:80px;
+  margin: 0;
+  position: absolute;
+  top: -16px;
+  right: 80px;
+}
+.method-info .method-condition:not(.hidden) + .method-name .gm-label-name{
+  top: -24px;
+}
+.method-info:not(.closed) .method-condition:not(.hidden) + .method-name .gm-label-name{
+  top: -36px;
+}
+.method-info.closed .method-condition.hidden + .method-name .gm-label-name{
+  top: -2px;
 }
 .reporting-checkbox {
   margin-left: 5px;
