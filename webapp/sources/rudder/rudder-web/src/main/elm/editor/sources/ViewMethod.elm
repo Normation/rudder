@@ -299,7 +299,7 @@ showMethodTab model method parentId call uiInfo=
             , name "class_context"
             , class "form-control"
             , rows 1
-            , id "advanced"
+            , id "class_context"
             , value (conditionStr condition)
             , readonly True
             -- to deactivate plugin "Grammarly" or "Language Tool" from
@@ -476,6 +476,7 @@ callBody model ui techniqueUi call pid =
                   |> appendChild removeIcon
     condition = element "div"
                 |> addClass "method-condition flex-form"
+                |> addClassConditional "hidden" (call.condition.os == Nothing && call.condition.advanced == "")
                 |> appendChildList
                    [ element "label"
                      |> appendText "Condition:"
@@ -489,22 +490,26 @@ callBody model ui techniqueUi call pid =
                            Nothing -> ""
     methodName = case ui.mode of
                    Opened -> element "div"
+                             |> addClass "method-name"
                              |> appendChild
                                 ( element "div"
                                     |> addClass "component-name-wrapper"
                                     |> appendChildList
                                        [ element "div"
-                                         |> addClass "title-input-name"
-                                         |> appendText "Name"
-                                       , element "div"
                                          |> addClass "gm-label-name"
                                          |> appendText method.name
                                          |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
+                                       , element "div"
+                                         |> addClass "form-group"
+                                         |> appendChildList
+                                           [ element "div"
+                                             |> addClass "title-input-name"
+                                             |> appendText "Name"
+                                           , element "input"
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "Enter a component name" ]
+                                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
+                                           ]
                                        ]
-                                    |> appendChild
-                                       (element "input"
-                                         |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "Enter a component name" ]
-                                         |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s })))
                                 )
                    Closed -> element "div"
                              |> addClass "method-name"
@@ -555,7 +560,7 @@ callBody model ui techniqueUi call pid =
   |> Dom.appendChildList
      [ dragElem
      , element "div"
-       |> addClass ("method-info " ++ shoudHoveredMethod)
+       |> addClass ("method-info" ++ shoudHoveredMethod)
        |> addActionStopPropagation ("mouseleave" , HoverMethod Nothing)
        |> addClassConditional ("closed") (ui.mode == Closed)
        |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
@@ -576,10 +581,11 @@ callBody model ui techniqueUi call pid =
                                    ]
                , element "span" |> appendText " "
                ]
+
           , element "div"
             |> addClass "flex-column"
             |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
-            |> appendChildConditional condition (call.condition.os /= Nothing || call.condition.advanced /= "")
+            |> appendChild condition
             |> appendChild methodName
             --|> appendChild methodNameId
             |> appendChildConditional methodContent (ui.mode == Closed)
