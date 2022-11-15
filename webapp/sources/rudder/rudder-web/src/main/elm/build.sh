@@ -12,6 +12,7 @@ ELM="elm-0.19.1"
 # we want that all elm-stuff stay in src/main/elm
 # whatever the path from which this script is called
 ELM_DIR="$( cd "$( dirname "$0" )" && pwd )"
+DEST_DIR="${ELM_DIR}/../webapp/javascript/rudder/elm"
 
 if ! command -v ${ELM} &> /dev/null
 then
@@ -31,12 +32,14 @@ build_release() {
   ${ELM} make --optimize sources/${app^}.elm --output=generated/rudder-${app}.js
   terser generated/rudder-${app}.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | terser --mangle --output=generated/rudder-${app}.min.js
   # we use the same path for dev and prod so we can't really use .min.js
-  cp generated/rudder-${app}.min.js ${ELM_DIR}/../webapp/javascript/rudder/elm/rudder-${app}.js
+  mkdir -p ${DEST_DIR}
+  cp generated/rudder-${app}.min.js ${DEST_DIR}/rudder-${app}.js
 }
 
 build_dev() {
   ${ELM} make sources/${app^}.elm --output=generated/rudder-${app}.js
-  cp generated/rudder-${app}.js ${ELM_DIR}/../webapp/javascript/rudder/elm/
+  mkdir -p ${DEST_DIR}
+  cp generated/rudder-${app}.js ${DEST_DIR}/
 }
 
 cd ${ELM_DIR}

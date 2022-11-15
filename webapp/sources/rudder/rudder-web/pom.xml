@@ -115,6 +115,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <configuration>
           <excludes>
             <exclude>**/logback-test.xml</exclude>
+            <exclude>**/node_modules</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -150,13 +151,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <version>1.6.0</version>
         <executions>
           <execution>
-            <id>compile-elm-application</id>
+            <id>build-frontend</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>src/main/elm/build.sh</executable>
+              <executable>src/main/build.sh</executable>
               <commandlineArgs>--release</commandlineArgs>
             </configuration>
           </execution>

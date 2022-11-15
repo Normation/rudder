@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "bootstrap": "^3.4.1",
+    "chart.js": "^3.7.1",
+    "clipboard": "^2.0.11",
+    "datatables.net": "^1.12.1",
+    "datatables.net-fixedheader": "^3.2.3",
+    "datatables.net-plugins": "^1.11.5",
+    "datatables.net-rowgroup": "^1.2.0",
+    "diff": "^5.1.0",
+    "jquery": "^3.6.0",
+    "jquery-ui-timepicker-addon": "^1.6.3",
+    "jstree": "^3.3.12",
+    "showdown": "^2.1.0",
+    "showdown-xss-filter": "^0.2.0",
+    "xss": "^1.0.14"
+  }
+}
