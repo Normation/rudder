@@ -119,7 +119,21 @@ $(document).ready(function(){
   app.ports.clearTooltips.subscribe(function(str) {
     $(".popover").remove();
   });
-
+  app.ports.initInputs.subscribe(function(str) {
+    function autoResize(e) {
+      elem = e.target ? e.target : e;
+      if(elem !== undefined && elem !== null){
+        elem.style.height = 'auto';
+        elem.style.height = elem.scrollHeight + 'px';
+      }
+    }
+    setTimeout(function(){
+      $(".method textarea.form-control").on("input", autoResize).each(function(){
+        console.log($(this).clone(false));
+        autoResize(this);
+      });
+    }, 10);
+  });
   app.ports.scrollMethod.subscribe(function(info){
     var addDelay = info[0] ? 350 : 0;
     var methodId = "#" + info[1];
