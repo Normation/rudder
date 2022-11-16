@@ -46,6 +46,7 @@ port getUrl              : () -> Cmd msg
 port readUrl             : (String -> msg) -> Sub msg
 port clearTooltips       : String -> Cmd msg
 port scrollMethod        : (Bool , String) -> Cmd msg
+port initInputs          : String -> Cmd msg
 
 -- utility to write a understandable debug message from a get response
 debugHttpErr : Detailed.Error String -> String
@@ -103,20 +104,20 @@ updatedStoreTechnique model =
                              let
                                draft = Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
                              in
-                               (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
+                               (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
             Creation id ->
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
+                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
             Clone origin id ->
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts, Cmd.batch[clearTooltips "", storeDraft (encodeDraft draft)] )
+                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
       in
          ({ model | drafts = drafts }, action)
-    _ -> (model, clearTooltips "")
+    _ -> (model, Cmd.batch[initInputs "", clearTooltips ""])
 
 main =
   Browser.element
@@ -167,7 +168,7 @@ selectTechnique model technique =
   in
     ({ model | mode = TechniqueDetails effectiveTechnique  state ui } )
       |> update OpenMethods
-      |> Tuple.mapSecond ( always ( Cmd.batch [ getRessources state model, action  ]  ))
+      |> Tuple.mapSecond ( always ( Cmd.batch [ initInputs "", getRessources state model, action  ]  ))
 
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
@@ -220,7 +221,7 @@ update msg model =
       case model.mode of
         TechniqueDetails t _ _ ->
           if t.id == (Either.unpack .id (.technique >> .id) technique) then
-             ( { model | mode = Introduction }, Cmd.none)
+             ( { model | mode = Introduction }, initInputs "")
           else
             selectTechnique model technique
         _ ->
@@ -642,7 +643,7 @@ update msg model =
               TechniqueDetails t o newUi
            m -> m
       in
-        ({ model | mode = newMode}, Cmd.none )
+        ({ model | mode = newMode}, initInputs "" )
 
 
     UIBlockAction callId newBlockUi ->
@@ -656,7 +657,7 @@ update msg model =
                TechniqueDetails t o newUi
            m -> m
       in
-        ({ model | mode = newMode}, Cmd.none )
+        ({ model | mode = newMode}, initInputs "" )
 
 
     RemoveMethod callId ->
