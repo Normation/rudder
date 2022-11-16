@@ -2871,10 +2871,10 @@ h3.box-title {
   margin-bottom:6px;
 }
 .box-header>.fa, .box-header>.glyphicon, .box-header>.ion, .box-header .box-title{
-  color:#555;
+  color:#041922;
 }
 .box .box-title .fa{
-  color: #999;
+  color: #748195;
   margin-right:10px;
 }
 .box-header.with-border.spacing{
@@ -2928,7 +2928,7 @@ h3.box-title {
 }
 .toggleTabFilter.updateTable{
   padding: 5px 10px !important;
-  border-bottom:none !important;
+  background-color: #fff !important;
 }
 .box-tools > .btn > .fa,.box-tools > .btn > .glyphicon,.box-tools > .btn > .ion{
   margin-left: 6px;

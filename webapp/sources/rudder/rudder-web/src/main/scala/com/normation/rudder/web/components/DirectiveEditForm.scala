@@ -304,7 +304,7 @@ class DirectiveEditForm(
         }
       } &
       "#techniqueID *" #> technique.id.name.value &
-      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
+      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-primary" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
         if (!activeTechnique.isEnabled || !directive.isEnabled) {
@@ -334,7 +334,7 @@ class DirectiveEditForm(
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
-      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-sm btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
+      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
       "#isSingle *" #> showIsSingle() &
       displayDeprecationWarning
     )(crForm) ++
@@ -350,8 +350,7 @@ class DirectiveEditForm(
                  |checkMigrationButton("${currentVersion}","${versionSelectId}");
                  |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
                  |  checkMigrationButton("${currentVersion}","${versionSelectId}")
-                 |} );
-                 |$$(document).ready(function(){$$('.main-details').bsScrollSpy({ target: '#navbar-scrollspy' })});""".stripMargin)
+                 |} );""".stripMargin)
       )
     )
   }
