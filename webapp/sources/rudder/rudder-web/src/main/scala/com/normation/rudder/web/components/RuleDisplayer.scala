@@ -237,7 +237,7 @@ class RuleDisplayer(
                   <div class="row">
                     <div class="col-xs-12">
                       <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters" ng-cloak="">
-                        <div class="filters-container">
+                        <div>
                           <div class="filterTag">
                             <div class="input-group search-addon">
                               <label for="searchStr" class="input-group-addon search-addon"><span class="ion ion-search"></span></label>

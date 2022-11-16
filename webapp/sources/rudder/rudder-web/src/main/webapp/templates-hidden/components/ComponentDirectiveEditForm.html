@@ -51,22 +51,16 @@
       <div class="header-description" id="shortDescription">
       </div>
     </div>
-    <div class="main-navbar" id="navbar-scrollspy">
-      <ul class="ui-tabs-nav nav nav-tabs">
-        <li class="ui-tabs-tab" role="presentation">
-          <a href="#directiveInfo" onclick="navScroll(event, '#directiveInfo', '.main-details')">
-            Information
-          </a>
+    <div class="main-navbar">
+      <ul class="ui-tabs-nav" role="tablist">
+        <li role="presentation" class="ui-tabs-tab ui-tab active">
+          <a href="#directiveInfo" aria-controls="directiveInfo" role="tab" data-toggle="tab">Information</a>
         </li>
-        <li class="ui-tabs-tab" role="presentation">
-          <a href="#parametersTitle" onclick="navScroll(event, '#parametersTitle', '.main-details')">
-            Parameters
-          </a>
+        <li role="presentation" class="ui-tabs-tab ui-tab">
+          <a href="#parametersTab" aria-controls="parametersTab" role="tab" data-toggle="tab">Parameters</a>
         </li>
-        <li class="ui-tabs-tab" role="presentation">
-          <a href="#directiveRulesTabTitle" onclick="navScroll(event, '#directiveRulesTabTitle', '.main-details')">
-            Target rules
-          </a>
+        <li role="presentation" class="ui-tabs-tab ui-tab">
+          <a href="#rulesTab" aria-controls="rulesTab" role="tab" data-toggle="tab">Target rules</a>
         </li>
       </ul>
     </div>
@@ -94,91 +88,93 @@
           <ul id="changeRequestList"></ul>
         </div>
       </lift:authz>
+      <div class="tab-content">
+        <div id="directiveInfo" class="tab-pane active">
+          <div id="nameField">
+            Here comes the name field
+          </div>
+          <div id="tagField">
+            Here comes the tag field
+          </div>
+          <div id="shortDescriptionField">
+            Here comes the shortDescription field
+          </div>
+          <div id="longDescriptionFieldMarkdownContainer">
+            <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+              <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+            </label>
+            <div class="markdown">
+              <div id="longDescriptionFieldMarkdown"></div>
+              <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+            </div>
+          </div>
+          <div id="longDescriptionFieldContainer" class="nodisplay">
+            <div id="longDescriptionField">
+              Here comes the longDescription field
+            </div>
+            <div id="longDescriptionFieldMarkdownPreviewContainer" class="wbBaseField col-xs-6 row">
+              <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
+              <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
+            </div>
+          </div>
 
-      <div id="directiveInfo">
-        <div id="nameField">
-          Here comes the name field
-        </div>
-        <div id="tagField">
-          Here comes the tag field
-        </div>
-        <div id="shortDescriptionField">
-          Here comes the shortDescription field
-        </div>
-        <div id="longDescriptionFieldMarkdownContainer">
-          <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
-            <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-          </label>
-          <div class="markdown">
-            <div id="longDescriptionFieldMarkdown"></div>
-            <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+          <div class="directiveTechnicalInfo" id="showTechniqueDescription"></div>
+          <div style="display:none" id="techniqueDescriptionPanel" class="markdown">
+            <div id="techniqueDescription"></div>
           </div>
-        </div>
-        <div id="longDescriptionFieldContainer" class="nodisplay">
-          <div id="longDescriptionField">
-            Here comes the longDescription field
-          </div>
-          <div id="longDescriptionFieldMarkdownPreviewContainer" class="wbBaseField col-xs-6 row">
-            <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-            <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
-          </div>
-        </div>
 
-        <div class="directiveTechnicalInfo" id="showTechniqueDescription"></div>
-        <div style="display:none" id="techniqueDescriptionPanel" class="markdown">
-          <div id="techniqueDescription"></div>
-        </div>
-
-        <div id="priority">
-          Here come the priority field
-        </div>
-        <div class="wbBaseField form-group">
-          <div id="policyModesLabel">
-            Here come the policy mode label
+          <div id="priority">
+            Here come the priority field
           </div>
-          <div id="policyModes">
-            Here come the policy mode field
+          <div class="wbBaseField form-group">
+            <div id="policyModesLabel">
+              Here come the policy mode label
+            </div>
+            <div id="policyModes">
+              Here come the policy mode field
+            </div>
+          </div>
+          <div id="version">
+            Here come the version field
+          </div>
+          <div class="directiveTechnicalInfo" id="showTechnical"></div>
+          <div id="technicalDetails" style="display:none" class="well">
+
+            <table>
+              <tr>
+                <td><label>Directive ID:</label></td>
+                <td id="directiveID">
+                  Directive ID:
+                </td>
+              </tr>
+              <tr>
+                <td><label>Technique ID:</label></td>
+                <td id="techniqueID">
+                  Technique ID
+                </td>
+              </tr>
+              <tr>
+                <td><label>Technique name:</label></td>
+                <td id="techniqueName">
+                  Technique name
+                </td>
+              </tr>
+              <tr>
+                <td><label>Technique unicity:</label></td>
+                <td id="isSingle">
+                  Technique unicity
+                </td>
+              </tr>
+            </table>
           </div>
         </div>
-        <div id="version">
-          Here come the version field
+        <div id="parametersTab" class="tab-pane">
+          <div id="parameters">Here goes the list of parameters</div>
         </div>
-        <div class="directiveTechnicalInfo" id="showTechnical"></div>
-        <div id="technicalDetails" style="display:none" class="well">
-
-          <table>
-            <tr>
-              <td><label>Directive ID:</label></td>
-              <td id="directiveID">
-                Directive ID:
-              </td>
-            </tr>
-            <tr>
-              <td><label>Technique ID:</label></td>
-              <td id="techniqueID">
-                Technique ID
-              </td>
-            </tr>
-            <tr>
-              <td><label>Technique name:</label></td>
-              <td id="techniqueName">
-                Technique name
-              </td>
-            </tr>
-            <tr>
-              <td><label>Technique unicity:</label></td>
-              <td id="isSingle">
-                Technique unicity
-              </td>
-            </tr>
-          </table>
+        <div id="rulesTab" class="tab-pane">
+          <div id="directiveRulesTab"></div>
         </div>
       </div>
-
-      <h2 id="parametersTitle" class="title-tab">Parameters</h2>
-      <div id="parameters">Here goes the list of parameters</div>
-      <h2 id="directiveRulesTabTitle" class="title-tab">Target rules</h2>
-      <div id="directiveRulesTab"></div>
     </div>
   </div>
   <lift:ignore>
