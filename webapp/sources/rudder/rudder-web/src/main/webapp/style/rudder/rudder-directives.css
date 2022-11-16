@@ -108,10 +108,10 @@
   min-height: calc(100vh - 200px);
 }
 #directiveRulesTab .box {
-  border: 1px solid #d6deef;
+  border: 1px solid #ddd;
 }
 #directiveRulesTab .box-header.with-border {
-  background-color: #f8f9fc;
+  background-color: #f4f4f4;
 }
 #directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
   right: 7px;
@@ -296,6 +296,10 @@
 }
 #notifications.main-alert + #isDisabled{
   display: none !important;
+}
+.rudder-template .template-sidebar + .template-main .main-details,
+.rudder-template .template-sidebar + .template-main .main-details .checkbox-group input + span > span{
+  font-size : 12px;
 }
 .rudder-template .template-sidebar + .template-main .main-details .input-group-sm .form-control,
 .rudder-template .template-sidebar + .template-main .main-details .checkbox-group input + span > span{

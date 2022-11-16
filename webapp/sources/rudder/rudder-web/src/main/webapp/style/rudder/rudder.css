@@ -296,6 +296,7 @@ fieldset.groupFieldset {
 .foldableSection div.section-title{
   font-size: 20px;
   border-bottom: 2px solid #d6deef;
+  color: #0419228a;
 }
 .foldableSection.foldedSection div.section-title{
   border-bottom-color: transparent;
