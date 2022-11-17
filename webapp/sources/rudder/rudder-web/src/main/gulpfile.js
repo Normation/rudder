@@ -1,18 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const {
-    watch,
-    series,
-    parallel,
-    src,
-    dest
-} = require('gulp');
+const { watch, series, parallel, src, dest } = require('gulp');
 const rename = require('gulp-rename');
 const mode = require('gulp-mode');
 const profile = mode();
 const terser = require('gulp-terser');
 const elm_p = require('gulp-elm');
 const merge = require('merge-stream');
+const minifyCSS = require('gulp-clean-css');
 
 const paths = {
     'css': {
@@ -52,6 +47,7 @@ function clean(cb) {
 
 function css(cb) {
     src(paths.css.src)
+        .pipe(profile.production(minifyCSS()))
         .pipe(dest(paths.css.dest));
     cb();
 };
