@@ -1,9 +1,16 @@
 #!/bin/sh
 
 # Takes a --release parameter for optimization
+# Takes a --quick mode to only copy local sources
+
+LOCAL=false
+RELEASE=false
 
 if [ "$1" = "--release" ]; then
   RELEASE=true
+fi
+if [ "$1" = "--local" ]; then
+  LOCAL=true
 fi
 
 set -ex
@@ -21,11 +28,13 @@ CSS_LIBS="$CSS_OUT/libs"
 cd "$(dirname "$0")"
 
 if [ "$RELEASE" = true ]; then
-  # Ensure correct versions
-  npm ci --omit=dev
+  # Ensure clean state for release
+  rm -rf $JS_OUT $CSS_OUT node_modules
+fi
 
-  # Ensure clean state
-  rm -rf $JS_OUT $CSS_OUT
+if [ "$LOCAL" = false ]; then
+  # Ensure correct versions
+  npm ci --omit=dev --no-audit
 fi
 
 # JS dependencies
@@ -39,7 +48,9 @@ cp node_modules/showdown-xss-filter/showdown-xss-filter.js $JS_LIBS
 # Local JS
 cp -r javascript/* $JS_OUT
 # Local elm
-elm/build.sh "$@"
+if [ "$LOCAL" = false ]; then
+  elm/build.sh "$@"
+fi
 # Minify (exclude elm file as they are already minified)
 #
 # Disabled for now as it breaks angular
