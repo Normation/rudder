@@ -704,6 +704,7 @@ class ProcessFile(
    * touched, or inotify event emission not what we thought)
    */
   val saveInventoryBufferProcessing = {
+    import com.normation.rudder.inventory.StatusLog._
     for {
       fst  <- saveInventoryBuffer.take
       // deduplicate and prioritize file in 'incoming', which are new inventories. TakeAll is not blocking
@@ -712,7 +713,11 @@ class ProcessFile(
       // process
       _    <-
         InventoryProcessingLogger.info(s"Received new inventory file '${inv.inventory.name}' with signature available: process.")
-      _    <- inventoryProcessor.saveInventoryBlocking(inv)
+      res  <- inventoryProcessor.saveInventoryBlocking(inv)
+      _    <- res match {
+                case r: InventoryProcessStatus.Saved => InventoryProcessingLogger.debug(r.msg)
+                case r => InventoryProcessingLogger.error(r.msg)
+              }
       all2 <- saveInventoryBuffer.takeAll // perhaps lots of new events came for that inventory
       _    <- saveInventoryBuffer.offerAll((all ++ all2).filterNot(inv.inventory.name == _.inventory.name))
     } yield ()
