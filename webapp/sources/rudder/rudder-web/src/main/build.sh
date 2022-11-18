@@ -3,7 +3,7 @@
 set -e
 
 # Takes a --release parameter for optimization
-# Takes a --watch parameter to enable watch mode
+# Takes a watch parameter to enable watch mode
 
 RELEASE=false
 WATCH=false

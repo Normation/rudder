@@ -8,7 +8,6 @@ const terser = require('gulp-terser');
 const elm_p = require('gulp-elm');
 const merge = require('merge-stream');
 const minifyCSS = require('gulp-clean-css');
-const run = require('gulp-run');
 
 const paths = {
     'css': {
@@ -120,6 +119,7 @@ function vendor_css(cb) {
     cb();
 };
 
+exports.elm = series(clean, elm)
 exports.watch = function() {
     watch(paths.elm.watch, { ignoreInitial: false }, elm);
     watch(paths.js.src, { ignoreInitial: false }, js);
