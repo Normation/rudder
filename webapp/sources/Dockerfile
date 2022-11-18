@@ -6,3 +6,4 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID
 
 RUN apt-get update && apt-get install -y npm
+RUN npm -g install gulp
