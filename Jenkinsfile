@@ -152,7 +152,7 @@ pipeline {
                     steps {
                         dir('webapp/sources/rudder/rudder-web/src/main/') {
                             sh script: 'npm ci --no-audit', label: 'install dependencies'
-                            sh script: 'gulp elm', label: 'build elm apps'
+                            sh script: 'node_modules/.bin/gulp elm', label: 'build elm apps'
                             dir('editor') {
                                 sh script: 'npx elm-test', label: 'run technique editor tests'
                             }
