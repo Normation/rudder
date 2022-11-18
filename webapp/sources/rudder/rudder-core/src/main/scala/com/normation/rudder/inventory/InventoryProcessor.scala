@@ -245,7 +245,7 @@ class InventoryProcessor(
       afterParsing  = System.currentTimeMillis()
       inventoryName = inventory.name
       nodeId        = inventory.node.main.id
-      _             = InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault
+      _            <- InventoryProcessingLogger.debug(s"Inventory '${inventory.name}' parsed in ${PeriodFormat.getDefault
                           .print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
       saved        <- saveWithSignature(inventory, parsed.publicKey, info.inventory, info.signature).chainError(
                         "Error when trying to check inventory signature"
