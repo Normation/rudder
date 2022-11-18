@@ -87,33 +87,37 @@ class TechniqueReader(
   private[this] def readMethodsMetadataFile(
       cache: (Instant, Map[BundleName, GenericMethod])
   ): IOResult[(Instant, Map[BundleName, GenericMethod])] = {
-    for {
-      methodsFileModifiedTime <- IOResult.effect(methodsFile.lastModifiedTime())
-      methods                 <-
-        if (methodsFileModifiedTime.isAfter(cache._1)) {
-          for {
-            genericMethodContent <-
-              IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
-            parsedMethods        <- parse(genericMethodContent) match {
-                                      case JObject(fields) =>
-                                        restExtractor
-                                          .extractGenericMethod(JArray(fields.map(_.value)))
-                                          .map(_.map(m => (m.id, m)).toMap)
-                                          .toIO
-                                          .chainError(s"An Error occurred while extracting data from generic methods ncf API")
+    if (methodsFile.exists()) {
+      for {
+        methodsFileModifiedTime <- IOResult.effect(methodsFile.lastModifiedTime())
+        methods                 <-
+          if (methodsFileModifiedTime.isAfter(cache._1)) {
+            for {
+              genericMethodContent <-
+                IOResult.effect(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
+              parsedMethods        <- parse(genericMethodContent) match {
+                                        case JObject(fields) =>
+                                          restExtractor
+                                            .extractGenericMethod(JArray(fields.map(_.value)))
+                                            .map(_.map(m => (m.id, m)).toMap)
+                                            .toIO
+                                            .chainError(s"An Error occurred while extracting data from generic methods ncf API")
 
-                                      case a =>
-                                        Inconsistency(s"Could not extract methods from ncf api, expecting an object got: ${a}").fail
-                                    }
-            now                  <- currentTimeMillis
-          } yield {
-            (Instant.ofEpochMilli(now), parsedMethods)
+                                        case a =>
+                                          Inconsistency(s"Could not extract methods from ncf api, expecting an object got: ${a}").fail
+                                      }
+              now                  <- currentTimeMillis
+            } yield {
+              (Instant.ofEpochMilli(now), parsedMethods)
+            }
+          } else {
+            cache.succeed
           }
-        } else {
-          cache.succeed
-        }
-    } yield {
-      methods
+      } yield {
+        methods
+      }
+    } else {
+      updateMethodsMetadataFile *> readMethodsMetadataFile(cache)
     }
   }
 
