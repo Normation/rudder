@@ -1320,7 +1320,7 @@ function createNodeTable(gridId, refresh) {
     // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
 
     var cache = JSON.parse(cacheColumns).filter(function(c) {
-      return c !== null && (allColumnsKeys.includes(c.title) || (c.data !== undefined && c.data.startsWith("Software")) || c.title.startsWith("Property") )
+      return c !== null && (allColumnsKeys.includes(c.title) || (c.data !== undefined && c.title.startsWith("Software")) || c.title.startsWith("Property") )
     })
     columns = cache.map(function(c) {
       if (c.title.startsWith("Property")) {
@@ -1457,7 +1457,7 @@ function createNodeTable(gridId, refresh) {
 
     table.destroy();
     $('#'+gridId).empty();
-    if (! (columns[columnIndex].data.startsWith("software") || columns[columnIndex].data.startsWith("property"))) {
+    if (! (columns[columnIndex].title.startsWith("Software") || columns[columnIndex].title.startsWith("Property"))) {
       dynColumns.push(columns[columnIndex].title)
     }
     columns.splice(columnIndex, 1)
