@@ -8,6 +8,7 @@ const terser = require('gulp-terser');
 const elm_p = require('gulp-elm');
 const merge = require('merge-stream');
 const minifyCSS = require('gulp-clean-css');
+const del = require('del');
 
 const paths = {
     'css': {
@@ -42,7 +43,7 @@ const paths = {
 };
 
 function clean(cb) {
-    cb();
+    del([paths.js.dest, paths.css.dest], cb());
 }
 
 function css(cb) {

@@ -161,6 +161,18 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
               <commandlineArgs>--release</commandlineArgs>
             </configuration>
           </execution>
+          <execution>
+            <id>elm-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>npx</executable>
+              <workingDirectory>src/main/elm/editor</workingDirectory>
+              <commandlineArgs>elm-test</commandlineArgs>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
