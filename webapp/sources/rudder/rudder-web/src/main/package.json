@@ -16,8 +16,8 @@
     "xss": "^1.0.14"
   },
   "devDependencies": {
-    "del": "^7.0.0",
     "elm": "^0.19.1-5",
+    "elm-test": "^0.19.1-revision10",
     "gulp": "^4.0.2",
     "gulp-clean-css": "^4.3.0",
     "gulp-elm": "^0.8.2",
