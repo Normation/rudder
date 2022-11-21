@@ -11,7 +11,7 @@
   )
   BeginTechniqueCall -Name $techniqueName
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
-  $localContext = [Rudder.Context]::new($techniqueName)
+  $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
   $localContext.Merge($system_classes)
   $resources_dir = $PSScriptRoot + "\resources"
 
