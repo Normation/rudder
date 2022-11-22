@@ -6,7 +6,7 @@
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
       [parameter(Mandatory=$true)]
-      [string]$Version,
+      [string]$version,
       [Rudder.PolicyMode]$policyMode
   )
   BeginTechniqueCall -Name $techniqueName

@@ -1045,7 +1045,7 @@ class DSCTechniqueWriter(
       case params =>
         params
           .map(p => s"""      [parameter(Mandatory=$$true)]
-             |      [string]$$${p.name.validDscName},""")
+             |      [string]$$${p.name.value},""")
           .mkString("\n", "\n", "")
           .stripMargin('|')
     }
