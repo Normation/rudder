@@ -126,7 +126,7 @@ bundle agent file_from_template_type(source_template, path, template_type)
       "template_exists" expression => fileexists("${source_template}");
       "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
 
-      "should_report"    expression => "${report_data.should_report}";
+      "should_report"   expression => "${report_data.should_report}";
 
   files:
     "${path}"
