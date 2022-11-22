@@ -23,12 +23,12 @@ if [ "$RELEASE" = true ]; then
 fi
 
 # Ensure correct versions
-npm ci --no-audit
+npm_config_loglevel=error npm ci --no-audit
 
 if [ "$RELEASE" = true ]; then
-  gulp --production
+  npx gulp --production
 elif [ "$WATCH" = true ]; then
-  gulp watch
+  npx gulp watch
 else
-  gulp
+  npx gulp
 fi

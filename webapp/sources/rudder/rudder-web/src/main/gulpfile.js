@@ -43,7 +43,8 @@ const paths = {
 };
 
 function clean(cb) {
-    del([paths.js.dest, paths.css.dest], cb());
+    del.sync([paths.js.dest, paths.css.dest]);
+    cb();
 }
 
 function css(cb) {
@@ -121,11 +122,11 @@ function vendor_css(cb) {
 };
 
 exports.elm = series(clean, elm)
-exports.watch = function() {
+exports.watch = series(clean, function() {
     watch(paths.elm.watch, { ignoreInitial: false }, elm);
     watch(paths.js.src, { ignoreInitial: false }, js);
     watch(paths.css.src, { ignoreInitial: false }, css);
     watch(paths.vendor_js.src, { ignoreInitial: false }, vendor_js);
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
-};
+});
 exports.default = series(clean, parallel(elm, css, js, vendor_css, vendor_js));
