@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import com.github.ghik.silencer.silent
 import com.normation.errors._
 import com.normation.rudder.rest.lift.DefaultParams
+import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.zio._
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -173,7 +174,10 @@ object RudderJsonResponse {
         implicit val prettify = params.prettify
         result
           .fold(
-            err => internalError(schema, err.fullMsg),
+            err => {
+              LiftApiProcessingLogger.error(err.fullMsg)
+              internalError(schema, err.fullMsg)
+            },
             seq => successList(schema, seq.toList)
           )
           .runNow
@@ -189,7 +193,10 @@ object RudderJsonResponse {
         implicit val prettify = params.prettify
         result
           .fold(
-            err => internalError(schema, err.fullMsg),
+            err => {
+              LiftApiProcessingLogger.error(err.fullMsg)
+              internalError(schema, err.fullMsg)
+            },
             one => successOne(schema, one, id(one))
           )
           .runNow
@@ -208,7 +215,10 @@ object RudderJsonResponse {
         implicit val prettify = params.prettify
         result
           .fold(
-            err => internalError(errorSchema, err.fullMsg),
+            err => {
+              LiftApiProcessingLogger.error(err.fullMsg)
+              internalError(errorSchema, err.fullMsg)
+            },
             one => {
               val (schema, x, id) = map(one)
               successOne(schema, x, id)
@@ -217,7 +227,6 @@ object RudderJsonResponse {
           .runNow
       }
     }
-
   }
 }
 

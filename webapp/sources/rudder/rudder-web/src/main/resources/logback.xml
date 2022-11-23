@@ -87,9 +87,29 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     It can be overwritten when the application is launched with the
     Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
   -->
+  <property name="APILOG_DIR" value="/var/log/rudder/api" />
+
   <property name="OPSLOG_DIR" value="/var/log/rudder/core" />
 
   <property name="REPORT_DIR" value="/var/log/rudder/compliance" />
+
+
+  <!--
+    A file log appender for exploitation logs about Rest API Calls
+   -->
+  <appender name="APILOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${APILOG_DIR}/api.log</file>
+    <append>true</append>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${OPSLOG_DIR}/api-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
+    </encoder>
+  </appender>
 
   <!--
     A file log appender for exploitation logs about reports, outputing in a file
@@ -484,7 +504,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       Trace level is quite verbose and print for each request result for ALL path tested (100 of lines)
 
   -->
-  <logger name="api-processing" level="info" />
+  <logger name="api-processing" level="info" additivity="false">
+    <appender-ref ref="APILOG" />
+  </logger>
 
 
   <!-- ==================================================== -->
