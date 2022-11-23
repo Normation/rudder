@@ -88,8 +88,7 @@ function elm(cb) {
             })))
             .pipe(dest(paths.elm.dest));
     });
-    merge(tasks);
-    cb();
+    return merge(tasks);
 };
 
 function js(cb) {
