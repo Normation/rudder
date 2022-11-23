@@ -70,12 +70,15 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
     handlers.map(_.handle).fold(base) { case (a, b) => b orElse a }(report)
   }
   def loop = {
+    val highestId = reportsRepository.getHighestId().getOrElse(0L)
     for {
-      lowerId <- propRepo.getReportHandlerLastId
-      reports <- reportsRepository.getReportsByKindBetween(lowerId.getOrElse(0), None, 1000, List(Reports.REPORT_JSON)).toIO
+      optLowerId <- propRepo.getReportHandlerLastId
+      lowerId     = optLowerId.getOrElse(highestId)
+      reports    <- reportsRepository.getReportsByKindBetween(lowerId, None, 1000, List(Reports.REPORT_JSON)).toIO
 
       _ <- reports.maxByOption(_._1) match {
-             case None    => UIO.unit
+             case None    =>
+               propRepo.updateReportHandlerLastId(highestId)
              case Some(r) =>
                ZIO.foreach(reports)(r => handle(r._2)).catchAll(err => CampaignLogger.error(err.fullMsg)) *>
                propRepo.updateReportHandlerLastId((r._1 + 1))

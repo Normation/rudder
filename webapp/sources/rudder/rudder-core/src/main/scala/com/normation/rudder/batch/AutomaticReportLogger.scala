@@ -200,7 +200,7 @@ class AutomaticReportLogger(
       }
 
       /*
-       * We need a way to let the gc reclame the memory used by the log seq, so to let "log" scope be closed before
+       * We need a way to let the gc reclaim the memory used by the log seq, so to let "log" scope be closed before
        * next logRec call.
        */
       def logRec(
@@ -227,7 +227,7 @@ class AutomaticReportLogger(
 
       // start at +1 because of inclusive bounds
       val startAt = lastProcessedId + 1
-      logger.debug(s"Writting non-compliant-report logs beetween ids ${startAt} and ${maxId} (both incuded)")
+      logger.debug(s"Writing non-compliant-report logs between ids ${startAt} and ${maxId} (both included)")
       (for {
         nodes      <- nodeInfoService.getAll()
         rules      <- ruleRepository.getAll(true)
