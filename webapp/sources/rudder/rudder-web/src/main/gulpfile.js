@@ -49,7 +49,6 @@ function clean(cb) {
 
 function css(cb) {
     src(paths.css.src)
-//        .pipe(profile.production(minifyCSS()))
         .pipe(dest(paths.css.dest));
     cb();
 };
@@ -96,7 +95,6 @@ function elm(cb) {
 
 function js(cb) {
     src(paths.js.src)
-//        .pipe(profile.production(terser()))
         .pipe(dest(paths.js.dest));
     cb();
 };
