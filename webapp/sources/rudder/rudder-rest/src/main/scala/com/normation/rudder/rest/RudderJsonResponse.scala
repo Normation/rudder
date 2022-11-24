@@ -239,7 +239,7 @@ object RudderJsonResponse {
           .fold(
             err => {
               LiftApiProcessingLogger.error(err.fullMsg)
-              internalError(errorSchema, err.fullMsg)
+              internalError(schema, err.fullMsg)
             },
             msg => successZero(schema, msg)
           )
