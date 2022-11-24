@@ -498,6 +498,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ParameterId("1aaacd71-c2d5-482c-bcff-5eee6f8da9c2"),
         ParameterId("technique_parameter"),
         " a long description, with line \n break within",
+        // we must ensure that it will lead to: [parameter(Mandatory=$false)]
         true
       ) :: Nil,
       Nil
@@ -526,9 +527,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath}")
-      val resultDscFile   = new File(s"${basePath}/${dscTechniquePath}")
-      resultDscFile must haveSameLinesAs(expectedDscFile)
+      val expectedDscFile        = new File(s"${expectedPath}/${dscTechniquePath}")
+      val resultDscFile          = new File(s"${basePath}/${dscTechniquePath}")
+      val mandatoryFalseRegex    = """.*\Q[parameter(Mandatory=$false)]\E.*""".r
+      val containsMandatoryFalse =
+        better.files.File(resultDscFile.getAbsolutePath).lines.collectFirst(l => mandatoryFalseRegex.matches(l))
+      (resultDscFile must haveSameLinesAs(expectedDscFile)) and
+      (containsMandatoryFalse.nonEmpty must beTrue)
     }
 
     "Should write classic technique files without problem" in {
