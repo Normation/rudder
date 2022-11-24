@@ -274,13 +274,6 @@ rudder.batch.purge.inventories.delete.interval=24
 #
 rudder.batch.check.node.cache.interval=15 s
 
-#
-# By default, when a node is deleted, Rudder move it in a "trash" place in LDAP base.
-# You can choose to erase it instead.
-# Option are: "erase" (default), "move"
-#
-rudder.nodes.delete.defaultMode = erase
-
 ####################
 # Webdav properties #################################################################
 ####################
@@ -452,7 +445,7 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 # - locally for API deletion with the corresponding parameter, see
 #   https://docs.rudder.io/api/v/15/#tag/Nodes/operation/deleteNode
 # - globally by changing the parameter of the following property from `erase` to `move`
-rudder.nodes.delete.defaultMode=erase
+rudder.nodes.delete.defaultMode = erase
 
 ###############################
 # Non compliant reports logger #################################################
