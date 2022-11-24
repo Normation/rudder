@@ -49,7 +49,7 @@ sealed trait ChangeRequestGlobalParameterDiff {
 }
 
 final case class AddGlobalParameterDiff(parameter: GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff {
-  def needDeployment: Boolean = false
+  def needDeployment: Boolean = true
 }
 
 final case class DeleteGlobalParameterDiff(parameter: GlobalParameter)
