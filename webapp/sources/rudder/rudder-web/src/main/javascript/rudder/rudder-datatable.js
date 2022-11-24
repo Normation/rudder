@@ -73,8 +73,9 @@ $.fn.dataTable.ext.search.push(
             var obj = JSON.parse(param);
             var min = obj.complianceFilter.min;
             var max = obj.complianceFilter.max;
+            var applying = obj.complianceFilter.applying;
 
-            if (min === undefined)
+            if (min === undefined && !applying)
                 return true;
             // look for the compliance column
             var complianceCol = settings.aoColumns.find(a => a.data == "compliance");
@@ -84,15 +85,20 @@ $.fn.dataTable.ext.search.push(
                 // maybe there exists something cleaner.
                 // we get a string, rather than an array
 
+
                 var complianceString = data[complianceCol.idx];
                 if (complianceString !== undefined) {
-                     var compliance = computeCompliancePercentFromString(complianceString);
+                  if (applying) {
+                    return isApplyingFromComplianceString(complianceString);
+                  } else {
+                    var compliance = computeCompliancePercentFromString(complianceString);
 
-                     if (max === undefined)
-                        return compliance >= min;
-                      else
-                        return compliance >= min && compliance < max;
-                 }
+                    if (max === undefined)
+                      return compliance >= min;
+                    else
+                      return compliance >= min && compliance < max;
+                  }
+                }
             }
         }
       return true;
@@ -1874,7 +1880,17 @@ function computeCompliancePercentFromString(complianceString) {
     return complianceArray[3] + complianceArray[19] + complianceArray[7] + complianceArray[5] + complianceArray[21];
   } else {
     return  0;
-  }  
+  }
+}
+
+function isApplyingFromComplianceString(complianceString) {
+  var complianceArray = complianceString.split(",").map(Number);
+  // ignore every odd entry that contains the number of components, we need the percentage
+  if (Array.isArray(complianceArray)) {
+    return complianceArray[11] > 0; // pending seems to be the 12th column
+  } else {
+    return false;
+  }
 }
 
 function computeCompliancePercent (complianceArray) {

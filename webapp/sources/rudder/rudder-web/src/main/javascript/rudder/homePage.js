@@ -286,6 +286,7 @@ function doughnutChart (id,data,count,colors) {
                        ,"Average": {min: 50,  max: 75}
                        ,"Good"   : {min: 75,  max: 100}
                        ,"Perfect": {min: 100}
+                       ,"Applying": {applying: true}
                        };
                      var interval = compliance[data.split(' ')[0]];
                      var complianceFilter = {complianceFilter:interval};
