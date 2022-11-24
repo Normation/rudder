@@ -5,7 +5,7 @@
       [string]$reportId,
       [parameter(Mandatory=$true)]
       [string]$techniqueName,
-      [parameter(Mandatory=$true)]
+      [parameter(Mandatory=$false)]
       [string]$technique_parameter,
       [Rudder.PolicyMode]$policyMode
   )
