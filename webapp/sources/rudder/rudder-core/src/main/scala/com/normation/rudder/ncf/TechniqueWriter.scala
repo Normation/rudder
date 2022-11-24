@@ -1043,9 +1043,11 @@ class DSCTechniqueWriter(
     val parameters = technique.parameters match {
       case Nil    => ""
       case params =>
-        params
-          .map(p => s"""      [parameter(Mandatory=$$true)]
-             |      [string]$$${p.name.value},""")
+        params.map { p =>
+          val mandatory = if (p.mayBeEmpty) "$false" else "$true"
+          s"""      [parameter(Mandatory=${mandatory})]
+             |      [string]$$${p.name.value},"""
+        }
           .mkString("\n", "\n", "")
           .stripMargin('|')
     }
