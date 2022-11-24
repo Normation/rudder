@@ -53,7 +53,6 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_0._
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import org.joda.time.DateTime
