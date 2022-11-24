@@ -13,57 +13,71 @@ bundle agent technique_by_Rudder(technique_parameter)
     "pass2" expression => "pass1";
     "pass1" expression => "any";
   methods:
-    "id1_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_0("Customized component", "${node.properties[apache_package_name]}", "id1", "${node.properties[apache_package_name]}", "2.2.11"),
-                                             if => concat("(debian)");
-    "id2_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_1("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"", "id2", "Write-Host \"testing special characters ` è &é 'à é \""),
-                                             if => concat("(debian.windows)");
-    "id3_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_2("Customized component", "${node.properties[apache_package_name]}", "id3", "${node.properties[apache_package_name]}"),
-                                             if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
-    "id4_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_3("Package install", "openssh-server", "id4", "openssh-server"),
-                                             if => concat("redhat");
-    "id5_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_4("Command execution", "/bin/echo \"testing special characters ` è &é 'à é \"\\", "id5", "/bin/echo \"testing special characters ` è &é 'à é \"\\"),
-                                             if => concat("any");
-    "id6_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_5("Package state windows", "vim", "id6", "vim"),
-                                             if => concat("dsc");
-    "id7_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_6("Not sure we should test it ...", "NA", "id7", "NA", "NA"),
-                                             if => concat("any");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_0("Customized component", "${node.properties[apache_package_name]}", "id1", "${node.properties[apache_package_name]}", "2.2.11"),
+                                                                  if => concat("(debian)");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_1("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"", "id2", "Write-Host \"testing special characters ` è &é 'à é \""),
+                                                                  if => concat("(debian.windows)");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_2("Customized component", "${node.properties[apache_package_name]}", "id3", "${node.properties[apache_package_name]}"),
+                                                                  if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_3("Package install", "openssh-server", "id4", "openssh-server"),
+                                                                  if => concat("redhat");
+    "id5_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id5_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_4("Command execution", "/bin/echo \"testing special characters ` è &é 'à é \"\\", "id5", "/bin/echo \"testing special characters ` è &é 'à é \"\\"),
+                                                                  if => concat("any");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_5("Package state windows", "vim", "id6", "vim"),
+                                                                  if => concat("dsc");
+    "id7_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id7_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_6("Not sure we should test it ...", "NA", "id7", "NA", "NA"),
+                                                                  if => concat("any");
 
 }
 
 bundle agent technique_by_Rudder_gm_0(c_name, c_key, report_id, package_name, package_version) {
   methods:
-    "id1_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id1_${report_data.directive_id}" usebundle => package_install_version("${package_name}","${package_version}");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => package_install_version("${package_name}","${package_version}");
 }
 bundle agent technique_by_Rudder_gm_1(c_name, c_key, report_id, command) {
   methods:
-    "id2_${report_data.directive_id}" usebundle => disable_reporting;
-    "id2_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id2_${report_data.directive_id}" usebundle => command_execution("${command}");
-    "id2_${report_data.directive_id}" usebundle => enable_reporting;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => disable_reporting;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => command_execution("${command}");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => enable_reporting;
 }
 bundle agent technique_by_Rudder_gm_2(c_name, c_key, report_id, service_name) {
   methods:
-    "id3_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id3_${report_data.directive_id}" usebundle => service_start("${service_name}");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => service_start("${service_name}");
 }
 bundle agent technique_by_Rudder_gm_3(c_name, c_key, report_id, package_name) {
   methods:
-    "id4_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id4_${report_data.directive_id}" usebundle => package_install("${package_name}");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => package_install("${package_name}");
 }
 bundle agent technique_by_Rudder_gm_4(c_name, c_key, report_id, command) {
   methods:
-    "id5_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id5_${report_data.directive_id}" usebundle => command_execution("${command}");
+    "id5_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id5_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id5_${report_data.directive_id}_${report_data.index}" usebundle => command_execution("${command}");
 }
 bundle agent technique_by_Rudder_gm_5(c_name, c_key, report_id, package_name) {
   methods:
-    "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id6_${report_data.directive_id}" usebundle => package_state_windows("${package_name}");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => package_state_windows("${package_name}");
 }
 bundle agent technique_by_Rudder_gm_6(c_name, c_key, report_id, message, old_class_prefix) {
   methods:
-    "id7_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id7_${report_data.directive_id}" usebundle => _logger("${message}","${old_class_prefix}");
+    "id7_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id7_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id7_${report_data.directive_id}_${report_data.index}" usebundle => _logger("${message}","${old_class_prefix}");
 }

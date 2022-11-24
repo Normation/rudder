@@ -7,43 +7,53 @@ bundle agent technique_by_Rudder_rudder_reporting(technique_parameter)
     "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
   methods:
-    "id1_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_7("Customized component", "${node.properties[apache_package_name]}", "id1", "Skipping method 'Package install version' with key parameter '${node.properties[apache_package_name]}' since condition 'any' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_package_install_version_${node.properties[apache_package_name]}", @{args}),
-                                             unless => concat("(debian)");
-    "id2_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_8("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"", "id2", "Skipping method 'Command execution' with key parameter 'Write-Host \"testing special characters ` è &é 'à é \"' since condition 'windows' is not reached", "Write-Host \"testing special characters ` è &é 'à é \"", "${class_prefix}_command_execution_Write-Host \"testing special characters ` è &é 'à é \"", @{args}),
-                                             unless => concat("(debian.windows)");
-    "id3_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_9("Customized component", "${node.properties[apache_package_name]}", "id3", "Skipping method 'Service start' with key parameter '${node.properties[apache_package_name]}' since condition 'package_install_version_${node.properties[apache_package_name]}_repaired' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_service_start_${node.properties[apache_package_name]}", @{args}),
-                                             unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
-    "id4_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_10("Package install", "openssh-server", "id4", "Skipping method 'Package install' with key parameter 'openssh-server' since condition 'redhat' is not reached", "openssh-server", "${class_prefix}_package_install_openssh-server", @{args}),
-                                             unless => concat("redhat");
-    "id6_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_11("Package state windows", "vim", "id6", "'Package state windows' method is not available on Linux Rudder agent, skip", "vim", "${class_prefix}_package_state_windows_vim", @{args}),
-                                             unless => concat("false");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_7("Customized component", "${node.properties[apache_package_name]}", "id1", "Skipping method 'Package install version' with key parameter '${node.properties[apache_package_name]}' since condition 'any' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_package_install_version_${node.properties[apache_package_name]}", @{args}),
+                                                              unless => concat("(debian)");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_8("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"", "id2", "Skipping method 'Command execution' with key parameter 'Write-Host \"testing special characters ` è &é 'à é \"' since condition 'windows' is not reached", "Write-Host \"testing special characters ` è &é 'à é \"", "${class_prefix}_command_execution_Write-Host \"testing special characters ` è &é 'à é \"", @{args}),
+                                                              unless => concat("(debian.windows)");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_9("Customized component", "${node.properties[apache_package_name]}", "id3", "Skipping method 'Service start' with key parameter '${node.properties[apache_package_name]}' since condition 'package_install_version_${node.properties[apache_package_name]}_repaired' is not reached", "${node.properties[apache_package_name]}", "${class_prefix}_service_start_${node.properties[apache_package_name]}", @{args}),
+                                                              unless => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_10("Package install", "openssh-server", "id4", "Skipping method 'Package install' with key parameter 'openssh-server' since condition 'redhat' is not reached", "openssh-server", "${class_prefix}_package_install_openssh-server", @{args}),
+                                                              unless => concat("redhat");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => technique_by_Rudder_gm_11("Package state windows", "vim", "id6", "'Package state windows' method is not available on Linux Rudder agent, skip", "vim", "${class_prefix}_package_state_windows_vim", @{args}),
+                                                              unless => concat("false");
 
 }
 
 bundle agent technique_by_Rudder_gm_7(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id1_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id1_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id1_${report_data.directive_id}_${report_data.index}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
 }
 bundle agent technique_by_Rudder_gm_8(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id2_${report_data.directive_id}" usebundle => disable_reporting;
-    "id2_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id2_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
-    "id2_${report_data.directive_id}" usebundle => enable_reporting;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => disable_reporting;
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id2_${report_data.directive_id}_${report_data.index}" usebundle => enable_reporting;
 }
 bundle agent technique_by_Rudder_gm_9(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id3_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id3_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id3_${report_data.directive_id}_${report_data.index}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
 }
 bundle agent technique_by_Rudder_gm_10(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id4_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id4_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id4_${report_data.directive_id}_${report_data.index}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
 }
 bundle agent technique_by_Rudder_gm_11(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
   methods:
-    "id6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id6_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id6_${report_data.directive_id}_${report_data.index}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
 }

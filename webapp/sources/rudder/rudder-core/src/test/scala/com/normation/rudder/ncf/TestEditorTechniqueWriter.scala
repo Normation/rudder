@@ -111,7 +111,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   override def afterAll(): Unit = {
     if (System.getProperty("tests.clean.tmp") != "false") {
-      FileUtils.deleteDirectory(new File(basePath))
+      //FileUtils.deleteDirectory(new File(basePath))
     }
   }
 

@@ -12,13 +12,15 @@ bundle agent technique_any(version)
     "pass2" expression => "pass1";
     "pass1" expression => "any";
   methods:
-    "id_${report_data.directive_id}" usebundle => technique_any_gm_0("Test component$&é)à\\'\"", "${node.properties[apache_package_name]}", "id", "${node.properties[apache_package_name]}", "2.2.11"),
-                                            if => concat("any");
+    "id_${report_data.directive_id}_${report_data.index}" usebundle => clean_method_reporting_context;
+    "id_${report_data.directive_id}_${report_data.index}" usebundle => technique_any_gm_0("Test component$&é)à\\'\"", "${node.properties[apache_package_name]}", "id", "${node.properties[apache_package_name]}", "2.2.11"),
+                                                                 if => concat("any");
 
 }
 
 bundle agent technique_any_gm_0(c_name, c_key, report_id, package_name, package_version) {
   methods:
-    "id_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
-    "id_${report_data.directive_id}" usebundle => package_install_version("${package_name}","${package_version}");
+    "id_${report_data.directive_id}_${report_data.index}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "id_${report_data.directive_id}_${report_data.index}" usebundle => _classes_cancel("${report_data.report_id}");
+    "id_${report_data.directive_id}_${report_data.index}" usebundle => package_install_version("${package_name}","${package_version}");
 }

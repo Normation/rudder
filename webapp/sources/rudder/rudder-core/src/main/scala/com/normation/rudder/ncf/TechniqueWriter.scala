@@ -604,10 +604,11 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
         params:              Seq[String],
         forNaReport:         Boolean
     ) = {
-      val promiser = call.id + "_${report_data.directive_id}"
+      val promiser =
+        "${report_data.method_id}"
 
       val filterOnMethod = forNaReport match {
-        case false => "if"
+        case false => "    if"
         case true  => "unless"
       }
 
@@ -647,22 +648,27 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
       // The bundle that will effectively act
       val bundleActing = {
         val bundleCall = {
-          s"""    "${promiser}" usebundle => ${reportingContextInBundle(reportingArgs)};
-             |    "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
+          s"""      "${promiser}" usebundle => ${reportingContextInBundle(reportingArgs)};
+             |      "${promiser}" usebundle => _classes_cancel("$${report_data.report_id}");
+             |      "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
         }
 
         val bundleCallWithReportOption = {
           if (call.disabledReporting) {
-            s"""    "${promiser}" usebundle => disable_reporting;
+            s"""      "${promiser}" usebundle => disable_reporting;
                |${bundleCall}
-               |    "${promiser}" usebundle => enable_reporting;""".stripMargin('|')
+               |      "${promiser}" usebundle => enable_reporting;""".stripMargin('|')
           } else {
             bundleCall
           }
         }
 
         s"""bundle agent ${bundleName}(${allArgs.mkString(", ")}) {
+           |  classes:
+           |    "pass2" expression => "pass1";
+           |    "pass1" expression => "any";
            |  methods:
+           |    pass1.!pass2::
            |${bundleCallWithReportOption}
            |}
            |""".stripMargin('|')
@@ -670,8 +676,9 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
 
       // the call to the bundle
       val callBundle = {
-        s"""    "${promiser}" usebundle => ${bundleName}(${allValues.mkString(", ")}),
-           |     ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");
+        s"""      "${promiser}"     usebundle => clean_method_reporting_context;
+           |      "${promiser}"     usebundle => ${bundleName}(${allValues.mkString(", ")}),
+           |       ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");
            |""".stripMargin('|')
 
       }
@@ -729,6 +736,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
          |    "pass2" expression => "pass1";
          |    "pass1" expression => "any";
          |  methods:
+         |    pass1.!pass2::
          |${methodsCalls}
          |}
          |
