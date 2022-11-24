@@ -217,7 +217,7 @@ function doughnutChart (id,data,count,colors) {
         , borderWidth    : borderW
       } ]
   };
-  
+
   var chartOptions = {
       type: 'doughnut'
     , data: chartData
@@ -269,7 +269,7 @@ function doughnutChart (id,data,count,colors) {
                           objectType: "software"
                         , attribute : "softwareVersion"
                         , comparator: "regex"
-                        , value     : "(\\d+:)?" + data[0]._model.label.replace(/\./g, "(\.|~)") + ".*"
+                        , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
                       }];
                       break;
                   case 'nodeMachine':
@@ -301,7 +301,7 @@ function doughnutChart (id,data,count,colors) {
          }
       }
     , plugins: [htmlLegendPlugin],
-    } 
+    }
   var chart = new Chart(context, chartOptions);
   window[id] = chart;
 }
