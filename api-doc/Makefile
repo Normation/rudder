@@ -1,6 +1,9 @@
 API:=webapp relay
 
-all: $(API)
+all: deps $(API)
+
+deps:
+	npm_config_loglevel=error npm ci --no-audit --no-fund
 
 $(API): clean
 	# Prepare all sources in build/ dir
