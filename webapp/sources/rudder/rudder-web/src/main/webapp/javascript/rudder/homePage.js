@@ -250,10 +250,10 @@ function doughnutChart (id,data,count,colors) {
                 case 'nodeOs':
                      if (g_osNames == undefined)
                         return ;
-                     var osName = data
+                     var osName = g_osNames[data];
                      query.query.where = [{
                          objectType: "node"
-                       , attribute : "osNAme"
+                       , attribute : "osName"
                        , comparator: "eq"
                        , value     : osName
                        }];
