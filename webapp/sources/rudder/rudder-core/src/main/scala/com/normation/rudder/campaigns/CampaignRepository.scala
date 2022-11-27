@@ -38,6 +38,7 @@
 package com.normation.rudder.campaigns
 
 import better.files.File
+import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
 import zio._
@@ -102,6 +103,8 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
   }
   def save(c: Campaign):   IOResult[Campaign]       = {
     for {
+      _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
+      _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
       file    <- IOResult.effect(s"error when creating campaign file for campaign with id '${c.info.id.value}'") {
                    val file = path / (s"${c.info.id.value}.json")
                    file.createFileIfNotExists(true)
