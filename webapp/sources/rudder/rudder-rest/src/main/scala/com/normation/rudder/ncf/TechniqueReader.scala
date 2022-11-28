@@ -1,7 +1,6 @@
 package com.normation.rudder.ncf
 
 import better.files._
-import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult

@@ -246,15 +246,8 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
             ) *>
             repo.saveCampaignEvent(event.copy(state = Skipped(s"An error occurred when processing event: ${err.fullMsg}")))
           }
-<<<<<<< HEAD
-      } yield {
-        ()
-      }).catchAll(failingLog)
-=======
         })
-        .provide(zclock)
         .catchAll(failingLog)
->>>>>>> branches/rudder/7.2
 
     }
 
