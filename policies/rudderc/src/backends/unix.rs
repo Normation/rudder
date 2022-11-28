@@ -10,7 +10,7 @@ use crate::{
         cfengine::{bundle::Bundle, promise::Promise},
         ncf::technique::Technique,
     },
-    ir::{self, condition::Condition, technique::ResourceKind},
+    ir::{self, condition::Condition, technique::ItemKind},
 };
 
 // TODO support macros at the policy or bundle level
@@ -36,16 +36,16 @@ impl Unix {
 
 impl Backend for Unix {
     fn generate(&self, technique: ir::Technique) -> Result<String> {
-        fn resolve_resource(r: ResourceKind, context: Condition) -> Result<Vec<(Promise, Bundle)>> {
+        fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<(Promise, Bundle)>> {
             match r {
-                ResourceKind::Block(r) => {
+                ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Bundle)> = vec![];
-                    for inner in r.resources {
-                        calls.extend(resolve_resource(inner, context.and(&r.condition))?);
+                    for inner in r.items {
+                        calls.extend(resolve_module(inner, context.and(&r.condition))?);
                     }
                     Ok(calls)
                 }
-                ResourceKind::Method(r) => {
+                ItemKind::Method(r) => {
                     let method: Vec<(Promise, Bundle)> = vec![r.try_into()?];
                     Ok(method)
                 }
@@ -59,12 +59,12 @@ impl Backend for Unix {
         let mut call_bundles = vec![];
         if !technique.files.is_empty() {
             main_bundle.add_promise_group(vec![Promise::string(
-                "resources_dir",
-                "${this.promise_dirname}/resources",
+                "modules_dir",
+                "${this.promise_dirname}/modules",
             )]);
         };
-        for resource in technique.resources {
-            for call in resolve_resource(resource, Condition::Defined)? {
+        for item in technique.items {
+            for call in resolve_module(item, Condition::Defined)? {
                 let (use_bundle, bundle) = call;
                 main_bundle.add_promise_group(vec![use_bundle]);
                 call_bundles.push(bundle)

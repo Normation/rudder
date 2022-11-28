@@ -1,5 +1,5 @@
 [package]
-name = "rudder-resource-type-directory"
+name = "rudder-module-type-directory"
 version = "0.0.0-dev"
 description = "Directory management"
 authors = ["Rudder developers <dev@rudder.io>"]
@@ -14,7 +14,7 @@ license = "GPL-3.0-or-later"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rudder_resource_type = { path = "../../rudder-resource-type" }
+rudder_module_type = { path = "../../rudder-module-type" }
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }

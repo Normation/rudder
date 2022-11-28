@@ -13,7 +13,7 @@ bundle common test {
 bundle agent main {
   test_type:
       "test"
-        rudder_resource_protocol => "0",
+        rudder_module_protocol => "0",
         data => parsejson("${test.data}"),
         policy_mode => "${test.policy_mode}",
         classes => test_classes;

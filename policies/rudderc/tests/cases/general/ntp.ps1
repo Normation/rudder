@@ -16,7 +16,7 @@ function NTP
     $localContext.Merge($system_classes)
 
 
-    $resources_dir = $PSScriptRoot + "\resources"
+    $modules_dir = $PSScriptRoot + "\modules"
 
 
 

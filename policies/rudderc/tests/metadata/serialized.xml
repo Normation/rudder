@@ -20,7 +20,7 @@
     <FILES>
       <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf">
         <INCLUDED>true</INCLUDED>
-        <OUTPATH>CIS_5_OS_Services/1.0/resources/rudder-square.png</OUTPATH>
+        <OUTPATH>CIS_5_OS_Services/1.0/modules/rudder-square.png</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>

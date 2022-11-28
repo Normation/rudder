@@ -4,9 +4,9 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{bail, Context};
-use rudder_resource_type::{
-    parameters::Parameters, run, CheckApplyResult, Outcome, PolicyMode, ResourceType0,
-    ResourceTypeMetadata, ValidateResult,
+use rudder_module_type::{
+    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
+    PolicyMode, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -34,15 +34,15 @@ pub struct DirectoryParameters {
     state: State,
 }
 
-// Resource
+// Module
 
 struct Directory {}
 
-impl ResourceType0 for Directory {
-    fn metadata(&self) -> ResourceTypeMetadata {
-        let meta = include_str!("../rudder_resource_type.yml");
+impl ModuleType0 for Directory {
+    fn metadata(&self) -> ModuleTypeMetadata {
+        let meta = include_str!("../rudder_module_type.yml");
         let docs = include_str!("../README.md");
-        ResourceTypeMetadata::from_metadata(meta)
+        ModuleTypeMetadata::from_metadata(meta)
             .expect("invalid metadata")
             .documentation(docs)
     }

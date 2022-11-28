@@ -25,7 +25,7 @@ impl Backend for Windows {
 #[template(path = "technique.ps1", escape = "none")]
 struct TechniqueTemplate<'a> {
     id: &'a str,
-    has_resources: bool,
+    has_modules: bool,
     methods: Vec<Method>,
 }
 
@@ -77,7 +77,7 @@ impl Windows {
     fn technique(src: Technique) -> String {
         let technique = TechniqueTemplate {
             id: src.name.as_str(),
-            has_resources: !src.files.is_empty(),
+            has_modules: !src.files.is_empty(),
             // FIXME: add content
             methods: vec![],
         };

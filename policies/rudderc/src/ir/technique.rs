@@ -65,7 +65,7 @@ impl fmt::Display for Id {
     }
 }
 
-/// A Rudder technique (based on methods and/or resources)
+/// A Rudder technique (based on methods and/or modules)
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Technique {
     #[serde(default)]
@@ -79,7 +79,7 @@ pub struct Technique {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
-    pub resources: Vec<ResourceKind>,
+    pub items: Vec<ItemKind>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub parameters: Vec<Parameter>,
@@ -111,34 +111,34 @@ impl Parameter {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
-pub enum ResourceKind {
+pub enum ItemKind {
     Block(Block),
-    Resource(Resource),
+    Module(Module),
     Method(Method),
 }
 
 // Same as untagged deserialization, but with improved error messages
-impl<'de> Deserialize<'de> for ResourceKind {
+impl<'de> Deserialize<'de> for ItemKind {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let parsed = Value::deserialize(deserializer)?;
         let Some(map) = parsed.as_mapping() else {
-            return Err(de::Error::custom("Resources should be a map"))
+            return Err(de::Error::custom("Modules should be a map"))
         };
         // Pre-guess the type to provide relevant error messages in case of incorrect fields
-        match (map.get("resources"), map.get("method"), map.get("resource")) {
-            (Some(_), _, _) => Ok(ResourceKind::Block(
+        match (map.get("items"), map.get("method"), map.get("module")) {
+            (Some(_), _, _) => Ok(ItemKind::Block(
                 Block::deserialize(parsed).map_err(de::Error::custom)?,
             )),
-            (_, Some(_), _) => Ok(ResourceKind::Method(
+            (_, Some(_), _) => Ok(ItemKind::Method(
                 Method::deserialize(parsed).map_err(de::Error::custom)?,
             )),
-            (_, _, Some(_)) => Ok(ResourceKind::Resource(
-                Resource::deserialize(parsed).map_err(de::Error::custom)?,
+            (_, _, Some(_)) => Ok(ItemKind::Module(
+                Module::deserialize(parsed).map_err(de::Error::custom)?,
             )),
-            (None, None, None) => Err(de::Error::custom("Missing required parameters in resource")),
+            (None, None, None) => Err(de::Error::custom("Missing required parameters in module")),
         }
     }
 }
@@ -148,21 +148,21 @@ pub struct Block {
     #[serde(default)]
     pub condition: Condition,
     pub name: String,
-    pub resources: Vec<ResourceKind>,
+    pub items: Vec<ItemKind>,
     pub id: Id,
     #[serde(default)]
     pub reporting: BlockReporting,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Resource {
+pub struct Module {
     #[serde(default)]
     pub name: String,
     pub meta: Value,
     #[serde(default)]
     pub condition: Condition,
     pub params: HashMap<String, String>,
-    pub resource: String,
+    pub module: String,
     pub id: Id,
     #[serde(default)]
     pub reporting: LeafReporting,

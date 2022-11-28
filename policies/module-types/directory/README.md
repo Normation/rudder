@@ -1,6 +1,6 @@
 # Template
 
-Template resource type.
+Template module type.
 
 It supports:
 

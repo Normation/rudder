@@ -1,7 +1,7 @@
 [package]
-name = "rudder_resource_type"
+name = "rudder_module_type"
 version = "0.0.0-dev"
-description = "Implement configuration resource types for Rudder"
+description = "Implement configuration module types for Rudder"
 authors = ["Rudder developers <dev@rudder.io>"]
 edition = "2021"
 readme = "README.adoc"

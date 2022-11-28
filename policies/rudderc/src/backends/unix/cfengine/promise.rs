@@ -84,7 +84,7 @@ impl fmt::Display for AttributeType {
 pub struct Promise {
     /// Comments in output file
     comments: Option<String>,
-    /// Resource/state the promise calls
+    /// Module/state the promise calls
     component: Option<String>,
     id: Option<String>,
     /// Type of the promise
