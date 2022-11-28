@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
+import com.normation.zio.currentTimeMillis
 import zio._
 import zio.duration.Duration
 
@@ -53,7 +54,7 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
 
   private[this] var handlers: List[JSONReportsHandler] = Nil
 
-  def addHandler(handler: JSONReportsHandler) = handlers = handler :: handlers
+  def addHandler(handler: JSONReportsHandler): Unit = handlers = handler :: handlers
 
   def handle(report: Reports): IOResult[Reports] = {
 
@@ -69,20 +70,32 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
 
     handlers.map(_.handle).fold(base) { case (a, b) => b orElse a }(report)
   }
-  def loop = {
-    val highestId = reportsRepository.getHighestId().getOrElse(0L)
+  def loop: IOResult[Unit] = {
     for {
+      t0         <- currentTimeMillis
+      highestId  <- reportsRepository.getHighestId().toIO
+      t1         <- currentTimeMillis
+      _          <- CampaignLogger.trace(s"Got highest id of database in ${t1 - t0} ms")
+      _          <- CampaignLogger.debug(s"looking for new json report to parse")
       optLowerId <- propRepo.getReportHandlerLastId
+      t2         <- currentTimeMillis
+      _          <- CampaignLogger.trace(s"Got parsed id in ${t2 - t1} ms")
       lowerId     = optLowerId.getOrElse(highestId)
+      _          <- CampaignLogger.debug(s"Last parsed id was ${lowerId}, max id in database is ${highestId}")
       reports    <- reportsRepository.getReportsByKindBetween(lowerId, None, 1000, List(Reports.REPORT_JSON)).toIO
-
-      _ <- reports.maxByOption(_._1) match {
-             case None    =>
-               propRepo.updateReportHandlerLastId(highestId)
-             case Some(r) =>
-               ZIO.foreach(reports)(r => handle(r._2)).catchAll(err => CampaignLogger.error(err.fullMsg)) *>
-               propRepo.updateReportHandlerLastId((r._1 + 1))
-           }
+      t3         <- currentTimeMillis
+      _          <- CampaignLogger.trace(s"Got reports in ${t3 - t2} ms")
+      _          <- reports.maxByOption(_._1) match {
+                      case None              =>
+                        CampaignLogger.debug(s"Found no json report, update parsed id to max id ${highestId}") *>
+                        propRepo.updateReportHandlerLastId(highestId)
+                      case Some(maxIdReport) =>
+                        CampaignLogger.debug(s"Found ${reports.size} json reports, update parsed id to max id ${maxIdReport._1 + 1}") *>
+                        ZIO.foreach(reports)(r => handle(r._2)).catchAll(err => CampaignLogger.error(err.fullMsg)) *>
+                        propRepo.updateReportHandlerLastId(maxIdReport._1 + 1)
+                    }
+      t4         <- currentTimeMillis
+      _          <- CampaignLogger.trace(s"treated reports in ${t4 - t3} ms")
     } yield {
       ()
     }
