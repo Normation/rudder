@@ -48,7 +48,7 @@ for template in templates:
 
     # Build final openapi.yml
     openapi_file = "%s/openapi.yml" % target
-    if subprocess.call(["openapi", "bundle", src_openapi_file,
+    if subprocess.call(["npx", "openapi", "bundle", src_openapi_file,
                         "--output", openapi_file]):
         print("Could not build %s" % (openapi_file))
         exit(1)
@@ -57,7 +57,7 @@ for template in templates:
 
     # Build doc from yaml file (with pre-rendered html)
     html_file = "%s/index.html" % target
-    if subprocess.call(["redoc-cli", "build", openapi_file,
+    if subprocess.call(["npx", "redoc-cli", "build", openapi_file,
                         "--output", html_file,
                         # Don't help google track our users
                         "--disableGoogleFont",
