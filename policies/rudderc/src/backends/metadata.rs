@@ -17,7 +17,7 @@ use crate::backends::Windows;
 use crate::{
     backends::Backend,
     ir,
-    ir::technique::{Id, ResourceKind},
+    ir::technique::{Id, ItemKind},
 };
 
 pub struct Metadata;
@@ -52,7 +52,7 @@ impl From<ir::Technique> for Technique {
         };
 
         // First parse block et reports sections
-        let mut sections: Vec<SectionType> = SectionType::from(src.resources.clone());
+        let mut sections: Vec<SectionType> = SectionType::from(src.items.clone());
         // Now let's add INPUT sections
         let input: Vec<Input> = src
             .parameters
@@ -135,7 +135,7 @@ impl Agent {
             included: true,
             out_path: None,
         }];
-        // FIXME: add /resources/ prefix?
+        // FIXME: add /modules/ prefix?
         for file in attached_files {
             files.push(File {
                 name: file.clone(),
@@ -248,20 +248,20 @@ struct Constraint {
 }
 
 impl SectionType {
-    fn from(resources: Vec<ResourceKind>) -> Vec<Self> {
+    fn from(modules: Vec<ItemKind>) -> Vec<Self> {
         // recursive function to handle blocks. Block recursion levels shouldn't be a
         // stack overflow threat.
-        resources
+        modules
             .into_iter()
             .map(|r| match r {
-                ResourceKind::Block(b) => SectionType::SectionBlock(SectionBlock {
+                ItemKind::Block(b) => SectionType::SectionBlock(SectionBlock {
                     name: b.name,
                     component: true,
                     multivalued: true,
-                    section: SectionType::from(b.resources),
+                    section: SectionType::from(b.items),
                     reporting: b.reporting.to_string(),
                 }),
-                ResourceKind::Method(m) => SectionType::Section(Section {
+                ItemKind::Method(m) => SectionType::Section(Section {
                     name: m.name,
                     id: m.id.clone(),
                     component: true,
@@ -276,7 +276,7 @@ impl SectionType {
                         id: m.id,
                     }],
                 }),
-                ResourceKind::Resource(_r) => todo!(),
+                ItemKind::Module(_) => todo!(),
             })
             .collect()
     }
@@ -358,7 +358,7 @@ mod tests {
                         File {
                             name: "RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/Audit_config_values/1.0/technique.cf".to_string(),
                             included: true,
-                            out_path: Some("CIS_5_OS_Services/1.0/resources/rudder-square.png".to_string()
+                            out_path: Some("CIS_5_OS_Services/1.0/modules/rudder-square.png".to_string()
                             ),
                         }
                     ],

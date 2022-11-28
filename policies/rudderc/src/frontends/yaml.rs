@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-//! Rudder resource_type represented in YAML format
+//! Rudder module_type represented in YAML format
 
 use std::{fs::read_to_string, path::Path};
 

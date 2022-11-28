@@ -6,7 +6,7 @@ pub mod unix {
 
     use assert_cmd::{prelude::*, Command};
     use predicates::prelude::*;
-    use rudder_resource_type::{CheckApplyResult, Outcome, PolicyMode};
+    use rudder_module_type::{CheckApplyResult, Outcome, PolicyMode};
     use tempfile::tempdir;
 
     const CF_BIN_DIR: &str = "/opt/rudder/bin/";
@@ -14,7 +14,7 @@ pub mod unix {
     // TODO: Test loop with source yaml and rudderc
     //let mut cmd = Command::cargo_bin("rudderc").unwrap();
 
-    /// Test given resource type with CFEngine
+    /// Test given module type with CFEngine
     pub fn test(bin: &Path, data: &str, policy_mode: PolicyMode, outcome: CheckApplyResult) {
         // Use a dedicated workdir for each test
         // Required to run agents concurrently without trouble

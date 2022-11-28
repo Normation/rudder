@@ -784,26 +784,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "rudder-resource-type-directory"
+name = "rudder-module-type-directory"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "rudder_commons_test",
- "rudder_resource_type",
+ "rudder_module_type",
  "serde",
  "serde_json",
  "tempfile",
 ]
 
 [[package]]
-name = "rudder-resource-type-template"
+name = "rudder-module-type-template"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "minijinja",
  "mustache",
  "rudder_commons_test",
- "rudder_resource_type",
+ "rudder_module_type",
  "serde",
  "serde_json",
  "tempfile",
@@ -824,12 +824,12 @@ version = "0.0.0-dev"
 dependencies = [
  "assert_cmd",
  "predicates",
- "rudder_resource_type",
+ "rudder_module_type",
  "tempfile",
 ]
 
 [[package]]
-name = "rudder_resource_type"
+name = "rudder_module_type"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",

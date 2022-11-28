@@ -1,3 +1,0 @@
-# Directory
-
-Directory resource type.

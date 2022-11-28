@@ -43,9 +43,9 @@ pub struct MainArgs {
     #[arg(short, long, action = clap::ArgAction::Append)]
     pub library: Vec<PathBuf>,
 
-    /// Generate information about available resources and exit
+    /// Generate information about available modules and exit
     #[arg(long)]
-    pub resources: bool,
+    pub modules: bool,
 }
 
 impl MainArgs {

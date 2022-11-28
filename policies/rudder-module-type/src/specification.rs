@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-//! Specification of the resource type.
+//! Specification of the module type.
 //!
-//! To be serialized to `rudder_resource_type.yml`.
+//! To be serialized to `rudder_module_type.yml`.
 
 use std::{collections::HashMap, path::PathBuf};
 
@@ -11,7 +11,7 @@ use rudder_commons::{Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ResourceTypeSpecs {
+pub struct ModuleTypeSpecs {
     /// Comes from crate FIXME
     pub name: String,
     /// Comes from crate

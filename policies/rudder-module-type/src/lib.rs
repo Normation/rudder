@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-//! Agent-side implementation of base resource_type types
+//! Agent-side implementation of base module_type types
 
 use std::{fmt, process::exit};
 
@@ -14,12 +14,12 @@ use crate::{cfengine::CfengineRunner, parameters::Parameters};
 pub mod cfengine;
 pub mod parameters;
 
-/// Information about the resource type to pass to the library
+/// Information about the module type to pass to the library
 ///
 /// These fields are the fields required by the library and need to be
 /// implemented by all promise types.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
-pub struct ResourceTypeMetadata {
+pub struct ModuleTypeMetadata {
     name: String,
     version: String,
     description: String,
@@ -28,11 +28,11 @@ pub struct ResourceTypeMetadata {
     metadata: Option<String>,
 }
 
-impl ResourceTypeMetadata {
+impl ModuleTypeMetadata {
     /// Load metadata from yaml content
     pub fn from_metadata(metadata: &'static str) -> Result<Self> {
         let parsed: Self = serde_yaml::from_str(metadata)?;
-        Ok(ResourceTypeMetadata {
+        Ok(ModuleTypeMetadata {
             metadata: Some(metadata.to_string()),
             ..parsed
         })
@@ -40,16 +40,16 @@ impl ResourceTypeMetadata {
 
     /// Override documentation
     pub fn documentation(self, docs: &'static str) -> Self {
-        ResourceTypeMetadata {
+        ModuleTypeMetadata {
             documentation: Some(docs.to_string()),
             ..self
         }
     }
 }
 
-/// Rudder resource type
+/// Rudder module type
 ///
-/// This is the interface to implement a generic Rudder resource type.
+/// This is the interface to implement a generic Rudder module type.
 ///
 /// This library provides adapters to connect it to our agents.
 ///
@@ -58,24 +58,24 @@ impl ResourceTypeMetadata {
 /// ## Metadata
 ///
 /// Each promise type source must come with a metadata file in `YAML` format.
-/// It contains the specifications of the resource type inputs and outputs,
+/// It contains the specifications of the module type inputs and outputs,
 /// along with documentation.
 ///
 /// The metadata will be included at compile time to allow distributing a unique file.
 ///
 /// ## Run model
 ///
-/// The resource type for will be started and initialized only once for each agent run.
+/// The module type for will be started and initialized only once for each agent run.
 /// Following requests will be handled sequentially.
 ///
-/// Implementation *must* allow concurrent run of the resource type (or prevent it totally).
+/// Implementation *must* allow concurrent run of the module type (or prevent it totally).
 ///
 /// ## Documentation
 ///
 /// The module is able to generate documentation from the given metadata.
-pub trait ResourceType0 {
-    /// Load metadata from default `rudder_resource_type.yml` and `README.md` files
-    fn metadata(&self) -> ResourceTypeMetadata;
+pub trait ModuleType0 {
+    /// Load metadata from default `rudder_module_type.yml` and `README.md` files
+    fn metadata(&self) -> ModuleTypeMetadata;
 
     /// Executed before any promise
     ///
@@ -106,7 +106,7 @@ pub trait ResourceType0 {
     ///
     /// ## Parameters
     ///
-    /// We pass a generic `serde_json::Value`. This allows the resource type to chose how to treat it,
+    /// We pass a generic `serde_json::Value`. This allows the module type to chose how to treat it,
     /// either parse it completely into structs or leave some generic parts (arbitrary key value, etc.).
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult;
 
@@ -189,21 +189,21 @@ pub enum ProtocolResult {
     Error(String),
 }
 
-/// Represents a connector able to run the given resource_type implementation
+/// Represents a connector able to run the given module_type implementation
 pub trait Runner0 {
-    fn run<T: ResourceType0>(&self, resource_type: T) -> Result<(), Error>;
+    fn run<T: ModuleType0>(&self, module_type: T) -> Result<(), Error>;
 }
 
 /// Automatically select the right runner for the target platform and run it with
 /// default settings.
-pub fn run<T: ResourceType0>(resource_type: T) -> Result<(), Error> {
+pub fn run<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     let cli_cfg = CliConfiguration::parse_args_default_or_exit();
 
     if cli_cfg.version {
         println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         exit(0)
     } else if cli_cfg.yaml {
-        let info = resource_type.metadata();
+        let info = module_type.metadata();
         if let Some(m) = info.metadata {
             println!("{}", m);
             exit(0)
@@ -212,9 +212,9 @@ pub fn run<T: ResourceType0>(resource_type: T) -> Result<(), Error> {
             exit(1)
         }
     } else if cli_cfg.info {
-        let info = resource_type.metadata();
+        let info = module_type.metadata();
         println!(
-            "Rudder resource type: {} v{} (program: {} v{})\n{}",
+            "Rudder module type: {} v{} (program: {} v{})\n{}",
             info.name,
             info.version,
             env!("CARGO_PKG_NAME"),
@@ -225,15 +225,15 @@ pub fn run<T: ResourceType0>(resource_type: T) -> Result<(), Error> {
     }
 
     #[cfg(target_family = "unix")]
-    CfengineRunner::new().run(resource_type)
+    CfengineRunner::new().run(module_type)
 }
 
 #[derive(Debug, Options)]
 // version and description are taken from Cargo.toml
 pub struct CliConfiguration {
-    #[options(help = "display information about the resource type")]
+    #[options(help = "display information about the module type")]
     pub info: bool,
-    #[options(help = "display the resource type specification in yaml format")]
+    #[options(help = "display the module type specification in yaml format")]
     pub yaml: bool,
     /// Automatically used for help flag
     #[options(help = "print help message")]

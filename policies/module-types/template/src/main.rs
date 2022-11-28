@@ -8,9 +8,9 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use rudder_resource_type::{
-    backup::Backup, parameters::Parameters, rudder_debug, run, CheckApplyResult, Outcome,
-    PolicyMode, ResourceType0, ResourceTypeMetadata, ValidateResult,
+use rudder_module_type::{
+    backup::Backup, parameters::Parameters, rudder_debug, run, CheckApplyResult, ModuleType0,
+    ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -100,15 +100,15 @@ pub struct TemplateParameters {
     data: Value,
 }
 
-// Resource
+// Module
 
 struct Template {}
 
-impl ResourceType0 for Template {
-    fn metadata(&self) -> ResourceTypeMetadata {
-        let meta = include_str!("../rudder_resource_type.yml");
+impl ModuleType0 for Template {
+    fn metadata(&self) -> ModuleTypeMetadata {
+        let meta = include_str!("../rudder_module_type.yml");
         let docs = include_str!("../README.md");
-        ResourceTypeMetadata::from_metadata(meta)
+        ModuleTypeMetadata::from_metadata(meta)
             .expect("invalid metadata")
             .documentation(docs)
     }

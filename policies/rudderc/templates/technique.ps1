@@ -15,8 +15,8 @@ function {{ id }}
     $localContext = [Rudder.Context]::new($techniqueName)
     $localContext.Merge($system_classes)
 
-{% if has_resources %}
-    $resources_dir = $PSScriptRoot + "\resources"
+{% if has_modules %}
+    $modules_dir = $PSScriptRoot + "\modules"
 {% endif %}
 
 {% for m in methods %}

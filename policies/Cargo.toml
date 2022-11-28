@@ -1,5 +1,5 @@
 [workspace]
-members = ["rudderc", "rudder-resource-type", "rudder-commons", "rudder-commons-test", "resource-types/*"]
+members = ["rudderc", "rudder-module-type", "rudder-commons", "rudder-commons-test", "module-types/*"]
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,

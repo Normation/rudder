@@ -13,4 +13,4 @@ license = "GPL-3.0-or-later"
 assert_cmd = "2"
 tempfile = "3"
 predicates = "2"
-rudder_resource_type = { path = "../rudder-resource-type" }
+rudder_module_type = { path = "../rudder-module-type" }

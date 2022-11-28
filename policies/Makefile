@@ -29,7 +29,7 @@ docs: test-docs
 libs-docs: libs
 	mkdir -p target/docs
 	cargo run --bin rudderc -- --library target/repos/ncf/tree/30_generic_methods/ \
-           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --resources --output target/methods.md
+           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --modules --output target/methods.md
 	pandoc --standalone --metadata=mainfont:sans --metadata=title:"Rudder methods docs" \
 	       --from commonmark_x --to html5 --toc --toc-depth=2 --output target/docs/methods.html target/methods.md
 

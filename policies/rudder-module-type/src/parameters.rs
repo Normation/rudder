@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-//! Rudder resource protocol encapsulated in CFEngine custom promise type
+//! Rudder module protocol encapsulated in CFEngine custom promise type
 
 use std::path::PathBuf;
 
@@ -25,9 +25,9 @@ pub struct Parameters {
     /// Default is enforce.
     #[serde(default)]
     pub(crate) policy_mode: PolicyMode,
-    /// Version of the Rudder resource protocol
-    pub(crate) rudder_resource_protocol: String,
-    /// Resource type parameters
+    /// Version of the Rudder module protocol
+    pub(crate) rudder_module_protocol: String,
+    /// Module type parameters
     pub data: Map<String, Value>,
 }
 

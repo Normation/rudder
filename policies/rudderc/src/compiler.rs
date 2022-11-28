@@ -17,7 +17,7 @@ use crate::{
         methods::{method::MethodInfo, reader::read_lib},
         yaml,
     },
-    ir::technique::{Method, ResourceKind},
+    ir::technique::{ItemKind, Method},
     logs::ok_output,
 };
 
@@ -56,7 +56,7 @@ pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<St
 
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
-    methods_metadata(&mut policy.resources, methods)?;
+    methods_metadata(&mut policy.items, methods)?;
 
     // TODO other checks and optimizations here
 
@@ -78,14 +78,14 @@ pub fn metadata(input: &Path) -> Result<String> {
 /// It replaces the legacy `generic_methods.json` produced by `ncf.py`.
 pub fn methods_description(libraries: &[PathBuf]) -> Result<String> {
     let methods = read_methods(libraries)?;
-    ok_output("Generating", "resources description".to_owned());
+    ok_output("Generating", "modules description".to_owned());
     // FIXME: sort output to limit changes
-    serde_json::to_string_pretty(&methods).context("Serializing resources")
+    serde_json::to_string_pretty(&methods).context("Serializing modules")
 }
 
 pub fn methods_documentation(libraries: &[PathBuf]) -> Result<String> {
     let methods = read_methods(libraries)?;
-    ok_output("Generating", "resources documentation".to_owned());
+    ok_output("Generating", "modules documentation".to_owned());
     // Sort methods
     let mut methods: Vec<_> = methods.into_iter().collect();
     methods.sort_by(|x, y| x.0.cmp(&y.0));
@@ -99,12 +99,12 @@ pub fn methods_documentation(libraries: &[PathBuf]) -> Result<String> {
 
 /// Inject metadata information into method calls
 fn methods_metadata(
-    resources: &mut Vec<ResourceKind>,
+    modules: &mut Vec<ItemKind>,
     info: &'static HashMap<String, MethodInfo>,
 ) -> Result<()> {
-    for r in resources {
+    for r in modules {
         match r {
-            ResourceKind::Method(m) => {
+            ItemKind::Method(m) => {
                 m.info = Some(
                     info.get(&m.method)
                         .ok_or_else(|| anyhow!("Unknown method '{}'", m.method))?,
@@ -114,8 +114,8 @@ fn methods_metadata(
                 }
                 check_method(m)?;
             }
-            ResourceKind::Block(b) => methods_metadata(&mut b.resources, info)?,
-            ResourceKind::Resource(_) => (),
+            ItemKind::Block(b) => methods_metadata(&mut b.items, info)?,
+            ItemKind::Module(_) => todo!(),
         };
     }
     Ok(())

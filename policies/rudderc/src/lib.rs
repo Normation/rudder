@@ -27,7 +27,7 @@ pub fn run(args: MainArgs) -> Result<()> {
     // guess output target
     let target = args.target()?;
 
-    if args.resources {
+    if args.modules {
         action::describe(args.library.as_slice(), args.output.as_ref(), target)
     } else {
         let input = match args.input {
@@ -79,12 +79,12 @@ pub mod action {
         logs::ok_output,
     };
 
-    /// Describe available resources
+    /// Describe available modules
     pub fn describe(libraries: &[PathBuf], output: Option<&PathBuf>, target: Target) -> Result<()> {
         let data = match target {
             Target::Metadata => methods_description(libraries)?,
             Target::Docs => methods_documentation(libraries)?,
-            _ => bail!("resources flag requires a metadata target"),
+            _ => bail!("modules flag requires a metadata target"),
         };
 
         if let Some(out) = output {

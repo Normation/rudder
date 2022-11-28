@@ -19,7 +19,7 @@ use crate::{
             TerminateResponse, ValidateOutcome, ValidateRequest, ValidateResponse,
         },
     },
-    ProtocolResult, ResourceType0, Runner0,
+    ModuleType0, ProtocolResult, Runner0,
 };
 
 /// Promise executor
@@ -35,8 +35,8 @@ impl Default for CfengineRunner {
 }
 
 impl Runner0 for CfengineRunner {
-    /// Runs a resource type for the agent, using stdio
-    fn run<T: ResourceType0>(&self, resource_type: T) -> Result<(), Error> {
+    /// Runs a module type for the agent, using stdio
+    fn run<T: ModuleType0>(&self, module_type: T) -> Result<(), Error> {
         let stdin = io::stdin();
         let stdout = io::stdout();
         let stderr = io::stderr();
@@ -45,7 +45,7 @@ impl Runner0 for CfengineRunner {
         let output = stdout.lock();
         let error = stderr.lock();
 
-        self.run_type(resource_type, input, output, error)
+        self.run_type(module_type, input, output, error)
     }
 }
 
@@ -58,7 +58,7 @@ impl CfengineRunner {
     /// Returns the output that would have been sent given provided input
     ///
     /// Used for testing
-    pub fn run_with_input<T: ResourceType0>(
+    pub fn run_with_input<T: ModuleType0>(
         &self,
         promise_type: T,
         input: &str,
@@ -104,7 +104,7 @@ impl CfengineRunner {
         Self::write_line(output, &json)
     }
 
-    fn run_type<T: ResourceType0, R: BufRead, W: Write, L: Write>(
+    fn run_type<T: ModuleType0, R: BufRead, W: Write, L: Write>(
         &self,
         mut promise: T,
         input: R,
@@ -148,7 +148,7 @@ impl CfengineRunner {
             if let Ok(req) = serde_json::from_str::<ValidateRequest>(&line) {
                 set_max_level(req.log_level);
                 // Check parameters
-                // FIXME add parameters spec check with info from the resource type
+                // FIXME add parameters spec check with info from the module type
                 let result: ValidateOutcome = promise.validate(&req.attributes).into();
                 Self::write_json(
                     &mut output,
