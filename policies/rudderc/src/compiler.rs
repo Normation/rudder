@@ -21,6 +21,8 @@ use crate::{
     logs::ok_output,
 };
 
+pub const RESOURCES_DIR: &str = "resources";
+
 fn read_methods(libraries: &[PathBuf]) -> Result<HashMap<String, MethodInfo>> {
     let mut methods = HashMap::new();
     for library in libraries {
@@ -60,7 +62,8 @@ pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<St
 
     // TODO other checks and optimizations here
 
-    backend(target).generate(policy)
+    let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
+    backend(target).generate(policy, resources_path.as_path())
 }
 
 /// Compile metadata file
@@ -70,7 +73,8 @@ pub fn metadata(input: &Path) -> Result<String> {
         "Generating metadata",
         format!("{} v{} ({})", policy.name, policy.version, input.display()),
     );
-    metadata_backend().generate(policy)
+    let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
+    metadata_backend().generate(policy, resources_path.as_path())
 }
 
 /// Compute the output of the JSON file for the webapp

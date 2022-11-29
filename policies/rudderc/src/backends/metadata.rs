@@ -8,10 +8,11 @@
 //! WARNING: We do not implement the format exhaustively but only the parts we need to
 //! generate our metadata file. There are parts that are could be made optional, and others are missing.
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use quick_xml::se::Serializer;
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
+use std::path::Path;
 
 use crate::backends::Windows;
 use crate::{
@@ -23,8 +24,8 @@ use crate::{
 pub struct Metadata;
 
 impl Backend for Metadata {
-    fn generate(&self, technique: ir::Technique) -> Result<String> {
-        let technique: Technique = technique.into();
+    fn generate(&self, technique: ir::Technique, resources: &Path) -> Result<String> {
+        let technique: Technique = (technique, resources).try_into()?;
         Self::xml(technique)
     }
 }
@@ -37,11 +38,16 @@ impl Metadata {
     }
 }
 
-impl From<ir::Technique> for Technique {
-    fn from(src: ir::Technique) -> Self {
+impl TryFrom<(ir::Technique, &Path)> for Technique {
+    type Error = Error;
+
+    fn try_from(data: (ir::Technique, &Path)) -> Result<Self> {
+        let (src, resources) = data;
+        let files = Metadata::list_resources(resources)?;
+
         let agent = ALL_TARGETS
             .iter()
-            .map(|t| Agent::from(src.id.to_string(), *t, src.files.clone()))
+            .map(|t| Agent::from(src.id.to_string(), *t, files.clone()))
             .collect();
         let multi_instance = !src.parameters.is_empty();
         let policy_generation = if src.parameters.is_empty() {
@@ -75,7 +81,7 @@ impl From<ir::Technique> for Technique {
             sections.push(SectionType::SectionInput(section));
         }
 
-        Technique {
+        Ok(Technique {
             name: src.name,
             description: src.description,
             // false is for legacy techniques, we only use the modern reporting
@@ -84,7 +90,7 @@ impl From<ir::Technique> for Technique {
             multi_instance,
             policy_generation: policy_generation.to_string(),
             sections: Sections { section: sections },
-        }
+        })
     }
 }
 
