@@ -37,7 +37,7 @@ const paths = {
     'elm': {
         'src': 'elm',
         'watch': 'elm/**/*.elm',
-        'dest': 'webapp/javascript/elm',
+        'dest': 'webapp/javascript/rudder/elm',
     },
 };
 
@@ -45,12 +45,6 @@ function clean(cb) {
     del.sync([paths.js.dest, paths.css.dest]);
     cb();
 }
-
-function css(cb) {
-    src(paths.css.src)
-        .pipe(dest(paths.css.dest));
-    cb();
-};
 
 // based on elm.json file presence
 function getElmApps(dir) {
@@ -104,6 +98,12 @@ function vendor_js(cb) {
             dirname: ''
         }))
         .pipe(dest(paths.vendor_js.dest));
+    cb();
+};
+
+function css(cb) {
+    src(paths.css.src)
+        .pipe(dest(paths.css.dest));
     cb();
 };
 
