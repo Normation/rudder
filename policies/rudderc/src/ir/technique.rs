@@ -74,6 +74,8 @@ pub struct Technique {
     pub name: String,
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -144,6 +146,8 @@ pub struct Block {
     #[serde(default)]
     pub condition: Condition,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Value>,
     pub items: Vec<ItemKind>,
     pub id: Id,
     #[serde(default)]
@@ -154,7 +158,8 @@ pub struct Block {
 pub struct Module {
     #[serde(default)]
     pub name: String,
-    pub meta: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Value>,
     #[serde(default)]
     pub condition: Condition,
     pub params: HashMap<String, String>,
@@ -168,6 +173,8 @@ pub struct Module {
 pub struct Method {
     #[serde(default)]
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Value>,
     #[serde(default)]
     pub condition: Condition,
     pub params: HashMap<String, String>,
