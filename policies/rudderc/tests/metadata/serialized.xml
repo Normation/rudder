@@ -27,9 +27,11 @@
   <SECTIONS>
     <SECTION name="Variable string match" reporting="weighted" component="true" multivalued="true">
       <SECTION name="Variable dict" id="f6810347-f367-4465-96be-3a50860f4cb1" component="true" multivalued="true">
-        <VALUE id="5dbfb761-f15f-40b5-9f75-b3d88b81483e">
-          <VALUE>key</VALUE>
-        </VALUE>
+        <REPORTKEYS>
+          <VALUE id="5dbfb761-f15f-40b5-9f75-b3d88b81483e">
+            key
+          </VALUE>
+        </REPORTKEYS>
       </SECTION>
       <SECTION name="Technique parameters">
         <INPUT>

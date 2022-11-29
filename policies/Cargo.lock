@@ -776,7 +776,7 @@ dependencies = [
 [[package]]
 name = "quick-xml"
 version = "0.26.0"
-source = "git+https://github.com/tafia/quick-xml?rev=a54f6c2#a54f6c2211e4fd6541c7191992e451ed47831b74"
+source = "git+https://github.com/tafia/quick-xml?rev=78a1cf5f6#78a1cf5f6cbad79580ca67b75a5dbe925b004ae3"
 dependencies = [
  "memchr",
  "serde",

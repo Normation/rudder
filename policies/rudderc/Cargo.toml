@@ -14,7 +14,7 @@ askama = "0.11.1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
 # to get pretty-printing serializer, we'll switch to 0.27 when released
-quick-xml = { git = "https://github.com/tafia/quick-xml", rev = "a54f6c2", features = ["serialize"] }
+quick-xml = { git = "https://github.com/tafia/quick-xml", rev = "78a1cf5f6", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.10"
 serde = { version = "1", features = ["derive"] }
