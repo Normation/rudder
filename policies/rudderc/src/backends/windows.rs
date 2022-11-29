@@ -3,6 +3,7 @@
 
 use super::Backend;
 use crate::ir::Technique;
+use std::path::Path;
 
 use anyhow::Result;
 use askama::Template;
@@ -16,8 +17,8 @@ impl Default for Windows {
 }
 
 impl Backend for Windows {
-    fn generate(&self, technique: Technique) -> Result<String> {
-        Ok(Self::technique(technique))
+    fn generate(&self, technique: Technique, resources: &Path) -> Result<String> {
+        Self::technique(technique, resources)
     }
 }
 
@@ -74,13 +75,13 @@ impl Windows {
         Self::pascal_case(s)
     }
 
-    fn technique(src: Technique) -> String {
+    fn technique(src: Technique, resources: &Path) -> Result<String> {
         let technique = TechniqueTemplate {
             id: src.name.as_str(),
-            has_modules: !src.files.is_empty(),
+            has_modules: !Windows::list_resources(resources)?.is_empty(),
             // FIXME: add content
             methods: vec![],
         };
-        technique.render().unwrap()
+        technique.render().map_err(|e| e.into())
     }
 }

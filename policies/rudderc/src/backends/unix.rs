@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use log::trace;
+use std::path::Path;
 
 use super::Backend;
 use crate::{
@@ -35,7 +36,7 @@ impl Unix {
 }
 
 impl Backend for Unix {
-    fn generate(&self, technique: ir::Technique) -> Result<String> {
+    fn generate(&self, technique: ir::Technique, resources: &Path) -> Result<String> {
         fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<(Promise, Bundle)>> {
             match r {
                 ItemKind::Block(r) => {
@@ -57,10 +58,10 @@ impl Backend for Unix {
         let mut main_bundle = Bundle::agent(technique.id.clone());
         // separate bundles for each method call
         let mut call_bundles = vec![];
-        if !technique.files.is_empty() {
+        if !Unix::list_resources(resources)?.is_empty() {
             main_bundle.add_promise_group(vec![Promise::string(
-                "modules_dir",
-                "${this.promise_dirname}/modules",
+                "resources_dir",
+                "${this.promise_dirname}/resources",
             )]);
         };
         for item in technique.items {

@@ -83,10 +83,6 @@ pub struct Technique {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub parameters: Vec<Parameter>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    // Don't use path, let's assume UTF-8 everywhere
-    pub files: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]

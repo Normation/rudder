@@ -13,7 +13,7 @@ use rudder_commons::Target;
 use test_generator::test_resources;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.
-#[test_resources("tests/cases/*/*.yml")]
+#[test_resources("tests/cases/*/*/*.yml")]
 fn compile(filename: &str) {
     for t in [Target::Unix, Target::Windows, Target::Metadata] {
         compile_file(Path::new(filename), t);
