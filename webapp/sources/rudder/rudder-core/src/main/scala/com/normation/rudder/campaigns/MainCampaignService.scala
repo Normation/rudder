@@ -203,21 +203,14 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                 case (base, handler) => handler orElse base
               }
             }
-            newCampaign <- handle
-                             .apply(updatedCampaign)
-                             .catchAll(err => {
-                               for {
-                                 _ <- CampaignLogger.error(err.fullMsg)
-                               } yield {
-                                 event
-                               }
-                             })
-            _           <-
+            newCampaign <- handle.apply(updatedCampaign)
+
+            _    <-
               CampaignLogger.debug(
                 s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}"
               )
-            save        <- repo.saveCampaignEvent(newCampaign)
-            post        <-
+            save <- repo.saveCampaignEvent(newCampaign)
+            post <-
               newCampaign.state match {
                 case Finished | Skipped(_) =>
                   for {
@@ -247,7 +240,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
             repo.saveCampaignEvent(event.copy(state = Skipped(s"An error occurred when processing event: ${err.fullMsg}")))
           }
         })
-        .catchAll(failingLog)
+        .catchAll(failingLog) // this catch all is when event the previous level does not work. It should not create loop
 
     }
 
@@ -375,7 +368,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                               val ev = CampaignEvent(
                                 CampaignEventId(uuidGen.newUuid),
                                 campaign.info.id,
-                                s" ${campaign.info.name} #${nbOfEvents + 1}",
+                                s"${campaign.info.name} #${nbOfEvents + 1}",
                                 Scheduled,
                                 start,
                                 end,
