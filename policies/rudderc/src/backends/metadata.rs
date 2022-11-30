@@ -15,6 +15,7 @@ use serde::Serialize;
 use std::path::Path;
 
 use crate::backends::Windows;
+use crate::compiler::RESOURCES_DIR;
 use crate::{
     backends::Backend,
     ir,
@@ -141,12 +142,12 @@ impl Agent {
             included: true,
             out_path: None,
         }];
-        // FIXME: add /modules/ prefix?
         for file in attached_files {
+            let path = format!("{RESOURCES_DIR}/{file}");
             files.push(File {
-                name: file.clone(),
+                name: path.clone(),
                 included: false,
-                out_path: Some(file),
+                out_path: Some(path),
             })
         }
 
