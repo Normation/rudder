@@ -10,6 +10,7 @@
 use std::convert::TryFrom;
 
 use anyhow::{bail, Error};
+use rudder_commons::canonify;
 
 use crate::{
     backends::unix::cfengine::{bundle::Bundle, promise::Promise, quoted},
@@ -37,6 +38,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
 
         let info = m.info.unwrap();
         let id = m.id.as_ref();
+        let c_id = canonify(id);
 
         let report_component = m.name.clone();
         let is_supported = info.agent_support.contains(&Agent::CfengineCommunity);
@@ -140,13 +142,8 @@ impl TryFrom<Method> for (Promise, Bundle) {
             LeafReporting::Enabled => promises,
         };
 
-        let bundle_name = format!("call_{}", m.id);
-        let bundle_call = Promise::usebundle(
-            bundle_name.clone(),
-            None,
-            Some(&m.id.to_string()),
-            parameters,
-        );
+        let bundle_name = format!("call_{}", c_id);
+        let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(&id), parameters);
 
         Ok((
             bundle_call,
