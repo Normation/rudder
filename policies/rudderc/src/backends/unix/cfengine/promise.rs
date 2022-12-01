@@ -155,6 +155,7 @@ impl Promise {
         id: Option<&str>,
         parameters: Vec<String>,
     ) -> Self {
+        println!("TOTO {} {}", id.unwrap_or(""), bundle.as_ref());
         Promise::new(
             PromiseType::Methods,
             component.map(String::from),

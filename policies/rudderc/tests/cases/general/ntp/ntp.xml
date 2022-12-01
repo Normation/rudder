@@ -11,9 +11,9 @@
       <FILE name="technique.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
-      <FILE name="file.cfg">
+      <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>file.cfg</OUTPATH>
+        <OUTPATH>resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>
@@ -25,9 +25,9 @@
       <FILE name="technique.ps1">
         <INCLUDED>true</INCLUDED>
       </FILE>
-      <FILE name="file.cfg">
+      <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>file.cfg</OUTPATH>
+        <OUTPATH>resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>

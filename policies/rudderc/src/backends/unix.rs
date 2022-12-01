@@ -55,7 +55,13 @@ impl Backend for Unix {
         }
 
         // main bundle containing the methods
-        let mut main_bundle = Bundle::agent(technique.id.clone());
+        let mut main_bundle = Bundle::agent(technique.id.clone()).parameters(
+            technique
+                .parameters
+                .iter()
+                .map(|p| p.name.clone())
+                .collect(),
+        );
         // separate bundles for each method call
         let mut call_bundles = vec![];
         if !Unix::list_resources(resources)?.is_empty() {
