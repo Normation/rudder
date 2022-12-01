@@ -43,6 +43,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
 
         let report_component = m.name.clone();
         let is_supported = info.agent_support.contains(&Agent::CfengineCommunity);
+        let method_name = &m.info.unwrap().name;
 
         // Reporting context
         let report_parameter = format!("${{{}}}", info.class_parameter);
@@ -94,7 +95,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                 method.if_condition(m.condition.clone()),
                 Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(&m.condition),
                 Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
-                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &report_component, &report_parameter, m.condition)),
+                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, m.condition)),
                     quoted(&report_parameter),
                     na_condition.clone(),
                     na_condition,
@@ -105,7 +106,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                 reporting_context,
                 Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]),
                 Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
-                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &report_component, &report_parameter, m.condition)),
+                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, m.condition)),
                     quoted(&report_parameter),
                     na_condition.clone(),
                     na_condition,

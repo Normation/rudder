@@ -13,7 +13,7 @@
       </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>resources/file.cfg</OUTPATH>
+        <OUTPATH>ntp/0.1/resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>
@@ -27,7 +27,7 @@
       </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>resources/file.cfg</OUTPATH>
+        <OUTPATH>ntp/0.1/resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>

@@ -20,7 +20,7 @@ bundle agent call_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(name, version, architectu
                                              if => concat("debian");
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${name}")),
                                          unless => concat("debian");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Ensure correct ntp configuration' with key parameter '${name}' since condition 'debian' is not reached", "${name}", canonify("${class_prefix}_package_present_${name}"), canonify("${class_prefix}_package_present_${name}"), @{args}),
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${name}' since condition 'debian' is not reached", "${name}", canonify("${class_prefix}_package_present_${name}"), canonify("${class_prefix}_package_present_${name}"), @{args}),
                                          unless => concat("debian");
 
 }

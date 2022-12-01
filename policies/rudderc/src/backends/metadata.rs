@@ -48,7 +48,14 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
 
         let agent = ALL_TARGETS
             .iter()
-            .map(|t| Agent::from(src.id.to_string(), *t, files.clone()))
+            .map(|t| {
+                Agent::from(
+                    src.id.to_string(),
+                    src.version.to_string(),
+                    *t,
+                    files.clone(),
+                )
+            })
             .collect();
         let multi_instance = !src.parameters.is_empty();
         let policy_generation = if src.parameters.is_empty() {
@@ -130,9 +137,14 @@ impl Agent {
         }
     }
 
-    fn from(technique_name: String, target: Target, attached_files: Vec<String>) -> Agent {
+    fn from(
+        technique_name: String,
+        technique_version: String,
+        target: Target,
+        attached_files: Vec<String>,
+    ) -> Agent {
         let name = match target {
-            Target::Unix => technique_name,
+            Target::Unix => technique_name.clone(),
             Target::Windows => Windows::technique_name(&technique_name),
             _ => unreachable!(),
         };
@@ -144,10 +156,11 @@ impl Agent {
         }];
         for file in attached_files {
             let path = format!("{RESOURCES_DIR}/{file}");
+            let outpath = format!("{technique_name}/{technique_version}/{path}");
             files.push(File {
                 name: path.clone(),
                 included: false,
-                out_path: Some(path),
+                out_path: Some(outpath),
             })
         }
 
