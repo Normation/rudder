@@ -43,20 +43,15 @@ package com.normation.inventory.domain
  * with a number of byte, but also string inputs like
  * 244 Mo, 23 kB, etc
  */
-final case class MemorySize(size: Long) extends AnyVal with Comparable[MemorySize] {
+final case class MemorySize(size: Long) extends AnyVal {
   override def toString() = "%s B".format(size)
 
   def toStringMo = {
     val (value, unit) = MemorySize.prettyMo(this)
     value + " " + unit
   }
-
-  def compareTo(other: MemorySize) = {
-    if (this.size > other.size) 1
-    else if (size - other.size == 0) 0
-    else -1
-  }
 }
+given Ordering[MemorySize] = _.size compareTo _.size
 
 object MemorySize {
   /*

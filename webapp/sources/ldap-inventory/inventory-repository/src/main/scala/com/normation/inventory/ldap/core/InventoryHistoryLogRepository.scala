@@ -63,10 +63,11 @@ class FullInventoryFileParser(
       (Task.effect {
         val buf = Buffer[Entry]()
         var e: Entry = null
-        do {
+        while ({
           e = reader.readEntry
           if (null != e) buf += e
-        } while (null != e)
+          null != e
+        }) ()
         buf
       } mapError {
         case e: FileNotFoundException =>

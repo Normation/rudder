@@ -195,10 +195,10 @@ final case class Certificate(value: String) extends SecurityToken {
  *
  * Comparison are really important in Version
  */
-final class Version(val value: String) extends AnyVal with Comparable[Version] {
-  override def compareTo(other: Version) = this.value.compareTo(other.value)
+final class Version(val value: String) extends AnyVal {
   override def toString()                = "[%s]".format(value)
 }
+given Ordering[Version] = _.value compareTo _.value
 
 object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"
