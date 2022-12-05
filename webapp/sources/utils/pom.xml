@@ -23,6 +23,12 @@ limitations under the License.
   </parent>
 
   <artifactId>utils</artifactId>
+  <properties>
+    <scala-version>${scala3-version}</scala-version>
+    <scala-binary-version>${scala3-binary-version}</scala-binary-version>
+    <scalacArg-Target>-Xtarget:11</scalacArg-Target>
+    <scalacArg-0/>
+  </properties>
 
    <description>
      Some utilitary types and functions for rudder projet,
@@ -38,24 +44,48 @@ limitations under the License.
 
   <dependencies>
     <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>utils-parsers</artifactId>
+      <version>${rudder-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-stacktracer_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-streams_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-json_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-interop-cats_${scala2-binary-version}</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-common_${scala-binary-version}</artifactId>
+      <artifactId>lift-common_${scala2-binary-version}</artifactId>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_${scala-binary-version}</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.lihaoyi</groupId>
-        <artifactId>fastparse_${scala-binary-version}</artifactId>
+      <artifactId>lift-json_${scala2-binary-version}</artifactId>
     </dependency>
     <dependency>
       <groupId>com.github.alonsodomin.cron4s</groupId>
-      <artifactId>cron4s-core_${scala-binary-version}</artifactId>
+      <artifactId>cron4s-core_${scala2-binary-version}</artifactId>
     </dependency>
   </dependencies>
 
