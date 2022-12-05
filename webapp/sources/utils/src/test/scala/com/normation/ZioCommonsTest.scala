@@ -28,7 +28,7 @@ import _root_.zio._
 import _root_.zio.clock.Clock
 import _root_.zio.duration.Duration
 import _root_.zio.syntax._
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -515,7 +515,7 @@ object TestAccumulate {
 
 }
 
-@silent // dead code / local val
+@nowarn // dead code / local val
 object TestThrowError {
 
   def main(args: Array[String]): Unit = {

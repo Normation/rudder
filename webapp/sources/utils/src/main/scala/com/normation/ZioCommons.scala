@@ -186,7 +186,7 @@ object errors {
   }
 
   final case class Accumulated[E <: RudderError](all: NonEmptyList[E]) extends RudderError {
-    implicit val ord = new Order[E]() {
+    implicit val ord: Order[E] = new Order[E]() {
       override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
     }
     def msg          = all.map(_.fullMsg).toList.mkString(" ; ")

@@ -5,6 +5,7 @@ import com.normation.errors.SystemError
 import cron4s.Cron
 import cron4s.CronExpr
 import cron4s.lib.javatime._
+import cron4s.toDateTimeCronOps
 import java.time.OffsetDateTime
 import zio.Schedule
 import zio.Schedule.Decision
