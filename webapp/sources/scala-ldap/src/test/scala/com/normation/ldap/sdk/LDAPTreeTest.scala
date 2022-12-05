@@ -20,7 +20,7 @@
 
 package com.normation.ldap.sdk
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.DN.NULL_DN
@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class LDAPTreeTest extends Specification {
 
