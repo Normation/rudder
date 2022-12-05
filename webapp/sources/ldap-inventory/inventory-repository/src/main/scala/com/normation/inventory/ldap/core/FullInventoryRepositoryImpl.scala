@@ -73,7 +73,8 @@ class FullInventoryRepositoryImpl(
     inventoryDitService.getDit(inventoryStatus).MACHINES.MACHINE.dn(uuid)
   }
   private[this] def dn(uuid: NodeId, inventoryStatus: InventoryStatus)             = {
-    inventoryDitService.getDit(inventoryStatus).NODES.NODE.dn(uuid)
+    // TODO: scala3 migration - bug: https://github.com/lampepfl/dotty/issues/16467
+    inventoryDitService.getDit(inventoryStatus).NODES.NODE.dn(uuid.value)
   }
   private[this] def nodeDn(inventoryStatus: InventoryStatus)                       = {
     inventoryDitService.getDit(inventoryStatus).NODES.dn
