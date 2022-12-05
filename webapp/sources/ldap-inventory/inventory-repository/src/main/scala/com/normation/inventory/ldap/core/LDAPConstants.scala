@@ -270,7 +270,7 @@ object LDAPConstants {
   val OC_VM_VIRTUOZZO    = "virtuozzo"
   val OC_VM_OPENVZ       = "openvz"
 
-  implicit val OC = new LDAPSchema()
+  implicit val OC: LDAPSchema = new LDAPSchema()
 
   /**
    * Machine types

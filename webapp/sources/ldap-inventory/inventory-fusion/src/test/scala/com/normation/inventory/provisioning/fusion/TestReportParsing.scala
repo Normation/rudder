@@ -37,7 +37,7 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
@@ -57,7 +57,7 @@ import zio._
  * demo-data, test data and test schema for UnboundID are not synchronized
  * with OpenLDAP Schema).
  */
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestInventoryParsing extends Specification with Loggable {
 
