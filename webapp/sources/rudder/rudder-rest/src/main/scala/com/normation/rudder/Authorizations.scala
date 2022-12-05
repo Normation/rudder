@@ -90,10 +90,6 @@ final object AuthorizationType {
   final case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
   final case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
 
-  // can't use sealerate here: "knownDirectSubclasses of observed before subclass ... registered"
-  // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
-  // in Role.
-
   final case object Administration {
     final case object Read  extends Administration with ActionType.Read with AuthorizationType
     final case object Edit  extends Administration with ActionType.Edit with AuthorizationType
@@ -181,7 +177,10 @@ final object AuthorizationType {
   def complianceKind:    Set[AuthorizationType] = Compliance.values ++ (nodeKind ++ configurationKind).collect {
     case x: ActionType.Read => x
   }
-  def allKind:           Set[AuthorizationType] = ca.mrvisser.sealerate.collect[AuthorizationType] - NoRights
+  def allKind:           Set[AuthorizationType] = Set(AnyRights) ++
+    Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
+    Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
+    UserAccount.values ++ Validator.values
 }
 
 /**
@@ -255,7 +254,21 @@ object Role       {
 
   final case class Custom(rights: Rights) extends Role { val name = "custom" }
 
-  def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]
+  def values: Set[Role] = Set(
+    Administrator,
+    User,
+    AdminOnly,
+    Workflow,
+    Deployer,
+    Validator,
+    Configuration,
+    ReadOnly,
+    Compliance,
+    Inventory,
+    RuleOnly,
+    NoRights
+  )
+
 }
 
 object RoleToRights {

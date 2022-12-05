@@ -203,8 +203,15 @@ trait EndpointSchema {
   // typically, several version of the same API will have the
   // same name, but not the same path.
   def name: String = {
-    val n = this.getClass.getSimpleName()
-    n(0).toLower.toString + n.substring(1, n.size - 1) // also remove the last '$'
+    this match {
+      case e: scala.reflect.Enum =>
+        val n = e.productPrefix
+        n(0).toLower.toString + n.substring(1)
+
+      case _ =>
+        val n = this.getClass().getSimpleName()
+        n(0).toLower.toString + n.substring(1, n.size - 1) // also remove the last '$'
+    }
   }
 
   // the kind of API

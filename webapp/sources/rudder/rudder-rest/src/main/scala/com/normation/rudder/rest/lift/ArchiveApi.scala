@@ -133,17 +133,15 @@ final case class FeatureSwitch0[A <: LiftApiModule0](enable: A, disable: A)(feat
   }
 }
 
-sealed trait ArchiveScope { def value: String }
+enum ArchiveScope(val value: String) {
+  case AllDep     extends ArchiveScope( "all"        )
+  case NoDep      extends ArchiveScope( "none"       )
+  case Directives extends ArchiveScope( "directives" )
+  case Techniques extends ArchiveScope( "techniques" )
+  case Groups     extends ArchiveScope( "groups"     )
+}
 object ArchiveScope       {
-
   // using nodep/alldep to avoid confusion with "none" in scala code
-  final case object AllDep     extends ArchiveScope { val value = "all"        }
-  final case object NoDep      extends ArchiveScope { val value = "none"       }
-  final case object Directives extends ArchiveScope { val value = "directives" }
-  final case object Techniques extends ArchiveScope { val value = "techniques" }
-  final case object Groups     extends ArchiveScope { val value = "groups"     }
-
-  def values = ca.mrvisser.sealerate.values[ArchiveScope].toList.sortBy(_.value)
   def parse(s: String): Either[String, ArchiveScope] = {
     values.find(_.value == s.toLowerCase.strip()) match {
       case None    =>
