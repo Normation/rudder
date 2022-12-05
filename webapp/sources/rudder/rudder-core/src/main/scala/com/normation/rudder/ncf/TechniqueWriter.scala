@@ -376,7 +376,7 @@ class TechniqueWriterImpl(
         if (technique.parameters.nonEmpty) {
           <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
             <MULTIINSTANCE>true</MULTIINSTANCE>
-        }
+        } else NodeSeq.Empty
       }
         <DESCRIPTION>{technique.description}</DESCRIPTION>
         <USEMETHODREPORTING>true</USEMETHODREPORTING>
@@ -388,7 +388,7 @@ class TechniqueWriterImpl(
           <SECTION name="Technique parameters">
                 {technique.parameters.map(parameterSection)}
               </SECTION>
-        }
+        } else NodeSeq.Empty
 
       }
         </SECTIONS>
@@ -842,7 +842,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
     val xml           = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
         <NAME>{technique.bundleName.value}</NAME>
-        {if (needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME>}
+        {if (needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME> else NodeSeq.Empty}
       </BUNDLES>
       <FILES>
         <FILE name={
@@ -857,7 +857,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
         }>
             <INCLUDED>true</INCLUDED>
           </FILE>
-      }
+      } else NodeSeq.Empty
     }
         {
       for {
