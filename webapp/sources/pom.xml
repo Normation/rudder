@@ -433,7 +433,7 @@ limitations under the License.
     <jgrapht-version>1.5.1</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
     <graalvm-version>22.3.0</graalvm-version>
-    <chimney-version>0.6.2</chimney-version>
+    <ducktape-version>0.1.0</ducktape-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.3.4</ipaddress-version>
     <snakeyaml-version>1.33</snakeyaml-version>
@@ -855,11 +855,11 @@ limitations under the License.
       <artifactId>zio-json_${scala-binary-version}</artifactId>
       <version>${zio-json-version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.scalaland</groupId>
-      <artifactId>chimney_${scala-binary-version}</artifactId>
-      <version>${chimney-version}</version>
-    </dependency>
+   <dependency>
+     <groupId>io.github.arainko</groupId>
+     <artifactId>ducktape_${scala3-binary-version}</artifactId>
+     <version>${ducktape-version}</version>
+   </dependency>
     <!-- zio/cats compat -->
     <dependency>
       <groupId>dev.zio</groupId>

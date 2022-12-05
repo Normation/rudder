@@ -66,7 +66,7 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.typesafe.config.ConfigValue
-import io.scalaland.chimney.dsl._
+import io.github.arainko.ducktape.*
 import net.liftweb.common._
 import net.liftweb.http.Req
 import zio.json._
@@ -101,8 +101,13 @@ object JsonQueryObjects {
       id:          Option[String] = None
   ) {
 
-    def update(ruleCategory: RuleCategory) = {
-      ruleCategory.using(this).ignoreRedundantPatcherFields.patch
+    def update(ruleCategory: RuleCategory): RuleCategory = {
+      def that = ruleCategory
+      ruleCategory.copy(
+        name = name.getOrElse(that.name),
+        description = description.getOrElse(that.description),
+        id = id.map(RuleCategoryId(_)).getOrElse(that.id)
+      )
     }
   }
 
@@ -130,19 +135,6 @@ object JsonQueryObjects {
     }
   }
 
-  // this one is a direction mapping of Directive with optionnal fields for patching
-  case class PatchDirective(
-      id:               Option[DirectiveId],
-      techniqueVersion: Option[TechniqueVersion],
-      parameters:       Option[Map[String, Seq[String]]],
-      name:             Option[String],
-      shortDescription: Option[String],
-      policyMode:       Option[Option[PolicyMode]],
-      longDescription:  Option[String],
-      priority:         Option[Int],
-      _isEnabled:       Option[Boolean],
-      tags:             Option[Tags]
-  )
   // the input query mapping
   final case class JQDirective(
       id:               Option[DirectiveId] = None,
@@ -174,20 +166,19 @@ object JsonQueryObjects {
       policyMode.isEmpty &&
       tags.isEmpty // no need to check source or reason
 
-    def updateDirective(directive: Directive) = {
-      directive.patchUsing(
-        PatchDirective(
-          id,
-          techniqueVersion,
-          parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2))),
-          displayName,
-          shortDescription,
-          policyMode,
-          longDescription,
-          priority,
-          enabled,
-          tags
-        )
+    def updateDirective(directive: Directive): Directive = {
+      def that = directive
+      directive.copy(
+        id = id.getOrElse(that.id),
+        parameters =
+          parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2))).getOrElse(that.parameters),
+        name = displayName.getOrElse(that.name),
+        shortDescription = shortDescription.getOrElse(that.shortDescription),
+        policyMode = policyMode.getOrElse(that.policyMode),
+        longDescription = longDescription.getOrElse(that.longDescription),
+        priority = priority.getOrElse(that.priority),
+        _isEnabled = enabled.getOrElse(that._isEnabled),
+        tags = tags.getOrElse(that.tags)
       )
     }
   }
@@ -314,17 +305,15 @@ object JsonQueryObjects {
              }
         p <- CompareProperties.updateProperties(group.properties, properties)
       } yield {
-        group.patchUsing(
-          GroupPatch(
-            // we can't change id, but revision yes
-            Some(NodeGroupId(group.id.uid, id.map(_.rev).getOrElse(group.id.rev))),
-            displayName,
-            description,
-            Some(p),
-            q.map(Some(_)),
-            dynamic,
-            enabled
-          )
+        group.copy(
+          // we can't change id, but revision yes
+          id = NodeGroupId(group.id.uid, id.map(_.rev).getOrElse(group.id.rev)),
+          name = displayName.getOrElse(group.name),
+          description = description.getOrElse(group.description),
+          properties = p,
+          query = q,
+          isDynamic = dynamic.getOrElse(group.isDynamic),
+          _isEnabled = enabled.getOrElse(group._isEnabled)
         )
       }
     }

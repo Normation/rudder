@@ -39,7 +39,7 @@ package com.normation.rudder.services.servers
 
 import com.normation.inventory.domain.NodeId
 import inet.ipaddr.IPAddressString
-import io.scalaland.chimney.dsl._
+import io.github.arainko.ducktape.*
 import zio.json._
 
 /*
@@ -112,12 +112,12 @@ object json {
    * Policy servers
    */
   final case class JAllowedNetwork(inet: String, name: String) {
-    def toAllowedNetwork: AllowedNetwork = this.into[AllowedNetwork].transform
+    def toAllowedNetwork: AllowedNetwork = this.to[AllowedNetwork]
   }
 
   object JAllowedNetwork {
     def from(allowedNetwork: AllowedNetwork) = {
-      allowedNetwork.into[JAllowedNetwork].transform
+      allowedNetwork.to[JAllowedNetwork]
     }
   }
 
@@ -128,9 +128,10 @@ object json {
     def toPolicyServer: PolicyServer = {
       this
         .into[PolicyServer]
-        .withFieldComputed(_.id, x => NodeId(x.id))
-        .withFieldComputed(_.allowedNetworks, _.allowedNetworks.map(_.toAllowedNetwork))
-        .transform
+        .transform(
+          Field.computed(_.id, x => NodeId(x.id)),
+          Field.computed(_.allowedNetworks, _.allowedNetworks.map(_.toAllowedNetwork))
+        )
     }
 
   }
@@ -138,9 +139,10 @@ object json {
     def from(server: PolicyServer) = {
       server
         .into[JPolicyServer]
-        .withFieldComputed(_.id, _.id.value)
-        .withFieldComputed(_.allowedNetworks, _.allowedNetworks.map(JAllowedNetwork.from(_)))
-        .transform
+        .transform(
+          Field.computed(_.id, _.id.value),
+          Field.computed(_.allowedNetworks, _.allowedNetworks.map(JAllowedNetwork.from(_)))
+        )
     }
   }
 

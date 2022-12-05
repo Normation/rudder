@@ -82,7 +82,7 @@ import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
-import io.scalaland.chimney.dsl._
+import io.github.arainko.ducktape.*
 import zio.{Tag => _, _}
 import zio.json._
 import zio.json.DeriveJsonEncoder
@@ -377,24 +377,24 @@ object JsonResponseObjects {
         case None                  =>
           technique
             .into[JRBuiltInTechnique]
-            .enableBeanGetters
-            .withFieldComputed(_.id, _.id.name.value)
-            .withFieldComputed(_.version, _.id.version.serialize)
-            .withFieldComputed(_.name, _.name)
-            .transform
+            .transform(
+              Field.computed(_.id, _.id.name.value),
+              Field.computed(_.version, _.id.version.serialize),
+              Field.computed(_.name, _.name)
+            )
         case Some(editorTechnique) =>
           editorTechnique
             .into[JREditorTechnique]
-            .enableBeanGetters
-            .withFieldComputed(_.id, _.bundleName.value)
-            .withFieldComputed(_.version, _.version.value)
-            .withFieldComputed(_.name, _.name)
-            .withFieldComputed(_.description, _.description)
-            .withFieldComputed(_.category, _.category)
-            .withFieldComputed(_.resources, _.ressources.map(JRTechniqueResource.from))
-            .withFieldComputed(_.parameters, _.parameters.map(JRTechniqueParameter.from))
-            .withFieldComputed(_.methodCalls, _.methodCalls.toList.map(JRTechniqueElem.from(_, methods)))
-            .transform
+            .transform(
+              Field.computed(_.id, _.bundleName.value),
+              Field.computed(_.version, _.version.value),
+              Field.computed(_.name, _.name),
+              Field.computed(_.description, _.description),
+              Field.computed(_.category, _.category),
+              Field.computed(_.resources, _.ressources.map(JRTechniqueResource.from)),
+              Field.computed(_.parameters, _.parameters.map(JRTechniqueParameter.from)),
+              Field.computed(_.methodCalls, _.methodCalls.toList.map(JRTechniqueElem.from(_, methods)))
+            )
       }
     )
   }
@@ -405,24 +405,26 @@ object JsonResponseObjects {
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive
         .into[JRDirective]
-        .enableBeanGetters
-        .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.serialize)
-        .withFieldRenamed(_.name, _.displayName)
-        .withFieldConst(_.techniqueName, technique.id.name.value)
-        .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize)
-        .withFieldConst(
-          _.parameters,
-          Map(
-            "section" -> JRDirectiveSection.fromSectionVal(
-              SectionVal.ROOT_SECTION_NAME,
-              SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters)
+        .transform(
+          Field.const(_.changeRequestId, crId.map(_.value.toString)),
+          Field.computed(_.id, _.id.serialize),
+          Field.renamed(_.displayName, _.name),
+          Field.const(_.techniqueName, technique.id.name.value),
+          Field.computed(_.techniqueVersion, _.techniqueVersion.serialize),
+          Field.const(
+            _.parameters,
+            Map(
+              "section" -> JRDirectiveSection.fromSectionVal(
+                SectionVal.ROOT_SECTION_NAME,
+                SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters)
+              )
             )
-          )
+          ),
+          Field.computed(_.policyMode, _.policyMode.map(_.name).getOrElse("default")),
+          Field.renamed(_.system, _.isSystem),
+          Field.computed(_.enabled, _.isEnabled),
+          Field.computed(_.tags, x => JRTags.fromTags(x.tags))
         )
-        .withFieldComputed(_.policyMode, _.policyMode.map(_.name).getOrElse("default"))
-        .withFieldComputed(_.tags, x => JRTags.fromTags(x.tags))
-        .transform
     }
   }
 
@@ -514,18 +516,19 @@ object JsonResponseObjects {
     ): JRRule = {
       rule
         .into[JRRule]
-        .enableBeanGetters
-        .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.serialize)
-        .withFieldRenamed(_.name, _.displayName)
-        .withFieldComputed(_.categoryId, _.categoryId.value)
-        .withFieldComputed(_.directives, _.directiveIds.map(_.serialize).toList.sorted)
-        .withFieldComputed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t)))
-        .withFieldRenamed(_.isEnabledStatus, _.enabled)
-        .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
-        .withFieldConst(_.policyMode, policyMode)
-        .withFieldConst(_.status, status.map(s => JRApplicationStatus(s._1, s._2)))
-        .transform
+        .transform(
+          Field.const(_.changeRequestId, crId.map(_.value.toString)),
+          Field.computed(_.id, _.id.serialize),
+          Field.renamed(_.displayName, _.name),
+          Field.computed(_.categoryId, _.categoryId.value),
+          Field.computed(_.directives, _.directiveIds.map(_.serialize).toList.sorted),
+          Field.computed(_.targets, _.targets.toList.sortBy(_.target).map(t => JRRuleTarget(t))),
+          Field.renamed(_.enabled, _.isEnabledStatus),
+          Field.renamed(_.system, _.isSystem),
+          Field.computed(_.tags, x => JRTags.fromTags(rule.tags)),
+          Field.const(_.policyMode, policyMode),
+          Field.const(_.status, status.map(s => JRApplicationStatus(s._1, s._2)))
+        )
     }
   }
 
@@ -598,16 +601,17 @@ object JsonResponseObjects {
     ): JRFullRuleCategory = {
       cat
         .into[JRFullRuleCategory]
-        .withFieldConst(_.parent, parent)
-        .withFieldComputed(
-          _.categories,
-          _.childs.map(c => JRFullRuleCategory.fromCategory(c, allRules, Some(cat.id.value))).sortBy(_.id)
+        .transform(
+          Field.const(_.parent, parent),
+          Field.computed(
+            _.categories,
+            _.childs.map(c => JRFullRuleCategory.fromCategory(c, allRules, Some(cat.id.value))).sortBy(_.id)
+          ),
+          Field.const(
+            _.rules,
+            allRules.get(cat.id.value).getOrElse(Nil).map { case (r, p, s) => JRRule.fromRule(r, None, p, s) }.toList.sortBy(_.id)
+          )
         )
-        .withFieldConst(
-          _.rules,
-          allRules.get(cat.id.value).getOrElse(Nil).map { case (r, p, s) => JRRule.fromRule(r, None, p, s) }.toList.sortBy(_.id)
-        )
-        .transform
     }
   }
 
@@ -627,11 +631,12 @@ object JsonResponseObjects {
     def fromCategory(cat: RuleCategory, parent: String, rules: List[String]) = {
       cat
         .into[JRSimpleRuleCategory]
-        .withFieldComputed(_.id, _.id.value)
-        .withFieldConst(_.parent, parent)
-        .withFieldComputed(_.categories, _.childs.map(_.id.value).sorted)
-        .withFieldConst(_.rules, rules)
-        .transform
+        .transform(
+          Field.computed(_.id, _.id.value),
+          Field.const(_.parent, parent),
+          Field.computed(_.categories, _.childs.map(_.id.value).sorted),
+          Field.const(_.rules, rules)
+        )
     }
   }
 
@@ -747,10 +752,11 @@ object JsonResponseObjects {
   object JRCriterium {
     def fromCriterium(c: CriterionLine) = {
       c.into[JRCriterium]
-        .withFieldComputed(_.objectType, _.objectType.objectType)
-        .withFieldComputed(_.attribute, _.attribute.name)
-        .withFieldComputed(_.comparator, _.comparator.id)
-        .transform
+        .transform(
+          Field.computed(_.objectType, _.objectType.objectType),
+          Field.computed(_.attribute, _.attribute.name),
+          Field.computed(_.comparator, _.comparator.id)
+        )
     }
   }
 
@@ -828,18 +834,20 @@ object JsonResponseObjects {
     def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]) = {
       group
         .into[JRGroup]
-        .enableBeanGetters
-        .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
-        .withFieldComputed(_.id, _.id.serialize)
-        .withFieldRenamed(_.name, _.displayName)
-        .withFieldConst(_.category, catId.value)
-        .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
-        .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
-        .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
-        .withFieldComputed(_.properties, _.properties.map(JRProperty.fromGroupProp(_)))
-        .withFieldComputed(_.target, x => GroupTarget(x.id).target)
-        .withFieldComputed(_.system, _.isSystem)
-        .transform
+        .transform(
+          Field.const(_.changeRequestId, crId.map(_.value.toString)),
+          Field.computed(_.id, _.id.serialize),
+          Field.renamed(_.displayName, _.name),
+          Field.const(_.category, catId.value),
+          Field.computed(_.query, _.query.map(JRQuery.fromQuery(_))),
+          Field.computed(_.nodeIds, _.serverList.toList.map(_.value).sorted),
+          Field.computed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName _).sorted),
+          Field.computed(_.properties, _.properties.map(JRProperty.fromGroupProp(_))),
+          Field.computed(_.target, x => GroupTarget(x.id).target),
+          Field.computed(_.system, _.isSystem),
+          Field.computed(_.enabled,  _.isEnabled),
+          Field.computed(_.dynamic, _.isDynamic)
+        )
     }
   }
 
@@ -869,9 +877,10 @@ object JsonResponseObjects {
     def fromHook(hook: Hooks) = {
       hook
         .into[JRHooks]
-        .withFieldConst(_.basePath, hook.basePath)
-        .withFieldConst(_.hooksFile, hook.hooksFile.map(_._1))
-        .transform
+        .transform(
+          Field.const(_.basePath, hook.basePath),
+          Field.const(_.hooksFile, hook.hooksFile.map(_._1))
+        )
     }
   }
 }
