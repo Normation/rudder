@@ -38,6 +38,7 @@ limitations under the License.
 
   <!-- we can't put a licenses tag here, else for some reason it overrides utils one -->
   <modules>
+    <module>utils-parsers</module>
     <module>utils</module>
     <module>scala-ldap</module>
     <module>ldap-inventory</module>

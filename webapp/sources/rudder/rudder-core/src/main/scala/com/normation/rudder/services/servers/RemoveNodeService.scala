@@ -117,13 +117,12 @@ object DeletionResult {
 
 }
 
-sealed trait DeleteMode { def name: String }
-final object DeleteMode {
-
-  final case object MoveToRemoved extends DeleteMode { val name = "move"  }
-  final case object Erase         extends DeleteMode { val name = "erase" }
-
-  def all = ca.mrvisser.sealerate.values[DeleteMode]
+enum DeleteMode(val name: String) {
+  case MoveToRemoved extends DeleteMode("move")
+  case Erase         extends DeleteMode("erase")
+}
+object DeleteMode {
+  def all = DeleteMode.values
 }
 
 /*

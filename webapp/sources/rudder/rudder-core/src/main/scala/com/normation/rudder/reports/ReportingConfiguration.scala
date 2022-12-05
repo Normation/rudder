@@ -161,15 +161,10 @@ class AgentRunIntervalServiceImpl(
 
 }
 
-import ca.mrvisser.sealerate.values
-
-sealed trait AgentReportingProtocol {
-  def value: String
+enum AgentReportingProtocol(val value: String) {
+  case AgentReportingHTTPS extends AgentReportingProtocol("HTTPS")
 }
-
-final case object AgentReportingHTTPS extends AgentReportingProtocol {
-  val value = "HTTPS"
-}
+export AgentReportingProtocol.AgentReportingHTTPS
 
 object AgentReportingProtocol {
   def apply(value: String): Box[AgentReportingProtocol] = {
@@ -179,7 +174,7 @@ object AgentReportingProtocol {
     }
   }
 
-  def allProtocols:         Set[AgentReportingProtocol]                 = values[AgentReportingProtocol]
+  def allProtocols:         Set[AgentReportingProtocol]                 = AgentReportingProtocol.values.toSet
   def parse(value: String): Either[RudderError, AgentReportingProtocol] = {
     allProtocols.find(_.value == value.toUpperCase()) match {
       case None           =>

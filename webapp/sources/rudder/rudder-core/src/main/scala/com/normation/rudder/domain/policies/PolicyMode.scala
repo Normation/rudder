@@ -36,15 +36,14 @@
  */
 package com.normation.rudder.domain.policies
 
-import ca.mrvisser.sealerate.values
 import com.normation.errors._
 
-sealed trait PolicyMode { def name: String }
-final object PolicyMode {
-  final case object Audit   extends PolicyMode { val name = "audit"   }
-  final case object Enforce extends PolicyMode { val name = "enforce" }
-
-  def allModes: Set[PolicyMode] = values[PolicyMode]
+enum PolicyMode(val name: String) {
+  case Audit   extends PolicyMode("audit")
+  case Enforce extends PolicyMode("enforce")
+}
+object PolicyMode {
+  def allModes: Set[PolicyMode] = PolicyMode.values.toSet
 
   // get from string, case insensitive
   def parse(value: String): Either[RudderError, PolicyMode] = {

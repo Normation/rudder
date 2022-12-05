@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import ca.mrvisser.sealerate.values
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import java.security.MessageDigest
@@ -46,9 +45,15 @@ import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.apache.commons.codec.digest.UnixCrypt
 
-sealed trait HashAlgoConstraint {
-  def prefix: String
-  def hash(input: Array[Byte]): String
+private[domain] object HashAlgoConstraintDigests {
+  lazy val md5    = MessageDigest.getInstance("MD5")
+  lazy val sha1   = MessageDigest.getInstance("SHA-1")
+  lazy val sha256 = MessageDigest.getInstance("SHA-256")
+  lazy val sha512 = MessageDigest.getInstance("SHA-512")
+}
+import HashAlgoConstraintDigests.*
+
+enum HashAlgoConstraint(val prefix: String)(val hash: Array[Byte] => String) {
 
   /**
    * Serialize an input to the storage format:
@@ -60,9 +65,6 @@ sealed trait HashAlgoConstraint {
     case Right((algo, _))                 => Left(Inconsistency(s"Bad algorithm prefix: found ${algo.prefix}, was expecting ${this.prefix}"))
     case Left(eb)                         => Left(eb)
   }
-}
-
-object HashAlgoConstraint {
 
   /////
   ///// Algos types
@@ -71,42 +73,20 @@ object HashAlgoConstraint {
   /*
    * Actually do not hash the result
    */
-  object PLAIN extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = new String(input, "UTF-8")
-    override val prefix = "plain"
-  }
+  case PLAIN extends HashAlgoConstraint("plain")(new String(_, "UTF-8"))
 
-  object PreHashed extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = new String(input, "UTF-8")
-    override val prefix = "pre-hashed"
-  }
+  case PreHashed extends HashAlgoConstraint("pre-hashed")(new String(_, "UTF-8"))
 
   /*
    * Simple standard hash: MD5, SHA-1,256,512
    */
-  object MD5 extends HashAlgoConstraint {
-    private[this] val md = MessageDigest.getInstance("MD5")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
-    override val prefix = "md5"
-  }
+  case MD5 extends HashAlgoConstraint("md5")(input => Hex.encodeHexString(md5.digest(input)))
 
-  object SHA1 extends HashAlgoConstraint {
-    private[this] val md = MessageDigest.getInstance("SHA-1")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
-    override val prefix = "sha1"
-  }
+  case SHA1 extends HashAlgoConstraint("sha1")(input => Hex.encodeHexString(sha1.digest(input)))
 
-  object SHA256 extends HashAlgoConstraint {
-    private[this] val md = MessageDigest.getInstance("SHA-256")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
-    override val prefix = "sha256"
-  }
+  case SHA256 extends HashAlgoConstraint("sha256")(input => Hex.encodeHexString(sha256.digest(input)))
 
-  object SHA512 extends HashAlgoConstraint {
-    private[this] val md = MessageDigest.getInstance("SHA-512")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
-    override val prefix = "sha512"
-  }
+  case SHA512 extends HashAlgoConstraint("sha512")(input => Hex.encodeHexString(sha512.digest(input)))
 
   /*
    * Linux shadow hash, as explained here:
@@ -125,20 +105,11 @@ object HashAlgoConstraint {
    *
    * shadow-md5 / shadow-sha-(level)
    */
-  object LinuxShadowMD5 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = Md5Crypt.md5Crypt(input)
-    override val prefix = "linux-shadow-md5"
-  }
+  case LinuxShadowMD5 extends HashAlgoConstraint("linux-shadow-md5")(Md5Crypt.md5Crypt(_))
 
-  object LinuxShadowSHA256 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = Sha2Crypt.sha256Crypt(input)
-    override val prefix = "linux-shadow-sha256"
-  }
+  case LinuxShadowSHA256 extends HashAlgoConstraint("linux-shadow-sha256")(Sha2Crypt.sha256Crypt(_))
 
-  object LinuxShadowSHA512 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = Sha2Crypt.sha512Crypt(input)
-    override val prefix = "linux-shadow-sha512"
-  }
+  case LinuxShadowSHA512 extends HashAlgoConstraint("linux-shadow-sha512")(Sha2Crypt.sha512Crypt(_))
 
   /*
    * AIX /etc/security/user hash, as explained here:
@@ -156,29 +127,20 @@ object HashAlgoConstraint {
    *
    * shadow-md5 / shadow-sha-(level)
    */
-  object AixMD5 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.smd5(new String(input, "UTF-8"))
-    override val prefix = "aix-smd5"
-  }
+  case AixMD5 extends HashAlgoConstraint("aix-smd5")(input => AixPasswordHashAlgo.smd5(new String(input, "UTF-8")))
 
-  object AixSHA256 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.ssha256(new String(input, "UTF-8"))
-    override val prefix = "aix-ssha256"
-  }
+  case AixSHA256 extends HashAlgoConstraint("aix-ssha256")(input => AixPasswordHashAlgo.ssha256(new String(input, "UTF-8")))
 
-  object AixSHA512 extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.ssha512(new String(input, "UTF-8"))
-    override val prefix = "aix-ssha512"
-  }
+  case AixSHA512 extends HashAlgoConstraint("aix-ssha512")(input => AixPasswordHashAlgo.ssha512(new String(input, "UTF-8")))
 
   /**
    * Unix historical crypt algo (based on 56 bits DES)
    * Used in historical Unix systems.
    */
-  object UnixCryptDES extends HashAlgoConstraint {
-    override def hash(input: Array[Byte]): String = UnixCrypt.crypt(input)
-    override val prefix = "unix-crypt-des"
-  }
+  case UnixCryptDES extends HashAlgoConstraint("unix-crypt-des")(UnixCrypt.crypt(_))
+}
+
+object HashAlgoConstraint {
 
   sealed trait DerivedPasswordType {
     // name, for ex for unserialisation
@@ -217,7 +179,7 @@ object HashAlgoConstraint {
   ///// Generic methods on algos
   /////
 
-  def algorithms = values[HashAlgoConstraint]
+  def algorithms = HashAlgoConstraint.values.toSet
 
   /**
    * A default order between hash algo constraints, for example

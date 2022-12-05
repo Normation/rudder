@@ -65,13 +65,13 @@ import scala.concurrent.duration.FiniteDuration
 import zio._
 import zio.syntax._
 
-sealed trait HashOsType
+enum HashOsType {
 
+  case AixHash   extends HashOsType
+  case CryptHash extends HashOsType // linux, bsd,...
+}
 object HashOsType {
-  final case object AixHash   extends HashOsType
-  final case object CryptHash extends HashOsType // linux, bsd,...
-
-  def all = sealerate.values[HashOsType]
+  def all = HashOsType.values
 }
 
 /*

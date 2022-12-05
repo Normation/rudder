@@ -75,21 +75,18 @@ case class ApiVersion(
 /*
  * HTTP verbs
  */
-sealed trait HttpAction      { def name: String }
-final case object HttpAction {
-
-  final case object HEAD   extends HttpAction { val name = "head"   }
-  final case object GET    extends HttpAction { val name = "get"    }
-  // perhaps we should have an "accepted content type"
-  // for update verbs
-  final case object PUT    extends HttpAction { val name = "put"    }
-  final case object POST   extends HttpAction { val name = "post"   }
-  final case object DELETE extends HttpAction { val name = "delete" }
-
+enum HttpAction(val name: String) {
+  case HEAD   extends HttpAction("head")
+  case GET    extends HttpAction("get")
+// perhaps we should have an "accepted content type"
+// for update verbs
+  case PUT    extends HttpAction(name = "put")
+  case POST   extends HttpAction(name = "post")
+  case DELETE extends HttpAction(name = "delete")
   // no PATCH for now
+}
 
-  def values = ca.mrvisser.sealerate.values[HttpAction]
-
+object HttpAction {
   def parse(action: String): Either[String, HttpAction] = {
     val lower = action.toLowerCase()
     values.find(_.name == lower).toRight(s"Action '${action}' is not recognized as a supported HTTP action")
@@ -205,11 +202,10 @@ final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
   def display = path.value + ":" + actions.map(_.name.toUpperCase()).mkString("[", ",", "]")
 }
 
-sealed trait ApiAuthorizationKind { def name: String }
-final object ApiAuthorizationKind {
-  final case object None extends ApiAuthorizationKind { override val name = "none" }
-  final case object RO   extends ApiAuthorizationKind { override val name = "ro"   }
-  final case object RW   extends ApiAuthorizationKind { override val name = "rw"   }
+enum ApiAuthorizationKind(val name: String) {
+  case None extends ApiAuthorizationKind("none")
+  case RO   extends ApiAuthorizationKind("ro")
+  case RW   extends ApiAuthorizationKind("rw")
   /*
    * An ACL (Access Control List) is the exhaustive list of
    * authorized path + the set of action on each path.
@@ -217,10 +213,10 @@ final object ApiAuthorizationKind {
    * It's a list, so ordered. If a path matches several entries in the
    * ACL list, only the first one is considered.
    */
-  final case object ACL  extends ApiAuthorizationKind { override val name = "acl"  }
+  case ACL  extends ApiAuthorizationKind("acl")
+}
 
-  def values = ca.mrvisser.sealerate.values[ApiAuthorizationKind]
-
+object ApiAuthorizationKind {
   def parse(s: String): Either[String, ApiAuthorizationKind] = {
     val lc = s.toLowerCase
     values.find(_.name == lc) match {
@@ -248,7 +244,7 @@ final object ApiAuthorization {
    * An authorization object with ALL authorization,
    * present and future.
    */
-  val allAuthz = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values)))
+  val allAuthz = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values.toSet)))
 }
 
 /**
@@ -260,28 +256,22 @@ final object ApiAuthorization {
  * - Standard account are used for public API acess.
  *
  */
-sealed trait ApiAccountType { def name: String }
-object ApiAccountType       {
+enum ApiAccountType(val name: String)       {
   // system token get special authorization and lifetime
-  final case object System    extends ApiAccountType { val name = "system" }
+  case System    extends ApiAccountType("system")
   // a token linked to an user account
-  final case object User      extends ApiAccountType { val name = "user"   }
+  case User      extends ApiAccountType("user")
   // a standard API token, that can be only for public API access
-  final case object PublicApi extends ApiAccountType { val name = "public" }
-
-  def values = ca.mrvisser.sealerate.values[ApiAccountType]
+  case PublicApi extends ApiAccountType("public")
 }
 
-sealed trait ApiAccountKind { def kind: ApiAccountType }
-object ApiAccountKind       {
-  final case object System extends ApiAccountKind { val kind = ApiAccountType.System }
-  final case object User   extends ApiAccountKind { val kind = ApiAccountType.User   }
-  final case class PublicApi(
+enum ApiAccountKind(val kind: ApiAccountType) {
+  case System extends ApiAccountKind(ApiAccountType.System)
+  case User   extends ApiAccountKind(ApiAccountType.User)
+  case PublicApi(
       authorizations: ApiAuthorization,
       expirationDate: Option[DateTime]
-  ) extends ApiAccountKind {
-    val kind = ApiAccountType.PublicApi
-  }
+  )           extends ApiAccountKind(ApiAccountType.PublicApi)
 }
 
 /**

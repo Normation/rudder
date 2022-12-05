@@ -54,6 +54,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </licenses>
 
   <modules>
+    <module>rudder-parsers</module>
+
     <module>rudder-templates</module>
     <!-- A CLI to fill-in rule templates -->
     <module>rudder-templates-cli</module>

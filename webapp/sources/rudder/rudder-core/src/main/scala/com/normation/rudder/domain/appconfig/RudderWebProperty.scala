@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.appconfig
 
-import ca.mrvisser.sealerate
 import java.util.regex.Pattern
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -62,13 +61,13 @@ final case class RudderWebProperty(
  * A little domain language for feature switches
  * (just enabled/disabled with the parsing)
  */
-sealed trait FeatureSwitch { def name: String }
-object FeatureSwitch       {
+enum FeatureSwitch(val name: String) {
+  case Enabled  extends FeatureSwitch("enabled")
+  case Disabled extends FeatureSwitch("disabled")
+}
+object FeatureSwitch {
 
-  final case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
-  final case object Disabled extends FeatureSwitch { override val name = "disabled" }
-
-  final val all: Set[FeatureSwitch] = sealerate.values[FeatureSwitch]
+  final val all: Set[FeatureSwitch] = FeatureSwitch.values.toSet
 
   def parse(value: String): Box[FeatureSwitch] = {
     value match {

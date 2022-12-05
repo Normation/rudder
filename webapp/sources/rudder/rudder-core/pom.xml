@@ -41,7 +41,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </parent>
 
   <artifactId>rudder-core</artifactId>
-  <packaging>jar</packaging>
+  <properties>
+    <scala-version>${scala3-version}</scala-version>
+    <scala-binary-version>${scala3-binary-version}</scala-binary-version>
+    <scalacArg-Target>-Xtarget:11</scalacArg-Target>
+    <scalacArg-0/>
+
+  </properties>
 
   <description>
     This is the API/Core lib module that writes the promises of machines
@@ -101,6 +107,43 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-parsers</artifactId>
+      <version>${rudder-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-stacktracer_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-streams_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-json_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dev.zio</groupId>
+          <artifactId>zio-interop-cats_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.lihaoyi</groupId>
+          <artifactId>sourcecode_${scala2-binary-version}</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>sourcecode_${scala3-binary-version}</artifactId>
+    </dependency>
+
     <!-- only for tests -->
     <dependency>
       <groupId>com.normation.inventory</groupId>
@@ -125,11 +168,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
       <version>${config-version}</version>
-    </dependency>
-    <dependency>
-        <groupId>com.lihaoyi</groupId>
-        <artifactId>fastparse_${scala-binary-version}</artifactId>
-        <version>${fastparse-version}</version>
     </dependency>
 
     <dependency>
@@ -179,8 +217,22 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
     <dependency>
       <groupId>org.tpolecat</groupId>
-      <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
+      <artifactId>doobie-specs2_${scala2-binary-version}</artifactId>
       <version>${doobie-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.tpolecat</groupId>
+          <artifactId>doobie-core_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.specs2</groupId>
+          <artifactId>specs2-core_${scala2-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-collection-compat_${scala2-binary-version}</artifactId>
+        </exclusion>
+      </exclusions>
       <scope>test</scope>
     </dependency>
 
@@ -218,12 +270,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+      <artifactId>lift-webkit_${scala2-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
+      <artifactId>lift-json-ext_${scala2-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
 

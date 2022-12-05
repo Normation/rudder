@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.servers
 
-import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -503,16 +502,13 @@ class PolicyServerManagementServiceImpl(
   }
 }
 
-sealed trait RelaySynchronizationMethod { def value: String }
-object RelaySynchronizationMethod       {
-
-  final case object Classic extends RelaySynchronizationMethod { val value = "classic" }
-
-  final case object Rsync extends RelaySynchronizationMethod { val value = "rsync" }
-
-  final case object Disabled extends RelaySynchronizationMethod { val value = "disabled" }
-
-  final val all: Set[RelaySynchronizationMethod] = sealerate.values[RelaySynchronizationMethod]
+enum RelaySynchronizationMethod(val value: String) {
+  case Classic  extends RelaySynchronizationMethod("classic")
+  case Rsync    extends RelaySynchronizationMethod("rsync")
+  case Disabled extends RelaySynchronizationMethod("disabled")
+}
+object RelaySynchronizationMethod {
+  final val all: Set[RelaySynchronizationMethod] = RelaySynchronizationMethod.values.toSet
 
   def parse(value: String): Box[RelaySynchronizationMethod] = {
     value match {

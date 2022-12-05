@@ -95,12 +95,9 @@ sealed trait SpecialComparator extends BaseComparator
 final case object Regex        extends SpecialComparator { override val id = "regex"    }
 final case object NotRegex     extends SpecialComparator { override val id = "notRegex" }
 
-sealed trait KeyValueComparator extends BaseComparator
-object KeyValueComparator {
-  final case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
-  final case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
-
-  def values = ca.mrvisser.sealerate.values[KeyValueComparator]
+enum KeyValueComparator(val id: String) extends BaseComparator {
+  case HasKey     extends KeyValueComparator("hasKey")
+  case JsonSelect extends KeyValueComparator("jsonSelect")
 }
 
 sealed trait ComparatorList {
@@ -1010,16 +1007,15 @@ final case object NodeAndRootServerReturnType extends QueryReturnType {
   override val value = "nodeAndPolicyServer"
 }
 
-sealed trait ResultTransformation {
-  def value: String
-}
-object ResultTransformation       {
+enum ResultTransformation(val value: String) {
   // no result transformation
-  final case object Identity extends ResultTransformation { val value = "identity" }
+  case Identity extends ResultTransformation("identity")
   // invert result: substract from "all nodes" the one matching that query
-  final case object Invert   extends ResultTransformation { val value = "invert"   }
+  case Invert   extends ResultTransformation("invert")
+}
 
-  def all = ca.mrvisser.sealerate.values[ResultTransformation]
+object ResultTransformation {
+  def all = ResultTransformation.values
 
   def parse(value: String): PureResult[ResultTransformation] = {
     value.toLowerCase match {

@@ -93,30 +93,32 @@ final case class InheritMode(
   def value = s"${forObject.value}${forArray.value}${forString.value}"
 }
 final object InheritMode {
-  sealed trait ObjectMode      { def value: Char }
-  final case object ObjectMode {
-    final case object Override extends ObjectMode { override val value = 'o' }
-    final case object Merge    extends ObjectMode { override val value = 'm' }
-
-    def all            = ca.mrvisser.sealerate.values[ObjectMode].toList
+  enum ObjectMode(val value: Char) {
+    case Override extends ObjectMode('o')
+    case Merge    extends ObjectMode('m')
+  }
+  object ObjectMode                {
+    def all            = ObjectMode.values.toList
     def parse(c: Char) = all.find(c == _.value)
   }
-  sealed trait ArrayMode       { def value: Char }
-  final case object ArrayMode  {
-    final case object Override extends ArrayMode { override val value = 'o' }
-    final case object Append   extends ArrayMode { override val value = 'a' }
-    final case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    def all            = ca.mrvisser.sealerate.values[ArrayMode].toList
+  enum ArrayMode(val value: Char) {
+    case Override extends ArrayMode('o')
+    case Append   extends ArrayMode('a')
+    case Prepend  extends ArrayMode('p')
+  }
+  object ArrayMode                {
+    def all            = ArrayMode.values.toList
     def parse(c: Char) = all.find(c == _.value)
   }
-  sealed trait StringMode      { def value: Char }
-  final case object StringMode {
-    final case object Override extends StringMode { override val value = 'o' }
-    final case object Append   extends StringMode { override val value = 'a' }
-    final case object Prepend  extends StringMode { override val value = 'p' }
 
-    def all            = ca.mrvisser.sealerate.values[StringMode].toList
+  enum StringMode(val value: Char) {
+    case Override extends StringMode('o')
+    case Append   extends StringMode('a')
+    case Prepend  extends StringMode('p')
+  }
+  object StringMode            {
+    def all            = StringMode.values.toList
     def parse(c: Char) = all.find(c == _.value)
   }
 

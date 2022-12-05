@@ -87,17 +87,15 @@ case object Node {
   }
 }
 
-sealed trait NodeState { def name: String }
-object NodeState       {
+enum NodeState(val name: String) {
+  case Enabled       extends NodeState("enabled")
+  case Ignored       extends NodeState("ignored")
+  case EmptyPolicies extends NodeState("empty-policies")
+  case Initializing  extends NodeState("initializing")
+  case PreparingEOL  extends NodeState("preparing-eol")
+}
 
-  final case object Enabled       extends NodeState { val name = "enabled"        }
-  final case object Ignored       extends NodeState { val name = "ignored"        }
-  final case object EmptyPolicies extends NodeState { val name = "empty-policies" }
-  final case object Initializing  extends NodeState { val name = "initializing"   }
-  final case object PreparingEOL  extends NodeState { val name = "preparing-eol"  }
-
-  def values = ca.mrvisser.sealerate.values[NodeState]
-
+object NodeState {
   // human readable, sorted list of (state, label)
   def labeledPairs = {
     val a = values.toList

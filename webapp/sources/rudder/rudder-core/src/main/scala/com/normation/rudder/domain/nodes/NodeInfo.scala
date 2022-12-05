@@ -65,14 +65,13 @@ final case class MachineInfo(
     manufacturer: Option[Manufacturer]
 )
 
-sealed trait NodeKind { def name: String }
-object NodeKind       {
-  final case object Root  extends NodeKind { val name = "root"  }
-  final case object Relay extends NodeKind { val name = "relay" }
-  final case object Node  extends NodeKind { val name = "node"  }
+enum NodeKind(val name: String){
+  case Root  extends NodeKind("root" )
+  case Relay extends NodeKind("relay")
+  case Node  extends NodeKind("node" )
+}
 
-  def values = ca.mrvisser.sealerate.values[NodeKind]
-
+object NodeKind{
   def parse(kind: String): Either[String, NodeKind] = {
     val lower = kind.toLowerCase()
     values

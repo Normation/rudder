@@ -137,38 +137,29 @@ final case class AgentConfig(
  * A type that tells if the Technique supports directive by directive
  * generation or not.
  */
-sealed trait TechniqueGenerationMode {
-  def name: String
-}
-
-final object TechniqueGenerationMode {
-
+enum TechniqueGenerationMode(val name: String) {
   /*
    * This technique does not support mutiple directives on the same node
    * but if the directive parameters are merged.
    * This is the historical way of working for Rudder techniques.
    */
-  final case object MergeDirectives extends TechniqueGenerationMode {
-    override val name = "merged"
-  }
+  case MergeDirectives extends TechniqueGenerationMode("merged")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectives extends TechniqueGenerationMode {
-    override val name = "separated"
-  }
+  case MultipleDirectives extends TechniqueGenerationMode("seperated")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectivesWithParameters extends TechniqueGenerationMode {
-    override val name = "separated-with-parameters"
-  }
+  case MultipleDirectivesWithParameters extends TechniqueGenerationMode("separated-with-parameters")
+}
 
-  def allValues = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
+object TechniqueGenerationMode {
+  def allValues = TechniqueGenerationMode.values
 
   def parse(value: String): Option[TechniqueGenerationMode] = {
     val v = value.toLowerCase
