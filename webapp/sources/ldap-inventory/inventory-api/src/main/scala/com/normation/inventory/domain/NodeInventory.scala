@@ -463,33 +463,33 @@ final case class CustomProperty(
     value: JValue
 )
 
-sealed trait SoftwareUpdateKind {
-  def name: String
+enum SoftwareUpdateKind(val name: String) {
+  case None                 extends SoftwareUpdateKind("none")
+  case Defect               extends SoftwareUpdateKind("defect")
+  case Security             extends SoftwareUpdateKind("security")
+  case Enhancement          extends SoftwareUpdateKind("enhancement")
+  case Other(value: String) extends SoftwareUpdateKind("other")
 }
 
-final object SoftwareUpdateKind     {
-  final case object None                extends SoftwareUpdateKind { val name = "none"        }
-  final case object Defect              extends SoftwareUpdateKind { val name = "defect"      }
-  final case object Security            extends SoftwareUpdateKind { val name = "security"    }
-  final case object Enhancement         extends SoftwareUpdateKind { val name = "enhancement" }
-  final case class Other(value: String) extends SoftwareUpdateKind { val name = "other"       }
-
-  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateKind]
+object SoftwareUpdateKind {
+  // Although class SoftwareUpdateKind is an enum, it has non-singleton cases so values is not generated
+  def all = Seq(None, Defect, Security, Enhancement)
 
   def parse(value: String) = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
 }
-sealed trait SoftwareUpdateSeverity {
-  def name: String
+
+enum SoftwareUpdateSeverity(val name: String) {
+  case Low                  extends SoftwareUpdateSeverity("low")
+  case Moderate             extends SoftwareUpdateSeverity("moderate")
+  case High                 extends SoftwareUpdateSeverity("high")
+  case Critical             extends SoftwareUpdateSeverity("critical")
+  case Other(value: String) extends SoftwareUpdateSeverity("other")
 }
 
 final object SoftwareUpdateSeverity {
-  final case object Low                 extends SoftwareUpdateSeverity { val name = "low"      }
-  final case object Moderate            extends SoftwareUpdateSeverity { val name = "moderate" }
-  final case object High                extends SoftwareUpdateSeverity { val name = "high"     }
-  final case object Critical            extends SoftwareUpdateSeverity { val name = "critical" }
-  final case class Other(value: String) extends SoftwareUpdateSeverity { val name = "other"    }
 
-  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateSeverity]
+  // Although class SoftwareUpdateSeverity is an enum, it has non-singleton cases so values is not generated
+  def all = Seq(Low, Moderate, High, Critical)
 
   def parse(value: String) = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
 }
