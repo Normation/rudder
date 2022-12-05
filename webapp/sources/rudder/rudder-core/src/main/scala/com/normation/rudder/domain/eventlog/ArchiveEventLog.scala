@@ -378,18 +378,29 @@ object Rollback extends EventLogFilter {
         attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null),
         scope = TopScope,
         minimizeEmpty = false,
-        child = (rollbackedEvents.map(ev => <rollbackedEvent>
-          <id>{ev.id.get}</id>
-          <type>{ev.eventType.serialize}</type>
-          <author>{ev.principal.name}</author>
-          <date>{ev.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
-        </rollbackedEvent>) ++ (<main>
+        child = {
+          val events = {
+            for ev <- rollbackedEvents
+            yield {
+              <rollbackedEvent>
+                <id>{ev.id.get}</id>
+                <type>{ev.eventType.serialize}</type>
+                <author>{ev.principal.name}</author>
+                <date>{ev.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+              </rollbackedEvent>
+            }
+          }
+          val main   = {
+            <main>
                 <rollbackType>{rollbackType}</rollbackType>
                 <id>{targetEvent.id.get}</id>
-          <type>{targetEvent.eventType.serialize}</type>
-          <author>{targetEvent.principal.name}</author>
-          <date>{targetEvent.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
-      </main>): _*)
+                <type>{targetEvent.eventType.serialize}</type>
+                <author>{targetEvent.principal.name}</author>
+                <date>{targetEvent.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+            </main>
+          }
+          events ++ main
+        }: _*
       )
     )
   }
