@@ -146,48 +146,6 @@ trait InterpolatedValueCompiler {
 
 }
 
-object PropertyParserTokens {
-
-  /*
-   * Our AST for interpolated variable:
-   * A string to look for interpolation is a list of token.
-   * A token can be a plain string with no variable, or something
-   * to interpolate. For now, we can interpolate two kind of variables:
-   * - node information (thanks to a pointed path to the interesting property)
-   * - rudder parameters (only globals for now)
-   */
-  sealed trait Token extends Any // could be Either[CharSeq, Interpolation]
-
-  // a string that is not part of a interpolated value
-  final case class CharSeq(s: String) extends AnyVal with Token {
-    def prefix(p: String) = CharSeq(p + s)
-  }
-
-  // ${} but not for rudder
-  final case class NonRudderVar(s: String) extends AnyVal with Token
-
-  // an interpolation
-  sealed trait Interpolation extends Any with Token
-
-  // everything is expected to be lower case
-  final case class NodeAccessor(path: List[String])                                                    extends AnyVal with Interpolation
-  // everything is expected to be lower case
-  final case class Param(path: List[String])                                                           extends AnyVal with Interpolation
-  // here, we keep the case as it is given
-  final case class Property(path: List[String], opt: Option[PropertyOption])                           extends Interpolation
-  final case class RudderEngine(engine: String, method: List[String], opt: Option[List[EngineOption]]) extends Interpolation
-
-  // here, we have node property option
-  sealed trait PropertyOption                       extends Any
-  final case object InterpreteOnNode                extends PropertyOption
-  final case class DefaultValue(value: List[Token]) extends AnyVal with PropertyOption
-
-  def containsVariable(tokens: List[Token]): Boolean = {
-    tokens.exists(t => t.isInstanceOf[Interpolation] || t.isInstanceOf[NonRudderVar])
-  }
-
-}
-
 trait AnalyseInterpolationWithPropertyService {
   def propertyEngineService: PropertyEngineService
 

@@ -4,8 +4,6 @@ import com.normation.errors._
 import com.normation.zio._
 import zio.Ref
 
-final case class EngineOption(name: String, value: String)
-
 trait RudderPropertyEngine {
   def name: String
 

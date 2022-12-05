@@ -89,7 +89,6 @@ object QSRegexQueryParser {
    * by composing interpretation function.
    */
   def interprete(parsed: (QueryString, List[Filter])): PureResult[Query] = {
-
     parsed match {
       case (EmptyQuery, _)           =>
         Left(Unexpected("No query string was found (the query is only composed of whitespaces and filters)"))
@@ -158,9 +157,9 @@ object QSRegexQueryParser {
    */
   type QF = (QueryString, List[Filter])
 
-  /////
-  ///// this is the entry point /////
-  /////
+  ///
+  /// this is the entry point /////
+  ///
 
   private[this] def all[A: P]: P[QF] = P(Start ~ (nominal | onlyFilters) ~ End)
 
@@ -201,9 +200,9 @@ object QSRegexQueryParser {
   private[this] def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:") ~ AnyChar).rep(1).!) map { x => CharSeq(x.trim) }
   private[this] def queryAtEnd[A: P]:    P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
 
-  /////
-  ///// utility methods
-  /////
+  ///
+  /// utility methods
+  ///
 
   /*
    * Check that the query is not empty (else, say it is the EmptyQuery),
