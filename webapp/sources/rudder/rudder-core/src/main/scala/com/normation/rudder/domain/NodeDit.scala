@@ -51,9 +51,9 @@ class NodeDit(val BASE_DN: DN) extends AbstractDit {
   dit.register(NODES.model)
 
   object NODES extends OU("Nodes", BASE_DN) {
-    nodes =>
+    private[this] def nodes = this
+
     object NODE extends ENTRY1(A_NODE_UUID) {
-      node =>
 
       // get id from dn
       def idFromDn(dn: DN): Option[NodeId] = buildId(dn, nodes.dn, { x: String => NodeId(x) })
