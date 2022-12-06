@@ -625,7 +625,7 @@ object JsonRunHookSer {
           JsonRunHookReport(r.id.getReportId, r.mode.name, r.technique, r.report.name, r.report.value.getOrElse("None"))
         )
       )
-      implicit val formats = Serialization.formats(NoTypeHints)
+      implicit val formats: Formats = DefaultFormats
       Serialization.write(jh)
     }
   }

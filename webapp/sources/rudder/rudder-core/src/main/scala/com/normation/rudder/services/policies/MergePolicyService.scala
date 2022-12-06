@@ -254,7 +254,7 @@ final object MergePolicyService {
             s"at random for the policy generation."
           )
           import net.liftweb.json._
-          implicit val formats = Serialization.formats(NoTypeHints)
+          implicit val formats: Formats = DefaultFormats
           def r(j: JValue)     = if (j == JNothing) "{}" else prettyRender(j)
 
           val jmain = Extraction.decompose(main)
