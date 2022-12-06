@@ -24,7 +24,7 @@ pipeline {
                     sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
                 }
                 dir('webapp/sources/rudder/rudder-web/src/main/') {
-                    sh script: 'npm audit --omit=dev --audit-level=high', label: "check npm dependencies"
+                    sh script: 'npm audit --audit-level=high', label: "check npm dependencies"
                 }
             }
             post {

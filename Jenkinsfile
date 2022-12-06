@@ -14,7 +14,7 @@ pipeline {
 
     environment {
         // TODO: automate
-        RUDDER_VERSION = "7.2"
+        RUDDER_VERSION = "7.3"
     }
 
     stages {
@@ -138,29 +138,6 @@ pipeline {
 
                             script {
                                 new SlackNotifier().notifyResult("python-team")
-                            }
-                        }
-                    }
-                }
-                stage('elm') {
-                    agent {
-                        dockerfile {
-                            filename 'webapp/sources/rudder/rudder-web/src/main/elm/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
-                        }
-                    }
-                    steps {
-                        dir('webapp/sources/rudder/rudder-web/src/main/elm') {
-                            sh script: './build.sh', label: 'build elm apps'
-                            dir('editor') {
-                                sh script: 'elm-test', label: 'run technique editor tests'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                new SlackNotifier().notifyResult("elm-team")
                             }
                         }
                     }
