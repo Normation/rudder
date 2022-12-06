@@ -38,7 +38,7 @@
 package com.normation.rudder.rest
 
 import better.files.File
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.campaigns.Scheduled
@@ -56,7 +56,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import zio.json._
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class CampaignApiTest extends Specification with AfterAll with Loggable {
 

@@ -37,6 +37,7 @@
 
 package com.normation.rudder.batch
 
+import scala.annotation.nowarn
 import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -421,7 +422,8 @@ class AutomaticReportsCleaning(
                  )
                  .delay(dur)
                  .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon
+                 .forkDaemon: @nowarn(msg="a type was inferred to be `\\w+`; this may indicate a programming error.")
+
              }
   } yield ()).provide(ZioRuntime.environment).runNow
 

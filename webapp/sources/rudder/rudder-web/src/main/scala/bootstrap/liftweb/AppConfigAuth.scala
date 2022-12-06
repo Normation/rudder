@@ -37,7 +37,7 @@
 
 package bootstrap.liftweb
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
@@ -153,7 +153,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
     // load additionnal beans from authentication dedicated ressource files
 
-    @silent("deprecated") // switching to new solution seems involving since we use systemPropertiesMode
+    @nowarn("msg=deprecated") // switching to new solution seems involving since we use systemPropertiesMode
     val propertyConfigurer = new PropertyPlaceholderConfigurer()
     propertyConfigurer.setIgnoreResourceNotFound(true)
     propertyConfigurer.setIgnoreUnresolvablePlaceholders(true)

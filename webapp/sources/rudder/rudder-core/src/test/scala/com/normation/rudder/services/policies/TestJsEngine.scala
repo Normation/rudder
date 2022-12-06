@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies
 
+import scala.annotation.nowarn
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.IOResult
@@ -60,6 +61,7 @@ import zio.syntax._
  *
  */
 
+@norwarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestJsEngine extends Specification {
 
