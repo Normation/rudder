@@ -38,3 +38,7 @@ pub const MAX_INT: i64 = 99_999_999_999;
 pub fn quoted(s: &str) -> String {
     format!("\"{}\"", s)
 }
+
+pub fn expanded(s: &str) -> String {
+    format!("\"${{{}}}\"", s)
+}

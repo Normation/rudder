@@ -12,6 +12,7 @@ use std::convert::TryFrom;
 use anyhow::{bail, Error};
 use rudder_commons::canonify;
 
+use crate::backends::unix::cfengine::expanded;
 use crate::{
     backends::unix::cfengine::{bundle::Bundle, promise::Promise, quoted},
     frontends::methods::method::Agent,
@@ -74,7 +75,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
             "_method_reporting_context_v4",
             Some(&report_component),
             Some(unique),
-            vec![quoted(&m.name), quoted(&report_parameter), quoted(id)],
+            vec![expanded("c_name"), expanded("c_key"), expanded("report_id")],
         );
 
         // Actual method call
@@ -125,10 +126,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                             report_parameter,
                         )),
                         quoted(&report_parameter),
-                        quoted(&format!(
-                            "${{class_prefix}}_{}_{}",
-                            info.bundle_name, report_parameter,
-                        )),
+                        quoted(unique),
                         "@{args}".to_string(),
                     ],
                 )
@@ -145,12 +143,28 @@ impl TryFrom<Method> for (Promise, Bundle) {
         };
 
         let bundle_name = format!("call_{}", c_id);
-        let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(unique), parameters);
+        let mut call_parameters = vec![
+            quoted(&report_component),
+            quoted(&report_parameter),
+            quoted(id),
+            "@{args}".to_string(),
+        ];
+        call_parameters.append(&mut parameters);
+        let bundle_call =
+            Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters);
 
+        let mut method_parameters = vec![
+            "c_name".to_string(),
+            "c_key".to_string(),
+            "report_id".to_string(),
+            "args".to_string(),
+        ];
+        let mut specific_parameters = info.parameter.iter().map(|p| p.name.clone()).collect();
+        method_parameters.append(&mut specific_parameters);
         Ok((
             bundle_call,
             Bundle::agent(bundle_name)
-                .parameters(info.parameter.iter().map(|p| p.name.clone()).collect())
+                .parameters(method_parameters)
                 .promise_group(bundle_content),
         ))
     }
