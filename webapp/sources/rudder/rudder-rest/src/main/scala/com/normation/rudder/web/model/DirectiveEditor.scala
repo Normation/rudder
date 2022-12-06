@@ -101,7 +101,8 @@ trait DirectiveField extends BaseField with SectionChildField {
    */
   def manifestOf[T](implicit m: Manifest[T]): Manifest[T] = m
 
-  require(!isEmpty(id), "A field ID can not be null nor empty")
+//  This check is always going to fail: at this point id is always null
+//  require(!isEmpty(id), s"A field ID can not be null nor empty")
 
   def manifest: Manifest[ValueType]
   override def required_? = true
