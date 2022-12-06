@@ -46,6 +46,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 
+// TODO migration-scala3: fails at runtime
 @RunWith(classOf[JUnitRunner])
 class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
 

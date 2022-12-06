@@ -532,6 +532,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
   }
 }
 
+// TODO: migration-scala3: fails at runtime
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniques500Test extends TechniquesTest {
   import testSystemData._
