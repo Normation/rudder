@@ -57,6 +57,7 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.OneParam
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.reports.UnexpectedReportBehavior
@@ -215,7 +216,7 @@ class SettingsApi(
   }
 
   object GetSetting extends LiftApiModule {
-    val schema        = API.GetSetting
+    val schema: OneParam        = API.GetSetting
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -238,7 +239,7 @@ class SettingsApi(
   }
 
   object ModifySetting extends LiftApiModule {
-    val schema        = API.ModifySetting
+    val schema : OneParam       = API.ModifySetting
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -864,7 +865,7 @@ class SettingsApi(
   }
 
   object GetAllowedNetworks extends LiftApiModule {
-    override val schema = API.GetAllowedNetworks
+    override val schema: OneParam = API.GetAllowedNetworks
     val restExtractor   = restExtractorService
     def process(
         version:    ApiVersion,
@@ -901,7 +902,7 @@ class SettingsApi(
   }
 
   object ModifyAllowedNetworks     extends LiftApiModule {
-    override val schema = API.ModifyAllowedNetworks
+    override val schema: OneParam = API.ModifyAllowedNetworks
     val restExtractor   = restExtractorService
     def process(
         version:    ApiVersion,
@@ -984,7 +985,7 @@ class SettingsApi(
    * Removed is a no-op if the network is already missing.
    */
   object ModifyDiffAllowedNetworks extends LiftApiModule {
-    override val schema = API.ModifyDiffAllowedNetworks
+    override val schema: OneParam = API.ModifyDiffAllowedNetworks
     val restExtractor   = restExtractorService
     def process(
         version:    ApiVersion,
