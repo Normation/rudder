@@ -271,27 +271,26 @@ object Validation {
     }
   }
 
-  sealed trait Machine {
-    def tpe: MachineType
+  enum Machine(val tpe: MachineType) {
     final def name: String = tpe match {
       case PhysicalMachineType               => "physical"
       case VirtualMachineType(UnknownVmType) => "vm"
       case VirtualMachineType(vm)            => vm.name
     }
+    case MPhysical extends Machine(PhysicalMachineType)
+    case MUnknownVmType extends Machine(VirtualMachineType(UnknownVmType))
+    case MSolarisZone   extends Machine(VirtualMachineType(SolarisZone))
+    case MVirtualBox    extends Machine(VirtualMachineType(VirtualBox))
+    case MVMWare        extends Machine(VirtualMachineType(VMWare))
+    case MQEmu          extends Machine(VirtualMachineType(QEmu))
+    case MXen           extends Machine(VirtualMachineType(Xen))
+    case MAixLPAR       extends Machine(VirtualMachineType(AixLPAR))
+    case MHyperV        extends Machine(VirtualMachineType(HyperV))
+    case MBSDJail       extends Machine(VirtualMachineType(BSDJail))
   }
-  object Machine       {
-    case object MPhysical      extends Machine { val tpe = PhysicalMachineType               }
-    case object MUnknownVmType extends Machine { val tpe = VirtualMachineType(UnknownVmType) }
-    case object MSolarisZone   extends Machine { val tpe = VirtualMachineType(SolarisZone)   }
-    case object MVirtualBox    extends Machine { val tpe = VirtualMachineType(VirtualBox)    }
-    case object MVMWare        extends Machine { val tpe = VirtualMachineType(VMWare)        }
-    case object MQEmu          extends Machine { val tpe = VirtualMachineType(QEmu)          }
-    case object MXen           extends Machine { val tpe = VirtualMachineType(Xen)           }
-    case object MAixLPAR       extends Machine { val tpe = VirtualMachineType(AixLPAR)       }
-    case object MHyperV        extends Machine { val tpe = VirtualMachineType(HyperV)        }
-    case object MBSDJail       extends Machine { val tpe = VirtualMachineType(BSDJail)       }
 
-    val values = ca.mrvisser.sealerate.values[Machine]
+  object Machine{
+    def names = values.map(_.name).toSet
   }
 
   sealed trait NodeValidationError { def msg: String }
