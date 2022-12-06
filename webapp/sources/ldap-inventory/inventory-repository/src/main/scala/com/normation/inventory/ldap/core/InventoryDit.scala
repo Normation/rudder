@@ -134,7 +134,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
   dit.register(MACHINES.model)
 
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) {
-    // TODO: scala3-migration - bug: https://github.com/lampepfl/dotty/issues/16437
+    // TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16437
     private[this] def software: OU = this
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
 
