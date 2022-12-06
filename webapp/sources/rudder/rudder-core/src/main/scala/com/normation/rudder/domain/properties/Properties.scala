@@ -324,7 +324,7 @@ object GenericProperty {
     import scala.jdk.CollectionConverters._
 
     def stringPlus(a: ConfigValue, b: ConfigValue):                 ConfigValue = {
-      ConfigValueFactory.fromAnyRef(a.unwrapped().asInstanceOf[String] ++ b.unwrapped().asInstanceOf[String])
+      ConfigValueFactory.fromAnyRef(a.unwrapped().asInstanceOf[String] + b.unwrapped().asInstanceOf[String])
     }
     def listPlus(a: ConfigValue, b: ConfigValue):                   ConfigValue = {
       val l = a.unwrapped().asInstanceOf[juList[Any]]
