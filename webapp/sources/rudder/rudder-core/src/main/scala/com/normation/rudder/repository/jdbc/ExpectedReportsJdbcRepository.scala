@@ -665,7 +665,7 @@ final case class ReportMapping(
 object ComponentsValuesSerialiser {
 
   def serializeComponents(ids: Seq[String]): String       = {
-    implicit val formats = Serialization.formats(NoTypeHints)
+    implicit val formats: Formats = DefaultFormats
     Serialization.write(ids)
   }
   /*

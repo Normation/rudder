@@ -173,14 +173,14 @@ class LDAPEntityMapper(
 
   def unserializeAgentRunInterval(value: String): AgentRunInterval = {
     import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[AgentRunInterval]
   }
 
   def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
     import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[HeartbeatConfiguration]
   }
@@ -1000,7 +1000,7 @@ class LDAPEntityMapper(
   def serApiAcl(authz: List[ApiAclElement]): String                              = {
     import net.liftweb.json.Serialization._
     import net.liftweb.json._
-    implicit val formats = Serialization.formats(NoTypeHints)
+    implicit val formats: Formats = DefaultFormats
     val toSerialize      = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
     write[JsonApiAcl](toSerialize)
   }
