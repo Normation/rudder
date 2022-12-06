@@ -6,6 +6,7 @@ use log::trace;
 use std::path::Path;
 
 use super::Backend;
+use crate::backends::unix::cfengine::expanded;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
@@ -70,6 +71,14 @@ impl Backend for Unix {
                 "${this.promise_dirname}/resources",
             )]);
         };
+        main_bundle.add_promise_group(vec![Promise::slist(
+            "args",
+            technique
+                .parameters
+                .iter()
+                .map(|p| format!("${{{}}}", &p.name))
+                .collect(),
+        )]);
         for item in technique.items {
             for call in resolve_module(item, Condition::Defined)? {
                 let (use_bundle, bundle) = call;
