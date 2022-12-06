@@ -38,6 +38,7 @@
 package com.normation.rudder.inventory
 
 import better.files.File
+import scala.annotation.nowarn
 import com.normation.box.IOManaged
 import com.normation.errors._
 import com.normation.errors.Chained
@@ -186,6 +187,7 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
+    @nowarn("msg=a type was inferred to be `Any`")
     def saveWithSignature(
         inventory:          Inventory,
         publicKey:          JavaSecPubKey,
