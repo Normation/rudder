@@ -469,9 +469,11 @@ class GenericConfigService(
       _        <- ZIO.whenM(needSave.get) {
                     save(name, param)
                   }
-    } yield {
-      value
-    }
+    } yield value
+  }
+
+  private[this] def getIO[T](name: String)(implicit converter: RudderWebProperty => IOResult[T]): IOResult[T] = {
+    get[IOResult[T]](name).flatten
   }
 
   private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo: Option[ModifyGlobalPropertyInfo] = None)(implicit
@@ -537,24 +539,18 @@ class GenericConfigService(
 
   implicit private[this] def toUnit(p: IOResult[RudderWebProperty]): IOResult[Unit] = p.map(_ => ())
 
-  implicit private[this] def toInt(p: IOResult[RudderWebProperty]): IOResult[Int] = {
-    try {
-      p.map(Integer.parseInt(_))
-    } catch {
-      case ex: NumberFormatException => Inconsistency(ex.getMessage).fail
-    }
+  implicit private[this] def toInt(p: RudderWebProperty): IOResult[Int] = {
+    try Integer.parseInt(p).succeed
+    catch case ex: NumberFormatException => Inconsistency(ex.getMessage).fail
   }
 
-  implicit private[this] def toDuration(p: IOResult[RudderWebProperty]) = {
-    try {
-      p.map(Duration(_))
-    } catch {
-      case ex: Exception => Inconsistency(ex.getMessage).fail
-    }
+  implicit private[this] def toDuration(p: RudderWebProperty): IOResult[Duration] = {
+    try Duration(p).succeed
+    catch case ex: Exception => Inconsistency(ex.getMessage).fail
   }
 
-  implicit private[this] def toPolicyGenerationTrigger(p: IOResult[RudderWebProperty]): IOResult[PolicyGenerationTrigger] = {
-    p.flatMap(v => PolicyGenerationTrigger(v).toIO)
+  implicit private[this] def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {
+    PolicyGenerationTrigger(p).toIO
   }
 
   implicit private[this] def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
@@ -620,34 +616,34 @@ class GenericConfigService(
   def relay_server_syncsharedfiles():                                  IOResult[Boolean]                    = get("relay.sync.sharedfiles")
   def set_relay_server_syncsharedfiles(value: Boolean):                IOResult[Unit]                       = save("relay.sync.sharedfiles", value)
 
-  def agent_run_interval():                                                          IOResult[Int]  = get("agent_run_interval")
+  def agent_run_interval():                                                          IOResult[Int]  = getIO("agent_run_interval")
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType, actor, reason)
     save("agent_run_interval", value, Some(info))
   }
 
-  def agent_run_splaytime():                                                          IOResult[Int]  = get("agent_run_splaytime")
+  def agent_run_splaytime():                                                          IOResult[Int]  = getIO("agent_run_splaytime")
   def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunSplaytimeEventType, actor, reason)
     save("agent_run_splaytime", value, Some(info))
   }
 
-  def agent_run_start_hour():                                                          IOResult[Int]  = get("agent_run_start_hour")
+  def agent_run_start_hour():                                                          IOResult[Int]  = getIO("agent_run_start_hour")
   def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartHourEventType, actor, reason)
     save("agent_run_start_hour", value, Some(info))
   }
 
-  def agent_run_start_minute():                                                          IOResult[Int]  = get("agent_run_start_minute")
+  def agent_run_start_minute():                                                          IOResult[Int]  = getIO("agent_run_start_minute")
   def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartMinuteEventType, actor, reason)
     save("agent_run_start_minute", value, Some(info))
   }
 
   ///// CFEngine server /////
-  def cfengine_modified_files_ttl():               IOResult[Int]  = get("cfengine_modified_files_ttl")
+  def cfengine_modified_files_ttl():               IOResult[Int]  = getIO("cfengine_modified_files_ttl")
   def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit] = save("cfengine_modified_files_ttl", value)
-  def cfengine_outputs_ttl():                      IOResult[Int]  = get("cfengine_outputs_ttl")
+  def cfengine_outputs_ttl():                      IOResult[Int]  = getIO("cfengine_outputs_ttl")
   def set_cfengine_outputs_ttl(value: Int):        IOResult[Unit] = save("cfengine_outputs_ttl", value)
 
   /**
@@ -662,13 +658,13 @@ class GenericConfigService(
   /**
    * Heartbeat frequency mode
    */
-  def rudder_compliance_heartbeatPeriod():                                                          IOResult[Int]  = get("rudder_compliance_heartbeatPeriod")
+  def rudder_compliance_heartbeatPeriod():                                                          IOResult[Int]  = getIO("rudder_compliance_heartbeatPeriod")
   def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     val info = ModifyGlobalPropertyInfo(ModifyHeartbeatPeriodEventType, actor, reason)
     save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
-  def rudder_policy_mode_name():                                                                IOResult[PolicyMode] = get("rudder_policy_mode_name").flatMap(PolicyMode.parse(_).toIO)
+  def rudder_policy_mode_name():                                                                IOResult[PolicyMode] = get[String]("rudder_policy_mode_name").flatMap(PolicyMode.parse(_).toIO)
   def set_rudder_policy_mode_name(name: PolicyMode, actor: EventActor, reason: Option[String]): IOResult[Unit]       = {
     val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType, actor, reason)
     save("rudder_policy_mode_name", name, Some(info))
@@ -777,16 +773,16 @@ class GenericConfigService(
   /// generation: js timeout, parallelism
   def rudder_generation_max_parallelism():                  IOResult[String] = get("rudder_generation_max_parallelism")
   def set_rudder_generation_max_parallelism(value: String): IOResult[Unit]   = save("rudder_generation_max_parallelism", value)
-  def rudder_generation_js_timeout():                       IOResult[Int]    = get("rudder_generation_js_timeout")
+  def rudder_generation_js_timeout():                       IOResult[Int]    = getIO("rudder_generation_js_timeout")
   def set_rudder_generation_js_timeout(value: Int):         IOResult[Unit]   = save("rudder_generation_js_timeout", value)
 
   def rudder_generation_continue_on_error():                   IOResult[Boolean] = get("rudder_generation_continue_on_error")
   def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]    = save("rudder_generation_continue_on_error", value)
 
-  def rudder_generation_delay():                    IOResult[Duration] = get("rudder_generation_delay")
+  def rudder_generation_delay():                    IOResult[Duration] = getIO("rudder_generation_delay")
   def set_rudder_generation_delay(value: Duration): IOResult[Unit]     = save("rudder_generation_delay", value.toString)
 
-  def rudder_generation_trigger():                                   IOResult[PolicyGenerationTrigger] = get("rudder_generation_trigger")
+  def rudder_generation_trigger():                                   IOResult[PolicyGenerationTrigger] = getIO("rudder_generation_trigger")
   def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit]                    = save("rudder_generation_trigger", value)
 
   def rudder_compute_dyngroups_max_parallelism():                  IOResult[String] = get("rudder_compute_dyngroups_max_parallelism")
