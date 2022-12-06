@@ -184,7 +184,7 @@ class TechniqueApi(
   }
 
   object DeleteTechnique extends LiftApiModule        {
-    val schema            = API.DeleteTechnique
+    val schema: TwoParam            = API.DeleteTechnique
     val restExtractor     = restExtractorService
     implicit val dataName = "techniques"
 
@@ -215,7 +215,7 @@ class TechniqueApi(
     }
   }
   object UpdateTechnique extends LiftApiModuleString2 {
-    val schema        = API.UpdateTechnique
+    val schema: TwoParam         = API.UpdateTechnique
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,

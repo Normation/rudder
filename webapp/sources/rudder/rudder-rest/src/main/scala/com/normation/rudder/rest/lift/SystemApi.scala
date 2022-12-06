@@ -58,6 +58,7 @@ import com.normation.rudder.rest.{SystemApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.EndpointSchema
+import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
@@ -420,7 +421,7 @@ class SystemApi(
   }
 
   object ArchiveGroupDateRestore extends LiftApiModule {
-    val schema        = API.ArchiveGroupDateRestore
+    val schema: OneParam = API.ArchiveGroupDateRestore
     val restExtractor = restExtractorService
 
     def process(
@@ -436,7 +437,7 @@ class SystemApi(
   }
 
   object ArchiveDirectiveDateRestore extends LiftApiModule {
-    val schema        = API.ArchiveDirectiveDateRestore
+    val schema: OneParam = API.ArchiveDirectiveDateRestore
     val restExtractor = restExtractorService
 
     def process(
@@ -452,7 +453,7 @@ class SystemApi(
   }
 
   object ArchiveRuleDateRestore extends LiftApiModule {
-    val schema        = API.ArchiveRuleDateRestore
+    val schema: OneParam = API.ArchiveRuleDateRestore
     val restExtractor = restExtractorService
 
     def process(
@@ -468,7 +469,7 @@ class SystemApi(
   }
 
   object ArchiveParameterDateRestore extends LiftApiModule {
-    val schema        = API.ArchiveParameterDateRestore
+    val schema: OneParam = API.ArchiveParameterDateRestore
     val restExtractor = restExtractorService
 
     def process(
@@ -484,7 +485,7 @@ class SystemApi(
   }
 
   object ArchiveFullDateRestore extends LiftApiModule {
-    val schema        = API.ArchiveFullDateRestore
+    val schema: OneParam = API.ArchiveFullDateRestore
     val restExtractor = restExtractorService
 
     def process(
@@ -500,7 +501,7 @@ class SystemApi(
   }
 
   object GetGroupsZipArchive extends LiftApiModule {
-    val schema        = API.GetGroupsZipArchive
+    val schema: OneParam = API.GetGroupsZipArchive
     val restExtractor = restExtractorService
 
     def process(
@@ -516,7 +517,7 @@ class SystemApi(
   }
 
   object GetDirectivesZipArchive extends LiftApiModule {
-    val schema        = API.GetDirectivesZipArchive
+    val schema: OneParam = API.GetDirectivesZipArchive
     val restExtractor = restExtractorService
 
     def process(
@@ -532,7 +533,7 @@ class SystemApi(
   }
 
   object GetRulesZipArchive extends LiftApiModule {
-    val schema        = API.GetRulesZipArchive
+    val schema: OneParam = API.GetRulesZipArchive
     val restExtractor = restExtractorService
 
     def process(
@@ -548,7 +549,7 @@ class SystemApi(
   }
 
   object GetParametersZipArchive extends LiftApiModule {
-    val schema        = API.GetParametersZipArchive
+    val schema: OneParam = API.GetParametersZipArchive
     val restExtractor = restExtractorService
 
     def process(
@@ -564,7 +565,7 @@ class SystemApi(
   }
 
   object GetAllZipArchive extends LiftApiModule {
-    val schema        = API.GetAllZipArchive
+    val schema: OneParam = API.GetAllZipArchive
     val restExtractor = restExtractorService
 
     def process(

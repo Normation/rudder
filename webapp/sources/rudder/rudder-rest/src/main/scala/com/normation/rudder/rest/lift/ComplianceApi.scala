@@ -141,7 +141,7 @@ class ComplianceApi(
   }
 
   object GetRuleId extends LiftApiModule {
-    val schema        = API.GetRulesComplianceId
+    val schema: OneParam = API.GetRulesComplianceId
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -218,7 +218,7 @@ class ComplianceApi(
   }
 
   object GetNodeId extends LiftApiModule {
-    val schema        = API.GetNodeComplianceId
+    val schema: OneParam = API.GetNodeComplianceId
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,

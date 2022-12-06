@@ -86,6 +86,7 @@ import com.normation.rudder.rest.{NodeApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NotFoundError
+import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.effectiveResponse
@@ -236,7 +237,7 @@ class NodeApi(
   }
 
   object NodeDetails extends LiftApiModule {
-    val schema        = API.NodeDetails
+    val schema: OneParam = API.NodeDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -257,7 +258,7 @@ class NodeApi(
   }
 
   object NodeInheritedProperties extends LiftApiModule {
-    val schema        = API.NodeInheritedProperties
+    val schema: OneParam = API.NodeInheritedProperties
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -277,7 +278,7 @@ class NodeApi(
   }
 
   object NodeDisplayInheritedProperties extends LiftApiModule {
-    val schema        = API.NodeDisplayInheritedProperties
+    val schema: OneParam = API.NodeDisplayInheritedProperties
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -297,7 +298,7 @@ class NodeApi(
   }
 
   object PendingNodeDetails extends LiftApiModule {
-    val schema        = API.PendingNodeDetails
+    val schema: OneParam = API.PendingNodeDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -317,7 +318,7 @@ class NodeApi(
    */
   object DeleteNode extends LiftApiModule {
 
-    val schema        = API.DeleteNode
+    val schema: OneParam = API.DeleteNode
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -343,7 +344,7 @@ class NodeApi(
   }
 
   object UpdateNode extends LiftApiModule {
-    val schema        = API.UpdateNode
+    val schema: OneParam = API.UpdateNode
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -395,7 +396,7 @@ class NodeApi(
   }
 
   object ChangePendingNodeStatus2 extends LiftApiModule {
-    val schema        = API.ChangePendingNodeStatus2
+    val schema: OneParam = API.ChangePendingNodeStatus2
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -489,7 +490,7 @@ class NodeApi(
   }
 
   object ApplyPolicy extends LiftApiModule {
-    val schema        = API.ApplyPolicy
+    val schema: OneParam = API.ApplyPolicy
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -586,7 +587,7 @@ class NodeApi(
   }
 
   object NodeDetailsSoftware extends LiftApiModule {
-    val schema        = API.NodeDetailsSoftware
+    val schema: OneParam = API.NodeDetailsSoftware
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -615,7 +616,7 @@ class NodeApi(
     }
   }
   object NodeDetailsProperty extends LiftApiModule {
-    val schema        = API.NodeDetailsProperty
+    val schema: OneParam = API.NodeDetailsProperty
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
