@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.reports
 
-import com.github.ghik.silencer.silent
 import com.normation.GitVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -297,8 +296,7 @@ class StatusReportTest extends Specification {
         val result = initData.headOption.map(x => ComplianceLevel.compute(x._2))
 
         // used to warm up
-        @silent // remove unused
-        val comp = ComplianceLevel.sum(Seq(result.get))
+        val _ = ComplianceLevel.sum(Seq(result.get))
         result.size === 1
       }
 
@@ -326,8 +324,7 @@ class StatusReportTest extends Specification {
         for (i <- 1 to 100) {
           val t0_0 = System.nanoTime
           // use to warm up
-          @silent // remove unused
-          val result = ComplianceLevel.sum(source)
+          val _ = ComplianceLevel.sum(source)
           val t1_1   = System.nanoTime
           logger.trace(s"${i}th call to sum for ${nbSet} sets took ${(t1_1 - t0_0) / 1000} µs")
         }

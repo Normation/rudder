@@ -37,7 +37,7 @@
 
 package com.normation.rudder.batch
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -421,7 +421,7 @@ class AutomaticReportsCleaning(
                  )
                  .delay(dur)
                  .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon: @silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+                 .forkDaemon: @nowarn
 
              }
   } yield ()).runNow

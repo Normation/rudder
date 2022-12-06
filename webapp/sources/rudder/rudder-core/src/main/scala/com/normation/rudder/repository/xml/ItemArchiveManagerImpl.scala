@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.xml
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
@@ -101,7 +101,7 @@ class ItemArchiveManagerImpl(
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
   val importSemaphore = Semaphore.make(1).runNow
 
-  @silent("a type was inferred to be `Any`")
+  @nowarn("msg=a type was inferred to be `Any`")
   def useSemaphoreOrFail[A](effect: IOResult[A]) = {
     // we timeout the semaphore acquisition to fail if another op is already running
     ZIO.scoped(

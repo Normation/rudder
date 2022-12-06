@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.reports
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -61,7 +61,7 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
   implicit private def str2directiveId(s: String) = DirectiveId(DirectiveUid(s))

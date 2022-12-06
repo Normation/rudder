@@ -37,7 +37,7 @@
 
 package com.normation.rudder.migration
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie._
 import doobie.implicits._
@@ -108,7 +108,7 @@ final case class MigrationTestLog(
  * with parameters defined in src/test/resources/database.properties.
  * That database should be empty to avoid table name collision.
  */
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 

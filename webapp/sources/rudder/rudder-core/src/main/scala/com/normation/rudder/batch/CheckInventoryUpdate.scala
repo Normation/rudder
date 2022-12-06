@@ -37,7 +37,7 @@
 
 package com.normation.rudder.batch
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -94,8 +94,6 @@ class CheckInventoryUpdate(
     )
   }
 
-  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).forkDaemon): @silent(
-    "a type was inferred to be `\\w+`; this may indicate a programming error."
-  )
+  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).forkDaemon): @nowarn
 
 }

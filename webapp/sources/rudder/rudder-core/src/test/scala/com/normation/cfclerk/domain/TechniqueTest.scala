@@ -37,7 +37,7 @@
 
 package com.normation.cfclerk.domain
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers._
 import java.io.FileNotFoundException
@@ -47,7 +47,7 @@ import org.specs2.runner._
 import org.xml.sax.SAXParseException
 import scala.xml._
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TechniqueTest extends Specification {
 

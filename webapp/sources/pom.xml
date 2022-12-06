@@ -805,12 +805,6 @@ limitations under the License.
       <version>${better-files-version}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.ghik</groupId>
-      <artifactId>silencer-lib_${scala-version}</artifactId>
-      <version>${silencer-lib-version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>ca.mrvisser</groupId>
       <artifactId>sealerate_${scala-binary-version}</artifactId>
       <version>0.0.6</version>

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.rest
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
@@ -127,7 +127,7 @@ object RudderJsonResponse {
 
   // rudder response. The "A" parameter is the business object (or list of it) in the response.
   // Success
-  @silent("parameter value encoder .* is never used") // used by magnolia macro
+  @nowarn("msg=parameter value encoder .* is never used") // used by magnolia macro
   def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(implicit prettify: Boolean, encoder: JsonEncoder[A]) = {
     schema.dataContainer match {
       case Some(key) =>
@@ -138,7 +138,7 @@ object RudderJsonResponse {
         generic.success(JsonRudderApiResponse.success(schema, id, obj))
     }
   }
-  @silent("parameter value encoder .* is never used") // used by magnolia macro
+  @nowarn("msg=parameter value encoder .* is never used") // used by magnolia macro
   def successList[A](schema: ResponseSchema, objs: List[A])(implicit prettify: Boolean, encoder: JsonEncoder[A])             = {
     schema.dataContainer match {
       case None      =>

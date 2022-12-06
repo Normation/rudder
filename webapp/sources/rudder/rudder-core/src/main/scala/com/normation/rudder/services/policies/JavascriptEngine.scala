@@ -37,8 +37,7 @@
 
 package com.normation.rudder.services.policies
 
-import ca.mrvisser.sealerate
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.cfclerk.domain.AbstactPassword
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.HashAlgoConstraint._
@@ -590,7 +589,7 @@ object JsEngine {
        * which interrected with it.
        *
        */
-      @silent("deprecated") def abortWithConsequences(): Unit = {
+      @nowarn("msg=deprecated") def abortWithConsequences(): Unit = {
         Thread.currentThread().stop()
       }
     }

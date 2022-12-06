@@ -37,7 +37,7 @@
 
 package com.normation.rudder.hooks
 
-import com.github.ghik.silencer.silent
+import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.zio._
 import java.io.File
@@ -54,7 +54,7 @@ import zio.{System => _, _}
  * the process context (environment variable, file descriptors..)
  */
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class RunNuCommandTest() extends Specification {
 
