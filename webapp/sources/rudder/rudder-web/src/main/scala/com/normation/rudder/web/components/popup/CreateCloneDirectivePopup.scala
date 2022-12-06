@@ -81,8 +81,9 @@ object CreateCloneDirectivePopup {
                 <button id="cancel" class="btn btn-default">Cancel</button>
                 <button id="save" class="btn btn-success">Clone</button>
             </div>
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
+        // TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16458
+        </div> //<!-- /.modal-content -->
+    </div> //<!-- /.modal-dialog -->
   )
 }
 
