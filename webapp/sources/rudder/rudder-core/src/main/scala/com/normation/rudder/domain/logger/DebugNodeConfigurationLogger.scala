@@ -82,7 +82,7 @@ class NodeConfigurationLoggerImpl(
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]] = {
     import net.liftweb.json._
-    implicit val formats                                 = Serialization.formats(NoTypeHints)
+    implicit val formats                                 = DefaultFormats
     def writeIn[T](path: File)(f: PrintWriter => Box[T]) = {
       val printWriter = new java.io.PrintWriter(path)
       try {

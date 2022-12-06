@@ -662,7 +662,7 @@ final case class JsonApiAcl(path: String, verb: String)
 
 object ApiAccountSerialisation {
 
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats: Formats = DefaultFormats
 
   implicit class Json(val account: ApiAccount) extends AnyVal {
     def toJson: JObject = {
