@@ -340,17 +340,33 @@ class DirectiveEditForm(
     )(crForm) ++
     Script(
       OnLoad(
-        JsRaw(s"""activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
-                 |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
-                 |generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")
-                 |$$('#technicalDetails').hide();
-                 |$$("input").not("#treeSearch").keydown( function(event) {
-                 |  processKey(event , '${htmlId_save}');
-                 |} );
-                 |checkMigrationButton("${currentVersion}","${versionSelectId}");
-                 |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
-                 |  checkMigrationButton("${currentVersion}","${versionSelectId}")
-                 |} );""".stripMargin)
+        JsRaw(s"""
+          |activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
+          |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
+          |generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")
+          |$$('#technicalDetails').hide();
+          |$$("input").not("#treeSearch").keydown( function(event) {
+          |  processKey(event , '${htmlId_save}');
+          |} );
+          |checkMigrationButton("${currentVersion}","${versionSelectId}");
+          |$$('#${directiveVersion.uniqueFieldId.getOrElse("id_not_found")}').change( function () {
+          |  checkMigrationButton("${currentVersion}","${versionSelectId}")
+          |} );
+          |var main = document.getElementById("directiveComplianceApp")
+          |var initValues = {
+          |  directiveId : "${directive.id.uid.value}",
+          |  contextPath : contextPath
+          |};
+          |var app = Elm.Directivecompliance.init({node: main, flags: initValues});
+          |app.ports.errorNotification.subscribe(function(str) {
+          |  createErrorNotification(str)
+          |});
+          |// Initialize tooltips
+          |app.ports.initTooltips.subscribe(function(msg) {
+          |  setTimeout(function(){
+          |    $$('.bs-tooltip').bsTooltip();
+          |  }, 400);
+          |});""".stripMargin)
       )
     )
   }

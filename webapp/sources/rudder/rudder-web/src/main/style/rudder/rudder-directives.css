@@ -259,11 +259,11 @@
   margin-top: 0;
 }
 .policymode-group input:checked + span > span.audit-btn{
-  background-color: #3694d1;
+  background-color: #1384be;
   color: #fff;
 }
 .policymode-group input:checked + span > span.enforce-btn{
-  background-color: #9bc832;
+  background-color: #13be7e;
   color: #fff;
 }
 .policymode-group input:checked + span > span.global-btn{
@@ -272,16 +272,17 @@
 }
 .policymode-group .global-mode.audit:before{
   content: "audit";
-  color: #3694d1;
+  color: #1384be;
 }
 .policymode-group .global-mode.enforce:before{
   content: "enforce";
-  color: #9bc832;
+  color: #13be7e;
 }
 /* === PARAMETERS === */
 .directiveAddGroup{
   margin-top: 15px;
 }
+
 /* === OVERRIDE TEMPLATE === */
 .main-header.no-header,
 .main-header.no-header + .main-navbar{
