@@ -259,96 +259,6 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     def start() = loop().forever
   }
 
-  def nextDateFromDayTime(date: DateTime, start: DayTime): DateTime = {
-    (if (
-       date.getDayOfWeek > start.day.value
-       || (date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
-       || (date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
-     ) {
-       date.plusWeeks(1)
-     } else {
-       date
-     })
-      .withDayOfWeek(start.day.value)
-      .withHourOfDay(start.realHour)
-      .withMinuteOfHour(start.realMinute)
-      .withSecondOfMinute(0)
-      .withMillisOfSecond(0)
-  }
-
-  def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[Option[(DateTime, DateTime)]] = {
-    schedule match {
-      case OneShot(start, end)        =>
-        if (start.isBefore(end)) {
-          if (end.isAfter(date)) {
-            Some((start, end)).succeed
-          } else {
-            None.succeed
-          }
-        } else {
-
-          Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
-              .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
-        }
-      case WeeklySchedule(start, end) =>
-        val startDate = nextDateFromDayTime(date, start)
-        val endDate   = nextDateFromDayTime(startDate, end)
-
-        Some((startDate, endDate)).succeed
-
-      case MonthlySchedule(position, start, end) =>
-        val realHour    = start.realHour
-        val realMinutes = start.realMinute
-        val day         = start.day
-        val base        = (position match {
-          case First      =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if (t.getMonthOfYear < date.getMonthOfYear) {
-              t.plusWeeks(1)
-            } else {
-              t
-            }
-          case Second     =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if (t.getMonthOfYear < date.getMonthOfYear) {
-              t.plusWeeks(2)
-            } else {
-              t.plusWeeks(1)
-            }
-          case Third      =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if (t.getMonthOfYear < date.getMonthOfYear) {
-              t.plusWeeks(3)
-            } else {
-              t.plusWeeks(2)
-            }
-          case Last       =>
-            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
-            if (t.getMonthOfYear > date.getMonthOfYear) {
-              t.minusWeeks(1)
-            } else {
-              t
-            }
-          case SecondLast =>
-            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
-            if (t.getMonthOfYear > date.getMonthOfYear) {
-              t.minusWeeks(2)
-            } else {
-              t.minusWeeks(1)
-            }
-        }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
-        val startDate   = {
-          (if (date.isAfter(base)) {
-             base.plusMonths(1)
-           } else {
-             base
-           })
-        }
-        val endDate     = nextDateFromDayTime(startDate, end)
-        Some((startDate, endDate)).succeed
-    }
-  }
-
   def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]] = {
 
     campaign.info.status match {
@@ -365,7 +275,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                               if (maxEventDate.isAfter(date)) maxEventDate else date
 
                           }
-          dates        <- nextCampaignDate(campaign.info.schedule, lastEventDate)
+          dates        <- MainCampaignScheduler.nextCampaignDate(campaign.info.schedule, lastEventDate)
           newEvent     <- dates match {
                             case Some((start, end)) =>
                               val ev = CampaignEvent(
@@ -432,4 +342,98 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
     }
   }
 
+}
+
+object MainCampaignScheduler {
+
+  def nextDateFromDayTime(date: DateTime, start: DayTime): DateTime = {
+    (if (
+       date.getDayOfWeek > start.day.value
+       || (date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
+       || (date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
+     ) {
+       date.plusWeeks(1)
+     } else {
+       date
+     })
+      .withDayOfWeek(start.day.value)
+      .withHourOfDay(start.realHour)
+      .withMinuteOfHour(start.realMinute)
+      .withSecondOfMinute(0)
+      .withMillisOfSecond(0)
+  }
+
+  def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[Option[(DateTime, DateTime)]] = {
+    schedule match {
+      case OneShot(start, end)        =>
+        if (start.isBefore(end)) {
+          if (end.isAfter(date)) {
+            Some((start, end)).succeed
+          } else {
+            None.succeed
+          }
+        } else {
+
+          Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
+              .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
+        }
+      case WeeklySchedule(start, end) =>
+        val startDate = nextDateFromDayTime(date, start)
+        val endDate   = nextDateFromDayTime(startDate, end)
+
+        Some((startDate, endDate)).succeed
+
+      case MonthlySchedule(position, start, end) =>
+        val realHour             = start.realHour
+        val realMinutes          = start.realMinute
+        val day                  = start.day
+        def base(date: DateTime) = (position match {
+          case First      =>
+            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
+            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
+              t.plusWeeks(1)
+            } else {
+              t
+            }
+          case Second     =>
+            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
+            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
+              t.plusWeeks(2)
+            } else {
+              t.plusWeeks(1)
+            }
+          case Third      =>
+            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
+            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
+              t.plusWeeks(3)
+            } else {
+              t.plusWeeks(2)
+            }
+          case Last       =>
+            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
+            if ((t.getYear == date.getYear && t.getMonthOfYear > date.getMonthOfYear) || t.getYear == date.getYear + 1) {
+              t.minusWeeks(1)
+            } else {
+              t
+            }
+          case SecondLast =>
+            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
+            if ((t.getYear == date.getYear && t.getMonthOfYear > date.getMonthOfYear) || t.getYear == date.getYear + 1) {
+              t.minusWeeks(2)
+            } else {
+              t.minusWeeks(1)
+            }
+        }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
+        val currentMonthStart    = base(date)
+        val startDate            = {
+          if (date.isAfter(currentMonthStart)) {
+            base(date.plusMonths(1))
+          } else {
+            currentMonthStart
+          }
+        }
+        val endDate              = nextDateFromDayTime(startDate, end)
+        Some((startDate, endDate)).succeed
+    }
+  }
 }
