@@ -42,7 +42,7 @@ object StringMarshaller extends FileMarshalling[String] {
   override def toFile(out: File, data: String): IOResult[String] = IO.effect {
     FileUtils.writeStringToFile(out, data, "UTF-8")
     data
-  }.mapError(SystemError)
+  }.mapError(SystemError.apply)
 }
 
 object StringId extends IdToFilenameConverter[String] {

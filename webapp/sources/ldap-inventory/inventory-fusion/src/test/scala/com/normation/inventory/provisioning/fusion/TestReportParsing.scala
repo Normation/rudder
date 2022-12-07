@@ -297,7 +297,7 @@ class TestInventoryParsing extends Specification with Loggable {
         AgentType.CfeCommunity,
         Some(AgentVersion("6.1.0.release-1.EL.7")),
         Certificate("-----BEGIN CERTIFICATE----\ncertificate\n-----END CERTIFICATE-----"),
-        Set("cfengine", "yaml", "xml", "curl", "http_reporting", "acl").map(AgentCapability)
+        Set("cfengine", "yaml", "xml", "curl", "http_reporting", "acl").map(AgentCapability.apply)
       )) and (
         inventory.node.customProperties === List(
           CustomProperty(
