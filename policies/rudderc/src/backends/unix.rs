@@ -6,7 +6,6 @@ use log::trace;
 use std::path::Path;
 
 use super::Backend;
-use crate::backends::unix::cfengine::expanded;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
