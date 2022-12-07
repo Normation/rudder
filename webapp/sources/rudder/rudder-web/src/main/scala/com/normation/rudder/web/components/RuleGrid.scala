@@ -314,8 +314,8 @@ class RuleGrid(
           // parse arg, which have to  be json object with sourceGroupId, destCatId
           try {
             (for {
-              JObject(JField("rules", JArray(childs)) :: Nil) <- JsonParser.parse(arg)
-              JString(ruleId)                                 <- childs
+              case JObject(JField("rules", JArray(childs)) :: Nil) <- JsonParser.parse(arg)
+              case JString(ruleId)                                 <- childs
             } yield {
               RuleId(RuleUid(ruleId))
             }) match {
