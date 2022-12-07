@@ -165,8 +165,8 @@ class RuleEditForm(
   //////////////////////////// public methods ////////////////////////////
 
   def mainDispatch = Map(
-    "showForm"          -> { _: NodeSeq => showForm() },
-    "showRecentChanges" -> { _: NodeSeq => showForm("changesGrid") }
+    "showForm"          -> { (_: NodeSeq) => showForm() },
+    "showRecentChanges" -> { (_: NodeSeq) => showForm("changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
@@ -281,7 +281,7 @@ class RuleEditForm(
       // information given to the "selectedDirective" list
       import net.liftweb.json._
       import net.liftweb.json.Serialization.write
-      implicit val formats = Serialization.formats(NoTypeHints)
+      implicit val formats: Formats = DefaultFormats
       val map              = (for {
         (gt, fg) <- groupLib.allTargets
       } yield {
@@ -310,7 +310,7 @@ class RuleEditForm(
       // information given to the "selectedDirective" list
       import net.liftweb.json._
       import net.liftweb.json.Serialization.write
-      implicit val formats = Serialization.formats(NoTypeHints)
+      implicit val formats: Formats = DefaultFormats
       // here, we want to display a "broken directive" message in the UI if we don't have it in lib
       val map              = selectedDirectiveIds.map { id =>
         val details = directiveLib.allDirectives.get(id) match {
@@ -348,7 +348,7 @@ class RuleEditForm(
     val excludedTarget = ruleTarget.excludedTarget.targets
 
     (
-      "#pendingChangeRequestNotification" #> { xml: NodeSeq => PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid) } &
+      "#pendingChangeRequestNotification" #> { (xml: NodeSeq) => PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid) } &
       // activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if (rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
@@ -439,7 +439,7 @@ class RuleEditForm(
    * the format is a JSON array: [ "id1", "id2", ...]
    */
   private[this] def serializedirectiveIds(ids: Seq[DirectiveId]): String = {
-    implicit val formats = Serialization.formats(NoTypeHints)
+    implicit val formats: Formats = DefaultFormats
     Serialization.write(
       ids.map(x => {
         x.rev match {
@@ -456,7 +456,7 @@ class RuleEditForm(
    * Never fails, but returned an empty list.
    */
   private[this] def unserializedirectiveIds(ids: String): Seq[DirectiveId] = {
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
     parse(ids).extract[List[String]].map { x =>
       val parts = x.replace("jsTree-", "").split("_")
       DirectiveId(DirectiveUid(parts(0)), if (parts.length == 2) Revision(parts(1)) else GitVersion.DEFAULT_REV)

@@ -116,7 +116,7 @@ object CompliancePercent {
     ).map(_.level)
   }
   { // maintenance sanity check between dimension
-    List(ComplianceLevel(), CompliancePercent()()).foreach { inst =>
+    List[Product](ComplianceLevel(), CompliancePercent()()).foreach { inst =>
       // product arity only compare first arg list
       if (inst.productArity != WORSE_ORDER.length) {
         throw new IllegalArgumentException(

@@ -155,8 +155,8 @@ class NodeGroupForm(
   setSearchNodeComponent
 
   def mainDispatch = Map(
-    "showForm"  -> { _: NodeSeq => showForm() },
-    "showGroup" -> { _: NodeSeq =>
+    "showForm"  -> { (_: NodeSeq) => showForm() },
+    "showGroup" -> { (_: NodeSeq) =>
       searchNodeComponent.get match {
         case Full(component) => component.buildQuery(true)
         case _               => <div>The component is not set</div>
@@ -462,7 +462,7 @@ class NodeGroupForm(
 
             isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
             query = query,
-            serverList = srvList.getOrElse(Set()).map(_.id).toSet
+            serverList = srvList.getOrElse(Set()).collect { case node: NodeInfo => node.id }.toSet
           )
 
           if (newGroup == savedGroup && optContainer.isEmpty) {

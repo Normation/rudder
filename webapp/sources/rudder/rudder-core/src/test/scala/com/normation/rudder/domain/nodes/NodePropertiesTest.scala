@@ -46,6 +46,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import net.liftweb.common._
 import org.junit.runner.RunWith
+import org.specs2.matcher.ValueChecks
 import org.specs2.mutable._
 import org.specs2.runner._
 
@@ -63,7 +64,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   val P2      = Some(PropertyProvider("p2"))
 
   // just to have sequence in same order
-  implicit val ord = new Ordering[NodeProperty] {
+  implicit val ord: Ordering[NodeProperty] = new Ordering[NodeProperty] {
     override def compare(x: NodeProperty, y: NodeProperty): Int = x.name.compareTo(y.name)
   }
 
@@ -79,29 +80,33 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   "Creation of properties" should {
     "be ok" in {
       val newProps = baseProps.map(p => p.withName(p.name + "_2"))
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight((baseProps ++ newProps).sorted)
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight(
+        beEqualTo((baseProps ++ newProps).sorted)
+      )
     }
   }
 
   "Deletion of properties" should {
     "be a noop if different keys" in {
       val newProps = baseProps.map(p => p.withName(p.name + "_2").withValue(""))
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight(baseProps)
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight(beEqualTo(baseProps))
     }
     "be ok with same metadata" in {
       val newProps = baseProps.map(p => p.withValue(""))
-      CompareProperties.updateProperties(baseProps, Some(newProps)) must beRight(List.empty[NodeProperty])
+      CompareProperties.updateProperties(baseProps, Some(newProps)) must beRight(beEqualTo(List.empty[NodeProperty]))
     }
   }
 
   "Update with the same properties metadata" should {
     "be a noop with same values" in {
-      CompareProperties.updateProperties(baseProps, Some(baseProps)).map(_.sorted) must beRight(baseProps)
+      CompareProperties.updateProperties(baseProps, Some(baseProps)).map(_.sorted) must beRight(beEqualTo(baseProps))
     }
 
     "ok with differents values" in {
       val newProps = baseProps.map(p => p.withValue("42"))
-      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight(baseProps.map(_.withValue("42")))
+      CompareProperties.updateProperties(baseProps, Some(newProps)).map(_.sorted) must beRight(
+        beEqualTo(baseProps.map(_.withValue("42")))
+      )
     }
 
     "replace json value, not merge" in {
@@ -109,7 +114,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
       val json2 = """{"root":"val2", "env2":"prod2", "merge": { "test2":"val2" } }""".forceParse
       val p1    = NodeProperty("x", json, None, None)
       val p2    = NodeProperty("x", json2, None, None)
-      CompareProperties.updateProperties(p1 :: Nil, Some(p2 :: Nil)).map(_.sorted) must beRight(p2 :: Nil)
+      CompareProperties.updateProperties(p1 :: Nil, Some(p2 :: Nil)).map(_.sorted) must beRight(beEqualTo(p2 :: Nil))
     }
   }
 
@@ -128,7 +133,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, P2)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P1)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P2))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten[PureResult[_]] must (contain((res: PureResult[_]) => res.must(beRight()))).foreach
     }
 
     "works if providers goes from anything to system" in {
@@ -137,7 +142,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten[PureResult[_]] must (contain((res: PureResult[_]) => res.must(beRight()))).foreach
     }
 
     "fails for different, non default providers" in {
@@ -148,14 +153,14 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, None)),
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, RudderP)),
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, P1))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[_, _]]).foreach
+      ).flatten[PureResult[_]] must (contain((res: PureResult[_]) => res.must(beLeft()))).foreach
     }
 
     "be ok with compatible one (default)" in {
       List(
         updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, RudderP)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, None))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten[PureResult[_]] must (contain((res: PureResult[_]) => res.must(beRight()))).foreach
     }
   }
 }

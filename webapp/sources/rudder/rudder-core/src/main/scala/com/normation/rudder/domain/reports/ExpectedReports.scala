@@ -205,7 +205,7 @@ object ExpectedReportsSerialisation {
    * This object will be used for the JSON serialisation
    * to / from database
    */
-  final case class JsonNodeExpectedReports protected (
+  final case class JsonNodeExpectedReports (
       modes:               NodeModeConfig,
       ruleExpectedReports: List[RuleExpectedReports],
       overrides:           List[OverridenPolicy]
@@ -754,7 +754,7 @@ object ExpectedReportsSerialisation {
 
       JsonDecoder[List[String]].map(toLeft).orElse(decodeJsonExpectedValueId7_1.map(toRight))
     }
-    implicit lazy val encodeJsonEitherValue = new JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] {
+    implicit lazy val encodeJsonEitherValue: JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] = new JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] {
       override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
         a match {
           case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
@@ -876,7 +876,7 @@ object NodeConfigIdSerializer {
 
     if (null == ids || ids.trim == "") Vector()
     else {
-      implicit val formats = DefaultFormats
+      implicit val formats: Formats = DefaultFormats
       val configs          = parse(ids)
         .extractOrElse[List[Map[String, String]]](List())
         .flatMap {

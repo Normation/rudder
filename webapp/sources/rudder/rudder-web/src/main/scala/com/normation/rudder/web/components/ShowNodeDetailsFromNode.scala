@@ -213,12 +213,12 @@ class ShowNodeDetailsFromNode(
   }
 
   def mainDispatch = Map(
-    "popupDetails"    -> { _: NodeSeq => privateDisplay(true, Summary) },
-    "popupCompliance" -> { _: NodeSeq => privateDisplay(true, Compliance) },
-    "popupSystem"     -> { _: NodeSeq => privateDisplay(true, System) },
-    "mainDetails"     -> { _: NodeSeq => privateDisplay(false, Summary) },
-    "mainCompliance"  -> { _: NodeSeq => privateDisplay(false, Compliance) },
-    "mainSystem"      -> { _: NodeSeq => privateDisplay(false, System) }
+    "popupDetails"    -> { (_: NodeSeq) => privateDisplay(true, Summary) },
+    "popupCompliance" -> { (_: NodeSeq) => privateDisplay(true, Compliance) },
+    "popupSystem"     -> { (_: NodeSeq) => privateDisplay(true, System) },
+    "mainDetails"     -> { (_: NodeSeq) => privateDisplay(false, Summary) },
+    "mainCompliance"  -> { (_: NodeSeq) => privateDisplay(false, Compliance) },
+    "mainSystem"      -> { (_: NodeSeq) => privateDisplay(false, System) }
   )
 
   def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {

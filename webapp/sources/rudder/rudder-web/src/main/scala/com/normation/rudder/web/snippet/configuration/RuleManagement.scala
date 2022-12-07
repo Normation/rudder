@@ -74,17 +74,17 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
     RudderConfig.configService.rudder_ui_changeMessage_enabled().toBox match {
       case Full(changeMsgEnabled) =>
         Map(
-          "head"      -> { _: NodeSeq => head(changeMsgEnabled) },
-          "editRule"  -> { _: NodeSeq => editRule(changeMsgEnabled) },
-          "viewRules" -> { _: NodeSeq => viewRules(changeMsgEnabled) }
+          "head"      -> { (_: NodeSeq) => head(changeMsgEnabled) },
+          "editRule"  -> { (_: NodeSeq) => editRule(changeMsgEnabled) },
+          "viewRules" -> { (_: NodeSeq) => viewRules(changeMsgEnabled) }
         )
       case eb: EmptyBox =>
         val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
         logger.error(s"Error when displaying Rules : ${e.messageChain}")
         Map(
-          "head"      -> { _: NodeSeq => NodeSeq.Empty },
-          "editRule"  -> { _: NodeSeq => NodeSeq.Empty },
-          "viewRules" -> { _: NodeSeq => <div class="error">{e.msg}</div> }
+          "head"      -> { (_: NodeSeq) => NodeSeq.Empty },
+          "editRule"  -> { (_: NodeSeq) => NodeSeq.Empty },
+          "viewRules" -> { (_: NodeSeq) => <div class="error">{e.msg}</div> }
         )
     }
   }

@@ -76,13 +76,13 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
 
   "parsing" should {
     "recognize empty string" in {
-      GenericProperty.parseValue("") must beRight(ConfigValueFactory.fromAnyRef(""))
+      GenericProperty.parseValue("") must beRight(beEqualTo(ConfigValueFactory.fromAnyRef("")))
     }
     "recognize a string" in {
-      GenericProperty.parseValue("foo") must beRight(ConfigValueFactory.fromAnyRef("foo"))
+      GenericProperty.parseValue("foo") must beRight(beEqualTo(ConfigValueFactory.fromAnyRef("foo")))
     }
     "correctly parse a json like file" in {
-      GenericProperty.parseValue("""{"a":"b"}""") must beRight(ConfigValueFactory.fromMap(jmap(("a", "b"))))
+      GenericProperty.parseValue("""{"a":"b"}""") must beRight(beEqualTo(ConfigValueFactory.fromMap(jmap(("a", "b")))))
     }
     "parse int as string" in {
       GenericProperty.parseValue("1").map(_.getClass.getSimpleName) must beRight(
@@ -100,7 +100,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       GenericProperty.parseValue("""{}""") must beRight
     }
     "correctly parse non json-like structure as a string" in {
-      GenericProperty.parseValue("hello, world!") must beRight(ConfigValueFactory.fromAnyRef("hello, world!"))
+      GenericProperty.parseValue("hello, world!") must beRight(beEqualTo(ConfigValueFactory.fromAnyRef("hello, world!")))
     }
     "correctly parse a string which is a comment as a string, not an hocon comment, 1" in {
       GenericProperty.parseValue("# I'm a string, not a comment") must beRight(
@@ -124,7 +124,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
                 | # even on new lines
                 |""".stripMargin
       (firstNonCommentChar(s) must_=== (Some('{'))) and
-      (GenericProperty.parseValue(s) must beRight(ConfigValueFactory.fromMap(jmap(("a", "b")))))
+      (GenericProperty.parseValue(s) must beRight(beEqualTo(ConfigValueFactory.fromMap(jmap(("a", "b"))))))
     }
     "fails in a badly eneded json-like structure" in {
       GenericProperty.parseValue("""{"a":"b" """) must beLeft
@@ -135,7 +135,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
   }
 
   "serialization / deserialisation" should {
-    val check = (s: String) => GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(s)
+    val check = (s: String) => GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(beEqualTo(s))
 
     "be idempotent for string" in {
       val strings = List(
@@ -153,7 +153,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
     }
 
     val checkPrimitive =
-      (s: AnyVal) => GenericProperty.parseValue(s.toString).map(x => GenericProperty.serializeToHocon(x)) must beRight(s.toString)
+      (s: AnyVal) => GenericProperty.parseValue(s.toString).map(x => GenericProperty.serializeToHocon(x)) must beRight(beEqualTo(s.toString))
 
     "primitives like int and boolean are stringified" in {
       val primitives = List[AnyVal](1, 2.42, true)
@@ -179,7 +179,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
                 |""".stripMargin
       val t = """{# comments!
                 |"a":"b"}""".stripMargin
-      GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(t)
+      GenericProperty.parseValue(s).map(x => GenericProperty.serializeToHocon(x)) must beRight(beEqualTo(t))
     }
   }
 

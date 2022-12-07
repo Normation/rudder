@@ -243,7 +243,7 @@ class AcceptNode extends Loggable {
    * popuId : the id of the popup
    */
   def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
     val serverList       = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x))
 
     if (serverList.isEmpty) {

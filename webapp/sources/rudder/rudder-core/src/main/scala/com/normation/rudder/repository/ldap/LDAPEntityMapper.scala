@@ -561,7 +561,7 @@ class LDAPEntityMapper(
           case (v, d) =>
             TechniqueVersion
               .parse(v)
-              .leftMap(Unexpected)
+              .leftMap(Unexpected(_))
               .flatMap(version => {
                 try {
                   Right((version, GeneralizedTime(d).dateTime))
@@ -669,7 +669,7 @@ class LDAPEntityMapper(
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       // OK, translate
       for {
-        id         <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id         <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN(_)))
         name       <- e.required(A_NAME)
         query       = e(A_QUERY_NODE_GROUP)
         nodeIds     = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
@@ -717,7 +717,7 @@ class LDAPEntityMapper(
   def entryToGroupNodeIds(e: LDAPEntry): InventoryMappingPure[(NodeGroupId, Set[NodeId])] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN(_)))
         nodeIds = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
       } yield {
         (id, nodeIds)
@@ -733,7 +733,7 @@ class LDAPEntityMapper(
   def entryToGroupNodeIdsChunk(e: LDAPEntry): InventoryMappingPure[(NodeGroupId, Chunk[NodeId])] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN(_)))
         nodeIds = e.valuesForChunk(A_NODE_UUID).map(x => NodeId(x))
       } yield {
         (id, nodeIds)
@@ -823,7 +823,7 @@ class LDAPEntityMapper(
                              case None        => Right(None)
                              case Some(value) => PolicyMode.parse(value).map(Some(_))
                            }
-        version         <- TechniqueVersion.parse(s_version).leftMap(Unexpected)
+        version         <- TechniqueVersion.parse(s_version).leftMap(Unexpected(_))
         name             = e(A_NAME).getOrElse(id)
         params           = parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
         shortDescription = e(A_DESCRIPTION).getOrElse("")

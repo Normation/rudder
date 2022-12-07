@@ -1128,7 +1128,7 @@ object RudderConfig extends Loggable {
 
   lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
-  implicit val userService = new UserService {
+  implicit val userService: UserService = new UserService {
     def getCurrentUser = CurrentUser
   }
 

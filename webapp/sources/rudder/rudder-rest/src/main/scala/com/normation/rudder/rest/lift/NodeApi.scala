@@ -683,9 +683,9 @@ class NodeApiService12(
 ) {
 
   def deleteNode(id: NodeId, actor: EventActor, prettify: Boolean, mode: DeleteMode) = {
-    implicit val p      = prettify
-    implicit val action = "deleteNode"
-    val modId           = ModificationId(uuidGen.newUuid)
+    implicit val p = prettify
+    implicit val action: String = "deleteNode"
+    val modId = ModificationId(uuidGen.newUuid)
 
     removeNodeService.removeNodePure(id, mode, modId, actor).toBox match {
       case Full(info) =>
@@ -1377,7 +1377,7 @@ class NodeApiService6(
   def listNodes(state:   InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]], version: ApiVersion)(
       implicit prettify: Boolean
   ) = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
 
     (for {
       nodeInfos   <- state match {
@@ -1419,7 +1419,7 @@ class NodeApiService6(
   def queryNodes(query: QueryTrait, state: InventoryStatus, detailLevel: NodeDetailLevel, version: ApiVersion)(implicit
       prettify:         Boolean
   ) = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
     (for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None).toBox

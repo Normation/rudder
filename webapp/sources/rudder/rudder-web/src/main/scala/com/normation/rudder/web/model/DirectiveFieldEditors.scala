@@ -352,7 +352,7 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
     f
   }
   def toForm       = {
-    val xml = SHtml.selectObj(listFiles, if (null == f) Empty else Full(f), { x: File => set(x) }, ("id", id))
+    val xml = SHtml.selectObj(listFiles, if (null == f) Empty else Full(f), { (x: File) => set(x) }, ("id", id))
     Full(xml)
   }
   def manifest     = manifestOf[File]

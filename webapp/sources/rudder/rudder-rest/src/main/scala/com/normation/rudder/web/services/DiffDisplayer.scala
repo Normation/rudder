@@ -103,7 +103,7 @@ final case class Modified[T](
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  implicit private[this] def displayDirective(directiveId: DirectiveId) = {
+  implicit private[this] def displayDirective(directiveId: DirectiveId): NodeSeq = {
     <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList(
@@ -233,7 +233,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
           category.value
       }
     }
-    implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId) = {
+    implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId): NodeSeq = {
       <span>{getCategoryFullName(ruleCategoryId)}</span>
     }
 

@@ -113,7 +113,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "generationHookTriggerNodeUpdate"    => generationHookTriggerNodeUpdate
   }
 
-  def changeMessageConfiguration = { xml: NodeSeq =>
+  def changeMessageConfiguration = { (xml: NodeSeq) =>
     // initial values
     var initEnabled     = configService.rudder_ui_changeMessage_enabled().toBox
     var initMandatory   = configService.rudder_ui_changeMessage_mandatory().toBox
@@ -235,7 +235,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#restoreExplanation " #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         ajaxButton(
           <span>Reset to default</span>,
           () => {
@@ -250,7 +250,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#mandatoryTooltip *" #> {
-      initMandatory.map { b: Boolean =>
+      initMandatory.map { (b: Boolean) =>
         val tooltipid = Helpers.nextFuncName
         <span class="tooltipable" tooltipid={tooltipid} title="">
             <span class="glyphicon glyphicon-info-sign info"></span>
@@ -262,7 +262,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#explanationTooltip *" #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         val tooltipid = Helpers.nextFuncName
         <span class="tooltipable" tooltipid={tooltipid} title="">
             <span class="glyphicon glyphicon-info-sign info"></span>
@@ -278,7 +278,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(initJs(enabled)))
   }
 
-  def cfserverNetworkConfiguration = { xml: NodeSeq =>
+  def cfserverNetworkConfiguration = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initDenyBadClocks      = configService.cfengine_server_denybadclocks().toBox
     var initEnforceCertificate = configService.rudder_verify_certificates().toBox
@@ -363,7 +363,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def relaySynchronizationMethodManagement = { xml: NodeSeq =>
+  def relaySynchronizationMethodManagement = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initRelaySyncMethod      = configService.relay_server_sync_method().toBox
     // Be careful, we store negative value
@@ -574,7 +574,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration(None)
   def complianceModeConfiguration  = complianceModeEditForm.complianceModeConfiguration
 
-  def cfengineGlobalProps = { xml: NodeSeq =>
+  def cfengineGlobalProps = { (xml: NodeSeq) =>
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl().toBox
     // form values
@@ -625,7 +625,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def loggingConfiguration = { xml: NodeSeq =>
+  def loggingConfiguration = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl().toBox
     // form values
@@ -695,7 +695,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     else perms
   }
 
-  def generationHookCfpromise = { xml: NodeSeq =>
+  def generationHookCfpromise = { (xml: NodeSeq) =>
     {
       import better.files._
       val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
@@ -938,7 +938,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def sendMetricsConfiguration = { xml: NodeSeq =>
+  def sendMetricsConfiguration = { (xml: NodeSeq) =>
     (configService.send_server_metrics().toBox match {
       case Full(value) =>
         var initSendMetrics    = value
@@ -986,7 +986,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml)
   }
 
-  def displayGraphsConfiguration = { xml: NodeSeq =>
+  def displayGraphsConfiguration = { (xml: NodeSeq) =>
     ((configService.display_changes_graph().toBox, configService.rudder_ui_display_ruleComplianceColumns().toBox) match {
       case (Full(valueGraphs), Full(valueColumns)) =>
         var initDisplayGraphs     = valueGraphs
@@ -1055,7 +1055,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);""")))
   }
 
-  def directiveScriptEngineConfiguration = { xml: NodeSeq =>
+  def directiveScriptEngineConfiguration = { (xml: NodeSeq) =>
     import com.normation.rudder.domain.appconfig.FeatureSwitch._
 
     (configService.rudder_featureSwitch_directiveScriptEngine().toBox match {
@@ -1113,7 +1113,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply xml
   }
 
-  def nodeOnAcceptDefaultsConfiguration = { xml: NodeSeq =>
+  def nodeOnAcceptDefaultsConfiguration = { (xml: NodeSeq) =>
     val modes  = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.allModes.map { x =>
       SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
     }.toList
@@ -1198,7 +1198,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ("#nodeOnAcceptDefaults" #> process).apply(xml)
   }
 
-  def unexpectedReportInterpretation = { xml: NodeSeq =>
+  def unexpectedReportInterpretation = { (xml: NodeSeq) =>
     import com.normation.rudder.services.reports.UnexpectedReportBehavior._
 
     (configService.rudder_compliance_unexpected_report_interpretation().toBox match {

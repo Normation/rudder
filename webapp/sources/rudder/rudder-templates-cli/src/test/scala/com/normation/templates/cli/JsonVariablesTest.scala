@@ -69,7 +69,7 @@ class JsonVariablesTest extends Specification {
         STVariable("key5", false, ArraySeq("k5"), true),
         STVariable("key6", true, ArraySeq("a1", "a2", "a3"), false),
         STVariable("key7", true, ArraySeq(""), false),
-        STVariable("key8", true, ArraySeq(), false)
+        STVariable("key8", true, ArraySeq.empty[String], false)
       )
 
       ParseVariables.fromString(json).runNow must containTheSameElementsAs(variables)

@@ -46,7 +46,7 @@ import com.unboundid.ldap.sdk._
 
 class NodeDit(val BASE_DN: DN) extends AbstractDit {
   dit =>
-  implicit val DIT = dit
+  implicit val DIT: NodeDit = dit
 
   dit.register(NODES.model)
 
@@ -56,7 +56,7 @@ class NodeDit(val BASE_DN: DN) extends AbstractDit {
     object NODE extends ENTRY1(A_NODE_UUID) {
 
       // get id from dn
-      def idFromDn(dn: DN): Option[NodeId] = buildId(dn, nodes.dn, { x: String => NodeId(x) })
+      def idFromDn(dn: DN): Option[NodeId] = buildId(dn, nodes.dn, (x: String) => NodeId(x))
 
       // build the dn from an UUID
       def dn(uuid: String) = new DN(this.rdn(uuid), nodes.dn)

@@ -115,7 +115,7 @@ class FindExpectedReportsJdbcRepository(
       nodeConfigIds: Set[NodeAndConfigId]
   ): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
     val batchedNodeConfigIds = nodeConfigIds.grouped(jdbcMaxBatchSize).toSeq
-    sequence(batchedNodeConfigIds) { ids: Set[NodeAndConfigId] =>
+    sequence(batchedNodeConfigIds) { (ids: Set[NodeAndConfigId]) =>
       ids.toList match { // "in" param can't be empty
         case Nil        => Full(Seq())
         case nodeAndIds =>
@@ -154,7 +154,7 @@ class FindExpectedReportsJdbcRepository(
     } else {
       var queryTiming = 0L
       val ids         = nodeIds.grouped(jdbcMaxBatchSize).toSeq
-      val result      = sequence(ids) { batchedIds: Set[NodeId] =>
+      val result      = sequence(ids) { (batchedIds: Set[NodeId]) =>
         val t0_0 = System.currentTimeMillis
         transactRunBox(xa => {
           (for {
@@ -213,7 +213,7 @@ class FindExpectedReportsJdbcRepository(
     if (nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
     else {
       val batchedNodesId = nodeIds.grouped(jdbcMaxBatchSize).toSeq
-      sequence(batchedNodesId) { ids: Set[NodeId] =>
+      sequence(batchedNodesId) { (ids: Set[NodeId]) =>
         transactRunBox(xa => {
           (for {
             entries <- query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
@@ -257,7 +257,7 @@ class UpdateExpectedReportsJdbcRepository(
 
         val batchedConfigs:               List[List[NodeExpectedReports]]                                                   = neConfigs.grouped(jdbcMaxBatchSize).toList
         val resultingNodeExpectedReports: Either[Throwable, List[Free[connection.ConnectionOp, List[NodeExpectedReports]]]] = {
-          batchedConfigs.traverse { conf: Seq[NodeExpectedReports] =>
+          batchedConfigs.traverse { (conf: Seq[NodeExpectedReports]) =>
             val confString = conf.map(x => s"('${x.nodeId.value}')")
 
             val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${confString.mkString(",")})")
@@ -676,7 +676,7 @@ object ComponentsValuesSerialiser {
   def unserializeComponents(ids: String):    List[String] = {
     if (null == ids || ids.trim == "") List()
     else {
-      implicit val formats = DefaultFormats
+      implicit val formats: Formats = DefaultFormats
       parse(ids).extract[List[String]]
     }
   }

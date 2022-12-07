@@ -171,7 +171,7 @@ class RoLDAPDirectiveRepository(
                     case None      => None.succeed
                     case Some(dir) =>
                       val atId = mapper.dn2ActiveTechniqueId(dir.dn.getParent)
-                      getUPTEntry(con, atId, { id: ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) })
+                      getUPTEntry(con, atId, { (id: ActiveTechniqueId) => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) })
                         .notOptional(
                           s"Can not find Active Technique entry '${atId.value}' in LDAP but directive with DN '${dir.dn}' exists: this is likely a bug, please report it."
                         )

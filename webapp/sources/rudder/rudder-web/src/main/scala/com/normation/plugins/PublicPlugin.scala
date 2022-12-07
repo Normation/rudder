@@ -48,7 +48,7 @@ import scala.xml.NodeSeq
 
 trait PluginEnableImpl extends PluginStatus {
   override val current   = PluginStatusInfo.EnabledNoLicense
-  override val isEnabled = true
+  override def isEnabled() = true
 }
 
 /*

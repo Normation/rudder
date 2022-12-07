@@ -51,7 +51,7 @@ final case class MemorySize(size: Long) extends AnyVal {
     value + " " + unit
   }
 }
-given Ordering[MemorySize] = _.size compareTo _.size
+implicit lazy val MemorySizeOrdering: Ordering[MemorySize] = _.size compareTo _.size
 
 object MemorySize {
   /*

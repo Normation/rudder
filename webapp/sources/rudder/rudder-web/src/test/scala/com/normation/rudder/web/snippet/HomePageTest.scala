@@ -76,7 +76,7 @@ class HomePageTest extends Specification {
 
     def matcherVersion(pair: (String, String)) = HomePageUtils.formatAgentVersion(pair._1) must beEqualTo(pair._2)
 
-    mapping must contain(matcherVersion(_)).foreach
+    mapping must contain(matcherVersion).foreach
 
   }
 

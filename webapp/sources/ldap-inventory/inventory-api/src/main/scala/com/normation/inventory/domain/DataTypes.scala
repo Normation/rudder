@@ -198,7 +198,7 @@ final case class Certificate(value: String) extends SecurityToken {
 final class Version(val value: String) extends AnyVal {
   override def toString()                = "[%s]".format(value)
 }
-given Ordering[Version] = _.value compareTo _.value
+implicit lazy val VersionOrdering: Ordering[Version] = _.value compareTo _.value
 
 object InventoryProcessingLogger extends NamedZioLogger {
   override def loggerName: String = "inventory-processing"

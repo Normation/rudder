@@ -161,7 +161,7 @@ class TestMergeGroupProperties extends Specification {
   "overriding a property in a hierarchy should work" >> {
     val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil, Map())
     val expected = List(child, parent1).toH1("foo") :: Nil
-    merged must beRight(expected)
+    merged must beRight(beEqualTo(expected))
   }
 
   "if the composition is OR, subgroup must be ignored" >> {
@@ -181,7 +181,7 @@ class TestMergeGroupProperties extends Specification {
 
     val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: ct2 :: Nil, Map())
     val expected = List(parent2, parent1).toH1("foo")
-    (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "bar2")
+    (merged must beRight(beEqualTo(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "bar2"))
   }
 
   "when looking for a node property, we" should {
@@ -250,7 +250,7 @@ class TestMergeGroupProperties extends Specification {
 
       val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: priorize.toTarget :: Nil, Map())
       val expected = List(parent2, parent1).toH1("dns") :: Nil
-      merged must beRight(expected)
+      merged must beRight(beEqualTo(expected))
     }
 
     /*
@@ -305,14 +305,14 @@ class TestMergeGroupProperties extends Specification {
 
       val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, parent2, priorize, parent4).map(_.toTarget), Map())
       val expected = List(parent2, parent1).toH1("dns") :: Nil
-      merged must beRight(expected)
+      merged must beRight(beEqualTo(expected))
     }
   }
 
   "global parameter are inherited" >> {
     val g      = "bar".toConfigValue
     val merged = MergeNodeProperties.checkPropertyMerge(Nil, Map("foo" -> g.toGP("foo")))
-    merged must beRight(List(g.toG("foo")))
+    merged must beRight(beEqualTo(List(g.toG("foo"))))
   }
 
   "global parameter are inherited and overriden by group and only one time" >> {
@@ -321,7 +321,7 @@ class TestMergeGroupProperties extends Specification {
     val g        = "bar".toConfigValue
     val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, p2, child).map(_.toTarget), Map("foo" -> g.toGP("foo")))
     val expected = List(child, parent1).toH3("foo", g) :: Nil
-    merged must beRight(expected)
+    merged must beRight(beEqualTo(expected))
   }
 
   "when overriding json we" should {

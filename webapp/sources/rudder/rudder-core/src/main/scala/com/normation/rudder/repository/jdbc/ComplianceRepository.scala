@@ -52,7 +52,7 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.services.reports._
 import doobie._
-import doobie.implicits._
+import doobie.implicits.{given, *}
 import net.liftweb.common.Box
 import org.joda.time.DateTime
 import zio.interop.catz._
@@ -86,7 +86,7 @@ class ComplianceJdbcRepository(
     getSaveComplianceDetails: () => Box[Boolean],
     getSaveComplianceLevels:  () => Box[Boolean]
 ) extends ComplianceRepository {
-  import doobie._
+  import doobie.{given, *}
 
   val logger = ReportLogger
 
@@ -112,13 +112,11 @@ class ComplianceJdbcRepository(
   )
 
   implicit val ComplianceLevelRead:  Read[ComplianceLevel]  = {
-    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(tuple =>
-      ComplianceLevel.apply _ tupled tuple
-    )
+    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(ComplianceLevel.apply)
   }
   implicit val ComplianceLevelWrite: Write[ComplianceLevel] = {
-    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(comp =>
-      ComplianceLevel.unapply(comp).get
+    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(
+      Tuple.fromProductTyped(_)
     )
   }
 

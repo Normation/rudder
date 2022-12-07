@@ -915,7 +915,7 @@ final case class RestExtractorService(
   // of {key1,value1 ... keyN,valueN}
 
   private[this] def extractTagsFromJson(value: JValue): Box[Option[Tags]] = {
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
     if (value == JNothing) Full(None) // missing tag in json means user doesn't want to update them
     else {
       for {

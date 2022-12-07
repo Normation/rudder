@@ -527,7 +527,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
+      writer.writeMetadata(technique, methods).either.runNow must beRight(beEqualTo(expectedMetadataPath))
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -537,7 +537,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(dscTechniquePath))
+      dscWriter.writeAgentFiles(technique, methods).either.runNow must beRight(beEqualTo(Seq(dscTechniquePath)))
     }
 
     "Should generate expected dsc technique content for our technique" in {
@@ -551,7 +551,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write classic technique files without problem" in {
-      classicWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(techniquePath, reportingPath))
+      classicWriter.writeAgentFiles(technique, methods).either.runNow must beRight(beEqualTo(Seq(techniquePath, reportingPath)))
     }
 
     "Should generate expected classic technique content for our technique" in {
@@ -603,7 +603,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.bundleName.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
+      writer.writeMetadata(technique_any, methods).either.runNow must beRight(beEqualTo(expectedMetadataPath_any))
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -613,7 +613,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(dscTechniquePath_any))
+      dscWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(beEqualTo(Seq(dscTechniquePath_any)))
     }
 
     "Should generate expected dsc technique content for our technique" in {
@@ -623,7 +623,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write classic technique files without problem" in {
-      classicWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(techniquePath_any))
+      classicWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(beEqualTo(Seq(techniquePath_any)))
     }
 
     "Should generate expected classic technique content for our technique" in {
@@ -634,7 +634,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     "Should not generate expected additional rudder reporting content for our technique" in {
       val resultFile = new File(s"${basePath}/${reportingPath_any}")
-      resultFile must not exist
+      resultFile must(not(exist))
     }
   }
 
@@ -646,7 +646,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     val techniquePath_any        = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.cf"
 
     "Should write everything without error" in {
-      (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight(tech))
+      (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight(beEqualTo(tech)))
     }
 
     "Should generate expected metadata content for our technique" in {

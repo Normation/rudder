@@ -98,7 +98,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
   implicit val eventRead: Read[CampaignEvent] = {
     Read[(String, String, String, CampaignEventState, DateTime, DateTime, String)].map {
-      d: (String, String, String, CampaignEventState, DateTime, DateTime, String) =>
+      (d: (String, String, String, CampaignEventState, DateTime, DateTime, String)) =>
         CampaignEvent(
           CampaignEventId(d._1),
           CampaignId(d._2),

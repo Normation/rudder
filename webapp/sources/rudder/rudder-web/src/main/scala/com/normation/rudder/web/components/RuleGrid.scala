@@ -167,7 +167,7 @@ class RuleGrid(
     "reports-report"
   )
 
-  def dispatch = { case "rulesGrid" => { _: NodeSeq => rulesGridWithUpdatedInfo(None, true, false) } }
+  def dispatch = { case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, true, false) } }
 
   /**
    * Display all the rules. All data are charged asynchronously.

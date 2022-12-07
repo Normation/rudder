@@ -72,7 +72,7 @@ class CheckRudderGlobalParameter(
   override val description = "Check that `rudder` global parameter matches default value"
 
   def toParams(value: JValue): IOResult[List[GlobalParameter]] = {
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
     value match {
       case JArray(list) => ZIO.foreach(list)(v => IOResult.attempt(v.extract[JsonParam].toGlobalParam))
       case x            =>

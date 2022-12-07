@@ -118,7 +118,7 @@ object RudderDit {
  */
 class RudderDit(val BASE_DN: DN) extends AbstractDit {
   dit =>
-  implicit val DIT = dit
+  implicit val DIT: RudderDit = dit
 
   /**
    * Create a new category for the active technique library
@@ -446,7 +446,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       principal =>
 
       // get id from dn
-      def idFromDn(dn: DN): Option[ApiAccountId] = buildId(dn, principals.dn, { x: String => ApiAccountId(x) })
+      def idFromDn(dn: DN): Option[ApiAccountId] = buildId(dn, principals.dn, { (x: String) => ApiAccountId(x) })
 
       // build the dn from an UUID
       def dn(id: ApiAccountId) = new DN(this.rdn(id.value), principals.dn)
@@ -531,7 +531,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
    * upper one.
    */
   object APPCONFIG extends OU("Application Properties", BASE_DN.getParent) {
-    parameters =>
+    private[this] def parameters = this
 
     def getProperty(dn: DN): Box[String] = singleRdnValue(dn, A_PROPERTY_NAME)
 

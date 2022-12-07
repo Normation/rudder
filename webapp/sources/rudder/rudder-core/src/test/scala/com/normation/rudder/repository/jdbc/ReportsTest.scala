@@ -80,10 +80,10 @@ class ReportsTest extends DBCommon {
 
   sequential
 
-  implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)) = {
-    implicit def toRuleId(s: String)      = RuleId(RuleUid(s))
-    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s))
-    implicit def toNodeId(s: String)      = NodeId(s)
+  implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
+    implicit def toRuleId(s: String):      RuleId      = RuleId(RuleUid(s))
+    implicit def toDirectiveId(s: String): DirectiveId = DirectiveId(DirectiveUid(s))
+    implicit def toNodeId(s: String):      NodeId      = NodeId(s)
 
     Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }
@@ -133,7 +133,9 @@ class ReportsTest extends DBCommon {
     "find reports for node 0,1,2" in {
       val runs   = Set(("n0", run1), ("n1", run1), ("n2", run1))
       val result = repostsRepo.getExecutionReports(runs, Set()).open
-      result.values.flatten.toSeq must contain(exactly(reports("n0") ++ reports("n1").reverse.tail ++ reports("n2"): _*))
+      result.values.flatten.toSeq must (contain(
+        exactly((reports("n0") ++ reports("n1").reverse.tail ++ reports("n2")).map(beEqualTo(_)): _*)
+      ))
     }
 
     "not find report for none existing agent run id" in {

@@ -328,14 +328,12 @@ object GenerateCompliance {
   type DATA = (String, DateTime, String, String, ComplianceLevel)
 
   implicit val ComplianceRead:  Read[ComplianceLevel]  = {
-    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(tuple =>
-      ComplianceLevel.apply _ tupled tuple
+    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(
+      ComplianceLevel.apply
     )
   }
   implicit val ComplianceWrite: Write[ComplianceLevel] = {
-    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(comp =>
-      ComplianceLevel.unapply(comp).get
-    )
+    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(Tuple.fromProductTyped(_))
   }
 
   def saveComplianceLevel(runs: Seq[RunCompliance]) = {

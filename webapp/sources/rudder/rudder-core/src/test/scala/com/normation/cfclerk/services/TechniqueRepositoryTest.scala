@@ -70,6 +70,7 @@ import org.specs2.specification.AfterAll
 import scala.collection.SortedMap
 import zio._
 import zio.syntax._
+import java.nio.charset.Charset
 
 @RunWith(classOf[JUnitRunner])
 class TechniqueRepositoryTest extends Specification with Loggable with AfterAll {
@@ -77,7 +78,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   // Set sequential execution
   sequential
 
-  implicit val charset = StandardCharsets.UTF_8
+  implicit val charset: Charset = StandardCharsets.UTF_8
   val setupRepos       = new TestNodeConfiguration()
 
   val fsRepos       = setupRepos.techniqueRepository

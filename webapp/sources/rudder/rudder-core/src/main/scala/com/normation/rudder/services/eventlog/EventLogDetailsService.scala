@@ -325,7 +325,7 @@ class EventLogDetailsServiceImpl(
     serial           <- getFromTo[Int]((rule \ "serial").headOption, x => tryo(x.text.toInt))
     targets          <- getFromTo[Set[RuleTarget]](
                           (rule \ "targets").headOption,
-                          { x: NodeSeq => Full((x \ "target").toSet.flatMap { y: NodeSeq => RuleTarget.unser(y.text) }) }
+                          {( x: NodeSeq) => Full((x \ "target").toSet.flatMap { (y: NodeSeq) => RuleTarget.unser(y.text) }) }
                         )
     shortDescription <- getFromToString((rule \ "shortDescription").headOption)
     longDescription  <- getFromToString((rule \ "longDescription").headOption)
@@ -333,7 +333,7 @@ class EventLogDetailsServiceImpl(
     isSystem         <- getFromTo[Boolean]((rule \ "isSystem").headOption, s => tryo(s.text.toBoolean))
     directiveIds     <- getFromTo[Set[DirectiveId]](
                           (rule \ "directiveIds").headOption,
-                          { x: NodeSeq =>
+                          {( x: NodeSeq) =>
                             Full((x \ "id").toSet.map { (y: NodeSeq) =>
                               DirectiveId(DirectiveUid(y.text), ParseRev((y \ "@revision").text))
                             })
@@ -490,7 +490,7 @@ class EventLogDetailsServiceImpl(
       isDynamic       <- getFromTo[Boolean]((group \ "isDynamic").headOption, s => tryo(s.text.toBoolean))
       serverList      <- getFromTo[Set[NodeId]](
                            (group \ "nodeIds").headOption,
-                           { x: NodeSeq => Full((x \ "id").toSet.map((y: NodeSeq) => NodeId(y.text))) }
+                           { (x: NodeSeq) => Full((x \ "id").toSet.map((y: NodeSeq) => NodeId(y.text))) }
                          )
       isEnabled       <- getFromTo[Boolean]((group \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
       isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, s => tryo(s.text.toBoolean))

@@ -50,7 +50,7 @@ import org.specs2.runner._
 class TechniqueVersionTest extends Specification {
   sequential
 
-  "technique version are simple" should {
+  "technique version are simple" in {
     TechniqueVersion.parse("1.0-alpha5") must beLeft()
     TechniqueVersion.parse("1.0-SNAPSHOT") must beLeft()
     TechniqueVersion.parse("1.0-beta1") must beLeft()

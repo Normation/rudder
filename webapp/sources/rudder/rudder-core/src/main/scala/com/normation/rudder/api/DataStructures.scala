@@ -174,7 +174,7 @@ final object AclPath {
    * so that!
    * - Segment < Wildcard < DoubleWildcard
    */
-  implicit val orderingaAclPath = new Ordering[AclPath] {
+  implicit val orderingaAclPath: Ordering[AclPath] = new Ordering[AclPath] {
     // compare: negative if x < y
     override def compare(x: AclPath, y: AclPath): Int = {
       import AclPathSegment._

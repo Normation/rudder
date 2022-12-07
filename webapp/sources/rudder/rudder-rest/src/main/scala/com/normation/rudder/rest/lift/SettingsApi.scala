@@ -1015,7 +1015,7 @@ class SettingsApi(
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
 
-      implicit val formats = DefaultFormats
+      implicit val formats: Formats = DefaultFormats
 
       val result = for {
         nodeInfo <- nodeInfoService.getNodeInfo(nodeId).toBox

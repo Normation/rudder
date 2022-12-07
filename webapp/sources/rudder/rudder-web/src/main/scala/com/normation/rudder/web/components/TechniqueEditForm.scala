@@ -131,7 +131,7 @@ class TechniqueEditForm(
 
   //////////////////////////// public methods ////////////////////////////
 
-  def dispatch = { case "showForm" => { _: NodeSeq => showForm() } }
+  def dispatch = { case "showForm" => { (_: NodeSeq) => showForm() } }
 
   def showForm(): NodeSeq = {
     (
@@ -186,7 +186,7 @@ class TechniqueEditForm(
     (
       ClearClearable &
       // all the top level action are displayed only if the template is on the user library
-      "#userTemplateAction" #> { xml: NodeSeq =>
+      "#userTemplateAction" #> { (xml: NodeSeq) =>
         currentActiveTechnique match {
           case e: EmptyBox => NodeSeq.Empty
           case Full(activeTechnique) =>

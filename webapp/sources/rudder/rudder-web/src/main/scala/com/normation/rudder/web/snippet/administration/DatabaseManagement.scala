@@ -74,7 +74,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         .radio(
           Seq("Archive", "Delete"),
           Full("Archive"),
-          { value: String =>
+          { (value: String) =>
             action = value match {
               case "Archive" => archiveAction
               case "Delete"  => deleteAction
@@ -121,7 +121,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     def displayInProgress(lastValue: Box[Option[DateTime]]): NodeSeq = {
       val date = displayDate(lastValue)
       if (inProgress) {
-        <span>Archiving is in progress, please wait (last known value: '{date}')</span>
+        <span>Archiving is in progress, please wait (last known value: {date})</span>
       } else {
         date
       }

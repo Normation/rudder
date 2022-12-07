@@ -890,7 +890,7 @@ class InternalLDAPQueryProcessor(
       composition,
       debugId
     ).flatMap { results =>
-      val res = (results.flatMap { e: LDAPEntry =>
+      val res = (results.flatMap { (e: LDAPEntry) =>
         joinType match {
           case DNJoin       => Some(e.dn)
           case ParentDNJoin => Some(e.dn.getParent)

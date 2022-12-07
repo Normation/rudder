@@ -99,7 +99,7 @@ class RestDataExtractorTest extends Specification {
 
     Fragments.foreach(tests) {
       case (json, expected) =>
-        (extractRuleTargetJson(json) must beEqualTo(Right(expected)))
+        (extractRuleTargetJson(json) must beEqualTo(Right(expected))).fragments
     }
   }
 
@@ -162,7 +162,7 @@ class RestDataExtractorTest extends Specification {
 
     Fragments.foreach(tests) {
       case (json, expected) =>
-        (ruleDecoder.decodeJson(json)) must beEqualTo(Right(expected))
+        (ruleDecoder.decodeJson(json) must beEqualTo(Right(expected))).fragments
     }
   }
 }

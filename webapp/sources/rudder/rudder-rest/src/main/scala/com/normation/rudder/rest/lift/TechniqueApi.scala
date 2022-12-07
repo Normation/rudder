@@ -139,7 +139,7 @@ class TechniqueApi(
   class GetResources[T <: TwoParam](newTechnique: Boolean, val schema: T) extends LiftApiModule {
 
     val restExtractor     = restExtractorService
-    implicit val dataName = "resources"
+    implicit val dataName: String = "resources"
     def process(
         version:       ApiVersion,
         path:          ApiPath,
@@ -186,7 +186,7 @@ class TechniqueApi(
   object DeleteTechnique extends LiftApiModule        {
     val schema: TwoParam            = API.DeleteTechnique
     val restExtractor     = restExtractorService
-    implicit val dataName = "techniques"
+    implicit val dataName: String = "techniques"
 
     def process(
         version:       ApiVersion,
@@ -243,7 +243,7 @@ class TechniqueApi(
 
   object GetTechniques extends LiftApiModule0 {
     val schema            = API.GetTechniques
-    implicit val dataName = "techniques"
+    implicit val dataName: String = "techniques"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       resp(serviceV14.getTechniquesWithData().toBox, req, "Could not fetch techniques")("getTechniques")
@@ -255,7 +255,7 @@ class TechniqueApi(
 
     val schema            = API.GetMethods
     val restExtractor     = restExtractorService
-    implicit val dataName = "methods"
+    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
@@ -273,7 +273,7 @@ class TechniqueApi(
 
     val schema            = API.UpdateMethods
     val restExtractor     = restExtractorService
-    implicit val dataName = "methods"
+    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
@@ -291,7 +291,7 @@ class TechniqueApi(
 
     val schema            = API.UpdateTechniques
     val restExtractor     = restExtractorService
-    implicit val dataName = "techniques"
+    implicit val dataName: String = "techniques"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId    = ModificationId(uuidGen.newUuid)
@@ -312,7 +312,7 @@ class TechniqueApi(
 
     val schema            = API.GetAllTechniqueCategories
     val restExtractor     = restExtractorService
-    implicit val dataName = "techniqueCategories"
+    implicit val dataName: String = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = {

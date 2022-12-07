@@ -9,8 +9,9 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
   val userListProvider = RudderConfig.rudderUserListProvider
   def mainDispatch     = Map(
-    "display" -> { authForm: NodeSeq =>
-      if (userListProvider.authConfig.users.isEmpty) {
+    "display" -> { (authForm: NodeSeq) =>
+      if (userListProvider.authConfig.users.nonEmpty) authForm
+      else {
         <div>
           <div class="logo-container">
             <img src="/images/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"/>
@@ -51,7 +52,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
             </div>
           </form>
         </div>
-      } else authForm
+      }
     }
   )
 }

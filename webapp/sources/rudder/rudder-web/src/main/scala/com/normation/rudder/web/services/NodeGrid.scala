@@ -250,7 +250,7 @@ final class NodeGrid(
    */
   private def details(jsonArg: String): JsCmd = {
     import net.liftweb.common.Box._
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
 
     (for {
       json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"

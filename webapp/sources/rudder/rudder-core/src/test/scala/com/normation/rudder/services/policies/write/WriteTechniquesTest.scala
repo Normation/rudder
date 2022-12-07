@@ -315,7 +315,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     "correctly write the expected policies files with default installation" in {
       val (rootPath, writer) = getPromiseWriter("root-default-install")
-      (writeNodeConfigWithUserDirectives(writer) mustFull) and
+      (writeNodeConfigWithUserDirectives(writer).mustFull) and
       compareWith(rootPath, "root-default-install")
     }
 
@@ -357,13 +357,13 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       inventory.mkdirs()
       addCrap(inventory.getAbsolutePath + "/test-inventory.pl")
 
-      (writeNodeConfigWithUserDirectives(writer) mustFull) and
+      (writeNodeConfigWithUserDirectives(writer).mustFull) and
       compareWith(rootPath, "root-default-install")
     }
 
     "correctly write the expected policies files when 2 directives configured" in {
       val (rootPath, writer) = getPromiseWriter("root-with-two-directives")
-      (writeNodeConfigWithUserDirectives(writer, clock, rpm) mustFull) and
+      (writeNodeConfigWithUserDirectives(writer, clock, rpm).mustFull) and
       compareWith(
         rootPath,
         "root-with-two-directives",
@@ -375,7 +375,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     "correctly write the expected policies files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
       val (rootPath, writer) = getPromiseWriter("root-with-one-multipolicy")
-      (writeNodeConfigWithUserDirectives(writer, fileTemplate1, fileTemplate2, fileTemplate3) mustFull) and
+      (writeNodeConfigWithUserDirectives(writer, fileTemplate1, fileTemplate2, fileTemplate3).mustFull) and
       compareWith(
         rootPath,
         "root-with-one-multipolicy",
@@ -487,7 +487,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         parallelism
       )
 
-      (written mustFull) and
+      (written.mustFull) and
       compareWith(
         rootPath.getParentFile / cfeNode.id.value,
         "node-cfe-with-two-directives",
@@ -526,7 +526,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         parallelism
       )
 
-      (written mustFull) and
+      (written.mustFull) and
       compareWith(rootPath.getParentFile / cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
@@ -580,7 +580,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         parallelism
       )
 
-      (written mustFull) and
+      (written.mustFull) and
       compareWith(rootPath.getParentFile / root.id.value, "root-sys-var-false", Nil)
     }
   }
@@ -621,7 +621,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         parallelism
       )
 
-      (written mustFull) and
+      (written.mustFull) and
       compareWith(rootPath.getParentFile / cfeNode.id.value, "node-cfe-with-500-directives", Nil)
     }
   }
@@ -726,7 +726,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
       // specify technique revision to use in policy
       val revisedClock       = changeRev(clock, Revision(initCommit))
       (initCommit must be_!==(head)) and
-      (writeNodeConfigWithUserDirectives(writer, revisedClock) mustFull) and
+      (writeNodeConfigWithUserDirectives(writer, revisedClock).mustFull) and
       compareWith(
         rootPath,
         "technique-and-revisions",

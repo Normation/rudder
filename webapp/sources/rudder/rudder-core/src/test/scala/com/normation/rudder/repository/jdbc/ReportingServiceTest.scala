@@ -116,7 +116,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
     def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
     def getNumberOfManagedNodes:               Int                             = ???
-    val getAll:                                IOResult[Map[NodeId, NodeInfo]] = {
+    def getAll():                              IOResult[Map[NodeId, NodeInfo]] = {
       def build(id: String, mode: Option[PolicyMode]) = {
         val node1 = NodeConfigData.node1.node
         NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id), policyMode = mode))
@@ -941,9 +941,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s: String)      = RuleId(RuleUid(s))
-    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
-    implicit def toNodeId(s: String)      = NodeId(s)
+    implicit def toRuleId(s: String): RuleId          = RuleId(RuleUid(s))
+    implicit def toDirectiveId(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
+    implicit def toNodeId(s: String): NodeId          = NodeId(s)
 
     Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }

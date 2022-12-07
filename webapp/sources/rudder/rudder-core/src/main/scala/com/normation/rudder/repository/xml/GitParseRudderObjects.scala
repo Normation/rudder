@@ -462,7 +462,7 @@ class GitParseTechniqueLibrary(
   ): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
     (for {
-      v      <- TechniqueVersion(version, rev).left.map(Inconsistency).toIO
+      v      <- TechniqueVersion(version, rev).left.map(Inconsistency(_)).toIO
       id      = TechniqueId(name, v)
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)

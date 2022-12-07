@@ -162,7 +162,10 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 
 object StringTranslator
-    extends Translator[String](new Serializer("self" -> { s: String => s }), new Unserializer("self" -> { s: String => Full(s) }))
+    extends Translator[String](
+      new Serializer("self" -> { (s: String) => s }),
+      new Unserializer("self" -> { (s: String) => Full(s) })
+    )
 
 //datetime translator
 class DateTimeTranslator(

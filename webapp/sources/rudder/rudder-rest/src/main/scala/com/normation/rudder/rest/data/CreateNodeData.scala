@@ -182,7 +182,7 @@ class NodeDetailsSerialize(
 ) {
   import net.liftweb.json._
 
-  implicit val formats = DefaultFormats + new ConfigValueSerializer
+  implicit val formats: Formats = DefaultFormats + new ConfigValueSerializer
 
   class ConfigValueSerializer extends Serializer[ConfigValue] {
     private val ConfigValueClass = classOf[ConfigValue]
@@ -319,7 +319,7 @@ object Validation {
       val msg = s"Provided RAM '${x}'can not be parsed as a memory amount"
     }
     final case class MachineTpe(x: String)    extends NodeValidationError {
-      val msg = s"Machine type must be one of ${names(Machine.values)(_.name)} but '${x}' provided"
+      val msg = s"Machine type must be one of ${Machine.names} but '${x}' provided"
     }
     final case class Agent(x: String)         extends NodeValidationError {
       val msg = s"Management technologie agent must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"

@@ -249,7 +249,7 @@ class DirectiveEditForm(
     (
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
-      "#pendingChangeRequestNotification" #> { xml: NodeSeq =>
+      "#pendingChangeRequestNotification" #> { (xml: NodeSeq) =>
         PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
       } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &

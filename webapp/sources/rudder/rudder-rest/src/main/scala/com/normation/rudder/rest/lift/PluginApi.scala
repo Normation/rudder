@@ -48,6 +48,7 @@ import com.normation.rudder.rest.RestUtils
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.DefaultFormats
+import net.liftweb.json.Formats
 import net.liftweb.json.Serialization
 
 class PluginApi(
@@ -103,8 +104,8 @@ class PluginApi(
       import com.normation.box._
       import com.normation.errors._
 
-      implicit val formats = DefaultFormats
-      val json             = {
+      implicit val formats: Formats = DefaultFormats
+      val json = {
         for {
           json <- req.json.toIO
           conf <- IOResult.attempt(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json)))

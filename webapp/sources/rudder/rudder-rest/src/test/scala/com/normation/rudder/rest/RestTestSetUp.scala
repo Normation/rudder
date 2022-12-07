@@ -183,7 +183,7 @@ import zio.syntax._
  */
 class RestTestSetUp {
 
-  implicit val userService = new UserService {
+  implicit val userService: UserService = new UserService {
     val user           = new User {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
@@ -664,7 +664,7 @@ class RestTestSetUp {
       self =>
       type ValueType = String
       def manifest               = manifestOf[String]
-      lazy val id                = withId
+      override val id            = withId
       def name                   = id
       override val uniqueFieldId = Full(id)
       protected var _x: String = getDefaultValue

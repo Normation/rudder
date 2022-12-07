@@ -750,48 +750,48 @@ object DisplayNode extends Loggable {
       // do not retrieve software here
       Full(Seq())
     ) {
-      ("Name", { x: Software => ?(x.name) }) ::
-      ("Version", { x: Software => ?(x.version.map(_.value)) }) ::
-      ("Description", { x: Software => ?(x.description) }) ::
+      ("Name", { (x: Software) => ?(x.name) }) ::
+      ("Version", { (x: Software) => ?(x.version.map(_.value)) }) ::
+      ("Description", { (x: Software) => ?(x.description) }) ::
       Nil
     }
   }
 
   private def displayTabSoftwareUpdates(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("softUpdates", Full(sm.node.softwareUpdates)) {
-      ("Name", { x: SoftwareUpdate => Text(x.name) }) ::
-      ("Version", { x: SoftwareUpdate => Text(x.version.getOrElse("-")) }) ::
-      ("Arch", { x: SoftwareUpdate => Text(x.arch.getOrElse("-")) }) ::
-      ("From", { x: SoftwareUpdate => Text(x.from.getOrElse("-")) }) ::
-      ("Kind", { x: SoftwareUpdate => Text(x.kind.name) }) ::
-      ("Source", { x: SoftwareUpdate => ?(x.source) }) ::
+      ("Name", { (x: SoftwareUpdate) => Text(x.name) }) ::
+      ("Version", { (x: SoftwareUpdate) => Text(x.version.getOrElse("-")) }) ::
+      ("Arch", { (x: SoftwareUpdate) => Text(x.arch.getOrElse("-")) }) ::
+      ("From", { (x: SoftwareUpdate) => Text(x.from.getOrElse("-")) }) ::
+      ("Kind", { (x: SoftwareUpdate) => Text(x.kind.name) }) ::
+      ("Source", { (x: SoftwareUpdate) => ?(x.source) }) ::
       Nil
     }
   }
 
   private def displayTabNetworks(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("net", Full(sm.node.networks)) {
-      ("Interface", { x: Network => escapeHTML(x.name) }) ::
-      ("IP address", { x: Network => (x.ifAddresses.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Mask", { x: Network => (x.ifMask.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Network", { x: Network => (x.ifSubnet.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Gateway", { x: Network => (x.ifGateway.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("DHCP server", { x: Network => escapeHTML(x.ifDhcp.map(_.getHostAddress).mkString(", ")) }) ::
-      ("MAC address", { x: Network => ?(x.macAddress) }) ::
-      ("Type", { x: Network => ?(x.ifType) }) ::
-      ("Speed", { x: Network => ?(x.speed) }) ::
-      ("Status", { x: Network => ?(x.status) }) ::
+      ("Interface", { (x: Network) => escapeHTML(x.name) }) ::
+      ("IP address", { (x: Network) => (x.ifAddresses.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
+      ("Mask", { (x: Network) => (x.ifMask.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
+      ("Network", { (x: Network) => (x.ifSubnet.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
+      ("Gateway", { (x: Network) => (x.ifGateway.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
+      ("DHCP server", { (x: Network) => escapeHTML(x.ifDhcp.map(_.getHostAddress).mkString(", ")) }) ::
+      ("MAC address", { (x: Network) => ?(x.macAddress) }) ::
+      ("Type", { (x: Network) => ?(x.ifType) }) ::
+      ("Speed", { (x: Network) => ?(x.speed) }) ::
+      ("Status", { (x: Network) => ?(x.status) }) ::
       Nil
     }
   }
 
   private def displayTabFilesystems(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("fs", Full(sm.node.fileSystems)) {
-      ("Mount point", { x: FileSystem => escapeHTML(x.mountPoint) }) ::
-      ("Filesystem", { x: FileSystem => ?(x.name) }) ::
-      ("Free space", { x: FileSystem => ?(x.freeSpace.map(_.toStringMo)) }) ::
-      ("Total space", { x: FileSystem => ?(x.totalSpace.map(_.toStringMo)) }) ::
-      ("File count", { x: FileSystem => ?(x.fileCount.map(_.toString)) }) ::
+      ("Mount point", { (x: FileSystem) => escapeHTML(x.mountPoint) }) ::
+      ("Filesystem", { (x: FileSystem) => ?(x.name) }) ::
+      ("Free space", { (x: FileSystem) => ?(x.freeSpace.map(_.toStringMo)) }) ::
+      ("Total space", { (x: FileSystem) => ?(x.totalSpace.map(_.toStringMo)) }) ::
+      ("File count", { (x: FileSystem) => ?(x.fileCount.map(_.toString)) }) ::
       Nil
     }
   }
@@ -800,8 +800,8 @@ object DisplayNode extends Loggable {
 
     val title = sm.node.inventoryDate.map(date => s"Environment variable status on ${DateFormaterService.getDisplayDate(date)}")
     displayTabGrid(jsId)("var", Full(sm.node.environmentVariables), title) {
-      ("Name", { x: EnvironmentVariable => escapeHTML(x.name) }) ::
-      ("Value", { x: EnvironmentVariable => escapeHTML(x.value.getOrElse("Unspecified")) }) ::
+      ("Name", { (x: EnvironmentVariable) => escapeHTML(x.name) }) ::
+      ("Value", { (x: EnvironmentVariable) => escapeHTML(x.value.getOrElse("Unspecified")) }) ::
       Nil
     }
   }
@@ -826,134 +826,134 @@ object DisplayNode extends Loggable {
   private def displayTabProcess(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     val title = sm.node.inventoryDate.map(date => s"Process status on ${DateFormaterService.getDisplayDate(date)}")
     displayTabGrid(jsId)("process", Full(sm.node.processes), title) {
-      ("User", { x: Process => ?(x.user) }) ::
-      ("PID", { x: Process => escapeHTML(x.pid.toString()) }) ::
-      ("% CPU", { x: Process => ?(x.cpuUsage.map(_.toString())) }) ::
-      ("% Memory", { x: Process => ?(x.memory.map(_.toString())) }) ::
-      ("Virtual memory", { x: Process => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo)) }) ::
-      ("TTY", { x: Process => ?(x.tty) }) ::
-      ("Started on", { x: Process => ?(x.started) }) ::
-      ("Command", { x: Process => ?(x.commandName) }) ::
+      ("User", { (x: Process) => ?(x.user) }) ::
+      ("PID", { (x: Process) => escapeHTML(x.pid.toString()) }) ::
+      ("% CPU", { (x: Process) => ?(x.cpuUsage.map(_.toString())) }) ::
+      ("% Memory", { (x: Process) => ?(x.memory.map(_.toString())) }) ::
+      ("Virtual memory", { (x: Process) => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo)) }) ::
+      ("TTY", { (x: Process) => ?(x.tty) }) ::
+      ("Started on", { (x: Process) => ?(x.started) }) ::
+      ("Command", { (x: Process) => ?(x.commandName) }) ::
       Nil
     }
   }
 
   private def displayTabVM(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("vm", Full(sm.node.vms)) {
-      ("Name", { x: VirtualMachine => ?(x.name) }) ::
-      ("Type", { x: VirtualMachine => ?(x.vmtype) }) ::
-      ("SubSystem", { x: VirtualMachine => ?(x.subsystem) }) ::
-      ("Uuid", { x: VirtualMachine => escapeHTML(x.uuid.value) }) ::
-      ("Status", { x: VirtualMachine => ?(x.status) }) ::
-      ("Owner", { x: VirtualMachine => ?(x.owner) }) ::
-      ("# Cpu", { x: VirtualMachine => ?(x.vcpu.map(_.toString())) }) ::
-      ("Memory", { x: VirtualMachine => ?(x.memory) }) ::
+      ("Name", { (x: VirtualMachine) => ?(x.name) }) ::
+      ("Type", { (x: VirtualMachine) => ?(x.vmtype) }) ::
+      ("SubSystem", { (x: VirtualMachine) => ?(x.subsystem) }) ::
+      ("Uuid", { (x: VirtualMachine) => escapeHTML(x.uuid.value) }) ::
+      ("Status", { (x: VirtualMachine) => ?(x.status) }) ::
+      ("Owner", { (x: VirtualMachine) => ?(x.owner) }) ::
+      ("# Cpu", { (x: VirtualMachine) => ?(x.vcpu.map(_.toString())) }) ::
+      ("Memory", { (x: VirtualMachine) => ?(x.memory) }) ::
       Nil
     }
   }
 
   private def displayTabBios(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("bios", sm.machine.map(fm => fm.bios)) {
-      ("Name", { x: Bios => escapeHTML(x.name) }) ::
-      ("Editor", { x: Bios => ?(x.editor.map(_.name)) }) ::
-      ("Version", { x: Bios => ?(x.version.map(_.value)) }) ::
-      ("Release Date", { x: Bios => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_))) }) ::
+      ("Name", { (x: Bios) => escapeHTML(x.name) }) ::
+      ("Editor", { (x: Bios) => ?(x.editor.map(_.name)) }) ::
+      ("Version", { (x: Bios) => ?(x.version.map(_.value)) }) ::
+      ("Release Date", { (x: Bios) => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_))) }) ::
       Nil
     }
   }
 
   private def displayTabControllers(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("controllers", sm.machine.map(fm => fm.controllers)) {
-      ("Name", { x: Controller => escapeHTML(x.name) }) ::
-      ("Manufacturer", { x: Controller => ?(x.manufacturer.map(_.name)) }) ::
-      ("Type", { x: Controller => ?(x.cType) }) ::
-      ("Quantity", { x: Controller => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Controller) => escapeHTML(x.name) }) ::
+      ("Manufacturer", { (x: Controller) => ?(x.manufacturer.map(_.name)) }) ::
+      ("Type", { (x: Controller) => ?(x.cType) }) ::
+      ("Quantity", { (x: Controller) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabMemories(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("memories", sm.machine.map(fm => fm.memories)) {
-      ("Slot", { x: MemorySlot => escapeHTML(x.slotNumber) }) ::
-      ("Capacity", { x: MemorySlot => ?(x.capacity.map(_.toStringMo)) }) ::
-      ("Description", { x: MemorySlot => ?(x.description) }) ::
-      ("Serial Number", { x: MemorySlot => ?(x.serialNumber) }) ::
-      ("Speed", { x: MemorySlot => ?(x.speed) }) ::
-      ("Type", { x: MemorySlot => ?(x.memType) }) ::
-      ("Quantity", { x: MemorySlot => escapeHTML(x.quantity.toString) }) ::
+      ("Slot", { (x: MemorySlot) => escapeHTML(x.slotNumber) }) ::
+      ("Capacity", { (x: MemorySlot) => ?(x.capacity.map(_.toStringMo)) }) ::
+      ("Description", { (x: MemorySlot) => ?(x.description) }) ::
+      ("Serial Number", { (x: MemorySlot) => ?(x.serialNumber) }) ::
+      ("Speed", { (x: MemorySlot) => ?(x.speed) }) ::
+      ("Type", { (x: MemorySlot) => ?(x.memType) }) ::
+      ("Quantity", { (x: MemorySlot) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabPorts(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("ports", sm.machine.map(fm => fm.ports)) {
-      ("Name", { x: Port => escapeHTML(x.name) }) ::
-      ("Type", { x: Port => ?(x.pType) }) ::
-      ("Description", { x: Port => ?(x.description) }) ::
-      ("Quantity", { x: Port => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Port) => escapeHTML(x.name) }) ::
+      ("Type", { (x: Port) => ?(x.pType) }) ::
+      ("Description", { (x: Port) => ?(x.description) }) ::
+      ("Quantity", { (x: Port) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabProcessors(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("processors", sm.machine.map(fm => fm.processors)) {
-      ("Name", { x: Processor => escapeHTML(x.name) }) ::
-      ("Speed", { x: Processor => ?(x.speed.map(_.toString)) }) ::
-      ("Model", { x: Processor => ?(x.model.map(_.toString())) }) ::
-      ("Family", { x: Processor => ?(x.family.map(_.toString())) }) ::
-      ("Family Name", { x: Processor => ?(x.familyName) }) ::
-      ("Manufacturer", { x: Processor => ?(x.manufacturer.map(_.name)) }) ::
-      ("Thread", { x: Processor => ?(x.thread.map(_.toString())) }) ::
-      ("Core", { x: Processor => ?(x.core.map(_.toString())) }) ::
-      ("CPUID", { x: Processor => ?(x.cpuid) }) ::
-      ("Architecture", { x: Processor => ?(x.arch) }) ::
-      ("Stepping", { x: Processor => ?(x.stepping.map(_.toString)) }) ::
-      ("Quantity", { x: Processor => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Processor) => escapeHTML(x.name) }) ::
+      ("Speed", { (x: Processor) => ?(x.speed.map(_.toString)) }) ::
+      ("Model", { (x: Processor) => ?(x.model.map(_.toString())) }) ::
+      ("Family", { (x: Processor) => ?(x.family.map(_.toString())) }) ::
+      ("Family Name", { (x: Processor) => ?(x.familyName) }) ::
+      ("Manufacturer", { (x: Processor) => ?(x.manufacturer.map(_.name)) }) ::
+      ("Thread", { (x: Processor) => ?(x.thread.map(_.toString())) }) ::
+      ("Core", { (x: Processor) => ?(x.core.map(_.toString())) }) ::
+      ("CPUID", { (x: Processor) => ?(x.cpuid) }) ::
+      ("Architecture", { (x: Processor) => ?(x.arch) }) ::
+      ("Stepping", { (x: Processor) => ?(x.stepping.map(_.toString)) }) ::
+      ("Quantity", { (x: Processor) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabSlots(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("slots", sm.machine.map(fm => fm.slots)) {
-      ("Name", { x: Slot => escapeHTML(x.name) }) ::
-      ("Description", { x: Slot => ?(x.description) }) ::
-      ("Status", { x: Slot => ?(x.status) }) ::
-      ("Quantity", { x: Slot => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Slot) => escapeHTML(x.name) }) ::
+      ("Description", { (x: Slot) => ?(x.description) }) ::
+      ("Status", { (x: Slot) => ?(x.status) }) ::
+      ("Quantity", { (x: Slot) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabSounds(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("sounds", sm.machine.map(fm => fm.sounds)) {
-      ("Name", { x: Sound => escapeHTML(x.name) }) ::
-      ("Description", { x: Sound => ?(x.description) }) ::
-      ("Quantity", { x: Sound => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Sound) => escapeHTML(x.name) }) ::
+      ("Description", { (x: Sound) => ?(x.description) }) ::
+      ("Quantity", { (x: Sound) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabStorages(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("storages", sm.machine.map(fm => fm.storages)) {
-      ("Name", { x: Storage => escapeHTML(x.name) }) ::
-      ("Description", { x: Storage => ?(x.description) }) ::
-      ("Size", { x: Storage => ?(x.size.map(_.toStringMo)) }) ::
-      ("Firmware", { x: Storage => ?(x.firmware) }) ::
-      ("Manufacturer", { x: Storage => ?(x.manufacturer.map(_.name)) }) ::
-      ("Model", { x: Storage => ?(x.model) }) ::
-      ("Serial", { x: Storage => ?(x.serialNumber) }) ::
-      ("Type", { x: Storage => ?(x.sType) }) ::
-      ("Quantity", { x: Storage => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Storage) => escapeHTML(x.name) }) ::
+      ("Description", { (x: Storage) => ?(x.description) }) ::
+      ("Size", { (x: Storage) => ?(x.size.map(_.toStringMo)) }) ::
+      ("Firmware", { (x: Storage) => ?(x.firmware) }) ::
+      ("Manufacturer", { (x: Storage) => ?(x.manufacturer.map(_.name)) }) ::
+      ("Model", { (x: Storage) => ?(x.model) }) ::
+      ("Serial", { (x: Storage) => ?(x.serialNumber) }) ::
+      ("Type", { (x: Storage) => ?(x.sType) }) ::
+      ("Quantity", { (x: Storage) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }
 
   private def displayTabVideos(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("videos", sm.machine.map(fm => fm.videos)) {
-      ("Name", { x: Video => escapeHTML(x.name) }) ::
-      ("Chipset", { x: Video => ?(x.chipset) }) ::
-      ("Memory", { x: Video => ?(x.memory.map(_.toStringMo)) }) ::
-      ("Resolution", { x: Video => ?(x.resolution) }) ::
-      ("Quantity", { x: Video => escapeHTML(x.quantity.toString) }) ::
+      ("Name", { (x: Video) => escapeHTML(x.name) }) ::
+      ("Chipset", { (x: Video) => ?(x.chipset) }) ::
+      ("Memory", { (x: Video) => ?(x.memory.map(_.toStringMo)) }) ::
+      ("Resolution", { (x: Video) => ?(x.resolution) }) ::
+      ("Quantity", { (x: Video) => escapeHTML(x.quantity.toString) }) ::
       Nil
     }
   }

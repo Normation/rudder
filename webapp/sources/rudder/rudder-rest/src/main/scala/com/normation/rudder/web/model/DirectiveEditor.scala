@@ -56,7 +56,7 @@ import scala.xml._
  * A displayable field has 2 methods :
  * -> toHtmlNodeSeq and toFormNodeSeq : to display the form
  */
-trait DisplayableField extends {
+trait DisplayableField {
   def toHtmlNodeSeq: NodeSeq
 
   def toFormNodeSeq: NodeSeq

@@ -281,7 +281,7 @@ class LDAPDiffMapper(
                                case version =>
                                  for {
                                    d <- diff
-                                   v <- TechniqueVersion.parse(version).leftMap(Unexpected)
+                                   v <- TechniqueVersion.parse(version).leftMap(Unexpected(_))
                                  } yield {
                                    d.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, v)))
                                  }

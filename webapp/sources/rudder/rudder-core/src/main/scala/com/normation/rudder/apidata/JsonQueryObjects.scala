@@ -454,7 +454,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     def parse[A](key: String, decoder: JsonDecoder[A]):                    PureResult[Option[A]] = {
       optGet(key) match {
         case None    => Right(None)
-        case Some(x) => decoder.decodeJson(x).map(Some(_)).left.map(Unexpected)
+        case Some(x) => decoder.decodeJson(x).map(Some(_)).left.map(Unexpected(_))
       }
     }
     def parse2[A](key: String, decoder: String => PureResult[A]):          PureResult[Option[A]] = {
@@ -466,7 +466,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     def parseString[A](key: String, decoder: String => Either[String, A]): PureResult[Option[A]] = {
       optGet(key) match {
         case None    => Right(None)
-        case Some(x) => decoder(x).map(Some(_)).left.map(Inconsistency)
+        case Some(x) => decoder(x).map(Some(_)).left.map(Inconsistency.apply)
       }
     }
   }
@@ -566,7 +566,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         enabled,
         parameters,
         priority,
-        params.optGet("techniqueName").map(TechniqueName),
+        params.optGet("techniqueName").map(TechniqueName.apply),
         tv,
         policyMode,
         tags,

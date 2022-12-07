@@ -346,7 +346,7 @@ class NodeInfoServiceCachedTest extends Specification {
       ): LDAPIOResult[Seq[LDAPEntry]] = {
         // for test, force to not look pending
         val dit = status match {
-          case AcceptedInventory | PendingInventory => inventoryDit
+          case AcceptedInventory | PendingInventory => this.inventoryDit
           case RemovedInventory                     => removedDit
         }
 
@@ -358,7 +358,7 @@ class NodeInfoServiceCachedTest extends Specification {
         for {
           res1 <- con.search(dit.NODES.dn, One, filter(IS(OC_NODE)), searchAttributes: _*)
           res2 <- con.search(dit.MACHINES.dn, One, filter(IS(OC_MACHINE)), searchAttributes: _*)
-          res3 <- con.search(nodeDit.NODES.dn, One, filter(IS(OC_RUDDER_NODE)), searchAttributes: _*)
+          res3 <- con.search(this.nodeDit.NODES.dn, One, filter(IS(OC_RUDDER_NODE)), searchAttributes: _*)
         } yield res1 ++ res2 ++ res3
       }
     }

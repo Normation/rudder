@@ -254,7 +254,7 @@ object MergeNodeProperties {
                                    NodeGroupId
                                      .parse(parentId)
                                      .left
-                                     .map(Inconsistency)
+                                     .map(Inconsistency(_))
                                      .flatMap(pId => {
                                        if (acc.isDefinedAt(pId)) Right(Nil)
                                        else {

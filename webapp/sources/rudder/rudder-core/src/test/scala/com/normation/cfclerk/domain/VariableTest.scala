@@ -52,7 +52,7 @@ import scala.xml._
 class VariableTest extends Specification {
   def variableSpecParser = new VariableSpecParser()
 
-  implicit class EitherToThrow[T](res: Either[LoadTechniqueError, T]) {
+  extension [T] (res: Either[LoadTechniqueError, T]) {
     def orThrow = res match {
       case Right(value) => value
       case Left(error)  => throw new IllegalArgumentException(s"Variable error in test: ${error.fullMsg}")
@@ -181,8 +181,8 @@ class VariableTest extends Specification {
   }
 
   "Multivalued variable" should {
-    val variable   = InputVariable(InputVariableSpec(refName, refDescription, multivalued = true, id = None), Seq())
-    implicit val v = variable.copyWithSavedValues(listValue.split(";").toSeq).orThrow
+    val variable = InputVariable(InputVariableSpec(refName, refDescription, multivalued = true, id = None), Seq())
+    implicit val v: Variable = variable.copyWithSavedValues(listValue.split(";")).orThrow
 
     haveName()
     haveDescription()

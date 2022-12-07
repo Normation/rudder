@@ -105,6 +105,9 @@ object PgOptMillisDateTimeParser {
 
 @RunWith(classOf[JUnitRunner])
 class ComplianceTest extends Specification {
+  // For some strange reason scala.Predef conversion is not visible in implicit scope
+  given Conversion[Array[String],Seq[String]] = scala.Predef.genericWrapArray(_).toSeq
+  given Conversion[Seq[String],Array[String]] = _.toArray
 
   val dateParser = PgOptMillisDateTimeParser.pgDateTimeFormater
 

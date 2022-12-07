@@ -174,7 +174,7 @@ final case class RoReportsExecutionRepositoryImpl(
     }
 
     val batchedNodeConfigIds = nodeIds.grouped(jdbcMaxBatchSize).toSeq
-    ZIO.foreach(batchedNodeConfigIds) { ids: Set[NodeId] =>
+    ZIO.foreach(batchedNodeConfigIds) { (ids: Set[NodeId]) =>
       // map node id to // ('node-id') // to use in values
       ids.map(id => s"('${id.value}')").toList match {
         case Nil   => Map[NodeId, Option[AgentRunWithNodeConfig]]().succeed

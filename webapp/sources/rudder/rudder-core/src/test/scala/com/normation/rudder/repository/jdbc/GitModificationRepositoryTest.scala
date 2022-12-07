@@ -61,8 +61,8 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
   lazy val repos = new GitModificationRepositoryImpl(doobie)
 
-  implicit def toCommitId(s: String) = GitCommitId(s)
-  implicit def toModId(s: String)    = ModificationId(s)
+  implicit def toCommitId(s: String): GitCommitId = GitCommitId(s)
+  implicit def toModId(s: String): ModificationId = ModificationId(s)
 
   sequential
 
@@ -92,11 +92,11 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
     }
 
     "find back a commit by" in {
-      repos.getCommits("m3").either.runNow must beRight(Some(GitCommitId("g3")))
+      repos.getCommits("m3").either.runNow must beRight(beEqualTo(Some(GitCommitId("g3"))))
     }
 
     "not find back a non existing commit" in {
-      repos.getCommits("badId").either.runNow must beRight(Option.empty[GitCommitId])
+      repos.getCommits("badId").either.runNow must beRight(beEqualTo(Option.empty[GitCommitId]))
     }
 
     "produce an error when several commits were added" in {

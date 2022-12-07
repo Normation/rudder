@@ -93,7 +93,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         case Full(seq) =>
           // we need to order the seq to have root first
           val sortedSeq = Constants.ROOT_POLICY_SERVER_ID +: seq.filter(x => x != Constants.ROOT_POLICY_SERVER_ID)
-          xml: NodeSeq => {
+          (xml: NodeSeq) => {
             sortedSeq.foldLeft(NodeSeq.Empty)((result, id) => result ++ renderForm(id).apply(xml))
           }
       }

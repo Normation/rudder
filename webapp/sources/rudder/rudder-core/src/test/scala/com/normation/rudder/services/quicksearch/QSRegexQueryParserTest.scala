@@ -88,15 +88,15 @@ class QSRegexQueryParserTest extends Specification {
   "Simple queries" should {
     "give the exact same string, but trimed" in {
       val q = """ some node """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(beEqualTo(Query(q.trim, QSObject.all, QSAttribute.all)))
     }
     "give the exact same string, but trimed, even with regexp" in {
       val q = """ some.node[0-9]+.foo """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(beEqualTo(Query(q.trim, QSObject.all, QSAttribute.all)))
     }
     "give the exact same string, but trimed, even with part of rudder variable" in {
       val q = """ /foo/${rudder. """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(beEqualTo(Query(q.trim, QSObject.all, QSAttribute.all)))
     }
   }
 

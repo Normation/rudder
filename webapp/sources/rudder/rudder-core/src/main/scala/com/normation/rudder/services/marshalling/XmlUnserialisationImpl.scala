@@ -857,7 +857,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
                         }
     } yield {
-      val kind = accountType match {
+      val kind: ApiAccountKind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)

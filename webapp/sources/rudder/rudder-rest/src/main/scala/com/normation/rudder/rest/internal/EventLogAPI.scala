@@ -204,7 +204,7 @@ class EventLogAPI(
       }
 
     case Get(id :: "details" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val prettify: Boolean = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action: String = "eventDetails"
       (for {
         realId     <- Box.tryo(id.toLong)
@@ -229,7 +229,7 @@ class EventLogAPI(
       }
 
     case Get(id :: "details" :: "rollback" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val prettify: Boolean = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action: String = "eventRollback"
 
       (for {
