@@ -1819,7 +1819,7 @@ object RuleExpectedReportBuilder extends Loggable {
                   case None     =>
                     varReportId match {
                       case None     =>
-                        innerExpandedVars.zip(innerUnexpandedVars).map(ExpectedValueMatch)
+                        innerExpandedVars.zip(innerUnexpandedVars).map(ExpectedValueMatch.apply)
                       case Some(id) =>
                         innerExpandedVars.map(v => ExpectedValueId(v, id))
                     }
@@ -1864,7 +1864,7 @@ object RuleExpectedReportBuilder extends Loggable {
       List(
         ValueExpectedReport(
           technique.id.name.value,
-          trackingVarCard._1.toList.zip(trackingVarCard._2.toList).map(ExpectedValueMatch)
+          trackingVarCard._1.toList.zip(trackingVarCard._2.toList).map(ExpectedValueMatch.apply)
         )
       )
     } else {

@@ -209,7 +209,7 @@ object JsonQueryObjects {
     def updateRule(rule: Rule) = {
       val updateRevision   = id.map(_.rev).getOrElse(rule.id.rev)
       val updateName       = displayName.getOrElse(rule.name)
-      val updateCategory   = category.map(RuleCategoryId).getOrElse(rule.categoryId)
+      val updateCategory   = category.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
       val updateDirectives = directives.getOrElse(rule.directiveIds)
@@ -251,7 +251,7 @@ object JsonQueryObjects {
   ) {
     def toGroupProperty = GroupProperty(
       name,
-      rev.map(Revision).getOrElse(GitVersion.DEFAULT_REV),
+      rev.map(Revision.apply).getOrElse(GitVersion.DEFAULT_REV),
       value,
       inheritMode,
       Some(PropertyProvider.defaultPropertyProvider)
@@ -374,9 +374,9 @@ trait RudderJsonDecoders {
   implicit val revisionDecoder: JsonDecoder[Revision] = JsonDecoder[String].map(ParseRev(_))
 
   // technique name/version
-  implicit val techniqueNameDecoder:       JsonDecoder[TechniqueName]    = JsonDecoder[String].map(TechniqueName)
+  implicit val techniqueNameDecoder:       JsonDecoder[TechniqueName]    = JsonDecoder[String].map(TechniqueName.apply)
   implicit val techniqueVersionDecoder:    JsonDecoder[TechniqueVersion] = JsonDecoder[String].mapOrFail(TechniqueVersion.parse(_))
-  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]   = JsonDecoder[String].map(RuleCategoryId)
+  implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]   = JsonDecoder[String].map(RuleCategoryId.apply)
   implicit lazy val directiveIdsDecoder:   JsonDecoder[Set[DirectiveId]] = {
     import cats.implicits._
     JsonDecoder[List[String]].mapOrFail(list => list.traverse(x => DirectiveId.parse(x)).map(_.toSet))
@@ -401,7 +401,7 @@ trait RudderJsonDecoders {
   implicit val globalParameterDecoder: JsonDecoder[JQGlobalParameter] = DeriveJsonDecoder.gen
 
   // Rest group
-  implicit val nodeGroupCategoryIdDecoder:      JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId)
+  implicit val nodeGroupCategoryIdDecoder:      JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
   implicit val queryStringCriterionLineDecoder: JsonDecoder[StringCriterionLine] = DeriveJsonDecoder.gen
   implicit val queryReturnTypeDecoder:          JsonDecoder[QueryReturnType]     = DeriveJsonDecoder.gen
   implicit val queryDecoder:                    JsonDecoder[StringQuery]         = DeriveJsonDecoder.gen[JQStringQuery].map(_.toQueryString)
@@ -601,7 +601,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         query,
         dynamic,
         enabled,
-        params.optGet("category").map(NodeGroupCategoryId),
+        params.optGet("category").map(NodeGroupCategoryId.apply),
         source
       )
     }
