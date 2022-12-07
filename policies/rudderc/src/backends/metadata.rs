@@ -15,6 +15,7 @@ use serde::Serialize;
 use std::path::Path;
 
 use crate::backends::Windows;
+use crate::compiler::RESOURCES_DIR;
 use crate::{
     backends::Backend,
     ir,
@@ -47,7 +48,14 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
 
         let agent = ALL_TARGETS
             .iter()
-            .map(|t| Agent::from(src.id.to_string(), *t, files.clone()))
+            .map(|t| {
+                Agent::from(
+                    src.id.to_string(),
+                    src.version.to_string(),
+                    *t,
+                    files.clone(),
+                )
+            })
             .collect();
         let multi_instance = !src.parameters.is_empty();
         let policy_generation = if src.parameters.is_empty() {
@@ -129,9 +137,14 @@ impl Agent {
         }
     }
 
-    fn from(technique_name: String, target: Target, attached_files: Vec<String>) -> Agent {
+    fn from(
+        technique_name: String,
+        technique_version: String,
+        target: Target,
+        attached_files: Vec<String>,
+    ) -> Agent {
         let name = match target {
-            Target::Unix => technique_name,
+            Target::Unix => technique_name.clone(),
             Target::Windows => Windows::technique_name(&technique_name),
             _ => unreachable!(),
         };
@@ -141,12 +154,13 @@ impl Agent {
             included: true,
             out_path: None,
         }];
-        // FIXME: add /modules/ prefix?
         for file in attached_files {
+            let path = format!("{RESOURCES_DIR}/{file}");
+            let outpath = format!("{technique_name}/{technique_version}/{path}");
             files.push(File {
-                name: file.clone(),
+                name: path.clone(),
                 included: false,
-                out_path: Some(file),
+                out_path: Some(outpath),
             })
         }
 
@@ -206,7 +220,8 @@ struct Section {
     component: bool,
     #[serde(rename = "@multivalued")]
     multivalued: bool,
-    value: Vec<ReportKey>,
+    #[serde(rename = "REPORTKEYS")]
+    report_keys: ReportKeys,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -272,15 +287,17 @@ impl SectionType {
                     id: m.id.clone(),
                     component: true,
                     multivalued: true,
-                    value: vec![ReportKey {
-                        // the class_parameter value
-                        value: m
-                            .params
-                            .get(&m.info.unwrap().class_parameter)
-                            .unwrap()
-                            .clone(),
-                        id: m.id,
-                    }],
+                    report_keys: ReportKeys {
+                        value: ReportKey {
+                            // the class_parameter value
+                            value: m
+                                .params
+                                .get(&m.info.unwrap().class_parameter)
+                                .unwrap()
+                                .clone(),
+                            id: m.id,
+                        },
+                    },
                 }),
                 ItemKind::Module(_) => todo!(),
             })
@@ -290,7 +307,14 @@ impl SectionType {
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
+struct ReportKeys {
+    value: ReportKey,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct ReportKey {
+    #[serde(rename = "$value")]
     value: String,
     #[serde(rename = "@id")]
     id: Id,
@@ -318,10 +342,12 @@ mod tests {
                         id: Id::from_str("f6810347-f367-4465-96be-3a50860f4cb1").unwrap(),
                         component: true,
                         multivalued: true,
-                        value: vec![ReportKey {
-                            value: "key".to_string(),
-                            id: Id::from_str("5dbfb761-f15f-40b5-9f75-b3d88b81483e").unwrap(),
-                        }],
+                        report_keys: ReportKeys {
+                            value: ReportKey {
+                                value: "key".to_string(),
+                                id: Id::from_str("5dbfb761-f15f-40b5-9f75-b3d88b81483e").unwrap(),
+                            },
+                        },
                     }),
                     SectionType::SectionInput(SectionInput {
                         name: "Technique parameters".to_string(),

@@ -55,7 +55,13 @@ impl Backend for Unix {
         }
 
         // main bundle containing the methods
-        let mut main_bundle = Bundle::agent(technique.id.clone());
+        let mut main_bundle = Bundle::agent(technique.id.clone()).parameters(
+            technique
+                .parameters
+                .iter()
+                .map(|p| p.name.clone())
+                .collect(),
+        );
         // separate bundles for each method call
         let mut call_bundles = vec![];
         if !Unix::list_resources(resources)?.is_empty() {
@@ -64,6 +70,14 @@ impl Backend for Unix {
                 "${this.promise_dirname}/resources",
             )]);
         };
+        main_bundle.add_promise_group(vec![Promise::slist(
+            "args",
+            technique
+                .parameters
+                .iter()
+                .map(|p| format!("${{{}}}", &p.name))
+                .collect(),
+        )]);
         for item in technique.items {
             for call in resolve_module(item, Condition::Defined)? {
                 let (use_bundle, bundle) = call;

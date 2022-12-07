@@ -25,9 +25,11 @@
   </AGENT>
   <SECTIONS>
     <SECTION name="Package present" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
-      <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">
-        <VALUE>htop</VALUE>
-      </VALUE>
+      <REPORTKEYS>
+        <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">
+          htop
+        </VALUE>
+      </REPORTKEYS>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>
