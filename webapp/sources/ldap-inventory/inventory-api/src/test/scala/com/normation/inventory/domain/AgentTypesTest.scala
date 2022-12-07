@@ -117,7 +117,7 @@ class AgentTypesTest extends Specification {
           AgentType.CfeCommunity,
           Some(AgentVersion("6.1.0")),
           Certificate(key),
-          Set("https", "very", "good").map(AgentCapability)
+          Set("https", "very", "good").map(AgentCapability.apply)
         )
       )
     }

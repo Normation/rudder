@@ -362,7 +362,7 @@ class LDAPEntityMapper(
       val machineInfo = machineEntry.flatMap { e =>
         for {
           machineType <- inventoryMapper.machineTypeFromObjectClasses(e.valuesFor("objectClass"))
-          machineUuid <- e(A_MACHINE_UUID).map(MachineUuid)
+          machineUuid <- e(A_MACHINE_UUID).map(MachineUuid.apply)
         } yield {
           MachineInfo(
             machineUuid,

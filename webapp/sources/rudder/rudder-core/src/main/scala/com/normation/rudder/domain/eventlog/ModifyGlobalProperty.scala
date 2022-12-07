@@ -34,5 +34,5 @@ object ModifyGlobalPropertyEventLogsFilter {
   }
 
   final val eventList: List[EventLogFilter] =
-    eventTypes.map(ModifyGlobalPropertyEventFilter)
+    eventTypes.map(ModifyGlobalPropertyEventFilter.apply)
 }

@@ -140,7 +140,7 @@ object DB {
       nodeConfigId: Option[String],
       insertionId:  Long
   ) {
-    def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), insertionId)
+    def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId.apply), insertionId)
   }
 
   final case class UncomputedAgentRun(
@@ -151,7 +151,7 @@ object DB {
       insertionDate: DateTime
   ) {
     def toAgentRunWithoutCompliance =
-      AgentRunWithoutCompliance(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), insertionId, insertionDate)
+      AgentRunWithoutCompliance(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId.apply), insertionId, insertionDate)
   }
 
   def insertUncomputedAgentRun(runs: List[UncomputedAgentRun]): ConnectionIO[Int] = {

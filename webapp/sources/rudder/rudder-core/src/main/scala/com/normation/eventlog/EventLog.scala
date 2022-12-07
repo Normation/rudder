@@ -50,7 +50,7 @@ object EventMetadata {
  */
 trait EventLogCategory
 
-final private[eventlog] case object UnknownLogCategory extends EventLogCategory
+private[eventlog] case object UnknownLogCategory extends EventLogCategory
 
 /**
  * Define the event log type, that will be serialized
