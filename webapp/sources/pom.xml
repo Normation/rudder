@@ -144,24 +144,19 @@ limitations under the License.
           </execution>
         </executions>
         <configuration>
+          <scalaVersion>${scala-version}</scalaVersion>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
           <recompileMode>all</recompileMode>
           <compilerPlugins>
             <compilerPlugin>
-              <groupId>com.github.ghik</groupId>
-              <artifactId>silencer-plugin_${scala-version}</artifactId>
-              <version>${silencer-lib-version}</version>
-            </compilerPlugin>
-            <compilerPlugin>
               <groupId>org.wartremover</groupId>
-              <artifactId>wartremover_2.13</artifactId>
-              <version>2.4.10</version>
+              <artifactId>wartremover_${scala-binary-version}</artifactId>
+              <version>3.0</version>
             </compilerPlugin>
           </compilerPlugins>
           <args>
-            <arg>-target:11</arg>
-            <arg>-dependencyfile</arg>
-            <arg>${basedir}/.scala_dependencies</arg>
+            <arg>${scalacArg-Target}</arg>
+            <arg>${scalacArg-0}</arg>
             <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
             <!-- corresponding scala line:
               -language:existentials -language:higherKinds -language:implicitConversions
@@ -175,24 +170,24 @@ limitations under the License.
             <arg>-language:existentials</arg>        <!-- Existential types (besides wildcard types) can be written and inferred -->
             <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
             <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
-            <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
-            <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder).
-                 For -byname-implicit, it's because of Doobie, see: https://gitter.im/tpolecat/doobie?at=5f59e618765d633c54e74d52
-            -->
-            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator,-byname-implicit</arg>
-            <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
+<!-- not yet supported linters in Scala until 3.3.x-->
+<!--            <arg>-Xcheckinit</arg>                   &lt;!&ndash;  Wrap field accessors to throw an exception on uninitialized access. &ndash;&gt;-->
+<!--            &lt;!&ndash; Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder).-->
+<!--                 For -byname-implicit, it's because of Doobie, see: https://gitter.im/tpolecat/doobie?at=5f59e618765d633c54e74d52-->
+<!--            &ndash;&gt;-->
+<!--            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator,-byname-implicit</arg>-->
+<!--            <arg>-Ywarn-dead-code</arg>              &lt;!&ndash; Warn when dead code is identified. &ndash;&gt;-->
 
-            <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
-            <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
-            <arg>-Ywarn-unused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
-            <arg>-Ywarn-unused:locals</arg>          <!-- Warn if a local definition is unused. -->
-            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
-            <arg>-Ywarn-unused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
-            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
-            <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable paralellisation — change to desired number! -->
-            <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
-            <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
-            <arg>-P:silencer:checkUnused</arg>
+<!--            <arg>-Ywarn-extra-implicit</arg>         &lt;!&ndash; Warn when more than one implicit parameter section is defined. &ndash;&gt;-->
+<!--            <arg>-Ywarn-numeric-widen</arg>          &lt;!&ndash; Warn when numerics are widened. &ndash;&gt;-->
+<!--            <arg>-Ywarn-unused:imports</arg>         &lt;!&ndash; Warn if an import selector is not referenced. &ndash;&gt;-->
+<!--            <arg>-Ywarn-unused:locals</arg>          &lt;!&ndash; Warn if a local definition is unused. &ndash;&gt;-->
+<!--            <arg>-Ywarn-unused:privates</arg>        &lt;!&ndash; Warn if a private member is unused. &ndash;&gt;-->
+<!--            <arg>-Ywarn-unused:implicits</arg>       &lt;!&ndash; Warn if an implicit parameter is unused. &ndash;&gt;-->
+<!--            <arg>-Ywarn-unused:privates</arg>        &lt;!&ndash; Warn if a private member is unused. &ndash;&gt;-->
+<!--            <arg>-Ybackend-parallelism</arg><arg>8</arg>         &lt;!&ndash; Enable paralellisation — change to desired number! &ndash;&gt;-->
+<!--            <arg>-Ycache-plugin-class-loader:last-modified</arg> &lt;!&ndash; Enables caching of classloaders for compiler plugins &ndash;&gt;-->
+<!--            <arg>-Ycache-macro-class-loader:last-modified</arg>  &lt;!&ndash; and macro definitions. This can lead to performance improvements. &ndash;&gt;-->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
           </args>
@@ -392,9 +387,14 @@ limitations under the License.
     <rudder-major-version>7.3</rudder-major-version>
     <rudder-version>7.3.0~alpha1-SNAPSHOT</rudder-version>
 
-    <scala-version>2.13.10</scala-version>
-    <silencer-lib-version>1.7.12</silencer-lib-version>
-    <scala-binary-version>2.13</scala-binary-version>
+    <scala-version>${scala3-version}</scala-version>
+    <scala3-version>3.2.1</scala3-version>
+    <scala2-version>2.13.10</scala2-version>
+
+    <scala-binary-version>${scala3-binary-version}</scala-binary-version>
+    <scala2-binary-version>2.13</scala2-binary-version>
+    <scala3-binary-version>3</scala3-binary-version>
+
     <!-- lift force us to remain with 1.3.0 because of
          java.lang.NoSuchMethodError: 'scala.collection.mutable.Stack scala.xml.parsing.NoBindingFactoryAdapter.scopeStack()'net.liftweb.util.Html5Parser.$anonfun$parse$1(HtmlParser.scala:373)
           And scala-xml 2.1.0 has non-trivial change on parsing semantic, can't
@@ -445,9 +445,9 @@ limitations under the License.
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <specs2-version>4.18.0</specs2-version>
+    <specs2-version>4.19.0</specs2-version>
     <junit-version>4.13.2</junit-version>
-    <cats-version>2.8.0</cats-version>
+    <cats-version>2.9.0</cats-version>
     <doobie-version>1.0.0-RC2</doobie-version>
     <fs2-version>3.3.0</fs2-version>
     <shapeless-version>2.3.10</shapeless-version>
@@ -476,6 +476,9 @@ limitations under the License.
     <jvmArg-arg8/>
     <jvmArg-arg9/>
 
+    <scalacArg-Target>-Xtarget:11</scalacArg-Target>
+    <scalacArg-0/>
+
   </properties>
 
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
@@ -493,56 +496,66 @@ limitations under the License.
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-library</artifactId>
-        <version>${scala-version}</version>
+        <version>${scala2-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-compiler</artifactId>
-        <version>${scala-version}</version>
+        <version>${scala2-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-reflect</artifactId>
-        <version>${scala-version}</version>
+        <version>${scala2-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scalap</artifactId>
-        <version>${scala-version}</version>
+        <version>${scala2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala3-library_3</artifactId>
+        <version>${scala3-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala3-compiler_3</artifactId>
+        <version>${scala3-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang.modules</groupId>
-        <artifactId>scala-xml_${scala-binary-version}</artifactId>
+        <artifactId>scala-xml_${scala2-binary-version}</artifactId>
         <version>${scala-xml-version}</version>
       </dependency>
       <dependency>
         <groupId>org.typelevel</groupId>
-        <artifactId>cats-core_${scala-binary-version}</artifactId>
+        <artifactId>cats-core_${scala3-binary-version}</artifactId>
         <version>${cats-version}</version>
       </dependency>
       <dependency>
         <groupId>co.fs2</groupId>
-        <artifactId>fs2-core_${scala-binary-version}</artifactId>
+        <artifactId>fs2-core_${scala3-binary-version}</artifactId>
         <version>${fs2-version}</version>
       </dependency>
       <dependency>
         <groupId>org.tpolecat</groupId>
-        <artifactId>doobie-core_${scala-binary-version}</artifactId>
+        <artifactId>doobie-core_${scala3-binary-version}</artifactId>
         <version>${doobie-version}</version>
       </dependency>
       <dependency>
         <groupId>org.typelevel</groupId>
-        <artifactId>cats-effect_${scala-binary-version}</artifactId>
+        <artifactId>cats-effect_${scala3-binary-version}</artifactId>
         <version>${cats-effect-version}</version>
       </dependency>
       <dependency>
         <groupId>com.chuusai</groupId>
-        <artifactId>shapeless_${scala-binary-version}</artifactId>
+        <artifactId>shapeless_${scala3-binary-version}</artifactId>
         <version>${shapeless-version}</version>
       </dependency>
       <dependency>
         <groupId>com.lihaoyi</groupId>
-        <artifactId>sourcecode_${scala-binary-version}</artifactId>
+        <artifactId>sourcecode_${scala3-binary-version}</artifactId>
         <version>${sourcecode-version}</version>
       </dependency>
       <dependency>
@@ -557,7 +570,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>com.softwaremill.quicklens</groupId>
-        <artifactId>quicklens_${scala-binary-version}</artifactId>
+        <artifactId>quicklens_${scala3-binary-version}</artifactId>
         <version>${quicklens-version}</version>
       </dependency><!--
         lift-web
@@ -569,7 +582,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-common_${scala-binary-version}</artifactId>
+        <artifactId>lift-common_${scala2-binary-version}</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
@@ -584,12 +597,12 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-json_${scala-binary-version}</artifactId>
+        <artifactId>lift-json_${scala2-binary-version}</artifactId>
         <version>${lift-version}</version>
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-util_${scala-binary-version}</artifactId>
+        <artifactId>lift-util_${scala2-binary-version}</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
@@ -600,7 +613,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+        <artifactId>lift-webkit_${scala2-binary-version}</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
@@ -637,13 +650,19 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>com.github.alonsodomin.cron4s</groupId>
-        <artifactId>cron4s-core_${scala-binary-version}</artifactId>
+        <artifactId>cron4s-core_${scala2-binary-version}</artifactId>
         <version>${cron4s-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.typelevel</groupId>
+            <artifactId>cats-core_${scala2-binary-version}</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
         <groupId>com.lihaoyi</groupId>
-        <artifactId>fastparse_${scala-binary-version}</artifactId>
+        <artifactId>fastparse_${scala2-binary-version}</artifactId>
         <version>${fastparse-version}</version>
       </dependency>
 
@@ -739,21 +758,25 @@ limitations under the License.
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit-version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.specs2</groupId>
-        <artifactId>specs2-core_${scala-binary-version}</artifactId>
+        <artifactId>specs2-core_${scala3-binary-version}</artifactId>
         <version>${specs2-version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.specs2</groupId>
-        <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+        <artifactId>specs2-matcher-extra_${scala3-binary-version}</artifactId>
         <version>${specs2-version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.specs2</groupId>
-        <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+        <artifactId>specs2-junit_${scala3-binary-version}</artifactId>
         <version>${specs2-version}</version>
+        <scope>test</scope>
       </dependency>
       <!-- No httpclient / commons-logging for jgit -->
       <dependency>
@@ -791,7 +814,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>com.github.pathikrit</groupId>
-        <artifactId>better-files_${scala-binary-version}</artifactId>
+        <artifactId>better-files_${scala2-binary-version}</artifactId>
         <version>${better-files-version}</version>
       </dependency>
     </dependencies>
@@ -801,12 +824,12 @@ limitations under the License.
     <!-- almost used in all projects -->
     <dependency>
       <groupId>com.github.pathikrit</groupId>
-      <artifactId>better-files_${scala-binary-version}</artifactId>
+      <artifactId>better-files_${scala2-binary-version}</artifactId>
       <version>${better-files-version}</version>
     </dependency>
     <dependency>
       <groupId>ca.mrvisser</groupId>
-      <artifactId>sealerate_${scala-binary-version}</artifactId>
+      <artifactId>sealerate_${scala2-binary-version}</artifactId>
       <version>0.0.6</version>
       <scope>provided</scope>
     </dependency>
@@ -819,34 +842,34 @@ limitations under the License.
     <!-- standard utility to deep modify immutable structures -->
     <dependency>
       <groupId>com.softwaremill.quicklens</groupId>
-      <artifactId>quicklens_${scala-binary-version}</artifactId>
+      <artifactId>quicklens_${scala3-binary-version}</artifactId>
       <version>${quicklens-version}</version>
     </dependency>
     <!-- this is now standard -->
     <dependency>
       <groupId>org.typelevel</groupId>
-      <artifactId>cats-core_${scala-binary-version}</artifactId>
+      <artifactId>cats-core_${scala3-binary-version}</artifactId>
       <version>${cats-version}</version>
     </dependency>
     <!-- zio to manage effects -->
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio_${scala-binary-version}</artifactId>
+      <artifactId>zio_${scala3-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio-stacktracer_${scala-binary-version}</artifactId>
+      <artifactId>zio-stacktracer_${scala3-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio-streams_${scala-binary-version}</artifactId>
+      <artifactId>zio-streams_${scala3-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio-json_${scala-binary-version}</artifactId>
+      <artifactId>zio-json_${scala3-binary-version}</artifactId>
       <version>${zio-json-version}</version>
     </dependency>
    <dependency>
@@ -857,12 +880,12 @@ limitations under the License.
     <!-- zio/cats compat -->
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio-interop-cats_${scala-binary-version}</artifactId>
+      <artifactId>zio-interop-cats_${scala3-binary-version}</artifactId>
       <version>${zio-cats-version}</version>
     </dependency>
     <dependency>
       <groupId>org.typelevel</groupId>
-      <artifactId>cats-effect_${scala-binary-version}</artifactId>
+      <artifactId>cats-effect_${scala3-binary-version}</artifactId>
       <version>${cats-effect-version}</version>
     </dependency>
     <!-- graph library for group properties -->
@@ -881,26 +904,42 @@ limitations under the License.
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
-      <artifactId>specs2-core_${scala-binary-version}</artifactId>
+      <artifactId>specs2-core_${scala3-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
-      <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+      <artifactId>specs2-matcher-extra_${scala3-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-xml_${scala3-binary-version}</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-parser-combinators_${scala3-binary-version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
-      <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+      <artifactId>specs2-junit_${scala3-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-xml_${scala3-binary-version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <!-- zio tests -->
     <dependency>
       <groupId>dev.zio</groupId>
-      <artifactId>zio-test_${scala-binary-version}</artifactId>
+      <artifactId>zio-test_${scala3-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
       <scope>test</scope>
     </dependency>

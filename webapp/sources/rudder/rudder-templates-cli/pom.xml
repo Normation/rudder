@@ -86,12 +86,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_${scala-binary-version}</artifactId>
+      <artifactId>lift-json_${scala2-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-common_${scala-binary-version}</artifactId>
+      <artifactId>lift-common_${scala2-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
 
@@ -104,7 +104,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.github.scopt</groupId>
       <artifactId>scopt_${scala-binary-version}</artifactId>
-      <version>3.7.1</version>
+      <version>4.1.0</version>
     </dependency>
 
 
