@@ -151,7 +151,7 @@ limitations under the License.
             <compilerPlugin>
               <groupId>org.wartremover</groupId>
               <artifactId>wartremover_${scala-binary-version}</artifactId>
-              <version>3.0</version>
+              <version>3.0.7</version>
             </compilerPlugin>
           </compilerPlugins>
           <args>
