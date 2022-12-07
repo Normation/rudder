@@ -436,11 +436,11 @@ sealed trait DisplayPriority {
   def priority: String
 }
 
-final case object HighDisplayPriority extends DisplayPriority {
+case object HighDisplayPriority extends DisplayPriority {
   val priority = "high"
 }
 
-final case object LowDisplayPriority extends DisplayPriority {
+case object LowDisplayPriority extends DisplayPriority {
   val priority = "low"
 }
 
@@ -481,13 +481,13 @@ object ReportingLogic {
   final case class FocusReport(component: String) extends ReportingLogic {
     val value = s"${FocusReport.key}:${component}"
   }
-  final case object WorstReportWeightedOne extends WorstReportReportingLogic {
+  case object WorstReportWeightedOne extends WorstReportReportingLogic {
     val value = "worst-case-weighted-one"
   }
-  final case object WorstReportWeightedSum extends WorstReportReportingLogic {
+  case object WorstReportWeightedSum extends WorstReportReportingLogic {
     val value = "worst-case-weighted-sum"
   }
-  final case object WeightedReport extends ReportingLogic {
+  case object WeightedReport extends ReportingLogic {
     val value = "weighted"
   }
   def parse(value: String, defaultFocusKey: String = ""): PureResult[ReportingLogic] = {

@@ -120,7 +120,7 @@ object BuildBundleSequence {
     def name:  String
     def value: String
   }
-  final object BundleParam {
+  object BundleParam {
     final case class SimpleQuote(value: String, name: String) extends BundleParam {
       def quote(agentEscape: String => String) = "'" + value + "'"
     }

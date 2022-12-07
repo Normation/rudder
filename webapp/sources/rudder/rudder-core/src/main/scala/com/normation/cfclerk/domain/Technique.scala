@@ -106,9 +106,9 @@ object RunHook {
   final case class Parameter(name: String, value: String)
 
   sealed trait Kind
-  final object Kind {
-    final case object Pre  extends Kind
-    final case object Post extends Kind
+  object Kind {
+    case object Pre  extends Kind
+    case object Post extends Kind
   }
 
 }

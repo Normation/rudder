@@ -109,10 +109,10 @@ final case object HttpAction {
 
 sealed trait AclPathSegment { def value: String }
 
-final object AclPathSegment {
+object AclPathSegment {
   final case class Segment(value: String) extends AclPathSegment
-  final case object Wildcard              extends AclPathSegment { val value = "*"  }
-  final case object DoubleWildcard        extends AclPathSegment { val value = "**" }
+  case object Wildcard              extends AclPathSegment { val value = "*"  }
+  case object DoubleWildcard        extends AclPathSegment { val value = "**" }
 
   def parse(s: String): Either[String, AclPathSegment] = {
     s.trim() match {
@@ -132,7 +132,7 @@ sealed trait AclPath extends Any {
   def parts: NonEmptyList[AclPathSegment]
 }
 
-final object AclPath {
+object AclPath {
 
   // the full path is enumerated. At least one segment must be given ("/" is not possible
   // in our simpler case)
@@ -238,10 +238,10 @@ final object ApiAuthorizationKind {
  * - ACL: fine grained authz.
  */
 sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
-final object ApiAuthorization {
-  final case object None                         extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
-  final case object RW                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
-  final case object RO                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
+object ApiAuthorization {
+  case object None                         extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
+  case object RW                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
+  case object RO                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
   final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization { override def kind = ApiAuthorizationKind.ACL  }
 
   /**

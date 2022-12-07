@@ -117,13 +117,13 @@ sealed trait Separator extends ToVersionString with Ordered[Separator] {
   override def compare(other: Separator): Int = Separator.compare(this, other)
 }
 object Separator {
-  final case object Tilde extends Separator { def index = 0; def toVersionString: String = "~" }
-  final case object Minus extends Separator { def index = 1; def toVersionString: String = "-" }
-  final case object Plus  extends Separator { def index = 1; def toVersionString: String = "+" }
-  final case object Comma extends Separator { def index = 1; def toVersionString: String = "," }
+  case object Tilde extends Separator { def index = 0; def toVersionString: String = "~" }
+  case object Minus extends Separator { def index = 1; def toVersionString: String = "-" }
+  case object Plus  extends Separator { def index = 1; def toVersionString: String = "+" }
+  case object Comma extends Separator { def index = 1; def toVersionString: String = "," }
   // None is same as "." to allow both "1.0 == 1.0.0" and "1.a == 1a"
-  final case object None  extends Separator { def index = 2; def toVersionString: String = ""  }
-  final case object Dot   extends Separator { def index = 2; def toVersionString: String = "." }
+  case object None  extends Separator { def index = 2; def toVersionString: String = ""  }
+  case object Dot   extends Separator { def index = 2; def toVersionString: String = "." }
 
   def compare(a: Separator, b: Separator): Int = a.index - b.index
 }

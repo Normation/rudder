@@ -384,12 +384,12 @@ sealed trait CompliancePrecision {
   def precision: Int
 }
 object CompliancePrecision       {
-  final case object Level0 extends CompliancePrecision { val precision = 0 }
-  final case object Level1 extends CompliancePrecision { val precision = 1 }
-  final case object Level2 extends CompliancePrecision { val precision = 2 }
-  final case object Level3 extends CompliancePrecision { val precision = 3 }
-  final case object Level4 extends CompliancePrecision { val precision = 4 }
-  final case object Level5 extends CompliancePrecision { val precision = 5 }
+  case object Level0 extends CompliancePrecision { val precision = 0 }
+  case object Level1 extends CompliancePrecision { val precision = 1 }
+  case object Level2 extends CompliancePrecision { val precision = 2 }
+  case object Level3 extends CompliancePrecision { val precision = 3 }
+  case object Level4 extends CompliancePrecision { val precision = 4 }
+  case object Level5 extends CompliancePrecision { val precision = 5 }
 
   def fromPrecision(i: Int): Box[CompliancePrecision] = {
     i match {

@@ -40,213 +40,213 @@ package com.normation.rudder.domain.eventlog
 import com.normation.eventlog._
 
 ///// Define intersting categories /////
-final case object UserLogCategory                extends EventLogCategory
-final case object APIAccountCategory             extends EventLogCategory
-final case object RudderApplicationLogCategory   extends EventLogCategory
-final case object RuleLogCategory                extends EventLogCategory
-final case object DirectiveLogCategory           extends EventLogCategory
-final case object TechniqueLogCategory           extends EventLogCategory
-final case object DeploymentLogCategory          extends EventLogCategory
-final case object NodeGroupLogCategory           extends EventLogCategory
-final case object AssetLogCategory               extends EventLogCategory
-final case object RedButtonLogCategory           extends EventLogCategory
-final case object ChangeRequestLogCategory       extends EventLogCategory
-final case object SecretLogCategory              extends EventLogCategory
-final case object WorkflowLogCategory            extends EventLogCategory
-final case object PolicyServerLogCategory        extends EventLogCategory
-final case object ImportExportItemsLogCategory   extends EventLogCategory
-final case object ParameterLogCategory           extends EventLogCategory
-final case object GlobalPropertyEventLogCategory extends EventLogCategory
-final case object SettingsLogCategory            extends EventLogCategory
-final case object NodeLogCategory                extends EventLogCategory
+case object UserLogCategory                extends EventLogCategory
+case object APIAccountCategory             extends EventLogCategory
+case object RudderApplicationLogCategory   extends EventLogCategory
+case object RuleLogCategory                extends EventLogCategory
+case object DirectiveLogCategory           extends EventLogCategory
+case object TechniqueLogCategory           extends EventLogCategory
+case object DeploymentLogCategory          extends EventLogCategory
+case object NodeGroupLogCategory           extends EventLogCategory
+case object AssetLogCategory               extends EventLogCategory
+case object RedButtonLogCategory           extends EventLogCategory
+case object ChangeRequestLogCategory       extends EventLogCategory
+case object SecretLogCategory              extends EventLogCategory
+case object WorkflowLogCategory            extends EventLogCategory
+case object PolicyServerLogCategory        extends EventLogCategory
+case object ImportExportItemsLogCategory   extends EventLogCategory
+case object ParameterLogCategory           extends EventLogCategory
+case object GlobalPropertyEventLogCategory extends EventLogCategory
+case object SettingsLogCategory            extends EventLogCategory
+case object NodeLogCategory                extends EventLogCategory
 
 // the promises related event type
-final case object AutomaticStartDeployementEventType extends NoRollbackEventLogType {
+case object AutomaticStartDeployementEventType extends NoRollbackEventLogType {
   def serialize = "AutomaticStartDeployement"
 }
-final case object ManualStartDeployementEventType    extends NoRollbackEventLogType {
+case object ManualStartDeployementEventType    extends NoRollbackEventLogType {
   def serialize = "ManualStartDeployement"
 }
-final case object SuccessfulDeploymentEventType      extends NoRollbackEventLogType {
+case object SuccessfulDeploymentEventType      extends NoRollbackEventLogType {
   def serialize = "SuccessfulDeployment"
 }
-final case object FailedDeploymentEventType          extends NoRollbackEventLogType {
+case object FailedDeploymentEventType          extends NoRollbackEventLogType {
   def serialize = "FailedDeployment"
 }
 // the login related event type
-final case object LoginEventType                     extends NoRollbackEventLogType {
+case object LoginEventType                     extends NoRollbackEventLogType {
   def serialize = "UserLogin"
 }
-final case object BadCredentialsEventType            extends NoRollbackEventLogType {
+case object BadCredentialsEventType            extends NoRollbackEventLogType {
   def serialize = "BadCredentials"
 }
-final case object LogoutEventType                    extends NoRollbackEventLogType {
+case object LogoutEventType                    extends NoRollbackEventLogType {
   def serialize = "UserLogout"
 }
-final case object CreateAPIAccountEventType          extends NoRollbackEventLogType {
+case object CreateAPIAccountEventType          extends NoRollbackEventLogType {
   def serialize = "CreateAPIAccount"
 }
-final case object DeleteAPIAccountEventType          extends NoRollbackEventLogType {
+case object DeleteAPIAccountEventType          extends NoRollbackEventLogType {
   def serialize = "DeleteAPIAccount"
 }
-final case object ModifyAPITokenEventType            extends NoRollbackEventLogType {
+case object ModifyAPITokenEventType            extends NoRollbackEventLogType {
   def serialize = "ModifyAPIAccount"
 }
 // the node related event type
-final case object AddNodeGroupEventType              extends RollbackEventLogType   {
+case object AddNodeGroupEventType              extends RollbackEventLogType   {
   def serialize = "NodeGroupAdded"
 }
-final case object DeleteNodeGroupEventType           extends RollbackEventLogType   {
+case object DeleteNodeGroupEventType           extends RollbackEventLogType   {
   def serialize = "NodeGroupDeleted"
 }
-final case object ModifyNodeGroupEventType           extends RollbackEventLogType   {
+case object ModifyNodeGroupEventType           extends RollbackEventLogType   {
   def serialize = "NodeGroupModified"
 }
 
 // change request related
-final case object AddChangeRequestEventType    extends NoRollbackEventLogType {
+case object AddChangeRequestEventType    extends NoRollbackEventLogType {
   def serialize = "ChangeRequestAdded"
 }
-final case object DeleteChangeRequestEventType extends NoRollbackEventLogType {
+case object DeleteChangeRequestEventType extends NoRollbackEventLogType {
   def serialize = "ChangeRequestDeleted"
 }
-final case object ModifyChangeRequestEventType extends NoRollbackEventLogType {
+case object ModifyChangeRequestEventType extends NoRollbackEventLogType {
   def serialize = "ChangeRequestModified"
 }
 
 // secret related
-final case object AddSecretEventType extends NoRollbackEventLogType {
+case object AddSecretEventType extends NoRollbackEventLogType {
   def serialize = "SecretAdded"
 }
 
-final case object ModifySecretEventType extends NoRollbackEventLogType {
+case object ModifySecretEventType extends NoRollbackEventLogType {
   def serialize = "SecretModified"
 }
 
-final case object DeleteSecretEventType extends NoRollbackEventLogType {
+case object DeleteSecretEventType extends NoRollbackEventLogType {
   def serialize = "SecretDeleted"
 }
 
 // directive related
-final case object AddDirectiveEventType    extends RollbackEventLogType {
+case object AddDirectiveEventType    extends RollbackEventLogType {
   def serialize = "DirectiveAdded"
 }
-final case object DeleteDirectiveEventType extends RollbackEventLogType {
+case object DeleteDirectiveEventType extends RollbackEventLogType {
   def serialize = "DirectiveDeleted"
 }
-final case object ModifyDirectiveEventType extends RollbackEventLogType {
+case object ModifyDirectiveEventType extends RollbackEventLogType {
   def serialize = "DirectiveModified"
 }
 
 // the generic event related event type
-final case object ApplicationStartedEventType extends NoRollbackEventLogType {
+case object ApplicationStartedEventType extends NoRollbackEventLogType {
   def serialize = "ApplicationStarted"
 }
-final case object ActivateRedButtonEventType  extends NoRollbackEventLogType {
+case object ActivateRedButtonEventType  extends NoRollbackEventLogType {
   def serialize = "ActivateRedButton"
 }
-final case object ReleaseRedButtonEventType   extends NoRollbackEventLogType {
+case object ReleaseRedButtonEventType   extends NoRollbackEventLogType {
   def serialize = "ReleaseRedButton"
 }
 
-final case object ReloadTechniqueLibraryType extends NoRollbackEventLogType {
+case object ReloadTechniqueLibraryType extends NoRollbackEventLogType {
   def serialize = "ReloadTechniqueLibrary"
 }
 
-final case object AddTechniqueEventType extends NoRollbackEventLogType {
+case object AddTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueAdded"
 }
 
-final case object ModifyTechniqueEventType extends NoRollbackEventLogType {
+case object ModifyTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueModified"
 }
 
-final case object DeleteTechniqueEventType extends NoRollbackEventLogType {
+case object DeleteTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueDeleted"
 }
 
 // rule related event type
-final case object AddRuleEventType    extends RollbackEventLogType   {
+case object AddRuleEventType    extends RollbackEventLogType   {
   def serialize = "RuleAdded"
 }
-final case object DeleteRuleEventType extends RollbackEventLogType   {
+case object DeleteRuleEventType extends RollbackEventLogType   {
   def serialize = "RuleDeleted"
 }
-final case object ModifyRuleEventType extends RollbackEventLogType   {
+case object ModifyRuleEventType extends RollbackEventLogType   {
   def serialize = "RuleModified"
 }
 // asset related event type
-final case object AcceptNodeEventType extends NoRollbackEventLogType {
+case object AcceptNodeEventType extends NoRollbackEventLogType {
   def serialize = "AcceptNode"
 }
-final case object RefuseNodeEventType extends NoRollbackEventLogType {
+case object RefuseNodeEventType extends NoRollbackEventLogType {
   def serialize = "RefuseNode"
 }
-final case object DeleteNodeEventType extends NoRollbackEventLogType {
+case object DeleteNodeEventType extends NoRollbackEventLogType {
   def serialize = "DeleteNode"
 }
 
 // the system event type
-final case object ClearCacheEventType         extends NoRollbackEventLogType {
+case object ClearCacheEventType         extends NoRollbackEventLogType {
   def serialize = "ClearCache"
 }
-final case object UpdatePolicyServerEventType extends NoRollbackEventLogType {
+case object UpdatePolicyServerEventType extends NoRollbackEventLogType {
   def serialize = "UpdatePolicyServer"
 }
 
 // Import/export
-final case object ExportGroupsEventType           extends NoRollbackEventLogType {
+case object ExportGroupsEventType           extends NoRollbackEventLogType {
   def serialize = "ExportGroups"
 }
-final case object ImportGroupsEventType           extends RollbackEventLogType   {
+case object ImportGroupsEventType           extends RollbackEventLogType   {
   def serialize = "ImportGroups"
 }
-final case object ExportTechniqueLibraryEventType extends NoRollbackEventLogType {
+case object ExportTechniqueLibraryEventType extends NoRollbackEventLogType {
   def serialize = "ExportTechniqueLibrary"
 }
-final case object ImportTechniqueLibraryEventType extends RollbackEventLogType   {
+case object ImportTechniqueLibraryEventType extends RollbackEventLogType   {
   def serialize = "ImportTechniqueLibrary"
 }
-final case object ExportRulesEventType            extends NoRollbackEventLogType {
+case object ExportRulesEventType            extends NoRollbackEventLogType {
   def serialize = "ExportRules"
 }
-final case object ImportRulesEventType            extends RollbackEventLogType   {
+case object ImportRulesEventType            extends RollbackEventLogType   {
   def serialize = "ImportRules"
 }
-final case object ExportParametersEventType       extends NoRollbackEventLogType {
+case object ExportParametersEventType       extends NoRollbackEventLogType {
   def serialize = "ExportParameters"
 }
-final case object ImportParametersEventType       extends RollbackEventLogType   {
+case object ImportParametersEventType       extends RollbackEventLogType   {
   def serialize = "ImportParameters"
 }
-final case object ExportFullArchiveEventType      extends NoRollbackEventLogType {
+case object ExportFullArchiveEventType      extends NoRollbackEventLogType {
   def serialize = "ExportFullArchive"
 }
-final case object ImportFullArchiveEventType      extends RollbackEventLogType   {
+case object ImportFullArchiveEventType      extends RollbackEventLogType   {
   def serialize = "ImportFullArchive"
 }
-final case object RollbackEventType               extends RollbackEventLogType   {
+case object RollbackEventType               extends RollbackEventLogType   {
   def serialize = "Rollback"
 }
-final case object WorkflowStepChangedEventType    extends NoRollbackEventLogType {
+case object WorkflowStepChangedEventType    extends NoRollbackEventLogType {
   def serialize = "WorkflowStepChanged"
 }
 
 // Parameter event type
-final case object AddGlobalParameterEventType extends RollbackEventLogType {
+case object AddGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterAdded"
 }
 
-final case object DeleteGlobalParameterEventType extends RollbackEventLogType {
+case object DeleteGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterDeleted"
 }
 
-final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
+case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
 // node: only modify for now
-final case object ModifyNodeEventType extends RollbackEventLogType {
+case object ModifyNodeEventType extends RollbackEventLogType {
   def serialize = "NodeModified"
 
   // for node, we have more "is defined at", because till 3.2,
@@ -257,11 +257,11 @@ final case object ModifyNodeEventType extends RollbackEventLogType {
   }
 }
 
-final case object PromoteNodeToRelayEventType extends NoRollbackEventLogType {
+case object PromoteNodeToRelayEventType extends NoRollbackEventLogType {
   def serialize = "NodePromotedToRelay"
 }
 
-final case object DemoteRelayToNodeEventType extends NoRollbackEventLogType {
+case object DemoteRelayToNodeEventType extends NoRollbackEventLogType {
   def serialize = "RelayDemotedToNode"
 }
 
@@ -269,52 +269,52 @@ sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
   def propertyName: String
 }
 
-final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
+case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "SendServerMetricsModified"
   val propertyName = "Send metrics"
 }
 
-final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
+case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "ComplianceModeModified"
   val propertyName = "Compliance mode"
 }
 
-final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
+case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "HeartbeatPeriodModified"
   val propertyName = "Heartbeat period"
 }
 
-final case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {
+case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "AgentRunIntervalModified"
   val propertyName = "Agent run interval"
 }
 
-final case object ModifyAgentRunSplaytimeEventType extends ModifyGlobalPropertyEventType {
+case object ModifyAgentRunSplaytimeEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "AgentRunSplaytimeModified"
   val propertyName = "Agent run splaytime"
 }
 
-final case object ModifyAgentRunStartHourEventType extends ModifyGlobalPropertyEventType {
+case object ModifyAgentRunStartHourEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "AgentRunStartHourModified"
   val propertyName = "Agent run start hour"
 }
 
-final case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropertyEventType {
+case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "AgentRunStartMinuteModified"
   val propertyName = "Agent run start minute"
 }
 
-final case object ModifyRudderSyslogProtocolEventType extends ModifyGlobalPropertyEventType {
+case object ModifyRudderSyslogProtocolEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "RudderSyslogProtocolModified"
   val propertyName = "Rudder syslog protocol"
 }
 
-final case object ModifyPolicyModeEventType extends ModifyGlobalPropertyEventType {
+case object ModifyPolicyModeEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "PolicyModeModified"
   val propertyName = "Global policy mode"
 }
 
-final case object ModifyRudderVerifyCertificates extends ModifyGlobalPropertyEventType {
+case object ModifyRudderVerifyCertificates extends ModifyGlobalPropertyEventType {
   def serialize    = "RudderVerifyCertificates"
   val propertyName = "Verification of HTTPS certificates"
 }

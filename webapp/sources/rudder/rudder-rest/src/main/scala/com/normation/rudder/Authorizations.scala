@@ -85,10 +85,10 @@ sealed trait Technique      extends AuthorizationType { def authzKind = "techniq
 sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
 sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
 
-final object AuthorizationType {
+object AuthorizationType {
 
-  final case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
-  final case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
+  case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
+  case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
 
   // can't use sealerate here: "knownDirectSubclasses of observed before subclass ... registered"
   // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
@@ -242,7 +242,7 @@ object Role       {
   final case object Validator     extends Role {
     val name = "validator"; val rights = (ua ++ A.Validator.values ++ A.complianceKind).toRights
   }
-  final case object Configuration extends Role {
+  case object Configuration extends Role {
     val name = "configuration"; val rights = (ua ++ A.configurationKind.map(identity)).toRights
   }
   final case object ReadOnly      extends Role { val name = "read_only"; val rights = (ua ++ allRead).toRights                      }

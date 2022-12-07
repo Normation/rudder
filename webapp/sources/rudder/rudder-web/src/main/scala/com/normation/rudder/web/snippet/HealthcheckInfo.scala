@@ -53,9 +53,9 @@ import scala.xml.NodeSeq
 
 sealed trait NotificationLevel
 object NotificationLevel {
-  final case object Info     extends NotificationLevel
-  final case object Warning  extends NotificationLevel
-  final case object Critical extends NotificationLevel
+  case object Info     extends NotificationLevel
+  case object Warning  extends NotificationLevel
+  case object Critical extends NotificationLevel
 }
 
 class HealthcheckInfo(

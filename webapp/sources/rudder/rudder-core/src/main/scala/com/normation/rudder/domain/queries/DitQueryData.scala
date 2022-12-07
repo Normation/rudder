@@ -73,9 +73,9 @@ import scala.collection.SortedMap
  *
  */
 sealed abstract class DnType
-final case object QueryMachineDn  extends DnType
-final case object QueryNodeDn     extends DnType
-final case object QuerySoftwareDn extends DnType
+case object QueryMachineDn  extends DnType
+case object QueryNodeDn     extends DnType
+case object QuerySoftwareDn extends DnType
 
 /*
  * Mapping data for LDAP query processor
@@ -93,9 +93,9 @@ final case object QuerySoftwareDn extends DnType
  * - used for the join
  */
 sealed abstract class LDAPJoinElement(val selectAttribute: String)
-final case object DNJoin       extends LDAPJoinElement("1.1")
-final case object ParentDNJoin extends LDAPJoinElement("1.1")
-final case object NodeDnJoin   extends LDAPJoinElement(A_NODE_UUID)
+case object DNJoin       extends LDAPJoinElement("1.1")
+case object ParentDNJoin extends LDAPJoinElement("1.1")
+case object NodeDnJoin   extends LDAPJoinElement(A_NODE_UUID)
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
 
 //that class represent the base filter for an object type.

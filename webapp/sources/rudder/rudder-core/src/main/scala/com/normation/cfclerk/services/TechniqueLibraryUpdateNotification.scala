@@ -55,9 +55,9 @@ object TechniqueCategoryModType {
 }
 
 sealed trait TechniqueVersionModType { def name: String }
-final case object VersionDeleted extends TechniqueVersionModType { val name = "deleted" }
-final case object VersionAdded   extends TechniqueVersionModType { val name = "added"   }
-final case object VersionUpdated extends TechniqueVersionModType { val name = "updated" }
+case object VersionDeleted extends TechniqueVersionModType { val name = "deleted" }
+case object VersionAdded   extends TechniqueVersionModType { val name = "added"   }
+case object VersionUpdated extends TechniqueVersionModType { val name = "updated" }
 
 sealed trait TechniquesLibraryUpdateType {
   val techniqueName: TechniqueName

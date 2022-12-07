@@ -356,12 +356,12 @@ object JsRudderLibBinding {
    * We have one for AIX and one for Crypt to specialize the
    * "auto" methods
    */
-  final object Aix extends JsRudderLibBinding {
+  object Aix extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(AixHash)
     def bindings    = toBindings("rudder", jsRudderLib)
   }
 
-  final object Crypt extends JsRudderLibBinding {
+  object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)
     def bindings    = toBindings("rudder", jsRudderLib)
   }
@@ -375,7 +375,7 @@ object JsRudderLibBinding {
  * with $eval.
  *
  */
-final object JsEngineProvider {
+object JsEngineProvider {
 
   /**
    * Initialize a new JsEngine with the correct bindings.
@@ -450,7 +450,7 @@ object JsEngine {
     }
   }
 
-  final object DisabledEngine extends JsEngine {
+  object DisabledEngine extends JsEngine {
     /*
      * Eval does nothing on variable without the EVAL keyword, and
      * fails on variable with the keyword.
@@ -505,7 +505,7 @@ object JsEngine {
       )
     )(x => effectUioUnit(x.close(true)))
   }
-  final object SandboxedJsEngine               {
+  object SandboxedJsEngine               {
     // we need to set the warning for interpreted mode to off, because, yeah for now, we are doing that only
     System.setProperty("polyglot.engine.WarnInterpreterOnly", "false")
 

@@ -199,7 +199,7 @@ final case class ParameterForConfiguration(
     value: String
 )
 
-final case object ParameterForConfiguration {
+case object ParameterForConfiguration {
   def fromParameter(param: GlobalParameter): ParameterForConfiguration = {
     // here, we need to go back to a string for resolution of
     // things like ${rudder.param[foo] | default = ... }
@@ -229,7 +229,7 @@ final case class ParameterEntry(
   }
 }
 
-final object NodeRunHook {
+object NodeRunHook {
 
   // a report id with the corresponding mode to
   // use to make reports.
@@ -337,7 +337,7 @@ final case class PolicyTechnique(
   val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 }
 
-final object PolicyTechnique {
+object PolicyTechnique {
   def forAgent(technique: Technique, agentType: AgentType): Either[String, PolicyTechnique] = {
     technique.agentConfigs.find(_.agentType == agentType) match {
       case None    =>
@@ -418,7 +418,7 @@ final case class Policy(
     policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
-final object Policy {
+object Policy {
 
   val TAG_OF_RUDDER_ID           = "@@RUDDER_ID@@"
   val TAG_OF_RUDDER_MULTI_POLICY = "RudderUniqueID"
