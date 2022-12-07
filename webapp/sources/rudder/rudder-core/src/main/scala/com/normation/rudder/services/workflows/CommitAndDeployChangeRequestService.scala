@@ -425,18 +425,20 @@ class CommitAndDeployChangeRequestServiceImpl(
 
       val initialFixed = initial.copy(
         name = normalizeString(initial.name),
-        description = normalizeString(initial.description)
+        description = normalizeString(initial.description),
+        properties = initial.properties.map(c => c.copy(config = c.config.withoutPath(GenericProperty.PROVIDER))).sortBy(_.name)
       )
 
       val currentFixed = current.copy(
         name = normalizeString(current.name),
-        description = normalizeString(current.description), /*
+        description = normalizeString(current.description),
+        properties = initial.properties.map(c => c.copy(config = c.config.withoutPath(GenericProperty.PROVIDER))).sortBy(_.name),
+        /*
          * We need to remove nodes from dynamic groups, it has no sense to compare them.
          * In a static group, the node list is important and can be very different,
          * and depends on when the change request was made.
          * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
          */
-
         serverList = (if (current.isDynamic) { initial }
                       else { current }).serverList
       )
