@@ -659,11 +659,11 @@ object PartialArchive {
 
 import com.normation.rudder.repository.xml.PartialArchive._
 
-final case object TechniqueLibraryArchive extends ArchiveMode {
+case object TechniqueLibraryArchive extends ArchiveMode {
   def configureRm(rmCmd: RmCommand)             = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
   def configureCheckout(coCmd: CheckoutCommand) = directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }
-final case object FullArchive             extends ArchiveMode {
+case object FullArchive             extends ArchiveMode {
 
   def configureRm(rmCmd: RmCommand) = {
     TechniqueLibraryArchive.configureRm(

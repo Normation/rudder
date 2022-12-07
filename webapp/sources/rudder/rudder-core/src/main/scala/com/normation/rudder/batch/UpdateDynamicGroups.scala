@@ -55,11 +55,11 @@ import org.joda.time._
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 
-final object GroupUpdateMessage {
-  final case object StartUpdate       extends GroupUpdateMessage
-  final case object ManualStartUpdate extends GroupUpdateMessage
-  final case object ForceStartUpdate  extends GroupUpdateMessage
-  final case object DelayedUpdate     extends GroupUpdateMessage
+object GroupUpdateMessage {
+  case object StartUpdate       extends GroupUpdateMessage
+  case object ManualStartUpdate extends GroupUpdateMessage
+  case object ForceStartUpdate  extends GroupUpdateMessage
+  case object DelayedUpdate     extends GroupUpdateMessage
   final case class DynamicUpdateResult(
       id:      Long,
       modId:   ModificationId,
@@ -74,7 +74,7 @@ final case class GroupsToUpdate(idsWithoutDependencies: Seq[NodeGroupId], idsWit
 
 sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
-final case object IdleGroupUpdater extends DynamicGroupUpdaterStates
+case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
 final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: DateTime, groupIds: GroupsToUpdate)
     extends DynamicGroupUpdaterStates

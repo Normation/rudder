@@ -52,7 +52,7 @@ import com.normation.rudder.api.ApiAuthorization
  * api account, what sub-case of it.
  */
 sealed trait RudderAccount
-final object RudderAccount {
+object RudderAccount {
   final case class User(login: String, password: String) extends RudderAccount
   final case class Api(api: ApiAccount)                  extends RudderAccount
 }

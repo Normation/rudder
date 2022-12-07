@@ -50,14 +50,14 @@ import org.joda.time.format.ISODateTimeFormat
 // -----------------------------------------------------
 
 sealed trait AbstractActorUpdateMessage
-final object AbstractActorUpdateMessage {
-  final case object StartUpdate                                                              extends AbstractActorUpdateMessage
+object AbstractActorUpdateMessage {
+  case object StartUpdate                                                              extends AbstractActorUpdateMessage
   final case class UpdateResult[T](id: Long, start: DateTime, end: DateTime, result: Box[T]) extends AbstractActorUpdateMessage
 }
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
-final case object IdleUpdater                                 extends UpdaterStates
+case object IdleUpdater                                 extends UpdaterStates
 //an update is currently running for the given nodes
 final case class StartProcessing(id: Long, started: DateTime) extends UpdaterStates
 //the process gave a result

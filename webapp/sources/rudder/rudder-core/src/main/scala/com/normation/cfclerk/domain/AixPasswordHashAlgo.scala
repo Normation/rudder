@@ -283,10 +283,10 @@ object AixPasswordHashAlgo extends Loggable {
 
   }
 
-  final object ShaSpec {
+  object ShaSpec {
     // specific implementation for SHA1, SHA256 and SHA512
 
-    final case object SHA1 extends ShaSpec {
+    case object SHA1 extends ShaSpec {
       val name       = "SHA1"
       val byteNumber = 20
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {
@@ -302,7 +302,7 @@ object AixPasswordHashAlgo extends Loggable {
       }
     }
 
-    final case object SHA256 extends ShaSpec {
+    case object SHA256 extends ShaSpec {
       val name       = "SHA256"
       val byteNumber = 32
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {
@@ -322,7 +322,7 @@ object AixPasswordHashAlgo extends Loggable {
       }
     }
 
-    final case object SHA512 extends ShaSpec {
+    case object SHA512 extends ShaSpec {
       val name       = "SHA512"
       val byteNumber = 64
       def scb64Encode(bytes: Array[Byte], buffer: JStringBuilder): JStringBuilder = {

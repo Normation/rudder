@@ -195,6 +195,6 @@ object EventLog {
   val emptyDetails                = withContent(NodeSeq.Empty)
 }
 
-final case object UnknownEventLogType extends NoRollbackEventLogType {
+case object UnknownEventLogType extends NoRollbackEventLogType {
   def serialize = "UnknownType"
 }

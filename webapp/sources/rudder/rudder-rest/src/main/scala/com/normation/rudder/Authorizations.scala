@@ -85,88 +85,88 @@ sealed trait Technique      extends AuthorizationType { def authzKind = "techniq
 sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
 sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
 
-final object AuthorizationType {
+object AuthorizationType {
 
-  final case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
-  final case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
+  case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
+  case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
 
-  final case object Administration {
-    final case object Read  extends Administration with ActionType.Read with AuthorizationType
-    final case object Edit  extends Administration with ActionType.Edit with AuthorizationType
-    final case object Write extends Administration with ActionType.Write with AuthorizationType
+  case object Administration {
+    case object Read  extends Administration with ActionType.Read with AuthorizationType
+    case object Edit  extends Administration with ActionType.Edit with AuthorizationType
+    case object Write extends Administration with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Compliance     {
-    final case object Read  extends Compliance with ActionType.Read with AuthorizationType
-    final case object Edit  extends Compliance with ActionType.Edit with AuthorizationType
-    final case object Write extends Compliance with ActionType.Write with AuthorizationType
+  case object Compliance     {
+    case object Read  extends Compliance with ActionType.Read with AuthorizationType
+    case object Edit  extends Compliance with ActionType.Edit with AuthorizationType
+    case object Write extends Compliance with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Configuration  {
-    final case object Read  extends Configuration with ActionType.Read with AuthorizationType
-    final case object Edit  extends Configuration with ActionType.Edit with AuthorizationType
-    final case object Write extends Configuration with ActionType.Write with AuthorizationType
+  case object Configuration  {
+    case object Read  extends Configuration with ActionType.Read with AuthorizationType
+    case object Edit  extends Configuration with ActionType.Edit with AuthorizationType
+    case object Write extends Configuration with ActionType.Write with AuthorizationType
 
     def values = Set(Read, Edit, Write)
   }
-  final case object Deployer       {
-    final case object Read  extends Deployer with ActionType.Read with AuthorizationType
-    final case object Edit  extends Deployer with ActionType.Edit with AuthorizationType
-    final case object Write extends Deployer with ActionType.Write with AuthorizationType
+  case object Deployer       {
+    case object Read  extends Deployer with ActionType.Read with AuthorizationType
+    case object Edit  extends Deployer with ActionType.Edit with AuthorizationType
+    case object Write extends Deployer with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Deployment     {
-    final case object Read  extends Deployment with ActionType.Read with AuthorizationType
-    final case object Edit  extends Deployment with ActionType.Edit with AuthorizationType
-    final case object Write extends Deployment with ActionType.Write with AuthorizationType
+  case object Deployment     {
+    case object Read  extends Deployment with ActionType.Read with AuthorizationType
+    case object Edit  extends Deployment with ActionType.Edit with AuthorizationType
+    case object Write extends Deployment with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Directive      {
-    final case object Read  extends Directive with ActionType.Read with AuthorizationType
-    final case object Edit  extends Directive with ActionType.Edit with AuthorizationType
-    final case object Write extends Directive with ActionType.Write with AuthorizationType
+  case object Directive      {
+    case object Read  extends Directive with ActionType.Read with AuthorizationType
+    case object Edit  extends Directive with ActionType.Edit with AuthorizationType
+    case object Write extends Directive with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Group          {
-    final case object Read  extends Group with ActionType.Read with AuthorizationType
-    final case object Edit  extends Group with ActionType.Edit with AuthorizationType
-    final case object Write extends Group with ActionType.Write with AuthorizationType
+  case object Group          {
+    case object Read  extends Group with ActionType.Read with AuthorizationType
+    case object Edit  extends Group with ActionType.Edit with AuthorizationType
+    case object Write extends Group with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Node           {
-    final case object Read  extends Node with ActionType.Read with AuthorizationType
-    final case object Edit  extends Node with ActionType.Edit with AuthorizationType
-    final case object Write extends Node with ActionType.Write with AuthorizationType
+  case object Node           {
+    case object Read  extends Node with ActionType.Read with AuthorizationType
+    case object Edit  extends Node with ActionType.Edit with AuthorizationType
+    case object Write extends Node with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Rule           {
-    final case object Read  extends Rule with ActionType.Read with AuthorizationType
-    final case object Edit  extends Rule with ActionType.Edit with AuthorizationType
-    final case object Write extends Rule with ActionType.Write with AuthorizationType
+  case object Rule           {
+    case object Read  extends Rule with ActionType.Read with AuthorizationType
+    case object Edit  extends Rule with ActionType.Edit with AuthorizationType
+    case object Write extends Rule with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Parameter      {
-    final case object Read  extends Parameter with ActionType.Read with AuthorizationType
-    final case object Edit  extends Parameter with ActionType.Edit with AuthorizationType
-    final case object Write extends Parameter with ActionType.Write with AuthorizationType
+  case object Parameter      {
+    case object Read  extends Parameter with ActionType.Read with AuthorizationType
+    case object Edit  extends Parameter with ActionType.Edit with AuthorizationType
+    case object Write extends Parameter with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Technique      {
-    final case object Read  extends Technique with ActionType.Read with AuthorizationType
-    final case object Edit  extends Technique with ActionType.Edit with AuthorizationType
-    final case object Write extends Technique with ActionType.Write with AuthorizationType
+  case object Technique      {
+    case object Read  extends Technique with ActionType.Read with AuthorizationType
+    case object Edit  extends Technique with ActionType.Edit with AuthorizationType
+    case object Write extends Technique with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object UserAccount    {
-    final case object Read  extends UserAccount with ActionType.Read with AuthorizationType
-    final case object Edit  extends UserAccount with ActionType.Edit with AuthorizationType
-    final case object Write extends UserAccount with ActionType.Write with AuthorizationType
+  case object UserAccount    {
+    case object Read  extends UserAccount with ActionType.Read with AuthorizationType
+    case object Edit  extends UserAccount with ActionType.Edit with AuthorizationType
+    case object Write extends UserAccount with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
-  final case object Validator      {
-    final case object Read  extends Validator with ActionType.Read with AuthorizationType
-    final case object Edit  extends Validator with ActionType.Edit with AuthorizationType
-    final case object Write extends Validator with ActionType.Write with AuthorizationType
+  case object Validator      {
+    case object Read  extends Validator with ActionType.Read with AuthorizationType
+    case object Edit  extends Validator with ActionType.Edit with AuthorizationType
+    case object Write extends Validator with ActionType.Write with AuthorizationType
     def values = Set(Read, Edit, Write)
   }
 
@@ -227,30 +227,30 @@ object Role       {
   // for now, all account type also have the "user account" rights
   val ua = A.UserAccount.values
 
-  final case object Administrator extends Role { val name = "administrator"; val rights = (A.allKind).toRights                      }
-  final case object User          extends Role { val name = "user"; val rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
-  final case object AdminOnly     extends Role {
+  case object Administrator extends Role { val name = "administrator"; val rights = (A.allKind).toRights                      }
+  case object User          extends Role { val name = "user"; val rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
+  case object AdminOnly     extends Role {
     val name = "administration_only"; val rights = (ua ++ A.Administration.values.map(identity)).toRights
   }
-  final case object Workflow      extends Role {
+  case object Workflow      extends Role {
     val name = "workflow"; val rights = (ua ++ A.workflowKind ++ A.complianceKind).toRights
   }
-  final case object Deployer      extends Role {
+  case object Deployer      extends Role {
     val name = "deployer"; val rights = (ua ++ A.Deployer.values ++ A.complianceKind).toRights
   }
-  final case object Validator     extends Role {
+  case object Validator     extends Role {
     val name = "validator"; val rights = (ua ++ A.Validator.values ++ A.complianceKind).toRights
   }
-  final case object Configuration extends Role {
+  case object Configuration extends Role {
     val name = "configuration"; val rights = (ua ++ A.configurationKind.map(identity)).toRights
   }
-  final case object ReadOnly      extends Role { val name = "read_only"; val rights = (ua ++ allRead).toRights                      }
-  final case object Compliance    extends Role { val name = "compliance"; val rights = (ua ++ A.complianceKind).toRights            }
-  final case object Inventory     extends Role { val name = "inventory"; val rights = (ua ++ Set(A.Node.Read)).toRights             }
-  final case object RuleOnly      extends Role {
+  case object ReadOnly      extends Role { val name = "read_only"; val rights = (ua ++ allRead).toRights                      }
+  case object Compliance    extends Role { val name = "compliance"; val rights = (ua ++ A.complianceKind).toRights            }
+  case object Inventory     extends Role { val name = "inventory"; val rights = (ua ++ Set(A.Node.Read)).toRights             }
+  case object RuleOnly      extends Role {
     val name = "rule_only"; val rights = (ua ++ Set(A.Configuration.Read, A.Rule.Read)).toRights
   }
-  final case object NoRights      extends Role { val name = "no_rights"; val rights = (Set(AuthorizationType.NoRights)).toRights    }
+  case object NoRights      extends Role { val name = "no_rights"; val rights = (Set(AuthorizationType.NoRights)).toRights    }
 
   final case class Custom(rights: Rights) extends Role { val name = "custom" }
 

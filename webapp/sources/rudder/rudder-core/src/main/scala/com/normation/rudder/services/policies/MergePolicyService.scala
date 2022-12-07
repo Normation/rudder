@@ -54,7 +54,7 @@ import net.liftweb.common._
  * This file contains all the logic that allows to build a List of policies, for a node,
  * given the list of all applicable "BoundPolicyDraft" to that node.
  */
-final object MergePolicyService {
+object MergePolicyService {
 
   import com.normation.rudder.utils.Utils.eitherToBox
   /*

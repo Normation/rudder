@@ -161,20 +161,20 @@ object WindowsType {
   )
 }
 
-final case object UnknownWindowsType extends WindowsType { val name = "Windows"       }
-final case object WindowsXP          extends WindowsType { val name = "WindowsXP"     }
-final case object WindowsVista       extends WindowsType { val name = "WindowsVista"  }
-final case object WindowsSeven       extends WindowsType { val name = "WindowsSeven"  }
-final case object Windows10          extends WindowsType { val name = "Windows10"     }
-final case object Windows2000        extends WindowsType { val name = "Windows2000"   }
-final case object Windows2003        extends WindowsType { val name = "Windows2003"   }
-final case object Windows2008        extends WindowsType { val name = "Windows2008"   }
-final case object Windows2008R2      extends WindowsType { val name = "Windows2008R2" }
-final case object Windows2012        extends WindowsType { val name = "Windows2012"   }
-final case object Windows2012R2      extends WindowsType { val name = "Windows2012R2" }
-final case object Windows2016        extends WindowsType { val name = "Windows2016"   }
-final case object Windows2016R2      extends WindowsType { val name = "Windows2016R2" }
-final case object Windows2019        extends WindowsType { val name = "Windows2019"   }
+case object UnknownWindowsType extends WindowsType { val name = "Windows"       }
+case object WindowsXP          extends WindowsType { val name = "WindowsXP"     }
+case object WindowsVista       extends WindowsType { val name = "WindowsVista"  }
+case object WindowsSeven       extends WindowsType { val name = "WindowsSeven"  }
+case object Windows10          extends WindowsType { val name = "Windows10"     }
+case object Windows2000        extends WindowsType { val name = "Windows2000"   }
+case object Windows2003        extends WindowsType { val name = "Windows2003"   }
+case object Windows2008        extends WindowsType { val name = "Windows2008"   }
+case object Windows2008R2      extends WindowsType { val name = "Windows2008R2" }
+case object Windows2012        extends WindowsType { val name = "Windows2012"   }
+case object Windows2012R2      extends WindowsType { val name = "Windows2012R2" }
+case object Windows2016        extends WindowsType { val name = "Windows2016"   }
+case object Windows2016R2      extends WindowsType { val name = "Windows2016R2" }
+case object Windows2019        extends WindowsType { val name = "Windows2019"   }
 
 /**
  * Specific Linux subtype (distribution)
@@ -204,22 +204,22 @@ object LinuxType {
   )
 }
 
-final case object UnknownLinuxType extends LinuxType { val name = "UnknownLinux" }
-final case object Debian           extends LinuxType { val name = "Debian"       }
-final case object Kali             extends LinuxType { val name = "Kali"         }
-final case object Ubuntu           extends LinuxType { val name = "Ubuntu"       }
-final case object Redhat           extends LinuxType { val name = "Redhat"       }
-final case object Centos           extends LinuxType { val name = "Centos"       }
-final case object Fedora           extends LinuxType { val name = "Fedora"       }
-final case object Suse             extends LinuxType { val name = "Suse"         }
-final case object Android          extends LinuxType { val name = "Android"      }
-final case object Oracle           extends LinuxType { val name = "Oracle"       }
-final case object Scientific       extends LinuxType { val name = "Scientific"   }
-final case object Slackware        extends LinuxType { val name = "Slackware"    }
-final case object Mint             extends LinuxType { val name = "Mint"         }
-final case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
-final case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
-final case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
+case object UnknownLinuxType extends LinuxType { val name = "UnknownLinux" }
+case object Debian           extends LinuxType { val name = "Debian"       }
+case object Kali             extends LinuxType { val name = "Kali"         }
+case object Ubuntu           extends LinuxType { val name = "Ubuntu"       }
+case object Redhat           extends LinuxType { val name = "Redhat"       }
+case object Centos           extends LinuxType { val name = "Centos"       }
+case object Fedora           extends LinuxType { val name = "Fedora"       }
+case object Suse             extends LinuxType { val name = "Suse"         }
+case object Android          extends LinuxType { val name = "Android"      }
+case object Oracle           extends LinuxType { val name = "Oracle"       }
+case object Scientific       extends LinuxType { val name = "Scientific"   }
+case object Slackware        extends LinuxType { val name = "Slackware"    }
+case object Mint             extends LinuxType { val name = "Mint"         }
+case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
+case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
+case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
@@ -247,8 +247,8 @@ object BsdType {
   )
 }
 
-final case object UnknownBsdType extends BsdType { val name = "UnknownBSD" }
-final case object FreeBSD        extends BsdType { val name = "FreeBSD"    }
+case object UnknownBsdType extends BsdType { val name = "UnknownBSD" }
+case object FreeBSD        extends BsdType { val name = "FreeBSD"    }
 
 /**
  * The different OS type. For now, we know:
@@ -446,10 +446,10 @@ final case class NodeSummary(
 sealed trait KeyStatus {
   val value: String
 }
-final case object CertifiedKey extends KeyStatus {
+case object CertifiedKey extends KeyStatus {
   val value = "certified"
 }
-final case object UndefinedKey extends KeyStatus {
+case object UndefinedKey extends KeyStatus {
   val value = "undefined"
 }
 
@@ -486,7 +486,7 @@ enum SoftwareUpdateSeverity(val name: String) {
   case Other(value: String) extends SoftwareUpdateSeverity("other")
 }
 
-final object SoftwareUpdateSeverity {
+object SoftwareUpdateSeverity {
 
   // Although class SoftwareUpdateSeverity is an enum, it has non-singleton cases so values is not generated
   def all = Seq(Low, Moderate, High, Critical)

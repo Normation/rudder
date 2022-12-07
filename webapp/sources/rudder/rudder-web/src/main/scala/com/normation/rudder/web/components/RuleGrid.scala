@@ -78,9 +78,9 @@ import scala.xml._
  * or if is should be decided from config service.
  */
 sealed trait DisplayColumn
-final object DisplayColumn {
+object DisplayColumn {
   final case class Force(display: Boolean) extends DisplayColumn
-  final object FromConfig                  extends DisplayColumn
+  object FromConfig                  extends DisplayColumn
 }
 
 class RuleGrid(

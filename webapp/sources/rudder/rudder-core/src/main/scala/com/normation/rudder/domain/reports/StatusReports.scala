@@ -92,14 +92,14 @@ object RuleStatusReport {
  * mixed mode in directives from the same techniques, etc)
  */
 sealed trait RunComplianceInfo
-final object RunComplianceInfo {
+object RunComplianceInfo {
   sealed trait PolicyModeError
   object PolicyModeError {
     final case class TechniqueMixedMode(message: String)               extends PolicyModeError
     final case class AgentAbortMessage(cause: String, message: String) extends PolicyModeError
   }
 
-  final object OK                                                           extends RunComplianceInfo
+  object OK                                                           extends RunComplianceInfo
   final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
 }
 

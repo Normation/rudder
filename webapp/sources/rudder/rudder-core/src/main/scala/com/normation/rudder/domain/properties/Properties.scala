@@ -92,7 +92,7 @@ final case class InheritMode(
 ) {
   def value = s"${forObject.value}${forArray.value}${forString.value}"
 }
-final object InheritMode {
+object InheritMode {
   enum ObjectMode(val value: Char) {
     case Override extends ObjectMode('o')
     case Merge    extends ObjectMode('m')

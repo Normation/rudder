@@ -103,7 +103,7 @@ sealed trait DeletionResult
 object DeletionResult {
   final case class PreHookFailed(hookError: HookReturnCode.Error)  extends DeletionResult
   final case class PostHookFailed(hookError: HookReturnCode.Error) extends DeletionResult
-  final case object Success                                        extends DeletionResult
+  case object Success                                        extends DeletionResult
   final case class Error(err: RudderError)                         extends DeletionResult
 
   def resolve(results: List[DeletionResult]) = {

@@ -73,25 +73,25 @@ sealed trait AgentCompat {
 }
 
 object AgentCompat {
-  final case object Windows extends AgentCompat {
+  case object Windows extends AgentCompat {
     def icon:          NodeSeq = windowsIcon
     def techniqueText: NodeSeq = <p>This Technique is only compatible with <b class="dsc">Windows</b> agent.</p>
     def directiveText: NodeSeq =
       <p>This Directive is based on a Technique version compatible with <b class="dsc">Windows agent</b>.</p>
   }
-  final case object Linux   extends AgentCompat {
+  case object Linux   extends AgentCompat {
     def icon:          NodeSeq = linuxIcon
     def techniqueText: NodeSeq = <p>This Technique is only compatible with <b>Linux</b> agent.</p>
     def directiveText: NodeSeq = <p>This Directive is based on a Technique version compatible with <b>Linux agent</b>.</p>
   }
-  final case object All     extends AgentCompat {
+  case object All     extends AgentCompat {
     def icon:          NodeSeq = linuxIcon ++ windowsIcon
     def techniqueText: NodeSeq =
       <p>This Technique has at least a version compatible with both <b>Linux</b> and <b class="dsc">Windows</b> agents.</p>
     def directiveText: NodeSeq =
       <p>This Directive is based on a Technique version compatible with both <b>Linux</b> and <b class="dsc">Windows</b> agents.</p>
   }
-  final case object NoAgent extends AgentCompat {
+  case object NoAgent extends AgentCompat {
     def icon:          NodeSeq = NodeSeq.Empty
     def techniqueText: NodeSeq = NodeSeq.Empty
     def directiveText: NodeSeq = NodeSeq.Empty

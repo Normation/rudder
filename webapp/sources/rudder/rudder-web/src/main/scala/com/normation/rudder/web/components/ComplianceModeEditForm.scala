@@ -103,7 +103,7 @@ sealed trait ParseComplianceMode[T <: ComplianceMode] {
 
 object ParseComplianceMode {
 
-  implicit final object Global extends ParseComplianceMode[GlobalComplianceMode] {
+  implicit object Global extends ParseComplianceMode[GlobalComplianceMode] {
     override def isNodePage = false
     override def parseJsonMode(s: String): Box[GlobalComplianceMode] = {
       for {
@@ -116,7 +116,7 @@ object ParseComplianceMode {
     }
   }
 
-  implicit final object Node extends ParseComplianceMode[NodeComplianceMode] {
+  implicit object Node extends ParseComplianceMode[NodeComplianceMode] {
     override def isNodePage = true
     override def parseJsonMode(s: String): Box[NodeComplianceMode] = {
       for {

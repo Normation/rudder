@@ -41,7 +41,7 @@ object PropertyParserTokens {
 
   // here, we have node property option
   sealed trait PropertyOption                       extends Any
-  final case object InterpreteOnNode                extends PropertyOption
+  case object InterpreteOnNode                extends PropertyOption
   final case class DefaultValue(value: List[Token]) extends AnyVal with PropertyOption
 
   def containsVariable(tokens: List[Token]): Boolean = {

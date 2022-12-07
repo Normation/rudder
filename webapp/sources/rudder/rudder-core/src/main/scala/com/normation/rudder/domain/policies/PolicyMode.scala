@@ -157,11 +157,11 @@ object PolicyMode {
  * What is allowed to override the global value for policy mode
  */
 sealed trait PolicyModeOverrides
-final object PolicyModeOverrides {
+object PolicyModeOverrides {
   // nothing can override. Global is the sole value
-  final case object Unoverridable extends PolicyModeOverrides
+  case object Unoverridable extends PolicyModeOverrides
   // anything can override. Combination rules applies.
-  final case object Always        extends PolicyModeOverrides
+  case object Always        extends PolicyModeOverrides
   // directives, groups, ...
 }
 

@@ -65,7 +65,7 @@ import org.joda.time.DateTime
  * the table).
  */
 
-final object DB {
+object DB {
 
   //////////
 

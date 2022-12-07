@@ -126,7 +126,7 @@ sealed trait InventoryProcessStatus {
   def nodeId:        NodeId
 
 }
-final object InventoryProcessStatus {
+object InventoryProcessStatus {
   final case class Saved(inventoryName: String, nodeId: NodeId)                         extends InventoryProcessStatus
   final case class SignatureInvalid(inventoryName: String, nodeId: NodeId)              extends InventoryProcessStatus
   final case class SaveError(inventoryName: String, nodeId: NodeId, error: RudderError) extends InventoryProcessStatus
