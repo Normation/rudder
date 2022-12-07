@@ -87,7 +87,7 @@ import scala.util.control.NonFatal
 import zio._
 import zio.syntax._
 
-final object NodeStateEncoder {
+object NodeStateEncoder {
   implicit def enc(state: NodeState): String                       = state.name
   implicit def dec(state: String):    Either[Throwable, NodeState] = {
     NodeState.values.find(state.toLowerCase() == _.name) match {

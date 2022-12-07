@@ -46,7 +46,7 @@ import scala.xml._
 
 final case class SimpleDiff[T](oldValue: T, newValue: T)
 
-final object SimpleDiff {
+object SimpleDiff {
   def toXml[T](eltTag: Elem, diff: SimpleDiff[T])(serialize: T => NodeSeq): NodeSeq = {
     eltTag.copy(
       child = <from>{serialize(diff.oldValue)}</from><to>{serialize(diff.newValue)}</to>

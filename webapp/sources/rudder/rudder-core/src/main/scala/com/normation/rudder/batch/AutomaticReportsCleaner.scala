@@ -280,16 +280,16 @@ final case class Weekly(day: Int, hour: Int, min: Int) extends CleanFrequency {
 // States into which the cleaner process can be.
 sealed trait CleanerState
 // The process is idle.
-final case object IdleCleaner   extends CleanerState
+case object IdleCleaner   extends CleanerState
 // An update is currently cleaning the databases.
-final case object ActiveCleaner extends CleanerState
+case object ActiveCleaner extends CleanerState
 
 sealed trait DatabaseCleanerMessage
 // Messages the cleaner can receive.
 // Ask to clean database (need to be in active state).
-final case object CleanDatabase extends DatabaseCleanerMessage
+case object CleanDatabase extends DatabaseCleanerMessage
 // Ask to check if cleaning has to be launched (need to be in idle state).
-final case object CheckLaunch   extends DatabaseCleanerMessage
+case object CheckLaunch   extends DatabaseCleanerMessage
 
 final case class ManualLaunch(date: DateTime) extends DatabaseCleanerMessage
 

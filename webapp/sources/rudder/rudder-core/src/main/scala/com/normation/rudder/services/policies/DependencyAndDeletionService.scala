@@ -90,9 +90,9 @@ final case class TechniqueDependencies(
 )
 
 sealed trait ModificationStatus
-final case object DontCare        extends ModificationStatus
-final case object OnlyEnableable  extends ModificationStatus
-final case object OnlyDisableable extends ModificationStatus
+case object DontCare        extends ModificationStatus
+case object OnlyEnableable  extends ModificationStatus
+case object OnlyDisableable extends ModificationStatus
 
 /**
  *

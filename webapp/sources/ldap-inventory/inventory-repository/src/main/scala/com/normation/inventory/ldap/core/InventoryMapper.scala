@@ -718,7 +718,7 @@ class InventoryMapper(
   }
 
   ////////////////// Node Custom Properties /////////////////////////
-  final object CustomPropertiesSerialization {
+  object CustomPropertiesSerialization {
 
     import net.liftweb.json._
 

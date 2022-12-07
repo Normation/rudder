@@ -89,8 +89,8 @@ object FrequentNodeMetrics {
  */
 sealed trait Mode
 object Mode {
-  final case object Enforce extends Mode
-  final case object Audit   extends Mode
-  final case object Mixed   extends Mode
-  final case object None    extends Mode // error, pending, no answer...
+  case object Enforce extends Mode
+  case object Audit   extends Mode
+  case object Mixed   extends Mode
+  case object None    extends Mode // error, pending, no answer...
 }

@@ -79,9 +79,9 @@ import zio.syntax._
  * Utily data structures
  */
 sealed trait ResponseType
-final object ResponseType {
-  final object Text extends ResponseType
-  final object Json extends ResponseType
+object ResponseType {
+  object Text extends ResponseType
+  object Json extends ResponseType
 }
 
 // Our object representing a test specification

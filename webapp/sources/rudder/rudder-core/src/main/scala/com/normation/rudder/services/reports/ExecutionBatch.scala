@@ -135,7 +135,7 @@ sealed trait LastRunAvailable extends RunAndConfigInfo {
 /*
  * Really, that node exists ?
  */
-final case object NoRunNoExpectedReport extends ErrorNoConfigData
+case object NoRunNoExpectedReport extends ErrorNoConfigData
 
 /*
  * We don't have the needed configId in the expected
@@ -276,7 +276,7 @@ final case class ComputeCompliance(
 sealed trait UnexpectedReportBehavior
 object UnexpectedReportBehavior {
   // if a reports originally has a CFEngine var, allows to get several reports value for it.
-  final case object UnboundVarValues extends UnexpectedReportBehavior
+  case object UnboundVarValues extends UnexpectedReportBehavior
 }
 
 final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBehavior]) {

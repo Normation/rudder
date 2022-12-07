@@ -53,18 +53,18 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows._
 import net.liftweb.common._
 
-final case object WorkflowUpdate
+case object WorkflowUpdate
 
 /*
  * For rules, we have dedicated actions
  */
 sealed abstract class RuleModAction(val name: String)
 object RuleModAction {
-  final case object Create  extends RuleModAction("create")
-  final case object Update  extends RuleModAction("update")
-  final case object Delete  extends RuleModAction("delete")
-  final case object Enable  extends RuleModAction("enable")
-  final case object Disable extends RuleModAction("disable")
+  case object Create  extends RuleModAction("create")
+  case object Update  extends RuleModAction("update")
+  case object Delete  extends RuleModAction("delete")
+  case object Enable  extends RuleModAction("enable")
+  case object Disable extends RuleModAction("disable")
 }
 
 final case class RuleChangeRequest(action: RuleModAction, newRule: Rule, previousRule: Option[Rule])
@@ -75,13 +75,13 @@ final case class RuleChangeRequest(action: RuleModAction, newRule: Rule, previou
 sealed abstract class DGModAction(val name: String)
 object DGModAction {
   // create the directive without modifying rules (creation only - skip workflows)
-  final case object CreateSolo        extends DGModAction("create")
+  case object CreateSolo        extends DGModAction("create")
   // create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
-  final case object CreateAndModRules extends DGModAction("create")
-  final case object Update            extends DGModAction("update")
-  final case object Delete            extends DGModAction("delete")
-  final case object Enable            extends DGModAction("enable")
-  final case object Disable           extends DGModAction("disable")
+  case object CreateAndModRules extends DGModAction("create")
+  case object Update            extends DGModAction("update")
+  case object Delete            extends DGModAction("delete")
+  case object Enable            extends DGModAction("enable")
+  case object Disable           extends DGModAction("disable")
 }
 
 final case class DirectiveChangeRequest(
@@ -104,9 +104,9 @@ final case class NodeGroupChangeRequest(
 
 sealed abstract class GlobalParamModAction(val name: String)
 object GlobalParamModAction {
-  final case object Create extends GlobalParamModAction("create")
-  final case object Update extends GlobalParamModAction("update")
-  final case object Delete extends GlobalParamModAction("delete")
+  case object Create extends GlobalParamModAction("create")
+  case object Update extends GlobalParamModAction("update")
+  case object Delete extends GlobalParamModAction("delete")
 }
 
 final case class GlobalParamChangeRequest(

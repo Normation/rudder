@@ -69,7 +69,7 @@ class HealthcheckService(checks: List[Check]) {
   }
 }
 
-final object CheckCoreNumber extends Check {
+object CheckCoreNumber extends Check {
   def name: CheckName                   = CheckName("CPU cores")
   def run:  IOResult[HealthcheckResult] = for {
     availableCores <- IOResult.effect(getRuntime.availableProcessors)
@@ -83,7 +83,7 @@ final object CheckCoreNumber extends Check {
   }
 }
 
-final object CheckFreeSpace extends Check {
+object CheckFreeSpace extends Check {
   def name: CheckName = CheckName("Free disk space")
 
   final case class SpaceInfo(val path: String, val free: Long, val available: Long) {

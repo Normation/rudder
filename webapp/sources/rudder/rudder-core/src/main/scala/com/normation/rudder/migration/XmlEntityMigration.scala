@@ -111,9 +111,9 @@ final case class Encapsulate(label: String, logger: Logger) extends Function1[No
 }
 
 sealed trait MigrationStatus
-final case object NoMigrationRequested           extends MigrationStatus
-final case object MigrationVersionNotHandledHere extends MigrationStatus
-final case object MigrationVersionNotSupported   extends MigrationStatus
+case object NoMigrationRequested           extends MigrationStatus
+case object MigrationVersionNotHandledHere extends MigrationStatus
+case object MigrationVersionNotSupported   extends MigrationStatus
 final case class MigrationSuccess(migrated: Int) extends MigrationStatus
 
 trait MigrableEntity {
