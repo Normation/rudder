@@ -28,14 +28,14 @@
 # These methods will update the corresponding package if updates are available
 # New updates may not be detected even if there are some available,
 # this is due to the update cache that is refresh every 4 hours by default,
-# you can modify this behaviour called `updates_cache_expire` in global parameter
+# you can modify this behaviour called `updates_cache_expire` in `rudder` global parameter
 #
 # #### Package parameters
 # 
 # There is only one mandatory parameter, which is the package name to install.
 # When it should be installed from a local package, you need to specify the full path to the package as name.
 # 
-# The version parameter allows specifying a version you want installed.
+# The version parameter allows specifying a version you want installed (not supported with snap).
 # It should be the complete versions string as used by the used package manager.
 # This parameter allows two special values:
 # 
@@ -118,6 +118,11 @@
 #
 # This package provider uses AIX's nim client to manage packages from nim
 # This provider doesn't support installation from a file.
+#
+# #### snap
+#
+# This package provider uses Ubuntu's *snap* to manage packages on the system
+# This provider doesn't support installation from a file.
 # 
 # #### Examples
 # 
@@ -142,9 +147,9 @@
 # @parameter_constraint version "allow_empty_string" : true
 # @parameter architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
 # @parameter_constraint architecture "allow_empty_string" : true
-# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" or "default" for system default package manager (defaults to "default")
+# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" or "default" for system default package manager (defaults to "default")
 # @parameter_constraint provider "allow_empty_string" : true
-# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient" ]
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" ]
 # @parameter state State of the package, can be "present" or "absent" (defaults to "present")
 # @parameter_constraint state "allow_empty_string" : true
 # @parameter_constraint state "select" : [ "", "present", "absent" ]
