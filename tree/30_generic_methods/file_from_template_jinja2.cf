@@ -256,7 +256,11 @@ bundle agent file_from_template_jinja2(source_template, path)
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
       "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
-           ifvarclass => "state_dumped_${destination_canon}_ok";
+                   if => "state_dumped_${destination_canon}_ok._have_python";
+
+      # If no python is available, it is an error
+      "errors" string => "There are no Python available on this system",
+                   if => "!_have_python";
 
   classes:
       # If the stderr of the python templating command was empty, we consider that the templating succeeeded.
@@ -269,6 +273,7 @@ bundle agent file_from_template_jinja2(source_template, path)
       "should_report"    expression => "${report_data.should_report}";
 
   files:
+    _have_python::
       # We can't use the generic method here because we want to avoid file backups
       "${datastate_file}"
         template_method => "mustache",
@@ -283,11 +288,10 @@ bundle agent file_from_template_jinja2(source_template, path)
     pass2.templating_ok::
       "copy file_${class_prefix}"    usebundle => file_copy_from_local_source("${destination_tmp}", "${path}");
 
-    pass2.templating_ok::
       "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
       "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
 
-    pass3::
+    pass3._have_python::
       # In non audit mode, we need to force enforce mode to remove the temp files.
       "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
       "clean data file_${class_prefix}"     usebundle => file_absent("${datastate_file}");
@@ -296,15 +300,20 @@ bundle agent file_from_template_jinja2(source_template, path)
 
     pass3::
       "failure" usebundle  => _classes_failure("${old_class_prefix}"),
-                ifvarclass => "!${old_class_prefix}_reached";
+                ifvarclass => "!${old_class_prefix}_reached|!_have_python";
       "failure" usebundle  => _classes_failure("${class_prefix}"),
-                ifvarclass => "!${class_prefix}_reached";
+                ifvarclass => "!${class_prefix}_reached|!_have_python";
 
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "report"              usebundle  => _log_v3("Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                                  if => "should_report";
+      "report"              usebundle => _log_v3("Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                                   if => "_have_python";
+
+      "report"              usebundle => _log_v3("No Python available. Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                                   if => "!_have_python";
+
       # Report errors
-      "report" usebundle  => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
-                ifvarclass => "state_dumped_${destination_canon}_ok.!templating_ok";
+      "report" usebundle => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
+                      if => "state_dumped_${destination_canon}_ok.!templating_ok";
 }
 

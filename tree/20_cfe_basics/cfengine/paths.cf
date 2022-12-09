@@ -682,6 +682,11 @@ bundle common paths
       "_have_bin_systemctl" expression => fileexists("/bin/systemctl");
       "_have_bin_timedatectl" expression => fileexists("/bin/timedatectl");
       "_have_bin_journalctl"  expression => fileexists("/bin/journalctl");
+      "_have_python"                  or => {
+                                                returnszero("command -v python >/dev/null 2>/dev/null", "useshell"),
+                                                returnszero("command -v python3 >/dev/null 2>/dev/null", "useshell"),
+                                                returnszero("command -v python2 >/dev/null 2>/dev/null", "useshell")
+                                            };
 
       "_stdlib_has_path_$(all_paths)"
       expression => isvariable("$(all_paths)"),

@@ -75,6 +75,8 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
 
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description}",
             ifvarclass => "!${report_data.method_id}_not_ok";
+      "message" string => "Package methods using apt, yum, zypper and zypper_pattern require Python (2 or 3) present on the system to work.${const.endl}${state_description} of package ${name}${architecture_description}${version_description}",
+                    if => "!_have_python.(use_apt_provider|use_yum_provider|use_zypper_provider|use_zypper_pattern_provider)";
 
     !state_present.version_latest::
       "message" string => "${state_description} of package ${name}${architecture_description}${version_description} is not supported and";
