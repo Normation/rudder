@@ -1,4 +1,4 @@
-function NTP
+function reporting
 {
     [CmdletBinding()]
     param (

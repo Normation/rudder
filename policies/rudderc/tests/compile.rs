@@ -27,7 +27,14 @@ fn compile_file(source: &Path, target: Target) {
         assert!(result.is_err());
     } else {
         let output = result.expect("Test compilation failed");
-        let reference = read_to_string(source.with_extension(target.extension())).unwrap();
+
+        let dir = source.parent().unwrap();
+        let ref_file = if target == Target::Metadata {
+            dir.join("metadata.xml")
+        } else {
+            source.with_extension(target.extension())
+        };
+        let reference = read_to_string(ref_file).unwrap();
         assert_eq!(reference, output);
     }
 }

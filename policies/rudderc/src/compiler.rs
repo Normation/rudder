@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
 use rudder_commons::Target;
 
+use crate::ir::technique::{Block, BlockReportingMode};
 use crate::{
     backends::{backend, metadata_backend, Backend},
     doc,
@@ -118,7 +119,10 @@ fn methods_metadata(
                 }
                 check_method(m)?;
             }
-            ItemKind::Block(b) => methods_metadata(&mut b.items, info)?,
+            ItemKind::Block(b) => {
+                check_block(b)?;
+                methods_metadata(&mut b.items, info)?
+            }
             ItemKind::Module(_) => todo!(),
         };
     }
@@ -158,6 +162,27 @@ fn check_method(method: &mut Method) -> Result<()> {
             .any(|info_p| info_p.name == *p_name)
         {
             warn!("Unexpected parameter '{}' in '{}'", p_name, method.name)
+        }
+    }
+    Ok(())
+}
+
+/// Check block consistency
+fn check_block(block: &Block) -> Result<()> {
+    match &block.reporting.mode {
+        BlockReportingMode::Focus => {
+            if block.reporting.id.is_none() {
+                bail!("Missing id of focused report in block '{}'", block.name)
+            }
+        }
+        m => {
+            if block.reporting.id.is_some() {
+                bail!(
+                    "Reporting mode {} does not expect an id in block '{}'",
+                    m,
+                    block.name
+                )
+            }
         }
     }
     Ok(())

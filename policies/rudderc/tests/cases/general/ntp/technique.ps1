@@ -1,4 +1,4 @@
-function NTP
+function ntp
 {
     [CmdletBinding()]
     param (
@@ -15,6 +15,8 @@ function NTP
     $localContext = [Rudder.Context]::new($techniqueName)
     $localContext.Merge($system_classes)
 
+
+    $modules_dir = $PSScriptRoot + "\modules"
 
 
 
