@@ -107,7 +107,7 @@ object PendingHistoryGrid extends Loggable {
                     "fnStateLoad": function (oSettings) {
                       return JSON.parse( localStorage.getItem('DataTables_pending_server_history') );
                     },
-            "bJQueryUI": true,
+            "bJQueryUI": false,
             "oLanguage": {
               "sSearch": ""
             },

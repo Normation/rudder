@@ -179,7 +179,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
               "sZeroRecords": "No parameters!",
               "sSearch": ""
             },
-            "bJQueryUI"    : true,
+            "bJQueryUI"    : false,
             "aaSorting"    : [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "300px" },

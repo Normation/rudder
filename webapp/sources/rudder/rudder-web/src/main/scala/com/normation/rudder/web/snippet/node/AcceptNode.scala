@@ -258,7 +258,7 @@ class AcceptNode extends Loggable {
             "bFilter" :true,
             "bLengthChange": true,
             "bPaginate": false,
-            "bJQueryUI": true,
+            "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "180px" },
