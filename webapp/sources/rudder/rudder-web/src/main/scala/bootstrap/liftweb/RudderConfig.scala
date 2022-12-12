@@ -684,6 +684,15 @@ object RudderConfig extends Loggable {
 
   val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
 
+  val RUDDER_SERVER_HSTS = {
+    try {
+      config.getBoolean("rudder.server.hsts")
+    } catch {
+      // by default, if property is missing
+      case ex: ConfigException => false
+    }
+  }
+
   val RUDDER_RELAY_RELOAD = {
     try {
       config.getString("rudder.relayd.reload")
@@ -862,6 +871,20 @@ object RudderConfig extends Loggable {
     val cfg     = DeleteMode.all.find(_.name == mode).getOrElse(default)
     ApplicationLogger.info(s"Using '${cfg.name}' behavior when a node is deleted")
     cfg
+  }
+
+  // Store it an a Box as it's only used in Lift
+  val AUTH_IDLE_TIMEOUT = {
+    try {
+      val timeout = config.getString("rudder.auth.idle-timeout")
+      if (timeout.isEmpty) {
+        Empty
+      } else {
+        Full(Duration.fromScala(scala.concurrent.duration.Duration.apply(timeout)))
+      }
+    } catch {
+      case ex: Exception => Full(30.minutes)
+    }
   }
 
   ApplicationLogger.info(s"Starting Rudder ${rudderFullVersion} web application [build timestamp: ${builtTimestamp}]")

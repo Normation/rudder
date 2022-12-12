@@ -59,6 +59,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </http>
 
     <http use-expressions="true" disable-url-rewriting="true" name="mainHttpSecurityFilters">
+        <headers>
+            <xss-protection disabled="true"/>
+        </headers>
 
         <csrf disabled="true"/>
         <session-management session-fixation-protection="migrateSession">
@@ -78,13 +81,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <!-- Start comment -->
 
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />
-
-        <!--
-          Allow content to be embedeed in local iframe
-        -->
-        <headers>
-            <frame-options policy="SAMEORIGIN" />
-        </headers>
 
         <!-- End comment -->
 

@@ -58,6 +58,11 @@ rudder.dir.lock=/var/rudder/lock/
 #
 rudder.server.relay.api=https://localhost/rudder/relay-api
 
+#
+# Add HSTS header to enforce HTTPS for Rudder Web interface
+# Don't enable if you use non-HTTPS urls on the same domain.
+rudder.server.hsts=false
+
 ##################
 # LDAP properties ###################################################################
 ##################
@@ -524,6 +529,14 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # your existing entreprise Active Directory or LDAP directory.
 #
 rudder.auth.provider=file
+
+#
+# Inactivity timeout for user sessions
+#
+# The default value is 30 minutes.
+# Set an empty value to disable session expiration when the page stays open.
+#
+rudder.auth.idle-timeout=30 minutes
 
 ####################
 # Server side Hooks #############################################################
