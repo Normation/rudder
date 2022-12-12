@@ -40,6 +40,8 @@ package com.normation.rudder.services.reports
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport

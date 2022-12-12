@@ -160,6 +160,13 @@ object ComplianceApi       extends ApiModuleProvider[ComplianceApi] {
     val dataContainer  = Some("globalCompliance")
   }
 
+  final case object GetDirectiveComplianceId extends ComplianceApi with OneParam with StartsAtVersion10 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get a directive's compliance"
+    val (action, path) = GET / "compliance" / "directives" / "{id}"
+    val dataContainer  = Some("directiveCompliance")
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy(_.z)
 }
 

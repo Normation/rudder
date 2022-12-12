@@ -84,6 +84,49 @@ final case class ByRuleRuleCompliance(
   lazy val nodes = ByRuleByNodeCompliance.fromDirective(directives).toSeq
 }
 
+final case class ByDirectiveRuleCompliance(
+    id:         DirectiveId,
+    name:       String,
+    compliance: ComplianceLevel,
+    mode:       ComplianceModeName,
+    rules:      Seq[ByDirectiveByRuleComponentCompliance],
+    nodes:      Seq[ByDirectiveNodeCompliance]
+)
+
+final case class ByDirectiveByRuleComponentCompliance(
+    id:         RuleId,
+    name:       String,
+    compliance: ComplianceLevel,
+    components: Seq[ByRuleComponentCompliance]
+)
+
+final case class ByDirectiveByRuleByComponentNodeCompliance(
+    name:       String,
+    compliance: ComplianceLevel,
+    nodes:      Seq[ByRuleNodeCompliance]
+) extends ByRuleComponentCompliance
+
+final case class ByDirectiveNodeCompliance(
+    id:         NodeId,
+    name:       String,
+    compliance: ComplianceLevel,
+    mode:       ComplianceModeName,
+    rules:      Seq[ByDirectiveByNodeRuleCompliance]
+)
+
+final case class ByDirectiveByNodeRuleCompliance(
+    id:         RuleId,
+    name:       String,
+    compliance: ComplianceLevel,
+    components: Seq[ByRuleComponentCompliance]
+)
+
+final case class ByDirectiveByNodeByRuleComponentCompliance(
+    name:       String,
+    compliance: ComplianceLevel,
+    values:     Seq[ComponentValueStatusReport]
+) extends ByRuleComponentCompliance
+
 final case class ByRuleDirectiveCompliance(
     id:         DirectiveId,
     name:       String,
@@ -299,6 +342,167 @@ object JsonCompliance {
           ))
       }
     }
+  }
+
+  implicit class JsonbyDirectiveCompliance(val directive: ByDirectiveRuleCompliance) extends AnyVal {
+    def toJsonV6 = (
+      ("id"                    -> directive.id.serialize)
+        ~ ("name"              -> directive.name)
+        ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
+        ~ ("complianceDetails" -> percents(directive.compliance, CompliancePrecision.Level2))
+        ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
+        ~ ("rules"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
+    )
+
+    def toJson(level: Int, precision: CompliancePrecision) = (
+      ("id"                    -> directive.id.serialize)
+        ~ ("name"              -> directive.name)
+        ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
+        ~ ("mode"              -> directive.mode.name)
+        ~ ("complianceDetails" -> percents(directive.compliance, precision))
+        ~ ("rules"             -> rules(directive.rules, level, precision))
+        ~ ("nodes"             -> byNodes(directive.nodes, level, precision))
+    )
+
+    private[this] def byNodes(
+        nodes:     Seq[ByDirectiveNodeCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 2) None
+      else {
+        Some(nodes.map { node =>
+          (
+            ("id"                  -> node.id.value)
+            ~ ("name"              -> node.name)
+            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(node.compliance, precision))
+            ~ ("rules"             -> byRule(node.rules, level, precision))
+          )
+        })
+      }
+    }
+
+    private[this] def byRule(
+        rules:     Seq[ByDirectiveByNodeRuleCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 3) None
+      else {
+        Some(rules.map { rule =>
+          (
+            ("id"                  -> rule.id.uid.value)
+            ~ ("name"              -> rule.name)
+            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(rule.compliance, precision))
+            ~ ("components"        -> byNodeByComponents(rule.components, level, precision))
+          )
+        })
+      }
+    }
+
+    private[this] def byNodeByComponents(
+        comps:     Seq[ByRuleComponentCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 3) None
+      else {
+        Some(comps.map { component =>
+          (
+            ("name"                -> component.name)
+            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(component.compliance, precision))
+            ~ (component match {
+              case component: ByRuleBlockCompliance                      => // TODO: this case should not happened because we are only get nodes compliance here
+                ("components" -> byNodeByComponents(component.subComponents, level, precision))
+              case component: ByDirectiveByNodeByRuleComponentCompliance =>
+                ("values" -> values(component.values, level))
+            })
+          )
+        })
+      }
+    }
+
+    private[this] def rules(
+        rules:     Seq[ByDirectiveByRuleComponentCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 2) None
+      else {
+        Some(rules.map { rule =>
+          (
+            ("id"                  -> rule.id.uid.value)
+            ~ ("name"              -> rule.name)
+            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(rule.compliance, precision))
+            ~ ("components"        -> components(rule.components, level, precision))
+          )
+        })
+      }
+    }
+
+    private[this] def components(
+        comps:     Seq[ByRuleComponentCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 3) None
+      else {
+        Some(comps.map { component =>
+          (
+            ("name"                -> component.name)
+            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(component.compliance, precision))
+            ~ (component match {
+              case component: ByRuleBlockCompliance => // TODO: this case should not happened because we are only get nodes compliance here
+                ("components" -> components(component.subComponents, level, precision))
+              case component: ByRuleValueCompliance =>
+                ("nodes" -> nodes(component.nodes, level, precision))
+            })
+          )
+        })
+      }
+    }
+
+    def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
+      if (level < 5) None
+      else {
+        Some(values.map { value =>
+          (
+            ("value"     -> value.componentValue)
+            ~ ("reports" -> value.messages.map { report =>
+              (
+                ("status"    -> statusDisplayName(report.reportType))
+                ~ ("message" -> report.message)
+              )
+            })
+          )
+        })
+      }
+    }
+    private[this] def nodes(
+        nodes:     Seq[ByRuleNodeCompliance],
+        level:     Int,
+        precision: CompliancePrecision
+    ): Option[JsonAST.JValue] = {
+      if (level < 4) None
+      else {
+        Some(nodes.map { node =>
+          (
+            ("id"                  -> node.id.value)
+            ~ ("name"              -> node.name)
+            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
+            ~ ("complianceDetails" -> percents(node.compliance, precision))
+            ~ ("values"            -> values(node.values, level))
+          )
+        })
+      }
+
+    }
+
   }
 
   implicit class JsonbyRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {

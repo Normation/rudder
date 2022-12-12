@@ -43,6 +43,7 @@ import com.normation.rudder.Role
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.rest
 
 /*
  * The goal of that class is to map Authorization to what API
@@ -122,7 +123,7 @@ object AuthorizationApiMapping {
         case Compliance.Read  =>
           ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x :: ComplianceApi.GetRulesComplianceId.x ::
           ComplianceApi.GetNodesCompliance.x :: ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x ::
-          ChangesApi.GetRecentChanges.x :: Nil
+          ChangesApi.GetRecentChanges.x :: ComplianceApi.GetDirectiveComplianceId.x :: Nil
         case Compliance.Write => Nil
         case Compliance.Edit  => Nil
 

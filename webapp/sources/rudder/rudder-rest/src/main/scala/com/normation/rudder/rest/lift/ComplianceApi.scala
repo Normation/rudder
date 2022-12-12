@@ -95,11 +95,12 @@ class ComplianceApi(
     API.endpoints
       .map(e => {
         e match {
-          case API.GetRulesCompliance   => GetRules
-          case API.GetRulesComplianceId => GetRuleId
-          case API.GetNodesCompliance   => GetNodes
-          case API.GetNodeComplianceId  => GetNodeId
-          case API.GetGlobalCompliance  => GetGlobal
+          case API.GetRulesCompliance       => GetRules
+          case API.GetRulesComplianceId     => GetRuleId
+          case API.GetNodesCompliance       => GetNodes
+          case API.GetNodeComplianceId      => GetNodeId
+          case API.GetGlobalCompliance      => GetGlobal
+          case API.GetDirectiveComplianceId => GetDirectiveId
         }
       })
       .toList
@@ -184,6 +185,55 @@ class ComplianceApi(
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for rule '${ruleId}'")).messageChain
+          toJsonError(None, JString(message))
+      }
+    }
+  }
+
+  object GetDirectiveId extends LiftApiModule {
+    val schema        = API.GetDirectiveComplianceId
+    val restExtractor = restExtractorService
+    def process(
+        version:     ApiVersion,
+        path:        ApiPath,
+        directiveId: String,
+        req:         Req,
+        params:      DefaultParams,
+        authzToken:  AuthzToken
+    ): LiftResponse = {
+      implicit val action   = schema.name
+      implicit val prettify = params.prettify
+
+      (for {
+        level     <- restExtractor.extractComplianceLevel(req.params)
+        t1         = System.currentTimeMillis
+        precision <- restExtractor.extractPercentPrecision(req.params)
+        id        <- DirectiveId.parse(directiveId).toBox
+        t2         = System.currentTimeMillis
+
+        directive <- complianceService.getDirectiveCompliance(id, level)
+        t3         = System.currentTimeMillis
+        _          = TimingDebugLogger.trace(s"API GetDirectiveId - getting query param in ${t2 - t1} ms")
+        _          = TimingDebugLogger.trace(s"API GetDirectiveId - getting directive compliance in ${t3 - t2} ms")
+
+      } yield {
+        if (version.value <= 6) {
+          directive.toJsonV6
+        } else {
+          val json = directive.toJson(
+            level.getOrElse(10),
+            precision.getOrElse(CompliancePrecision.Level2)
+          ) // by default, all details are displayed
+          val t4 = System.currentTimeMillis
+          TimingDebugLogger.trace(s"API GetDirectiveId - serialize to json in ${t4 - t3} ms")
+          json
+        }
+      }) match {
+        case Full(rule) =>
+          toJsonResponse(None, ("directiveCompliance" -> rule))
+
+        case eb: EmptyBox =>
+          val message = (eb ?~ (s"Could not get compliance for directive '${directiveId}'")).messageChain
           toJsonError(None, JString(message))
       }
     }
@@ -466,6 +516,67 @@ class ComplianceAPIService(
       report  <- reports.find(_.id == ruleId).notOptional(s"No reports were found for rule with ID '${ruleId.serialize}'")
     } yield {
       report
+    }
+  }.toBox
+
+  def getDirectiveCompliance(directiveId: DirectiveId, level: Option[Int]): Box[ByDirectiveRuleCompliance] = {
+    for {
+      rules        <- rulesRepo.getAll()
+      allGroups    <- nodeGroupRepo.getAllNodeIds()
+      allNodeInfos <- nodeInfoService.getAll()
+      directive    <- directiveRepo.getDirective(directiveId.uid)
+      relevantRules = rules.filter(_.directiveIds.contains(directiveId))
+      relevantNodes = rules.map(rule => (rule, RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, allNodeInfos)))
+
+      byRules <- getByRulesCompliance(relevantRules, level)
+      rules    = byRules.flatMap { rule =>
+                   rule.directives.map { directive =>
+                     ByDirectiveByRuleComponentCompliance(
+                       rule.id,
+                       rule.name,
+                       rule.compliance,
+                       directive.components
+                     )
+                   }
+                 }
+
+      byNodes <- getByNodesCompliance(None)
+
+      reportsNodes = byNodes.filter(n => relevantNodes.flatMap(_._2).contains(n.id))
+      nodes        = reportsNodes.map { node =>
+                       ByDirectiveNodeCompliance(
+                         node.id,
+                         node.name,
+                         node.compliance,
+                         node.mode,
+                         node.nodeCompliances.map { rule =>
+                           ByDirectiveByNodeRuleCompliance(
+                             rule.id,
+                             rule.name,
+                             rule.compliance,
+                             rule.directives.map { directive =>
+                               ByDirectiveByNodeByRuleComponentCompliance(
+                                 directive.name,
+                                 directive.compliance,
+                                 directive.components.flatMap(_.componentValues)
+                               )
+                             }
+                           )
+                         }
+                       )
+                     }
+
+      compliance <- getGlobalComplianceMode().toIO
+
+    } yield {
+      ByDirectiveRuleCompliance(
+        directiveId,
+        directive.map(_.name).getOrElse("Unknown"),
+        ComplianceLevel.sum(byRules.map(_.compliance)),
+        compliance.mode,
+        rules,
+        nodes
+      )
     }
   }.toBox
 
