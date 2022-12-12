@@ -1647,7 +1647,7 @@ class EventLogDetailsGenerator(
                       return JSON.parse( localStorage.getItem('DataTables_rollbackTable${id}') );
                     },
             "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
+            "bJQueryUI": false,
             "oLanguage": {
               "sSearch": ""
             },

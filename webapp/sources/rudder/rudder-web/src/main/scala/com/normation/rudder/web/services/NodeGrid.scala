@@ -137,7 +137,7 @@ final class NodeGrid(
                     "fnStateLoad": function (oSettings) {
                       return JSON.parse( localStorage.getItem('DataTables_${tableId}') );
                     },
-            "bJQueryUI": true,
+            "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "sPaginationType": "full_numbers",
             "oLanguage": {

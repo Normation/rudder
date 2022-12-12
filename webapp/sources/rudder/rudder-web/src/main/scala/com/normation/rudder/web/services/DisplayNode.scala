@@ -157,7 +157,7 @@ object DisplayNode extends Loggable {
     ) & JsRaw(s"""
           $$('#${htmlId(jsId, gridId + "_")}').dataTable({
             "aaData":${gridDataId},
-            "bJQueryUI": true,
+            "bJQueryUI": false,
             "bPaginate": true,
             "bRetrieve": true,
             "bLengthChange": true,
@@ -217,7 +217,7 @@ object DisplayNode extends Loggable {
         eltIds.map { i =>
           JsRaw(s"""
               $$('#${htmlId(jsId, i + "_")}').dataTable({
-                "bJQueryUI": true,
+                "bJQueryUI": false,
                 "bRetrieve": true,
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
@@ -249,7 +249,7 @@ object DisplayNode extends Loggable {
           case (id, columns, sorting) =>
             JsRaw(s"""
               $$('#${htmlId(jsId, id + "_")}').dataTable({
-                "bJQueryUI": true,
+                "bJQueryUI": false,
                 "bRetrieve": true,
                 "sPaginationType": "full_numbers",
                 "bFilter": true,
