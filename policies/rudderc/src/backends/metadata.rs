@@ -284,7 +284,7 @@ impl SectionType {
                     reporting: b.reporting.to_string(),
                 })),
                 ItemKind::Method(m) => {
-                    if m.reporting == LeafReporting::Disabled || m.method.starts_with("_") {
+                    if m.reporting == LeafReporting::Disabled || m.method.starts_with('_') {
                         None
                     } else {
                         Some(SectionType::Section(Section {
