@@ -76,16 +76,9 @@
         </SECTION>
       </SECTION>
       <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
-        <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
+        <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3d12" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
-              ntp
-            </VALUE>
-          </REPORTKEYS>
-        </SECTION>
-        <SECTION name="Disabled reporting" id="c76686bb-79ab-4ae5-b45f-108492ab4101" component="true" multivalued="true">
-          <REPORTKEYS>
-            <VALUE id="c76686bb-79ab-4ae5-b45f-108492ab4101">
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3d12">
               ntp
             </VALUE>
           </REPORTKEYS>

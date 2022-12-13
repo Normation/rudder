@@ -19,7 +19,7 @@ bundle agent reporting {
 
     "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c13("NTP service", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3c13", @{args}, "ntp", "", "", "");
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c12("Enabled reporting", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3c12", @{args}, "ntp", "", "", "");
+    "cf06e919-02b7-41a7-a03f-4239592f3d12_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3d12("Enabled reporting", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3d12", @{args}, "ntp", "", "", "");
 
     "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_c76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "${name}", "c76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "ntp", "", "", "");
 
@@ -38,6 +38,13 @@ bundle agent call_df06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id,
     "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => package_present("ntp", "", "", "");
 
 }
+bundle agent call_cf06e919_02b7_41a7_a03f_4239592f3d12(c_name, c_key, report_id, args, name, version, architecture, provider) {
+
+  methods:
+    "cf06e919-02b7-41a7-a03f-4239592f3d12_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "cf06e919-02b7-41a7-a03f-4239592f3d12_${report_data.directive_id}" usebundle => package_present("ntp", "", "", "");
+
+}
 bundle agent call_cf06e919_02b7_41a7_a03f_4239592f3c14(c_name, c_key, report_id, args, name, version, architecture, provider) {
 
   methods:
@@ -50,13 +57,6 @@ bundle agent call_cf06e919_02b7_41a7_a03f_4239592f3c13(c_name, c_key, report_id,
   methods:
     "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => package_present("ntp", "", "", "");
-
-}
-bundle agent call_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id, args, name, version, architecture, provider) {
-
-  methods:
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => package_present("ntp", "", "", "");
 
 }
 bundle agent call_c76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, report_id, args, name, version, architecture, provider) {
