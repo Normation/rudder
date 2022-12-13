@@ -186,7 +186,7 @@ pub struct Method {
     pub info: Option<&'static MethodInfo>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct BlockReporting {
     #[serde(default)]
     pub mode: BlockReportingMode,
@@ -247,15 +247,6 @@ pub enum LeafReporting {
     Enabled,
     #[serde(rename = "disabled")]
     Disabled,
-}
-
-impl Default for BlockReporting {
-    fn default() -> Self {
-        BlockReporting {
-            mode: BlockReportingMode::default(),
-            id: None,
-        }
-    }
 }
 
 impl Default for BlockReportingMode {
