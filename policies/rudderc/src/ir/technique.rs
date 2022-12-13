@@ -204,7 +204,7 @@ impl fmt::Display for BlockReporting {
                 BlockReportingMode::Weighted => "weighted".to_string(),
                 BlockReportingMode::WorstCaseWeightedOne => "worst-case-weighted-one".to_string(),
                 BlockReportingMode::WorstCaseWeightedSum => "worst-case-weighted-sum".to_string(),
-                BlockReportingMode::Focus => format!("focus({})", self.id.as_ref().unwrap()),
+                BlockReportingMode::Focus => format!("focus:{}", self.id.as_ref().unwrap()),
             }
         )
     }

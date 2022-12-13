@@ -83,7 +83,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION name="Another block inside" reporting="focus(cf06e919-02b7-41a7-a03f-4239592f3c12)" component="true" multivalued="true">
+      <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
         <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
