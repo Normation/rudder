@@ -16,8 +16,6 @@ function reporting
     $localContext.Merge($system_classes)
 
 
-    $modules_dir = $PSScriptRoot + "\modules"
-
 
 
 

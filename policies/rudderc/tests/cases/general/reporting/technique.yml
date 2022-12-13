@@ -30,7 +30,7 @@ items:
       mode: worst-case-weighted-one
     items:
       - name: "NTP service"
-        id: df06e919-02b7-41a7-a03f-4239592f3c12
+        id: df06e919-02b7-41a7-a03f-4239592f3c45
         method: package_present
         params:
           name: ntp
@@ -63,7 +63,7 @@ items:
         id: 074d64ca-10ec-4c50-b0e1-4c85903f8b4c
         reporting:
           mode: "focus"
-          id: cf06e919-02b7-41a7-a03f-4239592f3c12
+          id: cf06e919-02b7-41a7-a03f-4239592f3c21
         items:
           - name: "Enabled reporting"
             id: cf06e919-02b7-41a7-a03f-4239592f3c12

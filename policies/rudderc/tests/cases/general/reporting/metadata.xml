@@ -11,10 +11,6 @@
       <FILE name="technique.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
-      <FILE name="resources/file.cfg">
-        <INCLUDED>false</INCLUDED>
-        <OUTPATH>reporting/0.1/resources/file.cfg</OUTPATH>
-      </FILE>
     </FILES>
   </AGENT>
   <AGENT type="dsc">
@@ -24,10 +20,6 @@
     <FILES>
       <FILE name="technique.ps1">
         <INCLUDED>true</INCLUDED>
-      </FILE>
-      <FILE name="resources/file.cfg">
-        <INCLUDED>false</INCLUDED>
-        <OUTPATH>reporting/0.1/resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>
@@ -56,9 +48,9 @@
       </SECTION>
     </SECTION>
     <SECTION name="A simple block" reporting="worst-case-weighted-one" component="true" multivalued="true">
-      <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
+      <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c45" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c12">
+          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c45">
             ntp
           </VALUE>
         </REPORTKEYS>
@@ -83,7 +75,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
+      <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
         <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
