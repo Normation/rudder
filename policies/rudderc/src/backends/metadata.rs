@@ -16,6 +16,7 @@ use std::path::Path;
 
 use crate::backends::Windows;
 use crate::compiler::RESOURCES_DIR;
+use crate::ir::technique::LeafReporting;
 use crate::{
     backends::Backend,
     ir,
@@ -274,31 +275,37 @@ impl SectionType {
         // stack overflow threat.
         modules
             .into_iter()
-            .map(|r| match r {
-                ItemKind::Block(b) => SectionType::SectionBlock(SectionBlock {
+            .filter_map(|r| match r {
+                ItemKind::Block(b) => Some(SectionType::SectionBlock(SectionBlock {
                     name: b.name,
                     component: true,
                     multivalued: true,
                     section: SectionType::from(b.items),
                     reporting: b.reporting.to_string(),
-                }),
-                ItemKind::Method(m) => SectionType::Section(Section {
-                    name: m.name,
-                    id: m.id.clone(),
-                    component: true,
-                    multivalued: true,
-                    report_keys: ReportKeys {
-                        value: ReportKey {
-                            // the class_parameter value
-                            value: m
-                                .params
-                                .get(&m.info.unwrap().class_parameter)
-                                .unwrap()
-                                .clone(),
-                            id: m.id,
-                        },
-                    },
-                }),
+                })),
+                ItemKind::Method(m) => {
+                    if m.reporting == LeafReporting::Disabled {
+                        None
+                    } else {
+                        Some(SectionType::Section(Section {
+                            name: m.name,
+                            id: m.id.clone(),
+                            component: true,
+                            multivalued: true,
+                            report_keys: ReportKeys {
+                                value: ReportKey {
+                                    // the class_parameter value
+                                    value: m
+                                        .params
+                                        .get(&m.info.unwrap().class_parameter)
+                                        .unwrap()
+                                        .clone(),
+                                    id: m.id,
+                                },
+                            },
+                        }))
+                    }
+                }
                 ItemKind::Module(_) => todo!(),
             })
             .collect()

@@ -186,19 +186,12 @@ pub struct Method {
     pub info: Option<&'static MethodInfo>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BlockReporting {
-    #[serde(rename = "worst-case-weighted-sum")]
-    WorstCaseWeightedSum,
-    #[serde(rename = "worst-case-weighted-one")]
-    WorstCaseWeightedOne,
-    #[serde(rename = "focus")]
-    Focus(String),
-    #[serde(rename = "weighted")]
-    #[serde(alias = "enabled")]
-    Weighted,
-    #[serde(rename = "disabled")]
-    Disabled,
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct BlockReporting {
+    #[serde(default)]
+    pub mode: BlockReportingMode,
+    #[serde(default)]
+    pub id: Option<String>,
 }
 
 impl fmt::Display for BlockReporting {
@@ -206,12 +199,43 @@ impl fmt::Display for BlockReporting {
         write!(
             f,
             "{}",
+            match self.mode {
+                BlockReportingMode::Disabled => "disabled".to_string(),
+                BlockReportingMode::Weighted => "weighted".to_string(),
+                BlockReportingMode::WorstCaseWeightedOne => "worst-case-weighted-one".to_string(),
+                BlockReportingMode::WorstCaseWeightedSum => "worst-case-weighted-sum".to_string(),
+                BlockReportingMode::Focus => format!("focus:{}", self.id.as_ref().unwrap()),
+            }
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BlockReportingMode {
+    #[serde(rename = "worst-case-weighted-sum")]
+    WorstCaseWeightedSum,
+    #[serde(rename = "worst-case-weighted-one")]
+    WorstCaseWeightedOne,
+    #[serde(rename = "focus")]
+    Focus,
+    #[serde(rename = "weighted")]
+    #[serde(alias = "enabled")]
+    Weighted,
+    #[serde(rename = "disabled")]
+    Disabled,
+}
+
+impl fmt::Display for BlockReportingMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
             match self {
-                Self::Disabled => "disabled".to_string(),
-                Self::Weighted => "weighted".to_string(),
-                Self::WorstCaseWeightedOne => "worst-case-weighted-one".to_string(),
-                Self::WorstCaseWeightedSum => "worst-case-weighted-sum".to_string(),
-                Self::Focus(s) => format!("focus({s})"),
+                Self::Disabled => "disabled",
+                Self::Weighted => "weighted",
+                Self::WorstCaseWeightedOne => "worst-case-weighted-one",
+                Self::WorstCaseWeightedSum => "worst-case-weighted-sum",
+                Self::Focus => "focus",
             }
         )
     }
@@ -225,9 +249,9 @@ pub enum LeafReporting {
     Disabled,
 }
 
-impl Default for BlockReporting {
+impl Default for BlockReportingMode {
     fn default() -> Self {
-        BlockReporting::Weighted
+        BlockReportingMode::Weighted
     }
 }
 

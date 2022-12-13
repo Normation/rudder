@@ -16,7 +16,7 @@ test-docs: $(DOC_EXAMPLES_CF)
 test: libs
 	cargo test --locked
 	# Parse lib
-	cargo run --bin rudderc --quiet -- -o /tmp/test.cf rudderc/tests/cases/general/ntp/ntp.yml -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/
+	cargo run --bin rudderc --quiet -- -o /tmp/test.cf rudderc/tests/cases/general/ntp/technique.yml -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/
 
 %.cf: %.yml libs
 	cargo run --bin rudderc --quiet -- --quiet -l target/repos/ncf/tree/30_generic_methods/ --output $@ --target cf $<

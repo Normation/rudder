@@ -77,7 +77,7 @@ impl Windows {
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
         let technique = TechniqueTemplate {
-            id: src.name.as_str(),
+            id: &src.id.to_string(),
             has_modules: !Windows::list_resources(resources)?.is_empty(),
             // FIXME: add content
             methods: vec![],

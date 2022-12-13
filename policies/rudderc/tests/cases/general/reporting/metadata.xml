@@ -1,0 +1,89 @@
+<TECHNIQUE name="Test various reporting options">
+  <DESCRIPTION/>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>reporting</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Reporting</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="No block without condition" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d908" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d908">
+          htop
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="No block with condition" id="b86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="b86ce2e5-d5b6-45cc-87e8-c11cca71d907">
+          htop
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="A simpl block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+      <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c12">
+            ntp
+          </VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+    <SECTION name="A simple block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+      <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c45" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c45">
+            ntp
+          </VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+    <SECTION name="A nested block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+      <SECTION name="A simple block inside" reporting="worst-case-weighted-one" component="true" multivalued="true">
+        <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c14" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c14">
+              ntp
+            </VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION name="Another block inside" reporting="worst-case-weighted-sum" component="true" multivalued="true">
+        <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c13" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c13">
+              ntp
+            </VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
+        <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3d12" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3d12">
+              ntp
+            </VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
