@@ -1,7 +1,7 @@
 ---
 name: Directory
 description: Ensure the state of a directory
-version: "0.1"
+version: "0.0.1"
 supported_targets: ["unix", "windows"]
 parameters:
   path:

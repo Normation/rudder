@@ -7,12 +7,64 @@ use std::{fmt, str::FromStr};
 
 use anyhow::{bail, Error};
 
+/// Version of the calling agent and of the promise type. Useful to decide which features to enable
+/// and handle compatibility layers.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) struct Version {
+    major: usize,
+    minor: usize,
+    patch: usize,
+}
+
+impl Version {
+    pub(crate) fn new(major: usize, minor: usize, patch: usize) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)?;
+        Ok(())
+    }
+}
+
+impl FromStr for Version {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        dbg!(s);
+
+        let parts: Vec<&str> = s.splitn(3, '.').collect();
+
+        // Only take numbers in patch version to remove pre-version prefixes
+        let patch: String = parts[2]
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
+
+        if parts.len() < 3 {
+            bail!("Incomplete version number");
+        }
+
+        Ok(Self {
+            major: parts[0].parse()?,
+            minor: parts[1].parse()?,
+            patch: patch.parse()?,
+        })
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Header {
     /// The name of the sender
     pub name: String,
     /// Version
-    pub version: String,
+    pub version: Version,
     /// Flags
     pub flags: Vec<String>,
     /// Protocol version
@@ -44,7 +96,7 @@ impl FromStr for Header {
         }
 
         let name = header[0].to_string();
-        let version = header[1].to_string();
+        let version = header[1].parse()?;
         let protocol_version = header[2].to_string();
         let flags = match header.get(3) {
             Some(f) => f.split(' ').map(|s| s.to_string()).collect(),
@@ -72,13 +124,10 @@ impl Header {
                 self.protocol_version
             );
         }
-        if !self.flags.is_empty() {
-            bail!("Expecting empty flags");
-        }
         Ok(())
     }
 
-    pub(crate) fn new(name: String, version: String) -> Self {
+    pub(crate) fn new(name: String, version: Version) -> Self {
         Self {
             name,
             version,
@@ -100,7 +149,7 @@ mod tests {
             "CFEngine 3.16.0 v1".parse::<Header>().unwrap(),
             Header {
                 name: "CFEngine".to_string(),
-                version: "3.16.0".to_string(),
+                version: "3.16.0".parse().unwrap(),
                 protocol_version: "v1".to_string(),
                 flags: vec![],
             }
@@ -113,7 +162,7 @@ mod tests {
             "CFEngine 3.16.0 v1",
             Header {
                 name: "CFEngine".to_string(),
-                version: "3.16.0".to_string(),
+                version: "3.16.0".parse().unwrap(),
                 protocol_version: "v1".to_string(),
                 flags: vec![],
             }
@@ -124,7 +173,7 @@ mod tests {
             "git_promise_module 0.0.1 v1 json_based",
             Header {
                 name: "git_promise_module".to_string(),
-                version: "0.0.1".to_string(),
+                version: "0.0.1".parse().unwrap(),
                 protocol_version: "v1".to_string(),
                 flags: vec!["json_based".to_string()],
             }
