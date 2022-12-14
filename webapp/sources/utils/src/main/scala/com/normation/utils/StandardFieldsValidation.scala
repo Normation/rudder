@@ -64,13 +64,14 @@ object NodeIdRegex extends RegexValidation {
 
 /*
  * For 6.x, we don't impose a max length in contradition to https://datatracker.ietf.org/doc/html/rfc1123#section-2.1
+ * We added an exception for "_" that is accepted on Windows (see: https://issues.rudder.io/issues/22186)
  * where each dot-separated segments can be only max 63 chars, and the total length, including dot, 255.
  * But we implement:
  * - must start by alnum
  * - only alnum, dash and dot
  */
 object HostnameRegex extends RegexValidation {
-  lazy val stringPattern = """([a-zA-Z0-9][a-zA-Z0-9\-\.]*)"""
+  lazy val stringPattern = """([a-zA-Z0-9][a-zA-Z0-9_\-\.]*)"""
 
   def checkHostname(hostname: String): PureResult[String] = {
     if (HostnameRegex.isValid(hostname)) {
