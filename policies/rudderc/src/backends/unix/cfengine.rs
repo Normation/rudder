@@ -43,8 +43,8 @@ pub fn expanded(s: &str) -> String {
     format!("\"${{{}}}\"", s)
 }
 
-pub fn escape(s: &str) -> String {
-    s.replace(r#"\\"#, r#"\\\\"#).replace(r#"""#, r#"\\""#)
+pub fn cfengine_escape(s: &str) -> String {
+    s.replace(r#"\\"#, r#"\\\\"#).replace('"', r#"\\""#)
 }
 
 // def escapeCFEngineString(value: String)
