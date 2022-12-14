@@ -5,10 +5,9 @@
 
 use std::path::PathBuf;
 
+use crate::cfengine::protocol::ActionPolicy;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-
-use crate::PolicyMode;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Parameters {
@@ -20,15 +19,13 @@ pub struct Parameters {
     pub backup_dir: PathBuf,
     /// Unique node identifier
     pub node_id: Option<String>,
-    /// Policy mode
-    ///
-    /// Default is enforce.
-    #[serde(default)]
-    pub(crate) policy_mode: PolicyMode,
     /// Version of the Rudder module protocol
     pub(crate) rudder_module_protocol: String,
     /// Module type parameters
     pub data: Map<String, Value>,
+    // Only passed if warn
+    #[serde(default)]
+    pub(crate) action_policy: ActionPolicy,
 }
 
 impl Parameters {

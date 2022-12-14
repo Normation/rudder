@@ -83,7 +83,9 @@ impl Header {
             name,
             version,
             protocol_version: "v1".to_string(),
-            flags: vec!["json_based".to_string()],
+            // We always implement the JSON variant
+            // And all modules MUST support audit mode
+            flags: vec!["json_based".to_string(), "action_policy".to_string()],
         }
     }
 }

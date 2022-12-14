@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     cfengine::log::LevelFilter, parameters::Parameters, rudder_error, rudder_info,
-    CheckApplyResult, Outcome, ProtocolResult, ValidateResult,
+    CheckApplyResult, Outcome, PolicyMode, ProtocolResult, ValidateResult,
 };
 
 const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -36,7 +36,6 @@ impl FromStr for Class {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
-//#[serde(default)]
 pub(crate) enum ActionPolicy {
     #[serde(alias = "nop")]
     Warn,
@@ -46,6 +45,15 @@ pub(crate) enum ActionPolicy {
 impl Default for ActionPolicy {
     fn default() -> Self {
         ActionPolicy::Fix
+    }
+}
+
+impl From<ActionPolicy> for PolicyMode {
+    fn from(p: ActionPolicy) -> Self {
+        match p {
+            ActionPolicy::Fix => PolicyMode::Enforce,
+            ActionPolicy::Warn => PolicyMode::Audit,
+        }
     }
 }
 
@@ -256,7 +264,6 @@ mod tests {
     use serde_json::{Map, Value};
 
     use super::*;
-    use crate::PolicyMode;
 
     #[test]
     fn it_rejects_wrong_classes() {
@@ -278,7 +285,7 @@ mod tests {
             temporary_dir: "".into(),
             backup_dir: "/backup".into(),
             rudder_module_protocol: "0".into(),
-            policy_mode: PolicyMode::Enforce,
+            action_policy: ActionPolicy::Fix,
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -312,7 +319,7 @@ mod tests {
             temporary_dir: "".into(),
             backup_dir: "/backup".into(),
             rudder_module_protocol: "0".into(),
-            policy_mode: PolicyMode::Enforce,
+            action_policy: ActionPolicy::Fix,
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,

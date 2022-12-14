@@ -129,7 +129,7 @@ impl CfengineRunner {
         // Now we're all set up, let's run the executor main loop
         loop {
             let line = Self::read_line(&mut input)?;
-            //let line = dbg!(line);
+            let line = dbg!(line);
             // Lazily run initializer, in case it is expensive
             if !initialized {
                 match promise.init() {
@@ -158,7 +158,7 @@ impl CfengineRunner {
             } else if let Ok(req) = serde_json::from_str::<EvaluateRequest>(&line) {
                 set_max_level(req.log_level);
                 let result: EvaluateOutcome = promise
-                    .check_apply(req.attributes.policy_mode, &req.attributes)
+                    .check_apply(req.attributes.action_policy.into(), &req.attributes)
                     .into();
                 Self::write_json(
                     &mut output,

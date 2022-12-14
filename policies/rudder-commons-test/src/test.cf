@@ -7,7 +7,7 @@ bundle common test {
   vars:
       # Read JSON data
       "data" string => getenv("TEST_DATA", "2048");
-      "policy_mode" string => getenv("TEST_POLICY_MODE", "2048");
+      "action_policy" string => getenv("TEST_ACTION_POLICY", "2048");
 }
 
 bundle agent main {
@@ -15,7 +15,7 @@ bundle agent main {
       "test"
         rudder_module_protocol => "0",
         data => parsejson("${test.data}"),
-        policy_mode => "${test.policy_mode}",
+        action_policy => "${test.action_policy}",
         classes => test_classes;
 
   reports:

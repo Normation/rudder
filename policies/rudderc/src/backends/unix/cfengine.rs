@@ -42,3 +42,10 @@ pub fn quoted(s: &str) -> String {
 pub fn expanded(s: &str) -> String {
     format!("\"${{{}}}\"", s)
 }
+
+pub fn escape(s: &str) -> String {
+    s.replace(r#"\\"#, r#"\\\\"#).replace(r#"""#, r#"\\""#)
+}
+
+// def escapeCFEngineString(value: String)
+// = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")

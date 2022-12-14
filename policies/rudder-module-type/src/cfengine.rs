@@ -7,7 +7,7 @@
 //! [custom promise protocol](https://github.com/cfengine/core/blob/master/docs/custom_promise_types/modules.md),
 //! added in CFEngine 3.17.
 //!
-//! This library targets CFEngine 3.18 LTS or later.
+//! This library targets CFEngine 3.18.3 LTS or later (for proper `action_policy` support).
 //!
 //! It uses the JSON variant of the protocol, and allows easily implementing promise types in
 //! Rust with a type-safe and idiomatic interface.
