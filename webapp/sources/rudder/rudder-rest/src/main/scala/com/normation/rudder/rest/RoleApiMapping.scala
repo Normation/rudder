@@ -207,6 +207,7 @@ object AuthorizationApiMapping {
         case Validator.Write =>
           Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
         case Validator.Edit  => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil
+        case _               => Nil // Done within plugin
       }
     }
   }
