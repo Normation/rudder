@@ -26,8 +26,8 @@
 
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/datatables/rowGroup-bootstrap-1.2.0.min.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/datatables/fixedHeader-bootstrap-3.2.3.min.css" media="screen" />
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-main.css"/>
 
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/AdminLTE/AdminLTE.min.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-menu.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-datatable.css" media="screen" />
@@ -45,7 +45,6 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/jquery/jquery-ui.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery-ui-timepicker-addon.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery-ui-timepicker-addon-i18n.min.js"></script>
-    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/AdminLTE/AdminLTE.min.js"></script>
 
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/bootstrap.min.js"></script>
 
@@ -118,7 +117,7 @@
     </script>
 
   </head>
-  <body data-lift="CommonLayout.display" class="skin-yellow sidebar-mini">
+  <body data-lift="CommonLayout.display" class="sidebar-mini">
     <div class="wrapper">
       <header class="main-header">
         <a href="/secure/" class="logo fixed">
@@ -126,7 +125,7 @@
           <span class="logo-lg"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo-rudder-white.svg"></span>
         </a>
         <nav class="navbar navbar-static-top" role="navigation">
-          <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+          <a href="#" class="sidebar-toggle" role="button" onclick="$('body').toggleClass('sidebar-collapse')">
             <span class="sr-only">Toggle navigation</span>
           </a>
           <!-- Quick Search-->

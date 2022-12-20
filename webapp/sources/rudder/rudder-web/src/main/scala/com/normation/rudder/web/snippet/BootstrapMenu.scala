@@ -57,15 +57,15 @@ class BootstrapMenu {
       for {
         item <- menuEntries
       } yield {
-        val style = if (item.current || item.kids.exists(_.current)) "active" else ""
+        val style = if (item.current || item.kids.exists(_.current)) "active " else ""
 
         item.kids match {
           case Nil  =>
-            <li class={style + " treeview"}>
+            <li class={style + "treeview"}>
               <a href={item.uri}>{item.text}</a>
             </li>
           case kids =>
-            <li class={style + " treeview"}>
+            <li class={style + "treeview treview-toggle"}>
               <a href="#">
                 {item.text}
                 <i class="fa fa-angle-left pull-right"></i>
