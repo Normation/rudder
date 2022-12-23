@@ -47,8 +47,9 @@ import scala.concurrent.duration._
 import zio._
 
 /**
- * A naive scheduler which checks every N days if old inventories are purged
- * If so, they will be purged
+ * A naive scheduler which checks every N days if old inventories are purged from LDAP "removed" tree.
+ * If so, they will be purged.
+ * This batch can be removed once the property to keep inventories in LDAP when deleted is suppressed.
  */
 class PurgeDeletedInventories(
     removeNodeService: RemoveNodeService,
