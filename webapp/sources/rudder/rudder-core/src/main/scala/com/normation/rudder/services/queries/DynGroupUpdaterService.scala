@@ -41,6 +41,7 @@ import com.normation.box._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -89,7 +90,7 @@ class DynGroupUpdaterServiceImpl(
     roNodeGroupRepository: RoNodeGroupRepository,
     woNodeGroupRepository: WoNodeGroupRepository,
     queryProcessor:        QueryProcessor
-) extends DynGroupUpdaterService with Loggable {
+) extends DynGroupUpdaterService {
 
   override def computeDynGroup(group: NodeGroup): Box[NodeGroup] = {
     for {
@@ -100,7 +101,9 @@ class DynGroupUpdaterServiceImpl(
                            query
                          ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupCompute = (System.currentTimeMillis - timePreCompute)
-      _                = logger.debug(s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms")
+      _                = DynamicGroupLoggerPure.Timing.logEffect.trace(
+                           s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms"
+                         )
     } yield {
       group.copy(serverList = newMembers.toSet)
     }
@@ -140,7 +143,9 @@ class DynGroupUpdaterServiceImpl(
                           .updateDynGroupNodes(newGroup, modId, actor, reason)
                           .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupUpdate = (System.currentTimeMillis - timePreUpdate)
-      _               = logger.debug(s"Dynamic group ${group.id.serialize} with name ${group.name} updated in ${timeGroupUpdate} ms")
+      _               = DynamicGroupLoggerPure.Timing.logEffect.trace(
+                          s"Dynamic group ${group.id.serialize} with name ${group.name} updated in ${timeGroupUpdate} ms"
+                        )
     } yield {
       DynGroupDiff(newGroup, group)
     }

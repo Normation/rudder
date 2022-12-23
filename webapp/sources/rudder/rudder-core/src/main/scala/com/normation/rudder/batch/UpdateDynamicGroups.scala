@@ -43,6 +43,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.queries._
@@ -99,14 +100,13 @@ class UpdateDynamicGroups(
 ) {
 
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
-  val logger               = ScheduledJobLogger
 
   protected lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   // start batch
   if (updateInterval < 1) {
-    logger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))
+    ScheduledJobLogger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))
   } else {
-    logger.trace("***** starting Dynamic Group Update batch *****")
+    ScheduledJobLogger.debug(s"Starting Dynamic Group Update scheduled job with update interval: ${updateInterval} min")
     laUpdateDyngroupManager ! GroupUpdateMessage.StartUpdate
   }
 
@@ -133,8 +133,6 @@ class UpdateDynamicGroups(
   class LAUpdateDyngroupManager extends SpecializedLiftActor[GroupUpdateMessage] {
     updateManager =>
 
-    val logger = ScheduledJobLogger
-
     private var updateId       = 0L
     private var lastUpdateTime = new DateTime(0)
     private var avoidedUpdate  = 0L
@@ -144,7 +142,9 @@ class UpdateDynamicGroups(
     private[this] val isAutomatic        = updateInterval > 0
     private[this] val realUpdateInterval = {
       if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
-        logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small, using '${DYNGROUP_MINIMUM_UPDATE_INTERVAL}'")
+        ScheduledJobLogger.warn(
+          s"Value '${updateInterval}' for ${propertyName} is too small, using '${DYNGROUP_MINIMUM_UPDATE_INTERVAL}'"
+        )
         DYNGROUP_MINIMUM_UPDATE_INTERVAL
       } else {
         updateInterval
@@ -155,10 +155,18 @@ class UpdateDynamicGroups(
 
     private[this] def processUpdate(force: Boolean) = {
       val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
-      // if there was a delayedUpdate, we need to force recomputation of groups, or
+      // if there was a delayedUpdate, we need to force re-computation of groups, or
       // if there is one pending (which
       if (need || force || onePending) {
-        logger.trace("***** Start a new update")
+        if (DynamicGroupLoggerPure.logEffect.isDebugEnabled) {
+          val reason = List(
+            if (force) Some("force-reload") else None,
+            // last update time is set to EPOCH on force, so avoid displaying that if force is set
+            if (need && !force) Some(s"there is change since last update on ${lastUpdateTime}") else None,
+            if (onePending) Some("processing pending delayed update") else None
+          ).flatten.mkString("; ")
+          DynamicGroupLoggerPure.logEffect.debug(s"Start a new dynamic group update (reason: ${reason})")
+        }
 
         currentState match {
           case IdleGroupUpdater =>
@@ -173,16 +181,18 @@ class UpdateDynamicGroups(
                 )
               case e: EmptyBox =>
                 val error = (e ?~! "Error when trying to get the list of dynamic group to update")
-                logger.error(error.messageChain)
+                DynamicGroupLoggerPure.logEffect.error(error.messageChain)
 
             }
           case _: StartDynamicUpdate if (!onePending) => onePending = true
           case _                =>
-            logger.debug("Ignoring start dynamic group update request because another update is in progress")
+            DynamicGroupLoggerPure.logEffect.debug(
+              "Ignoring start dynamic group update request because another update is in progress"
+            )
         }
       } else {
         avoidedUpdate = avoidedUpdate + 1
-        logger.debug(
+        DynamicGroupLoggerPure.logEffect.debug(
           s"No changes that can lead to a dynamic group update happened since ${lastUpdateTime.toIsoStringNoMillis} (total ${avoidedUpdate} times avoided)"
         )
       }
@@ -202,6 +212,7 @@ class UpdateDynamicGroups(
       // Ask for a new dynamic group update
       //
       case GroupUpdateMessage.StartUpdate =>
+        ScheduledJobLogger.debug("Dynamic group update starts")
         if (isAutomatic) {
           // schedule next update, in minutes
           LAPinger.schedule(this, GroupUpdateMessage.StartUpdate, realUpdateInterval * 1000L * 60)
@@ -225,7 +236,7 @@ class UpdateDynamicGroups(
       // Process a dynamic group update response
       //
       case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => // TODO: other log ?
-        logger.trace(s"***** Get result for process: ${id}")
+        DynamicGroupLoggerPure.logEffect.trace(s"Get result for process: ${id}")
         lastUpdateTime = start
         currentState = IdleGroupUpdater
 
@@ -236,12 +247,12 @@ class UpdateDynamicGroups(
 
         // Maybe should be done at the end, when we know it's ok to start deployment ...
         if (onePending) {
-          logger.debug("Immediatly start another dynamic groups update process: pending request")
+          DynamicGroupLoggerPure.logEffect.debug("Immediately start another dynamic groups update process: pending request")
           this ! GroupUpdateMessage.DelayedUpdate
         }
 
         // log some information
-        logger.debug(
+        DynamicGroupLoggerPure.logEffect.debug(
           s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toIsoStringNoMillis}, ended at ${end.toIsoStringNoMillis})"
         )
 
@@ -252,14 +263,16 @@ class UpdateDynamicGroups(
           eitherRes match {
             case Left(e)     =>
               val error = (e.fullMsg + s" Error when updating dynamic group '${id.serialize}'")
-              logger.error(error)
+              DynamicGroupLoggerPure.logEffect.error(error)
             case Right(diff) =>
               val addedNodes   = displayNodechange(diff.added)
               val removedNodes = displayNodechange(diff.removed)
-              logger.debug(s"Group ${id.serialize}: adding ${addedNodes}, removing ${removedNodes}")
+              DynamicGroupLoggerPure.logEffect.debug(s"Group ${id.serialize}: adding ${addedNodes}, removing ${removedNodes}")
               // if the diff is not empty, start a new deploy
               if (diff.added.nonEmpty || diff.removed.nonEmpty) {
-                logger.info(s"Dynamic group ${id.serialize}: added node with id: ${addedNodes}, removed: ${removedNodes}")
+                DynamicGroupLoggerPure.logEffect.info(
+                  s"Dynamic group ${id.serialize}: added node with id: ${addedNodes}, removed: ${removedNodes}"
+                )
                 // we need to trigger a deployment in this case
                 needDeployment = true
               }
@@ -275,7 +288,7 @@ class UpdateDynamicGroups(
       //
       // Unexpected messages
       //
-      case x                                                                      => logger.debug(s"Dynamic group updater can't process this message: '${x}'")
+      case x                                                                      => DynamicGroupLoggerPure.logEffect.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
 
     private[this] object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
@@ -285,7 +298,7 @@ class UpdateDynamicGroups(
         // Process a dynamic group update
         //
         case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds)) => {
-          logger.trace(s"Start a new dynamic group update, id: ${processId}")
+          DynamicGroupLoggerPure.logEffect.trace(s"Start a new dynamic group update, id: ${processId}")
           currentState = StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds, dynGroupsWithDependencyIds))
           try {
 
@@ -295,10 +308,10 @@ class UpdateDynamicGroups(
               getComputeDynGroupParallelism().getOrElse("1"),
               1,
               "rudder_compute_dyngroups_max_parallelism",
-              (s: String) => logger.warn(s)
+              (s: String) => DynamicGroupLoggerPure.logEffect.warn(s)
             )
 
-            logger.debug(
+            DynamicGroupLoggerPure.logEffect.debug(
               s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies"
             )
             val initialTime = System.currentTimeMillis
@@ -318,7 +331,9 @@ class UpdateDynamicGroups(
                          }
 
               timeComputeNonDependantGroups = (System.currentTimeMillis - initialTime)
-              _                             = logger.debug(s"Computing dynamic groups without dependencies finished in ${timeComputeNonDependantGroups} ms")
+              _                             = DynamicGroupLoggerPure.Timing.logEffect.debug(
+                                                s"Computing dynamic groups without dependencies finished in ${timeComputeNonDependantGroups} ms"
+                                              )
               preComputeDependantGroups     = System.currentTimeMillis
 
               results2 <- dynGroupsWithDependencyIds.accumulateParN(1) {
@@ -335,7 +350,7 @@ class UpdateDynamicGroups(
                                 .map(x => (dynGroupId, x))
                           }
               _         = {
-                logger.debug(
+                DynamicGroupLoggerPure.Timing.logEffect.debug(
                   s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
                 )
               }
