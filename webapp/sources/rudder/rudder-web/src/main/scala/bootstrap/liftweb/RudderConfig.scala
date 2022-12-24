@@ -624,7 +624,7 @@ object RudderConfig extends Loggable {
     }
   }
 
-  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
+  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
 
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
 

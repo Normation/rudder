@@ -44,6 +44,8 @@ import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 
 // -----------------------------------------------------
 // Constants and private objects and classes
@@ -79,9 +81,9 @@ final case class StartProcessing(id: Long, started: DateTime) extends UpdaterSta
 trait AbstractScheduler {
 
   type T
-  val schedulerMinimumIntervalTime = 1
-  val schedulerMaximumIntervalTime = 300
-  def updateInterval: Int // in seconds
+  private val schedulerMinimumIntervalTime: Duration = 1.second
+  private val schedulerMaximumIntervalTime: Duration = 5.minutes
+  def updateInterval: Duration
   def executeTask:    Long => Box[T]
   def displayName:    String
   def propertyName:   String
@@ -114,8 +116,8 @@ trait AbstractScheduler {
 
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater
-    private var onePending         = false
-    private val realUpdateInterval = {
+    private var onePending = false
+    private val realUpdateInterval: Duration = {
       if (updateInterval < schedulerMinimumIntervalTime) {
         logger.warn(
           s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'"
@@ -161,8 +163,8 @@ trait AbstractScheduler {
         currentState = IdleUpdater
         // if one update is pending, immediatly start one other
 
-        // schedule next update, in minutes
-        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval * 1000L)
+        // schedule next update
+        LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval.toMillis)
 
         // log some information
         val format = ISODateTimeFormat.dateTimeNoMillis()
@@ -175,12 +177,12 @@ trait AbstractScheduler {
             }
             logger.error(error.messageChain)
           case Full(x) =>
-            val executionTime = end.getMillis() - start.getMillis()
-            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTime} ms (started at ${start
+            val executionTimeInMs = end.getMillis() - start.getMillis()
+            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTimeInMs} ms (started at ${start
                 .toString(format)}, finished at ${end.toString(format)})")
-            if (executionTime >= updateInterval * 1000) {
+            if (executionTimeInMs >= updateInterval.toMillis) {
               ApplicationLogger.warn(
-                s"[${displayName}] Task frequency is set too low! Last task took ${executionTime} ms but tasks are scheduled every ${updateInterval * 1000} ms. Adjust ${propertyName} if this problem persists."
+                s"[${displayName}] Task frequency is set too low! Last task took ${executionTimeInMs} ms but tasks are scheduled every ${updateInterval.toMillis} ms. Adjust ${propertyName} if this problem persists."
               )
             }
         }
