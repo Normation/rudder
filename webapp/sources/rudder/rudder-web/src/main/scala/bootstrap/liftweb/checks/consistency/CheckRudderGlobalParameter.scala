@@ -112,7 +112,7 @@ class CheckRudderGlobalParameter(
 
     val modId           = ModificationId(uuidGen.newUuid)
     // get defaults global parameters. It should be an array of JValues
-    val managedResource = IOManaged.make(parse(Resource.getAsString(resource)))(_ => ())
+    val managedResource = IOResult.attempt(parse(Resource.getAsString(resource)))
 
     val check = ZIO.scoped[Any](
       managedResource.flatMap(json => {

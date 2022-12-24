@@ -38,14 +38,12 @@
 package com.normation.rudder.inventory
 
 import better.files._
-import com.normation.box.IOManaged
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
 import java.io.FileNotFoundException
-import java.io.InputStream
 import java.nio.file
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.StandardWatchEventKinds
@@ -95,10 +93,11 @@ object InventoryProcessingUtils {
     inventoryExtensions.contains(ext)
   }
 
-  def makeManagedStream(file: File, kind: String = "inventory") = IOManaged.makeM[InputStream] {
-    IOResult.attempt(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
-  }(_.close())
-  def makeFileExists(file: File)                                = IOManaged.make[Boolean](file.exists)(_ => ())
+  def makeManagedStream(file: File, kind: String = "inventory") =
+    IOResult
+      .attempt(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
+      .withFinalizerAuto
+  def makeFileExists(file: File)                                = IOResult.attempt(file.exists)
 }
 
 /**

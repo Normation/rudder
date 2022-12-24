@@ -40,7 +40,7 @@ package com.normation.rudder.repository.xml
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
-import com.normation.box.IOManaged
+import com.normation.box.IOScoped
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
@@ -440,7 +440,7 @@ trait TechniqueRevisionRepository {
    * technique/1.0/metadata.xml has path "metadata.xml"
    * Directories are added at the beginning
    */
-  def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOManaged[InputStream]])]]]
+  def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOScoped[InputStream]])]]]
 }
 
 class GitParseTechniqueLibrary(
@@ -539,7 +539,7 @@ class GitParseTechniqueLibrary(
    * technique/1.0/metadata.xml has path "metadata.xml"
    * Directories are added at the beginning
    */
-  override def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOManaged[InputStream]])]]] = {
+  override def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOScoped[InputStream]])]]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
 
     /*

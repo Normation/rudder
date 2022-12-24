@@ -38,7 +38,6 @@ package com.normation.rudder.inventory
 
 import better.files.Resource
 import com.github.ghik.silencer.silent
-import com.normation.box.IOManaged
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.inventory.domain.CertifiedKey
@@ -137,9 +136,9 @@ class TestCertificate extends Specification with Loggable {
   val windows = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
   val linux   = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
 
-  val exist = IOManaged.make(true)(_ => ())
+  val exist = ZIO.succeed(true)
 
-  def asManagedStream(name: String) = IOManaged.make(Resource.getAsStream(name))(_.close())
+  def asManagedStream(name: String) = IOResult.attempt(Resource.getAsStream(name)).withFinalizerAuto
 
   // LINUX
   "when a node is not in repository, it is ok to have a signature with cfe-key" in {

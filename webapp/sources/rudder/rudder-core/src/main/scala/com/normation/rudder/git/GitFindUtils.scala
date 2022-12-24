@@ -41,9 +41,10 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
 import com.normation.NamedZioLogger
-import com.normation.box.IOManaged
+import com.normation.box.IOScoped
 import com.normation.errors._
 import com.normation.rudder.git.ZipUtils.Zippable
+
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -109,14 +110,14 @@ object GitFindUtils extends NamedZioLogger {
     ZIO.scoped(getManagedFileContent(db, revTreeId, path).flatMap(useIt))
   }
 
-  def getManagedFileContent(db: Repository, revTreeId: ObjectId, path: String): IOManaged[ObjectStream] = {
+  def getManagedFileContent(db: Repository, revTreeId: ObjectId, path: String): IOScoped[ObjectStream] = {
     val filePath = {
       var p = path
       while (path.endsWith("/")) p = p.substring(0, p.length - 1)
       p
     }
 
-    IOManaged.makeM(IOResult.attemptZIO(s"Exception caught when trying to access file '${filePath}'") {
+    IOResult.attemptZIO(s"Exception caught when trying to access file '${filePath}'") {
       // now, the treeWalk
       val tw = new TreeWalk(db)
 
@@ -138,7 +139,7 @@ object GitFindUtils extends NamedZioLogger {
             s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}"
           ).fail
       }
-    })(s => effectUioUnit(s.close()))
+    }.withFinalizer(s => effectUioUnit(s.close()))
   }
 
   /**
@@ -207,12 +208,12 @@ object GitFindUtils extends NamedZioLogger {
       db:             Repository,
       revTreeId:      ObjectId,
       onlyUnderPaths: List[String] = Nil
-  ): IOResult[Seq[(String, Option[IOManaged[InputStream]])]] = {
+  ): IOResult[Seq[(String, Option[IOScoped[InputStream]])]] = {
     IOResult.attempt(
       s"Error when creating the list of files under ${onlyUnderPaths.mkString(", ")} in commit with id: '${revTreeId}'"
     ) {
       val directories = scala.collection.mutable.Set[String]()
-      val entries     = scala.collection.mutable.Buffer.empty[(String, Option[IOManaged[InputStream]])]
+      val entries     = scala.collection.mutable.Buffer.empty[(String, Option[IOScoped[InputStream]])]
       val tw          = new TreeWalk(db)
       // create a filter with a OR of all filters
       tw.setFilter(new FileTreeFilter(onlyUnderPaths, Nil))

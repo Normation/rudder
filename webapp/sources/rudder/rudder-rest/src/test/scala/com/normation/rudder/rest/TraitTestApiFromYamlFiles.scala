@@ -38,7 +38,7 @@
 package com.normation.rudder.rest
 
 import better.files._
-import com.normation.box.IOManaged
+import com.normation.box.IOScoped
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -176,7 +176,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
     }
 
     // file are copier directly into destDir
-    def copyTransform(orig: Path, destDir: File): IOResult[(String, IOManaged[InputStream])] = {
+    def copyTransform(orig: Path, destDir: File): IOResult[(String, IOScoped[InputStream])] = {
       // for now, nothing more
       val name = orig.getFileName.toString
       val dest = destDir / name
@@ -190,7 +190,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
     }
 
     // the list anyref here is Yaml objects
-    def loadYamls(input: IOManaged[InputStream]): IOResult[List[AnyRef]] = {
+    def loadYamls(input: IOScoped[InputStream]): IOResult[List[AnyRef]] = {
       for {
         tool  <- IOResult.attempt(new Yaml())
         yamls <- ZIO.scoped(input.flatMap(x => IOResult.attempt(tool.loadAll(x).asScala.toList)))

@@ -39,7 +39,7 @@ package com.normation.rudder.inventory
 
 import better.files.File
 import com.github.ghik.silencer.silent
-import com.normation.box.IOManaged
+import com.normation.box.IOScoped
 import com.normation.errors._
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
@@ -115,10 +115,10 @@ final case class InventoryPair(inventory: File, signature: File) {
  * we have (in test for ex).
  */
 final case class SaveInventoryInfo(
-    fileName:  String,
-    inventory: IOManaged[InputStream],
-    signature: IOManaged[InputStream],
-    exists:    IOManaged[Boolean]
+                                    fileName:  String,
+                                    inventory: IOScoped[InputStream],
+                                    signature: IOScoped[InputStream],
+                                    exists:    IOScoped[Boolean]
 )
 
 sealed trait InventoryProcessStatus {
@@ -187,10 +187,10 @@ class InventoryProcessor(
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
     @silent("a type was inferred to be `Any`")
     def saveWithSignature(
-        inventory:          Inventory,
-        publicKey:          JavaSecPubKey,
-        newInventoryStream: IOManaged[InputStream],
-        newSignature:       IOManaged[InputStream]
+                           inventory:          Inventory,
+                           publicKey:          JavaSecPubKey,
+                           newInventoryStream: IOScoped[InputStream],
+                           newSignature:       IOScoped[InputStream]
     ): IOResult[InventoryProcessStatus] = {
       ZIO.scoped(
         newInventoryStream.flatMap(inventoryStream => {
@@ -220,7 +220,7 @@ class InventoryProcessor(
       )
     }
 
-    def parseSafe(newInventoryStream: IOManaged[InputStream], inventoryFileName: String): IOResult[Inventory] = {
+    def parseSafe(newInventoryStream: IOScoped[InputStream], inventoryFileName: String): IOResult[Inventory] = {
       ZIO.scoped(
         newInventoryStream.flatMap(is => {
           for {

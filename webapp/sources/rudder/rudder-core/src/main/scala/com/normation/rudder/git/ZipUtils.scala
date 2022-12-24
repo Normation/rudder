@@ -36,7 +36,7 @@
  */
 package com.normation.rudder.git
 
-import com.normation.box.IOManaged
+import com.normation.box.IOScoped
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -62,8 +62,8 @@ object ZipUtils {
   final case class Zippable(path: String, useContent: Option[(InputStream => IOResult[Any]) => IOResult[Any]])
 
   object Zippable {
-    def make(path: String, content: Option[IOManaged[InputStream]]): Zippable = {
-      def getUseContent(x: IOManaged[InputStream]): (InputStream => IOResult[Any]) => IOResult[Any] = {
+    def make(path: String, content: Option[IOScoped[InputStream]]): Zippable = {
+      def getUseContent(x: IOScoped[InputStream]): (InputStream => IOResult[Any]) => IOResult[Any] = {
         (use: InputStream => IOResult[Any]) => ZIO.scoped(x.flatMap(use))
       }
       Zippable(path, content.map(x => getUseContent(x)))
