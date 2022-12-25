@@ -154,7 +154,7 @@ class DynGroupServiceImpl(
   override def changesSince(lastTime: DateTime):   Box[Boolean]                              = {
     val n0 = System.currentTimeMillis
     if (n0 - lastTime.getMillis < 100) {
-      Full(true)
+      Full(false)
     } else {
       /*
        * We want to see if an entry in:
