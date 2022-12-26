@@ -12,6 +12,7 @@ license = "GPL-3.0-or-later"
 [dependencies]
 # FIXME test static build with musl
 anyhow = "1"
+file-owner = "0.1.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rudder_module_type = { path = "../../rudder-module-type" }

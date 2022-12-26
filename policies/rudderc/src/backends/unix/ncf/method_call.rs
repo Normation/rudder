@@ -53,7 +53,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let mut parameters = vec![];
         for p in &info.parameter {
             parameters.push(match m.params.get(&p.name) {
-                Some(p) => quoted(p),
+                Some(p) => quoted(&cfengine_escape(p)),
                 _ => bail!("Missing parameter {}", p.name),
             })
         }
@@ -144,8 +144,8 @@ impl TryFrom<Method> for (Promise, Bundle) {
 
         let bundle_name = format!("call_{}", c_id);
         let mut call_parameters = vec![
-            quoted(&report_component),
-            quoted(&report_parameter),
+            quoted(&cfengine_escape(&report_component)),
+            quoted(&cfengine_escape(&report_parameter)),
             quoted(id),
             "@{args}".to_string(),
         ];

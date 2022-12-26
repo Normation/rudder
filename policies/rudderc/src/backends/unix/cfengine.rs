@@ -46,6 +46,3 @@ pub fn expanded(s: &str) -> String {
 pub fn cfengine_escape(s: &str) -> String {
     s.replace(r#"\\"#, r#"\\\\"#).replace('"', r#"\\""#)
 }
-
-// def escapeCFEngineString(value: String)
-// = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
