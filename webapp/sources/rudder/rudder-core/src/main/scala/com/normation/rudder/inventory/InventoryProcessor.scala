@@ -56,12 +56,14 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import java.io.InputStream
 import java.nio.file.NoSuchFileException
 import java.security.{PublicKey => JavaSecPubKey}
+import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import zio._
@@ -380,6 +382,26 @@ class InventoryMover(
     }
   }
 
+  /*
+   * When the inventory failed, we want to write a log file with the error near it:
+   * /var/rudder/inventories/failed/
+   *  - nodeXXX-uuid.ocs
+   *  - nodeXXX-uuid.ocs.reject-YYYYMMdd-HHmmss.log
+   *  - nodeXXX-uuid.ocs.sign
+   */
+  def writeErrorLogFile(failedInventoryPath: File, result: InventoryProcessStatus): UIO[Unit] = {
+    import com.normation.rudder.inventory.StatusLog._
+    val date       = DateFormaterService.serialize(DateTime.now())
+    val rejectPath = failedInventoryPath.pathAsString + s".reject-${date}.log"
+
+    // this must never lead to a bubbling failure
+    IOResult
+      .effect(File(rejectPath).writeText(s"""${date}
+                                            |${result.msg.replaceAll("; cause was:", "\ncause was:")}""".stripMargin))
+      .catchAll(err => InventoryProcessingLogger.error(s"Error when writing rejection log file ${rejectPath}: ${err.fullMsg}"))
+      .unit
+  }
+
   def moveFiles(inventory: File, signature: File, result: InventoryProcessStatus): UIO[Unit] = {
     result match {
       case InventoryProcessStatus.Saved(_, _)                                               =>
@@ -387,8 +409,10 @@ class InventoryMover(
         safeMove(signature, signature.moveTo(received / signature.name)(File.CopyOptions(overwrite = true))) *>
         safeMove(inventory, inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
       case _: InventoryProcessStatus.SignatureInvalid | _: InventoryProcessStatus.SaveError =>
+        val failedName = failed / inventory.name
         safeMove(signature, signature.moveTo(failed / signature.name)(File.CopyOptions(overwrite = true))) *>
-        safeMove(inventory, inventory.moveTo(failed / inventory.name)(File.CopyOptions(overwrite = true))) *>
+        safeMove(inventory, inventory.moveTo(failedName)(File.CopyOptions(overwrite = true))) *>
+        writeErrorLogFile(failedName, result) *>
         failedHook.runHooks(failed / inventory.name)
     }
   }
