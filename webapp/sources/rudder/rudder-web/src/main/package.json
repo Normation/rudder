@@ -16,6 +16,7 @@
     "xss": "^1.0.14"
   },
   "devDependencies": {
+    "better-npm-audit": "^3.7.3",
     "del": "^6.1.1",
     "elm": "^0.19.1-5",
     "elm-test": "^0.19.1-revision10",
