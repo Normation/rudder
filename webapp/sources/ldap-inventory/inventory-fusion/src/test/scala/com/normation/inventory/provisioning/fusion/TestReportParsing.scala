@@ -340,6 +340,13 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing Windows 2022" should {
+    "parse as windows 2022" in {
+      val os = parseRun("fusion-inventories/windows2022.ocs").node.main.osDetails.os
+      os === Windows2022
+    }
+  }
+
   "Hostname should be correctly detected" should {
     "get node1 when it is defined as this" in {
       val hostname = parseRun("fusion-inventories/signed_inventory.ocs").node.main.hostname
