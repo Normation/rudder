@@ -157,6 +157,7 @@ object WindowsType {
       :: Windows2016
       :: Windows2016R2
       :: Windows2019
+      :: Windows2022
       :: Nil
   )
 }
@@ -175,6 +176,7 @@ final case object Windows2012R2      extends WindowsType { val name = "Windows20
 final case object Windows2016        extends WindowsType { val name = "Windows2016"   }
 final case object Windows2016R2      extends WindowsType { val name = "Windows2016R2" }
 final case object Windows2019        extends WindowsType { val name = "Windows2019"   }
+final case object Windows2022        extends WindowsType { val name = "Windows2022"   }
 
 /**
  * Specific Linux subtype (distribution)
@@ -341,6 +343,7 @@ object ParseOSType {
         else if (x contains "2016 r2") Windows2016R2
         else if (x contains "2016") Windows2016
         else if (x contains "2019") Windows2019
+        else if (x contains "2022") Windows2022
         else UnknownWindowsType
 
       case ("linux", x) =>

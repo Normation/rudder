@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+    <ACCESSLOG>
+      <LOGDATE>2022-12-28 11:28:22</LOGDATE>
+    </ACCESSLOG>
+    <BIOS>
+      <ASSETTAG />  <BDATE>12/01/2006</BDATE>
+      <BMANUFACTURER>innotek GmbH</BMANUFACTURER>
+      <BVERSION>VirtualBox</BVERSION>
+      <MMANUFACTURER>Oracle Corporation</MMANUFACTURER>
+      <MMODEL>VirtualBox</MMODEL>
+      <MSN>0</MSN>
+      <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
+      <SMODEL>VirtualBox</SMODEL>
+      <SSN>40b8e0b1-df39-4e16-83ea-a5a575fd1dd1</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>82371AB/EB/MB PIIX4 IDE</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371AB/EB/MB PIIX4 IDE</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>7111</PRODUCTID>
+      <TYPE>Intel(R) 82371AB/EB PCI Bus Master IDE Controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>2829</PRODUCTID>
+      <TYPE>Standard SATA AHCI Controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>PRO/1000 MT Desktop Adapter</NAME>
+      <PCISUBSYSTEMID>8086:001e</PCISUBSYSTEMID>
+      <PRODUCTID>100e</PRODUCTID>
+      <TYPE>Intel(R) PRO/1000 MT Desktop Adapter</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Graphics Adapter</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+      <PCISUBSYSTEMID>15ad:0405</PCISUBSYSTEMID>
+      <PRODUCTID>beef</PRODUCTID>
+      <TYPE>VirtualBox Graphics Adapter (WDDM)</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 ISA [Natoma/Triton II]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>7000</PRODUCTID>
+      <TYPE>PCI to ISA Bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Guest Service</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Guest Service</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>cafe</PRODUCTID>
+      <TYPE>VirtualBox Guest Device</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>440FX - 82441FX PMC [Natoma]</NAME>
+      <PCISUBSYSTEMID>0000:0000</PCISUBSYSTEMID>
+      <PRODUCTID>1237</PRODUCTID>
+      <TYPE>CPU to PCI Bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>1</CORE>
+      <DESCRIPTION>Intel64 Family 6 Model 158 Stepping 10</DESCRIPTION>
+      <FAMILYNUMBER>6</FAMILYNUMBER>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <MODEL>158</MODEL>
+      <NAME>Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz</NAME>
+      <SPEED>2592</SPEED>
+      <STEPPING>10</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <DESCRIPTION>Local Fixed Disk</DESCRIPTION>
+      <FILESYSTEM>NTFS</FILESYSTEM>
+      <FREE>116475</FREE>
+      <LABEL></LABEL>
+      <LETTER>C:</LETTER>
+      <SERIAL>4EA2FE53</SERIAL>
+      <SYSTEMDRIVE>1</SYSTEMDRIVE>
+      <TOTAL>129417</TOTAL>
+      <TYPE>Local Disk</TYPE>
+      <VOLUMN></VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>FAT32</FILESYSTEM>
+      <FREE>466</FREE>
+      <SERIAL>4AA3699E</SERIAL>
+      <SYSTEMDRIVE></SYSTEMDRIVE>
+      <TOTAL>496</TOTAL>
+      <TYPE>Local Disk</TYPE>
+    </DRIVES>
+    <ENVS>
+      <KEY>ComSpec</KEY>
+      <VAL>%SystemRoot%\system32\cmd.exe</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DriverData</KEY>
+      <VAL>C:\Windows\System32\Drivers\DriverData</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS</KEY>
+      <VAL>Windows_NT</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>Path</KEY>
+      <VAL>C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\ProgramData\chocolatey\bin;C:\Program Files\OpenSSH-Win64;C:\opscode\chef\bin\;C:\Program Files\Rudder\bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATHEXT</KEY>
+      <VAL>.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_ARCHITECTURE</KEY>
+      <VAL>AMD64</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PSModulePath</KEY>
+      <VAL>%ProgramFiles%\WindowsPowerShell\Modules;%SystemRoot%\system32\WindowsPowerShell\v1.0\Modules</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TEMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TMP</KEY>
+      <VAL>%SystemRoot%\TEMP</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USERNAME</KEY>
+      <VAL>SYSTEM</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>windir</KEY>
+      <VAL>%SystemRoot%</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>NUMBER_OF_PROCESSORS</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_LEVEL</KEY>
+      <VAL>6</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_IDENTIFIER</KEY>
+      <VAL>Intel64 Family 6 Model 158 Stepping 10, GenuineIntel</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PROCESSOR_REVISION</KEY>
+      <VAL>9e0a</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>ChocolateyInstall</KEY>
+      <VAL>C:\ProgramData\chocolatey</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CHEF_LICENSE</KEY>
+      <VAL>accept-silent</VAL>
+    </ENVS>
+    <FIREWALL>
+      <PROFILE>DomainProfile</PROFILE>
+      <STATUS>on</STATUS>
+    </FIREWALL>
+    <FIREWALL>
+      <PROFILE>StandardProfile</PROFILE>
+      <STATUS>on</STATUS>
+    </FIREWALL>
+    <FIREWALL>
+      <PROFILE>PublicProfile</PROFILE>
+      <STATUS>on</STATUS>
+    </FIREWALL>
+    <HARDWARE>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DNS>10.0.2.3</DNS>
+      <ETIME>47</ETIME>
+      <IPADDR>10.0.2.15/192.168.44.3</IPADDR>
+      <LASTLOGGEDUSER>vagrant</LASTLOGGEDUSER>
+      <MEMORY>2035</MEMORY>
+      <NAME>agent1</NAME>
+      <OSNAME>Microsoft Windows Server 2022 Standard Evaluation</OSNAME>
+      <OSVERSION>10.0.20348</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2592</PROCESSORS>
+      <PROCESSORT>Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz</PROCESSORT>
+      <USERID>vagrant</USERID>
+      <UUID>40B8E0B1-DF39-4E16-83EA-A5A575FD1DD1</UUID>
+      <VMSYSTEM>VirtualBox</VMSYSTEM>
+      <WINCOMPANY>gusztavvargadr</WINCOMPANY>
+      <WINLANG>1033</WINLANG>
+      <WINPRODID>00454-40000-00001-AA348</WINPRODID>
+      <WINPRODKEY>7PBJM-MNVPD-MBQD7-TYTY4-W8JDY</WINPRODKEY>
+      <WORKGROUP>WORKGROUP</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>Enhanced (101- or 102-key)</CAPTION>
+      <DESCRIPTION>Standard PS/2 Keyboard</DESCRIPTION>
+      <LAYOUT>00000409</LAYOUT>
+      <NAME>Enhanced (101- or 102-key)</NAME>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Microsoft PS/2 Mouse</CAPTION>
+      <DESCRIPTION>Microsoft PS/2 Mouse</DESCRIPTION>
+      <INTERFACE>PS/2</INTERFACE>
+      <MANUFACTURER>Microsoft</MANUFACTURER>
+      <NAME>Microsoft PS/2 Mouse</NAME>
+      <POINTINGTYPE>2</POINTINGTYPE>
+    </INPUTS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-579</ID>
+      <NAME>Access Control Assistance Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-544</ID>
+      <NAME>Administrators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-551</ID>
+      <NAME>Backup Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-574</ID>
+      <NAME>Certificate Service DCOM Access</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-569</ID>
+      <NAME>Cryptographic Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-583</ID>
+      <NAME>Device Owners</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-562</ID>
+      <NAME>Distributed COM Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-573</ID>
+      <NAME>Event Log Readers</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-546</ID>
+      <NAME>Guests</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-578</ID>
+      <NAME>Hyper-V Administrators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-568</ID>
+      <NAME>IIS_IUSRS</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-556</ID>
+      <NAME>Network Configuration Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-559</ID>
+      <NAME>Performance Log Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-558</ID>
+      <NAME>Performance Monitor Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-547</ID>
+      <NAME>Power Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-550</ID>
+      <NAME>Print Operators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-576</ID>
+      <NAME>RDS Endpoint Servers</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-577</ID>
+      <NAME>RDS Management Servers</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-575</ID>
+      <NAME>RDS Remote Access Servers</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-555</ID>
+      <NAME>Remote Desktop Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-580</ID>
+      <NAME>Remote Management Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-552</ID>
+      <NAME>Replicator</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-582</ID>
+      <NAME>Storage Replica Administrators</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-581</ID>
+      <NAME>System Managed Accounts Group</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_GROUPS>
+      <ID>S-1-5-32-545</ID>
+      <NAME>Users</NAME>
+    </LOCAL_GROUPS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-1428635722-3174233001-2987445885-500</ID>
+      <NAME>Administrator</NAME>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>S-1-5-21-1428635722-3174233001-2987445885-1000</ID>
+      <NAME>vagrant</NAME>
+    </LOCAL_USERS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter</DESCRIPTION>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPDHCP>10.0.2.2</IPDHCP>
+      <IPGATEWAY>10.0.2.2</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:7C:A4:C5</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;1&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter</DESCRIPTION>
+      <IPADDRESS6>fe80::8999:c061:9ca0:da41</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:7C:A4:C5</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;1&amp;18</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter #2</DESCRIPTION>
+      <IPADDRESS>192.168.44.3</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.44.0</IPSUBNET>
+      <MACADDR>08:00:27:57:F3:91</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;1&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>Intel(R) PRO/1000 MT Desktop Adapter #2</DESCRIPTION>
+      <IPADDRESS6>fe80::13b0:6068:9879:b008</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:57:F3:91</MACADDR>
+      <PCIID>8086:100E:001E:8086</PCIID>
+      <PNPDEVICEID>PCI\VEN_8086&amp;DEV_100E&amp;SUBSYS_001E8086&amp;REV_02\3&amp;267A616A&amp;1&amp;40</PNPDEVICEID>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <ARCH>64-bit</ARCH>
+      <BOOT_TIME>2022-12-28 10:25:09</BOOT_TIME>
+      <DNS_DOMAIN>WORKGROUP</DNS_DOMAIN>
+      <FQDN>agent1</FQDN>
+      <FULL_NAME>Microsoft Windows Server 2022 Standard Evaluation</FULL_NAME>
+      <INSTALL_DATE>2022-12-28 10:23:47</INSTALL_DATE>
+      <KERNEL_NAME>MSWin32</KERNEL_NAME>
+      <KERNEL_VERSION>10.0.20348</KERNEL_VERSION>
+      <NAME>Windows</NAME>
+      <SERVICE_PACK />  <SSH_KEY>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCX5CmkJdtM4FhoMm5ozujHTTLKl2GW4fe1GlSYMqC5CXtamSxGJosqZ4GDkuombwi093nkizVa+vtebAkuCDWmfARhzX+3Dg0UUbbipK/Su6vhjQQBbwnA8YqylB8ml0vJei1A+H8Hofi9Nlb7wxZCmbY0LmKGvC+bxqKTpUoSkxB3BrifDZpkHMhAQKl2YNLOkv3lhv6GnTncEyhEpee703x8iSjqJrhzSVoND/T0Zk3qGhHZkhwFKvED4ERQUQatCQhLFxS3hVRaVMlPb+Pswc2h7LarFSlCcg0DhV9ftbeMaXhyOH4okshZ7DkDToGVX3W9FowYTk5xO9Ex/A+cUPKrs3AAocBPufHJygvehMDdsmEskKzmephut9hywLs+ze5Qe8DbAgu++HKyHLCzjLCPerhMf9ZButnF6inyDJxvZ7sQqf4mnSphVabHfblPRega9/eu2VsfCL/XCVHDXxIBoQ8akoVcNIEFba23J0cTMThPoqh14+teZfeigbE=</SSH_KEY>
+      <TIMEZONE>
+        <NAME>UTC</NAME>
+        <OFFSET>+0000</OFFSET>
+      </TIMEZONE>
+      <VERSION>2009</VERSION>
+    </OPERATINGSYSTEM>
+    <PRINTERS>
+      <DRIVER>Microsoft XPS Document Writer v4</DRIVER>
+      <NAME>Microsoft XPS Document Writer</NAME>
+      <NETWORK>0</NETWORK>
+      <PORT>PORTPROMPT:</PORT>
+      <PRINTPROCESSOR>winprint</PRINTPROCESSOR>
+      <RESOLUTION>600x600</RESOLUTION>
+      <SHARED>0</SHARED>
+      <STATUS>Idle</STATUS>
+    </PRINTERS>
+    <PRINTERS>
+      <DRIVER>Microsoft Print To PDF</DRIVER>
+      <NAME>Microsoft Print to PDF</NAME>
+      <NETWORK>0</NETWORK>
+      <PORT>PORTPROMPT:</PORT>
+      <PRINTPROCESSOR>winprint</PRINTPROCESSOR>
+      <RESOLUTION>600x600</RESOLUTION>
+      <SHARED>0</SHARED>
+      <STATUS>Idle</STATUS>
+    </PRINTERS>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>-----BEGIN CERTIFICATE-----
+MIIFNjCCAx6gAwIBAgIUNWRIgMGsP65DsNRqpZB06Cxvd3swDQYJKoZIhvcNAQEL
+BQAwNjE0MDIGCgmSJomT8ixkAQEMJGQxMTRhZDc5LWFhMDQtNGFkZi05MzcyLWRm
+MWY5ZDI0NmQ3MTAeFw0yMjEyMjgxMTI4MTBaFw0zMjEyMjUxMTI4MTBaMDYxNDAy
+BgoJkiaJk/IsZAEBDCRkMTE0YWQ3OS1hYTA0LTRhZGYtOTM3Mi1kZjFmOWQyNDZk
+NzEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC+NVoIJk/Q6LbbaaQ6
+A87+tHcmYd+Cvb8xsw3n0pBzXhqU1FdMHp6M0366oRXWOGQprL19Gj9V1m5B/2UR
+RdQAR0xebgYaC331JeSE6i5/DIML8Ubus9KZpZcoW/r6SRI8q46gjmyLLrXXymO+
+glp4LKvEGfEAfFqCplmzoi+bZr6Qy12cOtJiaSTCGx3oTqyfgQ15/7PV8J2ueuLD
+VIDaXCrKz3KTst90G9f1QvdHS93YT3ILT3Ep4qomdskBK+uIm2rjj38UwouZrY4B
+4EtlU8O/DZhIbmy1U6EtD/3/H3Ca4f9SsFw5F9IzWmyPNX+0H3FF0h0U6d/pO/OC
++PD59AHpfwlI8HL3L3cHZApOcr3UdVxHLkmNdaNkJ5FFoEMB2H9cueiHBR6ZK08q
+uZKkeNPqfEXMxyBlbo76rk/pXa67NInYA+IX6QBcUdDi2g6pl5z4nJ32//1Nf0/i
+mFZ6gFZVYwcnFgirVTgv7w2ecn4ASwx8iPySrHW6YbowHkHCf760cgpXsj2XmzHn
+Vkw6cLWPw12YwQO6LT9oGuZfcSWUOD6jxslqMwA0HyqJLmUkyfwNfp/hOWRqfscJ
+tZpHIIwUYucGMcXvLzWLHZeTY/C23fkg8OWr/6xcetOySR+DuNLouYZO7griAnX/
+BOSY5u7b6bCk1HSBlQh79jCKawIDAQABozwwOjAMBgNVHRMEBTADAQH/MAsGA1Ud
+DwQEAwICtDAdBgNVHQ4EFgQUzk+8hD8j6b/hGwlDacc126VfZjkwDQYJKoZIhvcN
+AQELBQADggIBAI8RouzZjLqjX7qpJSZJQMIKQjSMln99mYt/sPA8yfJFJxzv0Kx+
+jplzfPzb+c+L9ngY55fCqltPBKF4ucur3q3flgU68fsddqu1i9zZademKT6lJQlh
+KkBqBGCnRJ4Bas763iJV3VjZzzO0Aob2aZInNbSejSwefWiSq4vIPgw18+YCaLCC
+hHcXaUtxmJsS8syn6JPKeJzzOBy53D7cJ3cbuIMOc7gpdBJPaGIpNfB0hPB+waHy
+Zuzw27+y2cU8MFGD/6FMOp9nmaVdepcuAbxC2+sDbP0Sau1U5/CnkzkwPKYHpaDN
+OIg+/XAw65OiXh6a9oRg49JrBdT51XLuXQQCs9ORKcFWwFOOkUR5v6ZKT2pM5RsQ
+tuOIgxxk+bbcFcjNAoKuJ4+34T5Xmb6WDPbMc40S+QCaYV7WmR3NvF3v/f1ayJRW
+fyGgNG2uEERzgJkkySoNgNmsmHo/V76eCCet9uz2afSzi/79kxA6vH5qKqttBU9Z
+kEkdh7ClrYFwViW+a/ILHtNV6cbp0O8HjE9BxUERkihrqKP6EXkhSfoKAFNIywTu
+uuq8lUFxI4SpBkDmT7AmrOIE/jM7iDtESwG/g3gxj6+gFRz0R8dmUZtt7rcyeo9e
+me+OtBe+t/SLT7lnKFYUwfrtTgUd0L3cbYb+FqWnpsNc0F1eH1c+Yull
+-----END CERTIFICATE-----
+        </AGENT_CERT>
+        <AGENT_NAME>dsc</AGENT_NAME>
+        <CFENGINE_KEY />  <OWNER>agent1\vagrant</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.44.2</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <AGENT_CAPABILITIES></AGENT_CAPABILITIES>
+      <HOSTNAME></HOSTNAME>
+      <SERVER_ROLES></SERVER_ROLES>
+      <UUID>d114ad79-aa04-4adf-9372-df1f9d246d71</UUID>
+    </RUDDER>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>FusionInventory-Agent</GUID>
+      <HELPLINK>https://github.com/fusioninventory/fusioninventory-agent</HELPLINK>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>FusionInventory Agent 2.4.3 (x64 edition)</NAME>
+      <PUBLISHER>FusionInventory Team</PUBLISHER>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <UNINSTALL_STRING>C:\Program Files\FusionInventory-Agent\Uninstall.exe</UNINSTALL_STRING>
+      <VERSION>2.4.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Oracle VM VirtualBox Guest Additions</GUID>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Oracle VM VirtualBox Guest Additions 6.1.40</NAME>
+      <PUBLISHER>Oracle Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <UNINSTALL_STRING>C:\Program Files\Oracle\VirtualBox Guest Additions\uninst.exe</UNINSTALL_STRING>
+      <URL_INFO_ABOUT>http://www.virtualbox.org</URL_INFO_ABOUT>
+      <VERSION>6.1.40.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Rudder</GUID>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Rudder agent (DSC)</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <UNINSTALL_STRING>&quot;C:\Program Files\Rudder\Uninstall.exe&quot;</UNINSTALL_STRING>
+      <VERSION>7.2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <GUID>{7EEF13D1-8249-4090-9DC0-82354A6BC677}</GUID>
+      <HELPLINK>https://www.chef.io/support/</HELPLINK>
+      <INSTALLDATE>27/11/2022</INSTALLDATE>
+      <NAME>Chef Infra Client v17.10.3</NAME>
+      <PUBLISHER>Chef Software, Inc.</PUBLISHER>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <UNINSTALL_STRING>MsiExec.exe /I{7EEF13D1-8249-4090-9DC0-82354A6BC677}</UNINSTALL_STRING>
+      <VERSION>17.10.3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>28/11/2022</INSTALLDATE>
+      <NAME>Internet Explorer (64bit)</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>11.1.20348.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Microsoft Edge</GUID>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Microsoft Edge</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <UNINSTALL_STRING>&quot;C:\Program Files (x86)\Microsoft\Edge\Application\108.0.1462.54\Installer\setup.exe&quot; --uninstall --msedge --channel=stable --system-level --verbose-logging</UNINSTALL_STRING>
+      <VERSION>108.0.1462.54</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <GUID>Microsoft Edge Update</GUID>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Microsoft Edge Update</NAME>
+      <NO_REMOVE>1</NO_REMOVE>
+      <SYSTEM_CATEGORY>application</SYSTEM_CATEGORY>
+      <VERSION>1.3.171.39</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>i586</ARCH>
+      <FROM>registry</FROM>
+      <INSTALLDATE>28/11/2022</INSTALLDATE>
+      <NAME>Internet Explorer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <VERSION>11.1.20348.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>27/11/2022</INSTALLDATE>
+      <NAME>KB5020619</NAME>
+      <RELEASE_TYPE>Update</RELEASE_TYPE>
+      <SYSTEM_CATEGORY>update</SYSTEM_CATEGORY>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Security Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>27/11/2022</INSTALLDATE>
+      <NAME>KB5012170</NAME>
+      <RELEASE_TYPE>Security Update</RELEASE_TYPE>
+      <SYSTEM_CATEGORY>security_update</SYSTEM_CATEGORY>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Security Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>27/11/2022</INSTALLDATE>
+      <NAME>KB5019081</NAME>
+      <RELEASE_TYPE>Security Update</RELEASE_TYPE>
+      <SYSTEM_CATEGORY>security_update</SYSTEM_CATEGORY>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Update</COMMENTS>
+      <FROM>WMI</FROM>
+      <INSTALLDATE>27/11/2022</INSTALLDATE>
+      <NAME>KB5017399</NAME>
+      <RELEASE_TYPE>Update</RELEASE_TYPE>
+      <SYSTEM_CATEGORY>update</SYSTEM_CATEGORY>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.FilePicker_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>1527c705-839a-4832-9118-54d4Bd6a0c89</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19640.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.FileExplorer_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>File Explorer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.AppResolverUX_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>App Resolver</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19640.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.AddSuggestedFoldersToLibraryDialog_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Add Folder Suggestions dialog</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Work or school account</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>1000.19580.1000.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.AccountsControl_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Email and accounts</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.AsyncTextService_8wekyb3d8bbwe</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>AsyncTextService</NAME>
+      <PUBLISHER>Microsoft Platform Extensions</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.BioEnrollment_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Hello Setup</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19585.1001</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\microsoft.creddialoghost_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Credential Dialog</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19595.1001</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.ECApp_8wekyb3d8bbwe</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Eye Control</NAME>
+      <PUBLISHER>Microsoft Platform Extensions</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.LockApp_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Default Lock Screen</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Desktop App Web Viewer</COMMENTS>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Win32WebViewHost_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Desktop App Web Viewer</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.AppRep.ChxApp_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Defender SmartScreen</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>1000.20348.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.CapturePicker_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>CapturePicker</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19580.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.CloudExperienceHost_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Your account</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Narrator Home</COMMENTS>
+      <FOLDER>C:\Windows\SystemApps\microsoft.windows.narratorquickstart_8wekyb3d8bbwe</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Narrator</NAME>
+      <PUBLISHER>Microsoft Platform Extensions</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.OOBENetworkCaptivePortal_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Captive Portal Flow</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19580.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.OOBENetworkConnectionFlow_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Network Connection Flow</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19581.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.PeopleExperienceHost_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Shell Experience</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.PinningConfirmationDialog_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>PinningConfirmationDialog</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>1000.20348.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Search the web and Windows</COMMENTS>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Search</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>1.15.0.20348</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Windows Security</COMMENTS>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.SecHealthUI_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Security</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.859</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Microsoft Windows StartMenuExperienceHost</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\Microsoft.Windows.XGpuEjectDialog_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Safely Remove Device</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x64</ARCH>
+      <FOLDER>C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Feature Experience Pack</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>120.27512.10351.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <FOLDER>C:\Windows\SystemApps\MicrosoftWindows.UndockedDevKit_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>UDK Package</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.20348.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Windows Barcode Preview Dialog</COMMENTS>
+      <FOLDER>C:\Windows\SystemApps\Windows.CBSPreview_cw5n1h2txyewy</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Barcode Preview</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.19580.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Change settings and customize how you use your computer.</COMMENTS>
+      <FOLDER>C:\Windows\ImmersiveControlPanel</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Settings</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>10.0.4.1000</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>neutral</ARCH>
+      <COMMENTS>Windows Print</COMMENTS>
+      <FOLDER>C:\Windows\PrintDialog</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Windows Print</NAME>
+      <PUBLISHER>Microsoft Corporation</PUBLISHER>
+      <SYSTEM_CATEGORY>system</SYSTEM_CATEGORY>
+      <VERSION>6.2.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x64</ARCH>
+      <COMMENTS>Microsoft.UI.Xaml</COMMENTS>
+      <FOLDER>C:\Program Files\WindowsApps\Microsoft.UI.Xaml.2.4_2.42007.9001.0_x64__8wekyb3d8bbwe</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Microsoft.UI.Xaml.2.4</NAME>
+      <PUBLISHER>Microsoft Platform Extensions</PUBLISHER>
+      <SYSTEM_CATEGORY>store</SYSTEM_CATEGORY>
+      <VERSION>2.42007.9001.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x64</ARCH>
+      <COMMENTS>Microsoft Visual C++ 2015 UWP Runtime support for native applications</COMMENTS>
+      <FOLDER>C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00_14.0.27810.0_x64__8wekyb3d8bbwe</FOLDER>
+      <FROM>uwp</FROM>
+      <INSTALLDATE>28/12/2022</INSTALLDATE>
+      <NAME>Microsoft Visual C++ 2015 UWP Runtime Package</NAME>
+      <PUBLISHER>Microsoft Platform Extensions</PUBLISHER>
+      <SYSTEM_CATEGORY>store</SYSTEM_CATEGORY>
+      <VERSION>14.0.27810.0</VERSION>
+    </SOFTWARES>
+    <SOFTWAREUPDATES>
+      <DESCRIPTION>After the download, this tool runs one time to check your computer for infection by specific, prevalent malicious software (including Blaster, Sasser, and Mydoom) and helps remove any infection that is found. If an infection is found, the tool will display a status report the next time that you start your computer. A new version of the tool will be offered every month. If you want to manually run the tool on your computer, you can download a copy from the Microsoft Download Center, or you can run an online version from microsoft.com. This tool is not a replacement for an antivirus product. To help protect your computer, you should use an antivirus product.</DESCRIPTION>
+      <FROM>Windows Update</FROM>
+      <ID>KB890830</ID>
+      <ID>f444ac52-95a6-4a47-95bb-51c2694120fb</ID>
+      <KIND>Update Rollups</KIND>
+      <NAME>Windows Malicious Software Removal Tool x64 - v5.108 (KB890830)</NAME>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <DESCRIPTION>This package will update Microsoft Defender Antivirus antimalware platform&apos;s components on the user machine.</DESCRIPTION>
+      <FROM>Windows Update</FROM>
+      <ID>KB4052623</ID>
+      <ID>f4fc207c-498d-4e4d-8632-6c344f421625</ID>
+      <KIND>Definition Updates</KIND>
+      <NAME>Update for Microsoft Defender Antivirus antimalware platform - KB4052623 (Version 4.18.2211.5)</NAME>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <DESCRIPTION>A security issue has been identified in a Microsoft software product that could affect your system. You can help protect your system by installing this update from Microsoft. For a complete listing of the issues that are included in this update, see the associated Microsoft Knowledge Base article. After you install this update, you may have to restart your system.</DESCRIPTION>
+      <FROM>Windows Update</FROM>
+      <ID>KB5021095</ID>
+      <ID>ee687c33-db01-4251-903f-cf1542b77a4c</ID>
+      <KIND>security</KIND>
+      <NAME>2022-12 Cumulative Update for .NET Framework 3.5, 4.8 and 4.8.1 for Microsoft server operating system version 21H2 for x64 (KB5021095)</NAME>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <DESCRIPTION>Install this update to resolve issues in Microsoft server operating system, version 21H2. For a complete listing of the issues that are included in this update, see the associated Microsoft Knowledge Base article for more information. After you install this item, you may have to restart your computer.</DESCRIPTION>
+      <FROM>Windows Update</FROM>
+      <ID>KB5021249</ID>
+      <ID>d8c8a5d3-a77a-4ce0-8e90-a508806e166d</ID>
+      <KIND>security</KIND>
+      <NAME>2022-12 Cumulative Update for Microsoft server operating system version 21H2 for x64-based Systems (KB5021249)</NAME>
+    </SOFTWAREUPDATES>
+    <STORAGES>
+      <DESCRIPTION>Disk drive</DESCRIPTION>
+      <DISKSIZE>136365</DISKSIZE>
+      <FIRMWARE>1.0</FIRMWARE>
+      <INTERFACE>IDE</INTERFACE>
+      <MANUFACTURER>(Standard disk drives)</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>\\.\PHYSICALDRIVE0</NAME>
+      <SCSI_COID>2</SCSI_COID>
+      <SCSI_LUN>0</SCSI_LUN>
+      <SCSI_UNID>0</SCSI_UNID>
+      <SERIAL>VB63f0db3b-07df75f4</SERIAL>
+      <SERIALNUMBER>VB63f0db3b-07df75f4</SERIALNUMBER>
+      <TYPE>Fixed hard disk media</TYPE>
+    </STORAGES>
+    <USERS>
+      <DOMAIN>AGENT1</DOMAIN>
+      <LOGIN>vagrant</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.4.3</VERSIONCLIENT>
+    <VERSIONPROVIDER>
+      <COMMENTS>Provided by Fusioninventory</COMMENTS>
+      <COMMENTS>Installer built with Appveyor on Fri Feb 22 20:47:41 UTC 2019</COMMENTS>
+      <NAME>FusionInventory</NAME>
+      <PERL_EXE>C:\Program Files\FusionInventory-Agent\perl\bin\perl.exe</PERL_EXE>
+      <PERL_VERSION>v5.24.4</PERL_VERSION>
+      <PROGRAM>fusioninventory-agent</PROGRAM>
+      <VERSION>2.4.3</VERSION>
+    </VERSIONPROVIDER>
+    <VIDEOS>
+      <NAME>VirtualBox Graphics Adapter (WDDM)</NAME>
+      <RESOLUTION>1024x768</RESOLUTION>
+    </VIDEOS>
+  </CONTENT>
+  <DEVICEID>agent1-2022-12-28-11-28-20</DEVICEID>
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
