@@ -1,4 +1,4 @@
-function reporting
+function escaping
 {
     [CmdletBinding()]
     param (
