@@ -531,6 +531,35 @@ object RudderConfig extends Loggable {
     case Right(opt) => opt
   }
 
+  val RUDDER_INVENTORIES_CLEAN_CRON = (
+    try {
+      config.getString("rudder.inventories.cleanup.old.files.cron")
+    } catch {
+      // missing key, perhaps due to migration, use default
+      case ex: Exception => {
+        val default = "0 32 3 * * ?"
+        logger.info(s"`rudder.inventories.cleanup.old.files.cron` property is missing, using default schedule: ${default}")
+        default
+      }
+    }
+  ).toOptCron match {
+    case Left(err)  =>
+      logger.error(
+        s"Error when parsing cron for 'rudder.inventories.cleanup.old.files.cron', it will be disabled: ${err.fullMsg}"
+      )
+      None
+    case Right(opt) => opt
+  }
+
+  val RUDDER_INVENTORIES_CLEAN_AGE = {
+    try {
+      val age = config.getString("rudder.inventories.cleanup.old.files.age")
+      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+    } catch {
+      case ex: Exception => 30.days
+    }
+  }
+
   /*
    * Root directory for git config-repo et fact-repo.
    * We should homogeneize naming here, ie s/rudder.dir.gitRoot/rudder.dir.gitRootConfigRepo/
@@ -771,6 +800,11 @@ object RudderConfig extends Loggable {
       case ex: ConfigException => "/var/rudder/inventories"
     }
   }
+
+  val INVENTORY_DIR_INCOMING = INVENTORY_ROOT_DIR + "/incoming"
+  val INVENTORY_DIR_FAILED   = INVENTORY_ROOT_DIR + "/failed"
+  val INVENTORY_DIR_RECEIVED = INVENTORY_ROOT_DIR + "/received"
+  val INVENTORY_DIR_UPDATE   = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
 
   val WATCHER_ENABLE = {
     try {
@@ -1573,10 +1607,11 @@ object RudderConfig extends Loggable {
       pendingNodesDit
     )
   }
-  lazy val inventoryProcessor         = {
+
+  lazy val inventoryProcessor = {
     val mover = new InventoryMover(
-      INVENTORY_ROOT_DIR + "/received",
-      INVENTORY_ROOT_DIR + "/failed",
+      INVENTORY_DIR_RECEIVED,
+      INVENTORY_DIR_FAILED,
       new InventoryFailedHook(
         HOOKS_D,
         HOOKS_IGNORE_SUFFIXES
@@ -1584,18 +1619,27 @@ object RudderConfig extends Loggable {
     )
     new DefaultProcessInventoryService(inventoryProcessorInternal, mover)
   }
-  val INVENTORY_INCOMING_DIR          = INVENTORY_ROOT_DIR + "/incoming"
-  lazy val inventoryWatcher           = {
-    val fileProcessor = new ProcessFile(inventoryProcessor, INVENTORY_INCOMING_DIR)
+
+  lazy val inventoryWatcher = {
+    val fileProcessor = new ProcessFile(inventoryProcessor, INVENTORY_DIR_INCOMING)
 
     new InventoryFileWatcher(
       fileProcessor,
-      INVENTORY_INCOMING_DIR,
-      INVENTORY_ROOT_DIR + "/accepted-nodes-updates",
+      INVENTORY_DIR_INCOMING,
+      INVENTORY_DIR_UPDATE,
       WATCHER_DELETE_OLD_INVENTORIES_AGE,
       WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD
     )
   }
+
+  lazy val cleanOldInventoryBatch = {
+    new PurgeOldInventoryFiles(
+      RUDDER_INVENTORIES_CLEAN_CRON,
+      RUDDER_INVENTORIES_CLEAN_AGE,
+      List(better.files.File(INVENTORY_DIR_FAILED), better.files.File(INVENTORY_DIR_RECEIVED))
+    )
+  }
+  cleanOldInventoryBatch.start()
 
   val archiveApi = {
     val archiveBuilderService =
@@ -1732,7 +1776,7 @@ object RudderConfig extends Loggable {
         rudderFullVersion,
         builtTimestamp
       ),
-      new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_INCOMING_DIR)),
+      new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
       new PluginApi(restExtractorService, pluginSettingsService),
       new RecentChangesAPI(recentChangesService, restExtractorService),
       new RulesInternalApi(restExtractorService, ruleInternalApiService),
