@@ -93,10 +93,11 @@ object InventoryProcessingUtils {
     inventoryExtensions.contains(ext)
   }
 
-  def makeManagedStream(file: File, kind: String = "inventory") =
+  def makeManagedStream(file: File, kind: String = "inventory") = {
     IOResult
       .attempt(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
       .withFinalizerAuto
+  }
   def makeFileExists(file: File)                                = IOResult.attempt(file.exists)
 }
 

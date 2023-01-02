@@ -44,7 +44,6 @@ import com.normation.NamedZioLogger
 import com.normation.box.IOScoped
 import com.normation.errors._
 import com.normation.rudder.git.ZipUtils.Zippable
-
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -117,29 +116,31 @@ object GitFindUtils extends NamedZioLogger {
       p
     }
 
-    IOResult.attemptZIO(s"Exception caught when trying to access file '${filePath}'") {
-      // now, the treeWalk
-      val tw = new TreeWalk(db)
+    IOResult
+      .attemptZIO(s"Exception caught when trying to access file '${filePath}'") {
+        // now, the treeWalk
+        val tw = new TreeWalk(db)
 
-      if (filePath.size > 0) tw.setFilter(PathFilter.create(filePath))
+        if (filePath.size > 0) tw.setFilter(PathFilter.create(filePath))
 
-      tw.setRecursive(true)
-      tw.reset(revTreeId)
-      var ids = List.empty[ObjectId]
-      while (tw.next) {
-        ids = tw.getObjectId(0) :: ids
+        tw.setRecursive(true)
+        tw.reset(revTreeId)
+        var ids = List.empty[ObjectId]
+        while (tw.next) {
+          ids = tw.getObjectId(0) :: ids
+        }
+        ids match {
+          case Nil      =>
+            Inconsistency(s"No file were found at path '${filePath}}'").fail
+          case h :: Nil =>
+            IOResult.attempt(db.open(h).openStream())
+          case _        =>
+            Inconsistency(
+              s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}"
+            ).fail
+        }
       }
-      ids match {
-        case Nil      =>
-          Inconsistency(s"No file were found at path '${filePath}}'").fail
-        case h :: Nil =>
-          IOResult.attempt(db.open(h).openStream())
-        case _        =>
-          Inconsistency(
-            s"More than exactly one matching file were found in the git tree for path '${filePath}', I can not know which one to choose. IDs: ${ids}}"
-          ).fail
-      }
-    }.withFinalizer(s => effectUioUnit(s.close()))
+      .withFinalizer(s => effectUioUnit(s.close()))
   }
 
   /**

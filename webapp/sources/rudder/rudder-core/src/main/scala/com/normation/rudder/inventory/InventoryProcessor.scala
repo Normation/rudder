@@ -115,10 +115,10 @@ final case class InventoryPair(inventory: File, signature: File) {
  * we have (in test for ex).
  */
 final case class SaveInventoryInfo(
-                                    fileName:  String,
-                                    inventory: IOScoped[InputStream],
-                                    signature: IOScoped[InputStream],
-                                    exists:    IOScoped[Boolean]
+    fileName:  String,
+    inventory: IOScoped[InputStream],
+    signature: IOScoped[InputStream],
+    exists:    IOScoped[Boolean]
 )
 
 sealed trait InventoryProcessStatus {
@@ -187,10 +187,10 @@ class InventoryProcessor(
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
     @silent("a type was inferred to be `Any`")
     def saveWithSignature(
-                           inventory:          Inventory,
-                           publicKey:          JavaSecPubKey,
-                           newInventoryStream: IOScoped[InputStream],
-                           newSignature:       IOScoped[InputStream]
+        inventory:          Inventory,
+        publicKey:          JavaSecPubKey,
+        newInventoryStream: IOScoped[InputStream],
+        newSignature:       IOScoped[InputStream]
     ): IOResult[InventoryProcessStatus] = {
       ZIO.scoped(
         newInventoryStream.flatMap(inventoryStream => {

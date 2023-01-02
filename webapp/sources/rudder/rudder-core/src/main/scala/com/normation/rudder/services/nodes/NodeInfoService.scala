@@ -657,15 +657,13 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
         }
 
         for {
-          con     <- ldap
-          t0      <- currentTimeMillis
-          deleted <- con.search(removedDit.NODES.dn, One, filter, A_MOD_TIMESTAMP, "entryCSN")
-          t1      <- currentTimeMillis
-          updated <- getNodeInfoEntries(con, searchAttributes, AcceptedInventory, lastKnowModification)
-          t2      <- currentTimeMillis
+          con                  <- ldap
+          (duration1, deleted) <- con.search(removedDit.NODES.dn, One, filter, A_MOD_TIMESTAMP, "entryCSN").timed
+          (duration2, updated) <- getNodeInfoEntries(con, searchAttributes, AcceptedInventory, lastKnowModification).timed
+          duration              = duration1 + duration2
         } yield {
           TimingDebugLogger.debug(
-            s"Getting updated node info data from LDAP: ${t2 - t0}ms total (${t1 - t0}ms for removed nodes, ${t2 - t1} for accepted inventories)"
+            s"Getting updated node info data from LDAP: ${duration.toMillis}ms total (${duration1.getMillis}ms for removed nodes, ${duration2.getMillis} for accepted inventories)"
           )
           UpdatedNodeEntries(deleted, updated)
         }
