@@ -213,7 +213,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <logger name="nodes" level="info" />
 
   <!-- Specific logger for Dynamic group update -->
-  <logger name="com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl" level="info" />
+  <logger name="dynamic-group" level="info" />
+  <!-- timing info for dynamic groups -->
+<!--  <logger name="dynamic-group.timing" level="info" />-->
 
   <!--
     Dump Node Configurations

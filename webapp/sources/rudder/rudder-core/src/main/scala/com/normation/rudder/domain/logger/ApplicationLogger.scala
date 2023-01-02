@@ -93,6 +93,14 @@ object ScheduledJobLoggerPure extends NamedZioLogger {
   }
 }
 
+object DynamicGroupLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "dynamic-group"
+
+  object Timing extends NamedZioLogger {
+    override def loggerName: String = DynamicGroupLoggerPure.loggerName + ".timing"
+  }
+}
+
 /**
  * A logger for new nodes information
  */

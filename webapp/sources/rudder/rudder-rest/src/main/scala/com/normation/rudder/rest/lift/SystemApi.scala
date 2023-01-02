@@ -49,6 +49,7 @@ import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
@@ -655,7 +656,7 @@ class SystemApiService11(
   // They are helper functions called by the public method (implemented lower) to avoid code repetition.
 
   private[this] def reloadTechniquesWrapper(req: Req): Either[String, JField] = {
-
+    ApiLogger.info(s"Trigger dynamic group reload")
     updatePTLibService.update(
       ModificationId(uuidGen.newUuid),
       getActor(req),
@@ -663,7 +664,7 @@ class SystemApiService11(
     ) match {
       case Full(x) => Right(JField("techniques", "Started"))
       case eb: EmptyBox =>
-        val e = eb ?~! "An error occured when updating the Technique library from file system"
+        val e = eb ?~! "An error occurred when updating the Technique library from file system"
         logger.error(e.messageChain)
         e.rootExceptionCause.foreach(ex => logger.error("Root exception cause was:", ex))
         Left(e.msg)
@@ -673,6 +674,7 @@ class SystemApiService11(
   // For now we are not able to give information about the group reload process.
   // We still send OK instead to inform the endpoint has correctly triggered.
   private[this] def reloadDyngroupsWrapper(): Either[String, JField] = {
+    ApiLogger.info(s"Trigger dynamic group reload")
     updateDynamicGroups.forceStartUpdate
     Right(JField("groups", "Started"))
   }

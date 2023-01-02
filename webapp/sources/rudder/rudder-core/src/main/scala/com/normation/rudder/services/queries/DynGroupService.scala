@@ -48,10 +48,10 @@ import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -215,7 +215,7 @@ class DynGroupServiceImpl(
             }
           )
         n1      <- ZIO.succeed(System.currentTimeMillis)
-        _       <- TimingDebugLoggerPure.debug(s"Check if dynamic groups may need update (${entries}): ${n1 - n0}ms")
+        _       <- DynamicGroupLoggerPure.Timing.debug(s"Check if dynamic groups may need update (${entries}): ${n1 - n0}ms")
       } yield {
         entries
       }).toBox
@@ -233,7 +233,7 @@ object CheckPendingNodeInDynGroups {
       includeNodes: Set[NodeId]
   )
 
-  // for debuging message
+  // for debugging message
   implicit class DynGroupsToString(val gs: List[(NodeGroupId, Set[NodeId])]) extends AnyVal {
     def debugString: String = gs.map {
       case (id, nodes) =>
