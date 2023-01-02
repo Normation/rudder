@@ -452,6 +452,19 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 # - globally by changing the parameter of the following property from `erase` to `move`
 rudder.nodes.delete.defaultMode = erase
 
+#
+# Periodically delete inventories under `/var/rudder/inventories/{received, failed}` directories.
+# File in these two directories are purged independently from files under {incoming, accepted-nodes-updates}
+# which are purged by the new inventory processor.  There is cron to configure when to delete them, and
+# a max age in duration format.
+#
+# You can disable it totally with:
+#   @never
+# in place of the cron usual format.
+#
+rudder.inventories.cleanup.old.files.cron=0 32 3 * * ?
+rudder.inventories.cleanup.old.files.age=30 days
+
 ###############################
 # Non compliant reports logger #################################################
 ###############################
