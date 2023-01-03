@@ -49,8 +49,8 @@ import zio.clock.Clock
 import zio.duration._
 
 /**
- * A scheduler which delete old inventory files under /var/rudder/inventories/{received, failed}
- * It use a cron-like config parsed by cron4s.
+ * A scheduler which deletes old inventory files under /var/rudder/inventories/{received, failed}
+ * It uses a cron-like config parsed by cron4s.
  */
 class PurgeOldInventoryFiles(
     optCron:          Option[CronExpr],
@@ -80,9 +80,10 @@ class PurgeOldInventoryFiles(
                     ) *>
                     IOResult
                       .effect(f.delete())
-                      .catchAll(err =>
-                        InventoryProcessingLogger.error(s"Error when trying to clean old inventory file '${f.pathAsString}'")
-                      )
+                      .catchAll(err => {
+                        InventoryProcessingLogger
+                          .error(s"Error while trying to clean old inventory file '${f.pathAsString}': ${err.fullMsg}")
+                      })
                   } else {
                     InventoryProcessingLogger.trace(
                       s"Keeping inventory file '${f.pathAsString}' (younger than ${maxAge.toString})"
