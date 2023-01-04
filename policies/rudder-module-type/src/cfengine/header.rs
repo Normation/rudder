@@ -16,16 +16,6 @@ pub(crate) struct Version {
     patch: usize,
 }
 
-impl Version {
-    pub(crate) fn new(major: usize, minor: usize, patch: usize) -> Self {
-        Self {
-            major,
-            minor,
-            patch,
-        }
-    }
-}
-
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)?;

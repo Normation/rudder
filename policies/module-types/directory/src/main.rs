@@ -76,12 +76,12 @@ impl ModuleType0 for Directory {
         } else {
             State::Absent
         };
-        let current_owner = if directory.exists() {
+        let _current_owner = if directory.exists() {
             Some(directory.owner().unwrap())
         } else {
             None
         };
-        let current_group = if directory.exists() {
+        let _current_group = if directory.exists() {
             Some(directory.group().unwrap())
         } else {
             None
