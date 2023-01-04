@@ -34,10 +34,14 @@ pub mod unix {
         fs::create_dir(work_dir.path().join("inputs")).unwrap();
         fs::write(policy_path, policy.as_bytes()).unwrap();
 
+        let action_policy = match policy_mode {
+            PolicyMode::Enforce => "fix",
+            PolicyMode::Audit => "warn",
+        };
         let cmd = Command::new(cfe_dir.join("cf-agent"))
             .args(["--no-lock", "--workdir", &work_dir.path().to_string_lossy()])
             .env("TEST_DATA", data)
-            .env("TEST_POLICY_MODE", &policy_mode.to_string())
+            .env("TEST_ACTION_POLICY", action_policy)
             .unwrap();
 
         let cfe_outcome = match outcome {

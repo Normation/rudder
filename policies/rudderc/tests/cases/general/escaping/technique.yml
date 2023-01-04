@@ -1,0 +1,11 @@
+---
+id: escaping
+name: Test various escaping cases
+version: "0.1"
+items:
+  - name: "${sys.host} ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\"
+    id: a86ce2e5-d5b6-45cc-87e8-c11cca71d966
+    method: package_present
+    condition: "debian"
+    params:
+      name: "${sys.host} ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\"

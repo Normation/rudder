@@ -4,6 +4,7 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{bail, Context};
+use file_owner::PathExt;
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
     PolicyMode, ValidateResult,
@@ -29,9 +30,18 @@ impl Default for State {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DirectoryParameters {
+    /// Required parameter
     path: PathBuf,
     #[serde(default)]
     state: State,
+    owner: Option<String>,
+    /// Allowed owners for audit mode
+    #[serde(default)]
+    allowed_owners: Vec<String>,
+    group: Option<String>,
+    #[serde(default)]
+    allowed_groups: Vec<String>,
+    mode: Option<String>,
 }
 
 // Module
@@ -66,8 +76,18 @@ impl ModuleType0 for Directory {
         } else {
             State::Absent
         };
+        let _current_owner = if directory.exists() {
+            Some(directory.owner().unwrap())
+        } else {
+            None
+        };
+        let _current_group = if directory.exists() {
+            Some(directory.group().unwrap())
+        } else {
+            None
+        };
 
-        let outcome = match (mode, parameters.state, current_state) {
+        let presence_outcome = match (mode, parameters.state, current_state) {
             // Ok
             (_, e, c) if e == c => Outcome::success(),
             // Enforce
@@ -88,7 +108,7 @@ impl ModuleType0 for Directory {
             }
             _ => unreachable!(),
         };
-        Ok(outcome)
+        Ok(presence_outcome)
     }
 }
 

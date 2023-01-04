@@ -12,7 +12,7 @@ use std::convert::TryFrom;
 use anyhow::{bail, Error};
 use rudder_commons::canonify;
 
-use crate::backends::unix::cfengine::expanded;
+use crate::backends::unix::cfengine::{cfengine_escape, expanded};
 use crate::{
     backends::unix::cfengine::{bundle::Bundle, promise::Promise, quoted},
     frontends::methods::method::Agent,
@@ -42,7 +42,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let unique = &format!("{}_${{report_data.directive_id}}", m.id.as_ref());
         let c_id = canonify(id);
 
-        let report_component = m.name.clone();
+        let report_component = cfengine_escape(&m.name);
         let is_supported = info.agent_support.contains(&Agent::CfengineCommunity);
         let method_name = &m.info.unwrap().name;
 
@@ -53,7 +53,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let mut parameters = vec![];
         for p in &info.parameter {
             parameters.push(match m.params.get(&p.name) {
-                Some(p) => quoted(p),
+                Some(p) => quoted(&cfengine_escape(p)),
                 _ => bail!("Missing parameter {}", p.name),
             })
         }
@@ -144,8 +144,8 @@ impl TryFrom<Method> for (Promise, Bundle) {
 
         let bundle_name = format!("call_{}", c_id);
         let mut call_parameters = vec![
-            quoted(&report_component),
-            quoted(&report_parameter),
+            quoted(&cfengine_escape(&report_component)),
+            quoted(&cfengine_escape(&report_parameter)),
             quoted(id),
             "@{args}".to_string(),
         ];

@@ -228,7 +228,7 @@ mod tests {
         for entry in read_dir("tests/files/runlogs/").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().unwrap() == "json" {
-                let runlog = RunLog::new(&path.with_extension("log")).unwrap();
+                let runlog = RunLog::new(path.with_extension("log")).unwrap();
                 assert_eq!(runlog.log_type(), RunLogType::Complete);
                 //println!("{}", serde_json::to_string_pretty(&runlog).unwrap());
                 let reference: RunLog =

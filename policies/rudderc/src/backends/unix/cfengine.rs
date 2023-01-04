@@ -42,3 +42,7 @@ pub fn quoted(s: &str) -> String {
 pub fn expanded(s: &str) -> String {
     format!("\"${{{}}}\"", s)
 }
+
+pub fn cfengine_escape(s: &str) -> String {
+    s.replace(r#"\\"#, r#"\\\\"#).replace('"', r#"\\""#)
+}

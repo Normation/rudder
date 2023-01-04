@@ -178,6 +178,7 @@ pub struct Method {
     #[serde(default)]
     pub condition: Condition,
     pub params: HashMap<String, String>,
+    /// Method name like "package_present"
     pub method: String,
     pub id: Id,
     #[serde(default)]

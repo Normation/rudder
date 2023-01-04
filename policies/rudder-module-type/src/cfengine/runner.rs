@@ -121,7 +121,7 @@ impl CfengineRunner {
         let info = promise.metadata();
 
         // Send my header
-        let my_header = Header::new(info.name.clone(), info.version).to_string();
+        let my_header = Header::new(info.name.clone(), info.version.parse().unwrap()).to_string();
         Self::write_line(&mut output, &my_header)?;
 
         let mut initialized = false;
@@ -158,7 +158,7 @@ impl CfengineRunner {
             } else if let Ok(req) = serde_json::from_str::<EvaluateRequest>(&line) {
                 set_max_level(req.log_level);
                 let result: EvaluateOutcome = promise
-                    .check_apply(req.attributes.policy_mode, &req.attributes)
+                    .check_apply(req.attributes.action_policy.into(), &req.attributes)
                     .into();
                 Self::write_json(
                     &mut output,
