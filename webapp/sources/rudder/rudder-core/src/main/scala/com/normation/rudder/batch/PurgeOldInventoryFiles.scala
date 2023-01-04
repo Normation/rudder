@@ -45,8 +45,8 @@ import com.normation.zio._
 import cron4s.CronExpr
 import java.time.Instant
 import zio._
-import zio.clock.Clock
-import zio.duration._
+import zio.Clock
+import zio.Duration._
 
 /**
  * A scheduler which delete old inventory files under /var/rudder/inventories/{received, failed}
@@ -63,7 +63,7 @@ class PurgeOldInventoryFiles(
   // check is a file is older than max age (true) or not. Only true for regular file.
   // maxAge in seconds.
   def isOlderThanMaxAge(f: File, maxAge: Long, now: Instant): IOResult[Boolean] = {
-    IOResult.effect(f.isRegularFile && f.attributes().creationTime().toInstant.isBefore(now.minusSeconds(maxAge)))
+    IOResult.attempt(f.isRegularFile && f.attributes().creationTime().toInstant.isBefore(now.minusSeconds(maxAge)))
   }
 
   // must not fail, will be in a cron
@@ -71,15 +71,15 @@ class PurgeOldInventoryFiles(
     t0 <- currentTimeMillis
     now = Instant.ofEpochMilli(t0)
     _  <- ZIO
-            .foreach_(cleanDirectories) { dir =>
-              ZIO.foreach_(dir.list.to(Iterable)) { f =>
+            .foreach(cleanDirectories) { dir =>
+              ZIO.foreach(dir.list.to(Iterable)) { f =>
                 isOlderThanMaxAge(f, maxAge.toSeconds, now).flatMap { older =>
                   if (older) {
                     InventoryProcessingLogger.info(
                       s"Deleting inventory file '${f.pathAsString}' (older than ${maxAge.toString})"
                     ) *>
                     IOResult
-                      .effect(f.delete())
+                      .attempt(f.delete())
                       .catchAll(err =>
                         InventoryProcessingLogger.error(s"Error when trying to clean old inventory file '${f.pathAsString}'")
                       )
@@ -116,6 +116,6 @@ class PurgeOldInventoryFiles(
 
   // start cron
   def start() = {
-    ZioRuntime.unsafeRun(prog.provide(ZioRuntime.environment).forkDaemon)
+    ZioRuntime.unsafeRun(prog.provide(ZioRuntime.layers).forkDaemon)
   }
 }
