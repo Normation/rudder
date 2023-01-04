@@ -45,8 +45,6 @@ import com.normation.zio._
 import cron4s.CronExpr
 import java.time.Instant
 import zio._
-import zio.Clock
-import zio.Duration._
 
 /**
  * A scheduler which delete old inventory files under /var/rudder/inventories/{received, failed}
@@ -99,7 +97,7 @@ class PurgeOldInventoryFiles(
 
   // create the schedule cron or nothing if disabled.
   // Must not fail.
-  val prog: URIO[Any with Clock, Unit] = optCron match {
+  val prog: URIO[Any, Unit] = optCron match {
     case None       =>
       logger.info(
         s"Disable automatic cleaning of old inventories in ${cleanDirectories.map(_.pathAsString).mkString(", ")} (schedule: '${DISABLED}')"
@@ -116,6 +114,6 @@ class PurgeOldInventoryFiles(
 
   // start cron
   def start() = {
-    ZioRuntime.unsafeRun(prog.provide(ZioRuntime.layers).forkDaemon)
+    ZioRuntime.unsafeRun(prog.forkDaemon)
   }
 }
