@@ -498,6 +498,7 @@ $(document).ready(function() {
     }
   } );
   $('[data-toggle="tooltip"]').bsTooltip();
+  sidebarControl(".sidebar");
 });
 
 function checkMigrationButton(currentVersion,selectId) {
@@ -911,4 +912,30 @@ function buildScrollSpyNav(){
       listItem.addClass("ui-tabs-tab").append(link);
       $("#navbar-scrollspy > ul").append(listItem);
     });
+}
+
+function sidebarControl(a){
+  var b = this
+    , c = 400;
+  $(document).on("click", a + " li a", function(a) {
+    var d = $(this)
+      , e = d.next();
+    if (e.is(".treeview-menu") && e.is(":visible"))
+      e.slideUp(c, function() {
+        e.removeClass("menu-open")
+      }),
+      e.parent("li").removeClass("active");
+    else if (e.is(".treeview-menu") && !e.is(":visible")) {
+      var f = d.parents("ul").first()
+        , g = f.find("ul:visible").slideUp(c);
+      g.removeClass("menu-open");
+      var h = d.parent("li");
+      e.slideDown(c, function() {
+        e.addClass("menu-open"),
+        f.find("li.active").removeClass("active"),
+        h.addClass("active")
+      })
+    }
+    e.is(".treeview-menu") && a.preventDefault()
+  })
 }
