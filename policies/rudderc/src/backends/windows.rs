@@ -5,7 +5,8 @@ use super::Backend;
 use crate::ir::Technique;
 use std::path::Path;
 
-use crate::ir::technique::Parameter;
+use crate::ir::condition::Condition;
+use crate::ir::technique::{ItemKind, LeafReporting, Method, Parameter};
 use anyhow::Result;
 use askama::Template;
 
@@ -29,18 +30,34 @@ struct TechniqueTemplate<'a> {
     id: &'a str,
     has_modules: bool,
     parameters: Vec<Parameter>,
-    methods: Vec<Method>,
+    methods: Vec<WindowsMethod>,
 }
 
-struct Method {
-    index: String,
+struct WindowsMethod {
+    id: String,
     class_prefix: String,
     component_name: String,
     component_key: String,
-    disable_reporting: String,
+    disable_reporting: bool,
     condition: Option<String>,
     args: String,
     name: String,
+}
+
+impl From<Method> for WindowsMethod {
+    fn from(m: Method) -> Self {
+        Self {
+            id: m.id.to_string(),
+            class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
+            component_name: "TODO".to_string(),
+            component_key: "TODO".to_string(),
+            disable_reporting: m.reporting == LeafReporting::Disabled,
+            // FIXME: None
+            condition: Some(m.condition.to_string()),
+            args: "TODO".to_string(),
+            name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
+        }
+    }
 }
 
 impl Windows {
@@ -78,12 +95,36 @@ impl Windows {
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
+        // Extract methods
+        fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<WindowsMethod>> {
+            match r {
+                ItemKind::Block(r) => {
+                    let mut calls: Vec<WindowsMethod> = vec![];
+                    for inner in r.items {
+                        calls.extend(resolve_module(inner, context.and(&r.condition))?);
+                    }
+                    Ok(calls)
+                }
+                ItemKind::Method(r) => {
+                    let method: Vec<WindowsMethod> = vec![r.into()];
+                    Ok(method)
+                }
+                _ => todo!(),
+            }
+        }
+
+        let mut methods = vec![];
+        for item in src.items {
+            for call in resolve_module(item, Condition::Defined)? {
+                methods.push(call);
+            }
+        }
+
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
             has_modules: !Windows::list_resources(resources)?.is_empty(),
             parameters: src.parameters,
-            // FIXME: add content
-            methods: vec![],
+            methods,
         };
         technique.render().map_err(|e| e.into())
     }
