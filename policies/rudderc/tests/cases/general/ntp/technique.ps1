@@ -6,8 +6,9 @@ function ntp
         [string]$reportId,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
+
         [parameter(Mandatory = $true)]
-        [string]$TechniqueParameter,
+        [string]$server,
         [Rudder.PolicyMode]$policyMode
     )
     BeginTechniqueCall -Name $techniqueName

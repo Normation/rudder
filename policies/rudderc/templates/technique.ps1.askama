@@ -1,3 +1,4 @@
+{#- Syntax: https://djc.github.io/askama/template_syntax.html -#}
 function {{ id }}
 {
     [CmdletBinding()]
@@ -6,8 +7,10 @@ function {{ id }}
         [string]$reportId,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
+{% for p in parameters %}
         [parameter(Mandatory = $true)]
-        [string]$TechniqueParameter,
+        [{{ p._type }}]${{ p.name }},
+{%- endfor %}
         [Rudder.PolicyMode]$policyMode
     )
     BeginTechniqueCall -Name $techniqueName

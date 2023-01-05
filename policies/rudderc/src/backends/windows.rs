@@ -5,6 +5,7 @@ use super::Backend;
 use crate::ir::Technique;
 use std::path::Path;
 
+use crate::ir::technique::Parameter;
 use anyhow::Result;
 use askama::Template;
 
@@ -23,10 +24,11 @@ impl Backend for Windows {
 }
 
 #[derive(Template)]
-#[template(path = "technique.ps1", escape = "none")]
+#[template(path = "technique.ps1.askama", escape = "none")]
 struct TechniqueTemplate<'a> {
     id: &'a str,
     has_modules: bool,
+    parameters: Vec<Parameter>,
     methods: Vec<Method>,
 }
 
@@ -79,6 +81,7 @@ impl Windows {
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
             has_modules: !Windows::list_resources(resources)?.is_empty(),
+            parameters: src.parameters,
             // FIXME: add content
             methods: vec![],
         };

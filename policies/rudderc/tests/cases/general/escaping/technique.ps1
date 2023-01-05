@@ -6,8 +6,7 @@ function escaping
         [string]$reportId,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
-        [parameter(Mandatory = $true)]
-        [string]$TechniqueParameter,
+
         [Rudder.PolicyMode]$policyMode
     )
     BeginTechniqueCall -Name $techniqueName
