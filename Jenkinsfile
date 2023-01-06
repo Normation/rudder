@@ -20,11 +20,6 @@ pipeline {
                         }
                     }
                     post {
-                        fixed {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
-                            }
-                        }
                         failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
@@ -45,11 +40,6 @@ pipeline {
                         sh script: './qa-test --quick', label: 'quick method tests'
                     }
                     post {
-                        fixed {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
-                            }
-                        }
                         failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
@@ -79,11 +69,6 @@ pipeline {
                 sh script: 'rm -rf tests/acceptance/workdir', label: 'cleanup'
             }
             post {
-                fixed {
-                    script {
-                        new SlackNotifier().notifyResult("shell-team")
-                    }
-                }
                 failure {
                     script {
                         new SlackNotifier().notifyResult("shell-team")
@@ -127,11 +112,6 @@ pipeline {
                             sh script: 'rm -rf tests/acceptance/workdir', label: 'cleanup'
                         }
                         post {
-                            fixed {
-                                script {
-                                    new SlackNotifier().notifyResult("shell-team")
-                                }
-                            }
                             failure {
                                 script {
                                     new SlackNotifier().notifyResult("shell-team")
@@ -141,6 +121,18 @@ pipeline {
                     }
                 }
             }
+        }
+        stage('End') {
+            steps {
+                echo 'End of build'
+            }
+            post {
+                fixed {
+                    script {
+                        new SlackNotifier().notifyResult("shell-team")
+                    }
+                }
+            } 
         }
     }
 }
