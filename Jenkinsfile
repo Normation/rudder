@@ -25,7 +25,7 @@ pipeline {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
-                        failed {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -50,7 +50,7 @@ pipeline {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
-                        failed {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -84,7 +84,7 @@ pipeline {
                         new SlackNotifier().notifyResult("shell-team")
                     }
                 }
-                failed {
+                failure {
                     script {
                         new SlackNotifier().notifyResult("shell-team")
                     }
@@ -132,7 +132,7 @@ pipeline {
                                     new SlackNotifier().notifyResult("shell-team")
                                 }
                             }
-                            failed {
+                            failure {
                                 script {
                                     new SlackNotifier().notifyResult("shell-team")
                                 }
