@@ -40,6 +40,7 @@ package com.normation.rudder.batch
 import com.normation.rudder.reports.execution.ReportsExecutionService
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
+import scala.concurrent.duration.Duration
 
 /**
  * That batch scheduler periodically store Nodes executions.
@@ -52,8 +53,8 @@ object FindNewReportsExecution {
 
 }
 class FindNewReportsExecution(
-    reportsExecutionService: ReportsExecutionService,
-    val updateInterval:      Int // in seconds
+    reportsExecutionService:     ReportsExecutionService,
+    override val updateInterval: Duration
 ) extends AbstractScheduler {
 
   type T = Unit
