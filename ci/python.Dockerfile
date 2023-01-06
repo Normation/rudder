@@ -8,5 +8,6 @@ RUN apt-get update && apt-get install -y git wget gnupg2 make python3-pip
 RUN pip3 install avocado-framework pylint Jinja2
 
 # Accept all OSes
+# comment to see if it run again 
 ENV UNSUPPORTED=y
 RUN wget https://repository.rudder.io/tools/rudder-setup && sh ./rudder-setup setup-agent latest || true
