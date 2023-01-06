@@ -20,11 +20,17 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        fixed {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
+                        failed {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+
                     }
                 }
                 stage('python') {
@@ -39,11 +45,17 @@ pipeline {
                         sh script: './qa-test --quick', label: 'quick method tests'
                     }
                     post {
-                        always {
+                        fixed {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
+                        failed {
+                            script {
+                                new SlackNotifier().notifyResult("shell-team")
+                            }
+                        }
+
                     }
                 }
             }
@@ -67,11 +79,17 @@ pipeline {
                 sh script: 'rm -rf tests/acceptance/workdir', label: 'cleanup'
             }
             post {
-                always {
+                fixed {
                     script {
                         new SlackNotifier().notifyResult("shell-team")
                     }
                 }
+                failed {
+                    script {
+                        new SlackNotifier().notifyResult("shell-team")
+                    }
+                }
+
             }
         }
         stage("Compatibility tests") {
@@ -109,7 +127,12 @@ pipeline {
                             sh script: 'rm -rf tests/acceptance/workdir', label: 'cleanup'
                         }
                         post {
-                            always {
+                            fixed {
+                                script {
+                                    new SlackNotifier().notifyResult("shell-team")
+                                }
+                            }
+                            failed {
                                 script {
                                     new SlackNotifier().notifyResult("shell-team")
                                 }
