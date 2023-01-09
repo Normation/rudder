@@ -9,4 +9,4 @@ RUN pip3 install avocado-framework pylint Jinja2
 
 # Accept all OSes
 ENV UNSUPPORTED=y
-RUN wget https://repository.rudder.io/tools/rudder-setup && sed -i "s/set -e/set -xe/" rudder-setup && sh ./rudder-setup setup-agent latest || true 
+RUN wget https://repository.rudder.io/tools/rudder-setup && sed -i "s/set -e/set -xe/" rudder-setup && sed -i "s/rudder agent inventory//" rudder-setup && sh ./rudder-setup setup-agent latest || true 
