@@ -91,7 +91,8 @@
   background-color: transparent;
   background-image: none;
   padding: 15px 15px;
-  font-family: "Font Awesome 5 Free"
+  font-family: "Font Awesome 5 Free";
+  position: absolute;
 }
 .main-header .sidebar-toggle:before {
   content: "\f0c9";
@@ -705,7 +706,6 @@ header.main-header .logo-lg img{
   color: #36474e;
   text-decoration: none !important;
   line-height: 20px;
-  position:absolute;
   font-size:14px;
 }
 .main-header .navbar .sidebar-toggle:hover {
