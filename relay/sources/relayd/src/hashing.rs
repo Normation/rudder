@@ -49,7 +49,7 @@ impl FromStr for Hash {
         let parts = s.splitn(2, "//").collect::<Vec<&str>>();
         if parts.len() == 2 {
             let hash_type = parts[0].parse::<HashType>()?;
-            let hash = base64::decode(parts[1])?;
+            let hash = base64::engine::general_purpose::STANDARD_NO_PAD::decode(parts[1])?;
 
             return if hash_type.is_valid_hash(&hash) {
                 Ok(Hash {
@@ -83,7 +83,12 @@ impl FromStr for Hash {
 
 impl fmt::Display for Hash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}//{}", self.hash_type, base64::encode(&self.value))
+        write!(
+            f,
+            "{}//{}",
+            self.hash_type,
+            base64::engine::general_purpose::STANDARD_NO_PAD::encode(&self.value)
+        )
     }
 }
 
