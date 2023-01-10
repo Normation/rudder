@@ -1932,6 +1932,9 @@ form .tooltip-content p {
 .content-wrapper .rudder-label.label-enforce:before,.content-wrapper .label-text.label-enforce:after{
   content: "Enforce";
 }
+.content-wrapper .rudder-label.label-unknown:before,.content-wrapper .label-text.label-unknown:after{
+  content: "Unknown";
+}
   .content-wrapper .label-text.label-enforce:after
 , .content-wrapper .rudder-label.label-enforce + .tooltip b
 , .content-wrapper .label-text.label-enforce   + .tooltip b
@@ -3342,6 +3345,7 @@ table a > i.fa-pencil:hover{
   transition-property: color;
   transition-duration: .2s;
   font-size: 15px;
+  cursor: pointer;
 }
 .nav-tabs-custom > .nav-tabs > li > a{
   padding: 6px 0;

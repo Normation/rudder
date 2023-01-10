@@ -104,7 +104,7 @@ final case class ByDirectiveByRuleByComponentNodeCompliance(
     name:       String,
     compliance: ComplianceLevel,
     nodes:      Seq[ByRuleNodeCompliance]
-) extends ByRuleComponentCompliance
+)
 
 final case class ByDirectiveNodeCompliance(
     id:         NodeId,
@@ -351,7 +351,7 @@ object JsonCompliance {
         ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
         ~ ("complianceDetails" -> percents(directive.compliance, CompliancePrecision.Level2))
         ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
-        ~ ("rules"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
+        ~ ("nodes"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
     )
 
     def toJson(level: Int, precision: CompliancePrecision) = (
@@ -419,6 +419,8 @@ object JsonCompliance {
                 ("components" -> byNodeByComponents(component.subComponents, level, precision))
               case component: ByDirectiveByNodeByRuleComponentCompliance =>
                 ("values" -> values(component.values, level))
+              case component: ByRuleValueCompliance                      =>
+                ("nodes" -> nodes(component.nodes, level, precision))
             })
           )
         })
@@ -457,10 +459,12 @@ object JsonCompliance {
             ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
             ~ ("complianceDetails" -> percents(component.compliance, precision))
             ~ (component match {
-              case component: ByRuleBlockCompliance => // TODO: this case should not happened because we are only get nodes compliance here
+              case component: ByRuleBlockCompliance                      => // this case should not happened because we are only get nodes compliance here
                 ("components" -> components(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
+              case component: ByRuleValueCompliance                      =>
                 ("nodes" -> nodes(component.nodes, level, precision))
+              case component: ByDirectiveByNodeByRuleComponentCompliance =>
+                ("values" -> values(component.values, level))
             })
           )
         })
@@ -505,7 +509,7 @@ object JsonCompliance {
 
   }
 
-  implicit class JsonbyRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
+  implicit class JsonByRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
     def toJsonV6 = (
       ("id"                    -> rule.id.serialize)
         ~ ("name"              -> rule.name)
@@ -600,10 +604,12 @@ object JsonCompliance {
             ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
             ~ ("complianceDetails" -> percents(component.compliance, precision))
             ~ (component match {
-              case component: ByRuleBlockCompliance =>
+              case component: ByRuleBlockCompliance                      =>
                 ("components" -> components(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
+              case component: ByRuleValueCompliance                      =>
                 ("nodes" -> nodes(component.nodes, level, precision))
+              case component: ByDirectiveByNodeByRuleComponentCompliance =>
+                ("values" -> values(component.values, level))
             })
           )
         })
@@ -778,7 +784,7 @@ object JsonCompliance {
 
   }
 
-  private[this] def statusDisplayName(r: ReportType): String = {
+  def statusDisplayName(r: ReportType): String = {
     import ReportType._
 
     r match {

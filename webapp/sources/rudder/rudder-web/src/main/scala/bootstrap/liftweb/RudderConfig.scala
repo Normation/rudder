@@ -1718,7 +1718,7 @@ object RudderConfig extends Loggable {
       stringUuidGenerator
     )
     val modules     = List(
-      new ComplianceApi(restExtractorService, complianceAPIService),
+      new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
       new GroupsApi(
         roLdapNodeGroupRepository,
         restExtractorService,

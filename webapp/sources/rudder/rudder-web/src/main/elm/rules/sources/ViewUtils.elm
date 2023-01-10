@@ -113,23 +113,6 @@ foldUnfoldCategory filters catId =
   in
     {filters | treeFilters = {treeFilters | folded = foldedList}}
 
-foldUnfoldRow : String -> Filters -> Filters
-foldUnfoldRow rowId filters =
-  let
-    tableFilters = filters.tableFilters
-  in
-    if List.member rowId tableFilters.unfolded then
-      { filters | tableFilters = { tableFilters | unfolded = (List.Extra.remove rowId tableFilters.unfolded) }}
-    else
-      { filters | tableFilters = { tableFilters | unfolded = (rowId :: tableFilters.unfolded) }}
-
-foldedRowClass : String -> TableFilters -> String
-foldedRowClass rowId tableFilters =
-  if List.member rowId tableFilters.unfolded then
-    " row-foldable row-open"
-  else
-    " row-foldable row-folded"
-
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
 subItemOrder fun model id  =
   case List.Extra.find (Tuple3.first >> (==) id) fun.rows of
