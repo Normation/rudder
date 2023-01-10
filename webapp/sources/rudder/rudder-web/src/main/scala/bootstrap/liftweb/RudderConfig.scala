@@ -722,6 +722,15 @@ object RudderConfig extends Loggable {
     }
   }
 
+  val RUDDER_SERVER_HSTS_SUBDOMAINS = {
+    try {
+      config.getBoolean("rudder.server.hsts.includeSubDomains")
+    } catch {
+      // by default, if property is missing
+      case ex: ConfigException => false
+    }
+  }
+
   val RUDDER_RELAY_RELOAD = {
     try {
       config.getString("rudder.relayd.reload")
