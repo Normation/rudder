@@ -341,8 +341,9 @@ class Boot extends Loggable {
 
     // Strict-Transport-Security (HSTS) header
     val hsts = if (RudderConfig.RUDDER_SERVER_HSTS) {
-      // Don't include subdomains, 1 year (standard value for "forever")
-      Some(HttpsRules(requiredTime = Some(Duration(365, DAYS))))
+      // Include subdomains or not depending on setting
+      // Set for 1 year (standard value for "forever")
+      Some(HttpsRules(includeSubDomains = RudderConfig.RUDDER_SERVER_HSTS_SUBDOMAINS, requiredTime = Some(Duration(365, DAYS))))
     } else {
       None
     }
