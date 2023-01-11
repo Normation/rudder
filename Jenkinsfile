@@ -161,7 +161,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("elm-team")
                             }
