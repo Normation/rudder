@@ -59,9 +59,21 @@ rudder.dir.lock=/var/rudder/lock/
 rudder.server.relay.api=https://localhost/rudder/relay-api
 
 #
-# Add HSTS header to enforce HTTPS for Rudder Web interface
-# Don't enable if you use non-HTTPS urls on the same domain.
+# Add HSTS header to enforce HTTPS for Rudder Web interface.
+# It is set for 1 year. and does not include the subdomains by default.
+#
+# You MUST NOT enable it if you are using plain HTTP for other sites or applications
+# on the same domain as your Rudder server.
+#
 rudder.server.hsts=false
+
+#
+# Enable the subdomains option in the HSTS header.
+#
+# You MUST NOT enable it if you rely on plain HTTP for other sites or applications
+# on any (present or future) subdomain of you Rudder server's domain.
+#
+rudder.server.hsts.includeSubDomains=false
 
 ##################
 # LDAP properties ###################################################################
