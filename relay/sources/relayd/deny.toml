@@ -14,6 +14,12 @@ allow = [
     "Unicode-DFS-2016",
 ]
 
+[advisories]
+ignore = [
+    # Only affects windows
+    "RUSTSEC-2023-0001",
+]
+
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
