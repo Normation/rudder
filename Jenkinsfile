@@ -234,7 +234,7 @@ pipeline {
                 }
                 stage('language') {
                     agent {
-                        dockerfile { 
+                        dockerfile {
                             filename 'language/Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
@@ -366,14 +366,14 @@ pipeline {
                     }
                 }
                 stage('api-doc-redirect') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
                     when { branch 'master' }
-                    steps { 
+                    steps {
                         withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                             writeFile file: 'htaccess', text: redirectApi()
                             sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
@@ -420,21 +420,9 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-        stage('End') {
-            steps {
-                echo 'End of build'
-            }
-            post {
-                fixed {
-                    script {
-                        new SlackNotifier().notifyResult("everyone")
-                    }
-                }
                 stage('language') {
                     agent {
-                        dockerfile { 
+                        dockerfile {
                             filename 'language/Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
@@ -468,6 +456,18 @@ pipeline {
                 }
             }
         }
+        stage('End') {
+            steps {
+                echo 'End of build'
+            }
+            post {
+                fixed {
+                    script {
+                        new SlackNotifier().notifyResult("everyone")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -487,10 +487,10 @@ def redirectApi() {
         println('Skipping old: '+it)
             return
         }
-                                                
+
         released_r = httpRequest release_info+'/versions/'+it+'/released'
         released = released_r.content.trim() == 'True'
-                                                
+
         webapp_r = httpRequest release_info+'/versions/'+it+'/api-version/webapp'
         webapp_v = webapp_r.content
         relay_r = httpRequest release_info+'/versions/'+it+'/api-version/relay'
