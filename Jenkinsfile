@@ -21,8 +21,8 @@ pipeline {
         stage('Tests') {
             parallel {
                 stage('relayd-man') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/asciidoctor.Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -35,8 +35,8 @@ pipeline {
                     }
                 }
                 stage('shell') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/shellcheck.Dockerfile'
                         }
                     }
@@ -49,6 +49,8 @@ pipeline {
                             recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
                                          tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
 
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -56,8 +58,8 @@ pipeline {
                     }
                 }
                 stage('python') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/pylint.Dockerfile'
                         }
                     }
@@ -65,7 +67,7 @@ pipeline {
                         sh script: './qa-test --python', label: 'python scripts lint'
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -73,8 +75,8 @@ pipeline {
                     }
                 }
                 stage('typos') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/typos.Dockerfile'
                             additionalBuildArgs  '--build-arg VERSION=1.8'
                         }
@@ -91,7 +93,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -99,8 +101,8 @@ pipeline {
                     }
                 }
                 stage('api-doc') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -111,7 +113,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -119,8 +121,8 @@ pipeline {
                     }
                 }
                 stage('rudder-pkg') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'relay/sources/rudder-pkg/Dockerfile'
                             args '-v /etc/passwd:/etc/passwd:ro'
                         }
@@ -135,7 +137,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
                                          tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("python-team")
                             }
@@ -187,7 +190,9 @@ pipeline {
                         always {
                             // collect test results
                             junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                script {
+                        }
+                        failure {
+                            script {
                                 new SlackNotifier().notifyResult("scala-team")
                             }
                         }
@@ -211,7 +216,7 @@ pipeline {
                                         sh script: 'make check', label: 'relayd tests'
                                     }
                                 }
-                            }    
+                            }
                         }
                     }
                     post {
@@ -219,6 +224,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }
@@ -228,8 +235,8 @@ pipeline {
                 stage('policies') {
                     agent {
                         dockerfile {
-                            filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=7.1-nightly"
+                            filename 'language/Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
@@ -254,6 +261,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }
@@ -264,7 +273,7 @@ pipeline {
         }
         stage("Compatibility tests") {
             // Expensive tests only done daily on branches
-            when { 
+            when {
                 allOf {
                     triggeredBy 'TimerTrigger'
                     not { changeRequest() }
@@ -274,7 +283,7 @@ pipeline {
                 axes {
                     axis {
                         name 'JDK_VERSION'
-                        // The rationale here is: 
+                        // The rationale here is:
                         // * all base test already run on the lowest supported (LTS) version
                         // * add specific compatibility tests for  other supported LTS + latest release
                         values '17', '19'
@@ -301,7 +310,9 @@ pipeline {
                             always {
                                 // collect test results
                                 junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                    script {
+                            }
+                            failure {
+                                script {
                                     new SlackNotifier().notifyResult("scala-team")
                                 }
                             }
@@ -314,8 +325,8 @@ pipeline {
             when { not { changeRequest() } }
             parallel {
                 stage('relayd-man') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/asciidoctor.Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -331,8 +342,8 @@ pipeline {
                     }
                 }
                 stage('api-doc') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -349,28 +360,30 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
-                                script {
+                        }
+                        failure {
+                            script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
                     }
                 }
                 stage('api-doc-redirect') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
                     when { branch 'master' }
-                    steps { 
+                    steps {
                         withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                             writeFile file: 'htaccess', text: redirectApi()
                             sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -403,42 +416,25 @@ pipeline {
                         always {
                             archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                         }
+                        failure {
+                            script {
+                                new SlackNotifier().notifyResult("scala-team")
+                            }
+                        }
                     }
                 }
-                /*stage('language') {
-                    agent {
-                        dockerfile { 
-                            filename 'language/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
-                            // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
-                        }
+            }
+        }
+        stage('End') {
+            steps {
+                echo 'End of build'
+            }
+            post {
+                fixed {
+                    script {
+                        new SlackNotifier().notifyResult("everyone")
                     }
-                    steps {
-                        dir('language') {
-                            dir('repos') {
-                                dir('ncf') {
-                                    git url: 'https://github.com/normation/ncf.git'
-                                }
-                                dir('dsc') {
-                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                }
-                            }
-                            sh script: 'make docs', label: 'language docs'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
-                            }
-                        }
-                    }
-                }*/
+                }
             }
         }
     }
@@ -460,10 +456,10 @@ def redirectApi() {
         println('Skipping old: '+it)
             return
         }
-                                                
+
         released_r = httpRequest release_info+'/versions/'+it+'/released'
         released = released_r.content.trim() == 'True'
-                                                
+
         webapp_r = httpRequest release_info+'/versions/'+it+'/api-version/webapp'
         webapp_v = webapp_r.content
         relay_r = httpRequest release_info+'/versions/'+it+'/api-version/relay'

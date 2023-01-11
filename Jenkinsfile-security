@@ -27,7 +27,8 @@ pipeline {
             post {
                 always {
             		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
-                    script {
+                }
+                failure {    script {
                         new SlackNotifier().notifyResult("scala-team")
                     }
                 }
@@ -53,6 +54,8 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+                }
+                failure {
                     script {
                         new SlackNotifier().notifyResult("rust-team")
                     }
@@ -79,8 +82,22 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'policies/target/policies-dependencies.txt'
+                }
+                failure {
                     script {
                         new SlackNotifier().notifyResult("rust-team")
+                    }
+                }
+            }
+        }
+        stage('End') {
+            steps {
+                echo 'End of build'
+            }
+            post {
+                fixed {
+                    script {
+                        new SlackNotifier().notifyResult("everyone")
                     }
                 }
             }
