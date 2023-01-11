@@ -3,6 +3,7 @@
 
 use crate::error::RudderError;
 use anyhow::{anyhow, Error};
+use base64::{engine::general_purpose as base64_engine, Engine};
 use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
 use std::{fmt, str, str::FromStr};
@@ -49,7 +50,7 @@ impl FromStr for Hash {
         let parts = s.splitn(2, "//").collect::<Vec<&str>>();
         if parts.len() == 2 {
             let hash_type = parts[0].parse::<HashType>()?;
-            let hash = base64::engine::general_purpose::STANDARD_NO_PAD::decode(parts[1])?;
+            let hash = base64_engine::STANDARD_NO_PAD.decode(parts[1])?;
 
             return if hash_type.is_valid_hash(&hash) {
                 Ok(Hash {
@@ -87,7 +88,7 @@ impl fmt::Display for Hash {
             f,
             "{}//{}",
             self.hash_type,
-            base64::engine::general_purpose::STANDARD_NO_PAD::encode(&self.value)
+            base64_engine::STANDARD_NO_PAD.encode(&self.value)
         )
     }
 }
