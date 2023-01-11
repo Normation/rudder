@@ -21,8 +21,8 @@ pipeline {
         stage('Tests') {
             parallel {
                 stage('relayd-man') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/asciidoctor.Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -35,8 +35,8 @@ pipeline {
                     }
                 }
                 stage('shell') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/shellcheck.Dockerfile'
                         }
                     }
@@ -49,6 +49,8 @@ pipeline {
                             recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
                                          tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
 
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -56,8 +58,8 @@ pipeline {
                     }
                 }
                 stage('python') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/pylint.Dockerfile'
                         }
                     }
@@ -65,7 +67,7 @@ pipeline {
                         sh script: './qa-test --python', label: 'python scripts lint'
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -73,8 +75,8 @@ pipeline {
                     }
                 }
                 stage('typos') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/typos.Dockerfile'
                             additionalBuildArgs  '--build-arg VERSION=1.0'
                         }
@@ -91,7 +93,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -99,8 +101,8 @@ pipeline {
                     }
                 }
                 stage('api-doc') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -111,7 +113,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -119,8 +121,8 @@ pipeline {
                     }
                 }
                 stage('rudder-pkg') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'relay/sources/rudder-pkg/Dockerfile'
                             args '-v /etc/passwd:/etc/passwd:ro'
                         }
@@ -135,7 +137,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
                                          tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("python-team")
                             }
@@ -187,7 +190,9 @@ pipeline {
                         always {
                             // collect test results
                             junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                script {
+                        }
+                        failure {
+                            script {
                                 new SlackNotifier().notifyResult("scala-team")
                             }
                         }
@@ -211,7 +216,7 @@ pipeline {
                                         sh script: 'make check', label: 'relayd tests'
                                     }
                                 }
-                            }    
+                            }
                         }
                     }
                     post {
@@ -219,6 +224,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }
@@ -254,6 +261,8 @@ pipeline {
                             // linters results
                             recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                        }
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }
@@ -264,7 +273,7 @@ pipeline {
         }
         stage("Compatibility tests") {
             // Expensive tests only done daily on branches
-            when { 
+            when {
                 allOf {
                     triggeredBy 'TimerTrigger'
                     not { changeRequest() }
@@ -298,7 +307,9 @@ pipeline {
                             always {
                                 // collect test results
                                 junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                    script {
+                            }
+                            failure {
+                                script {
                                     new SlackNotifier().notifyResult("scala-team")
                                 }
                             }
@@ -311,8 +322,8 @@ pipeline {
             when { not { changeRequest() } }
             parallel {
                 stage('relayd-man') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'ci/asciidoctor.Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -328,8 +339,8 @@ pipeline {
                     }
                 }
                 stage('api-doc') {
-                    agent { 
-                        dockerfile { 
+                    agent {
+                        dockerfile {
                             filename 'api-doc/Dockerfile'
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
@@ -346,7 +357,9 @@ pipeline {
                     post {
                         always {
                             archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
-                                script {
+                        }
+                        failure {
+                            script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
                         }
@@ -367,7 +380,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("shell-team")
                             }
@@ -400,6 +413,23 @@ pipeline {
                         always {
                             archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                         }
+                        failure {
+                            script {
+                                new SlackNotifier().notifyResult("scala-team")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('End') {
+            steps {
+                echo 'End of build'
+            }
+            post {
+                fixed {
+                    script {
+                        new SlackNotifier().notifyResult("everyone")
                     }
                 }
                 stage('language') {
@@ -429,7 +459,7 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        failure {
                             script {
                                 new SlackNotifier().notifyResult("rust-team")
                             }
