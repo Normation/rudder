@@ -9,6 +9,7 @@
     "datatables.net-rowgroup": "^1.2.0",
     "diff": "^5.1.0",
     "jquery": "^3.6.0",
+    "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
     "jstree": "^3.3.12",
     "showdown": "^2.1.0",
