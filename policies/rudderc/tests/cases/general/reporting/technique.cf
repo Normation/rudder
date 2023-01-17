@@ -7,21 +7,21 @@ bundle agent reporting {
     "args" slist => {};
 
   methods:
-    "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}" usebundle => call_a86ce2e5_d5b6_45cc_87e8_c11cca71d908("No block without condition", "${name}", "a86ce2e5-d5b6-45cc-87e8-c11cca71d908", @{args}, "htop", "", "", "");
+    "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}" usebundle => call_a86ce2e5_d5b6_45cc_87e8_c11cca71d908("No block without condition", "htop", "a86ce2e5-d5b6-45cc-87e8-c11cca71d908", @{args}, "htop", "", "", "");
 
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_b86ce2e5_d5b6_45cc_87e8_c11cca71d907("No block with condition", "${name}", "b86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "htop", "", "", "");
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_b86ce2e5_d5b6_45cc_87e8_c11cca71d907("No block with condition", "htop", "b86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "htop", "", "", "");
 
-    "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => call_df06e919_02b7_41a7_a03f_4239592f3c12("NTP service", "${name}", "df06e919-02b7-41a7-a03f-4239592f3c12", @{args}, "ntp", "", "", "");
+    "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => call_df06e919_02b7_41a7_a03f_4239592f3c12("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c12", @{args}, "ntp", "", "", "");
 
-    "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}" usebundle => call_df06e919_02b7_41a7_a03f_4239592f3c45("NTP service", "${name}", "df06e919-02b7-41a7-a03f-4239592f3c45", @{args}, "ntp", "", "", "");
+    "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}" usebundle => call_df06e919_02b7_41a7_a03f_4239592f3c45("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c45", @{args}, "ntp", "", "", "");
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c14("NTP service", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3c14", @{args}, "ntp", "", "", "");
+    "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c14("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c14", @{args}, "ntp", "", "", "");
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c13("NTP service", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3c13", @{args}, "ntp", "", "", "");
+    "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3c13("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c13", @{args}, "ntp", "", "", "");
 
-    "cf06e919-02b7-41a7-a03f-4239592f3d12_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3d12("Enabled reporting", "${name}", "cf06e919-02b7-41a7-a03f-4239592f3d12", @{args}, "ntp", "", "", "");
+    "cf06e919-02b7-41a7-a03f-4239592f3d12_${report_data.directive_id}" usebundle => call_cf06e919_02b7_41a7_a03f_4239592f3d12("Enabled reporting", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3d12", @{args}, "ntp", "", "", "");
 
-    "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_c76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "${name}", "c76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "ntp", "", "", "");
+    "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_c76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "ntp", "c76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "ntp", "", "", "");
 
 }
 bundle agent call_df06e919_02b7_41a7_a03f_4239592f3c45(c_name, c_key, report_id, args, name, version, architecture, provider) {
@@ -74,9 +74,9 @@ bundle agent call_b86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id,
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => package_present("htop", "", "", ""),
                                              if => concat("debian");
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${name}")),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_package_present_htop")),
                                          unless => concat("debian");
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${name}' since condition 'debian' is not reached", "${name}", canonify("${class_prefix}_package_present_${name}"), canonify("${class_prefix}_package_present_${name}"), @{args}),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'debian' is not reached", "htop", canonify("${class_prefix}_package_present_htop"), canonify("${class_prefix}_package_present_htop"), @{args}),
                                          unless => concat("debian");
 
 }

@@ -46,8 +46,11 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let is_supported = info.agent_support.contains(&Agent::CfengineCommunity);
         let method_name = &m.info.unwrap().name;
 
-        // Reporting context
-        let report_parameter = format!("${{{}}}", info.class_parameter);
+        let Some(report_parameter) = m
+            .params
+            .get(&info.class_parameter) else {
+            bail!("Missing parameter {}", info.class_parameter)
+        };
 
         // Let's build the parameters list!
         let mut parameters = vec![];
@@ -97,7 +100,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                 Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(&m.condition),
                 Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, m.condition)),
-                    quoted(&report_parameter),
+                    quoted(report_parameter),
                     na_condition.clone(),
                     na_condition,
                     "@{args}".to_string()
@@ -108,7 +111,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                 Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]),
                 Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, m.condition)),
-                    quoted(&report_parameter),
+                    quoted(report_parameter),
                     na_condition.clone(),
                     na_condition,
                     "@{args}".to_string()
@@ -125,7 +128,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
                             "'{}' method is not available on classic Rudder agent, skip",
                             report_parameter,
                         )),
-                        quoted(&report_parameter),
+                        quoted(report_parameter),
                         quoted(unique),
                         "@{args}".to_string(),
                     ],
@@ -142,10 +145,11 @@ impl TryFrom<Method> for (Promise, Bundle) {
             LeafReporting::Enabled => promises,
         };
 
+        // Calling bundle
         let bundle_name = format!("call_{}", c_id);
         let mut call_parameters = vec![
             quoted(&cfengine_escape(&report_component)),
-            quoted(&cfengine_escape(&report_parameter)),
+            quoted(&cfengine_escape(report_parameter)),
             quoted(id),
             "@{args}".to_string(),
         ];
@@ -153,6 +157,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let bundle_call =
             Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters);
 
+        // Get everything together
         let mut method_parameters = vec![
             "c_name".to_string(),
             "c_key".to_string(),

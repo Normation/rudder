@@ -27,13 +27,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -51,13 +51,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "debian"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -75,13 +75,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -99,13 +99,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -123,13 +123,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -147,13 +147,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -171,13 +171,13 @@ function reporting
     DisableReporting = false
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -195,13 +195,13 @@ function reporting
     DisableReporting = true
     TechniqueName = $techniqueName
     }
-
+    
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             TODO
         }
-        $call = Package present @methodParams
+        $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
