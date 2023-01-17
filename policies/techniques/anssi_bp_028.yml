@@ -1,0 +1,52 @@
+---
+# compiled with:
+#  cargo run --bin rudderc -- -o /tmp/test.cf anssi_bp_028.yml -l target/repos/ncf/tree/30_generic_methods/
+id: "anssi_bp_028"
+name: "ANSSI-BP-028"
+version: "0.1"
+parameters:
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
+    name: enable_ipv6
+    description: "Enable IPv6 on the system ('true' or 'false')"
+items:
+  # Les RXX au premier niveau, certains peuvent être des blocs.
+  # On veut une compliance pour chaque R.
+
+  ##################### R3 #####################
+  - name: "Enable the UEFI secure boot"
+    id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+    tags:
+      anssi_bp_028_level: I
+      anssi_bp_028_id: R3
+    # To allow skipping
+    conditions: "!skip_anssi_bp_028_r3"
+    method: audit_from_command
+    params:
+      # Assume that mokutil is there for now
+      command: "mokutil --sb-state | grep -q 'SecureBoot enabled'"
+      compliant_codes: "0"
+
+  ##################### R13 #####################
+  - name: "Disable IPv6"
+    id: d501cf21-77b1-4196-aeb4-eee4971562c6
+    tags:
+      anssi_bp_028_level: I
+      anssi_bp_028_id: R13
+    conditions: "!skip_anssi_bp_028_r13"
+    reporting:
+      mode: worst-case-weighted-one
+    items:
+      - name: "net.ipv6.conf.default.disable_ipv6=1"
+        id: a86ce2e5-d5b6-45cc-87e8-c11cca71d908
+        method: sysctl_value
+        params:
+          key: "net.ipv6.conf.default.disable_ipv6"
+          value: "1"
+          filename: "rudder_bp_028"
+      - name: "net.ipv6.conf.all.disable_ipv6=1"
+        id: aa842b51-f1ef-4d47-b9f5-a28e6e1df349
+        method: sysctl_value
+        params:
+          key: "net.ipv6.conf.all.disable_ipv6"
+          value: "1"
+          filename: "rudder_bp_028"
