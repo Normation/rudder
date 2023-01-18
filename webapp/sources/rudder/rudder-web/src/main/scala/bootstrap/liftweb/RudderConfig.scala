@@ -724,7 +724,7 @@ object RudderConfig extends Loggable {
 
   val RUDDER_SERVER_HSTS_SUBDOMAINS = {
     try {
-      config.getBoolean("rudder.server.hsts.includeSubDomains")
+      config.getBoolean("rudder.server.hstsIncludeSubDomains")
     } catch {
       // by default, if property is missing
       case ex: ConfigException => false
