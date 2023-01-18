@@ -21,11 +21,11 @@ function ntp
 
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = "TODO"
+    $componentKey = "htop"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "Ensure correct ntp configuration"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -45,11 +45,11 @@ function ntp
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c12"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_install_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "NTP service"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false

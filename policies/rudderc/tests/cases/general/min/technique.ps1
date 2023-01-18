@@ -17,11 +17,11 @@ function min
 
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = "TODO"
+    $componentKey = "htop"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "Package present"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false

@@ -17,11 +17,11 @@ function escaping
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d966"
-    $componentKey = "TODO"
+    $componentKey = "${sys.host} ${sys.${host}} ' '' ''' $ $$ " "" \ \\"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "${sys.host} ${sys.${host}} ' '' ''' $ $$ " "" \ \\"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false

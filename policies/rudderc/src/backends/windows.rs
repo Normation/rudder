@@ -7,7 +7,7 @@ use std::path::Path;
 
 use crate::ir::condition::Condition;
 use crate::ir::technique::{ItemKind, LeafReporting, Method, Parameter};
-use anyhow::Result;
+use anyhow::{bail, Error, Result};
 use askama::Template;
 
 pub struct Windows;
@@ -44,19 +44,27 @@ struct WindowsMethod {
     name: String,
 }
 
-impl From<Method> for WindowsMethod {
-    fn from(m: Method) -> Self {
-        Self {
+impl TryFrom<Method> for WindowsMethod {
+    type Error = Error;
+
+    fn try_from(m: Method) -> Result<Self, Self::Error> {
+        let Some(report_parameter) = m
+            .params
+            .get(&m.info.unwrap().class_parameter) else {
+            bail!("Missing parameter {}", m.info.unwrap().class_parameter)
+        };
+
+        Ok(Self {
             id: m.id.to_string(),
             class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
-            component_name: "TODO".to_string(),
-            component_key: "TODO".to_string(),
+            component_name: m.name,
+            component_key: report_parameter.to_string(),
             disable_reporting: m.reporting == LeafReporting::Disabled,
             // FIXME: None
             condition: Some(m.condition.to_string()),
             args: "TODO".to_string(),
             name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
-        }
+        })
     }
 }
 
@@ -106,7 +114,7 @@ impl Windows {
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<WindowsMethod> = vec![r.into()];
+                    let method: Vec<WindowsMethod> = vec![r.try_into()?];
                     Ok(method)
                 }
                 _ => todo!(),

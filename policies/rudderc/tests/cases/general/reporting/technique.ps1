@@ -17,11 +17,11 @@ function reporting
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d908"
-    $componentKey = "TODO"
+    $componentKey = "htop"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "No block without condition"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -41,11 +41,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "b86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = "TODO"
+    $componentKey = "htop"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "No block with condition"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -65,11 +65,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c12"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "NTP service"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -89,11 +89,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c45"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "NTP service"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -113,11 +113,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c14"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "NTP service"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -137,11 +137,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c13"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "NTP service"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -161,11 +161,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3d12"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "Enabled reporting"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = false
@@ -185,11 +185,11 @@ function reporting
     }
 
     $reportId=$reportIdBase + "c76686bb-79ab-4ae5-b45f-108492ab4101"
-    $componentKey = "TODO"
+    $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
     ComponentKey = $componentKey
-    ComponentName = "TODO"
+    ComponentName = "Disabled reporting"
     PolicyMode = $policyMode
     ReportId = $reportId
     DisableReporting = true
