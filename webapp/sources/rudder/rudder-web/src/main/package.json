@@ -9,6 +9,7 @@
     "datatables.net-plugins": "^1.11.5",
     "datatables.net-rowgroup": "^1.2.0",
     "diff": "^5.1.0",
+    "gaugeJS": "^1.3.7",
     "jquery": "^3.6.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
