@@ -70,14 +70,19 @@ impl Backend for Unix {
                 "${this.promise_dirname}/resources",
             )]);
         };
-        main_bundle.add_promise_group(vec![Promise::slist(
-            "args",
-            technique
-                .parameters
-                .iter()
-                .map(|p| format!("${{{}}}", &p.name))
-                .collect(),
-        )]);
+        main_bundle.add_promise_group(vec![
+            Promise::slist(
+                "args",
+                technique
+                    .parameters
+                    .iter()
+                    .map(|p| format!("${{{}}}", &p.name))
+                    .collect(),
+            ),
+            Promise::string("report_param", "TODO"),
+            Promise::string("full_class_prefix", "TODO"),
+            Promise::string("class_prefix", "TODO"),
+        ]);
         for item in technique.items {
             for call in resolve_module(item, Condition::Defined)? {
                 let (use_bundle, bundle) = call;
