@@ -79,9 +79,15 @@ impl Backend for Unix {
                     .map(|p| format!("${{{}}}", &p.name))
                     .collect(),
             ),
-            Promise::string("report_param", "TODO"),
-            Promise::string("full_class_prefix", "TODO"),
-            Promise::string("class_prefix", "TODO"),
+            Promise::string_raw("report_param", r#"join("_", args)"#),
+            Promise::string_raw(
+                "full_class_prefix",
+                format!("canonify(\"{}_${{report_param}}\")", technique.id),
+            ),
+            Promise::string_raw(
+                "class_prefix",
+                r#"string_head("${full_class_prefix}", "1000")"#,
+            ),
         ]);
         for item in technique.items {
             for call in resolve_module(item, Condition::Defined)? {
