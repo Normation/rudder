@@ -31,10 +31,11 @@ function escaping
     $class = "debian"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "${sys.host} ${sys.${host}} ' '' ''' $ $$ " "" \ \\"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "${sys.host} ${sys.${host}} ' '' ''' $ $$ " "" \ \\"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call

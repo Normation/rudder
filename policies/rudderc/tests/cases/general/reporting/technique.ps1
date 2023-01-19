@@ -31,10 +31,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "htop"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "htop"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -58,10 +59,11 @@ function reporting
     $class = "debian"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "htop"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "htop"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -85,10 +87,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -112,10 +115,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -139,10 +143,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -166,10 +171,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -193,10 +199,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -220,10 +227,11 @@ function reporting
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "ntp"
-        provider = ""
-        version = ""
+            architecture = ""
+            name = "ntp"
+            provider = ""
+            version = ""
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call

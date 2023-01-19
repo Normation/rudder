@@ -31,10 +31,11 @@ function min
     $class = "true"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-        architecture = ""
-        name = "htop"
-        provider = ""
-        version = "2.3.4"
+            architecture = ""
+            name = "htop"
+            provider = ""
+            version = "2.3.4"
+            
         }
         $call = PackagePresent @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
