@@ -73,7 +73,7 @@ rudder.server.hsts=false
 # You MUST NOT enable it if you rely on plain HTTP for other sites or applications
 # on any (present or future) subdomain of you Rudder server's domain.
 #
-rudder.server.hsts.includeSubDomains=false
+rudder.server.hstsIncludeSubDomains=false
 
 ##################
 # LDAP properties ###################################################################
