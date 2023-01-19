@@ -40,7 +40,7 @@ struct WindowsMethod {
     component_key: String,
     disable_reporting: bool,
     condition: Option<String>,
-    args: String,
+    args: Vec<(String, String)>,
     name: String,
 }
 
@@ -54,6 +54,10 @@ impl TryFrom<Method> for WindowsMethod {
             bail!("Missing parameter {}", m.info.unwrap().class_parameter)
         };
 
+        let mut args: Vec<(String, String)> = m.params.clone().into_iter().collect();
+        // We want a stable output
+        args.sort();
+
         Ok(Self {
             id: m.id.to_string(),
             class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
@@ -62,7 +66,7 @@ impl TryFrom<Method> for WindowsMethod {
             disable_reporting: m.reporting == LeafReporting::Disabled,
             // FIXME: None
             condition: Some(m.condition.to_string()),
-            args: "TODO".to_string(),
+            args,
             name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
         })
     }

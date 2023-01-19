@@ -38,7 +38,9 @@ function {{ id }}
     $class = "{{ cond }}"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-            {{ m.args }}
+        {% for arg in m.args %}
+          {{- arg.0 }} = "{{ arg.1 }}"
+        {% endfor -%}
         }
         $call = {{ m.name }} @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -48,7 +50,9 @@ function {{ id }}
     }
     {%- when None %}
     $methodParams = @{
-        {{ m.args }}
+    {% for arg in m.args %}
+      {{- arg.0 }} = "{{ arg.1 }}"
+    {% endfor -%}
     }
     $call = {{ m.name }} @methodParams
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call

@@ -34,10 +34,10 @@ fn compile_file(source: &Path, target: Target) {
         } else {
             source.with_extension(target.extension())
         };
-        let reference = read_to_string(ref_file).unwrap();
-
         // Update ref files
         //std::fs::write(&ref_file, &output).unwrap();
+
+        let reference = read_to_string(ref_file).unwrap();
 
         assert_eq!(reference, output);
     }
