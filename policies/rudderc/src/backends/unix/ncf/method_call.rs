@@ -152,6 +152,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
             quoted(&cfengine_escape(report_parameter)),
             quoted(id),
             "@{args}".to_string(),
+            quoted("${class_prefix}"),
         ];
         call_parameters.append(&mut parameters);
         let bundle_call =
@@ -163,6 +164,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
             "c_key".to_string(),
             "report_id".to_string(),
             "args".to_string(),
+            "class_prefix".to_string(),
         ];
         let mut specific_parameters = info.parameter.iter().map(|p| p.name.clone()).collect();
         method_parameters.append(&mut specific_parameters);
