@@ -60,8 +60,9 @@ treeCategory model techniques category =
 techniqueList : Model -> List Technique -> Html Msg
 techniqueList model techniques =
   let
-    filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains model.techniqueFilter.filter t.name) || (String.contains model.techniqueFilter.filter t.id.value) ) techniques)
-    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains model.techniqueFilter.filter t.technique.name) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
+    strFilter = String.toLower (String.trim model.techniqueFilter.filter)
+    filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains strFilter (String.toLower t.name)) || (String.contains strFilter (String.toLower t.id.value)) ) techniques)
+    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains strFilter (String.toLower t.technique.name)) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
     techniqueItems =
       if List.isEmpty techniques && Dict.isEmpty model.drafts then
          div [ class "empty"] [text "The techniques list is empty."]
