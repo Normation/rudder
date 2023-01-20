@@ -16,8 +16,6 @@ allow = [
 
 [advisories]
 ignore = [
-    # Only affects windows
-    "RUSTSEC-2023-0001",
 ]
 
 [bans]

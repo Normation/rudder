@@ -1,3 +1,4 @@
+{#- Syntax: https://djc.github.io/askama/template_syntax.html -#}
 function {{ id }}
 {
     [CmdletBinding()]
@@ -6,21 +7,22 @@ function {{ id }}
         [string]$reportId,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
+{% for p in parameters %}
         [parameter(Mandatory = $true)]
-        [string]$TechniqueParameter,
+        [{{ p._type }}]${{ p.name }},
+{%- endfor %}
         [Rudder.PolicyMode]$policyMode
     )
     BeginTechniqueCall -Name $techniqueName
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $localContext = [Rudder.Context]::new($techniqueName)
+    $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
     $localContext.Merge($system_classes)
-
 {% if has_modules %}
     $modules_dir = $PSScriptRoot + "\modules"
 {% endif %}
 
 {% for m in methods %}
-    $reportId=$reportIdBase+{{ m.index }}
+    $reportId=$reportIdBase + "{{ m.id }}"
     $componentKey = "{{ m.component_key }}"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
@@ -32,11 +34,13 @@ function {{ id }}
     TechniqueName = $techniqueName
     }
     {% match m.condition %}
-    {% when Some with (cond) %}
+    {%- when Some with (cond) %}
     $class = "{{ cond }}"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-            {{ m.args }}
+            {% for arg in m.args %}
+                {{- arg.0 }} = "{{ arg.1 }}"
+            {% endfor %}
         }
         $call = {{ m.name }} @methodParams
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
@@ -44,9 +48,11 @@ function {{ id }}
     } else {
         Rudder-Report-NA @reportParams
     }
-    {% when None %}
+    {%- when None %}
     $methodParams = @{
-        {{ m.args }}
+        {% for arg in m.args %}
+            {{- arg.0 }} = "{{ arg.1 }}"
+        {% endfor %}
     }
     $call = {{ m.name }} @methodParams
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call

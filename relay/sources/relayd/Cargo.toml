@@ -18,7 +18,7 @@ name = "benches"
 # 1.1.1h for our certificate validation based on pinning.
 # (it works since https://github.com/openssl/openssl/commit/e2590c3a162eb118c36b09c2168164283aa099b4)
 anyhow = "1"
-base64 = "0.20"
+base64 = "0.21"
 bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 diesel = { version = "2", default-features = false, features = ["postgres", "chrono", "r2d2"] }

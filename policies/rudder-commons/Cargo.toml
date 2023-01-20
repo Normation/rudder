@@ -12,4 +12,4 @@ license = "GPL-3.0-or-later"
 [dependencies]
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-fancy-regex = "0.10"
+fancy-regex = "0.11"
