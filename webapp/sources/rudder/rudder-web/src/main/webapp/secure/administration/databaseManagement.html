@@ -23,6 +23,9 @@
         , showButtonPanel: true
       });
       $.datepicker.setDefaults( $.datepicker.regional[ "en" ] );
+      $.datepicker._gotoToday = function(id) {
+        $(id).datepicker('setDate', new Date()).datepicker('hide').blur();
+      };
     };
     // ]]>
     </script>
