@@ -2,6 +2,7 @@
 import org.gradiant.jenkins.slack.SlackNotifier
 
 def notifier = new SlackNotifier()
+def failedBuild = false
 
 pipeline {
     agent none
@@ -44,7 +45,7 @@ pipeline {
                     }
 
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --shell', label: 'shell scripts lint'
                         }
                     }
@@ -56,6 +57,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -68,13 +70,14 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --python', label: 'python scripts lint'
                         }
                     }
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -89,7 +92,7 @@ pipeline {
                     }
 
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
                                 sh script: 'typos', label: 'check language typos'
                             }
@@ -104,6 +107,7 @@ pipeline {
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -118,7 +122,7 @@ pipeline {
                     }
 
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
                             }
@@ -127,6 +131,7 @@ pipeline {
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -140,7 +145,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir ('relay/sources') {
                                 sh script: 'make check', label: 'rudder-pkg tests'
                             }
@@ -154,6 +159,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("python-team")
                             }
                         }
@@ -167,7 +173,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources/rudder/rudder-web/src/main/elm') {
                                 sh script: './build-app.sh', label: 'build elm apps'
                                 dir('editor') {
@@ -179,6 +185,7 @@ pipeline {
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("elm-team")
                             }
                         }
@@ -196,7 +203,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                             dir('webapp/sources') {
                                 sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
@@ -211,6 +218,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("scala-team")
                             }
                         }
@@ -225,7 +233,7 @@ pipeline {
                         POSTGRES_USER     = 'rudderreports'
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
                                 docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
                                     docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
@@ -247,6 +255,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("rust-team")
                             }
                         }
@@ -262,7 +271,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
                                 dir('repos') {
                                     dir('ncf') {
@@ -286,6 +295,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("rust-team")
                             }
                         }
@@ -320,8 +330,8 @@ pipeline {
                                 args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                             }
                         }
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            steps {
+                        steps {
+                            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 dir('webapp/sources') {
                                     sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                                 }
@@ -334,6 +344,7 @@ pipeline {
                             }
                             failure {
                                 script {
+                                    failedBuild = true
                                     notifier.notifyResult("scala-team")
                                 }
                             }
@@ -371,7 +382,7 @@ pipeline {
                     }
 
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -387,6 +398,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -401,7 +413,7 @@ pipeline {
                     }
                     when { branch 'master' }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                 writeFile file: 'htaccess', text: redirectApi()
                                 sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
@@ -411,6 +423,7 @@ pipeline {
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("shell-team")
                             }
                         }
@@ -428,7 +441,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources') {
                                 withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
                                           // don't archive jars
@@ -446,6 +459,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("scala-team")
                             }
                         }
@@ -461,7 +475,7 @@ pipeline {
                         }
                     }
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
                                 dir('repos') {
                                     dir('ncf') {
@@ -482,6 +496,7 @@ pipeline {
                     post {
                         failure {
                             script {
+                                failedBuild = true
                                 notifier.notifyResult("rust-team")
                             }
                         }
@@ -491,7 +506,13 @@ pipeline {
         }
         stage('End') {
             steps {
-                echo 'End of build'
+                script {
+                    if (failedBuild) {
+                        error 'End of build'
+                    } else {
+                        echo 'End of build'
+                    }
+                }
             }
             post {
                 fixed {
