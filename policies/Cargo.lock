@@ -173,9 +173,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.1"
+version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec7a4128863c188deefe750ac1d1dfe66c236909f845af04beed823638dc1b2"
+checksum = "d8d93d855ce6a0aa87b8473ef9169482f40abaa2e9e0993024c35c902cbd5920"
 dependencies = [
  "bitflags",
  "clap_derive",
@@ -619,9 +619,9 @@ dependencies = [
 
 [[package]]
 name = "minijinja"
-version = "0.30.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51ea3762c9733c5a7372e0a6c70f1f4a6a43b9eea20223c70d4f3fb854190d6f"
+checksum = "4961422be3d61f9cf11c14909f9c6678a90001c9d62cc741a8e60d58af15c4fd"
 dependencies = [
  "indexmap",
  "percent-encoding",
