@@ -18,74 +18,80 @@ pipeline {
                     args '-v /srv/cache/maven:/home/jenkins/.m2'
                 }
             }
-            steps {
-                dir('webapp/sources') {
-                    sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:6.1.6:aggregate', label: "check webapp dependencies"
-                    sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                steps {
+                    dir('webapp/sources') {
+                        sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:6.1.6:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+                    }
                 }
-            }
-            post {
-                always {
-            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
-                }
-                failure {    script {
-                        new SlackNotifier().notifyResult("scala-team")
+                post {
+                    always {
+                		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
+                    }
+                    failure {    script {
+                            new SlackNotifier().notifyResult("scala-team")
+                        }
                     }
                 }
             }
         }
         stage('deps-relayd') {
             when { not { changeRequest() } }
-            agent { 
-                dockerfile { 
+            agent {
+                dockerfile {
                     filename 'relay/sources/relayd/Dockerfile'
                     additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
-            }            
-            steps {
-                dir('relay/sources/relayd') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check relayd dependencies'
-                    sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
-                }
             }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                steps {
+                    dir('relay/sources/relayd') {
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check', label: 'check relayd dependencies'
+                        sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
+                    }
                 }
-                failure {
-                    script {
-                        new SlackNotifier().notifyResult("rust-team")
+                post {
+                    always {
+                        archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+                    }
+                    failure {
+                        script {
+                            new SlackNotifier().notifyResult("rust-team")
+                        }
                     }
                 }
             }
         }
         stage('deps-language') {
             when { not { changeRequest() } }
-            agent { 
-                dockerfile { 
+            agent {
+                dockerfile {
                     filename 'language/Dockerfile'
                     additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
             }
-            steps {
-                dir('language') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check language dependencies'
-                    sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list language dependencies'
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                steps {
+                    dir('language') {
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check', label: 'check language dependencies'
+                        sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list language dependencies'
+                    }
                 }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'language/target/language-dependencies.txt'
-                }
-                failure {
-                    script {
-                        new SlackNotifier().notifyResult("rust-team")
+                post {
+                    always {
+                        archiveArtifacts artifacts: 'language/target/language-dependencies.txt'
+                    }
+                    failure {
+                        script {
+                            new SlackNotifier().notifyResult("rust-team")
+                        }
                     }
                 }
             }

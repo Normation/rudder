@@ -1,6 +1,8 @@
 @Library('slack-notification')
 import org.gradiant.jenkins.slack.SlackNotifier
 
+def notifier = new SlackNotifier()
+
 pipeline {
     agent none
 
@@ -40,19 +42,22 @@ pipeline {
                             filename 'ci/shellcheck.Dockerfile'
                         }
                     }
-                    steps {
-                        sh script: './qa-test --shell', label: 'shell scripts lint'
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
-                                         tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
 
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            sh script: './qa-test --shell', label: 'shell scripts lint'
                         }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                        post {
+                            always {
+                                // linters results
+                                recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
+                                             tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
+
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -63,13 +68,15 @@ pipeline {
                             filename 'ci/pylint.Dockerfile'
                         }
                     }
-                    steps {
-                        sh script: './qa-test --python', label: 'python scripts lint'
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            sh script: './qa-test --python', label: 'python scripts lint'
+                        }
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -81,21 +88,24 @@ pipeline {
                             additionalBuildArgs  '--build-arg VERSION=1.0'
                         }
                     }
-                    steps {
-                        dir('language') {
-                            sh script: 'typos', label: 'check language typos'
+
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('language') {
+                                sh script: 'typos', label: 'check language typos'
+                            }
+                            dir('webapp/sources/api-doc') {
+                                sh script: 'typos', label: 'check webapp api doc typos'
+                            }
+                            dir('relay/sources/') {
+                                sh script: 'typos --exclude "*.pem"', label: 'check relayd typos'
+                            }
                         }
-                        dir('webapp/sources/api-doc') {
-                            sh script: 'typos', label: 'check webapp api doc typos'
-                        }
-                        dir('relay/sources/') {
-                            sh script: 'typos --exclude "*.pem"', label: 'check relayd typos'
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -107,15 +117,18 @@ pipeline {
                             additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
-                    steps {
-                        dir('api-doc') {
-                            sh script: 'make', label: 'build API docs'
+
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('api-doc') {
+                                sh script: 'make', label: 'build API docs'
+                            }
                         }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -127,20 +140,22 @@ pipeline {
                             args '-v /etc/passwd:/etc/passwd:ro'
                         }
                     }
-                    steps {
-                        dir ('relay/sources') {
-                            sh script: 'make check', label: 'rudder-pkg tests'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir ('relay/sources') {
+                                sh script: 'make check', label: 'rudder-pkg tests'
+                            }
                         }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
-                                         tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("python-team")
+                        post {
+                            always {
+                                // linters results
+                                recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
+                                             tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("python-team")
+                                }
                             }
                         }
                     }
@@ -152,18 +167,20 @@ pipeline {
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
-                    steps {
-                        dir('webapp/sources/rudder/rudder-web/src/main/elm') {
-                            sh script: './build-app.sh', label: 'build elm apps'
-                            dir('editor') {
-                                sh script: 'elm-test', label: 'run technique editor tests'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('webapp/sources/rudder/rudder-web/src/main/elm') {
+                                sh script: './build-app.sh', label: 'build elm apps'
+                                dir('editor') {
+                                    sh script: 'elm-test', label: 'run technique editor tests'
+                                }
                             }
                         }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("elm-team")
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("elm-team")
+                                }
                             }
                         }
                     }
@@ -179,21 +196,23 @@ pipeline {
                             args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
-                    steps {
-                        sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                        dir('webapp/sources') {
-                            sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
-                            sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
+                            dir('webapp/sources') {
+                                sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
+                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                            }
                         }
-                    }
-                    post {
-                        always {
-                            // collect test results
-                            junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("scala-team")
+                        post {
+                            always {
+                                // collect test results
+                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("scala-team")
+                                }
                             }
                         }
                     }
@@ -206,28 +225,30 @@ pipeline {
                         POSTGRES_DB       = 'rudder'
                         POSTGRES_USER     = 'rudderreports'
                     }
-                    steps {
-                        script {
-                            docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
-                                docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
-                                      .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache --link=${c.id}:postgres") {
-                                    dir('relay/sources/relayd') {
-                                        sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
-                                        sh script: 'make check', label: 'relayd tests'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            script {
+                                docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
+                                    docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
+                                          .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache --link=${c.id}:postgres") {
+                                        dir('relay/sources/relayd') {
+                                            sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
+                                            sh script: 'make check', label: 'relayd tests'
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
+                        post {
+                            always {
+                                // linters results
+                                recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                                             tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("rust-team")
+                                }
                             }
                         }
                     }
@@ -241,30 +262,32 @@ pipeline {
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
-                    steps {
-                        dir('language') {
-                            dir('repos') {
-                                dir('ncf') {
-                                    git url: 'https://github.com/normation/ncf.git'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('language') {
+                                dir('repos') {
+                                    dir('ncf') {
+                                        git url: 'https://github.com/normation/ncf.git'
+                                    }
+                                    dir('dsc') {
+                                        git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                            credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                    }
                                 }
-                                dir('dsc') {
-                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                }
+                                sh script: 'make check', label: 'language tests'
+                                sh script: 'make docs', label: 'language docs'
                             }
-                            sh script: 'make check', label: 'language tests'
-                            sh script: 'make docs', label: 'language docs'
                         }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
+                        post {
+                            always {
+                                // linters results
+                                recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                             tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("rust-team")
+                                }
                             }
                         }
                     }
@@ -298,19 +321,21 @@ pipeline {
                                 args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                             }
                         }
-                        steps {
-                            dir('webapp/sources') {
-                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            steps {
+                                dir('webapp/sources') {
+                                    sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                                }
                             }
-                        }
-                        post {
-                            always {
-                                // collect test results
-                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                            }
-                            failure {
-                                script {
-                                    new SlackNotifier().notifyResult("scala-team")
+                            post {
+                                always {
+                                    // collect test results
+                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                                }
+                                failure {
+                                    script {
+                                        notifier.notifyResult("scala-team")
+                                    }
                                 }
                             }
                         }
@@ -345,22 +370,25 @@ pipeline {
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
-                    steps {
-                        dir('api-doc') {
-                            sh script: 'make', label: 'build API docs'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
+
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('api-doc') {
+                                sh script: 'make', label: 'build API docs'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/relay/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/relay/v/', label: 'publish relay API docs'
+                                }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                        post {
+                            always {
+                                archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -373,16 +401,18 @@ pipeline {
                         }
                     }
                     when { branch 'master' }
-                    steps {
-                        withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                            writeFile file: 'htaccess', text: redirectApi()
-                            sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                writeFile file: 'htaccess', text: redirectApi()
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
+                            }
                         }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("shell-team")
+                                }
                             }
                         }
                     }
@@ -398,24 +428,26 @@ pipeline {
                             args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
-                    steps {
-                        dir('webapp/sources') {
-                            withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
-                                      // don't archive jars
-                                      options: [artifactsPublisher(disabled: true)]
-                            ) {
-                                // we need to use $MVN_COMMAND to get the settings file path
-                                sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('webapp/sources') {
+                                withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
+                                          // don't archive jars
+                                          options: [artifactsPublisher(disabled: true)]
+                                ) {
+                                    // we need to use $MVN_COMMAND to get the settings file path
+                                    sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
+                                }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
-                        }
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("scala-team")
+                        post {
+                            always {
+                                archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("scala-team")
+                                }
                             }
                         }
                     }
@@ -429,27 +461,29 @@ pipeline {
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
-                    steps {
-                        dir('language') {
-                            dir('repos') {
-                                dir('ncf') {
-                                    git url: 'https://github.com/normation/ncf.git'
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                        steps {
+                            dir('language') {
+                                dir('repos') {
+                                    dir('ncf') {
+                                        git url: 'https://github.com/normation/ncf.git'
+                                    }
+                                    dir('dsc') {
+                                        git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                            credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                    }
                                 }
-                                dir('dsc') {
-                                    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                sh script: 'make docs', label: 'language docs'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
                                 }
-                            }
-                            sh script: 'make docs', label: 'language docs'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/docs/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/language/${RUDDER_VERSION}', label: 'publish relay API docs'
                             }
                         }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("rust-team")
+                        post {
+                            failure {
+                                script {
+                                    notifier.notifyResult("rust-team")
+                                }
                             }
                         }
                     }
@@ -463,7 +497,7 @@ pipeline {
             post {
                 fixed {
                     script {
-                        new SlackNotifier().notifyResult("everyone")
+                        notifier.notifyResult("everyone")
                     }
                 }
             }
