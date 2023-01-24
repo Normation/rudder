@@ -18,20 +18,20 @@ pipeline {
                     args '-v /srv/cache/maven:/home/jenkins/.m2'
                 }
             }
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                steps {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     dir('webapp/sources') {
                         sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:6.1.6:aggregate', label: "check webapp dependencies"
                         sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
                     }
                 }
-                post {
-                    always {
-                		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
-                    }
-                    failure {    script {
-                            new SlackNotifier().notifyResult("scala-team")
-                        }
+            }
+            post {
+                always {
+            		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
+                }
+                failure {    script {
+                        new SlackNotifier().notifyResult("scala-team")
                     }
                 }
             }
@@ -46,22 +46,22 @@ pipeline {
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
             }
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                steps {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     dir('relay/sources/relayd') {
                         sh script: 'mkdir -p target', label: 'create target directory'
                         sh script: 'cargo deny check', label: 'check relayd dependencies'
                         sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
                     }
                 }
-                post {
-                    always {
-                        archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
-                    }
-                    failure {
-                        script {
-                            new SlackNotifier().notifyResult("rust-team")
-                        }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+                }
+                failure {
+                    script {
+                        new SlackNotifier().notifyResult("rust-team")
                     }
                 }
             }
@@ -76,22 +76,22 @@ pipeline {
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
             }
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                steps {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     dir('language') {
                         sh script: 'mkdir -p target', label: 'create target directory'
                         sh script: 'cargo deny check', label: 'check language dependencies'
                         sh script: 'cargo deny list > target/language-dependencies.txt', label: 'list language dependencies'
                     }
                 }
-                post {
-                    always {
-                        archiveArtifacts artifacts: 'language/target/language-dependencies.txt'
-                    }
-                    failure {
-                        script {
-                            new SlackNotifier().notifyResult("rust-team")
-                        }
+            }
+            post {
+                always {
+                   archiveArtifacts artifacts: 'language/target/language-dependencies.txt'
+                }
+                failure {
+                    script {
+                        new SlackNotifier().notifyResult("rust-team")
                     }
                 }
             }

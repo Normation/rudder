@@ -43,21 +43,20 @@ pipeline {
                         }
                     }
 
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh script: './qa-test --shell', label: 'shell scripts lint'
                         }
-                        post {
-                            always {
-                                // linters results
-                                recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
-                                             tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
-
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
+                                         tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -68,15 +67,15 @@ pipeline {
                             filename 'ci/pylint.Dockerfile'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh script: './qa-test --python', label: 'python scripts lint'
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -89,8 +88,8 @@ pipeline {
                         }
                     }
 
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('language') {
                                 sh script: 'typos', label: 'check language typos'
                             }
@@ -101,11 +100,11 @@ pipeline {
                                 sh script: 'typos --exclude "*.pem"', label: 'check relayd typos'
                             }
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -118,17 +117,17 @@ pipeline {
                         }
                     }
 
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
                             }
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -140,22 +139,22 @@ pipeline {
                             args '-v /etc/passwd:/etc/passwd:ro'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir ('relay/sources') {
                                 sh script: 'make check', label: 'rudder-pkg tests'
                             }
                         }
-                        post {
-                            always {
-                                // linters results
-                                recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
-                                             tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("python-team")
-                                }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
+                                         tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("python-team")
                             }
                         }
                     }
@@ -167,8 +166,8 @@ pipeline {
                             additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('webapp/sources/rudder/rudder-web/src/main/elm') {
                                 sh script: './build-app.sh', label: 'build elm apps'
                                 dir('editor') {
@@ -176,11 +175,11 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("elm-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("elm-team")
                             }
                         }
                     }
@@ -196,23 +195,23 @@ pipeline {
                             args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                             dir('webapp/sources') {
                                 sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
                                 sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                             }
                         }
-                        post {
-                            always {
-                                // collect test results
-                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("scala-team")
-                                }
+                    }
+                    post {
+                        always {
+                            // collect test results
+                            junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("scala-team")
                             }
                         }
                     }
@@ -225,8 +224,8 @@ pipeline {
                         POSTGRES_DB       = 'rudder'
                         POSTGRES_USER     = 'rudderreports'
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
                                 docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
                                     docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
@@ -239,16 +238,16 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            always {
-                                // linters results
-                                recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
-                                             tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("rust-team")
-                                }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("rust-team")
                             }
                         }
                     }
@@ -262,8 +261,8 @@ pipeline {
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('language') {
                                 dir('repos') {
                                     dir('ncf') {
@@ -278,16 +277,16 @@ pipeline {
                                 sh script: 'make docs', label: 'language docs'
                             }
                         }
-                        post {
-                            always {
-                                // linters results
-                                recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
-                                             tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("rust-team")
-                                }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'language', name: 'cargo language', sourceDirectory: 'rudder-lang', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'language/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'language', name: 'cargo language')
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("rust-team")
                             }
                         }
                     }
@@ -327,15 +326,15 @@ pipeline {
                                     sh script: 'mvn clean test --batch-mode', label: "webapp tests"
                                 }
                             }
-                            post {
-                                always {
-                                    // collect test results
-                                    junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                                }
-                                failure {
-                                    script {
-                                        notifier.notifyResult("scala-team")
-                                    }
+                        }
+                        post {
+                            always {
+                                // collect test results
+                                junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                            }
+                            failure {
+                                script {
+                                    notifier.notifyResult("scala-team")
                                 }
                             }
                         }
@@ -371,8 +370,8 @@ pipeline {
                         }
                     }
 
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -381,14 +380,14 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            always {
-                                archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -401,18 +400,18 @@ pipeline {
                         }
                     }
                     when { branch 'master' }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                 writeFile file: 'htaccess', text: redirectApi()
                                 sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" htaccess ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/.htaccess', label: "publish redirect"
                             }
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("shell-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("shell-team")
                             }
                         }
                     }
@@ -428,8 +427,8 @@ pipeline {
                             args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('webapp/sources') {
                                 withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
                                           // don't archive jars
@@ -440,14 +439,14 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            always {
-                                archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
-                            }
-                            failure {
-                                script {
-                                    notifier.notifyResult("scala-team")
-                                }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
+                        }
+                        failure {
+                            script {
+                                notifier.notifyResult("scala-team")
                             }
                         }
                     }
@@ -461,8 +460,8 @@ pipeline {
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
-                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                        steps {
+                    steps {
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             dir('language') {
                                 dir('repos') {
                                     dir('ncf') {
@@ -479,11 +478,11 @@ pipeline {
                                 }
                             }
                         }
-                        post {
-                            failure {
-                                script {
-                                    notifier.notifyResult("rust-team")
-                                }
+                    }
+                    post {
+                        failure {
+                            script {
+                                notifier.notifyResult("rust-team")
                             }
                         }
                     }
