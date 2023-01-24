@@ -406,7 +406,7 @@ class InventoryMover(
     // this must never lead to a bubbling failure
     IOResult
       .attempt(File(rejectPath).writeText(s"""${date}
-                                             |${result.msg.replaceAll("; cause was:", "\ncause was:")}""".stripMargin))
+                                             |${result.msg.replaceAll("; cause was:", "\ncause was:")}\n""".stripMargin))
       .catchAll(err => InventoryProcessingLogger.error(s"Error when writing rejection log file ${rejectPath}: ${err.fullMsg}"))
       .unit
   }
