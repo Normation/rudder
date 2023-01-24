@@ -2,6 +2,8 @@
 import org.gradiant.jenkins.slack.SlackNotifier
 
 // Check vulns in dependencies on repo branches
+def failedBuild = false
+def notifier = new SlackNotifier()
 
 pipeline {
     agent none
@@ -19,36 +21,42 @@ pipeline {
                 }
             }
             steps {
-                dir('webapp/sources') {
-                    sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
-                    sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('webapp/sources') {
+                        sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+                    }
                 }
             }
             post {
                 always {
             		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
                 }
-                failure {    script {
-                        new SlackNotifier().notifyResult("scala-team")
+                failure {
+                    script {
+                        failedBuild = true
+                        notifier.notifyResult("scala-team")
                     }
                 }
             }
         }
         stage('deps-relayd') {
             when { not { changeRequest() } }
-            agent { 
-                dockerfile { 
+            agent {
+                dockerfile {
                     filename 'relay/sources/relayd/Dockerfile'
                     additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
                     args '-v /srv/cache/cargo:/usr/local/cargo/registry'
                 }
-            }            
+            }
             steps {
-                dir('relay/sources/relayd') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check relayd dependencies'
-                    sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('relay/sources/relayd') {
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check', label: 'check relayd dependencies'
+                        sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
+                    }
                 }
             }
             post {
@@ -57,15 +65,16 @@ pipeline {
                 }
                 failure {
                     script {
-                        new SlackNotifier().notifyResult("rust-team")
+                        failedBuild = true
+                        notifier.notifyResult("rust-team")
                     }
                 }
             }
         }
         stage('deps-policies') {
             when { not { changeRequest() } }
-            agent { 
-                dockerfile { 
+            agent {
+                dockerfile {
                     filename 'policies/Dockerfile'
                     additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // mount cache
@@ -73,10 +82,12 @@ pipeline {
                 }
             }
             steps {
-                dir('policies') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check policies dependencies'
-                    sh script: 'cargo deny list > target/policies-dependencies.txt', label: 'list policies dependencies'
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('policies') {
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check', label: 'check policies dependencies'
+                        sh script: 'cargo deny list > target/policies-dependencies.txt', label: 'list policies dependencies'
+                    }
                 }
             }
             post {
@@ -85,19 +96,26 @@ pipeline {
                 }
                 failure {
                     script {
-                        new SlackNotifier().notifyResult("rust-team")
+                        failedBuild = true
+                        notifier.notifyResult("rust-team")
                     }
                 }
             }
         }
         stage('End') {
             steps {
-                echo 'End of build'
+                script {
+                    if (failedBuild) {
+                        error 'End of build'
+                    } else {
+                        echo 'End of build'
+                    }
+                }
             }
             post {
                 fixed {
                     script {
-                        new SlackNotifier().notifyResult("everyone")
+                        notifier.notifyResult("everyone")
                     }
                 }
             }
