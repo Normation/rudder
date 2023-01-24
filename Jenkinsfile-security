@@ -2,6 +2,8 @@
 import org.gradiant.jenkins.slack.SlackNotifier
 
 // Check vulns in dependencies on repo branches
+def failedBuild = false
+def notifier = new SlackNotifier()
 
 pipeline {
     agent none
@@ -30,8 +32,10 @@ pipeline {
                 always {
             		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
                 }
-                failure {    script {
-                        new SlackNotifier().notifyResult("scala-team")
+                failure {
+                    script {
+                        failedBuild = true
+                        notifier.notifyResult("scala-team")
                     }
                 }
             }
@@ -47,7 +51,7 @@ pipeline {
                 }
             }
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('relay/sources/relayd') {
                         sh script: 'mkdir -p target', label: 'create target directory'
                         sh script: 'cargo deny check', label: 'check relayd dependencies'
@@ -61,7 +65,8 @@ pipeline {
                 }
                 failure {
                     script {
-                        new SlackNotifier().notifyResult("rust-team")
+                        failedBuild = true
+                        notifier.notifyResult("rust-team")
                     }
                 }
             }
@@ -77,7 +82,7 @@ pipeline {
                 }
             }
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('language') {
                         sh script: 'mkdir -p target', label: 'create target directory'
                         sh script: 'cargo deny check', label: 'check language dependencies'
@@ -91,19 +96,24 @@ pipeline {
                 }
                 failure {
                     script {
-                        new SlackNotifier().notifyResult("rust-team")
+                        failedBuild = true
+                        notifier.notifyResult("rust-team")
                     }
                 }
             }
         }
         stage('End') {
-            steps {
-                echo 'End of build'
+            script {
+                if (failedBuild) {
+                    error 'End of build'
+                } else {
+                    echo 'End of build'
+                }
             }
             post {
                 fixed {
                     script {
-                        new SlackNotifier().notifyResult("everyone")
+                        notifier.notifyResult("everyone")
                     }
                 }
             }
