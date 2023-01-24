@@ -59,6 +59,9 @@ pipeline {
                 }
             }
             post {
+                always {
+                    echo 'test'
+                }
                 failure {
                     script {
                         failedBuild = true
