@@ -51,7 +51,7 @@ pipeline {
                 }
             }
             steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     dir('webapp/sources/rudder/rudder-web/src/main/') {
                         sh script: 'npm_config_loglevel=error npm ci --no-audit', label: "install dependencies"
                         sh script: 'npx better-npm-audit audit --level high', label: "check npm dependencies"
@@ -135,7 +135,7 @@ pipeline {
                     if (failedBuild) {
                         error 'End of build'
                     } else {
-                        echo 'End of build'
+                        echo 'End of build '
                     }
                 }
             }
