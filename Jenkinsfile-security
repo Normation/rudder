@@ -103,11 +103,13 @@ pipeline {
             }
         }
         stage('End') {
-            script {
-                if (failedBuild) {
-                    error 'End of build'
-                } else {
-                    echo 'End of build'
+            steps {
+                script {
+                    if (failedBuild) {
+                        error 'End of build'
+                    } else {
+                        echo 'End of build'
+                    }
                 }
             }
             post {
