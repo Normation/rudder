@@ -54,6 +54,7 @@ import zio.syntax._
 
 trait CampaignHandler {
   def handle(mainCampaignService: MainCampaignService, event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]]
+  def delete(mainCampaignService: MainCampaignService, event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]]
 }
 
 object MainCampaignService {
@@ -75,6 +76,18 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
 
   private[this] var inner: Option[CampaignScheduler] = None
 
+  def deleteCampaign(c: CampaignId) = {
+
+    inner match {
+      case Some(s) =>
+        for {
+          _ <- s.deleteCampaign(c)
+          _ <- campaignRepo.delete(c)
+        } yield { () }
+      case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign ${c.value} was not deleted")
+    }
+  }
+
   def saveCampaign(c: Campaign)       = {
     for {
       _ <- campaignRepo.save(c)
@@ -92,6 +105,24 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
 
   case class CampaignScheduler(main: MainCampaignService, queue: Queue[CampaignEventId], zclock: Clock) {
 
+    def deleteCampaign(c: CampaignId)   = {
+      for {
+        campaign <- campaignRepo.get(c)
+        events   <- repo.getWithCriteria(campaignId = Some(c))
+        _        <- ZIO.foreach(events) { event =>
+                      ZIO
+                        .foreach(services)(s => s.delete(main, event)(campaign))
+                        .catchAll(_ => {
+                          CampaignLogger.warn(
+                            s"An error occured while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
+                          )
+                        })
+                    }
+        _        <- repo.deleteEvent(campaignId = Some(c))
+      } yield {
+        ()
+      }
+    }
     def queueCampaign(c: CampaignEvent) = {
       for {
         _ <- queue.offer(c.id)
