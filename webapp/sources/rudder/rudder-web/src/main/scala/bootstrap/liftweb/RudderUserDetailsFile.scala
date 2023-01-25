@@ -37,14 +37,19 @@
 
 package bootstrap.liftweb
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.RudderUserDetail
+import com.normation.zio._
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -57,14 +62,13 @@ import org.springframework.security.core.GrantedAuthority
 import org.xml.sax.SAXParseException
 import scala.jdk.CollectionConverters._
 import scala.xml.Elem
+import zio._
+import zio.syntax._
 
 /**
  * This file contains data structure defining Rudder "user details" and how to
  * build them from "rudder-users.xml" file.
  */
-
-// data structure to handle errors related to users file
-final case class UserConfigFileError(msg: String, exception: Option[Throwable])
 
 // Our user file can come from either classpath of filesystem. That class abstract that fact.
 final case class UserFile(
@@ -125,18 +129,38 @@ object PasswordEncoder {
       }
     }
   }
+
+  def parse(name: String): Either[String, PasswordEncoder] = {
+    name.toLowerCase match {
+      case "sha" | "sha1"       => Right(SHA1)
+      case "sha256" | "sha-256" => Right(SHA256)
+      case "sha512" | "sha-512" => Right(SHA512)
+      case "md5"                => Right(MD5)
+      case "bcrypt"             => Right(BCRYPT)
+      case "plain"              => Right(PlainText)
+      case _                    => Left(s"Password encoder identifier '${name}' is unknown")
+    }
+  }
 }
 
 /**
- * An user list is a parsed list of users with their authorisation
+ * An user list is a parsed list of users with their authorisations
  */
-final case class UserDetailList(
+final case class UserDetailFileConfiguration(
     encoder:         PasswordEncoder.Rudder,
     isCaseSensitive: Boolean,
+    customRoles:     List[Role],
+    users:           Map[String, (RudderAccount.User, Seq[Role])]
+)
+
+final case class ValidatedUserList(
+    encoder:         PasswordEncoder.Rudder,
+    isCaseSensitive: Boolean,
+    customRoles:     List[Role],
     users:           Map[String, RudderUserDetail]
 )
 
-object UserDetailList {
+object ValidatedUserList {
 
   /**
    * Filter the list of users by checking if the username
@@ -179,14 +203,19 @@ object UserDetailList {
     }
   }
 
-  def fromRudderAccount(
-      roleApiMapping:  RoleApiMapping,
-      encoder:         PasswordEncoder.Rudder,
-      isCaseSensitive: Boolean,
-      users:           List[(RudderAccount.User, Seq[Role])]
-  ): UserDetailList = {
-    val userDetails   = users.map {
-      case (user, roles) =>
+  /*
+   * A method used to derive API acl from user roles and filter them according to case sensitivity parameter.
+   * At that point, it is assumed that roleApiMapping is up-to-date with custom role knowledge
+   * that the user may be using, and that these custom roles are well behaving: basically,
+   * the step on role check/update is done.
+   */
+  def fromRudderAccountList(
+      roleApiMapping: RoleApiMapping,
+      accountConfig:  UserDetailFileConfiguration
+  ): ValidatedUserList = {
+
+    val userDetails   = accountConfig.users.map {
+      case (_, (user, roles)) =>
         // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
         // (ie from longest path to shorted)
         // but still group by first part so that we have all nodes together, etc.
@@ -200,8 +229,8 @@ object UserDetailList {
           .toList
         RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls))
     }
-    val filteredUsers = filterByCaseSensitivity(userDetails, isCaseSensitive)
-    UserDetailList(encoder, isCaseSensitive, filteredUsers)
+    val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
+    ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)
   }
 }
 
@@ -214,6 +243,11 @@ trait UserAuthorisationLevel {
   def userAuthEnabled: Boolean
   def name:            String
 }
+
+/*
+ * A callback holder class with an operation to execute when (after) the user file is reloaded.
+ */
+final case class RudderAuthorizationFileReloadCallback(name: String, exec: ValidatedUserList => IOResult[Unit])
 
 // and default implementation is: no
 class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
@@ -230,7 +264,7 @@ class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
 }
 
 trait UserDetailListProvider {
-  def authConfig: UserDetailList
+  def authConfig: ValidatedUserList
 
   /*
    * Utility method to retrieve user by name.
@@ -251,32 +285,43 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
    * You will have to "reload" after application full init (to allows plugin override);
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
    */
-  private[this] var cache = UserDetailList(PasswordEncoder.PlainText, false, Map())
+  private[this] val cache = Ref.make(ValidatedUserList(PasswordEncoder.PlainText, false, Nil, Map())).runNow
 
   /**
    * Callbacks for who need to be informed of a successfully users list reload
    */
-  private[this] var callbacks = List.empty[UserDetailList => Unit]
+  private[this] val callbacks = Ref.make(List.empty[RudderAuthorizationFileReloadCallback]).runNow
 
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reload(): Either[UserConfigFileError, Unit] = {
-    UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled) match {
-      case Right(config) =>
-        cache = config
-        // callbacks
-        callbacks.foreach(cb => cb(config))
-        Right(())
-      case Left(err)     => Left(err)
-    }
+  def reloadPure(): IOResult[Unit] = {
+    for {
+      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled)
+      _      <- cache.set(config)
+      cbs    <- callbacks.get
+      _      <- ZIO.foreach(cbs) { cb =>
+                  cb.exec(config)
+                    .catchAll(err =>
+                      ApplicationLoggerPure.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}")
+                    )
+                }
+    } yield ()
   }
 
-  def registerCallback(cb: UserDetailList => Unit): Unit = {
-    callbacks = callbacks :+ cb
+  def reload(): Unit = {
+    reloadPure()
+      .catchAll(err =>
+        ApplicationLoggerPure.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}")
+      )
+      .runNow
   }
 
-  override def authConfig: UserDetailList = cache
+  def registerCallback(cb: RudderAuthorizationFileReloadCallback): Unit = {
+    callbacks.update(_ :+ cb).runNow
+  }
+
+  override def authConfig: ValidatedUserList = cache.get.runNow
 
 }
 
@@ -317,28 +362,37 @@ object UserFileProcessing {
   val JVM_AUTH_FILE_KEY      = "rudder.authFile"
   val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
 
-  def getUserResourceFile(): Either[UserConfigFileError, UserFile] = {
-    System.getProperty(JVM_AUTH_FILE_KEY) match {
+  // utility classes for a parsed custom role/user/everything before sanity check is done on them
+  final case class ParsedRole(name: String, roles: List[String])
+  final case class ParsedUser(name: String, password: String, roles: List[String])
+  final case class ParsedUserFile(
+      encoder:         PasswordEncoder.Rudder,
+      isCaseSensitive: Boolean,
+      customRoles:     List[UncheckedCustomRole],
+      users:           List[ParsedUser]
+  )
+
+  def getUserResourceFile(): IOResult[UserFile] = {
+    java.lang.System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => // use default location in classpath
-        ApplicationLogger.info(
+        ApplicationLoggerPure.info(
           s"JVM property -D${JVM_AUTH_FILE_KEY} is not defined, using configuration file '${DEFAULT_AUTH_FILE_NAME}' in classpath"
-        )
-        Right(
-          UserFile(
-            "classpath:" + DEFAULT_AUTH_FILE_NAME,
-            () => this.getClass().getClassLoader.getResourceAsStream(DEFAULT_AUTH_FILE_NAME)
-          )
-        )
+        ) *>
+        UserFile(
+          "classpath:" + DEFAULT_AUTH_FILE_NAME,
+          () => this.getClass().getClassLoader.getResourceAsStream(DEFAULT_AUTH_FILE_NAME)
+        ).succeed
       case x         => // so, it should be a full path, check it
         val config = new File(x)
         if (config.exists && config.canRead) {
-          ApplicationLogger.info(s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.getPath}")
-          Right(UserFile(config.getAbsolutePath, () => new FileInputStream(config)))
+          ApplicationLoggerPure.info(
+            s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.getPath}"
+          ) *>
+          UserFile(config.getAbsolutePath, () => new FileInputStream(config)).succeed
         } else {
-          ApplicationLogger.error(
+          ApplicationLoggerPure.error(
             s"Can not find configuration file specified by JVM property ${JVM_AUTH_FILE_KEY}: ${config.getPath}; aborting"
-          )
-          Left(UserConfigFileError(s"rudder-users configuration file not found at path: '${config.getPath}'", None))
+          ) *> Unexpected(s"rudder-users configuration file not found at path: '${config.getPath}'").fail
         }
     }
   }
@@ -347,26 +401,22 @@ object UserFileProcessing {
       roleApiMapping: RoleApiMapping,
       resource:       UserFile,
       extendedAuthz:  Boolean
-  ): Either[UserConfigFileError, UserDetailList] = {
+  ): IOResult[ValidatedUserList] = {
     val optXml = {
       try {
-        Right(scala.xml.XML.load(resource.inputStream()))
+        scala.xml.XML.load(resource.inputStream()).succeed
       } catch {
         case e: SAXParseException =>
-          Left(
-            UserConfigFileError(
-              s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
-                  .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})",
-              Some(e)
-            )
-          )
+          SystemError(
+            s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
+                .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})",
+            e
+          ).fail
         case e: Exception         =>
-          Left(
-            UserConfigFileError(
-              "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
-              Some(e)
-            )
-          )
+          SystemError(
+            "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
+            e
+          ).fail
       }
     }
 
@@ -393,82 +443,189 @@ object UserFileProcessing {
       xml:            Elem,
       debugFileName:  String,
       extendedAuthz:  Boolean
-  ): Either[UserConfigFileError, UserDetailList] = {
+  ): IOResult[ValidatedUserList] = {
+    for {
+      parsed <- parseXmlNoResolve(xml, debugFileName)
+      roles  <- resolveRoles(parsed.customRoles, extendedAuthz)
+      _      <- RudderRoles.register(roles)
+      users  <- resolveUsers(parsed.users, extendedAuthz, debugFileName)
+    } yield {
+      val config = {
+        UserDetailFileConfiguration(
+          parsed.encoder,
+          parsed.isCaseSensitive,
+          roles,
+          users.map { case (u, l) => (u.login, (u, l)) }.toMap
+        )
+      }
+      ValidatedUserList.fromRudderAccountList(roleApiMapping, config)
+    }
+  }
+
+  /*
+   * This method just parse XML file & validate its general structure, but it does not resolve roles
+   * or rights.
+   * This is done in a second pass.
+   */
+  def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile] = {
     // what password hashing algo to use ?
     val root = (xml \\ "authentication")
     if (root.size != 1) {
-      Left(UserConfigFileError("Authentication file is malformed, the root tag '<authentication>' was not found", None))
+      Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
     } else {
-      val hash = (root(0) \ "@hash").text.toLowerCase match {
-        case "sha" | "sha1"       => PasswordEncoder.SHA1
-        case "sha256" | "sha-256" => PasswordEncoder.SHA256
-        case "sha512" | "sha-512" => PasswordEncoder.SHA512
-        case "md5"                => PasswordEncoder.MD5
-        case "bcrypt"             => PasswordEncoder.BCRYPT
-        case _                    => PasswordEncoder.PlainText
+      val hash = PasswordEncoder.parse((root(0) \ "@hash").text).getOrElse(PasswordEncoder.PlainText)
+
+      val isCaseSensitive: IOResult[Boolean] = (root(0) \ "@case-sensitivity").text.toLowerCase match {
+        case "true"  => true.succeed
+        case "false" => false.succeed
+        case str     =>
+          (if (str.isEmpty) {
+             ApplicationLoggerPure.info(
+               s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is missing, set by default on `true`"
+             )
+           } else {
+             ApplicationLoggerPure.warn(
+               s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
+             )
+           }) *> true.succeed
       }
 
-      val isCaseSensitive: Boolean = (root(0) \ "@case-sensitivity").text.toLowerCase match {
-        case "true"  => true
-        case "false" => false
-        case str     =>
-          if (str.isEmpty) {
-            ApplicationLogger.info(
-              s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is missing, set by default on `true`"
-            )
-          } else {
-            ApplicationLogger.warn(
-              s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
-            )
+      val customRoles: UIO[List[UncheckedCustomRole]] = (ZIO
+        .foreach((xml \ "custom-roles" \ "role").toList) { node =>
+          // for each node, check attribute `name` (mandatory) and `roles` (optional), even if the only interest of an empty
+          // roles attribute is for aliasing "NoRight" policy.
+
+          // one unique name attribute, text content non empty
+          def getName(node: scala.xml.Node): PureResult[String] = {
+            node.attribute("name").map(_.map(_.text.strip())) match {
+              case None | Some(Nil)                    => Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+              case Some(name :: Nil) if (name.isEmpty) =>
+                Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+              case Some(name :: Nil)                   => Right(name)
+              case x                                   => Left(Inconsistency(s"Role must have an unique, non-empty `name` attribute: ${x}"))
+            }
           }
-          true
-      }
+
+          // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
+          // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
+          def getRoles(node: scala.xml.Node): PureResult[List[String]] = {
+            node.attribute("roles") match {
+              case None | Some(Nil) => Right(List.empty)
+              case Some(roles)      =>
+                Right(
+                  roles.toList
+                    .flatMap(roleList => roleList.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
+                )
+            }
+          }
+
+          (for {
+            n <- getName(node)
+            r <- getRoles(node)
+          } yield {
+            UncheckedCustomRole(n, r)
+          }) match {
+            case Left(err)   =>
+              ApplicationLoggerPure.error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
+            case Right(role) =>
+              Some(role).succeed
+          }
+        })
+        .map(_.flatten)
 
       // now, get users
-      val users = ((xml \ "user").toList.flatMap { node =>
-        // for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
-        (
-          node
-            .attribute("name")
-            .map(_.toList.map(str => if (isCaseSensitive) str.text else str.text.toLowerCase())),
-          node.attribute("password").map(_.toList.map(_.text)),
-          node.attribute("role").map(_.toList.map(role => RoleToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
-        ) match {
-          case (Some(name :: Nil), Some(pwd :: Nil), roles) if (name.size > 0) =>
-            val r = roles match {
-              case Some(Nil) => // 'role' attribute is optional, by default get "none" role
-                Seq(Role.NoRights)
-
-              case Some(roles :: Nil) =>
-                if (!extendedAuthz && roles.exists(_ != Role.Administrator)) {
-                  ApplicationLogger.warn(
-                    s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
-                    s"To prevent problem, that user authorization are removed: ${node.toString()}"
-                  )
-                  Seq(Role.NoRights)
-
-                } else {
-                  ApplicationLogger.debug(
-                    s"User '${name}' defined with authorizations: ${roles.map(_.name.toLowerCase()).mkString(", ")}"
-                  )
-                  roles
-                }
-              case _                  =>
-                ApplicationLogger.error(
-                  s"User '${name}' in authentication file '${debugFileName}' has incorrectly defined authorizations, to prevent problem we removed him all of them: ${node.toString}"
-                )
-                Seq(Role.NoRights)
-            }
-            (RudderAccount.User(name, pwd), r) :: Nil
-
-          case _ =>
-            ApplicationLogger.error(
-              s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
-            )
-            Nil
+      def getUsers() = {
+        def userRoles(node: Option[scala.collection.Seq[scala.xml.Node]]): List[String] = {
+          node.map(_.toList.flatMap(role => role.text.split(",").toList.map(_.strip))).getOrElse(Nil)
         }
-      })
-      Right(UserDetailList.fromRudderAccount(roleApiMapping, hash, isCaseSensitive, users))
+        ZIO
+          .foreach((xml \ "user").toList) { node =>
+            // for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
+            (
+              node
+                .attribute("name")
+                .map(_.toList.map(_.text)),
+              node.attribute("password").map(_.toList.map(_.text)),
+              // accept both "role" and "roles"
+              userRoles(node.attribute("role")) ++ userRoles(node.attribute("roles"))
+            ) match {
+              case (Some(name :: Nil), Some(pwd :: Nil), roles) if (name.size > 0) =>
+                Some(ParsedUser(name, pwd, roles)).succeed
+
+              case _ =>
+                ApplicationLoggerPure.error(
+                  s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
+                ) *> None.succeed
+            }
+          }
+          .map(_.flatten)
+      }
+
+      // weave the whole program together
+      for {
+        isCS  <- isCaseSensitive
+        roles <- customRoles
+        users <- getUsers()
+      } yield ParsedUserFile(hash, isCS, roles, users)
     }
   }
+
+  /*
+   * Roles must be taken all together, because even if we forbid cycles, they may be not sorted and
+   * we want to update the set of OK roles just one time.
+   */
+  def resolveRoles(roles: List[UncheckedCustomRole], extendedAuthz: Boolean): UIO[List[Role]] = {
+    if (!extendedAuthz && roles.nonEmpty) {
+      ApplicationLogger.warn(
+        s"Custom roles are defined which is not supported without the User management plugin. " +
+        s"These custom roles will be ignored: ${roles.map(_.name).mkString(", ")}"
+      )
+      Nil.succeed
+    } else {
+      for {
+        all <- RudderRoles.getAllRoles
+        res <- RudderRoles.resolveCustomRoles(roles, all)
+        _   <- ZIO.foreach(res.invalid) {
+                 case (r, err) =>
+                   ApplicationLoggerPure.error(
+                     s"Error with custom role definition: custom role '${r.name}' is invalid and will be ignored: ${err}"
+                   )
+               }
+      } yield res.validRoles
+    }
+  }
+
+  def resolveUsers(
+      users:         List[ParsedUser],
+      extendedAuthz: Boolean,
+      debugFileName: String
+  ): UIO[List[(RudderAccount.User, List[Role])]] = {
+    ZIO.foreach(users) { u =>
+      val ParsedUser(name, pwd, roles) = u
+
+      RudderRoles
+        .parseRoles(roles)
+        .flatMap(list => {
+          list match {
+            case Nil => // 'role' attribute is optional, by default get "none" role
+              List(Role.NoRights).succeed
+
+            case rs =>
+              if (!extendedAuthz && rs.exists(_ != Role.Administrator)) {
+                ApplicationLoggerPure.warn(
+                  s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
+                  s"To prevent problem, that user authorization is removed."
+                ) *> List(Role.NoRights).succeed
+
+              } else {
+                ApplicationLoggerPure.debug(
+                  s"User '${name}' defined with authorizations: ${rs.map(_.name).mkString(", ")}"
+                ) *> rs.succeed
+              }
+          }
+        })
+        .map(rs => (RudderAccount.User(name, pwd), rs))
+    }
+  }
+
 }

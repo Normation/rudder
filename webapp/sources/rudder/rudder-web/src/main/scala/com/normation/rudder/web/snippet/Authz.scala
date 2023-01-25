@@ -38,7 +38,6 @@
 package com.normation.rudder.web.snippet
 
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.RoleToRights
 import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
@@ -78,10 +77,13 @@ class Authz extends DispatchSnippet with Loggable {
 
   def testRight(xml: NodeSeq): NodeSeq = {
     S.attr("role") match {
-      case Full(role)
-          if (CurrentUser.checkRights(RoleToRights.parseAuthz(role).headOption.getOrElse(AuthorizationType.NoRights))) =>
-        xml
-      case x => NodeSeq.Empty
+      case Full(role) =>
+        AuthorizationType.parseAuthz(role) match {
+          case Left(err)    => NodeSeq.Empty
+          case Right(authz) =>
+            if (CurrentUser.checkRights(authz.headOption.getOrElse(AuthorizationType.NoRights))) xml else NodeSeq.Empty
+        }
+      case x          => NodeSeq.Empty
     }
   }
 }

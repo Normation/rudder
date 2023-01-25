@@ -60,6 +60,9 @@ object ApplicationLoggerPure extends NamedZioLogger {
     def loggerName = parent.loggerName + ".plugin"
   }
 
+  object Authz extends NamedZioLogger {
+    def loggerName = parent.loggerName + ".authorization"
+  }
 }
 
 object ApiLogger extends Logger {

@@ -36,6 +36,15 @@
  */
 package com.normation.rudder
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
+import com.normation.errors.PureResult
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.zio._
+import scala.collection.immutable.SortedMap
+import zio._
+import zio.syntax._
+
 /**
  * Base class for Authorization types.
  * Common types are read, write, etc but the list is
@@ -66,9 +75,21 @@ sealed trait ActionType {
  * Edit is for update of one existing object
  */
 object ActionType {
-  trait Read  extends ActionType { def action = "read"  }
-  trait Write extends ActionType { def action = "write" }
-  trait Edit  extends ActionType { def action = "edit"  }
+  trait Read  extends ActionType { def action = VALUE.READ.name  }
+  trait Write extends ActionType { def action = VALUE.WRITE.name }
+  trait Edit  extends ActionType { def action = VALUE.EDIT.name  }
+
+  // we restrict the set of action types to only these three one to avoid future problem with named custom role
+  sealed trait VALUE { def name: String }
+  object VALUE       {
+    final case object READ  extends VALUE { val name = "read"  }
+    final case object WRITE extends VALUE { val name = "write" }
+    final case object EDIT  extends VALUE { val name = "edit"  }
+
+    val all: Set[VALUE] = ca.mrvisser.sealerate.values
+
+    def parse(s: String): Option[VALUE] = all.find(_.name == s.toLowerCase())
+  }
 }
 
 sealed trait Administration extends AuthorizationType { def authzKind = "administration" }
@@ -174,19 +195,62 @@ final object AuthorizationType {
     def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
 
-  val configurationKind:         Set[AuthorizationType] =
+  val configurationKind: Set[AuthorizationType] =
     Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Parameter.values
-  val nodeKind:                  Set[AuthorizationType] = Node.values ++ Group.values
-  val workflowKind:              Set[AuthorizationType] = Validator.values ++ Deployer.values
-  val complianceKind:            Set[AuthorizationType] = Compliance.values ++ (nodeKind ++ configurationKind).collect {
+  val nodeKind:          Set[AuthorizationType] = Node.values ++ Group.values
+  val workflowKind:      Set[AuthorizationType] = Validator.values ++ Deployer.values
+  val complianceKind:    Set[AuthorizationType] = Compliance.values ++ (nodeKind ++ configurationKind).collect {
     case x: ActionType.Read => x
   }
-  def allKind:                   Set[AuthorizationType] = allKindsMap
+
+  /*
+   * Authorization are extensible but can not be removed.
+   * Typically, a plugin can register its own rights
+   */
+  def allKind: Set[AuthorizationType] = allKindsMap
+
   private[this] var allKindsMap: Set[AuthorizationType] = {
     Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Deployment.values ++ Administration.values ++
     Parameter.values ++ Node.values ++ Group.values ++ Validator.values ++ Deployer.values ++ UserAccount.values ++ Compliance.values + AnyRights
   }
   def addAuthKind(newKinds: Set[AuthorizationType]) = allKindsMap = allKindsMap ++ newKinds
+
+  /*
+   * Parse a string as a set of authorization type, taking care of the special keyword "all" as an alias of read, write, edit.
+   * If the string is well formed but no authz are found, we return an empty set, not an error.
+   * Error is only if the string isn't well formed (for example "foo"), or if it's well formed but action is not one of
+   * edit, write, read (ex: "foo_bar").
+   */
+  def parseAuthz(authz: String): PureResult[Set[AuthorizationType]] = {
+    val regex = """(.*)_(.*)""".r
+    authz.toLowerCase() match {
+      case "any"                => Right(AuthorizationType.allKind)
+      case regex(authz, action) =>
+        val allActions = if (action == "all") {
+          Right(ActionType.VALUE.all)
+        } else {
+          ActionType.VALUE.parse(action) match {
+            case Some(a) => Right(Set(a))
+            case None    =>
+              Left(
+                Inconsistency(
+                  s"Authorization action with identifier name '${action}' is not known. Possible values: ${ActionType.VALUE.all.map(_.name).mkString(", ")}'"
+                )
+              )
+          }
+        }
+
+        allActions.map(
+          _.flatMap(a => AuthorizationType.allKind.find(x => x.authzKind.toLowerCase == authz && x.action == a.name).toSet)
+        )
+      case _                    =>
+        Left(
+          Inconsistency(
+            s"String '${authz}' is not recognized as an authorization string. It should be either 'any' or structured 'kind_[edit|write|read]'"
+          )
+        )
+    }
+  }
 
 }
 
@@ -214,11 +278,14 @@ class Rights(_authorizationTypes: AuthorizationType*) {
     case _ => false
   }
 
+  override def toString: String = {
+    displayAuthorizations
+  }
 }
 
 /*
  * Rudder "Role" which are kind of an aggregate of rights which somehow
- * make sense froma rudder usage point of view.
+ * make sense from a rudder usage point of view.
  */
 sealed trait Role {
   def name:   String
@@ -234,7 +301,12 @@ object Role       {
   // for now, all account type also have the "user account" rights
   val ua = A.UserAccount.values
 
-  final case object Administrator extends Role { val name = "administrator"; def rights = (A.allKind).toRights                      }
+  // a special account, with all rights, present and future, even if declared at runtime.
+  final case object Administrator extends Role {
+    val name = "administrator"; def rights = new Rights(AuthorizationType.AnyRights)
+  }
+
+  // other standard predefined roles
   final case object User          extends Role { val name = "user"; def rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
   final case object AdminOnly     extends Role {
     val name = "administration_only"; def rights = (ua ++ A.Administration.values.map(identity)).toRights
@@ -257,48 +329,278 @@ object Role       {
   final case object RuleOnly      extends Role {
     val name = "rule_only"; def rights = (ua ++ Set(A.Configuration.Read, A.Rule.Read)).toRights
   }
-  final case object NoRights      extends Role { val name = "no_rights"; def rights = (Set(AuthorizationType.NoRights)).toRights    }
+
+  // a special Role that means that a user has no rights at all. That role must super-seed any other right given by other roles
+  final case object NoRights extends Role { val name = "no_rights"; def rights = (Set(AuthorizationType.NoRights)).toRights }
 
   // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
   final case class Custom(rights: Rights) extends Role { val name = "custom" }
+  def forAuthz(right: AuthorizationType)       = Custom(new Rights(right))
+  def forAuthz(rights: Set[AuthorizationType]) = Custom(new Rights(rights.toSeq: _*))
+
+  // this is the named custom roles defined in <custom-roles> tag
+  final case class NamedCustom(name: String, roles: Seq[Role]) extends Role {
+    def rights = new Rights(roles.flatMap(_.rights.authorizationTypes): _*)
+  }
 
   def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]
 }
 
-object RoleToRights {
-  /*
-   * Authorization parser
-   */
-  def parseRole(roles: Seq[String]): Seq[Role] = {
-    def parseOne(role: String): Role = {
-      val r = role.toLowerCase
-      Role.values.find(_.name == r) match {
-        case Some(r) => r
-        case None    => // check if we have a custom roles based on authorization
-          val authz = parseAuthz(role)
-          if (authz.isEmpty) {
-            Role.NoRights
-          } else {
-            Role.Custom(new Rights(authz.toSeq: _*))
-          }
+// custom role utility classes to help parse/resolve them
+final case class UncheckedCustomRole(name: String, roles: List[String])
+final case class CustomRoleResolverResult(validRoles: List[Role], invalid: List[(UncheckedCustomRole, String)])
 
-      }
-    }
-    roles.map(parseOne)
+/*
+ * Facility to parse roles in rudder.
+ * This object use stateful resolution of authorisation, so be careful, it may
+ * be dependant of what happened elsewhere.
+ */
+object RudderRoles {
+
+  // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
+  private val builtInRoles = Role.values
+
+  // role names are case insensitive
+  implicit val roleOrdering = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  private val customRoles   = Ref.make(SortedMap.empty[String, Role]).runNow
+  private val allRoles: Ref[SortedMap[String, Role]] = ZioRuntime.unsafeRun(for {
+    all <- computeAllRoles
+    ref <- Ref.make(all)
+  } yield ref)
+
+  // compute all roles but be sure that no custom role ever override a builtIn one and that
+  private def computeAllRoles: UIO[SortedMap[String, Role]] =
+    customRoles.get.map(_ ++ builtInRoles.map(r => (r.name.toLowerCase, r)))
+
+  def getAllRoles = allRoles.get
+
+  /*
+   * Register custom roles. No check is done here, we just add them to the
+   * pool of known roles.
+   * Name is case insensitive. In case of redefinition, the last one registered win.
+   */
+  def register(roles: List[Role]): IOResult[Unit] = {
+    for {
+      crs <- customRoles.updateAndGet(_ ++ roles.map(r => (r.name.toLowerCase, r)))
+      all <- computeAllRoles
+      _   <- allRoles.set(all)
+    } yield ()
   }
 
-  def parseAuthz(authz: String): Set[AuthorizationType] = {
-    val regex = """(.*)_(.*)""".r
-    authz.toLowerCase() match {
-      case "any"                => AuthorizationType.allKind
-      case regex(authz, action) =>
-        val allActions = if (action == "all") {
-          Set("read", "write", "edit")
-        } else {
-          Set(action)
+  def findRoleByName(role: String): IOResult[Option[Role]] = {
+    allRoles.get.map(_.get(role.toLowerCase()))
+  }
+
+  /*
+   * Role parser that only rely of currently known roles, ie rudder default roles or
+   * any registered named custom roles.
+   * If no role is found by name, we try to parse for authorization. Else, the parsing fails.
+   */
+  def parseRole(role: String): IOResult[Role] = {
+    findRoleByName(role).flatMap(r => {
+      r match {
+        case Some(x) => x.succeed
+        case None    => // check if we have a custom roles based on authorization (ie anonymous)
+          AuthorizationType.parseAuthz(role) match {
+            case Left(err) =>
+              Inconsistency(s"Role '${role}' can not be resolved to a named role nor it matches a valid authorization").fail
+            case Right(x)  => Role.Custom(new Rights(x.toSeq: _*)).succeed
+          }
+      }
+    })
+  }
+
+  // Utility method for parsing several roles at once
+  // No consistency enforcement other than if at least on "NoRight" exists, then only NoRight is returned.
+  // Unknown roles are filtered out (with log)
+  def parseRoles(roles: List[String]): UIO[List[Role]] = {
+    ZIO
+      .foreach(roles) { role =>
+        parseRole(role).foldZIO(
+          err => ApplicationLoggerPure.Authz.warn(err.fullMsg) *> Nil.succeed,
+          r => List(r).succeed
+        )
+      }
+      .map { list =>
+        val l = list.flatten
+        if (l.exists(_ == Role.NoRights)) List(Role.NoRights) else l.distinct
+      }
+  }
+
+  /*
+   * Resolve all roles given in input with a starting knowledge of existing `resolved` roles.
+   * Resolving a role means: "checking for all roles in the `roles` list if they are known (either authorization-based or
+   * built-in-role reference or previously resolved custom role).
+   * Return a structure with fully resolved roles ("success") and role which where not resolved due to a problem. The
+   * cause of the problem is zipped with the faulty roles.
+   */
+  def resolveCustomRoles(
+      customRoles: List[UncheckedCustomRole],
+      knownRoles:  SortedMap[String, Role]
+  ): UIO[CustomRoleResolverResult] = {
+    /*
+     * General logic strategy:
+     * We must detect roles with cycle to remove them.
+     * For that, we have a pending(list(roles)) state that means that a role is pending until each of the roles
+     * in the list are resolved.
+     * When a role if fully resolved, we walk the pending list and remove it from each list. New roles are
+     * unblocked recursively.
+     * When we have process all the input list, if there is still roles in the pending list, it means that
+     * they are part of a cycle and we can remove them.
+     */
+
+    // utility class to hold a pending role, ie a role for which only parts of the role-list has been resolved.
+    // `role` is the wanna be custom role with the already resolved roles,
+    // `pending` is the list of remaining roles.
+    case class PendingRole(role: Role.NamedCustom, pending: List[String])
+
+    // utility sub-function used to check that the named custom role does not overlap with authorization patterns
+    def checkName(role: UncheckedCustomRole): Either[String, Unit] = {
+      AuthorizationType.parseAuthz(role.name) match {
+        case Right(value) =>
+          Left("'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role")
+        case Left(err)    =>
+          Right(())
+      }
+    }
+
+    // utility sub-function to resolve one role list in the context of `knownRoles`.
+    def resolveOne(knownRoles: Map[String, Role], role: PendingRole): Either[PendingRole, Role.NamedCustom] = {
+      import com.softwaremill.quicklens._
+      // role can't be duplicate (case insensitive)
+      val toResolve = role.pending.distinctBy(_.toLowerCase)
+      val firstPass = toResolve.foldLeft(role.modify(_.pending).setTo(Nil)) {
+        case (current, roleName) =>
+          ApplicationLoggerPure.Authz.logEffect.trace(s"Custom role resolution step: ${current}")
+          knownRoles.get(roleName) match {
+            // role name not yet resolved or part of a cycle
+            case None    =>
+              ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] not found in existing role: ${roleName}")
+              // try to parse role as an authorization, it is
+              AuthorizationType.parseAuthz(roleName) match {
+                case Right(x) =>
+                  ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] valid authorization: ${roleName}")
+                  current.modify(_.role.roles).using(_.appended(Role.forAuthz(x)))
+                case Left(_)  =>
+                  ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] not an authorization: ${roleName}")
+                  current.modify(_.pending).using(roleName :: _)
+              }
+
+            // yeah, role name already resolved !
+            case Some(r) =>
+              ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] found existing role: ${roleName}")
+              current.modify(_.role.roles).using(_.appended(r))
+          }
+      }
+      // After first pass, if all role name are resolved, we have our full custom role. Else, we will need to wait for other role resolution
+      // A named custom role can have zero role in the list (it won't give any rights)
+      firstPass match {
+        case PendingRole(role, Nil) => Right(role)
+        case x                      => Left(x)
+      }
+    }
+
+    // resolve all roles from the input list given the roles already in `resolved`. For each step, update either `pending`
+    // or `resolved` with the current role. When a role is added to `resolved`, call `resolveNew` to walk again the
+    // `pending` list with that new knowledge.
+    def resolveAll(
+        input:    List[PendingRole],
+        pending:  Ref[List[PendingRole]],
+        resolved: Ref[SortedMap[String, Role]],
+        errors:   Ref[List[(UncheckedCustomRole, String)]]
+    ): UIO[Unit] = {
+
+      // Sub-function to call when we have a new role resolved: it will walk list of pending role to remove the new resolved
+      // one when it is encountered in the pending list of a role and - if the role becomes full resolved - call itself back
+      def resolveNew(newRole: Role, pending: Ref[List[PendingRole]], resolved: Ref[SortedMap[String, Role]]): UIO[Unit] = {
+        pending.get.flatMap(list => {
+          ZIO
+            .foreach(list) { p =>
+              val matching = p.pending.collect { case r if r.equalsIgnoreCase(newRole.name) => r }
+              if (matching.nonEmpty) {
+                val remainingRoles = p.pending.filterNot(r => matching.contains(r))
+                // only add one time, even several names match
+                val r              = PendingRole(p.role.copy(roles = p.role.roles.appended(newRole)), pending = remainingRoles)
+                if (remainingRoles.isEmpty) { // promote, recurse
+                  for {
+                    _ <- pending.update(_.filterNot(_.role.name == p.role.name))
+                    _ <- resolved.update(_ + (r.role.name -> r.role))
+                    _ <- resolveNew(r.role, pending, resolved)
+                  } yield ()
+                } else { // update pending
+                  pending.update(all => r :: all.filterNot(_.role.name == r.role.name))
+                }
+              } else { // nothing to do
+                ZIO.unit
+              }
+            }
+            .unit
+        })
+      }
+
+      ZIO
+        .foreach(customRoles) { cr =>
+          checkName(cr) match {
+            case Left(err) => errors.update((cr, err) :: _)
+            case Right(_)  =>
+              for {
+                // for each role, resolve it or put it in pending
+                v <- resolved.get
+                // check that the name is not already in use
+                _ <- if (v.isDefinedAt(cr.name)) {
+                       errors.update(
+                         (
+                           cr,
+                           s"Custom role with name '${cr.name}' will be ignored because a role with name (case insensitive) already exists"
+                         ) :: _
+                       )
+                     } else {
+                       resolveOne(v, PendingRole(Role.NamedCustom(cr.name, Nil), cr.roles)) match {
+                         case Left(stillPending) =>
+                           ApplicationLoggerPure.Authz.debug(
+                             s"Custom role '${stillPending.role.name}' not fully resolved for roles: ${stillPending.pending.mkString(", ")}"
+                           ) *>
+                           pending.update(stillPending :: _)
+                         case Right(nc)          =>
+                           // before adding, remove possible duplicate resolved role
+                           val toAdd = nc.copy(roles = nc.roles.distinct)
+                           ApplicationLoggerPure.Authz.debug(s"Custom role '${toAdd.name}' fully resolved") *>
+                           resolved.update(_ + (toAdd.name -> toAdd)) *> resolveNew(toAdd, pending, resolved)
+                       }
+                     }
+              } yield ()
+          }
         }
-        allActions.flatMap(a => AuthorizationType.allKind.find(x => x.authzKind.toLowerCase == authz && x.action == a).toSet)
-      case _                    => Set()
+        .unit
+    }
+
+    //
+    // Main program: create the needed refs and exec "resolveAll". Then, deal with the result and create the
+    // appropriate `CustomRoleResolverResult` with them.
+    //
+    for {
+      pending   <- Ref.make(List.empty[PendingRole]) // this is for the pending role for which one pass won't be enough
+      resolved  <- Ref.make(knownRoles)
+      errors    <- Ref.make(List.empty[(UncheckedCustomRole, String)])
+      inputs     = customRoles.map(role => PendingRole(Role.NamedCustom(role.name, Nil), Nil))
+      debugR    <- resolved.get
+      _         <- ApplicationLoggerPure.Authz.debug(
+                     s"Resolving custom roles with base known roles: ${debugR.keys.toList.sorted.mkString(", ")}"
+                   )
+      _         <- resolveAll(inputs, pending, resolved, errors)
+      // all remaining roles in pending are in cycle
+      remaining <- pending.get
+      bad        = remaining.map { b =>
+                     (
+                       UncheckedCustomRole(b.role.name, b.pending),
+                       s"Custom role with name '${b.role.name}' will ignored: it is part of a cycle which is forbidden"
+                     )
+                   }
+      errs      <- errors.get
+      good      <- resolved.get
+    } yield {
+      val newCustom = (good -- knownRoles.keys).values.toList
+      CustomRoleResolverResult(newCustom, bad ::: errs)
     }
   }
 }

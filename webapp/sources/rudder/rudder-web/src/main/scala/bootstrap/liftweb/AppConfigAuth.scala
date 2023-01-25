@@ -40,7 +40,6 @@ package bootstrap.liftweb
 import com.github.ghik.silencer.silent
 import com.normation.errors._
 import com.normation.rudder.Role
-import com.normation.rudder.RoleToRights
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -213,8 +212,13 @@ class AppConfigAuth extends ApplicationContextAware {
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(rudderUserDetailsService)
     provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
+
     // we need to register a callback to update password encoder when needed
-    RudderConfig.rudderUserListProvider.registerCallback(cb => provider.setPasswordEncoder(cb.encoder))
+    val updatePasswordEncoder = RudderAuthorizationFileReloadCallback(
+      "updatePasswordEncoder",
+      (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
+    )
+    RudderConfig.rudderUserListProvider.registerCallback(updatePasswordEncoder)
     provider
   }
 
@@ -245,7 +249,7 @@ class AppConfigAuth extends ApplicationContextAware {
                 login,
                 password
               ),
-              RoleToRights.parseRole(Seq("administrator")).toSet,
+              Set(Role.Administrator),
               SYSTEM_API_ACL
             )
           )
@@ -263,7 +267,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
     val authConfigProvider = new UserDetailListProvider {
       // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
-      override def authConfig: UserDetailList = UserDetailList(encoder, true, admins)
+      override def authConfig: ValidatedUserList = ValidatedUserList(encoder, true, Nil, admins)
     }
     val provider           = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
