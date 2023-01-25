@@ -85,4 +85,11 @@
    <packageUrl regex="true">^pkg:maven/org\.postgresql/postgresql@.*$</packageUrl>
    <cve>CVE-2022-31197</cve>
 </suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: dataTables-1.10.22.min.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
+   <vulnerabilityName>prototype pollution</vulnerabilityName>
+</suppress>
 </suppressions>
