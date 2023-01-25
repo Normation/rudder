@@ -75,8 +75,8 @@ trait CampaignEventRepository {
       offset:       Option[Int] = None,
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None,
-      order:        Option[String],
-      asc:          Option[String]
+      order:        Option[String] = None,
+      asc:          Option[String] = None
   ): IOResult[List[CampaignEvent]]
 }
 
