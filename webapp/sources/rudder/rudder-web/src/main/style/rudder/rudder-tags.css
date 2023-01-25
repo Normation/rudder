@@ -292,6 +292,10 @@
   margin-left:15px;
   display:inline-block;
 }
+.tab-pane .box .only-tags,
+.tab-pane .box .only-tags > .btn-xs{
+  margin-left: 0;
+}
 .only-tags > .btn.active{
   background-color: #3694d1 !important;
   color: #fff !important;
