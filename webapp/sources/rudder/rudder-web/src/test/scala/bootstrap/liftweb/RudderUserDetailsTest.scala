@@ -37,6 +37,10 @@
 
 package bootstrap.liftweb
 
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.rest.AuthorizationApiMapping
+import com.normation.rudder.rest.RoleApiMapping
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
@@ -48,52 +52,39 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class RudderUserDetailsTest extends Specification {
 
-  // value from linux command lines: echo -n 'pass' | md5sum (or other hashes)
-
-  "hash algo for 'admin' password" should {
-    val pass1        = "admin"
-    val pass1_md5    = "21232f297a57a5a743894a0e4a801fc3"
-    val pass1_sha1   = "d033e22ae348aeb5660fc2140aec35850c4da997"
-    val pass1_sha256 = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
-    val pass1_sha512 =
-      "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
-
-    "be ok for md5" in {
-      PasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
+  implicit class ForceEither[A, B](either: Either[A, B]) {
+    def force: B = either match {
+      case Left(a)  =>
+        throw new IllegalArgumentException(s"Error in test: that either was expected to be right but is left with value: ${a}")
+      case Right(b) => b
     }
-    "be ok for sha1" in {
-      PasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
-    }
-    "be ok for sha256" in {
-      PasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
-    }
-    "be ok for sha512" in {
-      PasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
-    }
-
   }
 
-  "hash algo for ';axG42!' password" should {
-    val pass1        = ";axG42!"
-    val pass1_md5    = "897b4148edc1184686f95afd18ab125f"
-    val pass1_sha1   = "c1193f9a893e816ef90a84a48a4085d2d9a39664"
-    val pass1_sha256 = "ccc3e8f4851e4a3211c083074077ce4484db8dd806fac8360fae438298e07ee0"
-    val pass1_sha512 =
-      "ae5e7cdad947b6d2325d336868d86feb5abf3c66a111c124b0d66366db3db8a757b1d96f1c03c18cffd14fa3cf6a204701615c49b9f0961e13b363b46d88bdb2"
+  val roleApiMapping = new RoleApiMapping(new AuthorizationApiMapping {
+    override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = Nil
+  })
 
-    "be ok for md5" in {
-      PasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
-    }
-    "be ok for sha1" in {
-      PasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
-    }
-    "be ok for sha256" in {
-      PasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
-    }
-    "be ok for sha512" in {
-      PasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
-    }
+  val userXML_1 = <authentication hash="sha512" case-sensitivity="true">
+    <user name="admin" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+    <user name="ADMIN" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+  </authentication>
 
+  val userXML_2 = <authentication hash="sha512" case-sensitivity="false">
+    <user name="admin" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+    <user name="ADMIN" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+  </authentication>
+
+  "simple file with case sensitivity should discern users with similar username" >> {
+    val userDetailList = UserFileProcessing.parseXml(roleApiMapping, userXML_1, "userXML_1", false).force
+
+    (userDetailList.isCaseSensitive must beTrue) and
+    (userDetailList.users.size must beEqualTo(2))
   }
 
+  "simple file *without* case sensitivity should filter out ALL similar username" >> {
+    val userDetailList = UserFileProcessing.parseXml(roleApiMapping, userXML_2, "userXML_2", false).force
+
+    (userDetailList.isCaseSensitive must beFalse) and
+    (userDetailList.users.size must beEqualTo(0))
+  }
 }

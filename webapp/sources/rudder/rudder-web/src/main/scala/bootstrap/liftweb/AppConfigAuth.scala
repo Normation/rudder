@@ -231,7 +231,7 @@ class AppConfigAuth extends ApplicationContextAware {
       if (login.isEmpty || password.isEmpty) {
         (defaultEncoder, Map.empty[String, RudderUserDetail])
       } else {
-        // check if the password is in plain text (for compat before #19308) or bcrypt-encoded
+        // check if the password is in plain text (for compatibility before #19308) or bcrypt-encoded
         val passwordEncoder = if (password.startsWith("$2y$")) {
           PasswordEncoder.BCRYPT
         } else {
@@ -262,7 +262,8 @@ class AppConfigAuth extends ApplicationContextAware {
     }
 
     val authConfigProvider = new UserDetailListProvider {
-      override def authConfig: UserDetailList = UserDetailList(encoder, admins)
+      // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
+      override def authConfig: UserDetailList = UserDetailList(encoder, true, admins)
     }
     val provider           = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
@@ -353,9 +354,10 @@ object LogFailedLogin {
 class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListProvider) extends UserDetailsService {
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
-    val u = if (RudderConfig.rudderUsernameCaseSensitive) username else username.toLowerCase()
-    authConfigProvider.authConfig.users
-      .getOrElse(u, throw new UsernameNotFoundException(s"User with username '${username}' was not found"))
+    authConfigProvider.getUserByName(username) match {
+      case Left(err) => throw new UsernameNotFoundException(err.fullMsg)
+      case Right(u)  => u
+    }
   }
 }
 

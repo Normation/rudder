@@ -240,7 +240,7 @@ class RoleApiMapping(mapper: AuthorizationApiMapping) {
     getApiAclFromRights(new Rights(roles.flatMap(_.rights.authorizationTypes): _*))
   }
 
-  // a merge fonction that group action for identical path
+  // a merge function that groups action for identical path
   def mergeToAcl(authz: List[ApiAclElement]): List[ApiAclElement] = {
     authz
       .groupBy(_.path)
