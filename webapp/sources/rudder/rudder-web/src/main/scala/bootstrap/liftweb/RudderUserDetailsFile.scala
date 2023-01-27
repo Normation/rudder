@@ -37,6 +37,8 @@
 
 package bootstrap.liftweb
 
+import com.normation.errors.PureResult
+import com.normation.errors.Unexpected
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -129,8 +131,9 @@ object PasswordEncoder {
  * An user list is a parsed list of users with their authorisation
  */
 final case class UserDetailList(
-    encoder: PasswordEncoder.Rudder,
-    users:   Map[String, RudderUserDetail]
+    encoder:         PasswordEncoder.Rudder,
+    isCaseSensitive: Boolean,
+    users:           Map[String, RudderUserDetail]
 )
 
 object UserDetailList {
@@ -146,16 +149,18 @@ object UserDetailList {
    *   - users with same username (according to the case sensitivity)
    *     will be removed from the returned list
    */
-  def sanityLoginFilter(userDetails: List[RudderUserDetail]): Map[String, RudderUserDetail] = {
+  def filterByCaseSensitivity(userDetails: List[RudderUserDetail], isCaseSensitive: Boolean): Map[String, RudderUserDetail] = {
     userDetails.groupBy(_.getUsername.toLowerCase).flatMap {
       // User name is unique with or without case sensitivity, accept
-      case (k, u :: Nil)                                           => (u.getUsername, u) :: Nil
+      case (k, u :: Nil)                  => (u.getUsername, u) :: Nil
       // User name is not unique with case sensitivity disabled, refuse everything
-      case (_, users) if !RudderConfig.rudderUsernameCaseSensitive =>
-        ApplicationLogger.error(s"Users with duplicates username will be ignored: ${users.map(_.getUsername).mkString(", ")}")
+      case (_, users) if !isCaseSensitive =>
+        ApplicationLogger.error(
+          s"Several users have the same username case-insensitively equals to '${users.toList(0).getUsername}': they will be ignored"
+        )
         Nil
       // Disabled case sensitivity is treated above, putting a guard here make a non exhaustive match, do without guard,
-      case (_, users)                                              =>
+      case (_, users)                     =>
         // Remove user with exact same name, not only with case sensitivity
         val res = users.groupBy(_.getUsername).flatMap {
           // User name is unique, accept
@@ -166,17 +171,19 @@ object UserDetailList {
             Nil
         }
 
-        // Warn that some users  with name different only by their case are defined, and that disabling case sensitivity would break those users
+        // Notice that some users  with name different only by their case are defined, and that disabling case sensitivity would break those users
+        // (not a warning, since we are in the case sensitive case, it's ok)
         ApplicationLogger
-          .warn(s"Users with potential username collision if case sensitivity is disabled: ${res.keys.mkString(", ")}")
+          .info(s"Users with potential username collision if case sensitivity is disabled: ${res.keys.mkString(", ")}")
         res
     }
   }
 
   def fromRudderAccount(
-      roleApiMapping: RoleApiMapping,
-      encoder:        PasswordEncoder.Rudder,
-      users:          List[(RudderAccount.User, Seq[Role])]
+      roleApiMapping:  RoleApiMapping,
+      encoder:         PasswordEncoder.Rudder,
+      isCaseSensitive: Boolean,
+      users:           List[(RudderAccount.User, Seq[Role])]
   ): UserDetailList = {
     val userDetails   = users.map {
       case (user, roles) =>
@@ -193,15 +200,15 @@ object UserDetailList {
           .toList
         RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls))
     }
-    val filteredUsers = sanityLoginFilter(userDetails)
-    UserDetailList(encoder, filteredUsers)
+    val filteredUsers = filterByCaseSensitivity(userDetails, isCaseSensitive)
+    UserDetailList(encoder, isCaseSensitive, filteredUsers)
   }
 }
 
 /**
  * This is the class that defines the user management level.
  * Without the plugin, by default only "admin" role is know.
- * A user with an unknow role has no rights.
+ * A user with an unknown role has no rights.
  */
 trait UserAuthorisationLevel {
   def userAuthEnabled: Boolean
@@ -224,6 +231,16 @@ class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
 
 trait UserDetailListProvider {
   def authConfig: UserDetailList
+
+  /*
+   * Utility method to retrieve user by name.
+   * A generic implementation is provided for simplicity
+   */
+  def getUserByName(username: String): PureResult[RudderUserDetail] = {
+    val conf = authConfig
+    val u    = if (conf.isCaseSensitive) username else username.toLowerCase()
+    conf.users.get(u).toRight(Unexpected(s"User with username '${username}' was not found"))
+  }
 }
 
 final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisationLevel: UserAuthorisationLevel, file: UserFile)
@@ -231,12 +248,13 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
 
   /**
    * Initialize user details list when class is instantiated with an empty list.
-   * You will have to "reload" after application full init (to allows plugin override)
+   * You will have to "reload" after application full init (to allows plugin override);
+   * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
    */
-  private[this] var cache = UserDetailList(PasswordEncoder.PlainText, Map())
+  private[this] var cache = UserDetailList(PasswordEncoder.PlainText, false, Map())
 
   /**
-   * Callbacks for who need to be informed of a successufully users list reload
+   * Callbacks for who need to be informed of a successfully users list reload
    */
   private[this] var callbacks = List.empty[UserDetailList => Unit]
 
@@ -345,7 +363,7 @@ object UserFileProcessing {
         case e: Exception         =>
           Left(
             UserConfigFileError(
-              "User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
+              "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
               Some(e)
             )
           )
@@ -357,50 +375,6 @@ object UserFileProcessing {
       res <- parseXml(roleApiMapping, xml, resource.name, extendedAuthz)
     } yield {
       res
-    }
-  }
-
-  def parseCaseSensitivityOpt(resource: UserFile): Either[UserConfigFileError, Boolean] = {
-    val optXml = {
-      try {
-        Right(scala.xml.XML.load(resource.inputStream()))
-      } catch {
-        case e: SAXParseException =>
-          Left(
-            UserConfigFileError(
-              s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
-                  .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})",
-              Some(e)
-            )
-          )
-        case e: Exception         =>
-          Left(
-            UserConfigFileError(
-              "User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
-              Some(e)
-            )
-          )
-      }
-    }
-    for {
-      xml <- optXml
-      root = (xml \\ "authentication")
-    } yield {
-      (root(0) \ "@case-sensitivity").text.toLowerCase match {
-        case "true"  => true
-        case "false" => false
-        case str     =>
-          if (str.isEmpty) {
-            ApplicationLogger.warn(
-              s"Case sensitivity: in file /opt/rudder/etc/rudder-users.xml parameter `case-sensitivity` is missing, set by default on `true`"
-            )
-          } else {
-            ApplicationLogger.warn(
-              s"Case sensitivity: unknown case-sensitivity parameter `$str` in file /opt/rudder/etc/rudder-users.xml, set by default on `true`"
-            )
-          }
-          true
-      }
     }
   }
 
@@ -434,20 +408,36 @@ object UserFileProcessing {
         case _                    => PasswordEncoder.PlainText
       }
 
+      val isCaseSensitive: Boolean = (root(0) \ "@case-sensitivity").text.toLowerCase match {
+        case "true"  => true
+        case "false" => false
+        case str     =>
+          if (str.isEmpty) {
+            ApplicationLogger.info(
+              s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is missing, set by default on `true`"
+            )
+          } else {
+            ApplicationLogger.warn(
+              s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
+            )
+          }
+          true
+      }
+
       // now, get users
       val users = ((xml \ "user").toList.flatMap { node =>
         // for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
         (
           node
             .attribute("name")
-            .map(_.toList.map(str => if (RudderConfig.rudderUsernameCaseSensitive) str.text else str.text.toLowerCase())),
+            .map(_.toList.map(str => if (isCaseSensitive) str.text else str.text.toLowerCase())),
           node.attribute("password").map(_.toList.map(_.text)),
           node.attribute("role").map(_.toList.map(role => RoleToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
         ) match {
           case (Some(name :: Nil), Some(pwd :: Nil), roles) if (name.size > 0) =>
             val r = roles match {
-              case Some(Nil) => // 'role' attribute is optionnal, by default get "administator" role
-                Seq(Role.Administrator)
+              case Some(Nil) => // 'role' attribute is optional, by default get "none" role
+                Seq(Role.NoRights)
 
               case Some(roles :: Nil) =>
                 if (!extendedAuthz && roles.exists(_ != Role.Administrator)) {
@@ -478,7 +468,7 @@ object UserFileProcessing {
             Nil
         }
       })
-      Right(UserDetailList.fromRudderAccount(roleApiMapping, hash, users))
+      Right(UserDetailList.fromRudderAccount(roleApiMapping, hash, isCaseSensitive, users))
     }
   }
 }

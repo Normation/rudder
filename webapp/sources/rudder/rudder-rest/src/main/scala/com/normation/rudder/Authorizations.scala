@@ -259,6 +259,7 @@ object Role       {
   }
   final case object NoRights      extends Role { val name = "no_rights"; def rights = (Set(AuthorizationType.NoRights)).toRights    }
 
+  // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
   final case class Custom(rights: Rights) extends Role { val name = "custom" }
 
   def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]

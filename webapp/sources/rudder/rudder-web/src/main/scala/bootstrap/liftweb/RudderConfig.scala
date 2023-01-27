@@ -1032,19 +1032,19 @@ object RudderConfig extends Loggable {
   val ldapInventoryMapper = inventoryMapper
 
   val pluginSettingsService = new FilePluginSettingsService(root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf")
-  ////////////////////////////////////////////////
-  ////////// plugable service providers //////////
-  ////////////////////////////////////////////////
+  /////////////////////////////////////////////////
+  ////////// pluggable service providers //////////
+  /////////////////////////////////////////////////
 
   /*
-   * Plugable service:
+   * Pluggable service:
    * - Rudder Agent (agent type, agent os)
    * - API ACL
    * - Change Validation workflow
    * - User authentication backends
    * - User authorization capabilities
    */
-  // Plugable agent register
+  // Pluggable agent register
   lazy val agentRegister = new AgentRegister()
 
   // Plugin input interface to
@@ -1066,24 +1066,9 @@ object RudderConfig extends Loggable {
   // Plugin input interface for Authorization for API
   lazy val authorizationApiMapping = new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)
 
-  ////////// end plugable service providers //////////
+  ////////// end pluggable service providers //////////
 
   lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
-
-  lazy val rudderUsernameCaseSensitive: Boolean = {
-    (for {
-      resource <- UserFileProcessing.getUserResourceFile()
-      test     <- UserFileProcessing.parseCaseSensitivityOpt(resource)
-    } yield {
-      test
-    }) match {
-      case Right(resource)                           => resource
-      case Left(UserConfigFileError(msg, exception)) =>
-        ApplicationLogger.error(msg, Box(exception))
-        // make the application not available
-        throw new javax.servlet.UnavailableException(s"Error when triyng to parse Rudder users file, aborting.")
-    }
-  }
 
   // rudder user list
   lazy val rudderUserListProvider: FileUserDetailListProvider = {
