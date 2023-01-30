@@ -32,4 +32,6 @@ ignore = [
     "RUSTSEC-2021-0124",
     # Only unsoundness, no vulnerability, and no simple update
     "RUSTSEC-2022-0040",
+    # Only on Windows
+    "RUSTSEC-2022-0082",
 ]
