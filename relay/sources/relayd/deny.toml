@@ -25,6 +25,8 @@ ignore = [
     "RUSTSEC-2020-0159",
     # Only affects windows
     "RUSTSEC-2023-0001",
+    # Only on Windows
+    "RUSTSEC-2022-0082",
 ]
 
 # https://github.com/hsivonen/encoding_rs#licensing

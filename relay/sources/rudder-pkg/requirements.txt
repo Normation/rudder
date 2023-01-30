@@ -1,6 +1,6 @@
 blue==0.7.0
 bandit==1.7.0
-pylint==2.15.5
+pylint==2.15.10
 requests==2.26.0
 hypothesis==6.24.6
 parameterized==0.8.1
