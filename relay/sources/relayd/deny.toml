@@ -19,6 +19,8 @@ ignore = [
     "RUSTSEC-2020-0071",
     # Only affects windows
     "RUSTSEC-2023-0001",
+    # Only on Windows
+    "RUSTSEC-2022-0082",
 ]
 
 [bans]
