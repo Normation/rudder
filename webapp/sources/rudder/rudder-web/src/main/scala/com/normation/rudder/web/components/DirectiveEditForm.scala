@@ -304,7 +304,7 @@ class DirectiveEditForm(
         }
       } &
       "#techniqueID *" #> technique.id.name.value &
-      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-primary" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
+      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
         if (!activeTechnique.isEnabled || !directive.isEnabled) {
@@ -334,8 +334,9 @@ class DirectiveEditForm(
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
-      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-primary" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
+      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
       "#isSingle *" #> showIsSingle() &
+      "#paramInfo *" #> showParametersLink() &
       displayDeprecationWarning
     )(crForm) ++
     Script(
@@ -353,6 +354,7 @@ class DirectiveEditForm(
                  |} );""".stripMargin)
       )
     )
+
   }
 
   private[this] def clonePopup(): JsCmd = {
@@ -388,6 +390,29 @@ class DirectiveEditForm(
       }
     }
     </span>
+  }
+
+  private[this] def showParametersLink(): NodeSeq = {
+    if (isADirectiveCreation) {
+      <div class="callout-fade callout-info">
+        <div class="marker">
+          <span class="glyphicon glyphicon-info-sign"></span>
+        </div>
+        <div class="">
+          <p>You are creating a new Directive. You must set its parameters before saving.</p>
+          <p>To do so, please go to the corresponding tab, or use the shortcut below:
+        </p>
+          <div class="action-btn">
+            <a class="btn btn-primary btn-icon" href="#parametersTab" aria-controls="parametersTab" role="tab" data-toggle="tab" onclick="$('.ui-tabs-nav .active').removeClass('active');$('#paramNav').addClass('active');">
+              Set parameters
+              <i class="fa fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    } else {
+      NodeSeq.Empty
+    }
   }
 
   private[this] def displayPrivateDrafts: Option[NodeSeq] = {
