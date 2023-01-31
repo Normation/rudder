@@ -42,6 +42,7 @@ import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
 import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
 import bootstrap.liftweb.checks.action.CreateSystemToken
 import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
+import bootstrap.liftweb.checks.action.RemoveFaultyLdapEntries
 import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
@@ -2965,6 +2966,10 @@ object RudderConfig extends Loggable {
     ),
     new TriggerPolicyUpdate(
       asyncDeploymentAgent,
+      uuidGen
+    ),
+    new RemoveFaultyLdapEntries(
+      woDirectiveRepository,
       uuidGen
     ),
     new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),

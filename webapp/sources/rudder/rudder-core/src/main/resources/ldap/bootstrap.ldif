@@ -251,16 +251,6 @@ acceptationTimestamp: {"1.0":"20110715124328.999Z"}
 isEnabled: TRUE
 isSystem: TRUE
 
-# test_import_export_archive
-dn: activeTechniqueId=test_import_export_archive,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: activeTechnique
-objectClass: top
-techniqueId: test_import_export_archive
-activeTechniqueId: test_import_export_archive
-acceptationTimestamp: {"1.0":"20110715124328.999Z"}
-isEnabled: TRUE
-isSystem: FALSE
-
 dn: directiveId=inventory-all,activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: directive
 objectClass: top
@@ -270,17 +260,6 @@ cn: System inventory
 description: inventory - Technical
 isEnabled: TRUE
 isSystem: TRUE
-directivePriority: 0
-
-dn: directiveId=test_import_export_archive_directive,activeTechniqueId=test_import_export_archive,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
-objectClass: directive
-objectClass: top
-directiveId: test_import_export_archive_directive
-techniqueVersion: 1.0
-cn: test_import_export_archive_directive
-description: inventory - Technical
-isEnabled: TRUE
-isSystem: FALSE
 directivePriority: 0
 
 #######################################################################################################################
