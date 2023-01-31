@@ -927,6 +927,9 @@
   float: left;
   width: 100%;
 }
+.rudder-template .tab-table-content > .ui-tabs-nav{
+  margin: 0 -15px -17px -15px;
+}
 .tab-table-content .table-title h4,
 .list-container .list-heading h4{
   color: #6A7280;

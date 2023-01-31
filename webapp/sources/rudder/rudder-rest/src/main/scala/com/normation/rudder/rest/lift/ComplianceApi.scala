@@ -76,7 +76,8 @@ import zio.syntax._
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
-    complianceService:    ComplianceAPIService
+    complianceService:    ComplianceAPIService,
+    readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
   import JsonCompliance._
@@ -95,12 +96,14 @@ class ComplianceApi(
     API.endpoints
       .map(e => {
         e match {
-          case API.GetRulesCompliance       => GetRules
-          case API.GetRulesComplianceId     => GetRuleId
-          case API.GetNodesCompliance       => GetNodes
-          case API.GetNodeComplianceId      => GetNodeId
-          case API.GetGlobalCompliance      => GetGlobal
-          case API.GetDirectiveComplianceId => GetDirectiveId
+          case API.GetRulesCompliance           => GetRules
+          case API.GetRulesComplianceId         => GetRuleId
+          case API.GetNodesCompliance           => GetNodes
+          case API.GetNodeComplianceId          => GetNodeId
+          case API.GetGlobalCompliance          => GetGlobal
+          case API.GetDirectiveComplianceId     => GetDirectiveId
+          case API.GetDirectivesCompliance      => GetDirectives
+          case API.ExportDirectiveComplianceCSV => ExportCSV
         }
       })
       .toList
@@ -190,6 +193,73 @@ class ComplianceApi(
     }
   }
 
+  object ExportCSV extends LiftApiModule {
+    val schema        = API.ExportDirectiveComplianceCSV
+    val restExtractor = restExtractorService
+    def process(
+        version:     ApiVersion,
+        path:        ApiPath,
+        directiveId: String,
+        req:         Req,
+        params:      DefaultParams,
+        authzToken:  AuthzToken
+    ): LiftResponse = {
+      implicit val action   = schema.name
+      implicit val prettify = params.prettify
+
+      (for {
+        level     <- restExtractor.extractComplianceLevel(req.params)
+        t1         = System.currentTimeMillis
+        precision <- restExtractor.extractPercentPrecision(req.params)
+        id        <- DirectiveId.parse(directiveId).toBox
+        t2         = System.currentTimeMillis
+
+        directive <- complianceService.getDirectiveCompliance(id, level)
+        t3         = System.currentTimeMillis
+        _          = TimingDebugLogger.trace(s"API Export compliance to CSV - getting query param in ${t2 - t1} ms")
+        _          = TimingDebugLogger.trace(s"API Export compliance to CSV - getting directive compliance in ${t3 - t2} ms")
+
+      } yield {
+        val csvLines         = directive.rules.flatMap { r =>
+          r.components.map { c =>
+            c match {
+              case component: ByRuleValueCompliance =>
+                component.nodes.flatMap { node =>
+                  node.values.flatMap { value =>
+                    value.messages.map { report =>
+                      (
+                        r.name,
+                        component.name,
+                        node.name,
+                        value.componentValue,
+                        statusDisplayName(report.reportType),
+                        report.message.getOrElse("")
+                      )
+                    }
+                  }
+                }
+              case _ => List.empty
+            }
+          }
+        }.flatten
+        val csvFormatedLines = csvLines.map {
+          // double quotes are added to each value to prevent comma in value to breaks the formatting
+          case (rule, component, node, value, status, message) =>
+            s""""$rule", "$component", "$node", "$value", "$status", "$message""""
+        }
+        val csv              = List("Rule, Component, Node, Value, Status, Message") ++ csvFormatedLines
+        csv
+      }) match {
+        case Full(csv) =>
+          toJsonResponse(None, ("directiveComplianceExportCSV" -> csv.mkString("\n")))
+
+        case eb: EmptyBox =>
+          val message = (eb ?~ (s"Could not export to CSV compliance for directive '${directiveId}'")).messageChain
+          toJsonError(None, JString(message))
+      }
+    }
+  }
+
   object GetDirectiveId extends LiftApiModule {
     val schema        = API.GetDirectiveComplianceId
     val restExtractor = restExtractorService
@@ -234,6 +304,59 @@ class ComplianceApi(
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for directive '${directiveId}'")).messageChain
+          toJsonError(None, JString(message))
+      }
+    }
+  }
+
+  object GetDirectives extends LiftApiModule0 {
+    val schema        = API.GetDirectivesCompliance
+    val restExtractor = restExtractorService
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val action   = schema.name
+      implicit val prettify = params.prettify
+
+      (for {
+        level       <- restExtractor.extractComplianceLevel(req.params)
+        t1           = System.currentTimeMillis
+        precision   <- restExtractor.extractPercentPrecision(req.params)
+        t2           = System.currentTimeMillis
+        fullLibrary <- readDirective.getFullDirectiveLibrary().toBox ?~! "Could not fetch Directives"
+        t3           = System.currentTimeMillis
+        directiveIds = fullLibrary.allDirectives.values.filter(!_._2.isSystem).map(_._2.id).toList
+//        id        <- DirectiveId.parse(directiveId).toBox
+        t4           = System.currentTimeMillis
+        directives   = directiveIds.flatMap(complianceService.getDirectiveCompliance(_, level))
+        t5           = System.currentTimeMillis
+        _            = TimingDebugLogger.trace(s"API GetDirectives - getting query param in ${t2 - t1} ms")
+        _            = TimingDebugLogger.trace(s"API GetDirectives - getting directive compliance in ${t3 - t2} ms")
+
+      } yield {
+        if (version.value <= 6) {
+          directives.map(_.toJsonV6)
+        } else {
+          val json = directives.map(
+            _.toJson(
+              level.getOrElse(10),
+              precision.getOrElse(CompliancePrecision.Level2)
+            )
+          ) // by default, all details are displayed
+          val t4 = System.currentTimeMillis
+          TimingDebugLogger.trace(s"API GetDirectiveId - serialize to json in ${t4 - t3} ms")
+          json
+        }
+      }) match {
+        case Full(rule) =>
+          toJsonResponse(None, ("directivesCompliance" -> rule))
+
+        case eb: EmptyBox =>
+          val message = (eb ?~ (s"Could not get compliance for directives'")).messageChain
           toJsonError(None, JString(message))
       }
     }

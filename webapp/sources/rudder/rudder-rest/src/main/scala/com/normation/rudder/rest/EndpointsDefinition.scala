@@ -167,6 +167,20 @@ object ComplianceApi       extends ApiModuleProvider[ComplianceApi] {
     val dataContainer  = Some("directiveCompliance")
   }
 
+  final case object GetDirectivesCompliance extends ComplianceApi with ZeroParam with StartsAtVersion10 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get all directive's compliance"
+    val (action, path) = GET / "compliance" / "directives"
+    val dataContainer  = Some("directivesCompliance")
+  }
+
+  final case object ExportDirectiveComplianceCSV extends ComplianceApi with OneParam with StartsAtVersion10 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get a directive's compliance to CSV format"
+    val (action, path) = GET / "compliance" / "directives" / "export" / "{id}"
+    val dataContainer  = Some("directiveComplianceExportCSV")
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy(_.z)
 }
 
