@@ -273,6 +273,7 @@ type alias UI =
   , hasWriteRights   : Bool
   , loadingRules     : Bool
   , isAllCatFold     : Bool
+  , saving           : Bool
   }
 
 type alias  Changes =
@@ -310,7 +311,7 @@ type Msg
   | NewRule RuleId
   | NewCategory String
   | GetRepairedReport        RuleId Int
-  | CallApi                  (Model -> Cmd Msg)
+  | CallApi                  Bool (Model -> Cmd Msg)
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetCategoryDetailsResult (Result Error (Category Rule))
