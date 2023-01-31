@@ -229,9 +229,6 @@ class RuleDisplayer(
               <div class="box">
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
-                  <div class="box-tools pull-right">
-                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
-                  </div>
                 </div>
                 <div class="box-body">
                   <div class="row">
@@ -303,7 +300,6 @@ class RuleDisplayer(
                     <lift:authz role="rule_write">
                       {actionButtonCategory}
                     </lift:authz>
-                    <button class="btn btn-sm btn-box-tool" data-widget="collapse"><i class="fa fa-chevron-down"></i></button>
                   </div>
                 </div>
                 <div class="box-body" id="boxTreeRules">
