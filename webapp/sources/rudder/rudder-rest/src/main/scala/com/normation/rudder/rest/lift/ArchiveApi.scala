@@ -155,6 +155,26 @@ object ArchiveScope       {
   }
 }
 
+sealed trait MergePolicy { def value: String }
+object MergePolicy       {
+  // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
+  final case object OverrideAll    extends MergePolicy { val value = "override-all"     }
+  // A merge policy that will keep current groups for rule with an ID common with one of the archive
+  final case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
+
+  def values = ca.mrvisser.sealerate.values[MergePolicy].toList.sortBy(_.value)
+
+  def parse(s: String): Either[String, MergePolicy] = {
+    values.find(_.value == s.toLowerCase.strip()) match {
+      case None    =>
+        Left(
+          s"Error: can not parse '${s}' as a merge policy for archive import. Accepted values are: ${values.mkString(", ")}"
+        )
+      case Some(x) => Right(x)
+    }
+  }
+}
+
 class ArchiveApi(
     archiveBuilderService: ZipArchiveBuilderService,
     featureSwitchState:    IOResult[FeatureSwitch],
@@ -217,22 +237,21 @@ class ArchiveApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       // we use lots of comma separated arg, factor out the splitting logic
-      def splitArg(req: Req, name: String): List[String]           =
+      def splitArg(req: Req, name: String): List[String]                 =
         req.params.getOrElse(name, Nil).flatMap(seq => seq.split(',').toList.map(_.strip()))
-      def parseRuleIds(req: Req):           IOResult[List[RuleId]] = {
-
+      def parseRuleIds(req: Req):           IOResult[List[RuleId]]       = {
         ZIO.foreach(splitArg(req, "rules"))(RuleId.parse(_).toIO)
       }
-      def parseDirectiveIds(req: Req): IOResult[List[DirectiveId]]  = {
+      def parseDirectiveIds(req: Req):      IOResult[List[DirectiveId]]  = {
         ZIO.foreach(splitArg(req, "directives"))(DirectiveId.parse(_).toIO)
       }
-      def parseTechniqueIds(req: Req): IOResult[List[TechniqueId]]  = {
+      def parseTechniqueIds(req: Req):      IOResult[List[TechniqueId]]  = {
         ZIO.foreach(splitArg(req, "techniques"))(TechniqueId.parse(_).toIO)
       }
-      def parseGroupIds(req: Req):     IOResult[List[NodeGroupId]]  = {
+      def parseGroupIds(req: Req):          IOResult[List[NodeGroupId]]  = {
         ZIO.foreach(splitArg(req, "groups"))(NodeGroupId.parse(_).toIO)
       }
-      def parseScopes(req: Req):       IOResult[List[ArchiveScope]] = {
+      def parseScopes(req: Req):            IOResult[List[ArchiveScope]] = {
         splitArg(req, "include") match {
           case Nil => List(ArchiveScope.AllDep).succeed
           case seq => ZIO.foreach(seq)(ArchiveScope.parse(_).toIO)
@@ -292,9 +311,18 @@ class ArchiveApi(
     /*
      * We expect a binary file in multipart/form-data, not in application/x-www-form-urlencodedcontent
      * You can get that in curl with:
-     * curl -k -X POST -H "X-API-TOKEN: ..." https://.../api/latest/archives/import --form "archive=@my-archive.zip"
+     * curl -k -X POST -H "X-API-TOKEN: ..." https://.../api/latest/archives/import --form "merge=keep-rule-groups" --form="archive=@my-archive.zip"
      */
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+
+      // find merge policy. For now, it's a one-parameter arg with default = override-all if missing
+      def parseMergePolicy(req: Req): IOResult[MergePolicy] = {
+        req.params.get("merge") match {
+          case None | Some(Nil) => MergePolicy.OverrideAll.succeed
+          case Some(s :: Nil)   => MergePolicy.parse(s).toIO
+          case Some(list)       => Inconsistency(s"Only one merge parameter is allowed, but found several: ${list.mkString(", ")}").fail
+        }
+      }
 
       def parseArchive(archive: FileParamHolder): IOResult[PolicyArchive] = {
         val originalFilename = archive.fileName
@@ -312,9 +340,10 @@ class ArchiveApi(
         case Some(zip) =>
           for {
             _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${zip.fileName}', processing")
+            merge   <- parseMergePolicy(req)
             archive <- parseArchive(zip)
             _       <- checkArchiveService.check(archive)
-            _       <- saveArchiveService.save(archive, authzToken.actor)
+            _       <- saveArchiveService.save(archive, merge, authzToken.actor)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
           } yield JRArchiveImported(true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
@@ -972,7 +1001,7 @@ trait SaveArchiveService {
    * - what was not
    * - what may be partially
    */
-  def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit]
+  def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit]
 }
 
 /*
@@ -1070,7 +1099,7 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
 
-  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
+  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive):          IOResult[Unit] = {
     for {
       at <-
         roDirectiveRepos
@@ -1081,7 +1110,7 @@ class SaveArchiveServicebyRepo(
       _  <- woDirectiveRepos.saveDirective(at.id, d.directive, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
     } yield ()
   }
-  def saveGroup(eventMetadata: EventMetadata, g: GroupArchive):         IOResult[Unit] = {
+  def saveGroup(eventMetadata: EventMetadata, g: GroupArchive):                  IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       x <- roGroupRepos.getNodeGroupOpt(g.group.id)
@@ -1091,12 +1120,17 @@ class SaveArchiveServicebyRepo(
            }
     } yield ()
   }
-  def saveRule(eventMetadata: EventMetadata, r: Rule):                  IOResult[Unit] = {
+  def saveRule(eventMetadata: EventMetadata, mergePolicy: MergePolicy, r: Rule): IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
       x <- roRuleRepos.getOpt(r.id)
       _ <- x match {
-             case Some(value) => woRuleRepos.update(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+             case Some(value) =>
+               // if merge policy is `keep-rule-groups`, update rule from archive with existing groups before saving
+               val ruleToSave = if (mergePolicy == MergePolicy.KeepRuleGroups) {
+                 r.copy(targets = value.targets)
+               } else r
+               woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
              case None        => woRuleRepos.create(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
            }
     } yield ()
@@ -1107,14 +1141,14 @@ class SaveArchiveServicebyRepo(
    * For techniques, we just write them in fs, commit, reload tech lib.
    * Starts with techniques then other things.
    */
-  override def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit] = {
+  override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit] = {
     val eventMetadata = EventMetadata.withNewId(actor, Some(s"Importing archive '${archive.metadata.filename}'"))
     for {
       _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
       _ <- IOResult.attempt(techniqueReader.readTechniques)
       _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
       _ <- ZIO.foreach(archive.groups)(saveGroup(eventMetadata, _))
-      _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, _))
+      _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
       // update technique lib, regenerate policies
       _ <- ZIO.when(archive.techniques.nonEmpty) {
              techLibUpdate
