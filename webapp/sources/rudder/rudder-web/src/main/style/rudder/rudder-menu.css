@@ -1362,24 +1362,6 @@ header.main-header .logo-lg img{
 }
 
 /* ======== */
-
-#details .callout-fade{
-  margin-top:15px;
-}
-#details .box-body h4{
-  color:#041922;
-  margin-bottom: 4px;
-  border-bottom: 1px solid #eaeaea;
-  padding-bottom: 7px;
-}
-#details .box-body ul{
-  margin-left: 10px;
-  padding-left: 10px;
-  list-style-type: disc;
-}
-#details .box-body ul>li{
-  list-style-type: disc;
-}
 .search-addon{
   margin-bottom:6px;
 }
@@ -3161,75 +3143,7 @@ ul > li.rudder-form > .input-group.disabled *{
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
 }
-/* BOX */
-.box{
-  margin-bottom: 14px;
-  border-top-width:2px;
-}
-h3.box-title {
-  padding:0;
-}
-.box-header.with-border,.nav-tabs-custom>.nav-tabs>li.active>a{
-  border-color: #d6deef !important;
-}
 
-.box.has-toolbar{
-  margin-bottom:65px;
-}
-.row.title{
-  margin-bottom:50px;
-  position:relative;
-}
-.box.box-title{
-  border-top:none;
-  position:absolute;
-  top:-15px;
-}
-.box.box-title > h4{
-  color:#555;
-  font-size:24px;
-  display:inline-block;
-}
-.box.box-title > h4 + .box-tools{
-  margin-top:6px;
-  margin-bottom:6px;
-}
-.box-header>.fa, .box-header>.glyphicon, .box-header>.ion, .box-header .box-title{
-  color:#041922;
-}
-.box .box-title .fa{
-  color: #748195;
-  margin-right:10px;
-}
-.box-header.with-border.spacing{
-  padding:3px 10px;
-}
-.box-header.with-border.spacing .box-title{
-  min-height: 34px;
-  display: inline-block;
-  line-height: 34px;
-}
-.box-header.with-border.spacing >.box-tools {
-  position: static;
-}
-.box-tools > .btn-xs {
-  position:relative;
-  top:-2px;
-  max-height: 21px;
-}
-.box-tools > .btn-sm.btn-box-tool > .fa {
-  font-size: 14px;
-}
-.btn-box-tool .fa-chevron-down,.btn-box-tool .fa-chevron-right {
-  min-width: 15px;
-}
-.btn-box-tool .fa-chevron-right {
-  top: -1px;
-  position: relative;
-}
-.btn-box-tool.btn-sm .fa-chevron-right {
-  top:2px;
-}
 .nav-tabs-custom>.nav-tabs.pull-right>li{
   margin-top:-2px;
 }
