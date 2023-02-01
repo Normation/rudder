@@ -75,8 +75,8 @@ class HooksTest() extends Specification with AfterAll {
       HookEnvPairs(params),
       HookEnvPairs(Nil),
       1.second,
-      1.second,
-      500.millis
+      500.millis,
+      5.seconds
     )
   }
 
