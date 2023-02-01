@@ -265,7 +265,7 @@ object RunHooks {
                    case Some(ok) =>
                      ok.succeed
                    case None =>
-                     val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.asJava.toString}"
+                     val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.render}"
                      PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
                  }.untraced
             _ <- f.interrupt
@@ -318,7 +318,7 @@ object RunHooks {
    * `unitKillAfter` is an individual timeout, ie the kill will happen if ONE hook takes more time than that value.
    */
   def syncRun(hooks: Hooks, hookParameters: HookEnvPairs, envVariables: HookEnvPairs, globalWarnAfter: Duration = 1.minutes, unitWarnAfter: Duration = 30.seconds, unitKillAfter: Duration = 5.minutes): HookReturnCode = {
-    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitKillAfter, unitWarnAfter).either.runNow match {
+    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitWarnAfter, unitKillAfter).either.runNow match {
       case Right(x)  => x._1
       case Left(err) => HookReturnCode.SystemError(s"Error when executing hooks in directory '${hooks.basePath}'. Error message is: ${err.fullMsg}")
     }

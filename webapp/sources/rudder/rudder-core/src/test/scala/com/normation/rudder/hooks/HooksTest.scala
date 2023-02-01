@@ -72,7 +72,14 @@ class HooksTest() extends Specification with AfterAll {
   }
 
   def runHooks(hooks: List[String], params: List[HookEnvPair]) = {
-    RunHooks.syncRun(Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))), HookEnvPairs(params), HookEnvPairs(Nil), 1.second, 1.second, 500.millis)
+    RunHooks.syncRun(
+      Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
+      HookEnvPairs(params),
+      HookEnvPairs(Nil),
+      1.second,
+      500.millis,
+      5.seconds
+    )
   }
 
   override def afterAll(): Unit = {
