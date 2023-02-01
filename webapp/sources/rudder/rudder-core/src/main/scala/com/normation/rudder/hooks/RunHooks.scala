@@ -352,7 +352,7 @@ object RunHooks {
       unitWarnAfter:   Duration = 30.seconds,
       unitKillAfter:   Duration = 5.minutes
   ): HookReturnCode = {
-    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitKillAfter, unitWarnAfter).either.runNow match {
+    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitWarnAfter, unitKillAfter).either.runNow match {
       case Right(x)  => x._1
       case Left(err) =>
         HookReturnCode.SystemError(
