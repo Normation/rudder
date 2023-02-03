@@ -315,18 +315,15 @@ class FusionInventoryParser(
       !(hostname == null || hostname.isEmpty() || invalidList.contains(hostname) || HostnameRegex.checkHostname(hostname).isLeft)
     }
 
-    val customProperties = processCustomProperties(xml \\ "RUDDER" \ "CUSTOM_PROPERTIES")
-    val origHostname     = optTextHead(xml \\ "RUDDER" \ "HOSTNAME") match {
-      case Some(hostname) =>
-        Some(hostname)
-      case x              =>
-        optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN") match {
-          // OS Section is the fallback
-          case Some(osfqdn) =>
-            Some(osfqdn)
-          case _            => None
-        }
+    val customProperties   = processCustomProperties(xml \\ "RUDDER" \ "CUSTOM_PROPERTIES")
+    // we take the first non-empty and valid hostname
+    val sortedAlternatives = {
+      optTextHead(xml \\ "RUDDER" \ "HOSTNAME") ::
+      optTextHead(xml \\ "OPERATINGSYSTEM" \ "FQDN") ::
+      Nil
     }
+
+    val origHostname = sortedAlternatives.collectFirst { case Some(fqdn) if validHostname(fqdn) => fqdn }
 
     customProperties.collectFirst {
       case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, JString(x)) if validHostname(x) => x
