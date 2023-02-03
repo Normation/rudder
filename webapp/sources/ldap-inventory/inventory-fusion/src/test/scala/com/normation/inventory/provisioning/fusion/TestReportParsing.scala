@@ -204,7 +204,7 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Rudder tag in inventory" should {
 
-    "ok-ish when not present (have an eror log)" in {
+    "ok-ish when not present (have an error log)" in {
       val res = parseRunEither("fusion-inventories/rudder-tag/minimal-no-rudder.ocs")
       res must beRight
     }
@@ -357,6 +357,22 @@ class TestInventoryParsing extends Specification with Loggable {
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
       val hostname = parseRun("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname
       hostname === "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
+    }
+  }
+
+  "Invalid hostname should be rejected" should {
+    "when rudder/hostname contains localhost and no override exists it's an error" in {
+      val res = parseRunEither("fusion-inventories/rudder-tag/invalid-hostname-localhost.ocs").left.map(_.fullMsg)
+      res must beLeft(matching(".*are missing or invalid.*"))
+    }
+    "when rudder/hostname contains localhost and a invalid alternative exists, it is an error" in {
+      val res =
+        parseRunEither("fusion-inventories/rudder-tag/invalid-hostname-localhost-alternative-error.ocs").left.map(_.fullMsg)
+      res must beLeft(matching(".*are missing or invalid.*"))
+    }
+    "when rudder/hostname contains localhost and a valid alternative exists, it is taken" in {
+      val res = parseRun("fusion-inventories/rudder-tag/invalid-hostname-localhost-alternative-ok.ocs").node.main.hostname
+      res must beEqualTo("some.valid.hostname")
     }
   }
 
