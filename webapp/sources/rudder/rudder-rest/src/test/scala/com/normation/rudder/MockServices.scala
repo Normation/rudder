@@ -70,6 +70,7 @@ import com.normation.rudder.campaigns.CampaignInfo
 import com.normation.rudder.campaigns.CampaignParsingInfo
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.campaigns.CampaignStatusValue
 import com.normation.rudder.campaigns.CampaignType
 import com.normation.rudder.campaigns.DayTime
 import com.normation.rudder.campaigns.Enabled
@@ -3031,10 +3032,17 @@ class MockCampaign() {
   object repo extends CampaignRepository {
     val items = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow
 
-    override def getAll():            IOResult[List[Campaign]] = items.get.map(_.valuesIterator.toList)
-    override def get(id: CampaignId): IOResult[Campaign]       =
+    override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
+      for {
+        campaigns <- items.get.map(_.valuesIterator.toList)
+      } yield {
+        Campaign.filter(campaigns, typeFilter, statusFilter)
+      }
+    }
+
+    override def get(id: CampaignId): IOResult[Campaign] =
       items.get.map(_.get(id)).notOptional(s"Missing campaign with id '${id.serialize}''")
-    override def save(c: Campaign):   IOResult[Campaign]       = {
+    override def save(c: Campaign):   IOResult[Campaign] = {
       c match {
         case x: DumbCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
         case _ => Inconsistency("Unknown campaign type").fail
@@ -3081,7 +3089,7 @@ class MockCampaign() {
 
     def getWithCriteria(
         states:       List[String],
-        campaignType: Option[CampaignType],
+        campaignType: List[CampaignType],
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
         offset:       Option[Int],
@@ -3097,8 +3105,8 @@ class MockCampaign() {
         case Some(id) => allEvents.map(_.filter(_.campaignId == id))
       }
       val campaignTypeFiltered = campaignType match {
-        case None     => campaignIdFiltered
-        case Some(id) => campaignIdFiltered.map(_.filter(_.campaignType == id))
+        case Nil => campaignIdFiltered
+        case l   => campaignIdFiltered.map(_.filter(c => l.contains(c.campaignType)))
       }
       val stateFiltered        = states match {
         case Nil => campaignTypeFiltered

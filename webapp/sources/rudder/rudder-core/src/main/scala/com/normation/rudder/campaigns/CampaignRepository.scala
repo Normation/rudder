@@ -45,10 +45,10 @@ import zio._
 import zio.syntax._
 
 trait CampaignRepository {
-  def getAll(): IOResult[List[Campaign]]
-  def get(id:    CampaignId): IOResult[Campaign]
-  def delete(id: CampaignId): IOResult[CampaignId]
-  def save(c:    Campaign):   IOResult[Campaign]
+  def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]]
+  def get(id:            CampaignId): IOResult[Campaign]
+  def delete(id:         CampaignId): IOResult[CampaignId]
+  def save(c:            Campaign): IOResult[Campaign]
 }
 
 object CampaignRepositoryImpl {
@@ -73,23 +73,25 @@ object CampaignRepositoryImpl {
 class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository)
     extends CampaignRepository {
 
-  def getAll():            IOResult[List[Campaign]] = {
+  def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
     for {
-      jsonFiles <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
-      campaigns <- (ZIO.foreach(jsonFiles.toList) { json =>
-                     (for {
-                       c <-
-                         campaignSerializer.parse(json.contentAsString)
-                     } yield {
-                       c
-                     }).either.chainError("Error when getting all campaigns from filesystem")
-                   })
-      _         <- ZIO.foreach(campaigns.partitionMap(identity)._1)(err => CampaignLogger.error(err.msg))
+      jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
+      campaigns          <- (ZIO.foreach(jsonFiles.toList) { json =>
+                              (for {
+                                c <-
+                                  campaignSerializer.parse(json.contentAsString)
+                              } yield {
+                                c
+                              }).either.chainError("Error when getting all campaigns from filesystem")
+                            })
+      (errs, campaignRes) = campaigns.partitionMap(identity)
+      _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
+      filteredCampaign    = Campaign.filter(campaignRes, typeFilter, statusFilter)
     } yield {
-      campaigns.partitionMap(identity)._2
+      filteredCampaign
     }
   }
-  def get(id: CampaignId): IOResult[Campaign]       = {
+  def get(id: CampaignId):                                                             IOResult[Campaign]       = {
     for {
       content  <- IOResult.attempt(s"error when getting campaign file for campaign with id '${id.value}'") {
                     val file = path / (s"${id.value}.json")
@@ -101,7 +103,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
       campaign
     }
   }
-  def save(c: Campaign):   IOResult[Campaign]       = {
+  def save(c: Campaign):                                                               IOResult[Campaign]       = {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)

@@ -10,6 +10,7 @@ import com.normation.rudder.campaigns.CampaignLogger
 import com.normation.rudder.campaigns.CampaignRepository
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignSerializer._
+import com.normation.rudder.campaigns.CampaignStatusValue
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.{CampaignApi => API}
 import com.normation.rudder.rest.ApiPath
@@ -57,8 +58,14 @@ class CampaignApi(
     val schema = API.GetCampaigns
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val res = (for {
-        campaigns  <- campaignRepository.getAll()
+      val campaignType     = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
+      val (errors, status) =
+        req.params.get("status").getOrElse(Nil).map(v => CampaignStatusValue.getValue(v)).partitionMap(identity)
+      errors.foreach(e => LiftApiProcessingLogger.error(s"Error while extracting campaign status from request, details:  ${e}"))
+      val res              = (for {
+
+        campaigns <- campaignRepository.getAll(campaignType, status)
+
         serialized <- ZIO.foreach(campaigns)(campaignSerializer.getJson)
       } yield {
         serialized
@@ -219,7 +226,7 @@ class CampaignApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
       val campaignId   = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
@@ -261,7 +268,7 @@ class CampaignApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").flatMap(_.headOption).map(campaignSerializer.campaignType)
+      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)

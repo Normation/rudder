@@ -58,6 +58,17 @@ trait Campaign {
   def version: Int
 }
 
+object Campaign {
+  def filter(campaigns: List[Campaign], typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]) = {
+    (typeFilter, statusFilter) match {
+      case (Nil, Nil) => campaigns
+      case (t, Nil)   => campaigns.filter(c => t.contains(c.campaignType))
+      case (Nil, s)   => campaigns.filter(c => s.contains(c.info.status.value))
+      case (t, s)     => campaigns.filter(c => t.contains(c.campaignType) && s.contains(c.info.status.value))
+    }
+  }
+}
+
 case class CampaignInfo(
     id:          CampaignId,
     name:        String,
@@ -84,14 +95,43 @@ object CampaignId                                                            {
   }
 }
 
+sealed trait CampaignStatusValue {
+  def value: String
+}
 @jsonDiscriminator("value")
-sealed trait CampaignStatus
+sealed trait CampaignStatus      {
+  def value: CampaignStatusValue
+}
+
+object CampaignStatusValue {
+  case object Enabled  extends CampaignStatusValue {
+    val value = "enabled"
+  }
+  case object Disabled extends CampaignStatusValue {
+    val value = "disabled"
+  }
+  case object Archived extends CampaignStatusValue {
+    val value = "archived"
+  }
+  val allValues: Set[CampaignStatusValue] = ca.mrvisser.sealerate.values
+  def getValue(s: String) = allValues.find(_.value == s.toLowerCase()) match {
+    case None    => Left(s"${s} is not valid status value, accepted values are ${allValues.map(_.value).mkString(", ")}")
+    case Some(v) => Right(v)
+  }
+}
+
 @jsonHint("enabled")
-case object Enabled                                 extends CampaignStatus
+case object Enabled                                 extends CampaignStatus {
+  val value = CampaignStatusValue.Enabled
+}
 @jsonHint("disabled")
-case class Disabled(reason: String)                 extends CampaignStatus
+case class Disabled(reason: String)                 extends CampaignStatus {
+  val value = CampaignStatusValue.Disabled
+}
 @jsonHint("archived")
-case class Archived(reason: String, date: DateTime) extends CampaignStatus
+case class Archived(reason: String, date: DateTime) extends CampaignStatus {
+  val value = CampaignStatusValue.Archived
+}
 
 @jsonDiscriminator("type")
 sealed trait CampaignSchedule
