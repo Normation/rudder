@@ -221,6 +221,7 @@ object LDAPConstants {
   val A_OS_AMAZON_LINUX    = "AmazonLinux"
   val A_OS_ROCKY_LINUX     = "RockyLinux"
   val A_OS_ALMA_LINUX      = "AlmaLinux"
+  val A_OS_RASPBIAN        = "Raspbian"
 
   /*
    * A bunch of name, just to be sur to use variable
