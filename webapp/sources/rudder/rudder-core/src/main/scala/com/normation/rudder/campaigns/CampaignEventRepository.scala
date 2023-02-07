@@ -69,7 +69,7 @@ trait CampaignEventRepository {
    */
   def getWithCriteria(
       states:       List[String] = Nil,
-      campaignType: Option[CampaignType] = None,
+      campaignType: List[CampaignType] = Nil,
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
       offset:       Option[Int] = None,
@@ -119,7 +119,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
   def getWithCriteria(
       states:       List[String] = Nil,
-      campaignType: Option[CampaignType] = None,
+      campaignType: List[CampaignType] = Nil,
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
       offset:       Option[Int] = None,
@@ -131,7 +131,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
     import cats.syntax.list._
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
-    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
+    val campaignTypeQuery = campaignType.toNel.map(c => Fragments.in(fr"campaignType", c))
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
     val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")

@@ -293,7 +293,7 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case Enabled                      =>
         for {
           nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-          events     <- repo.getWithCriteria(Running.value :: Nil, None, Some(campaign.info.id), None, None, None, None, None, None)
+          events     <- repo.getWithCriteria(Running.value :: Nil, Nil, Some(campaign.info.id), None, None, None, None, None, None)
           _          <- repo.deleteEvent(None, Scheduled.value :: Nil, None, Some(campaign.info.id), None, None)
 
           lastEventDate = events match {
@@ -337,13 +337,12 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
       case Some(s) =>
         for {
           alreadyScheduled <-
-            repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, None, None, None, None, None, None, None, None)
+            repo.getWithCriteria(Running.value :: Scheduled.value :: Nil, Nil, None, None, None, None, None, None, None)
           _                <- CampaignLogger.debug("Got events, queue them")
           _                <- s.queue.takeAll // empty queue, we will enqueue all existing events again
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.debug("queued events, check campaigns")
-          allCampaigns     <- campaignRepo.getAll()
-          campaigns         = allCampaigns.filter(_.info.status == Enabled)
+          campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))
