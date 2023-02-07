@@ -78,10 +78,11 @@ bundle agent file_key_value_parameter_present_in_list(path, key, key_value_separ
       "defined_enclosing"           expression => "leading_char_defined.closing_char_defined";
 
     defined_enclosing.!pass1::
-      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*)${escaped_leading_char}.*(${parameter_separator})?${parameter}(${parameter_separator})?.*(${escaped_closing_char})\s*$", "${path}");
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*)${escaped_leading_char}(.*${parameter_separator}|)${parameter}(|${parameter_separator}.*)(${escaped_closing_char})\s*$", "${path}");
 
     !defined_enclosing.!invalid_enclosing.!pass1::
-      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*).*(${parameter_separator})?${parameter}(${parameter_separator})?.*$", "${path}");
+      # we need to ensure that the parameter is directly next to the separator or endline
+      "line_with_parameter_present" expression => regline("^(${key}\s*${key_value_separator}\s*)(.*${parameter_separator}|)${parameter}(|${parameter_separator}.*)$", "${path}");
 
     !pass1::
       "line_with_key_present"       expression => regline("^(${key}\s*${key_value_separator}\s*).*$", "${path}");

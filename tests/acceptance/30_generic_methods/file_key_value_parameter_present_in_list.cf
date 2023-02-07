@@ -57,6 +57,13 @@ bundle agent init
     "ref_file[8]"   string => "${tmp}/ref8";
     "file_canon[8]" string => canonify("${file[8]}");
 
+    "file[9]"       string => "${tmp}/test9";
+    "ref_file[9]"   string => "${tmp}/ref9";
+    "file_canon[9]" string => canonify("${file[9]}");
+
+    "file[10]"       string => "${tmp}/test10";
+    "ref_file[10]"   string => "${tmp}/ref10";
+    "file_canon[10]" string => canonify("${file[10]}");
 
     "tests_list"     slist => getindices("file");
 # First test: ensure that a value is correctly added
@@ -163,6 +170,33 @@ js.config.file=['value4']";
     "leading_char8"         string => "[";
     "closing_char8"         string => "]";
 
+# nineth test: key is there, but parameter are merged together without the separator - should not believe it's correct
+    "base_text9"  string => "# SSH conf file
+Ciphers aes128-ctraes196-ctr";
+
+    "ref_text9"  string => "# SSH conf file
+Ciphers aes128-ctraes196-ctr,aes128-ctr";
+
+    "key9"                  string => "Ciphers";
+    "parameter9"            string => "aes128-ctr";
+    "key_value_separator9"  string => " ";
+    "parameter_separator9"  string => ",";
+    "leading_char9"         string => "";
+    "closing_char9"         string => "";
+
+# then test: key is there, but parameter are merged together without the separator - should not believe it's correct
+    "base_text10"  string => "# SSH conf file
+Ciphers 'aes128-ctraes196-ctr'";
+
+    "ref_text10"  string => "# SSH conf file
+Ciphers 'aes128-ctraes196-ctr,aes128-ctr'";
+
+    "key10"                  string => "Ciphers";
+    "parameter10"            string => "aes128-ctr";
+    "key_value_separator10"  string => " ";
+    "parameter_separator10"  string => ",";
+    "leading_char10"         string => "'";
+    "closing_char10"         string => "'";
 
   commands:
 # Initialize test and reference files
@@ -189,6 +223,7 @@ bundle agent test
     "added key4"    usebundle => file_key_value_parameter_present_in_list("${init.file[6]}", "${init.key6}", "${init.key_value_separator6}", "${init.parameter6}", "${init.parameter_separator6}", "${init.leading_char6}", "${init.closing_char6}");
     "success key2"  usebundle => file_key_value_parameter_present_in_list("${init.file[7]}", "${init.key7}", "${init.key_value_separator7}", "${init.parameter7}", "${init.parameter_separator7}", "${init.leading_char7}", "${init.closing_char7}");
     "repair key2"   usebundle => file_key_value_parameter_present_in_list("${init.file[8]}", "${init.key8}", "${init.key_value_separator8}", "${init.parameter8}", "${init.parameter_separator8}", "${init.leading_char8}", "${init.closing_char8}");
+    "repair key3"   usebundle => file_key_value_parameter_present_in_list("${init.file[9]}", "${init.key9}", "${init.key_value_separator9}", "${init.parameter9}", "${init.parameter_separator9}", "${init.leading_char9}", "${init.closing_char9}");
 
 }
 
@@ -213,9 +248,13 @@ bundle agent check
     "ok_test6"     expression => "file6_correct.file_key_value_parameter_present_in_list_${init.file_canon[6]}_repaired.!file_key_value_parameter_present_in_list_${init.file_canon[6]}_not_ok";
     "ok_test7"     expression => "file7_correct.file_key_value_parameter_present_in_list_${init.file_canon[7]}_kept.!file_key_value_parameter_present_in_list_${init.file_canon[7]}_repaired.!file_key_value_parameter_present_in_list_${init.file_canon[7]}_not_ok";
     "ok_test8"     expression => "file8_correct.!file_key_value_parameter_present_in_list_${init.file_canon[8]}_kept.!file_key_value_parameter_present_in_list_${init.file_canon[8]}_not_ok.file_key_value_parameter_present_in_list_${init.file_canon[8]}_repaired";
+    "ok_test9"     expression => "file9_correct.!file_key_value_parameter_present_in_list_${init.file_canon[9]}_kept.!file_key_value_parameter_present_in_list_${init.file_canon[9]}_not_ok.file_key_value_parameter_present_in_list_${init.file_canon[9]}_repaired";
 
-    "ok"          and => {"ok_test1","ok_test2","ok_test3", "ok_test4", "ok_test5", "ok_test6", "ok_test7", "ok_test8" };
 
+    "ok"          and => {"ok_test1","ok_test2","ok_test3", "ok_test4", "ok_test5", "ok_test6", "ok_test7", "ok_test8", "ok_test9" };
+
+commands:
+"/bin/echo ${init.file[9]}";
 
   reports:
     ok::
@@ -242,5 +281,7 @@ bundle agent check
       "Generic method return is invalid for seventh test (expected kept)";
     file8_correct.!ok_test8::
       "Generic method return is invalid for eighth test (expected repaired)";
+    file9_correct.!ok_test9::
+      "Generic method return is invalid for nineth test (expected repaired)";
 
 }
