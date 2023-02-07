@@ -1072,17 +1072,13 @@ object RudderConfig extends Loggable {
 
   // rudder user list
   lazy val rudderUserListProvider: FileUserDetailListProvider = {
-    (for {
-      resource <- UserFileProcessing.getUserResourceFile()
-    } yield {
-      resource
-    }) match {
-      case Right(resource)                           =>
+    UserFileProcessing.getUserResourceFile().either.runNow match {
+      case Right(resource) =>
         new FileUserDetailListProvider(roleApiMapping, userAuthorisationLevel, resource)
-      case Left(UserConfigFileError(msg, exception)) =>
-        ApplicationLogger.error(msg, Box(exception))
+      case Left(err)       =>
+        ApplicationLogger.error(err.fullMsg)
         // make the application not available
-        throw new javax.servlet.UnavailableException(s"Error when triyng to parse Rudder users file, aborting.")
+        throw new javax.servlet.UnavailableException(s"Error when trying to parse Rudder users file, aborting.")
     }
   }
 

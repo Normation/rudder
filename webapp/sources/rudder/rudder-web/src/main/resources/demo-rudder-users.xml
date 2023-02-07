@@ -53,7 +53,7 @@
   (where you define the actual authorisations of the user). The "hash" field of
   "authentication" can be omitted.
 
-  The "role" tag must contain one or more of these values (comma separated), depending
+  The "roles" tag must contain one or more of these values (comma separated), depending
   on the what the user should be allowed to do:
     "administrator" (all rights), "administration_only" (administration tab), "user"
     (all nodes, configuration tab), "configuration" (configuration tab), "read_only"
@@ -65,7 +65,20 @@
     "directive", "parameter", "validator", "deployer",
     level: "read", "write", "edit", "all" (read, write, edit)
 
-  Example: "node_read" (can read nodes), "validator_all" (same as validator)
+  Example: "node_read" (can read nodes), "validator_all" (same as validator).
+
+  If the extended authorisations feature is enable, you can define custom roles. They are introduced by the `custom-roles`
+  tag and they allow to define new role name for set of roles or authorisations.
+  A custom role is defined with the `<role>` tag with the attribute "name" (case-insensitive name of the role) and
+  "roles" (same as for an user).
+  Ex:
+  <authentication>
+    <custom-roles>
+      <role name="role_a0" roles="node_read,node_write,configuration"/>
+      <role name="role_a1" roles="ROLE_A0,inventory"/>
+    </custom-roles>
+  <authentication>
+
 
   Please take a look at Rudder's documentation for additional details, either from the
   application itself (upper right corner) or on
@@ -78,6 +91,6 @@
 
 <authentication hash="bcrypt" case-sensitivity="true">
   <!--
-    <user name="NAME" password="REPLACE_BY_HASH" role="ROLE" />
+    <user name="NAME" password="REPLACE_BY_HASH" roles="ROLE" />
   -->
 </authentication>
