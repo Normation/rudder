@@ -290,6 +290,7 @@ class Rights(_authorizationTypes: AuthorizationType*) {
 sealed trait Role {
   def name:   String
   def rights: Rights
+  def debugString: String = name
 }
 object Role       {
   import com.normation.rudder.{AuthorizationType => A}
@@ -334,13 +335,17 @@ object Role       {
   final case object NoRights extends Role { val name = "no_rights"; def rights = (Set(AuthorizationType.NoRights)).toRights }
 
   // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
-  final case class Custom(rights: Rights) extends Role { val name = "custom" }
-  def forAuthz(right: AuthorizationType)       = Custom(new Rights(right))
+  final case class Custom(rights: Rights) extends Role {
+    val name                 = "custom"
+    override def debugString = s"authz[${rights.displayAuthorizations}]"
+  }
+  def forAuthz(right: AuthorizationType) = Custom(new Rights(right))
   def forAuthz(rights: Set[AuthorizationType]) = Custom(new Rights(rights.toSeq: _*))
 
   // this is the named custom roles defined in <custom-roles> tag
   final case class NamedCustom(name: String, roles: Seq[Role]) extends Role {
-    def rights = new Rights(roles.flatMap(_.rights.authorizationTypes): _*)
+    def rights               = new Rights(roles.flatMap(_.rights.authorizationTypes): _*)
+    override def debugString = s"customRole[${roles.map(_.debugString).mkString(",")}]"
   }
 
   def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]
@@ -551,20 +556,20 @@ object RudderRoles {
                        errors.update(
                          (
                            cr,
-                           s"Custom role with name '${cr.name}' will be ignored because a role with name (case insensitive) already exists"
+                           s"Custom role with name '${cr.name}' will be ignored because a role with same name (case insensitive) already exists"
                          ) :: _
                        )
                      } else {
                        resolveOne(v, PendingRole(Role.NamedCustom(cr.name, Nil), cr.roles)) match {
                          case Left(stillPending) =>
-                           ApplicationLoggerPure.Authz.debug(
+                           ApplicationLoggerPure.Authz.trace(
                              s"Custom role '${stillPending.role.name}' not fully resolved for roles: ${stillPending.pending.mkString(", ")}"
                            ) *>
                            pending.update(stillPending :: _)
                          case Right(nc)          =>
                            // before adding, remove possible duplicate resolved role
                            val toAdd = nc.copy(roles = nc.roles.distinct)
-                           ApplicationLoggerPure.Authz.debug(s"Custom role '${toAdd.name}' fully resolved") *>
+                           ApplicationLoggerPure.Authz.trace(s"Custom role '${toAdd.name}' fully resolved") *>
                            resolved.update(_ + (toAdd.name -> toAdd)) *> resolveNew(toAdd, pending, resolved)
                        }
                      }
@@ -585,7 +590,7 @@ object RudderRoles {
       inputs     = customRoles.map(role => PendingRole(Role.NamedCustom(role.name, Nil), Nil))
       debugR    <- resolved.get
       _         <- ApplicationLoggerPure.Authz.debug(
-                     s"Resolving custom roles with base known roles: ${debugR.keys.toList.sorted.mkString(", ")}"
+                     s"Resolving custom roles from known roles: ${debugR.keys.toList.sorted.mkString(", ")}"
                    )
       _         <- resolveAll(inputs, pending, resolved, errors)
       // all remaining roles in pending are in cycle

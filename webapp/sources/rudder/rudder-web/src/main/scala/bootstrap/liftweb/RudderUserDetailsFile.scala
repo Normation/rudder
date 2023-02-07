@@ -375,7 +375,7 @@ object UserFileProcessing {
   def getUserResourceFile(): IOResult[UserFile] = {
     java.lang.System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => // use default location in classpath
-        ApplicationLoggerPure.info(
+        ApplicationLoggerPure.Authz.info(
           s"JVM property -D${JVM_AUTH_FILE_KEY} is not defined, using configuration file '${DEFAULT_AUTH_FILE_NAME}' in classpath"
         ) *>
         UserFile(
@@ -385,12 +385,12 @@ object UserFileProcessing {
       case x         => // so, it should be a full path, check it
         val config = new File(x)
         if (config.exists && config.canRead) {
-          ApplicationLoggerPure.info(
+          ApplicationLoggerPure.Authz.info(
             s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.getPath}"
           ) *>
           UserFile(config.getAbsolutePath, () => new FileInputStream(config)).succeed
         } else {
-          ApplicationLoggerPure.error(
+          ApplicationLoggerPure.Authz.error(
             s"Can not find configuration file specified by JVM property ${JVM_AUTH_FILE_KEY}: ${config.getPath}; aborting"
           ) *> Unexpected(s"rudder-users configuration file not found at path: '${config.getPath}'").fail
         }
@@ -480,14 +480,38 @@ object UserFileProcessing {
         case "false" => false.succeed
         case str     =>
           (if (str.isEmpty) {
-             ApplicationLoggerPure.info(
+             ApplicationLoggerPure.Authz.info(
                s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is missing, set by default on `true`"
              )
            } else {
-             ApplicationLoggerPure.warn(
+             ApplicationLoggerPure.Authz.warn(
                s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
              )
            }) *> true.succeed
+      }
+
+      // one unique name attribute, text content non empty
+      def getRoleName(node: scala.xml.Node): PureResult[String] = {
+        node.attribute("name").map(_.map(_.text.strip())) match {
+          case None | Some(Nil)                    => Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+          case Some(name :: Nil) if (name.isEmpty) =>
+            Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+          case Some(name :: Nil)                   => Right(name)
+          case x                                   => Left(Inconsistency(s"Role must have an unique, non-empty `name` attribute: ${x}"))
+        }
+      }
+
+      // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
+      // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
+      def getRoleRoles(node: scala.xml.Node): PureResult[List[String]] = {
+        node.attribute("roles") match {
+          case None | Some(Nil) => Right(List.empty)
+          case Some(roles)      =>
+            Right(
+              roles.toList
+                .flatMap(roleList => roleList.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
+            )
+        }
       }
 
       val customRoles: UIO[List[UncheckedCustomRole]] = (ZIO
@@ -495,38 +519,15 @@ object UserFileProcessing {
           // for each node, check attribute `name` (mandatory) and `roles` (optional), even if the only interest of an empty
           // roles attribute is for aliasing "NoRight" policy.
 
-          // one unique name attribute, text content non empty
-          def getName(node: scala.xml.Node): PureResult[String] = {
-            node.attribute("name").map(_.map(_.text.strip())) match {
-              case None | Some(Nil)                    => Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
-              case Some(name :: Nil) if (name.isEmpty) =>
-                Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
-              case Some(name :: Nil)                   => Right(name)
-              case x                                   => Left(Inconsistency(s"Role must have an unique, non-empty `name` attribute: ${x}"))
-            }
-          }
-
-          // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
-          // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
-          def getRoles(node: scala.xml.Node): PureResult[List[String]] = {
-            node.attribute("roles") match {
-              case None | Some(Nil) => Right(List.empty)
-              case Some(roles)      =>
-                Right(
-                  roles.toList
-                    .flatMap(roleList => roleList.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
-                )
-            }
-          }
-
           (for {
-            n <- getName(node)
-            r <- getRoles(node)
+            n <- getRoleName(node)
+            r <- getRoleRoles(node)
           } yield {
             UncheckedCustomRole(n, r)
           }) match {
             case Left(err)   =>
-              ApplicationLoggerPure.error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
+              ApplicationLoggerPure.Authz
+                .error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
             case Right(role) =>
               Some(role).succeed
           }
@@ -553,7 +554,7 @@ object UserFileProcessing {
                 Some(ParsedUser(name, pwd, roles)).succeed
 
               case _ =>
-                ApplicationLoggerPure.error(
+                ApplicationLoggerPure.Authz.error(
                   s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
                 ) *> None.succeed
             }
@@ -576,7 +577,7 @@ object UserFileProcessing {
    */
   def resolveRoles(roles: List[UncheckedCustomRole], extendedAuthz: Boolean): UIO[List[Role]] = {
     if (!extendedAuthz && roles.nonEmpty) {
-      ApplicationLogger.warn(
+      ApplicationLoggerPure.Authz.logEffect.warn(
         s"Custom roles are defined which is not supported without the User management plugin. " +
         s"These custom roles will be ignored: ${roles.map(_.name).mkString(", ")}"
       )
@@ -587,9 +588,17 @@ object UserFileProcessing {
         res <- RudderRoles.resolveCustomRoles(roles, all)
         _   <- ZIO.foreach(res.invalid) {
                  case (r, err) =>
-                   ApplicationLoggerPure.error(
+                   ApplicationLoggerPure.Authz.error(
                      s"Error with custom role definition: custom role '${r.name}' is invalid and will be ignored: ${err}"
                    )
+               }
+        _   <- ZIO.foreach(res.validRoles) { r =>
+                 r match {
+                   case Role.NamedCustom(n, l) =>
+                     ApplicationLoggerPure.Authz.debug(
+                       s"Custom role '${n}' defined as the union of roles: [${l.map(_.debugString).mkString(", ")}]"
+                     )
+                 }
                }
       } yield res.validRoles
     }
@@ -612,14 +621,14 @@ object UserFileProcessing {
 
             case rs =>
               if (!extendedAuthz && rs.exists(_ != Role.Administrator)) {
-                ApplicationLoggerPure.warn(
+                ApplicationLoggerPure.Authz.warn(
                   s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
                   s"To prevent problem, that user authorization is removed."
                 ) *> List(Role.NoRights).succeed
 
               } else {
-                ApplicationLoggerPure.debug(
-                  s"User '${name}' defined with authorizations: ${rs.map(_.name).mkString(", ")}"
+                ApplicationLoggerPure.Authz.debug(
+                  s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
                 ) *> rs.succeed
               }
           }
