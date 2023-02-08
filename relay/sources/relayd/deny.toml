@@ -27,6 +27,8 @@ ignore = [
     "RUSTSEC-2023-0001",
     # Only on Windows
     "RUSTSEC-2022-0082",
+    # A DoS in bzip2
+    "RUSTSEC-2023-0004",
 ]
 
 # https://github.com/hsivonen/encoding_rs#licensing
