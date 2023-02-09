@@ -60,6 +60,7 @@ import java.util.Collection
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.xml.sax.SAXParseException
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters._
 import scala.xml.Elem
 import zio._
@@ -297,7 +298,7 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
    */
   def reloadPure(): IOResult[Unit] = {
     for {
-      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled)
+      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled, reload = true)
       _      <- cache.set(config)
       cbs    <- callbacks.get
       _      <- ZIO.foreach(cbs) { cb =>
@@ -400,7 +401,8 @@ object UserFileProcessing {
   def parseUsers(
       roleApiMapping: RoleApiMapping,
       resource:       UserFile,
-      extendedAuthz:  Boolean
+      extendedAuthz:  Boolean,
+      reload:         Boolean
   ): IOResult[ValidatedUserList] = {
     val optXml = {
       try {
@@ -422,7 +424,7 @@ object UserFileProcessing {
 
     for {
       xml <- optXml
-      res <- parseXml(roleApiMapping, xml, resource.name, extendedAuthz)
+      res <- parseXml(roleApiMapping, xml, resource.name, extendedAuthz, reload)
     } yield {
       res
     }
@@ -442,12 +444,14 @@ object UserFileProcessing {
       roleApiMapping: RoleApiMapping,
       xml:            Elem,
       debugFileName:  String,
-      extendedAuthz:  Boolean
+      extendedAuthz:  Boolean,
+      reload:         Boolean
   ): IOResult[ValidatedUserList] = {
     for {
       parsed <- parseXmlNoResolve(xml, debugFileName)
-      roles  <- resolveRoles(parsed.customRoles, extendedAuthz)
-      _      <- RudderRoles.register(roles)
+      known  <- if (reload) RudderRoles.builtInRoles.succeed else RudderRoles.getAllRoles
+      roles  <- resolveRoles(known, parsed.customRoles, extendedAuthz)
+      _      <- RudderRoles.register(roles, resetExisting = reload)
       users  <- resolveUsers(parsed.users, extendedAuthz, debugFileName)
     } yield {
       val config = {
@@ -574,7 +578,11 @@ object UserFileProcessing {
    * Roles must be taken all together, because even if we forbid cycles, they may be not sorted and
    * we want to update the set of OK roles just one time.
    */
-  def resolveRoles(roles: List[UncheckedCustomRole], extendedAuthz: Boolean): UIO[List[Role]] = {
+  def resolveRoles(
+      knownRoles:    SortedMap[String, Role],
+      roles:         List[UncheckedCustomRole],
+      extendedAuthz: Boolean
+  ): UIO[List[Role]] = {
     if (!extendedAuthz && roles.nonEmpty) {
       ApplicationLogger.warn(
         s"Custom roles are defined which is not supported without the User management plugin. " +
@@ -583,8 +591,7 @@ object UserFileProcessing {
       Nil.succeed
     } else {
       for {
-        all <- RudderRoles.getAllRoles
-        res <- RudderRoles.resolveCustomRoles(roles, all)
+        res <- RudderRoles.resolveCustomRoles(roles, knownRoles)
         _   <- ZIO.foreach(res.invalid) {
                  case (r, err) =>
                    ApplicationLoggerPure.error(
