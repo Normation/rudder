@@ -307,6 +307,13 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "if we ignore processes, we don't get any" >> {
+    val ignoringParser = new FusionInventoryParser(new StringUuidGeneratorImpl, ignoreProcesses = true)
+    val processes      =
+      ZioRuntime.unsafeRun(ignoringParser.parse("fusion-inventories/debian-5-32-2011-01-14-11-10-09.ocs")).node.processes
+    processes.size must beEqualTo(0)
+  }
+
   "Parsing Windows 2012" should {
     "parse as windows 2012" in {
       val os = parseRun("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails

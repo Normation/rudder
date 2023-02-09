@@ -793,6 +793,15 @@ object RudderConfig extends Loggable {
     }
   }
 
+  // don't parse some elements in inventories: processes
+  val INVENTORIES_IGNORE_PROCESSES = {
+    try {
+      config.getBoolean("inventory.parse.ignore.processes")
+    } catch {
+      case ex: ConfigException => false
+    }
+  }
+
   // the number of inventories parsed and saved in parallel.
   // That number should be small, LDAP doesn't like lots of write
   // Minimum 1, 1x mean "0.5x number of cores"
@@ -1501,7 +1510,8 @@ object RudderConfig extends Loggable {
       new FusionInventoryParser(
         uuidGen,
         rootParsingExtensions = Nil,
-        contentParsingExtensions = Nil
+        contentParsingExtensions = Nil,
+        ignoreProcesses = INVENTORIES_IGNORE_PROCESSES
       )
     }
 

@@ -65,7 +65,8 @@ class FusionInventoryParser(
     ramUnit:                      String = "Mo",
     swapUnit:                     String = "Mo",
     fsSpaceUnit:                  String = "Mo",
-    lastLoggedUserDatetimeFormat: String = "EEE MMM dd HH:mm"
+    lastLoggedUserDatetimeFormat: String = "EEE MMM dd HH:mm",
+    ignoreProcesses:              Boolean = false
 ) extends XmlInventoryParser {
 
   import OptText.optText
@@ -246,7 +247,9 @@ class FusionInventoryParser(
                 case "OPERATINGSYSTEM" => inventory = processOsDetails(elt, inventory, e)
                 case "PORTS"           => processPort(elt).foreach(x => inventory = inventory.modify(_.machine.ports).using(x +: _))
                 case "PROCESSES"       =>
-                  processProcesses(elt).foreach(x => inventory = inventory.modify(_.node.processes).using(x +: _))
+                  if (ignoreProcesses) ()
+                  else
+                    processProcesses(elt).foreach(x => inventory = inventory.modify(_.node.processes).using(x +: _))
                 case "SLOTS"           => processSlot(elt).foreach(x => inventory = inventory.modify(_.machine.slots).using(x +: _))
                 case "SOFTWARES"       => inventory = inventory.modify(_.applications).using(s => processSoftware(elt) +: s)
                 case "SOUNDS"          => processSound(elt).foreach(x => inventory = inventory.modify(_.machine.sounds).using(x +: _))
