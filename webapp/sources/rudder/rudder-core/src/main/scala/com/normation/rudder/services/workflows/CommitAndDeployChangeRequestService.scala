@@ -125,17 +125,16 @@ class CommitAndDeployChangeRequestServiceImpl(
     for {
       (cr, modId, trigger) <- changeRequest match {
                                 case config: ConfigurationChangeRequest =>
-                                  if (isMergeableConfigurationChangeRequest(config)) {
-                                    for {
-                                      (modId, triggerDeployment) <- saveConfigurationChangeRequest(config)
-                                      updatedCr                   = ChangeRequest.setModId(config, modId)
-                                    } yield {
-                                      (updatedCr, modId, triggerDeployment)
-                                    }
-                                  } else {
-                                    Failure(
-                                      "The change request can not be merge because current item state diverged since its creation"
+                                  if (!isMergeableConfigurationChangeRequest(config)) {
+                                    ChangeRequestLogger.info(
+                                      s"Merging change request #${config.id.value} while configurations have diverged: ${config.info.name}: ${config.info.description}"
                                     )
+                                  }
+                                  for {
+                                    (modId, triggerDeployment) <- saveConfigurationChangeRequest(config)
+                                    updatedCr                   = ChangeRequest.setModId(config, modId)
+                                  } yield {
+                                    (updatedCr, modId, triggerDeployment)
                                   }
                                 case x => Failure("We don't know how to deploy change request like this one: " + x)
                               }
@@ -158,16 +157,6 @@ class CommitAndDeployChangeRequestServiceImpl(
    * Look if the configuration change request is mergeable
    */
   private[this] def isMergeableConfigurationChangeRequest(changeRequest: ConfigurationChangeRequest): Boolean = {
-
-    /*
-     * In a string, we don't want to take care of a difference in the number of spaces
-     * in names / description.
-     * We also remove space in the end.
-     * Do not use it in a place where space may be significant, like a template.
-     */
-    def normalizeString(text: String): String = {
-      text.replaceAll("""\s+""", " ").trim
-    }
 
     trait CheckChanges[T] {
       // Logging function
@@ -217,10 +206,12 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
+    implicit val changeRequestId = changeRequest.id.value
+
     final case object CheckRule extends CheckChanges[Rule] {
       def failureMessage(rule: Rule)                  = s"Rule ${rule.name} (id: ${rule.id.serialize})"
       def getCurrentValue(rule: Rule)                 = roRuleRepository.get(rule.id).toBox
-      def compareMethod(initial: Rule, current: Rule) = compareRules(initial, current)
+      def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
       def xmlSerialize(rule: Rule)                    = Full(xmlSerializer.rule.serialise(rule))
       def xmlUnserialize(xml: Node)                   = xmlUnserializer.rule.unserialise(xml)
     }
@@ -241,7 +232,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         case None      => Empty
         case Some(dir) => Full(dir)
       }
-      def compareMethod(initial: Directive, current: Directive) = compareDirectives(initial, current)
+      def compareMethod(initial: Directive, current: Directive) = CheckDivergenceForMerge.compareDirectives(initial, current)
       def xmlSerialize(directive: Directive)                    = {
         directiveContext.map {
           case (techniqueName, rootSection) =>
@@ -254,7 +245,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     final case object CheckGroup extends CheckChanges[NodeGroup] {
       def failureMessage(group: NodeGroup)                      = s"Group ${group.name} (id: ${group.id.serialize})"
       def getCurrentValue(group: NodeGroup)                     = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
-      def compareMethod(initial: NodeGroup, current: NodeGroup) = compareGroups(initial, current)
+      def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
       def xmlSerialize(group: NodeGroup)                        = Full(xmlSerializer.group.serialise(group))
       def xmlUnserialize(xml: Node)                             = xmlUnserializer.group.unserialise(xml)
     }
@@ -263,280 +254,10 @@ class CommitAndDeployChangeRequestServiceImpl(
       def failureMessage(param: GlobalParameter)                            = s"Parameter ${param.name}"
       def getCurrentValue(param: GlobalParameter)                           =
         roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
-      def compareMethod(initial: GlobalParameter, current: GlobalParameter) = compareGlobalParameter(initial, current)
+      def compareMethod(initial: GlobalParameter, current: GlobalParameter) =
+        CheckDivergenceForMerge.compareGlobalParameter(initial, current)
       def xmlSerialize(param: GlobalParameter)                              = Full(xmlSerializer.globalParam.serialise(param))
       def xmlUnserialize(xml: Node)                                         = xmlUnserializer.globalParam.unserialise(xml)
-    }
-
-    def debugLog(message: String) = {
-      logger.debug(s"CR #${changeRequest.id}: ${message}")
-    }
-    /*
-     * Comparison methods between Rules/directives/groups/global Param
-     * They are used to check if they are mergeable.
-     */
-
-    def compareRules(initial: Rule, current: Rule): Boolean = {
-      val initialFixed = initial.copy(
-        name = normalizeString(initial.name),
-        shortDescription = normalizeString(initial.shortDescription),
-        longDescription = normalizeString(initial.longDescription)
-      )
-
-      val currentFixed = current.copy(
-        name = normalizeString(current.name),
-        shortDescription = normalizeString(current.shortDescription),
-        longDescription = normalizeString(current.longDescription)
-      )
-
-      if (initialFixed == currentFixed) {
-        // No conflict return
-        true
-      } else {
-        // Write debug logs to understand what cause the conflict
-        debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
-        if (initialFixed.name != currentFixed.name) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
-          )
-        }
-
-        if (initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}"
-          )
-        }
-
-        if (initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}"
-          )
-        }
-
-        def displayTarget(target: RuleTarget) = {
-          target match {
-            case GroupTarget(groupId)       => s"group: ${groupId.serialize}"
-            case PolicyServerTarget(nodeId) => s"policyServer: ${nodeId.value}"
-            case _                          => target.target
-          }
-        }
-        if (initialFixed.targets != currentFixed.targets) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} target Groups have changed: original state from CR: ${initialFixed.targets
-                .map(displayTarget)
-                .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}"
-          )
-        }
-
-        if (initialFixed.isEnabledStatus != currentFixed.isEnabledStatus) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}"
-          )
-        }
-
-        if (initialFixed.directiveIds != currentFixed.directiveIds) {
-          debugLog(
-            s"Rule ID ${initialFixed.id.serialize} attached Directives have changed: original state from CR: ${initialFixed.directiveIds
-                .map(_.debugString)
-                .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}"
-          )
-        }
-
-        // return
-        false
-      }
-    }
-
-    def compareDirectives(initial: Directive, current: Directive): Boolean = {
-      val initialFixed = initial.copy(
-        name = normalizeString(initial.name),
-        shortDescription = normalizeString(initial.shortDescription),
-        longDescription = normalizeString(initial.longDescription),
-        parameters = initial.parameters.view.mapValues(_.map(_.trim)).toMap
-      )
-
-      val currentFixed = current.copy(
-        name = normalizeString(current.name),
-        shortDescription = normalizeString(current.shortDescription),
-        longDescription = normalizeString(current.longDescription),
-        parameters = current.parameters.view.mapValues(_.map(_.trim)).toMap
-      )
-
-      if (initialFixed == currentFixed) {
-        // return
-        true
-      } else {
-        // Write debug logs to understand what cause the conflict
-        debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
-
-        if (initialFixed.name != currentFixed.name) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
-          )
-        }
-
-        if (initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}"
-          )
-        }
-
-        if (initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}"
-          )
-        }
-
-        if (initialFixed.priority != currentFixed.priority) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}"
-          )
-        }
-
-        if (initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}"
-          )
-        }
-
-        if (initialFixed.techniqueVersion != currentFixed.techniqueVersion) {
-          debugLog(
-            s"Directive ID ${initialFixed.id.uid.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion.debugString}, current value: ${currentFixed.techniqueVersion.debugString}"
-          )
-        }
-
-        for {
-          key    <- (initialFixed.parameters.keys ++ currentFixed.parameters.keys).toSeq.distinct
-          initVal = initialFixed.parameters.get(key)
-          currVal = currentFixed.parameters.get(key)
-        } yield {
-          if (currVal != initVal) {
-            debugLog(s"Directive ID ${initialFixed.id.uid.value} parameter $key has changed : original state from CR: ${initVal
-                .getOrElse("value is missing")}, current value: ${currVal.getOrElse("value is missing")}")
-          }
-        }
-
-        // return
-        false
-      }
-    }
-
-    def compareGroups(initial: NodeGroup, current: NodeGroup): Boolean = {
-
-      val initialFixed = initial.copy(
-        name = normalizeString(initial.name),
-        description = normalizeString(initial.description),
-        properties = initial.properties.map(c => c.copy(config = c.config.withoutPath(GenericProperty.PROVIDER))).sortBy(_.name)
-      )
-
-      val currentFixed = current.copy(
-        name = normalizeString(current.name),
-        description = normalizeString(current.description),
-        properties = initial.properties.map(c => c.copy(config = c.config.withoutPath(GenericProperty.PROVIDER))).sortBy(_.name),
-        /*
-         * We need to remove nodes from dynamic groups, it has no sense to compare them.
-         * In a static group, the node list is important and can be very different,
-         * and depends on when the change request was made.
-         * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
-         */
-        serverList = (if (current.isDynamic) { initial }
-                      else { current }).serverList
-      )
-
-      if (initialFixed == currentFixed) {
-        // No conflict return
-        true
-      } else {
-        // Write debug logs to understand what cause the conflict
-        debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
-
-        if (initialFixed.name != currentFixed.name) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
-          )
-        }
-
-        if (initialFixed.description != currentFixed.description) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}"
-          )
-        }
-
-        if (initialFixed.query != currentFixed.query) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}"
-          )
-        }
-
-        if (initialFixed.isDynamic != currentFixed.isDynamic) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}"
-          )
-        }
-
-        if (initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}"
-          )
-        }
-
-        // we compare nodes only for static group, not dynamic ones
-        if (!(initialFixed.isDynamic && currentFixed.isDynamic) && initialFixed.serverList != currentFixed.serverList) {
-          debugLog(
-            s"Group ID ${initialFixed.id.serialize} nodes list has changed: original state from CR: ${initialFixed.serverList
-                .map(_.value)
-                .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}"
-          )
-        }
-
-        if (initialFixed.properties != currentFixed.properties) {
-          debugLog(s"Group ID ${initialFixed.id.serialize} properties changed: original state from CR: ${initialFixed.properties
-              .map(_.toData)
-              .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}")
-        }
-
-        // return
-        false
-      }
-    }
-
-    def compareGlobalParameter(initial: GlobalParameter, current: GlobalParameter): Boolean = {
-      val initialFixed = initial.withDescription(
-        normalizeString(initial.description)
-      )
-
-      val currentFixed = current.withDescription(
-        normalizeString(current.description)
-      )
-
-      if (initialFixed == currentFixed) {
-        // No conflict return
-        true
-      } else {
-        // Write debug logs to understand what cause the conflict
-        debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
-
-        if (initialFixed.name != currentFixed.name) {
-          debugLog(
-            s"Global Parameter name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
-          )
-        }
-
-        if (initialFixed.description != currentFixed.description) {
-          debugLog(
-            s"Global Parameter '${initialFixed.name}' description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}"
-          )
-        }
-
-        if (initialFixed.value != currentFixed.value) {
-          debugLog(
-            s"Global Parameter '${initialFixed.name}' value has changed: original state from CR: ${initialFixed.value}, current value: ${currentFixed.value}"
-          )
-        }
-
-        // return
-        false
-      }
     }
 
     /*
@@ -789,4 +510,289 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   }
 
+}
+
+object CheckDivergenceForMerge {
+
+  /*
+   * In a string, we don't want to take care of a difference in the number of spaces
+   * in names / description.
+   * We also remove space in the end.
+   * Do not use it in a place where space may be significant, like a template.
+   */
+  def normalizeString(text: String): String = {
+    text.replaceAll("""\s+""", " ").trim
+  }
+
+  def debugLog(message: String)(implicit changeRequestId: Int) = {
+    ChangeRequestLogger.debug(s"CR #${changeRequestId}: ${message}")
+  }
+  /*
+   * Comparison methods between Rules/directives/groups/global Param
+   * They are used to check if they are mergeable.
+   */
+
+  def compareRules(initial: Rule, current: Rule)(implicit changeRequestId: Int): Boolean = {
+    def normalizeRule(r: Rule) = r.copy(
+      name = normalizeString(r.name),
+      shortDescription = normalizeString(r.shortDescription),
+      longDescription = normalizeString(r.longDescription)
+    )
+
+    val initialFixed = normalizeRule(initial)
+    val currentFixed = normalizeRule(current)
+
+    if (initialFixed == currentFixed) {
+      // No conflict return
+      true
+    } else {
+      // Write debug logs to understand what cause the conflict
+      debugLog("Merge Change Request (CR) warning: initial state diverged from current state.")
+      if (initialFixed.name != currentFixed.name) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
+        )
+      }
+
+      if (initialFixed.shortDescription != currentFixed.shortDescription) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}"
+        )
+      }
+
+      if (initialFixed.longDescription != currentFixed.longDescription) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} long description has changed: original state from CR: '${initialFixed.longDescription}', current value: '${currentFixed.longDescription}''"
+        )
+      }
+
+      def displayTarget(target: RuleTarget) = {
+        target match {
+          case GroupTarget(groupId)       => s"group: ${groupId.serialize}"
+          case PolicyServerTarget(nodeId) => s"policyServer: ${nodeId.value}"
+          case _                          => target.target
+        }
+      }
+
+      if (initialFixed.targets != currentFixed.targets) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} target Groups have changed: original state from CR: ${initialFixed.targets
+              .map(displayTarget)
+              .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}"
+        )
+      }
+
+      if (initialFixed.isEnabledStatus != currentFixed.isEnabledStatus) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}"
+        )
+      }
+
+      if (initialFixed.directiveIds != currentFixed.directiveIds) {
+        debugLog(
+          s"Rule ID ${initialFixed.id.serialize} attached Directives have changed: original state from CR: ${initialFixed.directiveIds
+              .map(_.debugString)
+              .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.debugString).mkString("[ ", ", ", " ]")}"
+        )
+      }
+
+      // return
+      false
+    }
+  }
+
+  def compareDirectives(initial: Directive, current: Directive)(implicit changeRequestId: Int): Boolean = {
+    def normalizeDirective(d: Directive) = d.copy(
+      name = normalizeString(d.name),
+      shortDescription = normalizeString(d.shortDescription),
+      longDescription = normalizeString(d.longDescription),
+      parameters = d.parameters.view.mapValues(v => v.map(vv => normalizeString(vv))).toMap
+    )
+
+    val initialFixed = normalizeDirective(initial)
+    val currentFixed = normalizeDirective(current)
+
+    if (initialFixed == currentFixed) {
+      // return
+      true
+    } else {
+      // Write debug logs to understand what cause the conflict
+      debugLog(
+        "Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state."
+      )
+
+      if (initialFixed.name != currentFixed.name) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
+        )
+      }
+
+      if (initialFixed.shortDescription != currentFixed.shortDescription) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}"
+        )
+      }
+
+      if (initialFixed.longDescription != currentFixed.longDescription) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}"
+        )
+      }
+
+      if (initialFixed.priority != currentFixed.priority) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}"
+        )
+      }
+
+      if (initialFixed.isEnabled != currentFixed.isEnabled) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}"
+        )
+      }
+
+      if (initialFixed.techniqueVersion != currentFixed.techniqueVersion) {
+        debugLog(
+          s"Directive ID ${initialFixed.id.uid.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion.debugString}, current value: ${currentFixed.techniqueVersion.debugString}"
+        )
+      }
+
+      for {
+        key    <- (initialFixed.parameters.keys ++ currentFixed.parameters.keys).toSeq.distinct
+        initVal = initialFixed.parameters.get(key)
+        currVal = currentFixed.parameters.get(key)
+      } yield {
+        if (currVal != initVal) {
+          debugLog(s"Directive ID ${initialFixed.id.uid.value} parameter $key has changed : original state from CR: ${initVal
+              .getOrElse("value is missing")}, current value: ${currVal.getOrElse("value is missing")}")
+        }
+      }
+
+      // return
+      false
+    }
+  }
+
+  def compareGroups(initial: NodeGroup, current: NodeGroup)(implicit changeRequestId: Int): Boolean = {
+    def normalizeGroup(g: NodeGroup) = g.copy(
+      name = normalizeString(initial.name),
+      description = normalizeString(initial.description),
+      properties = initial.properties.map(c => c.copy(config = c.config.withoutPath(GenericProperty.PROVIDER))).sortBy(_.name)
+    )
+
+    val initialFixed = normalizeGroup(initial)
+    val currentFixed = normalizeGroup(current).copy(
+      /*
+       * We need to remove nodes from dynamic groups, it has no sense to compare them.
+       * In a static group, the node list is important and can be very different,
+       * and depends on when the change request was made.
+       * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
+       */
+      serverList = (
+        if (current.isDynamic) {
+          initial
+        } else {
+          current
+        }
+      ).serverList
+    )
+
+    if (initialFixed == currentFixed) {
+      // No conflict return
+      true
+    } else {
+      // Write debug logs to understand what cause the conflict
+      debugLog(
+        "Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state."
+      )
+
+      if (initialFixed.name != currentFixed.name) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
+        )
+      }
+
+      if (initialFixed.description != currentFixed.description) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}"
+        )
+      }
+
+      if (initialFixed.query != currentFixed.query) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}"
+        )
+      }
+
+      if (initialFixed.isDynamic != currentFixed.isDynamic) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}"
+        )
+      }
+
+      if (initialFixed.isEnabled != currentFixed.isEnabled) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}"
+        )
+      }
+
+      // we compare nodes only for static group, not dynamic ones
+      if (!(initialFixed.isDynamic && currentFixed.isDynamic) && initialFixed.serverList != currentFixed.serverList) {
+        debugLog(
+          s"Group ID ${initialFixed.id.serialize} nodes list has changed: original state from CR: ${initialFixed.serverList
+              .map(_.value)
+              .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}"
+        )
+      }
+
+      if (initialFixed.properties != currentFixed.properties) {
+        debugLog(s"Group ID ${initialFixed.id.serialize} properties changed: original state from CR: ${initialFixed.properties
+            .map(_.toData)
+            .mkString("[ ", ", ", " ]")}, current value: ${currentFixed.properties.map(_.toData).mkString("[ ", ", ", " ]")}")
+      }
+
+      // return
+      false
+    }
+  }
+
+  def compareGlobalParameter(initial: GlobalParameter, current: GlobalParameter)(implicit changeRequestId: Int): Boolean = {
+    def normalizeParam(p: GlobalParameter) = p.withDescription(
+      normalizeString(p.description)
+    )
+
+    val initialFixed = normalizeParam(initial)
+    val currentFixed = normalizeParam(current)
+
+    if (initialFixed == currentFixed) {
+      // No conflict return
+      true
+    } else {
+      // Write debug logs to understand what cause the conflict
+      debugLog(
+        "Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state."
+      )
+
+      if (initialFixed.name != currentFixed.name) {
+        debugLog(
+          s"Global Parameter name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}"
+        )
+      }
+
+      if (initialFixed.description != currentFixed.description) {
+        debugLog(
+          s"Global Parameter '${initialFixed.name}' description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}"
+        )
+      }
+
+      if (initialFixed.value != currentFixed.value) {
+        debugLog(
+          s"Global Parameter '${initialFixed.name}' value has changed: original state from CR: ${initialFixed.value}, current value: ${currentFixed.value}"
+        )
+      }
+
+      // return
+      false
+    }
+  }
 }
