@@ -768,6 +768,7 @@ class InventoryMapper(
           case AmazonLinux => linux.addValues(A_OS_NAME, A_OS_AMAZON_LINUX)
           case RockyLinux  => linux.addValues(A_OS_NAME, A_OS_ROCKY_LINUX)
           case AlmaLinux   => linux.addValues(A_OS_NAME, A_OS_ALMA_LINUX)
+          case Raspbian    => linux.addValues(A_OS_NAME, A_OS_RASPBIAN)
           case _           => linux.addValues(A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
@@ -1000,6 +1001,7 @@ class InventoryMapper(
                            case A_OS_AMAZON_LINUX => AmazonLinux
                            case A_OS_ROCKY_LINUX  => RockyLinux
                            case A_OS_ALMA_LINUX   => AlmaLinux
+                           case A_OS_RASPBIAN     => Raspbian
                            case _                 => UnknownLinuxType
                          }
                          Right(Linux(os, osFullName, osVersion, osServicePack, kernelVersion))

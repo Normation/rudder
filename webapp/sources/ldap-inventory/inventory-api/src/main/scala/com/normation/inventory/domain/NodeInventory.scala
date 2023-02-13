@@ -202,6 +202,7 @@ object LinuxType {
       :: AmazonLinux
       :: RockyLinux
       :: AlmaLinux
+      :: Raspbian
       :: Nil
   )
 }
@@ -222,6 +223,7 @@ final case object Mint             extends LinuxType { val name = "Mint"        
 final case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
 final case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
 final case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
+final case object Raspbian         extends LinuxType { val name = "Raspbian"     }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
@@ -362,6 +364,7 @@ object ParseOSType {
         else if (x contains "amazon linux") AmazonLinux
         else if (x contains "rocky") RockyLinux
         else if (x contains "almalinux") AlmaLinux
+        else if (x contains "raspbian") Raspbian
         else UnknownLinuxType
 
       case ("solaris", _) => SolarisOS
