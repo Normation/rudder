@@ -240,6 +240,7 @@ bundle agent _rudder_common_report(technique_name, class_prefix, status, identif
                             strcmp("${status}", "log_repaired") ,
                             strcmp("${status}", "audit_noncompliant") ,
                             strcmp("${status}", "audit_error") ,
+                            strcmp("${status}", "report_json") ,
                            };
 
   methods:
@@ -483,6 +484,7 @@ bundle agent _rudder_common_report_hooks(technique_name, status, identifier, com
                             strcmp("${status}", "log_repaired") ,
                             strcmp("${status}", "audit_noncompliant") ,
                             strcmp("${status}", "audit_error") ,
+                            strcmp("${status}", "report_json") ,
                            };
 
   methods:
@@ -730,6 +732,7 @@ bundle agent rudder_common_report_index(technique_name, status, identifier, comp
                             strcmp("${status}", "log_repaired") ,
                             strcmp("${status}", "audit_noncompliant") ,
                             strcmp("${status}", "audit_error") ,
+                            strcmp("${status}", "report_json") ,
                            };
 
   methods:
