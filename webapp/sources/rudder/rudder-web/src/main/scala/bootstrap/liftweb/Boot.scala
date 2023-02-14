@@ -363,13 +363,13 @@ class Boot extends Loggable {
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
-        content = Some(csp), // Prevent frames, we don't use them anymore
-
-        frameRestrictions = Some(FrameRestrictions.Deny), // OtherModes = not(DevMode) = Prod, enforce and log
-
+        content = Some(csp),
+        // Allow frames from same domain, used by external-node-info and openscap plugins
+        frameRestrictions = Some(FrameRestrictions.SameOrigin),
+        // OtherModes = not(DevMode) = Prod, enforce and log
         enforceInOtherModes = true,
-        logInOtherModes = true, // Dev mode, don't enforce but log
-
+        logInOtherModes = true,
+        // Dev mode, don't enforce but log
         enforceInDevMode = false,
         logInDevMode = true
       )
