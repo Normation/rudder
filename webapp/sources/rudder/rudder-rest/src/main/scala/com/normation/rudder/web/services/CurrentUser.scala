@@ -75,6 +75,7 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
   def checkRights(auth: AuthorizationType): Boolean = {
     val authz = getRights.authorizationTypes
     if (authz.contains(AuthorizationType.NoRights)) false
+    else if (authz.contains(AuthorizationType.AnyRights)) true
     else {
       auth match {
         case AuthorizationType.NoRights => false
