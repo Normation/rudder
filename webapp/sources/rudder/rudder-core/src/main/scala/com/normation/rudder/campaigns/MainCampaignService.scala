@@ -66,7 +66,13 @@ object MainCampaignService {
   }
 }
 
-class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignRepository, uuidGen: StringUuidGenerator) {
+class MainCampaignService(
+    repo:         CampaignEventRepository,
+    campaignRepo: CampaignRepository,
+    uuidGen:      StringUuidGenerator,
+    startDelay:   Int,
+    endDelay:     Int
+) {
 
   private[this] var services: List[CampaignHandler] = Nil
   def registerService(s: CampaignHandler) = {
@@ -174,14 +180,15 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                         event.copy(state = Skipped(s"Event was cancelled because campaign is archived. ${reasonMessage}"))
                       )
                     case Enabled                =>
-                      if (event.start.isAfter(now)) {
+                      val effectiveStart = event.start.minusHours(startDelay)
+                      if (effectiveStart.isAfter(now)) {
                         for {
                           _ <-
                             CampaignLogger.debug(
                               s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
-                                  .serialize(event.start)}"
+                                  .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
                             )
-                          _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
+                          _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
                         } yield {
                           ().succeed
                         }
@@ -192,30 +199,35 @@ class MainCampaignService(repo: CampaignEventRepository, campaignRepo: CampaignR
                       }
                   }
                 case Running               =>
-                  if (event.start.isAfter(now)) {
+                  val effectiveStart = event.start.minusHours(startDelay)
+                  val effectiveEnd   = event.end.plusHours(endDelay)
+                  if (effectiveStart.isAfter(now)) {
                     for {
                       // Campaign should be planned, not running
                       _ <-
                         CampaignLogger.warn(
-                          s"Campaign event ${event.id.value} was considered Running but we are before it start date, setting state to Schedule and wait for event to start, on ${DateFormaterService
-                              .serialize(event.start)}"
+                          s"Campaign event ${event.id.value} was considered Running but we are before its start date, setting state to Schedule and wait for event to start, on ${DateFormaterService
+                              .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
                         )
                       _ <- repo.saveCampaignEvent(event.copy(state = Scheduled))
-                      _ <- CampaignLogger.debug(
-                             s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
-                                 .serialize(event.start)}"
-                           )
-                      _ <- ZIO.sleep(Duration.fromMillis(event.start.getMillis - now.getMillis))
+                      _ <-
+                        CampaignLogger.debug(
+                          s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
+                              .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
+                        )
+
+                      _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
                     } yield {
                       ()
                     }
-                  } else if (event.end.isAfter(now)) {
+                  } else if (effectiveEnd.isAfter(now)) {
                     for {
-                      _ <- CampaignLogger.debug(
-                             s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService
-                                 .serialize(event.end)}"
-                           )
-                      _ <- ZIO.sleep(Duration.fromMillis(event.end.getMillis - now.getMillis))
+                      _ <-
+                        CampaignLogger.debug(
+                          s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService
+                              .serialize(effectiveEnd)}, ${endDelay} hour${if (endDelay > 1) "s" else ""} after official end date, so that we can gather results"
+                        )
+                      _ <- ZIO.sleep(Duration.fromMillis(effectiveEnd.getMillis - now.getMillis))
                     } yield {
                       ()
                     }
