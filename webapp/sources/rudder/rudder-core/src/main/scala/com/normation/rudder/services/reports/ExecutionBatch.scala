@@ -233,7 +233,7 @@ final case class UnexpectedNoVersion(
  * but we really should, because versions are init
  * in the server for that node
  */
-final case class UnexpectedUnknowVersion(
+final case class UnexpectedUnknownVersion(
     lastRunDateTime:    DateTime,
     lastRunConfigId:    NodeConfigId,
     expectedConfig:     NodeExpectedReports,
@@ -606,15 +606,31 @@ object ExecutionBatch extends Loggable {
               case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, None)), _)), Some(currentConfig))            =>
                 // it's a bad version, but we have config id in DB => likelly a corruption on node
                 // expirationTime is the date after which we must have gotten a report for the current version
-                val configurationExpirationTime         = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
+                val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
+
                 // expiration time is based on now as run is invalid and we can't get proper data
                 val complianceComputationExpirationTime =
                   computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+                // If the run has expired, consider that no report were sent
+                if (expirationTime.isBefore(now)) {
+                  runType(
+                    s"Last run at ${t} is for the configId ${rv.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
+                    NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                  )
+                } else {
+                  val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
 
-                runType(
-                  s"nodeId exists in DB and has configId, expected configId is ${currentConfig.nodeConfigId.value}, but ${rv.value} was not found (node corruption?)",
-                  UnexpectedUnknowVersion(t, rv, currentConfig, configurationExpirationTime, complianceComputationExpirationTime)
-                )
+                  runType(
+                    s"nodeId exists in DB and has configId, expected configId is ${currentConfig.nodeConfigId.value}, but ${rv.value} was not found (node corruption?)",
+                    UnexpectedUnknownVersion(
+                      t,
+                      rv,
+                      currentConfig,
+                      configurationExpirationTime,
+                      complianceComputationExpirationTime
+                    )
+                  )
+                }
 
               //
               // #4 : run with an ID ! And a matching expected config ! And a current expected config !
@@ -633,7 +649,7 @@ object ExecutionBatch extends Loggable {
 
                       // take care of the potential case where currentConfig != runConfig in the log message
                       runType(
-                        s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configIf ${currentConfig.nodeConfigId.value} before ${expirationTime}",
+                        s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
                         NoReportInInterval(currentConfig, complianceComputationExpirationTime)
                       )
                     } else { // nominal case
@@ -849,7 +865,7 @@ object ExecutionBatch extends Loggable {
             expectedConfig,
             expectedExpiration,
             _
-          ) => // same as unextected, different log
+          ) => // same as unexpected, different log
         ComplianceDebugLogger
           .node(nodeId)
           .warn(
@@ -857,11 +873,17 @@ object ExecutionBatch extends Loggable {
           )
         buildUnexpectedVersion(runTime, None, runExpiration, expectedConfig, expectedExpiration, nodeStatusReports)
 
-      case UnexpectedUnknowVersion(runTime, runId, expectedConfig, expectedExpiration, _) => // same as unextected, different log
+      case UnexpectedUnknownVersion(
+            runTime,
+            runId,
+            expectedConfig,
+            expectedExpiration,
+            expirationTime
+          ) => // same as unextected, different log
         ComplianceDebugLogger
           .node(nodeId)
           .warn(
-            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}."
           )
         buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
 
