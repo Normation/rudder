@@ -257,7 +257,7 @@ class ReportDisplayer(
             <p>{currentConfigId(expectedConfigId)} and reports are disabled for that node.</p>
           )
 
-        case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
+        case UnexpectedUnknownVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
           (
             <p>This node is sending reports from an unknown configuration policy (with configuration ID '{lastRunConfigId.value}'
                that is unknown to Rudder, run started at {lastRunDateTime.toString(dateFormat)}).
@@ -275,7 +275,7 @@ class ReportDisplayer(
      */
     val (background, lookReportsMessage) = report.runInfo match {
       case NoRunNoExpectedReport | _: NoExpectedReport | _: UnexpectedVersion | _: UnexpectedNoVersion |
-          _: UnexpectedUnknowVersion | _: NoReportInInterval =>
+          _: UnexpectedUnknownVersion | _: NoReportInInterval =>
         ("alert alert-danger", NodeSeq.Empty)
 
       case _: ReportsDisabledInInterval =>
@@ -438,7 +438,7 @@ class ReportDisplayer(
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
                           )(reportByNodeTemplate)
 
-                        case _: UnexpectedVersion | _: UnexpectedNoVersion | _: UnexpectedUnknowVersion | _: NoReportInInterval |
+                        case _: UnexpectedVersion | _: UnexpectedNoVersion | _: UnexpectedUnknownVersion | _: NoReportInInterval |
                             _: ReportsDisabledInInterval | _: NoUserRulesDefined =>
                           /*
                            * In these case, filter out "unexpected" reports to only

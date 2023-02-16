@@ -146,21 +146,21 @@ class ComplianceJdbcRepository(
                 Some(RunCompliance.from(runTime, x.expirationDateTime, r))
             }
 
-          case x: NoExpectedReport        =>
+          case x: NoExpectedReport         =>
             // here, the expiration date has not much meaning, since we don't have
             // information on that node configuration (and so the node has most likelly no
             // idea whatsoever of any config, even global). Take default values,
             // ie 5min for run + 5min for grace
             Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-          case x: UnexpectedVersion       =>
+          case x: UnexpectedVersion        =>
             Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-          case x: UnexpectedNoVersion     =>
+          case x: UnexpectedNoVersion      =>
             Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-          case x: UnexpectedUnknowVersion =>
+          case x: UnexpectedUnknownVersion =>
             // same has for NoExpectedReport, we can't now what the node
             // thing its configuration is.
             Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-          case x: ComputeCompliance       =>
+          case x: ComputeCompliance        =>
             Some(RunCompliance.from(x.lastRunDateTime, x.expirationDateTime, r))
 
         }

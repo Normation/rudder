@@ -118,8 +118,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     ),
     (
       buildNode("n7"),
-      run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, expired, expired)),
-      run("n7", UnexpectedUnknowVersion(null, NodeConfigId("x"), null, stillOk, stillOk))
+      run("n7", UnexpectedUnknownVersion(null, NodeConfigId("x"), null, expired, expired)),
+      run("n7", UnexpectedUnknownVersion(null, NodeConfigId("x"), null, stillOk, stillOk))
     ),
     (
       buildNode("n8"),
