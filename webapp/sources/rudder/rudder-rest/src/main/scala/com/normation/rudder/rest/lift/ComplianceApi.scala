@@ -80,6 +80,7 @@ class ComplianceApi(
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
+  import CsvCompliance._
   import JsonCompliance._
 
   def schemas = API
@@ -220,35 +221,7 @@ class ComplianceApi(
         _          = TimingDebugLogger.trace(s"API Export compliance to CSV - getting directive compliance in ${t3 - t2} ms")
 
       } yield {
-        val csvLines         = directive.rules.flatMap { r =>
-          r.components.map { c =>
-            c match {
-              case component: ByRuleValueCompliance =>
-                component.nodes.flatMap { node =>
-                  node.values.flatMap { value =>
-                    value.messages.map { report =>
-                      (
-                        r.name,
-                        component.name,
-                        node.name,
-                        value.componentValue,
-                        statusDisplayName(report.reportType),
-                        report.message.getOrElse("")
-                      )
-                    }
-                  }
-                }
-              case _ => List.empty
-            }
-          }
-        }.flatten
-        val csvFormatedLines = csvLines.map {
-          // double quotes are added to each value to prevent comma in value to breaks the formatting
-          case (rule, component, node, value, status, message) =>
-            s""""$rule", "$component", "$node", "$value", "$status", "$message""""
-        }
-        val csv              = List("Rule, Component, Node, Value, Status, Message") ++ csvFormatedLines
-        csv
+        directive.toCsv
       }) match {
         case Full(csv) =>
           toJsonResponse(None, ("directiveComplianceExportCSV" -> csv.mkString("\n")))
@@ -642,19 +615,16 @@ class ComplianceAPIService(
     }
   }.toBox
 
-  def getDirectiveCompliance(directiveId: DirectiveId, level: Option[Int]): Box[ByDirectiveRuleCompliance] = {
+  def getDirectiveCompliance(directiveId: DirectiveId, level: Option[Int]): Box[ByDirectiveCompliance] = {
     for {
       rules        <- rulesRepo.getAll()
-      allGroups    <- nodeGroupRepo.getAllNodeIds()
-      allNodeInfos <- nodeInfoService.getAll()
       directive    <- directiveRepo.getDirective(directiveId.uid)
       relevantRules = rules.filter(_.directiveIds.contains(directiveId))
-      relevantNodes = rules.map(rule => (rule, RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, allNodeInfos)))
 
       byRules <- getByRulesCompliance(relevantRules, level)
       rules    = byRules.flatMap { rule =>
                    rule.directives.map { directive =>
-                     ByDirectiveByRuleComponentCompliance(
+                     ByDirectiveByRuleCompliance(
                        rule.id,
                        rule.name,
                        rule.compliance,
@@ -663,42 +633,15 @@ class ComplianceAPIService(
                    }
                  }
 
-      byNodes <- getByNodesCompliance(None)
-
-      reportsNodes = byNodes.filter(n => relevantNodes.flatMap(_._2).contains(n.id))
-      nodes        = reportsNodes.map { node =>
-                       ByDirectiveNodeCompliance(
-                         node.id,
-                         node.name,
-                         node.compliance,
-                         node.mode,
-                         node.nodeCompliances.map { rule =>
-                           ByDirectiveByNodeRuleCompliance(
-                             rule.id,
-                             rule.name,
-                             rule.compliance,
-                             rule.directives.map { directive =>
-                               ByDirectiveByNodeByRuleComponentCompliance(
-                                 directive.name,
-                                 directive.compliance,
-                                 directive.components.flatMap(_.componentValues)
-                               )
-                             }
-                           )
-                         }
-                       )
-                     }
-
       compliance <- getGlobalComplianceMode().toIO
 
     } yield {
-      ByDirectiveRuleCompliance(
+      ByDirectiveCompliance(
         directiveId,
         directive.map(_.name).getOrElse("Unknown"),
         ComplianceLevel.sum(byRules.map(_.compliance)),
         compliance.mode,
-        rules,
-        nodes
+        rules
       )
     }
   }.toBox
