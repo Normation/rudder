@@ -1,53 +1,58 @@
 <lift:surround with="common-layout" at="content">
 
-<head>
-  <title>Rudder - Plugins Management</title>
-  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-plugins.css"  media="screen" />
-</head>
+  <head>
+    <title>Rudder - Plugins Management</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-plugins.css"
+      media="screen" />
+  </head>
 
-<div class="rudder-template one-col">
-  <div class="template-main">
-    <div class="main-container">
-      <div class="main-header">
-        <div class="header-title">
-          <h1>Plugins</h1>
+  <div class="rudder-template one-col">
+    <div class="template-main">
+      <div class="main-container">
+        <div class="main-header">
+          <div class="header-title">
+            <h1>Plugins</h1>
+          </div>
+          <div class="header-description">
+            <p>
+              Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or
+              proprietary (this is up to the plugin author).
+            </p>
+            <p>
+              Learn about available plugins on our <a href="https://www.rudder.io/software/plugins/">website</a>, or
+              directly
+              <a href="https://repository.rudder.io/plugins/">download free plugins</a>.
+            </p>
+          </div>
         </div>
-        <div class="header-description">
-          <p>
-            Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or proprietary (this is up to the plugin author).
-          </p>
-          <p>
-            Learn about available plugins on our <a href="https://www.rudder.io/software/plugins/">website</a>, or directly
-            <a href="https://www.rudder.io/software/plugins/self-service-plugins/plugins-repository/">download free plugins</a>.
-          </p>
+        <div class="main-navbar">
+          <ul class="ui-tabs-nav"></ul>
         </div>
-      </div>
-      <div class="main-navbar">
-        <ul class="ui-tabs-nav"></ul>
-      </div>
-      <div class="main-details">
-        <div class="lift:administration.PluginManagement.display">
-          <div class="inner-portlet plugin">
-            <h3 class="title-section" data-plugin="name">[Here comes the plugins name]</h3>
-            <p class="description" data-plugin="description">[Here comes the plugin description]</p>
-            <ul class="plugin-details">
-              <li><b>Plugin ID:</b> <span data-plugin="fullid">[Here comes the plugin full id]</span></li>
-              <li><b>Plugin version:</b> <span data-plugin="version">[Here comes the plugin version]</li>
-              <li><b>Rudder ABI version:</b> <span data-plugin="rudderVersion">[Here comes the rudder version used by the plugin]</span>
-                  <span data-plugin="versionWarning">[warning message if patch version of the plugin is not the same as Rudder]</span>
-              </li>
-            </ul>
+        <div class="main-details">
+          <div class="lift:administration.PluginManagement.display">
+            <div class="inner-portlet plugin">
+              <h3 class="title-section" data-plugin="name">[Here comes the plugins name]</h3>
+              <p class="description" data-plugin="description">[Here comes the plugin description]</p>
+              <ul class="plugin-details">
+                <li><b>Plugin ID:</b> <span data-plugin="fullid">[Here comes the plugin full id]</span></li>
+                <li><b>Plugin version:</b> <span data-plugin="version">[Here comes the plugin version]</li>
+                <li><b>Rudder ABI version:</b> <span data-plugin="rudderVersion">[Here comes the rudder version used by
+                    the plugin]</span>
+                  <span data-plugin="versionWarning">[warning message if patch version of the plugin is not the same as
+                    Rudder]</span>
+                </li>
+              </ul>
 
-            <div class="plugin-description" class="pluginpadd">
-              <span data-plugin="statusInformation">[Here comes optionnal information about plugin status/license]</span>
+              <div class="plugin-description" class="pluginpadd">
+                <span data-plugin="statusInformation">[Here comes optionnal information about plugin
+                  status/license]</span>
+              </div>
+
             </div>
 
           </div>
-
         </div>
-     </div>
+      </div>
     </div>
   </div>
-</div>
 </lift:surround>
-
