@@ -38,6 +38,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
+    use urlencoding::decode;
     use warp::{filters::path::Peek, reject, reply, Rejection, Reply};
 
     use crate::JobConfig;
@@ -49,7 +50,12 @@ pub mod handlers {
         params: SharedFolderParams,
         job_config: Arc<JobConfig>,
     ) -> Result<impl Reply, Rejection> {
-        let path = file.as_str().to_owned();
+        let path = decode(file.as_str())
+            .map_err(|e| {
+                error!("{}", e);
+                reject::custom(RudderReject::new(e))
+            })?
+            .into_owned();
         let path = PathBuf::from(path);
         super::head(params, path, job_config.clone())
             .await

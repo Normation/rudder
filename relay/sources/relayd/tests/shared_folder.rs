@@ -28,6 +28,15 @@ fn it_shares_folder() {
 
     assert_eq!(304, hashes_are_equal.status());
 
+    // curl --head http://127.0.0.1:3030/rudder/relay-api/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file%20with%20space?hash_type=sha256?hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b
+
+    let hashes_are_equal = client
+        .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file%20with%20space?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d3b")
+        .send()
+        .unwrap();
+
+    assert_eq!(304, hashes_are_equal.status());
+
     let hashes_are_not_equal = client
             .head("http://127.0.0.1:3030/rudder/relay-api/1/shared-folder/c745a140-40bc-4b86-b6dc-084488fc906b/37817c4d-fbf7-4850-a985-50021f4e8f41/file?hash_type=sha256&hash=181210f8f9c779c26da1d9b2075bde0127302ee0e3fca38c9a83f5b1dd8e5d78")
             .send()
