@@ -493,38 +493,38 @@ object NodeStatusReportSerialization {
   def jsonRunInfo(runInfo: RunAndConfigInfo): JValue = {
 
     runInfo match {
-      case NoRunNoExpectedReport                   =>
+      case NoRunNoExpectedReport                    =>
         ("type" -> "NoRunNoExpectedReport")
-      case NoExpectedReport(t, id)                 =>
+      case NoExpectedReport(t, id)                  =>
         (("type"             -> "NoExpectedReport")
         ~ ("lastRunConfigId" -> id.map(_.value)))
-      case NoReportInInterval(e, _)                =>
+      case NoReportInInterval(e, _)                 =>
         (("type"              -> "NoReportInInterval")
         ~ ("expectedConfigId" -> e.nodeConfigId.value))
-      case ReportsDisabledInInterval(e, _)         =>
+      case ReportsDisabledInInterval(e, _)          =>
         (("type"              -> "ReportsDisabled")
         ~ ("expectedConfigId" -> e.nodeConfigId.value))
-      case UnexpectedVersion(t, id, _, e, _, _)    =>
+      case UnexpectedVersion(t, id, _, e, _, _)     =>
         (("type"              -> "UnexpectedVersion")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> id.get.nodeConfigId.value))
-      case UnexpectedNoVersion(_, id, _, e, _, _)  =>
+      case UnexpectedNoVersion(_, id, _, e, _, _)   =>
         (("type"              -> "UnexpectedNoVersion")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> id.value))
-      case UnexpectedUnknowVersion(_, id, e, _, _) =>
+      case UnexpectedUnknownVersion(_, id, e, _, _) =>
         (("type"              -> "UnexpectedUnknownVersion")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> id.value))
-      case Pending(e, r, _)                        =>
+      case Pending(e, r, _)                         =>
         (("type"              -> "Pending")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> r.map(_._2.nodeConfigId.value)))
-      case ComputeCompliance(_, e, _)              =>
+      case ComputeCompliance(_, e, _)               =>
         (("type"              -> "ComputeCompliance")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> e.nodeConfigId.value))
-      case NoUserRulesDefined(_, e, _, _, _)       =>
+      case NoUserRulesDefined(_, e, _, _, _)        =>
         (("type"              -> "NoUserRulesDefined")
         ~ ("expectedConfigId" -> e.nodeConfigId.value)
         ~ ("runConfigId"      -> e.nodeConfigId.value))
