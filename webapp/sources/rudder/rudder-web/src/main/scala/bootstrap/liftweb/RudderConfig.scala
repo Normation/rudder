@@ -2889,7 +2889,7 @@ object RudderConfig extends Loggable {
     .make(campaignSerializer, campaignPath, campaignEventRepo)
     .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
-  val mainCampaignService      = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen)
+  val mainCampaignService      = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
   lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
   // todo: scheduler interval should be a property
