@@ -121,7 +121,7 @@ object ComplianceDebugLogger extends Logger {
         s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime.toIsoStringNoMillis} |" +
         s" expired at ${lastRunExpiration.toIsoStringNoMillis}"
 
-      case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
+      case UnexpectedUnknownVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
         s"expected NodeConfigId: ${expectedConfig.toLog} |" +
         s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime.toIsoStringNoMillis} |" +
         s" expired at ${expectedExpiration.toIsoStringNoMillis}"
@@ -149,7 +149,7 @@ object ComplianceDebugLogger extends Logger {
       case _: NoReportInInterval        => "NoReportInInterval"
       case _: UnexpectedVersion         => "UnexpectedVersion"
       case _: UnexpectedNoVersion       => "UnexpectedNoVersion"
-      case _: UnexpectedUnknowVersion   => "UnexpectedUnknowVersion"
+      case _: UnexpectedUnknownVersion  => "UnexpectedUnknowVersion"
       case _: ReportsDisabledInInterval => "ReportsDisabledInInterval"
       case _: Pending                   => "Pending"
       case _: ComputeCompliance         => "ComputeCompliance"
