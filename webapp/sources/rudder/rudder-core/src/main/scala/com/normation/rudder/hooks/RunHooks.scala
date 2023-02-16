@@ -274,7 +274,7 @@ object RunHooks {
                      case Some(ok) =>
                        ok.succeed
                      case None     =>
-                       val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.asJava.toString}"
+                       val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.render}"
                        PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
                    }
               _ <- f.interrupt
