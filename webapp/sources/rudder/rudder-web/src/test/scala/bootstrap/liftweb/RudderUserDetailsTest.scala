@@ -74,7 +74,7 @@ class RudderUserDetailsTest extends Specification {
   })
 
   def getUserDetailList(xml: Elem, debugName: String, extendedAuthz: Boolean = true) =
-    UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz).force
+    UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz, false).force
 
   // also check that we accept both `role` and `roles` tags
   val userXML_1 = <authentication hash="sha512" case-sensitivity="true">
