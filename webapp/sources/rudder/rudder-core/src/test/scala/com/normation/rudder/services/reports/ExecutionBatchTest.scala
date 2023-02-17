@@ -50,13 +50,15 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTimer
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 import com.normation.rudder.services.reports.UnexpectedReportBehavior.UnboundVarValues
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -205,9 +207,7 @@ class ExecutionBatchTest extends Specification {
 
   def getNodeStatusReportsByRule(
       nodeExpectedReports: Map[NodeId, NodeExpectedReports],
-      reportsParam:        Seq[Reports], // this is the agent execution interval, in minutes
-
-      complianceMode: ComplianceMode
+      reportsParam:        Seq[Reports] // this is the agent execution interval, in minutes
   ): Map[NodeId, NodeStatusReport] = {
 
     val res = (for {
@@ -271,6 +271,98 @@ class ExecutionBatchTest extends Specification {
 //      )
 //    }
 //  }
+
+  "An old run for a different config id should lead to N/A, not UnexpectedVersion" should {
+
+    // the expected reports will have a generation datetime of "now", we want something stable
+    val (nodeId, expectedReports) = buildExpected(
+      List("one"),
+      "rule",
+      12,
+      List(
+        DirectiveExpectedReports(
+          "policy",
+          None,
+          false,
+          List(
+            new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
+          )
+        )
+      )
+    ).head
+
+    // For the node, we have only an old run from last week, because the server was decommissioned at that time
+    val oldRunTime = ISODateTimeFormat.dateTimeParser().parseDateTime("2023-01-01T15:15:00+00:00")
+
+    // we had a config ID for the old run (just it does not exist anymore in base)
+    val oldRunExpectedReport = expectedReports.copy(
+      nodeConfigId = NodeConfigId("configId-old-run"),
+      beginDate = oldRunTime,
+      endDate = Some(oldRunTime.plusHours(10)) // next generation was 10h after and closed that expected report span
+    )
+
+    // expected reports were generated 12 days, 5 hours after old run
+    val generationTime           = oldRunTime.minusDays(11).plusHours(3)
+    val generatedExpectedReports = expectedReports.copy(beginDate = generationTime)
+    val currentNodeConfigs       = Map(nodeId -> Some(generatedExpectedReports))
+
+    "if we don't have the old config for expected report" in {
+      val lastKnownRun = AgentRunWithNodeConfig(
+        AgentRunId(nodeId, oldRunTime),
+        Some((oldRunExpectedReport.nodeConfigId, None)), // we only have the old config id, not the actual config
+        42
+      )
+
+      val runs = Map(nodeId -> Some(lastKnownRun))
+
+      // the old run is not in base anymore, the new one is
+      val runInfo = {
+        Map(
+          nodeId -> Some(List(NodeConfigIdInfo(generatedExpectedReports.nodeConfigId, generatedExpectedReports.beginDate, None)))
+        )
+      }
+
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo)(nodeId)
+
+      // here, the end date depend on run time, so we need to check by case
+      res match {
+        case NoReportInInterval(exp, t) => exp must beEqualTo(generatedExpectedReports)
+        case x                          => ko(s"We were expected NoReportInInterval case but got: ${x}")
+      }
+    }
+
+    "if we have the old expected reports still in base" in {
+      val lastKnownRun = AgentRunWithNodeConfig(
+        AgentRunId(nodeId, oldRunTime),
+        Some((oldRunExpectedReport.nodeConfigId, Some(oldRunExpectedReport))),
+        42
+      )
+      val runs         = Map(nodeId -> Some(lastKnownRun))
+
+      // the old run is not in base anymore, the new one is
+      val runInfo = {
+        Map(
+          nodeId -> Some(
+            List(
+              NodeConfigIdInfo(
+                oldRunExpectedReport.nodeConfigId,
+                oldRunExpectedReport.beginDate,
+                oldRunExpectedReport.endDate
+              ),
+              NodeConfigIdInfo(generatedExpectedReports.nodeConfigId, generatedExpectedReports.beginDate, None)
+            )
+          )
+        )
+      }
+
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo)(nodeId)
+
+      res match {
+        case NoReportInInterval(exp, t) => exp must beEqualTo(generatedExpectedReports)
+        case x                          => ko(s"We were expected NoReportInInterval case but got: ${x}")
+      }
+    }
+  }
 
   // Test the component part
   "A component, with two different keys" should {
@@ -2938,8 +3030,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
 
     val nodeStatus = (getNodeStatusReportsByRule _).tupled(param)
@@ -2988,8 +3079,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
 
     val nodeStatus = getNodeStatusByRule(param)
@@ -3043,8 +3133,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -3086,8 +3175,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -3138,8 +3226,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -3256,8 +3343,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
@@ -3389,8 +3475,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
@@ -3518,8 +3603,7 @@ class ExecutionBatchTest extends Specification {
           DateTime.now(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
@@ -3595,8 +3679,7 @@ class ExecutionBatchTest extends Specification {
           new DateTime(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -3644,8 +3727,7 @@ class ExecutionBatchTest extends Specification {
           new DateTime(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
 
     val nodeStatus = getNodeStatusByRule(param)
@@ -3692,8 +3774,7 @@ class ExecutionBatchTest extends Specification {
           new DateTime(),
           "message"
         )
-      ),
-      fullCompliance
+      )
     )
     val nodeStatus = getNodeStatusByRule(param)
 
