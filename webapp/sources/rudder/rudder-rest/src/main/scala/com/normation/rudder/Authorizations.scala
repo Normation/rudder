@@ -115,18 +115,21 @@ final object AuthorizationType {
   // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
   // in Role.
 
+  // UIs and action related to Rudder app management (settings menu, etc)
   final case object Administration {
     final case object Read  extends Administration with ActionType.Read with AuthorizationType
     final case object Edit  extends Administration with ActionType.Edit with AuthorizationType
     final case object Write extends Administration with ActionType.Write with AuthorizationType
     def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
+  //
   final case object Compliance     {
     final case object Read  extends Compliance with ActionType.Read with AuthorizationType
     final case object Edit  extends Compliance with ActionType.Edit with AuthorizationType
     final case object Write extends Compliance with ActionType.Write with AuthorizationType
     def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
+  // configure param, techniques, directives, rules, groups
   final case object Configuration  {
     final case object Read  extends Configuration with ActionType.Read with AuthorizationType
     final case object Edit  extends Configuration with ActionType.Edit with AuthorizationType
@@ -134,12 +137,14 @@ final object AuthorizationType {
 
     def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
+  // in workflow, ability to merge a change
   final case object Deployer       {
     final case object Read  extends Deployer with ActionType.Read with AuthorizationType
     final case object Edit  extends Deployer with ActionType.Edit with AuthorizationType
     final case object Write extends Deployer with ActionType.Write with AuthorizationType
     def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
+  // in rudder, ability to start/interact with a policy generation
   final case object Deployment     {
     final case object Read  extends Deployment with ActionType.Read with AuthorizationType
     final case object Edit  extends Deployment with ActionType.Edit with AuthorizationType
@@ -210,8 +215,11 @@ final object AuthorizationType {
   def allKind: Set[AuthorizationType] = allKindsMap
 
   private[this] var allKindsMap: Set[AuthorizationType] = {
-    Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Deployment.values ++ Administration.values ++
-    Parameter.values ++ Node.values ++ Group.values ++ Validator.values ++ Deployer.values ++ UserAccount.values ++ Compliance.values + AnyRights
+    Set(
+      AnyRights
+    ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
+    Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
+    UserAccount.values ++ Validator.values
   }
   def addAuthKind(newKinds: Set[AuthorizationType]) = allKindsMap = allKindsMap ++ newKinds
 
@@ -363,10 +371,10 @@ final case class CustomRoleResolverResult(validRoles: List[Role], invalid: List[
 object RudderRoles {
 
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
-  private val builtInRoles = Role.values
 
   // role names are case insensitive
   implicit val roleOrdering = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  val builtInRoles          = SortedMap[String, Role](Role.values.toList.map(r => (r.name, r)): _*)
   private val customRoles   = Ref.make(SortedMap.empty[String, Role]).runNow
   private val allRoles: Ref[SortedMap[String, Role]] = ZioRuntime.unsafeRun(for {
     all <- computeAllRoles
@@ -375,7 +383,7 @@ object RudderRoles {
 
   // compute all roles but be sure that no custom role ever override a builtIn one and that
   private def computeAllRoles: UIO[SortedMap[String, Role]] =
-    customRoles.get.map(_ ++ builtInRoles.map(r => (r.name.toLowerCase, r)))
+    customRoles.get.map(_ ++ builtInRoles)
 
   def getAllRoles = allRoles.get
 
@@ -383,10 +391,14 @@ object RudderRoles {
    * Register custom roles. No check is done here, we just add them to the
    * pool of known roles.
    * Name is case insensitive. In case of redefinition, the last one registered win.
+   * If `resetExisting` is true, then existing custom roles will be forgotten.
    */
-  def register(roles: List[Role]): IOResult[Unit] = {
+  def register(roles: List[Role], resetExisting: Boolean): IOResult[Unit] = {
     for {
-      crs <- customRoles.updateAndGet(_ ++ roles.map(r => (r.name.toLowerCase, r)))
+      crs <- customRoles.updateAndGet(existing => {
+               val newRoles = roles.map(r => (r.name.toLowerCase, r))
+               if (resetExisting) SortedMap(newRoles: _*) else existing ++ newRoles
+             })
       all <- computeAllRoles
       _   <- allRoles.set(all)
     } yield ()
