@@ -10,7 +10,7 @@ import String
 import ApiCalls exposing (..)
 import ViewTabContent exposing (tabContent)
 import Maybe.Extra
-import ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes, getNbResourcesBadge, getGroupsNbResourcesBadge)
+import ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes, getNbResourcesBadge, getGroupsNbResourcesBadge, btnSave)
 
 --
 -- This file contains all methods to display the details of the selected rule.
@@ -148,7 +148,8 @@ editionTemplate model details =
       if String.isEmpty (String.trim rule.name) then
         Ignore
       else
-        (CallApi (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
+        (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
+
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -163,7 +164,7 @@ editionTemplate model details =
           :: (
             if model.ui.hasWriteRights then
               [ div [ class "btn-group" ]  topButtons
-              , button [class "btn btn-success", type_ "button", disabled (String.isEmpty (String.trim rule.name)), onClick saveAction][text "Save", i [ class "fa fa-download"] []]
+              , btnSave model.ui.saving (String.isEmpty (String.trim rule.name)) saveAction
               ]
             else
               []

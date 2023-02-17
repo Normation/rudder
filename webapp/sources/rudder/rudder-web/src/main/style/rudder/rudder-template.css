@@ -1580,6 +1580,20 @@ ul.applied-list > .add-target > .fa{
   font-weight: bold;
 }
 
+/* === BTN SAVE === */
+.btn.btn-save{
+  min-width: 86px;
+}
+.btn.btn-save:before{
+  content: "Save";
+}
+.btn.btn-save.saving:before{
+  content: "Saving";
+}
+.btn.btn-save > .fa.fa-spin{
+  position: static;
+  font-size: inherit;
+}
 /* === KEYFRAMES === */
 @keyframes fadein {
   0%   {opacity:  0; transform:translateX(-100px);}

@@ -262,7 +262,13 @@ showTechnique model technique origin ui =
                   elem :: base
              ) technique.elems
            )
-
+    btnSave : Bool -> Bool -> Msg -> Html Msg
+    btnSave saving disable action =
+      let
+        icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else i [ class "fa fa-download"] []
+      in
+        button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
+        [ icon ]
   in
     div [ class "main-container" ] [
       div [ class "main-header" ] [
@@ -280,10 +286,7 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
-          , button [ class "btn btn-success btn-save", disabled (isUnchanged || not (isValid ui) || ui.saving || String.isEmpty technique.name|| not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError), onClick StartSaving] [
-              text "Save "
-            , i [ class ("fa fa-download " ++ (if ui.saving then "glyphicon glyphicon-cog fa-spin" else "")) ] []
-            ]
+          , btnSave ui.saving (isUnchanged || not (isValid ui) || String.isEmpty technique.name|| not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
           ]
         ]
       ]
