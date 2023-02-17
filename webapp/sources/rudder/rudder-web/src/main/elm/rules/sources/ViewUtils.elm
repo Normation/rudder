@@ -640,7 +640,6 @@ getNodeLink contextPath id =
 getNodeHostname : Model -> String -> String
 getNodeHostname model id = (Maybe.withDefault (NodeInfo id id "" "" ) (Dict.get id model.nodes)).hostname
 
-
 goToBtn : String -> Html Msg
 goToBtn link =
   a [ class "btn-goto", href link , onCustomClick (GoTo link)] [ i[class "fa fa-pen"][] ]
@@ -688,3 +687,11 @@ getGroupsNbResourcesBadge nbTargets nbInclude msg =
     [ text (String.fromInt nbTargets)
     , warningIcon
     ]
+
+btnSave : Bool -> Bool -> Msg -> Html Msg
+btnSave saving disable action =
+  let
+    icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else i [ class "fa fa-download"] []
+  in
+    button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
+    [ icon ]
