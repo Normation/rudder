@@ -87,6 +87,12 @@ object PasswordEncoder {
 
   val random = new SecureRandom()
 
+  def randomHexa(byteLength: Int) = {
+    val token = new Array[Byte](byteLength)
+    random.nextBytes(token)
+    new java.math.BigInteger(1, token).toString(16)
+  }
+
   class DigestEncoder(digestName: String) extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val digest = MessageDigest.getInstance(digestName)
@@ -477,7 +483,7 @@ object UserFileProcessing {
     if (root.size != 1) {
       Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
     } else {
-      val hash = PasswordEncoder.parse((root(0) \ "@hash").text).getOrElse(PasswordEncoder.PlainText)
+      val hash = PasswordEncoder.parse((root(0) \ "@hash").text).getOrElse(PasswordEncoder.BCRYPT)
 
       val isCaseSensitive: IOResult[Boolean] = (root(0) \ "@case-sensitivity").text.toLowerCase match {
         case "true"  => true.succeed
@@ -554,8 +560,17 @@ object UserFileProcessing {
               // accept both "role" and "roles"
               userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))
             ) match {
-              case (Some(name :: Nil), Some(pwd :: Nil), permissions) if (name.size > 0) =>
-                Some(ParsedUser(name, pwd, permissions)).succeed
+              case (Some(name :: Nil), pwd, permissions) if (name.size > 0) =>
+                // password can be optional when an other authentication backend is used.
+                // When the tag is omitted, we generate a 10 bytes random value in place of the pass internally
+                // to avoid any cases where the empty string will be used if all other backend are in failure.
+                // Also forbid empty or all blank passwords.
+                // If the attribute is defined several times, use the first occurrence.
+                val p = pwd match {
+                  case Some(p :: _) if (p.strip().size > 0) => p
+                  case _                                    => PasswordEncoder.randomHexa(10).mkString("")
+                }
+                Some(ParsedUser(name, p, permissions)).succeed
 
               case _ =>
                 ApplicationLoggerPure.Authz.error(
