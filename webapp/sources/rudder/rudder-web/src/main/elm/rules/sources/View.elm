@@ -157,7 +157,7 @@ view model =
             , div [ class "modal-footer" ] [
                 button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
                 [ text "Cancel " ]
-              , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteRule rule))) ]
+              , button [ class "btn btn-danger", onClick (ClosePopup (CallApi False (deleteRule rule))) ]
                 [ text "Delete "
                 , i [ class "fa fa-times-circle" ] []
                 ]
@@ -206,7 +206,7 @@ view model =
              , div [ class "modal-footer" ] [
                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
                  [ text "Cancel " ]
-               , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteCategory category))) ]
+               , button [ class "btn btn-danger", onClick (ClosePopup (CallApi False (deleteCategory category))) ]
                  [ text "Delete "
                  , i [ class "fa fa-times-circle" ] []
                  ]

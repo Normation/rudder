@@ -11,7 +11,7 @@ init flags =
 
     initCategory = Category "" "" "" (SubCategories []) []
     initFilters  = Filters (TableFilters Name Asc "" []) (TreeFilters "" [] (Tag "" "") [])
-    initUI       = UI initFilters initFilters initFilters NoModal flags.hasWriteRights True False
+    initUI       = UI initFilters initFilters initFilters NoModal flags.hasWriteRights True False False
     initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory Dict.empty Dict.empty Dict.empty Dict.empty initUI
 
     listInitActions =

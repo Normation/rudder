@@ -307,30 +307,38 @@ update msg model =
         (newMode, idToClean) =
           case model.mode of
             TechniqueDetails _ (Edit _) ui ->
-              (TechniqueDetails technique (Edit technique) ui, technique.id)
+              (TechniqueDetails technique (Edit technique) {ui | saving = False}, technique.id)
             TechniqueDetails _ (Creation id) ui ->
-              (TechniqueDetails technique (Edit technique) ui, id)
+              (TechniqueDetails technique (Edit technique) {ui | saving = False}, id)
             TechniqueDetails _ (Clone _ id) ui ->
-              (TechniqueDetails technique (Edit technique) ui, id)
+              (TechniqueDetails technique (Edit technique) {ui | saving = False}, id)
             m -> (m, technique.id)
         drafts = Dict.remove idToClean.value model.drafts
       in
         ({ model | techniques = techniques, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl technique.id.value] )
 
     SaveTechnique (Err err) ->
-      ( model , errorNotification ("Error when saving technique: " ++ debugHttpErr err ) )
+      let
+        newModel = case model.mode of
+          TechniqueDetails t s ui -> {model | mode = TechniqueDetails t s {ui | saving = False}}
+          _ -> model
+      in
+        ( newModel , errorNotification ("Error when saving technique: " ++ debugHttpErr err ) )
 
     StartSaving ->
-     case model.mode of
-          TechniqueDetails t o ui ->
+      case model.mode of
+        TechniqueDetails t o ui ->
+          let
+            newUi = {ui | saving = True}
+          in
             case o of
               Edit _ ->
-                update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o ui }
+                update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o newUi }
               Creation internalId ->
-                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o ui }
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi }
               Clone _ internalId ->
-                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o ui }
-          _ -> (model, Cmd.none)
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi }
+        _ -> (model, Cmd.none)
 
     DeleteTechnique (Ok (metadata, techniqueId)) ->
       case model.mode of

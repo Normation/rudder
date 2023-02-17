@@ -57,8 +57,12 @@ update msg model =
     GenerateId nextMsg ->
       (model, Random.generate nextMsg generator)
     -- Do an API call
-    CallApi call ->
-      (model, call model)
+    CallApi saving call ->
+      let
+        ui = model.ui
+        newModel = {model | ui = {ui | saving = saving}}
+      in
+        (newModel, call model)
     -- neutral element
     Ignore ->
       ( model , Cmd.none)
@@ -291,7 +295,8 @@ update msg model =
               Just _ -> "saved"
               Nothing -> "created"
             ui = details.ui
-            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False }}}
+            modelUi = model.ui
+            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False} }
           in
             (newModel, Cmd.batch
               [ successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action)
@@ -515,7 +520,7 @@ processApiError apiName err model =
             errorMessage
 
   in
-    ({model | mode = if model.mode == Loading then RuleTable else model.mode, ui = { modelUi | loadingRules = False}}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
+    ({model | mode = if model.mode == Loading then RuleTable else model.mode, ui = { modelUi | loadingRules = False, saving = False}}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
 
 getUrl : Model -> String
 getUrl model = model.contextPath ++ "/secure/configurationManager/ruleManagement"

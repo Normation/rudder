@@ -11,6 +11,8 @@ import String exposing ( fromFloat)
 import NaturalOrdering exposing (compareOn)
 import ApiCalls exposing (..)
 import ViewTabContent exposing (buildListCategories)
+import ViewUtils exposing (btnSave)
+
 
 --
 -- This file contains all methods to display the details of the selected category.
@@ -83,8 +85,7 @@ editionTemplateCat model details =
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]
                 ]
-              , button [class "btn btn-success", type_ "button", onClick (CallApi (saveCategoryDetails category details.parentId (Maybe.Extra.isNothing details.originCategory)))]
-                [ text "Save", i [ class "fa fa-download"][]]
+              , btnSave model.ui.saving False (CallApi True (saveCategoryDetails category details.parentId (Maybe.Extra.isNothing details.originCategory)))
               ]
             else
               []
