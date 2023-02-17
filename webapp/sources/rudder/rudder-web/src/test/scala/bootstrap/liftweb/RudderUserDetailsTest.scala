@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import com.github.ghik.silencer.silent
 import com.normation.errors.IOResult
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.CustomRoleResolverResult
@@ -58,6 +59,7 @@ import scala.xml.Elem
  * Test hash algo for user password.
  */
 
+@silent("a type was inferred to be `AnyVal`")
 @RunWith(classOf[JUnitRunner])
 class RudderUserDetailsTest extends Specification {
 
@@ -116,9 +118,7 @@ class RudderUserDetailsTest extends Specification {
       <role name="role_e2" roles="role_e1"/>           <!-- error + role removed - mutual reference leads to nothing -->
       <role name="role_e3" roles="role_e4,role_c0"/>   <!-- error + role removed - mutual reference leads to nothing -->
       <role name="role_e4" roles="role_e3"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <!-- note: if we want to support the following case as OK with empty list, with current cycle detection algo we need
-           to also accept other role with cycle (we can put them with an empty list of roles if needed) -->
-      <role name="role_e6" roles="role_e5"/>           <!-- error + role removed - non existing reference leads to nothing -->
+      <role name="role_e6" roles="role_e5"/>           <!-- warn - non existing reference is ignored -->
       <role name="inventory" roles="administrator"/>   <!-- error + role removed - already defined -->
     </custom-roles>
 
@@ -142,6 +142,7 @@ class RudderUserDetailsTest extends Specification {
       roleB0 ::
       roleC0 ::
       NamedCustom("role_d0", List(roleA1, roleB0, roleC0)) ::
+      NamedCustom("role_e6", Nil) ::
       Nil
     }
 

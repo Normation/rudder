@@ -457,7 +457,10 @@ object RudderRoles {
   ): UIO[CustomRoleResolverResult] = {
     /*
      * General logic strategy:
-     * We must detect roles with cycle to remove them.
+     * We start by removing all role reference that are neither a knownRoles nor one in the uncheck list. These
+     * unknown role references may be due to missing plugins, typos, or whatever but we want them to just be ignored,
+     * not lead to invalid custom-roles.
+     * Then we must detect roles with cycle to remove them.
      * For that, we have a pending(list(roles)) state that means that a role is pending until each of the roles
      * in the list are resolved.
      * When a role if fully resolved, we walk the pending list and remove it from each list. New roles are
@@ -471,8 +474,31 @@ object RudderRoles {
     // `pending` is the list of remaining roles.
     case class PendingRole(role: Role.NamedCustom, pending: List[String])
 
+    // filter out role in permission that are neither defined nor in the customRoles
+    def filterUnknownRoles(
+        customRoles: List[UncheckedCustomRole],
+        knownRoles:  SortedMap[String, Role]
+    ): UIO[List[UncheckedCustomRole]] = {
+      val availableReferences = knownRoles.keySet ++ customRoles.map(_.name) // case-insensitive
+      ZIO.foreach(customRoles) {
+        case UncheckedCustomRole(name, roles) =>
+          for {
+            ok <- ZIO.foreach(roles) { r =>
+                    if (availableReferences.contains(r) || AuthorizationType.parseAuthz(r).isRight) { Some(r).succeed }
+                    else {
+                      ApplicationLoggerPure.Authz.warn(
+                        s"Role '${name}' reference unknown role '${r}': '${r}' will be ignored."
+                      ) *> None.succeed
+                    }
+                  }
+          } yield {
+            UncheckedCustomRole(name, ok.flatten)
+          }
+      }
+    }
+
     // utility sub-function used to check that the named custom role does not overlap with authorization patterns
-    def checkName(role: UncheckedCustomRole): Either[String, Unit] = {
+    def checkExistingName(role: UncheckedCustomRole): Either[String, Unit] = {
       AuthorizationType.parseAuthz(role.name) match {
         case Right(value) =>
           Left("'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role")
@@ -555,39 +581,42 @@ object RudderRoles {
         })
       }
 
-      ZIO
-        .foreach(customRoles) { cr =>
-          checkName(cr) match {
-            case Left(err) => errors.update((cr, err) :: _)
-            case Right(_)  =>
-              for {
-                // for each role, resolve it or put it in pending
-                v <- resolved.get
-                // check that the name is not already in use
-                _ <- if (v.isDefinedAt(cr.name)) {
-                       errors.update(
-                         (
-                           cr,
-                           s"Custom role with name '${cr.name}' will be ignored because a role with same name (case insensitive) already exists"
-                         ) :: _
-                       )
-                     } else {
-                       resolveOne(v, PendingRole(Role.NamedCustom(cr.name, Nil), cr.roles)) match {
-                         case Left(stillPending) =>
-                           ApplicationLoggerPure.Authz.trace(
-                             s"Custom role '${stillPending.role.name}' not fully resolved for roles: ${stillPending.pending.mkString(", ")}"
-                           ) *>
-                           pending.update(stillPending :: _)
-                         case Right(nc)          =>
-                           // before adding, remove possible duplicate resolved role
-                           val toAdd = nc.copy(roles = nc.roles.distinct)
-                           ApplicationLoggerPure.Authz.trace(s"Custom role '${toAdd.name}' fully resolved") *>
-                           resolved.update(_ + (toAdd.name -> toAdd)) *> resolveNew(toAdd, pending, resolved)
-                       }
-                     }
-              } yield ()
-          }
-        }
+      filterUnknownRoles(customRoles, knownRoles)
+        .flatMap(filtered => {
+          ZIO
+            .foreach(filtered) { cr =>
+              checkExistingName(cr) match {
+                case Left(err) => errors.update((cr, err) :: _)
+                case Right(_)  =>
+                  for {
+                    // for each role, resolve it or put it in pending
+                    v <- resolved.get
+                    // check that the name is not already in use
+                    _ <- if (v.isDefinedAt(cr.name)) {
+                           errors.update(
+                             (
+                               cr,
+                               s"Custom role with name '${cr.name}' will be ignored because a role with same name (case insensitive) already exists"
+                             ) :: _
+                           )
+                         } else {
+                           resolveOne(v, PendingRole(Role.NamedCustom(cr.name, Nil), cr.roles)) match {
+                             case Left(stillPending) =>
+                               ApplicationLoggerPure.Authz.trace(
+                                 s"Custom role '${stillPending.role.name}' not fully resolved for roles: ${stillPending.pending.mkString(", ")}"
+                               ) *>
+                               pending.update(stillPending :: _)
+                             case Right(nc)          =>
+                               // before adding, remove possible duplicate resolved role
+                               val toAdd = nc.copy(roles = nc.roles.distinct)
+                               ApplicationLoggerPure.Authz.trace(s"Custom role '${toAdd.name}' fully resolved") *>
+                               resolved.update(_ + (toAdd.name -> toAdd)) *> resolveNew(toAdd, pending, resolved)
+                           }
+                         }
+                  } yield ()
+              }
+            }
+        })
         .unit
     }
 
