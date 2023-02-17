@@ -255,6 +255,13 @@ inventories.watcher.max.age.before.deletion=3 days
 inventory.parse.parallelization=2
 
 #
+# In some case, <PROCESSES> cause performance problems in rudder web-app
+# and they are not used. You can ignore them with that property set to "true".
+# In that case, node's processes will appear to be empty in node details.
+# Boolean, default to "false" (ie: processes are parsed and displayed)
+inventory.parse.ignore.processes=false
+
+#
 # You can keep exhaustive information about LDAP base modification
 # happening in relation to inventory processing. It is mostly used
 # for debug.
