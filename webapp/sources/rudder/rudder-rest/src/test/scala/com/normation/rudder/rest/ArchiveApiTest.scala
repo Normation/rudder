@@ -59,6 +59,7 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
+import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import java.io.FileOutputStream
@@ -262,8 +263,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       restTest.testBinaryPOSTResponse(s"/api/archives/import", "archive", zipFile.name, zipFile.newInputStream.readAllBytes()) {
         case Full(LiftJsonResponse(res, _, 200)) =>
           restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
-            case None    => ko(s"No policies were saved")
-            case Some(p) =>
+            case None         => ko(s"No policies were saved")
+            case Some((p, m)) =>
+              (m must beEqualTo(MergePolicy.OverrideAll)) and
               (p.techniques(0).technique must beEqualTo(tech)) and
               (p.directives(0).directive must beEqualTo(directive))
           }
@@ -273,13 +275,38 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
+  // here we use archive from previous test located in `testDir/test_import_export_archive_directive.zip`
+  "correctly parse merge policy parameter on import" >> {
+    val archiveName = "test_import_export_archive_directive"
+    val zipFile     = testDir / s"${archiveName}.zip"
+
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testBinaryPOSTResponse(
+      s"/api/archives/import",
+      "archive",
+      zipFile.name,
+      zipFile.newInputStream.readAllBytes(),
+      Map(("merge", "keep-rule-groups"))
+    ) {
+      case Full(LiftJsonResponse(res, _, 200)) =>
+        restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
+          case None         => ko(s"No policies were saved")
+          case Some((p, m)) =>
+            (m must beEqualTo(MergePolicy.KeepRuleGroups))
+        }
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
   "correctly checks if techniques already exists" >> {
     val checks    = new CheckArchiveServiceImpl(restTestSetUp.mockTechniques.techniqueRepo)
     val archive   =
       restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow.getOrElse(throw new IllegalArgumentException("test"))
     val techInfos = restTestSetUp.mockTechniques.techniqueRepo.getTechniquesInfo()
 
-    checks.checkTechnique(techInfos, archive.techniques(0)).runNow must beEqualTo(())
+    checks.checkTechnique(techInfos, archive._1.techniques(0)).runNow must beEqualTo(())
   }
 
   "correctly build an archive of one group" >> {
@@ -492,8 +519,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     restTest.testBinaryPOSTResponse(s"/api/archives/import", "archive", zip.name, zip.newInputStream.readAllBytes()) {
       case Full(LiftJsonResponse(res, _, 200)) =>
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
-          case None    => ko(s"No policies were saved")
-          case Some(p) =>
+          case None         => ko(s"No policies were saved")
+          case Some((p, m)) =>
             (p.techniques(0).technique must beEqualTo(tech)) and
             (p.directives(0).directive must beEqualTo(dir1)) and
             (p.groups(0).group must beEqualTo(group))

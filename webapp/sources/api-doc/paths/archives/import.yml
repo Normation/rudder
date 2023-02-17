@@ -14,6 +14,12 @@ post:
               type: string
               format: binary
               description: The ZIP archive file containing policies in a conventional layout and serialization format
+            merge:
+              type: string
+              description: Optional merge algo of the import. Default `override-all` means what is in the archive is the new reality. `keep-rule-groups` will keep existing target definition for existing rules (ignore archive value).
+              enum:
+                - override-all
+                - keep-rule-groups
   responses:
     "200":
       description: Archive imported

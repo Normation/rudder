@@ -155,6 +155,7 @@ import net.liftweb.mockweb.MockWeb
 import net.liftweb.util.NamedPF
 import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
 import org.apache.commons.httpclient.methods.multipart.FilePart
+import org.apache.commons.httpclient.methods.multipart.StringPart
 import org.apache.commons.httpclient.params.HttpMethodParams
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
@@ -864,9 +865,9 @@ class RestTestSetUp {
     val zipArchiveReader      = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
     // a mock save archive that stores result in a ref
     object archiveSaver   extends SaveArchiveService  {
-      val base = Ref.make(Option.empty[PolicyArchive]).runNow
-      override def save(archive: PolicyArchive, actor: EventActor): IOResult[Unit] = {
-        base.set(Some(archive)).unit
+      val base = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+      override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit] = {
+        base.set(Some((archive, mergePolicy))).unit
       }
     }
     object archiveChecker extends CheckArchiveService {
@@ -1068,12 +1069,19 @@ class RestTest(liftRules: LiftRules) {
   }
 
   // url encode the data for param name
-  def binaryPOST(path: String, paramName: String, filename: String, data: Array[Byte]) = {
+  def binaryPOST(
+      path:         String,
+      paramName:    String,
+      filename:     String,
+      data:         Array[Byte],
+      stringParams: Map[String, String] = Map()
+  ) = {
     import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity
-    val mockReq  = mockRequest(path, "POST")
-    val filePart = new FilePart(paramName, new ByteArrayPartSource(filename, data), null, StandardCharsets.UTF_8.name())
-    val parts    = new MultipartRequestEntity(Array(filePart), new HttpMethodParams())
-    val out      = new ByteArrayOutputStream()
+    val mockReq     = mockRequest(path, "POST")
+    val filePart    = new FilePart(paramName, new ByteArrayPartSource(filename, data), null, StandardCharsets.UTF_8.name())
+    val stringParts = stringParams.toList.map { case (n, v) => new StringPart(n, v, StandardCharsets.UTF_8.name()) }
+    val parts       = new MultipartRequestEntity(Array(filePart) ++ stringParts, new HttpMethodParams())
+    val out         = new ByteArrayOutputStream()
     parts.writeRequest(out)
     // be careful, liftweb does not parse header, you need to put content type in the variable
     mockReq.headers = Map(
@@ -1099,10 +1107,16 @@ class RestTest(liftRules: LiftRules) {
   def testPOSTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]) = {
     execRequestResponse(jsonPOST(path, json))(tests)
   }
-  def testBinaryPOSTResponse[T](path: String, paramName: String, filename: String, data: Array[Byte])(
-      tests:                          Box[LiftResponse] => MatchResult[T]
+  def testBinaryPOSTResponse[T](
+      path:         String,
+      paramName:    String,
+      filename:     String,
+      data:         Array[Byte],
+      stringParams: Map[String, String] = Map()
+  )(
+      tests:        Box[LiftResponse] => MatchResult[T]
   ) = {
-    execRequestResponse(binaryPOST(path, paramName, filename, data))(tests)
+    execRequestResponse(binaryPOST(path, paramName, filename, data, stringParams))(tests)
   }
   def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     execRequestResponse(POST(path))(tests)
