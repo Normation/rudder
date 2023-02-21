@@ -623,6 +623,7 @@ body perms u_p(p)
 body perms group(group)
 {
     groups => { "${group}" };
+	rxdirs => "true";
 }
 
 ########################################################################
@@ -632,6 +633,7 @@ body perms mg(mode,group)
 {
     groups => { "${group}" };
     mode   => "${mode}";
+	rxdirs => "true";
 }
 
 body perms ncf_mog_with_option(mode,user,group)
@@ -641,6 +643,7 @@ body perms ncf_mog_with_option(mode,user,group)
 # @param group The group name
 # Uses the classes permission_type_mode_set, permission_type_owner_set, permission_type_group_set to guard changing perms
 {
+      rxdirs => "true";
   permission_type_owner_set::
       owners => { "$(user)" };
   permission_type_group_set::
