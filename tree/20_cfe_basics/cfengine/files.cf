@@ -1697,14 +1697,7 @@ body perms m(mode)
 # @param mode The new mode
 {
       mode   => "$(mode)";
-
-#+begin_ENT-951
-# Remove after 3.20 is not supported
-        rxdirs => "true";
-@if minimum_version(3.20)
-        rxdirs => "false";
-@endif
-#+end
+      rxdirs => "true";
 }
 
 ##
@@ -1716,14 +1709,7 @@ body perms mo(mode,user)
 {
       owners => { "$(user)" };
       mode   => "$(mode)";
-
-#+begin_ENT-951
-# Remove after 3.20 is not supported
-        rxdirs => "true";
-@if minimum_version(3.20)
-        rxdirs => "false";
-@endif
-#+end
+      rxdirs => "true";
 }
 
 ##
@@ -1737,14 +1723,7 @@ body perms mog(mode,user,group)
       owners => { "$(user)" };
       groups => { "$(group)" };
       mode   => "$(mode)";
-
-#+begin_ENT-951
-# Remove after 3.20 is not supported
-        rxdirs => "true";
-@if minimum_version(3.20)
-        rxdirs => "false";
-@endif
-#+end
+      rxdirs => "true";
 }
 
 ##
@@ -1756,6 +1735,7 @@ body perms og(u,g)
 {
       owners => { "$(u)" };
       groups => { "$(g)" };
+	  rxdirs => "true";
 }
 
 ##
@@ -1765,6 +1745,7 @@ body perms owner(user)
 # @param user The username of the new owner
 {
       owners => { "$(user)" };
+	  rxdirs => "true";
 }
 
 body perms system_owned(mode)
@@ -1780,6 +1761,7 @@ body perms system_owned(mode)
 {
       mode   => "$(mode)";
       owners => { "root" };
+	  rxdirs => "true";
 
 #+begin_ENT-951
 # Remove after 3.20 is not supported
