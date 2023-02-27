@@ -121,7 +121,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <!-- For elm parts: copy resources and build elm app -->
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.2</version>
         <executions>
           <execution>
             <id>copy-elm-toserve</id>
