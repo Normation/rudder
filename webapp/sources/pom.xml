@@ -108,11 +108,16 @@ limitations under the License.
     </extensions>
     <plugins>
       <plugin>
-
+        <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269 
+	especially with maven 3.9 that uses version 3.3.0 of this plugin by default, see https://issues.rudder.io/issues/22403
+	-->
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.1.0</version>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>cobertura-maven-plugin</artifactId>
         <version>2.7</version>
-
         <configuration>
           <formats>
             <format>html</format>
