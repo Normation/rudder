@@ -272,6 +272,112 @@ class ExecutionBatchTest extends Specification {
 //    }
 //  }
 
+  sequential
+
+  "On change only, we" should {
+    // we expect two reports
+    val allErrors = Seq[ResultReports](
+      new ResultErrorReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component",
+        "foo",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultErrorReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component",
+        "bar",
+        executionTimestamp,
+        "message"
+      )
+    )
+
+    val mixedReports = Seq[ResultReports](
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component",
+        "foo",
+        executionTimestamp,
+        "message"
+      )
+      // report on bar is success so not reported here
+    )
+
+    // both components are success so none is returned
+    val allSuccesses = Seq[ResultReports]()
+
+    val expectedComponent = new ValueExpectedReport(
+      "component",
+      ExpectedValueMatch("foo", "foo") :: ExpectedValueMatch("bar", "bar") :: Nil
+    )
+
+    val withMixed   = ExecutionBatch
+      .checkExpectedComponentWithReports(
+        expectedComponent,
+        mixedReports,
+        ReportType.EnforceSuccess, // change only on enforce
+        PolicyMode.Enforce,
+        strictUnexpectedInterpretation
+      )
+      .head
+    val withErrors  = ExecutionBatch
+      .checkExpectedComponentWithReports(
+        expectedComponent,
+        allErrors,
+        ReportType.EnforceSuccess, // change only on enforce
+        PolicyMode.Enforce,
+        strictUnexpectedInterpretation
+      )
+      .head
+    val withSuccess = ExecutionBatch
+      .checkExpectedComponentWithReports(
+        expectedComponent,
+        allSuccesses,
+        ReportType.EnforceSuccess, // change only on enforce
+        PolicyMode.Enforce,
+        strictUnexpectedInterpretation
+      )
+      .head
+
+    "all success must return a component globally success with two keys/values" in {
+      (withSuccess.compliance === ComplianceLevel(success = 2)) and
+      (withSuccess.componentValues.size === 2) and
+      (withSuccess.componentValues("foo").head.messages.size === 1) and
+      (withSuccess.componentValues("foo").head.messages.head.reportType === EnforceSuccess) and
+      (withSuccess.componentValues("bar").head.messages.size === 1) and
+      (withSuccess.componentValues("bar").head.messages.head.reportType === EnforceSuccess)
+    }
+    "mixe success/repair must return a component globally repaired with two keys/values" in {
+      (withMixed.compliance === ComplianceLevel(success = 1, repaired = 1)) and
+      (withMixed.componentValues.size === 2) and
+      (withMixed.componentValues("foo").head.messages.size === 1) and
+      (withMixed.componentValues("foo").head.messages.head.reportType === EnforceRepaired) and
+      (withMixed.componentValues("bar").head.messages.size === 1) and
+      (withMixed.componentValues("bar").head.messages.head.reportType === EnforceSuccess)
+    }
+    "all error must return a component globally error with two keys/values" in {
+      (withErrors.compliance === ComplianceLevel(error = 2)) and
+      (withErrors.componentValues.size === 2) and
+      (withErrors.componentValues("foo").head.messages.size === 1) and
+      (withErrors.componentValues("foo").head.messages.head.reportType === EnforceError) and
+      (withErrors.componentValues("bar").head.messages.size === 1) and
+      (withErrors.componentValues("bar").head.messages.head.reportType === EnforceError)
+    }
+  }
+
   "An old run for a different config id should lead to N/A, not UnexpectedVersion" should {
 
     // the expected reports will have a generation datetime of "now", we want something stable
@@ -520,7 +626,7 @@ class ExecutionBatchTest extends Specification {
         .checkExpectedComponentWithReports(
           expectedComponent,
           missing,
-          ReportType.NoAnswer,
+          ReportType.Missing,
           PolicyMode.Enforce,
           strictUnexpectedInterpretation
         )

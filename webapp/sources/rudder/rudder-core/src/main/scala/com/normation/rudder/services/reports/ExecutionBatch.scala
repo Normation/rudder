@@ -1071,7 +1071,7 @@ object ExecutionBatch extends Loggable {
                 val filteredReports = reports.get(directiveId).getOrElse(Seq())
                 // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
                 val r               = components.map { c =>
-                  // HEre reports need to be filtered to only match values that are expected for the Value that is at the end of the component path
+                  // Here reports need to be filtered to only match values that are expected for the Value that is at the end of the component path
                   // and its component nae
                   // The component used to analyse reports is the component at the top of our structure that we recreate the whole tree
                   checkExpectedComponentWithReports(
@@ -1718,7 +1718,15 @@ object ExecutionBatch extends Loggable {
         case x if (x <= cardinality)   =>
           filteredReports.map(_.toMessageStatusReport(policyMode)).toList ++
           /* We need to complete the list of correct with missing, if some are missing */
-          (x until cardinality).map(i => MessageStatusReport(ReportType.Missing, s"[Missing report #${i}]")).toList
+          (x until cardinality).map { i =>
+            val msg = noAnswerType match {
+              // specialize messages for the common cases: if enforce success or audit compliant, we are in "change only" report mode
+              case ReportType.EnforceSuccess => s"[Success report not sent in change only #${i}]"
+              case ReportType.AuditCompliant => s"[Compliant report not sent in change only #${i}]"
+              case _                         => s"[Missing report #${i}]"
+            }
+            MessageStatusReport(noAnswerType, msg)
+          }.toList
         // check if cardinality is ok
         case x if (x > cardinality)    =>
           filteredReports.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
