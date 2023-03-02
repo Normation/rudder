@@ -108,7 +108,7 @@ limitations under the License.
     </extensions>
     <plugins>
       <plugin>
-        <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269 
+        <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269
 	especially with maven 3.9 that uses version 3.3.0 of this plugin by default, see https://issues.rudder.io/issues/22403
 	-->
         <artifactId>maven-resources-plugin</artifactId>
@@ -303,6 +303,14 @@ limitations under the License.
             <phase>verify</phase> <!-- verify: default value -->
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.12.4</version>
+        <configuration>
+          <argLine>-Dspecs2.commandline=console</argLine>
+        </configuration>
       </plugin>
     </plugins>
     <pluginManagement>
