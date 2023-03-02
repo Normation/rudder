@@ -605,6 +605,11 @@ object UserFileProcessing {
                      ApplicationLoggerPure.Authz.debug(
                        s"Custom role '${n}' defined as the union of roles: [${l.map(_.debugString).mkString(", ")}]"
                      )
+                   // Should not happen, since there should be only custom roles, but to prevent warning here ...
+                   case _                      =>
+                     ApplicationLoggerPure.Authz.debug(
+                       s"Found role ${r.name}, in custom role definition, ignore this message"
+                     )
                  }
                }
       } yield res.validRoles
