@@ -1621,6 +1621,7 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
+    , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
     , "oLanguage": {
         "sSearch": ""
     }
