@@ -279,6 +279,7 @@ header.main-header .logo-lg img{
   text-decoration: none !important;
   border-left: 3px solid transparent;
   position: relative;
+  line-height: 20px;
 }
 .sidebar-menu>li>a>.fa,.sidebar-menu>li>a>.glyphicon,.sidebar-menu>li>a>.ion {
   width: 20px
@@ -1359,4 +1360,18 @@ header.main-header .logo-lg img{
 }
 .ok-icon {
   color: #81D674;
+}
+
+.icon-info{
+  margin-left: 5px;
+  color: #337ab7;
+  cursor:help;
+}
+.sidebar-collapse .plugin-icon.icon-info{
+  position: relative;
+  top: 8px;
+  left: -13px;
+}
+.content-wrapper label > .icon-info:hover{
+  color: #286090;
 }

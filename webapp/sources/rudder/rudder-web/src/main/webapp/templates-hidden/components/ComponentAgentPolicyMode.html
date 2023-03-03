@@ -1,4 +1,21 @@
 <agentpolicymode-form>
+  <div class="inner-portlet">
+    <h3 id="agentPolicyMode" class="page-title">Policy mode</h3>
+    <div id="agentpolicymode-app" class="inner-portlet">
+      test
+    </div>
+  </div>
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-agentpolicymode.js"></script>
+  <script>
+    var hasWriteRights = false;
+  </script>
+  <lift:authz role="node_write">
+    <script>
+      hasWriteRights = true;
+    </script>
+  </lift:authz>
+</agentpolicymode-form>
+<agentpolicymode-form-save>
    <div class="inner-portlet" id="auditMode" ng-controller="auditmodeCtrl">
      <h3 id="agentPolicyMode" class="page-title">Policy mode</h3>
      <div class="explanation-text">
@@ -63,14 +80,14 @@
                      No
                    </label>
                  </div>
-               <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="!$parent.conf.overrideMode">
-                 This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode.
-               </label>
-               <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="$parent.conf.overrideMode">
-                 Make this setting a default only and allow overrides on a per-node or per-directive basis.
-               </label>
+                 <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="!$parent.conf.overrideMode">
+                   This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode.
+                 </label>
+                 <label for="overrideAgentPolicy1" class="fit label-switch" ng-if="$parent.conf.overrideMode">
+                   Make this setting a default only and allow overrides on a per-node or per-directive basis.
+                 </label>
+               </div>
              </div>
-           </div>
              <div class="col-xs-12 button-group-success">
                <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
                  <button type="button" class="btn btn-success btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
@@ -100,8 +117,4 @@
          </div>
        </div>
    </div>
-</agentpolicymode-form>
-
-<agentpolicymode-badge>
-  <span class="rudder-label label-enforce label-sm" data-toggle="tooltip" data-placement="top" data-html="true" title="<p class='title-tooltip'>Policy Mode</p><div class='tooltip-content'><p>This node is in <b>Enforce</b> mode.</p><p> This mode is an override applied to this node.</p><p> You can change it in the node's settings.</p></div>"></span>
-</agentpolicymode-badge>
+</agentpolicymode-form-save>
