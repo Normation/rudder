@@ -27,29 +27,30 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
       case None     => ""
       case Some(id) => id.value
     }
-    val js =
+    val js   = {
       s"""
-       |var main = document.getElementById("agentpolicymode-app")
-       |var initValues = {
-       |    contextPath    : contextPath
-       |  , hasWriteRights : hasWriteRights
-       |  , nodeId         : "${jsid}"
-       |};
-       |
-       |var app = Elm.Agentpolicymode.init({node: main, flags: initValues});
-       |app.ports.successNotification.subscribe(function(str) {
-       |  createSuccessNotification(str)
-       |});
-       |app.ports.errorNotification.subscribe(function(str) {
-       |  createErrorNotification(str)
-       |});
-       |// Initialize tooltips
-       |app.ports.initTooltips.subscribe(function(msg) {
-       |  setTimeout(function(){
-       |    $$('.bs-tooltip').bsTooltip();
-       |  }, 400);
-       |});
-       |""".stripMargin
+         |var main = document.getElementById("agentpolicymode-app")
+         |var initValues = {
+         |    contextPath    : contextPath
+         |  , hasWriteRights : hasWriteRights
+         |  , nodeId         : "${jsid}"
+         |};
+         |
+         |var app = Elm.Agentpolicymode.init({node: main, flags: initValues});
+         |app.ports.successNotification.subscribe(function(str) {
+         |  createSuccessNotification(str)
+         |});
+         |app.ports.errorNotification.subscribe(function(str) {
+         |  createErrorNotification(str)
+         |});
+         |// Initialize tooltips
+         |app.ports.initTooltips.subscribe(function(msg) {
+         |  setTimeout(function(){
+         |    $$('.bs-tooltip').bsTooltip();
+         |  }, 400);
+         |});
+         |""".stripMargin
+    }
     agentPolicyModeTemplate ++ Script(OnLoad(JsRaw(js)))
   }
 }

@@ -1,7 +1,6 @@
 module JsonDecoder exposing (..)
 
 import DataTypes exposing (..)
-import Dict exposing (Dict)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Decode.Field exposing (..)

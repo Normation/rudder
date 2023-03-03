@@ -1,6 +1,5 @@
 module DataTypes exposing (..)
 
-import Dict exposing (Dict)
 import Http exposing (Error)
 
 --

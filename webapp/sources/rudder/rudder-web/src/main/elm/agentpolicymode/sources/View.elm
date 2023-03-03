@@ -4,8 +4,6 @@ import DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (id, class, href, type_, attribute, disabled)
 import Html.Events exposing (onClick)
-import List
-import Maybe.Extra exposing (isNothing)
 
 
 view : Model -> Html Msg
@@ -113,7 +111,11 @@ view model =
             ]
           ]
         else
-          text "not overridable"
+          div [class "alert alert-warning"]
+          [ text "Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in "
+          , a [href (model.contextPath ++ "/secure/administration/policyServerManagement#agentPolicyMode")] [text "Settings"]
+          , text ", or contact your Rudder administrator about this."
+          ]
   in
     div []
     [ div [class "explanation-text"]
@@ -136,22 +138,6 @@ view model =
       , div [class "button-group-success"]
         [ btnSave model.ui.saving (model.currentSettings == model.selectedSettings)
         ]
-      {--
-      <div class="col-xs-12 button-group-success">
-         <span class="button-shape" ng-mouseover="pop=true" ng-mouseout="pop=false" ng-class="{disabled:$parent.nochange}">
-           <button type="button" class="btn btn-success btn-primary-rudder" ng-class="{loading: $parent.saving === 1 }" ng-click="saveChanges()" ng-disabled="$parent.nochange" ng-mouseover="pop=true;">
-             <i class="fa fa-cog fa-spin" aria-hidden="true"></i>
-             <span class="sr-only">Saving...</span>
-              <span>Save changes</span>
-           </button>
-         </span>
-         <span class="first-index">
-           <span class="button-warning no-modif" ng-if="$parent.nochange && $parent.saving !== 1" ng-class="{pop:$parent.pop}">
-             There are no modifications to save.
-           </span>
-         </span>
-       </div>
-       --}
       ]
       else
       div [class "col-xs-12 policymode-group readonly"]
