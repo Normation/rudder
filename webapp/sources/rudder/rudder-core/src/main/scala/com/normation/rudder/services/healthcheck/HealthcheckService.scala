@@ -152,13 +152,16 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
                     }
       limit      <- IOResult.effectNonBlocking(res.stdout.trim.toLong)
     } yield {
-      val numNode = nodeInfoService.getNumberOfManagedNodes
-      val minimalLimit = 100 * numNode
+      val nodeCount = nodeInfoService.getNumberOfManagedNodes
+      val reasonableMaxLimit = 64_000
+      val approximatedMinLimit = 100 * nodeCount
+      // 64000 seems to be more than enough even with hundreds of nodes see https://issues.rudder.io/issues/22430
+      val minimalLimit = if (approximatedMinLimit > reasonableMaxLimit) reasonableMaxLimit else approximatedMinLimit
       limit match {
         case limit if limit <= 10_000 =>
           Critical(name, s"Current file descriptor limit is ${limit}. It should be > 10 000.")
         case limit if limit <= minimalLimit =>
-          Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${numNode} nodes")
+          Warning(name, s"Current file descriptor limit is ${limit}. It should be > ${minimalLimit} for ${nodeCount} nodes")
         case _ =>
           Ok(name, s"Maximum number of file descriptors is ${limit}")
       }
