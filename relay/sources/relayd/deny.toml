@@ -22,3 +22,8 @@ ignore = [
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
 
+[advisories]
+ignore = [
+    # Only used in tests
+    "RUSTSEC-2023-0018",
+]
