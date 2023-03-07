@@ -421,7 +421,7 @@ limitations under the License.
     <commons-io-version>2.11.0</commons-io-version>
     <commons-lang-version>3.12.0</commons-lang-version>
     <commons-codec-version>1.15</commons-codec-version>
-    <commons-fileupload>1.4</commons-fileupload>
+    <commons-fileupload>1.5</commons-fileupload>
     <spring-version>5.3.24</spring-version>
     <spring-security-version>5.7.5</spring-security-version>
     <jgit-version>6.3.0.202209071007-r</jgit-version>
@@ -616,6 +616,10 @@ limitations under the License.
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+	  </exclusion>
+	  <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
           </exclusion>
