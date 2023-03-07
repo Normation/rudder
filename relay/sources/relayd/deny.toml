@@ -23,14 +23,10 @@ ignore = [
     "RUSTSEC-2022-0082",
     # A DoS in bzip2
     "RUSTSEC-2023-0004",
+    # Only used in tests
+    "RUSTSEC-2023-0018",
 ]
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
 multiple-versions = "allow"
-
-[advisories]
-ignore = [
-    # Only used in tests
-    "RUSTSEC-2023-0018",
-]
