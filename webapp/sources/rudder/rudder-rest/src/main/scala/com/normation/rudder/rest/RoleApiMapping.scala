@@ -122,7 +122,7 @@ object AuthorizationApiMapping {
         case Compliance.Read  =>
           ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x :: ComplianceApi.GetRulesComplianceId.x ::
           ComplianceApi.GetNodesCompliance.x :: ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x ::
-          ChangesApi.GetRecentChanges.x :: ComplianceApi.GetDirectiveComplianceId.x :: ComplianceApi.ExportDirectiveComplianceCSV.x ::
+          ChangesApi.GetRecentChanges.x :: ComplianceApi.GetDirectiveComplianceId.x ::
           ComplianceApi.GetDirectivesCompliance.x :: Nil
         case Compliance.Write => Nil
         case Compliance.Edit  => Nil

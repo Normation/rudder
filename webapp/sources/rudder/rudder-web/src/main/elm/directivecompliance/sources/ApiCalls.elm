@@ -85,9 +85,9 @@ getCSVExport model =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model [ "compliance", "directives", "export", model.directiveId.value ] []
+        , url     = getUrl model [ "compliance", "directives", model.directiveId.value ] [ Url.Builder.string "format" "csv"]
         , body    = emptyBody
-        , expect  = expectJson Export decodeExportCVS
+        , expect  = expectString Export
         , timeout = Nothing
         , tracker = Nothing
         }

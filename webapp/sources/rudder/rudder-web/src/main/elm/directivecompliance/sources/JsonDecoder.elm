@@ -19,10 +19,6 @@ decodeGetDirectiveCompliance : Decoder DirectiveCompliance
 decodeGetDirectiveCompliance =
   at ["data", "directiveCompliance" ] decodeDirectiveCompliance
 
-decodeExportCVS : Decoder String
-decodeExportCVS =
-  at ["data", "directiveComplianceExportCSV"] string
-
 decodeDirectiveCompliance : Decoder DirectiveCompliance
 decodeDirectiveCompliance =
   succeed DirectiveCompliance

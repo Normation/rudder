@@ -1511,4 +1511,14 @@ final case class RestExtractorService(
     }
 
   }
+
+  def extractComplianceFormat(params: Map[String, List[String]]): Box[ComplianceFormat] = {
+    params.get("format") match {
+      case None | Some(Nil) | Some("" :: Nil) =>
+        Full(ComplianceFormat.JSON) // by default if no there is no format, should I choose the only one available ?
+      case Some(format :: _)                  =>
+        ComplianceFormat.fromValue(format).toBox
+    }
+  }
+
 }

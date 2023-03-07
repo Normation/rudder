@@ -911,3 +911,22 @@ object JsonCompliance {
     ).filter { case (k, v) => v > 0 }.view.mapValues(percent => percent).toMap
   }
 }
+
+sealed trait ComplianceFormat {
+  def value: String
+}
+
+object ComplianceFormat {
+  case object CSV  extends ComplianceFormat { val value = "csv"  }
+  case object JSON extends ComplianceFormat { val value = "json" }
+  def allValues = ca.mrvisser.sealerate.values[ComplianceFormat]
+  def fromValue(value: String): Either[String, ComplianceFormat] = {
+    allValues.find(_.value == value) match {
+      case None         =>
+        Left(
+          s"Wrong type of value for compliance format '${value}', expected : ${allValues.map(_.value).mkString("[", ", ", "]")}"
+        )
+      case Some(action) => Right(action)
+    }
+  }
+}
