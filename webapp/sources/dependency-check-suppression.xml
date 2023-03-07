@@ -53,10 +53,12 @@
    <suppress>
    <notes><![CDATA[
    file name: json-path-2.7.0.jar
-   file name: json-smart-2.4.7.jar
+   file name: json-smart-2.3.1.jar
+   file name: accessors-smart-2.3.1.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/(com.jayway.jsonpath|net.minidev)/json\-.*$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/(com.jayway.jsonpath|net.minidev)/(accessors-smart|json-path|json-smart).*$</packageUrl>
    <cve>CVE-2022-45688</cve>
+   <cve>CVE-2021-31684</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
@@ -103,4 +105,12 @@
    <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
    <vulnerabilityName>prototype pollution</vulnerabilityName>
 </suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: Chart-2.5.0.min.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/chart.js@2.5.0$</packageUrl>
+   <vulnerabilityName>CVE-2020-7746</vulnerabilityName>
+</suppress>
+
 </suppressions>
