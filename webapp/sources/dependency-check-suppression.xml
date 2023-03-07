@@ -45,6 +45,14 @@
 </suppress>
 <suppress>
    <notes><![CDATA[
+   file name: json-path-2.7.0.jar
+   file name: json-smart-2.4.7.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/(com.jayway.jsonpath|net.minidev)/json\-.*$</packageUrl>
+   <cve>CVE-2022-45688</cve>
+</suppress>
+<suppress>
+   <notes><![CDATA[
    file name: spring-core-5.3.24.jar
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.3.24$</packageUrl>
