@@ -36,4 +36,6 @@ ignore = [
     "RUSTSEC-2022-0082",
     # A DoS in bzip2
     "RUSTSEC-2023-0004",
+    # Only used in tests
+    "RUSTSEC-2023-0018",
 ]
