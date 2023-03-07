@@ -1675,10 +1675,10 @@ object RudderConfig extends Loggable {
    * It may happen that some rudder branches don't have a version bump, and other have several (in case of
    * horrible breaking bugs). We avoid the case where a previous release need a version bump.
    * For ex:
-   * - 7.0: 14
-   * - 7.1: 14 (no change)
-   * - 7.2[.0~.4]: 15
-   * - 7.2.5: 16
+   * - 5.0: 14
+   * - 5.1: 14 (no change)
+   * - 5.2[.0~.4]: 15
+   * - 5.2.5: 16
    */
   val ApiVersions = {
     ApiVersion(12, true) ::  // rudder 6.0, 6.1
@@ -1686,6 +1686,7 @@ object RudderConfig extends Loggable {
     ApiVersion(14, false) :: // rudder 7.0
     ApiVersion(15, false) :: // rudder 7.1 - system update on node details
     ApiVersion(16, false) :: // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
+    ApiVersion(17, false) :: // rudder 7.3 - directive compliance, campaign API is public
     Nil
   }
 
