@@ -14,10 +14,6 @@ allow = [
 
 [advisories]
 ignore = [
-    # Only a segfault, and no patches for 0.1 version
-    "RUSTSEC-2020-0071",
-    # Only used in tests
-    "RUSTSEC-2023-0018",
 ]
 
 [bans]
