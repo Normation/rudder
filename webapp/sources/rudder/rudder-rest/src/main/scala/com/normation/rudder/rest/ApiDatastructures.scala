@@ -254,11 +254,15 @@ trait StartsAtVersion8  extends EndpointSchema { val versions = ApiV.From(8)  }
 trait StartsAtVersion9  extends EndpointSchema { val versions = ApiV.From(9)  }
 trait StartsAtVersion10 extends EndpointSchema { val versions = ApiV.From(10) }
 trait StartsAtVersion11 extends EndpointSchema { val versions = ApiV.From(11) }
-trait StartsAtVersion12 extends EndpointSchema { val versions = ApiV.From(12) }
-trait StartsAtVersion13 extends EndpointSchema { val versions = ApiV.From(13) }
-trait StartsAtVersion14 extends EndpointSchema { val versions = ApiV.From(14) }
-trait StartsAtVersion15 extends EndpointSchema { val versions = ApiV.From(15) }
-trait StartsAtVersion16 extends EndpointSchema { val versions = ApiV.From(16) }
+trait StartsAtVersion12 extends EndpointSchema { val versions = ApiV.From(12) } // Rudder 6.0 & 6.1
+trait StartsAtVersion13 extends EndpointSchema { val versions = ApiV.From(13) } // Rudder 6.2
+trait StartsAtVersion14 extends EndpointSchema { val versions = ApiV.From(14) } // Rudder 7.0
+trait StartsAtVersion15 extends EndpointSchema { val versions = ApiV.From(15) } // Rudder 7.1
+trait StartsAtVersion16 extends EndpointSchema { val versions = ApiV.From(16) } // Rudder 7.2
+trait StartsAtVersion17 extends EndpointSchema { val versions = ApiV.From(17) } // Rudder 7.3
+trait StartsAtVersion18 extends EndpointSchema { val versions = ApiV.From(18) }
+trait StartsAtVersion19 extends EndpointSchema { val versions = ApiV.From(19) }
+trait StartsAtVersion20 extends EndpointSchema { val versions = ApiV.From(20) }
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind = ApiKind.Public   }
