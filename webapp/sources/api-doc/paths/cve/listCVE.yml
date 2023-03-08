@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 post:
-  summary: Get a list of CVE details 
+  summary: Get a list of CVE details
   description: Get CVE details, from a list passed as parameter
   operationId: getCVEList
   requestBody:
@@ -9,7 +9,7 @@ post:
       application/json:
         schema:
           type: object
-          description: cveList
+          description: List of CVE ids you want
           properties:
             cveIds:
               type: array
@@ -17,7 +17,22 @@ post:
                 type: string
                 description: CVE id
                 example: "CVE-2019-5953"
-  
+            onlyScore:
+              type: boolean
+              default: false
+              example: true
+              description: Only send score of the cve, and not the whole detailed list
+            minScore:
+              type: float
+              example: 7.5
+              description: Only send CVE with a score higher than the value
+            maxScore:
+              type: float
+              example: 8.5
+              description: Only send CVE with a score lower than the value
+            publishedDate:
+              type: string
+              description: Only send CVE with a publication date more recent than the value
   responses:
     "200":
       description: CVE list
@@ -40,9 +55,9 @@ post:
                 type: string
                 description: The id of the action
                 enum:
-                  - getCVEList 
+                  - getCVEList
               data:
-                type: object 
+                type: object
                 required:
                   - CVEs
                 properties:
