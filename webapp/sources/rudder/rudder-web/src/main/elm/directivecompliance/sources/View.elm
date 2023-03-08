@@ -8,6 +8,9 @@ import List
 import ViewUtils exposing (..)
 import ViewRulesCompliance exposing (..)
 import ViewNodesCompliance exposing (..)
+import Html.Lazy
+
+
 view : Model -> Html Msg
 view model =
   div [class "tab-table-content"]
@@ -25,8 +28,8 @@ view model =
         ]
       ]
     ]
-    ( case model.ui.viewMode of
-      RulesView -> displayRulesComplianceTable model
-      NodesView -> displayNodesComplianceTable model
-    )
+    [( case model.ui.viewMode of
+      RulesView -> Html.Lazy.lazy displayRulesComplianceTable model
+      NodesView -> Html.Lazy.lazy displayNodesComplianceTable model
+    )]
   )
