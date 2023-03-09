@@ -106,7 +106,7 @@ view model =
     newTag      = ruleFilters.treeFilters.newTag
 
     templateMain = case model.mode of
-      Loading -> text "loading"
+      Loading -> generateLoadingTable
       RuleTable   ->
         div [class "main-table"]
         [ div [class "table-container"]
