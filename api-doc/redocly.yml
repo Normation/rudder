@@ -3,7 +3,6 @@ extends:
 
 theme:
   openapi:
-    # We use a stable URL instead of embedded json
     hideDownloadButton: true
     # Hostname is meaningless as it won't match rudder server
     hideHostname: true
