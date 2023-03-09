@@ -601,6 +601,41 @@ generateLoadingList =
   , li[][i[][], span[][]]
   ]
 
+generateLoadingTable : Html Msg
+generateLoadingTable =
+  div [class "table-container skeleton-loading"]
+  [ table [class "dataTable"]
+    [ thead []
+      [ tr [class "head"]
+        [ th [][ span[][] ]
+        , th [][ span[][] ]
+        , th [][ span[][] ]
+        , th [][ span[][] ]
+        , th [][ span[][] ]
+        ]
+      ]
+    , tbody []
+      [ tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "80%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
+      ]
+    ]
+  ]
+
 countRecentChanges: RuleId -> (Dict String (List Changes)) -> Float
 countRecentChanges rId changes =
   case Dict.get rId.value changes of
