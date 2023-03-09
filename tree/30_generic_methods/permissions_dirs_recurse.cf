@@ -19,7 +19,7 @@
 # @name Permissions dirs recurse
 # @rename permissions_dirs_recursive
 # @deprecated Use [permissions_dirs_recursive](#_permissions_dirs_recursive) instead.
-# @description Verify if a directory has the right permissions recursively
+# @description Verify if a directory and its content have the right permissions recursively
 #
 # @parameter path Path to the directory
 # @parameter mode Mode to enforce

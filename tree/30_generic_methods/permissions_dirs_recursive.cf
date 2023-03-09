@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Permissions dirs recursive
-# @description Verify if a directory has the right permissions recursively
+# @description Verify if a directory and its content have the right permissions recursively
 #
 # @parameter path Path to the directory
 # @parameter mode Mode to enforce
