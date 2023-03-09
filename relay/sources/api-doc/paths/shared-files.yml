@@ -32,7 +32,7 @@ head:
       description: The file does not exist
   tags:
     - Shared files
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../code_samples/curl/shared-files/head.sh

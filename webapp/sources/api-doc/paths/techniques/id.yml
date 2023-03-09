@@ -42,7 +42,7 @@ get:
                         - JREditorTechnique
                       properties:
                         JREditorTechnique:
-                          $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
+                          $ref: ../../components/schemas/editor-technique.yml
   tags:
     - Techniques
   x-codeSamples:

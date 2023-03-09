@@ -54,7 +54,7 @@ get:
             format: binary
   tags:
     - Shared folder
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../code_samples/curl/shared-folder/get.sh

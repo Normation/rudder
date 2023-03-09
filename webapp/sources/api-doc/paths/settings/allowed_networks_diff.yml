@@ -18,12 +18,16 @@ post:
               properties:
                 add:
                   type: array
+                  items:
+                    type: string
                   description: List of networks to add to existing allowed networks for that server
                   example:
                     - 192.168.2.0/24
                     - 192.168.0.0/16
                 delete:
                   type: array
+                  items:
+                    type: string
                   description: List of networks to remove from existing allowed networks for that server
                   example:
                     - 162.168.1.0/24
@@ -59,6 +63,8 @@ post:
                 properties:
                   allowed_networks:
                     type: array
+                    items:
+                      type: string
                     example: ["192.168.2.0/24", "192.168.0.0/16"]
                     description: Array of allowed networks
   tags:

@@ -20,6 +20,10 @@ servers:
 externalDocs:
   description: Learn more about Rudder.
   url: "https://docs.rudder.io"
+# relayd does not include security mechanisms
+# there is a TLS client auth cert performed by the httpd reverse proxy
+# for some of them.
+security: []
 tags:
   - name: System
     description: Internal relay service management

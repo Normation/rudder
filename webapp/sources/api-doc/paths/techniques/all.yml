@@ -84,8 +84,7 @@ put:
                       - technique
                     properties:
                       technique:
-                        $ref: ../../components/schemas/techniques.yml#/definitions/editorTechnique
-
+                        $ref: ../../components/schemas/editor-technique.yml
   tags:
     - Techniques
   x-codeSamples:

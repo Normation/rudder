@@ -66,7 +66,7 @@ get:
               process_virtual_memory_bytes 1491361792
   tags:
     - System
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../code_samples/curl/metrics.sh

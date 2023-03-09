@@ -16,7 +16,7 @@ info:
     name: "CC-BY-SA 2.0"
     url: "https://spdx.org/licenses/CC-BY-SA-2.0.html"
 servers:
-  - url: "https://rudder.example.local/rudder/api/latest/"
+  - url: "https://rudder.example.local/rudder/api/latest"
     description: "Rudder server"
 externalDocs:
   description: "Learn more about Rudder."
@@ -291,9 +291,9 @@ paths:
     $ref: paths/cve/listCVE.yml
   "/cve/update/fs":
     $ref: paths/cve/updateCVEFromFS.yml
-  "/cve/update/":
+  "/cve/update":
     $ref: paths/cve/updateCVE.yml
-  "/secret/":
+  "/secret":
     $ref: paths/secret/all.yml
   "/secret/{name}":
     $ref: paths/secret/id.yml
