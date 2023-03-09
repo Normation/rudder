@@ -7,6 +7,17 @@ properties:
     description: CVE id
     example: CVE-2019-5953
     format: cve id
+  score:
+    type: object
+    description: CVE score
+    properties:
+      value:
+        type: float
+        example: 9.5
+        format: a score between 0 and 10
+      severity:
+        type: string
+        example: Critical
   nodes:
     type: array
     description: Id of Nodes affected by this CVE

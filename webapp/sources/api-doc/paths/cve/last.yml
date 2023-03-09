@@ -1,9 +1,15 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get last CVE check result 
+  summary: Get last CVE check result
   description: Get last CVE check result
   operationId: getLastCVECheck
+  parameters:
+    - $ref: ../../components/parameters/cve-group-id.yml
+    - $ref: ../../components/parameters/cve-node-id.yml
+    - $ref: ../../components/parameters/cve-cve-id.yml
+    - $ref: ../../components/parameters/cve-package.yml
+    - $ref: ../../components/parameters/cve-severity.yml
   responses:
     "200":
       description: Last CVE check
