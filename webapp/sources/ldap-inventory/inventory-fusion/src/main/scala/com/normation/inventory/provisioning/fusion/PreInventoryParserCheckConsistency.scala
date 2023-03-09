@@ -169,7 +169,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
       tagHere <- {
         checkWithinNodeSeq(agentNodeSeq, agentTag) catchAll { _ =>
           checkNodeSeq(inventory, tag).chainError(
-            s"Missing rudder policy server attribute '${tag}' in inventory. This attribute is mandatory and must contain Rudder ID pour policy server."
+            s"Missing rudder policy server attribute '${agentTag}' in inventory. This attribute is mandatory and must contain Rudder ID pour policy server."
           )
         }
       }
