@@ -1,5 +1,25 @@
 extends:
+  # use the recommended set of linter rules
   - recommended
+
+rules:
+  # sadly the linter identifies "/{nodeid}" and "/{nodesid}/apply" as ambiguous
+  no-ambiguous-paths: 'off'
+  # don't require documenting 404 responses
+  operation-4xx-response: 'off'
+  # threat some warnings as errors
+  # as there is no simple way to do it with the CLI
+  info-license: 'error'
+  info-license-url: 'error'
+  tag-description: 'error'
+  operation-2xx-response: 'error'
+  assertions: 'error'
+  operation-operationId: 'error'
+  no-invalid-media-type-examples:
+    severity: 'error'
+    allowAdditionalProperties: false
+  no-server-example.com: 'error'
+  no-unused-components: 'error'
 
 theme:
   openapi:
@@ -17,7 +37,7 @@ theme:
       colors:
         primary:
           main: '#13BEB7'
-        test:
+        text:
           primary: '#36474E'
       sidebar:
         backgroundColor: '#F8F9FC'

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2022 Normation SAS
+# SPDX-FileCopyrightText: 2023 Normation SAS
 type: object
 required:
   - name
@@ -10,17 +10,18 @@ properties:
   name:
     type: string
     description: Category's name
-    example: "/"
+    example: User Techniques
   path:
     type: string
     description: Category's path
-    example: ""
+    example: systemSettings/systemManagement
   id:
     type: string
     description: Category ID
-    example: "/"
+    example: systemManagement
   subcategories:
     type: array
     description: List of sub categories
+    example: []
     items:
       $ref: './technique-category.yml'

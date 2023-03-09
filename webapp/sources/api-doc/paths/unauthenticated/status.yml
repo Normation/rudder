@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
+  security: []
   summary: Check if Rudder is alive
   description: >-
     An unauthenticated API to check if Rudder web application is up and running.

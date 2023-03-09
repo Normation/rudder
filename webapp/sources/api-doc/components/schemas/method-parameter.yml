@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2023 Normation SAS
+type: object
+required:
+  - name
+  - description
+  - constraints
+  - type
+properties:
+  name:
+    type: string
+    description: Parameter name
+    example: "package"
+  description:
+    type: string
+    description: Description of this parameter
+    example: "Name of a package to install"
+  constraints:
+    type: object
+    required:
+      - allow_empty_string
+      - allow_whitespace_string
+      - max_length
+      - min_length
+      - regex
+      - not_regex
+      - select
+    properties:
+      allow_empty_string:
+        type: boolean
+        description: Can this parameter be empty?
+        example: false
+      allow_whitespace_string:
+        type: boolean
+        description: Can this parameter allow trailing/ending spaces, or even a full whitespace string ?
+        example: true
+      max_length:
+        type: integer
+        description: Maximum size of a parameter
+        example: 250
+      min_length:
+        type: integer
+        description: Minimal size of a parameter
+        example: 5
+      regex:
+        type: string
+        description: A regex to validate this parameter
+        example: ".*"
+      not_regex:
+        type: string
+        description: A regexp to invalidate this parameter
+        example: "^c.*"
+      select:
+        type: array
+        description: List of items authorized for this parameter
+        items:
+          type: string
+          example: "!="
+  _type:
+    type: string
+    description: Type of the parameter
+    enum:
+      - "String"
+      - "HereString"
+    default: String

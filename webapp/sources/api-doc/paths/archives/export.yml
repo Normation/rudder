@@ -9,20 +9,8 @@ get:
       name: rules
       schema:
         type: array
-      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include
-      style: form
-      explode: false
-      examples:
-        oneId:
-          summary: Example of a single ID
-          value: [a0573b59-e5bd-441b-9031-f307aa21a61e]   # ?rules=a0573b59-e5bd-441b-9031-f307aa21a61e
-        multipleIds:
-          summary: Example of multiple IDs, some with revisions
-          value: [a0573b59-e5bd-441b-9031-f307aa21a61e, 4cba6eee-3a43-4e17-a608-a4941b6d984f%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
-    - in: query
-      name: rules
-      schema:
-        type: array
+        items:
+          type: string
       description: IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include
       style: form
       explode: false
@@ -37,6 +25,8 @@ get:
       name: directives
       schema:
         type: array
+        items:
+          type: string
       description: IDs (optionally with revision, '+' need to be escaped as '%2B') of directives to include
       style: form
       explode: false
@@ -51,6 +41,8 @@ get:
       name: techniques
       schema:
         type: array
+        items:
+          type: string
       description: IDs, ie technique name/technique version (optionally with revision, '+' need to be escaped as '%2B') of techniques to include
       style: form
       explode: false
@@ -65,6 +57,8 @@ get:
       name: groups
       schema:
         type: array
+        items:
+          type: string
       description: IDs (optionally with revision, '+' need to be escaped as '%2B') of groups to include
       style: form
       explode: false
@@ -110,7 +104,7 @@ get:
             format: binary
   tags:
     - Archives
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/archives/export.sh

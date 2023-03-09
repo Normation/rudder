@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: Technique id
+    example: security-policy
+  name:
+    type: string
+    description: Technique name
+    example: Security Policy
+  version:
+    type: string
+    description: version of this technique
+    example: "1.0"
+  category:
+    type: string
+    description: category of this technique
+    example: "user_techniques"
+  description:
+    type: string
+    description: description of this technique
+    example: "This techniques apply generic security policies"
+  source:
+    type: string
+    description: Source of the technique, always editor here
+    example: "editor"
+  parameters:
+    type: array
+    description: Parameters for this technique
+    items:
+      $ref:  './technique-parameter.yml'
+  resources:
+    type: array
+    description: Resources for this technique
+    items:
+      $ref:  './technique-resource.yml'
+  calls:
+    type: array
+    description: Method and blocks contained by this technique
+    items:
+      oneOf:
+        - $ref: './technique-method-call.yml'
+        - $ref: './technique-block.yml'

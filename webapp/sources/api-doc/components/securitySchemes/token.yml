@@ -3,13 +3,13 @@
 "API-Tokens":
   description: >-
     Apart for the status API, authenticating is mandatory for every request, as sensitive information like inventories or configuration rules may get exposed.
-    It is done using a dedicated API Account, than can be created in the web interface on the 'API Accounts' page located inside the Administration part.
+    It is done using a dedicated API account, than can be created in the web interface on the 'API accounts' page located inside the Administration part.
 
 
-    ![API Tokens settings](assets/APISettings.png "API Tokens settings")
+    ![API Tokens settings](assets/APISettings.png "API tokens settings")
 
 
-    API Accounts are not linked to standard user accounts, and currently give full administrative privileges: they must be secured adequately.
+    API accounts are not linked to standard user accounts, and currently give full administrative privileges: they must be secured adequately.
     Once you have created an API account, you get a token that will be needed to authenticate every request. This token is the API equivalent of a password, and must
     be secured just like a password would be.
 

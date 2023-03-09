@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2023 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: Method call id
+    example: 6a8de98f-7829-4c1b-b4e7-b9387f27f279
+  component:
+    type: string
+    description: Component is used in reporting to identify this method call. You can see it as a name
+    example: "Install apache2"
+  method:
+    type: string
+    description: Id of the method called
+    example: "package_present"
+  condition:
+    type: string
+    description: Condition to run this method.
+    example: "linux.package_present_vim_repaired"
+  disableReporting:
+    type: boolean
+    description: Should the reporting of this method be disabled
+    example: true
+  parameters:
+    type: array
+    description: Parameters for this method call
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Parameter name
+          example: package
+        value:
+          type: string
+          description: Parameter value
+          example: apache2

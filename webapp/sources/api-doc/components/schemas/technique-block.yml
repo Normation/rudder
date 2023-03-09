@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2023 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: Method call id
+    example: 6a8de98f-7829-4c1b-b4e7-b9387f27f279
+  component:
+    type: string
+    description: Component is used in reporting to identify this method call. You can see it as a name
+    example: "Install my app"
+  condition:
+    type: string
+    description: Condition to run this method.
+    example: "linux.package_present_vim_repaired"
+  calls:
+    type: array
+    description: Method and blocks contained by this block
+    items:
+      oneOf:
+        - $ref: './technique-method-call.yml'
+        - $ref: './technique-block.yml'
+    example: []
+  reportingLogic:
+    type: object
+    properties:
+      type:
+        type: string
+        description: Kind of reporting logic
+        example: worst
+        enum:
+          - worst
+          - focus
+          - worst-case-weighted-one
+          - worst-case-weighted-sum
+      value:
+        type: string
+        description: reporting value used for some reporting logic (i.e. focus)
+        example: id/name of a component

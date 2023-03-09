@@ -16,7 +16,7 @@ get:
             format: binary
   tags:
     - Policies
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../code_samples/curl/policies/dsc.sh

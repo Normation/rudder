@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2023 Normation SAS
+type: object
+properties:
+  name:
+    type: string
+    description: resource name. this is the relative path to the resource
+    example: conf/my/app/new
+  state:
+    type: string
+    description: State of the resource file. it can be a value between new, modified, deleted, untouched
+    example: modified

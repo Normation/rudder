@@ -19,7 +19,7 @@ properties:
     type: string
     description: Unique id of the node
     format: uuid (or "root")
-    example: 9a1773c9-0889-40b6-be89-f6504443ac1b
+    example: "9a1773c9-0889-40b6-be89-f6504443ac1b"
   hostname:
     type: string
     description: Fully qualified name of the node
@@ -354,7 +354,7 @@ properties:
           type: string
           description: Manufacturer provided information about the module
         quantity:
-          type: string
+          type: integer
           example: 1
           description: Number of modules in that slot
         capacity:
@@ -607,19 +607,19 @@ properties:
       type: object
       properties:
         name:
-          type: String
+          type: string
           description: name of software that can be updated
         version:
-          type: String
+          type: string
           description: available version for software
         arch:
-          type: String
+          type: string
           description: CPU architecture of the update
         from:
-          type: String
+          type: string
           description: tool that discovered that update
         kind:
-          type: String
+          type: string
           description: if available, kind of patch provided by that update, else none
           enum:
             - none
@@ -628,13 +628,13 @@ properties:
             - enhancement
             - other
         source:
-          type: String
+          type: string
           description: information about the source providing that update
         description:
-          type: String
+          type: string
           description: details about the content of the update, if available
         severity:
-          type: String
+          type: string
           description: if available, the severity of the update
           enum:
             - critical
@@ -645,7 +645,7 @@ properties:
         ids:
           type: array
           items:
-            type: String
+            type: string
             description: Related identifiers, can be CVE number, vendor-specific advisory (RHSA, etc.)
   sound:
     type: array

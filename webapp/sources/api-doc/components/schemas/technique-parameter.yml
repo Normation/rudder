@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2023 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: parameter id
+    example: 6a8de98f-7829-4c1b-b4e7-b9387f27f279
+  name:
+    type: string
+    description: Parameter name
+    example: Package to install
+  description:
+    type: string
+    description: description of this parameter
+    example: "Name of a package to install"
+  mayBeEmpty:
+    type: boolean
+    description: May the value given when creating a directive be empty
+    example: true

@@ -10,18 +10,17 @@ properties:
   publishedDate:
     type: string
     description: Date the CVE was published 
-    example: 2019-05-17 18:29:00+02
+    example: "2019-05-17 18:29:00+02"
     format: date
   lastModifiedDate:
     type: string
     description: last Date the CVE was modified 
-    example: 2019-07-03 01:15:00+02
+    example: "2019-07-03 01:15:00+02"
     format: date
   description:
     type: string
     description: CVE Description 
     example: Buffer overflow in GNU Wget 1.20.1 and earlier allows remote attackers to cause a denial-of-service (DoS) or may execute an arbitrary code via unspecified vectors.
-    format: date
   cweIds:
     type: array
     description: List of CWE (Common Weakness Enumeration) of the CVE

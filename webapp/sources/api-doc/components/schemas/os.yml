@@ -44,7 +44,7 @@ properties:
   version:
     type: string
     description: A string representation of the version
-    example: 9.5
+    example: "9.5"
   fullName:
     type: string
     description: The long description name of the os

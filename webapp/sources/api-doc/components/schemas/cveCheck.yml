@@ -6,15 +6,15 @@ properties:
     type: string
     description: CVE id
     example: CVE-2019-5953
-    format: cve id
+    format: CVE id
   score:
     type: object
     description: CVE score
     properties:
       value:
-        type: float
+        type: string
         example: 9.5
-        format: a score between 0 and 10
+        format: A score between 0 and 10 as a float
       severity:
         type: string
         example: Critical
@@ -26,7 +26,7 @@ properties:
       description: "Node id"
   packages:
     type: array
-    description: packages affected by this CVE
+    description: Packages affected by this CVE
     items:
       type: object
       description: "Packages affected by this CVE"

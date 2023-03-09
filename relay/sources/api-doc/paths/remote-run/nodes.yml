@@ -11,7 +11,7 @@ post:
       $ref: "../../components/responses/agent-output.yml"
   tags:
     - Remote run
-  x-code-samples:
+  x-codeSamples:
     - lang: curl
       source:
         $ref: ../../code_samples/curl/remote-run/nodes.sh
