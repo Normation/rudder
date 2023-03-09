@@ -57,26 +57,10 @@ for template in templates:
 
     # Build doc from yaml file (with pre-rendered html)
     html_file = "%s/index.html" % target
-    if subprocess.call(["npx", "redoc-cli", "build", openapi_file,
+    if subprocess.call(["npx", "redocly", "build-docs", openapi_file,
                         "--output", html_file,
                         # Don't help google track our users
                         "--disableGoogleFont",
-                        # Rudder theme (+CSS hack below)
-                        "--options.theme.logo.gutter='8px'",
-                        "--options.theme.sidebar.backgroundColor='#F8F9FC'",
-                        "--options.theme.colors.primary.main='#13BEB7'",
-                        "--options.theme.colors.text.primary='#36474E'",
-                        "--options.theme.typography.fontFamily='Lato, sans-serif'",
-                        "--options.theme.typography.headings.fontFamily='Lato, sans-serif'",
-                        "--options.theme.typography.headings.fontWeight='700'",
-                        # Expand success examples by default
-                        "--options.expandResponses='200,'",
-                        # More readable in central column
-                        "--options.pathInMiddlePanel=1",
-                        # Hostname is meaningless as it won't match rudder server
-                        "--options.hideHostname=1",
-                        # We use a stable URL instead of embedded json
-                        "--options.hideDownloadButton=1"
                         ]):
         print("Could not build %s" % (html_file))
         exit(1)
