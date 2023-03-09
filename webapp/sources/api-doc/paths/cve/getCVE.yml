@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get all CVE details
-  description: Get all CVE details
-  operationId: getAllCve
+  summary: Get a CVE details
+  description: Get a CVE details
+  operationId: getCve
+  parameters:
+    - $ref: ../../components/parameters/cve-cve-id-path.yml
   responses:
     "200":
       description: CVE details result
@@ -26,7 +28,7 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getAllCve
+                  - getCve
               data:
                 type: object
                 required:

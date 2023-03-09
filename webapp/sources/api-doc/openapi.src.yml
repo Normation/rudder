@@ -285,6 +285,8 @@ paths:
     $ref: paths/cve/checkConfig.yml
   "/cve":
     $ref: paths/cve/allCVE.yml
+  "/cve/{cveId}":
+    $ref: paths/cve/getCVE.yml
   "/cve/list":
     $ref: paths/cve/listCVE.yml
   "/cve/update/fs":
