@@ -631,7 +631,7 @@ a.sidebar-toggle{
    height: 100%;
  }
  .skin-yellow aside.main-sidebar.fixed {
-  z-index: 1010;
+  z-index: 1030;
   height: calc(100% - 50px);
   min-height: calc(100% - 50px);
   margin-top: 50px;
