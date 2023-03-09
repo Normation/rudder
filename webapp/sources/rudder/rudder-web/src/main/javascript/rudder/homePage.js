@@ -117,8 +117,29 @@ function homePage (
   , nodeComplianceColors
   , nodeCount
 ) {
+  var opts = {
+    lines: 12, // The number of lines to draw
+    angle: 0, // The length of each line
+    lineWidth: 0.44, // The line thickness
+    pointer: {
+      length: 0.9, // The radius of the inner circle
+      strokeWidth: 0.035, // The rotation offset
+      color: '#36474E' // Fill color
+    },
+    limitMax         : 'false'  , // If true, the pointer will not go past the end of the gauge
+    colorStart       : '#6FADCF', // Colors
+    colorStop        : '#8FC0DA', // just experiment with them
+    strokeColor      : '#d8dde5', // to see which ones work best for you
+    percentColors    : [[0.0, "#DA291C" ], [0.30, "#EF9600"], [0.50, "#b1eda4"], [1.0, "#13BEB7"]],
+    generateGradient : true
+  };
+  var target = document.getElementById('complianceGauge'); // your canvas element
+  var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+  gauge.maxValue = 100; // set max gauge value
+  gauge.animationSpeed = 25; // set animation speed (32 is default value)
+
   if(globalGauge < 0) { //put placeholder texte
-    $("#globalCompliance").html("") //let blank
+    $("#globalCompliance").html('<div class="placeholder progress"></div>');
     $("#globalComplianceStats").html(
       "<h4>You only have system rules. They are ignored in global compliance.</h4>"+
       "<h4>Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</h4>"
@@ -128,13 +149,14 @@ function homePage (
     complianceGauge.getContext('2d').clearRect(0, 0, complianceGauge.width, complianceGauge.height);
     $("#gauge-value").text("") // let blank
     var nodeCompliance = document.getElementById('nodeCompliance');
-    nodeCompliance.getContext('2d').clearRect(0, 0, nodeCompliance.width, nodeCompliance.height);
-
+    $(target).attr("title","You only have system rules. They are ignored in Global compliance.")
+    $(nodeCompliance).replaceWith('<div class="placeholder-doughnut-chart" title="You only have system rules. They are ignored in Nodes overall compliance."></div>');
+    //Display empty gauge
+    gauge.set(0)
   } else {
 
     $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
     createTooltip();
-
 
     var allNodes = nodeCount.active;
     var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
@@ -154,32 +176,12 @@ function homePage (
     }
     $("#globalComplianceStats").html(stats);
 
-    var opts = {
-        lines: 12, // The number of lines to draw
-        angle: 0, // The length of each line
-        lineWidth: 0.44, // The line thickness
-        pointer: {
-          length: 0.9, // The radius of the inner circle
-          strokeWidth: 0.035, // The rotation offset
-          color: '#36474E' // Fill color
-        },
-        limitMax         : 'false'  , // If true, the pointer will not go past the end of the gauge
-        colorStart       : '#6FADCF', // Colors
-        colorStop        : '#8FC0DA', // just experiment with them
-        strokeColor      : '#E9EAEC', // to see which ones work best for you
-        percentColors    : [[0.0, "#DA291C" ], [0.30, "#EF9600"], [0.50, "#b1eda4"], [1.0, "#13BEB7"]],
-        generateGradient : true
-      };
-      var target = document.getElementById('complianceGauge'); // your canvas element
-      var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
-      gauge.maxValue = 100; // set max gauge value
-      gauge.animationSpeed = 25; // set animation speed (32 is default value)
+    gauge.set(function() {
       // set actual value - there is a bug for value = 0, so let's pretend it's 0.1
-      gauge.set(function() {
-        if(globalGauge == 0) return 0.1;
-        else return globalGauge;
-      }());
-      $("#gauge-value").text(globalGauge+"%");
+      if(globalGauge == 0) return 0.1;
+      return globalGauge;
+    }());
+    $("#gauge-value").text(globalGauge+"%");
 
     doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
   }
