@@ -89,7 +89,7 @@
 }
 #globalCompliance .progress {
   height: 80px;
-  margin: 50px 30px 30px 30px;
+  margin: 30px;
   border-radius: 8px;
 }
 
@@ -118,6 +118,21 @@
   margin-bottom: 0;
   margin-top: 15px;
 }
+
+.placeholder.progress{
+  background: repeating-linear-gradient(
+    135deg,
+    #eef1f8,
+    #eef1f8 10px,
+    #f8f9fc 10px,
+    #f8f9fc 20px
+  );
+  box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
+}
+#globalComplianceStats h4 {
+  padding: 0 30px;
+}
+
 /* Node Breakdown */
 .node-charts {
   display: flex;
@@ -139,10 +154,33 @@
   height: 224px !important;
   margin: auto;
 }
-#nodeCompliance{
+#nodeCompliance,
+.placeholder-doughnut-chart{
   width : 290px !important;
   height: 290px !important;
   margin: auto;
+  display: block;
+}
+
+.placeholder-doughnut-chart{
+  border-radius: 50%;
+  background: repeating-linear-gradient(
+    135deg,
+    #eef1f8,
+    #eef1f8 10px,
+    #f8f9fc 10px,
+    #f8f9fc 20px
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.placeholder-doughnut-chart:before{
+  content: "";
+  width: 150px;
+  height: 150px;
+  background-color: #fff;
+  border-radius: 50%;
 }
 
 ul.graph-legend{
