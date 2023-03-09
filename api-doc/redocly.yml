@@ -1,0 +1,30 @@
+extends:
+  - recommended
+
+theme:
+  openapi:
+    disableGoogleFont: true
+    # We use a stable URL instead of embedded json
+    hideDownloadButton: true
+    # Hostname is meaningless as it won't match rudder server
+    hideHostname: true
+    # Expand success examples by default
+    expandResponses: '200,201'
+    # More readable in central column
+    pathInMiddlePanel: true
+    # Rudder 7 theme
+    theme:
+      logo:
+        gutter: '8px'
+      colors:
+        primary:
+          main: '#13BEB7'
+        test:
+          primary: '#36474E'
+      sidebar:
+        backgroundColor: '#F8F9FC'
+      typography:
+        fontFamily: 'Lato, sans-serif'
+        headings:
+          fontFamily: 'Lato, sans-serif'
+          fontWeight: '700'
