@@ -101,15 +101,8 @@
                      <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
                    </div>
                    <div ng-if="isEdited(property.name)">
-                     <div class="col-lg-6">
-                       <p>Current inherited, merged value:</p>
-                       <pre class="json-beautify">{{formatContent(property)}}</pre>
-                     </div>
-                     <div class="col-lg-6">
-                       <p>Overriding value:</p>
-                       <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
-                       <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
-                     </div>
+                     <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
+                     <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
                    </div>
                  </td>
                  <td ng-if="$parent.hasEditRight" class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
