@@ -74,8 +74,8 @@
   Ex:
   <authentication>
     <custom-roles>
-      <role name="role_a0" roles="node_read,node_write,configuration"/>
-      <role name="role_a1" roles="ROLE_A0,inventory"/>
+      <role name="role_a0" permissions="node_read,node_write,configuration"/>
+      <role name="role_a1" permissions="ROLE_A0,inventory"/>
     </custom-roles>
   <authentication>
 
@@ -91,6 +91,6 @@
 
 <authentication hash="bcrypt" case-sensitivity="true">
   <!--
-    <user name="NAME" password="REPLACE_BY_HASH" roles="ROLE" />
+    <user name="NAME" password="REPLACE_BY_HASH" permissions="ROLE" />
   -->
 </authentication>

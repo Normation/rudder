@@ -364,8 +364,8 @@ object UserFileProcessing {
   val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
 
   // utility classes for a parsed custom role/user/everything before sanity check is done on them
-  final case class ParsedRole(name: String, roles: List[String])
-  final case class ParsedUser(name: String, password: String, roles: List[String])
+  final case class ParsedRole(name: String, permissions: List[String])
+  final case class ParsedUser(name: String, password: String, permissions: List[String])
   final case class ParsedUserFile(
       encoder:         PasswordEncoder.Rudder,
       isCaseSensitive: Boolean,
@@ -508,12 +508,12 @@ object UserFileProcessing {
       // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
       // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
       def getRoleRoles(node: scala.xml.Node): PureResult[List[String]] = {
-        node.attribute("roles") match {
-          case None | Some(Nil) => Right(List.empty)
-          case Some(roles)      =>
+        node.attribute("permissions") match {
+          case None | Some(Nil)  => Right(List.empty)
+          case Some(permissions) =>
             Right(
-              roles.toList
-                .flatMap(roleList => roleList.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
+              permissions.toList
+                .flatMap(permlist => permlist.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
             )
         }
       }
@@ -552,10 +552,10 @@ object UserFileProcessing {
                 .map(_.toList.map(_.text)),
               node.attribute("password").map(_.toList.map(_.text)),
               // accept both "role" and "roles"
-              userRoles(node.attribute("role")) ++ userRoles(node.attribute("roles"))
+              userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))
             ) match {
-              case (Some(name :: Nil), Some(pwd :: Nil), roles) if (name.size > 0) =>
-                Some(ParsedUser(name, pwd, roles)).succeed
+              case (Some(name :: Nil), Some(pwd :: Nil), permissions) if (name.size > 0) =>
+                Some(ParsedUser(name, pwd, permissions)).succeed
 
               case _ =>
                 ApplicationLoggerPure.Authz.error(

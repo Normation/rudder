@@ -78,7 +78,7 @@ class Authz extends DispatchSnippet with Loggable {
   def testRight(xml: NodeSeq): NodeSeq = {
     S.attr("role") match {
       case Full(role) =>
-        AuthorizationType.parseAuthz(role) match {
+        AuthorizationType.parseRight(role) match {
           case Left(err)    => NodeSeq.Empty
           case Right(authz) =>
             if (CurrentUser.checkRights(authz.headOption.getOrElse(AuthorizationType.NoRights))) xml else NodeSeq.Empty
