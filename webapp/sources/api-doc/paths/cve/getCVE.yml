@@ -43,4 +43,4 @@ get:
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/cve/allDetails.sh
+        $ref: ../../code_samples/curl/cve/cveDetails.sh
