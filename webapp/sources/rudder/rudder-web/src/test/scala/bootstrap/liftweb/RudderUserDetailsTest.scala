@@ -81,11 +81,11 @@ class RudderUserDetailsTest extends Specification {
   // also check that we accept both `role` and `roles` tags
   val userXML_1 = <authentication hash="sha512" case-sensitivity="true">
     <user name="admin" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
-    <user name="ADMIN" roles="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+    <user name="ADMIN" permissions="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
   </authentication>
 
   val userXML_2 = <authentication hash="sha512" case-sensitivity="false">
-    <user name="admin" roles="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
+    <user name="admin" permissions="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
     <user name="ADMIN" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
   </authentication>
 
@@ -105,33 +105,33 @@ class RudderUserDetailsTest extends Specification {
 
   val userXML_3 = <authentication>
     <custom-roles>
-      <role name="role_a1" roles="ROLE_a0,roLE_A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
-      <role name="role_a0" roles="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role_a1" permissions="ROLE_a0,roLE_A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role_a0" permissions="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
 
-      <role name="ROLE_B0" roles="inventory"/> <!-- node_read -->
-      <role name="role_c0" roles="rule_only"/> <!-- node_* -->
+      <role name="ROLE_B0" permissions="inventory"/> <!-- node_read -->
+      <role name="role_c0" permissions="rule_only"/> <!-- node_* -->
 
-      <role name="role_d0" roles="role_a1,ROLE_B0,role_c0"/>  <!-- node_*,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role_d0" permissions="role_a1,ROLE_B0,role_c0"/>  <!-- node_*,config_*,parameter_*,technique_*,directive_*,rule_* -->
 
-      <role name="role_e0" roles="inventory,role_e0"/> <!-- error + role removed - self reference leads to nothing -->
-      <role name="role_e1" roles="role_e2"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e2" roles="role_e1"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e3" roles="role_e4,role_c0"/>   <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e4" roles="role_e3"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e6" roles="role_e5"/>           <!-- warn - non existing reference is ignored -->
-      <role name="inventory" roles="administrator"/>   <!-- error + role removed - already defined -->
+      <role name="role_e0" permissions="inventory,role_e0"/> <!-- error + role removed - self reference leads to nothing -->
+      <role name="role_e1" permissions="role_e2"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role_e2" permissions="role_e1"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role_e3" permissions="role_e4,role_c0"/>   <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role_e4" permissions="role_e3"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role_e6" permissions="role_e5"/>           <!-- warn - non existing reference is ignored -->
+      <role name="inventory" permissions="administrator"/>   <!-- error + role removed - already defined -->
     </custom-roles>
 
     <user name="admin" role="administrator" password="..."/>
-    <user name="user_a0" password="..." roles="inventory"/> <!-- node read -->
-    <user name="user_a1" password="..." roles="role_A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+    <user name="user_a0" password="..." permissions="inventory"/> <!-- node read -->
+    <user name="user_a1" password="..." permissions="role_A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
   </authentication>
 
   "general rules around custom roles definition and error should be parsed correctly" >> {
     import AuthorizationType._
     val userDetailList = getUserDetailList(userXML_3, "userXML_3")
 
-    val roleA0 = NamedCustom("role_a0", List(Role.forAuthz(Node.Read), Role.forAuthz(Node.Write), Role.Configuration))
+    val roleA0 = NamedCustom("role_a0", List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.Configuration))
     val roleA1 = NamedCustom("role_a1", List(roleA0))
     val roleB0 = NamedCustom("ROLE_B0", List(Role.Inventory))
     val roleC0 = NamedCustom("role_c0", List(Role.RuleOnly))
