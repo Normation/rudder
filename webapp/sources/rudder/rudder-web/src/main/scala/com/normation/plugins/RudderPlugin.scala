@@ -268,7 +268,7 @@ trait RudderPluginDef {
 
         (".license-card [class+]" #> callout andThen
         ".license-information-details" #> (
-          <p>This binary version of this plugin is suject to license with the following information:</p>
+          <p>This binary version of this plugin is subject to license with the following information:</p>
            <div>
              {details(i)}
              {warningTxt}
