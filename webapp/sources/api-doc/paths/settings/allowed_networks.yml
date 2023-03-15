@@ -106,7 +106,7 @@ post:
                 required:
                   - settings
                 properties:
-                  allowed_networks:
+                  settings:
                     type: array
                     items:
                       type: string
