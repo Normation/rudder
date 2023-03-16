@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-// FIXME remove
-
 use anyhow::Result;
 use clap::{error::ErrorKind, CommandFactory};
 use rudder_commons::Target;
@@ -16,6 +14,19 @@ mod doc;
 pub mod frontends;
 pub mod ir;
 pub mod logs;
+
+/// We want to only compile the regex once
+///
+/// Use once_cell as showed in its documentation
+/// https://docs.rs/once_cell/1.2.0/once_cell/index.html#building-block
+macro_rules! regex {
+    ($re:literal $(,)?) => {{
+        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        RE.get_or_init(|| regex::Regex::new($re).unwrap())
+    }};
+}
+
+pub(crate) use regex;
 
 /// Main entry point for rudderc
 ///

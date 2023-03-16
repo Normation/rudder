@@ -4,6 +4,7 @@
 use std::{fmt, str::FromStr};
 
 use anyhow::{bail, Error};
+use rudder_commons::is_canonified;
 use serde::{de, Deserialize, Deserializer, Serialize};
 
 /// Valid condition
@@ -23,6 +24,17 @@ pub enum Condition {
     Expression(String),
 }
 
+/// Add parenthesis around a class expression only if needed
+///
+/// Helps to build cleaner expressions.
+fn parenthesized(s: &str) -> String {
+    if is_canonified(s) {
+        s.to_string()
+    } else {
+        format!("({s})")
+    }
+}
+
 impl Condition {
     pub fn and(&self, c: &Condition) -> Condition {
         match (self, c) {
@@ -30,10 +42,23 @@ impl Condition {
             (Condition::NotDefined, _) => Condition::NotDefined,
             (Condition::Defined, Condition::Defined) => Condition::Defined,
             (Condition::Expression(e1), Condition::Expression(e2)) => {
-                Condition::Expression(format!("({e1}).({e2})"))
+                Condition::Expression(format!("{}.{}", parenthesized(e1), parenthesized(e2)))
             }
             (Condition::Expression(e), Condition::Defined) => Condition::Expression(e.clone()),
             (Condition::Defined, Condition::Expression(e)) => Condition::Expression(e.clone()),
+        }
+    }
+
+    pub fn or(&self, c: &Condition) -> Condition {
+        match (self, c) {
+            (_, Condition::Defined) => Condition::Defined,
+            (Condition::Defined, _) => Condition::Defined,
+            (Condition::NotDefined, Condition::NotDefined) => Condition::NotDefined,
+            (Condition::Expression(e1), Condition::Expression(e2)) => {
+                Condition::Expression(format!("{}|{}", parenthesized(e1), parenthesized(e2)))
+            }
+            (Condition::Expression(e), Condition::NotDefined) => Condition::Expression(e.clone()),
+            (Condition::NotDefined, Condition::Expression(e)) => Condition::Expression(e.clone()),
         }
     }
 }
@@ -73,11 +98,18 @@ impl FromStr for Condition {
         fn valid_char(c: char) -> bool {
             // Ideally, we could parse and validate condition expressions.
             // For now, let's only check for disallowed chars instead.
-            let valid_chars = ['"', '$', '{', '}', '|', '&', ' '];
+            //
+            // We allow condition expression including variable expansion, so:
+            //
+            // * literal conditions: alphanum + _
+            // * boolean operators: |.&!()
+            // * variable expansion syntax: ${}
+            // * spaces
+            let valid_chars = ['_', '$', '{', '}', '|', '&', '.', '!', '(', ')', ' '];
             c.is_ascii_alphanumeric() || valid_chars.contains(&c)
         }
 
-        // A hack to handle "(any)" like conditions
+        // A trick to handle "(any)" like conditions we used to generate
         let unparenthesized = s.replace(['(', ')'], "");
 
         Ok(if ["true", "any"].contains(&unparenthesized.as_str()) {
@@ -85,9 +117,10 @@ impl FromStr for Condition {
         } else if ["false", "!any", "!true"].contains(&unparenthesized.as_str()) {
             Self::NotDefined
         } else if s.chars().all(valid_char) {
-            Condition::Expression(s.to_string())
+            // remove spaces for compact policies
+            Condition::Expression(s.replace(' ', ""))
         } else {
-            bail!("Invalid id: {}", s)
+            bail!("Invalid condition expression: {}", s)
         })
     }
 }

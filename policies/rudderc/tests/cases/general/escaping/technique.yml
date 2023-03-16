@@ -1,11 +1,17 @@
 ---
 id: escaping
-name: Test various escaping cases
+name: "Test various escaping cases ${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3"
+description: "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3"
 version: "0.1"
+parameters:
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
+    name: "server"
+    description: "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3"
+    may_be_empty: true
 items:
-  - name: "${sys.host} ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\"
+  - name: "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3"
     id: a86ce2e5-d5b6-45cc-87e8-c11cca71d966
     method: package_present
-    condition: "debian"
+    condition: "${my_cond} . debian | ${sys.${plouf}}"
     params:
-      name: "${sys.host} ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\"
+      name: "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3"

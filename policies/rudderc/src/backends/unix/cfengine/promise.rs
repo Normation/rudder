@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted};
+use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, cfengine_canonify_condition, quoted};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
@@ -171,7 +171,7 @@ impl Promise {
     pub fn if_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
         self.attributes.insert(
             AttributeType::If,
-            format!("concat(\"{}\")", condition.as_ref()),
+            cfengine_canonify_condition(condition.as_ref()),
         );
         self
     }
@@ -180,7 +180,7 @@ impl Promise {
     pub fn unless_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
         self.attributes.insert(
             AttributeType::Unless,
-            format!("concat(\"{}\")", condition.as_ref()),
+            cfengine_canonify_condition(condition.as_ref()),
         );
         self
     }
@@ -284,7 +284,7 @@ mod tests {
             Promise::string("test", "plop")
                 .if_condition("debian")
                 .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
-            "    \"test\"                            string => \"plop\",\n                                             if => concat(\"debian\");"
+            "    \"test\"                            string => \"plop\",\n                                             if => \"debian\";"
         );
     }
 }
