@@ -74,7 +74,7 @@ class SearchNodeComponent(
 
     _query:           Option[NewQuery],
     _srvList:         Box[Seq[NodeInfo]],
-    onUpdateCallback: () => JsCmd = { () => Noop }, // this one is not used yet
+    onUpdateCallback: () => JsCmd = { () => Noop }, // on grid refresh
 
     onClickCallback: Option[(String, Boolean) => JsCmd] = None, // this callback is used when we click on an element in the grid
 
@@ -393,7 +393,7 @@ class SearchNodeComponent(
     srvList match {
       case Full(seq) =>
         val refresh = srvGrid.refreshData(() => Some(seq), onClickCallback, tableId)
-        JsRaw(s"""(${refresh.toJsCmd}());createTooltip();""")
+        JsRaw(s"""(${refresh.toJsCmd}());createTooltip();""") & onUpdateCallback()
 
       case Empty =>
         Noop
