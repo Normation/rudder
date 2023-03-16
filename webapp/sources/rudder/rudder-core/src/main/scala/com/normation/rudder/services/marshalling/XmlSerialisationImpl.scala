@@ -117,14 +117,16 @@ class RuleSerialisationImpl(xmlVersion: String) extends RuleSerialisation {
         <displayName>{rule.name}</displayName>
         <category>{rule.categoryId.value}</category>
         <targets>{
-        rule.targets.map(target => <target>{target.target}</target>)
+        rule.targets.toList.sortBy(_.target).map(target => <target>{target.target}</target>)
       }</targets>
         <directiveIds>{
-        rule.directiveIds.map {
+        rule.directiveIds.toList.sortBy(_.uid.value).map {
           case DirectiveId(uid, rev) =>
             rev match {
-              case GitVersion.DEFAULT_REV => <id>{uid.value}</id>
-              case r                      => <id revision={r.value}>{uid.value}</id>
+              case GitVersion.DEFAULT_REV =>
+                <id>{uid.value}</id>
+              case r                      =>
+                <id revision={r.value}>{uid.value}</id>
             }
         }
       }</directiveIds>
