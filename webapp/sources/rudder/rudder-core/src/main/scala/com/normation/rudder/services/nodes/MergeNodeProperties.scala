@@ -84,7 +84,7 @@ import scala.jdk.CollectionConverters._
  * - if the overriding value is a simple value or an array, it replaces the previous one
  * - if the overriding value is an object and the overridden value is a simple type or an array,
  *   the latter one is replaced by the former
- * - if both overriding/overridden are arrays, overriding values REPLACE the overriden ones
+ * - if both overriding/overridden are arrays, overriding values REPLACE the overridden ones
  * - if both overriding/overridden are objects, then each key is overridden recursively as explained,
  *   and new keys are added.
  */
@@ -93,11 +93,12 @@ import scala.jdk.CollectionConverters._
  * Utility that represents a group with just the interesting things for us.
  */
 final case class GroupProp(
-    properties:   List[GroupProperty],
-    groupId:      NodeGroupId,
-    condition:    CriterionComposition,
-    isDynamic:    Boolean,
-    parentGroups: List[String], // groupd ids - a list because order is important!
+    properties:     List[GroupProperty],
+    groupId:        NodeGroupId,
+    condition:      CriterionComposition,
+    transformation: ResultTransformation,
+    isDynamic:      Boolean,
+    parentGroups:   List[String], // group ids - a list because order is important!
 
     groupName: String // for error
 )
@@ -106,13 +107,13 @@ object GroupProp {
 
   /**
    * This provider means that the property is purely inherited, ie it is not
-   * overriden for given node or group.
+   * overridden for given node or group.
    */
   val INHERITANCE_PROVIDER = PropertyProvider("inherited")
 
   /**
    * This provider means that the property is inherited but also
-   * overriden for given node or group.
+   * overridden for given node or group.
    */
   val OVERRIDE_PROVIDER = PropertyProvider("overridden")
 
@@ -140,6 +141,7 @@ object GroupProp {
               group.properties,
               group.id,
               And,
+              ResultTransformation.Identity,
               group.isDynamic,
               Nil, // terminal leaf
 
@@ -152,6 +154,7 @@ object GroupProp {
               group.properties,
               group.id,
               q.composition,
+              q.transform,
               group.isDynamic,
               q.criteria.flatMap {
                 // we are only interested in subgroup criterion with AND, and we want to
@@ -178,18 +181,15 @@ object GroupProp {
       target.target match {
         case FullCompositeRuleTarget(t) =>
           Left(Unexpected(s"There is a composite target in group definition, it's likely a dev error: '${target.name}'"))
-        case FullOtherTarget(t)         => // taget:all nodes, only root, only managed node, etc
+        case FullOtherTarget(t)         => // target:all nodes, only root, only managed node, etc
           Right(
             GroupProp(
-              Nil, // they don't have properties for now
-
+              Nil,  // they don't have properties for now
               NodeGroupId(NodeGroupUid(t.target)),
-              And, // for simplification, since they don't have properties it doesn't matter
-
+              And,  // for simplification, since they don't have properties it doesn't matter
+              ResultTransformation.Identity,
               true, // these special targets behave as dynamic groups
-
-              Nil, // terminal leaf
-
+              Nil,  // terminal leaf
               target.name
             )
           )
@@ -430,7 +430,7 @@ object MergeNodeProperties {
       merged    <- mergeAll(flatten)
       globals    = globalParams.toList.map {
                      case (n, v) =>
-                       // TODO: no verion in param for now
+                       // TODO: no version in param for now
                        val config = GenericProperty.toConfig(
                          n,
                          GitVersion.DEFAULT_REV,
@@ -498,7 +498,7 @@ object MergeNodeProperties {
     val groupList = groups.values.toList
     for {
       // we need to proceed in two pass because all vertices need to be added before edges
-      // add veritce
+      // add vertices
       _      <- groupList.traverse { group =>
                   try {
                     Right(graph.addVertex(group))
@@ -517,19 +517,28 @@ object MergeNodeProperties {
                   for {
                     parents <- group.parentGroups.traverse { p =>
                                  groups.get(p) match {
+                                   // the nominal case is to have the parent in the hierarchy, so groups.get(p) will return
+                                   // it and we can continue merging parent properties.
+                                   // I can happen that we don't have the parent in the hierarchy. This typically happens when the
+                                   // parent is part of an `invert` query (see https://issues.rudder.io/issues/21924). We don't
+                                   // want the parent to take part of property inheritance in that case, so we ignore it.
                                    case None    =>
-                                     Left(
-                                       Inconsistency(
-                                         s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
-                                         s"[${group.groupId.serialize}]. Please check criterium for that group."
-                                       )
-                                     )
+                                     group.transformation match {
+                                       case ResultTransformation.Invert => Right(None)
+                                       case _                           =>
+                                         Left(
+                                           Inconsistency(
+                                             s"Error when looking for parent group '${p}' of group '${group.groupName}' " +
+                                             s"[${group.groupId.serialize}]. Please check criterium for that group."
+                                           )
+                                         )
+                                     }
                                    case Some(g) =>
-                                     Right(g)
+                                     Right(Some(g))
                                  }
                                }
                     // reverse parents here, because we need to start from child and go up hierarchy
-                    _       <- recAddEdges(graph, group, parents.reverse)
+                    _       <- recAddEdges(graph, group, parents.flatten.reverse)
                   } yield ()
                 }
       // get connected components
