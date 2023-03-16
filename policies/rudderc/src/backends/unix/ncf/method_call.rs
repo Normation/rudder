@@ -52,7 +52,10 @@ impl TryFrom<Method> for (Promise, Bundle) {
             bail!("Missing parameter {}", info.class_parameter)
         };
 
-        // Let's build the parameters list!
+        // parameters names
+        let parameters_names: Vec<String> = info.parameter.iter().map(|p| p.name.clone()).collect();
+
+        // parameters values
         let mut parameters = vec![];
         for p in &info.parameter {
             parameters.push(match m.params.get(&p.name) {
@@ -86,7 +89,10 @@ impl TryFrom<Method> for (Promise, Bundle) {
             &info.bundle_name,
             Some(&report_component),
             Some(unique),
-            parameters.clone(),
+            parameters_names
+                .iter()
+                .map(|p| expanded(p.as_str()))
+                .collect(),
         );
         let na_condition = format!(
             "canonify(\"${{class_prefix}}_{}_{}\")",
@@ -166,7 +172,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
             "args".to_string(),
             "class_prefix".to_string(),
         ];
-        let mut specific_parameters = info.parameter.iter().map(|p| p.name.clone()).collect();
+        let mut specific_parameters = parameters_names;
         method_parameters.append(&mut specific_parameters);
         Ok((
             bundle_call,

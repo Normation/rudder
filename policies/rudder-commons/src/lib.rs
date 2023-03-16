@@ -216,27 +216,41 @@ impl Default for Constraints {
     }
 }
 
-/// Canonify a string the same way unix does
+/// Canonify a string in the Rudder way, i.e. an underscore for each character
+/// be it single or multibyte.
 pub fn canonify(input: &str) -> String {
-    let s = input
-        .as_bytes()
-        .iter()
-        .map(|x| {
-            if x.is_ascii_alphanumeric() || *x == b'_' {
-                *x
+    input
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                c
             } else {
-                b'_'
+                '_'
             }
         })
-        .collect::<Vec<u8>>();
-    std::str::from_utf8(&s)
-        .unwrap_or_else(|_| panic!("Canonify failed on {}", input))
-        .to_owned()
+        .collect()
+}
+
+pub fn is_canonified(input: &str) -> bool {
+    input.chars().all(|x| x.is_ascii_alphanumeric() || x == '_')
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn it_canonifies() {
+        assert_eq!(canonify(""), "".to_string());
+        assert_eq!(canonify("abc"), "abc".to_string());
+        assert_eq!(canonify("a-bc"), "a_bc".to_string());
+        assert_eq!(canonify("a_bc"), "a_bc".to_string());
+        assert_eq!(canonify("a bc"), "a_bc".to_string());
+        assert_eq!(canonify("aàbc"), "a_bc".to_string());
+        assert_eq!(canonify("a&bc"), "a_bc".to_string());
+        assert_eq!(canonify("a9bc"), "a9bc".to_string());
+        assert_eq!(canonify("a😋bc"), "a_bc".to_string());
+    }
 
     #[test]
     fn it_checks_constraints() {

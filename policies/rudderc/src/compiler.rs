@@ -8,9 +8,9 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
-use rudder_commons::Target;
+use rudder_commons::{is_canonified, Target};
 
-use crate::ir::technique::{Block, BlockReportingMode};
+use crate::ir::technique::{Block, BlockReportingMode, Parameter};
 use crate::{
     backends::{backend, metadata_backend, Backend},
     doc,
@@ -60,6 +60,10 @@ pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<St
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
     methods_metadata(&mut policy.items, methods)?;
+
+    for p in policy.parameters.as_slice() {
+        check_parameter(p)?;
+    }
 
     // TODO other checks and optimizations here
 
@@ -125,6 +129,17 @@ fn methods_metadata(
             }
             ItemKind::Module(_) => todo!(),
         };
+    }
+    Ok(())
+}
+
+/// Check technique parameter consistency
+fn check_parameter(param: &Parameter) -> Result<()> {
+    if !is_canonified(&param.name) {
+        bail!(
+            "Technique parameter name '{}' must be canonified",
+            param.name
+        )
     }
     Ok(())
 }

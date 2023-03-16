@@ -1,8 +1,8 @@
-<TECHNIQUE name="Test various escaping cases">
-  <DESCRIPTION/>
+<TECHNIQUE name="Test various escaping cases ${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3">
+  <DESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3</DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <MULTIINSTANCE>false</MULTIINSTANCE>
-  <POLICYGENERATION>separated</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
   <AGENT type="cfengine-community,cfengine-nova">
     <BUNDLES>
       <NAME>escaping</NAME>
@@ -24,12 +24,23 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION name="${sys.host} ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966" component="true" multivalued="true">
+    <SECTION name="${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966" component="true" multivalued="true">
       <REPORTKEYS>
         <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d966">
-          ${sys.host} ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\
+          ${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
         </VALUE>
       </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
+        <DESCRIPTION>server</DESCRIPTION>
+        <LONGDESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>
