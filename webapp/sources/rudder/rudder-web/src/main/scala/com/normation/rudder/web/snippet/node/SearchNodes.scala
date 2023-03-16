@@ -164,7 +164,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       "htmlIdCategory",
       query,
       srvList,
-      () => Noop,
+      () => JsRaw("""$("#createGroupFromQueryButton").prop("disabled", false)"""),
       Some(showNodeDetails),
       onSearchCallback = updateQueryHash,
       groupPage = false
@@ -174,7 +174,13 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
 
   def createGroup(html: NodeSeq): NodeSeq = {
-    SHtml.ajaxButton("Create node group from this query", () => showPopup(), ("class", "btn btn-success new-icon space-top"))
+    SHtml.ajaxButton(
+      "Create node group from this query",
+      () => showPopup(),
+      ("id", "createGroupFromQueryButton"),
+      ("class", "btn btn-success new-icon space-top"),
+      ("disabled", "disabled")
+    )
   }
 
   def queryForm(sc: SearchNodeComponent) = {
@@ -227,7 +233,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
         SetHtml("createGroupContainer", createPopup) &
         JsRaw(""" createPopup("createGroupPopup") """)
 
-      case eb: EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
+      case eb: EmptyBox => Alert("Error when trying to retrieve the request, please try again")
     }
   }
   private def updateQueryHash(button: Boolean, query: Option[NewQuery]): JsCmd = {
