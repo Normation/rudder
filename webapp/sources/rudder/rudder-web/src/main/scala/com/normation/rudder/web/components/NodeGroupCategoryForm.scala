@@ -130,7 +130,7 @@ class NodeGroupCategoryForm(
             <directive-description></directive-description>
             <directive-container></directive-container>
             <div class="form-group row">
-              <label class="wbBaseFieldLabel">RUDDER ID</label>
+              <label class="wbBaseFieldLabel">Group category ID</label>
               <input readonly="" class="form-control" value={nodeGroupCategory.id.value}/>
             </div>
           </div>

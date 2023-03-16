@@ -274,7 +274,7 @@ class NodeGroupForm(
                            <li><a href="#groupRulesTab">Related rules</a></li>
                          </ul>
     & "group-rudderid" #> <div class="form-group row">
-                    <label class="wbBaseFieldLabel">RUDDER ID</label>
+                    <label class="wbBaseFieldLabel">Group ID</label>
                     <input readonly="" class="form-control" value={target.target}/>
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
