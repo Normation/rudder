@@ -5,18 +5,14 @@ import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom)
+import Html.Events exposing (onClick, custom)
 import List.Extra
 import List
 import Maybe.Extra
 import String exposing (fromFloat)
-import NaturalOrdering exposing (compareOn)
-import ApiCalls exposing (..)
 import ComplianceUtils exposing (..)
 import Json.Decode as Decode
 import Tuple3
-import Round
-import Browser.Navigation as Nav
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -145,20 +141,20 @@ type alias ItemFun item subItem data =
   , subItemRows : item -> List String
   }
 
-valueCompliance :  ItemFun ValueCompliance () ValueCompliance
+valueCompliance :  ItemFun ValueLine () ValueLine
 valueCompliance =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
     [ ("Value", .value >> text, (\d1 d2 -> compare d1.value  d2.value))
-    , ("Messages", .reports >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> compare d1.value d2.value) )
-    , ( "Status", .reports >> buildComplianceReport, (\d1 d2 -> compare d1.value d2.value))
+    , ("Message", .message >>  text, (\d1 d2 -> compare d1.message d2.message) )
+    , ("Status", \r -> td [class "report-compliance"] [ div[] [ span[class r.status][text ( buildComplianceReport r) ] ] ] , (\d1 d2 -> compare (reportStatusOrder d1) (reportStatusOrder d2)))
     ]
     .value
     Nothing
     (always [])
 
-nodeValueCompliance : Model -> ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
+nodeValueCompliance : Model -> ItemFun NodeValueCompliance ValueLine NodeValueCompliance
 nodeValueCompliance mod =
   ItemFun
     (\item model sortId ->
@@ -186,6 +182,10 @@ byComponentCompliance subFun =
                    case item of
                      Block b -> b.complianceDetails
                      Value c -> c.complianceDetails
+    complianceValue = \item ->
+                   case item of
+                     Block b -> b.compliance
+                     Value c -> c.compliance
   in
   ItemFun
     ( \item model sortId ->
@@ -203,7 +203,7 @@ byComponentCompliance subFun =
     )
     (\_ i -> i)
     [ ("Component", name >> text,  (\d1 d2 -> compare (name d1) (name d2)))
-    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> compare (name d1) (name d2)) )
+    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> compare (complianceValue d1) (complianceValue d2)) )
     ]
     name
     (Just ( \x ->
@@ -231,26 +231,26 @@ byDirectiveCompliance mod subFun =
       List.sortWith sortFunction item.components
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
-    [ ("Directive", \(d,i)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
-    , ("Compliance", \(d,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
+    [ ("Directive", \(d,_)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
+    , ("Compliance", \(_,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
     (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
     (always (List.map Tuple3.first (byComponentCompliance subFun).rows))
 
-byNodeCompliance :  Model -> ItemFun NodeCompliance (DirectiveCompliance ValueCompliance) NodeCompliance
+byNodeCompliance :  Model -> ItemFun NodeCompliance (DirectiveCompliance ValueLine) NodeCompliance
 byNodeCompliance mod =
   let
     directive = byDirectiveCompliance mod valueCompliance
   in
   ItemFun
-    (\item model sortId ->
+    (\item _ sortId ->
       let
         sortFunction = subItemOrder directive mod sortId
       in
         List.sortWith sortFunction item.directives
     )
-    (\m i -> i)
+    (\_ i -> i)
     [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> compare d1.compliance d2.compliance))
     ]
@@ -372,11 +372,11 @@ filterTags ruleTags tags =
           List.member tag ruleTags
         else if String.isEmpty tag.key then
           case List.Extra.find (\t -> t.value == tag.value) ruleTags of
-            Just ok -> True
+            Just _ -> True
             Nothing -> False
         else if String.isEmpty tag.value then
           case List.Extra.find (\t -> t.key == tag.key) ruleTags of
-            Just ok -> True
+            Just _ -> True
             Nothing -> False
         else
           True
@@ -577,33 +577,44 @@ buildComplianceBar complianceDetails=
       , displayCompliance allComplianceValues.noReport        "no-report"
       ]
 
-buildComplianceReport : List Report -> Html Msg
-buildComplianceReport reports =
-  let
-    complianceTxt : String -> String
-    complianceTxt val =
-      case val of
+buildComplianceReport : ValueLine -> String
+buildComplianceReport report =
+      case report.status of
         "reportsDisabled"            -> "Reports Disabled"
         "noReport"                   -> "No report"
         "error"                      -> "Error"
         "successAlreadyOK"           -> "Success"
         "successRepaired"            -> "Repaired"
         "applying"                   -> "Applying"
-        "auditNotApplicable"         -> "Not applicable"
+        "successNotApplicable"       -> "Not applicable"
         "unexpectedUnknownComponent" -> "Unexpected"
         "unexpectedMissingComponent" -> "Missing"
-        "AuditNotApplicable"         -> "Not applicable"
+        "auditNotApplicable"         -> "Not applicable"
         "auditError"                 -> "Error"
         "auditCompliant"             -> "Compliant"
         "auditNonCompliant"          -> "Non compliant"
         "badPolicyMode"              -> "Bad Policy Mode"
-        _ -> val
-  in
-    td [class "report-compliance"]
-    [ div[]
-      ( List.map (\r -> span[class r.status][text (complianceTxt r.status)]) reports )
-    ]
+        val -> val
 
+
+reportStatusOrder : ValueLine -> Int
+reportStatusOrder report =
+  case report.status of
+    "successAlreadyOK"           -> 0
+    "auditCompliant"             -> 1
+    "successNotApplicable"       -> 2
+    "auditNotApplicable"         -> 3
+    "successRepaired"            -> 4
+    "auditNonCompliant"          -> 5
+    "error"                      -> 6
+    "auditError"                 -> 7
+    "badPolicyMode"              -> 8
+    "unexpectedMissingComponent" -> 9
+    "unexpectedUnknownComponent" -> 10
+    "applying"                   -> 11
+    "reportsDisabled"            -> 12
+    "noReport"                   -> 13
+    _ -> -1
 generateLoadingList : Html Msg
 generateLoadingList =
   ul[class "skeleton-loading"]
