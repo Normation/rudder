@@ -181,7 +181,7 @@ techniqueTab model technique creation ui =
                            ]
                          ]
                        , div [ class "row form-group" ] [ -- show-errors>
-                           label [ for "bundleName", class "col-xs-12 control-label"] [ text "ID" ]
+                           label [ for "bundleName", class "col-xs-12 control-label"] [ text "Technique ID" ]
                          , div [ class "col-sm-8" ] [
                              input [ readonly True,  id "bundleName", name "bundle_name", class ("form-control" ++ classErrorInputId), value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                            ]
