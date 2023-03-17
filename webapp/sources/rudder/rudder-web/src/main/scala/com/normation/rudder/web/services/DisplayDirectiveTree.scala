@@ -470,7 +470,7 @@ object DisplayDirectiveTree extends Loggable {
           """
 
           <span id={"badge-apm-" + tooltipId}>[BADGE]</span> ++
-          <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={
+          <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" data-container="body" title={
             tooltipContent
           }>
             <span class="techversion">
