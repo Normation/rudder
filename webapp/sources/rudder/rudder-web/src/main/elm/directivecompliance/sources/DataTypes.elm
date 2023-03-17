@@ -130,6 +130,8 @@ type alias UI =
   { ruleFilters  : TableFilters
   , nodeFilters  : TableFilters
   , viewMode     : ViewMode
+  , loading      : Bool
+  , loaded       : Bool
   }
 
 type ViewMode = RulesView | NodesView
@@ -157,4 +159,5 @@ type Msg
   | GetNodesList        (Result Error (List NodeInfo))
   | Export (Result Error String)
   | CallApi  (Model -> Cmd Msg)
+  | LoadCompliance String
 

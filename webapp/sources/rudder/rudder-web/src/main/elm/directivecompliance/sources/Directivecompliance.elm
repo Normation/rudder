@@ -5,9 +5,10 @@ import Browser.Navigation as Nav
 import Dict
 import Dict.Extra
 import DataTypes exposing (..)
+import Init exposing (init)
+import ApiCalls exposing (..)
 import Http exposing (..)
 import Result
-import Init exposing (init)
 import String exposing (replace)
 import View exposing (view)
 import File
@@ -17,10 +18,12 @@ import File.Select
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg
 port initTooltips        : String -> Cmd msg
+port loadCompliance      : (String -> msg) -> Sub msg
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-  Sub.none
+  loadCompliance LoadCompliance
 
 main =
   Browser.element
@@ -115,13 +118,18 @@ update msg model =
           processApiError "Getting nodes list" err model
 
     GetDirectiveComplianceResult res ->
-      case res of
-        Ok compliance ->
-          ( { model | directiveCompliance = Just compliance }
-            , Cmd.none
-          )
-        Err err ->
-          processApiError "Getting directive compliance" err model
+      let
+        ui = model.ui
+        newModel = {model | ui = {ui | loading = False}}
+      in
+        case res of
+          Ok compliance ->
+            ( { newModel | directiveCompliance = Just compliance }
+              , Cmd.none
+            )
+          Err err ->
+            processApiError "Getting directive compliance" err newModel
+
     Export res ->
       case res of
         Ok content ->
@@ -129,6 +137,22 @@ update msg model =
         Err err ->
           processApiError "Export directive compliance" err model
 
+    LoadCompliance str ->
+      let
+        ui = model.ui
+        actions = if ui.loaded then
+          Cmd.none
+          else
+          Cmd.batch
+          [ getAllRules model
+          , getNodesList model
+          , getDirectiveCompliance model
+          ]
+        newModel = {model | ui = {ui | loaded = True}}
+      in
+      ( newModel
+      , actions
+      )
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
