@@ -835,6 +835,11 @@ class SettingsApi(
     policyServerManagementService.getAllowedNetworks(nodeId).map(_.map(_.inet))
   }
 
+  def getRootNameForVersion(version: ApiVersion) = {
+    if (version.value <= 17) { "settings" }
+    else { "allowed_networks" }
+  }
+
   object GetAllAllowedNetworks extends LiftApiModule0 {
 
     def getAllowedNetworks() = {
@@ -855,7 +860,7 @@ class SettingsApi(
     val restExtractor   = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "getAllAllowedNetworks"
-      RestUtils.response(restExtractorService, "settings", None)(
+      RestUtils.response(restExtractorService, getRootNameForVersion(version), None)(
         getAllowedNetworks().toBox,
         req,
         s"Could not get allowed networks"
@@ -890,9 +895,13 @@ class SettingsApi(
                     }
         networks <- getAllowedNetworksForServer(NodeId(id))
       } yield {
-        JObject(JField("allowed_networks", JArray(networks.toList.sorted.map(JString))))
+        if (version.value <= 17) {
+          JObject(JField("allowed_networks", JArray(networks.toList.sorted.map(JString))))
+        } else {
+          JArray(networks.toList.sorted.map(JString))
+        }
       }
-      RestUtils.response(restExtractorService, "settings", Some(id))(
+      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
         result.toBox,
         req,
         s"Could not get allowed networks for policy server '${id}'"
@@ -966,7 +975,7 @@ class SettingsApi(
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(networks.map(JString).toList)
       }
-      RestUtils.response(restExtractorService, "settings", Some(id))(
+      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
         result,
         req,
         s"Error when trying to modify allowed networks for policy server '${id}'"
@@ -1049,7 +1058,7 @@ class SettingsApi(
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(res.map(n => JString(n.inet)).toList)
       }
-      RestUtils.response(restExtractorService, "settings", Some(id))(
+      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
         result,
         req,
         s"Error when trying to modify allowed networks for policy server '${id}'"

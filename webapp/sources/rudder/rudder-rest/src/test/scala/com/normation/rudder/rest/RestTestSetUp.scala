@@ -950,7 +950,8 @@ class RestTestSetUp {
     campaignApiModule.api
   )
 
-  val apiVersions            = ApiVersion(13, true) :: ApiVersion(14, false) :: ApiVersion(15, false) :: ApiVersion(16, false) :: Nil
+  val apiVersions            =
+    ApiVersion(14, true) :: ApiVersion(15, true) :: ApiVersion(16, true) :: ApiVersion(17, true) :: ApiVersion(18, false) :: Nil
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)

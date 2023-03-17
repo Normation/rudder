@@ -288,7 +288,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
     restTest.testBinaryPOSTResponse(
-      s"/api/archives/import",
+      s"/api/latest/archives/import",
       "archive",
       zipFile.name,
       zipFile.newInputStream.readAllBytes(),
