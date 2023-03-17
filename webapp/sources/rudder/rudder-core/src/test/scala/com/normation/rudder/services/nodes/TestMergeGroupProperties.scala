@@ -121,7 +121,7 @@ class TestMergeGroupProperties extends Specification {
   }
 
   /*
-   *  Hierartchy:
+   *  Hierarchy:
    *   global
    *      |
    *   parent1       parent2
@@ -168,6 +168,18 @@ class TestMergeGroupProperties extends Specification {
     val ct2    = child.modify(_.query).setTo(Some(query.modify(_.composition).setTo(Or))).toTarget
     val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: ct2 :: Nil, Map())
     merged must beLeft
+  }
+
+  "when the parent is in not in an inverted query and is missing, its an error" >> {
+    val merged = MergeNodeProperties.checkPropertyMerge(child.toTarget :: Nil, Map())
+    merged must beLeft
+  }
+
+  "when the parent is in an inverted query, its properties are not inherited" >> {
+    val ct2      = child.modify(_.query).setTo(Some(query.modify(_.transform).setTo(ResultTransformation.Invert))).toTarget
+    val merged   = MergeNodeProperties.checkPropertyMerge(ct2 :: Nil, Map())
+    val expected = List(child).toH1("foo")
+    (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "baz")
   }
 
   "override is done in the same order of line, the last wins" >> {
@@ -217,7 +229,7 @@ class TestMergeGroupProperties extends Specification {
     }
 
     "be able to correct conflict" in {
-      val parent1  = NodeGroup(
+      val parent1    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent1")),
         "parent1",
         "",
@@ -227,7 +239,7 @@ class TestMergeGroupProperties extends Specification {
         Set(),
         true
       )
-      val parent2  = NodeGroup(
+      val parent2    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent2")),
         "parent2",
         "",
@@ -237,7 +249,7 @@ class TestMergeGroupProperties extends Specification {
         Set(),
         true
       )
-      val priorize = NodeGroup(
+      val prioritize = NodeGroup(
         NodeGroupId(NodeGroupUid("parent3")),
         "parent3",
         "",
@@ -248,7 +260,8 @@ class TestMergeGroupProperties extends Specification {
         true
       )
 
-      val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: priorize.toTarget :: Nil, Map())
+      val merged   =
+        MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: prioritize.toTarget :: Nil, Map())
       val expected = List(parent2, parent1).toH1("dns") :: Nil
       merged must beRight(expected)
     }
@@ -256,13 +269,13 @@ class TestMergeGroupProperties extends Specification {
     /*
      * Test case:
      * p1: dns=1.1.1.1     p2: dns=9.9.9.9
-     *           p3: p1 overriden by p2
+     *           p3: p1 overridden by p2
      * p4: only subgroup of p1
      * ---------
      * node in p4 and p3
      */
     "one can solve conflicts at parent level" in {
-      val parent1  = NodeGroup(
+      val parent1    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent1")),
         "parent1",
         "",
@@ -272,7 +285,7 @@ class TestMergeGroupProperties extends Specification {
         Set(),
         true
       )
-      val parent2  = NodeGroup(
+      val parent2    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent2")),
         "parent2",
         "",
@@ -282,7 +295,7 @@ class TestMergeGroupProperties extends Specification {
         Set(),
         true
       )
-      val priorize = NodeGroup(
+      val prioritize = NodeGroup(
         NodeGroupId(NodeGroupUid("parent3")),
         "parent3",
         "",
@@ -292,7 +305,7 @@ class TestMergeGroupProperties extends Specification {
         Set(),
         true
       )
-      val parent4  = NodeGroup(
+      val parent4    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent4")),
         "parent4",
         "",
@@ -303,7 +316,7 @@ class TestMergeGroupProperties extends Specification {
         true
       )
 
-      val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, parent2, priorize, parent4).map(_.toTarget), Map())
+      val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, parent2, prioritize, parent4).map(_.toTarget), Map())
       val expected = List(parent2, parent1).toH1("dns") :: Nil
       merged must beRight(expected)
     }
@@ -315,7 +328,7 @@ class TestMergeGroupProperties extends Specification {
     merged must beRight(List(g.toG("foo")))
   }
 
-  "global parameter are inherited and overriden by group and only one time" >> {
+  "global parameter are inherited and overridden by group and only one time" >> {
     // empty properties, see if global is duplicated
     val p2       = parent2.copy(properties = Nil)
     val g        = "bar".toConfigValue
@@ -397,7 +410,7 @@ class TestMergeGroupProperties extends Specification {
     }
   }
 
-  // checking that we get the overriden value for node and groups
+  // checking that we get the overridden value for node and groups
   "preparing value for API" should {
 
     "present only node value for override" in {
