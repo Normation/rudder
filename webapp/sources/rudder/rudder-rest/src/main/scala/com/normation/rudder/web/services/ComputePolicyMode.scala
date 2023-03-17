@@ -46,9 +46,21 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 object ComputePolicyMode {
   def ruleMode(globalMode: GlobalPolicyMode, directives: Set[Directive], nodeModes: Iterable[Option[PolicyMode]]) = {
-    val mixed =
+    val mixed          =
       "This rule is applied on at least one node or directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
-    genericComputeMode(None, "Rule", directives.map(_.policyMode) ++ nodeModes, "node or directive", globalMode, mixed)
+    val directivesMode = directives.map(_.policyMode)
+    val nodeModeSet    = nodeModes.toSet
+    // All directives and nodes are default, will use Rule mode
+    if (directivesMode.forall(_.isEmpty) && nodeModeSet.forall(_.isEmpty)) {
+      genericComputeMode(None, "Rule", Set(), "node or directive", globalMode, mixed)
+    } else if (directivesMode.forall(_.isEmpty)) {
+      genericComputeMode(None, "Rule", nodeModeSet, "node", globalMode, mixed)
+    } else if (nodeModeSet.forall(_.isEmpty)) {
+      genericComputeMode(None, "Rule", directivesMode, "directive", globalMode, mixed)
+    } else {
+      genericComputeMode(None, "Rule", directivesMode ++ nodeModeSet, "node or directive", globalMode, mixed)
+    }
+
   }
 
   def directiveModeOnNode(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(directiveMode: Option[PolicyMode]) = {
