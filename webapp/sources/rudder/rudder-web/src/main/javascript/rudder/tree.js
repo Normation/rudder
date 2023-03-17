@@ -420,7 +420,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
 
-    $(id+' .rudder-label').bsTooltip();
+    $(id+' .rudder-label, .bsTooltip').bsTooltip();
     }).on("ready.jstree", function () {
       // make jstree node openable in a new tab
       var nodes = document.querySelectorAll('[id^="jsTree-"][id$="_anchor"]');
