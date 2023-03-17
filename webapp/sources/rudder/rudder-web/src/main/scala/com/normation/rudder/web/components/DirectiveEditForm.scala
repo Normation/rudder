@@ -367,6 +367,10 @@ class DirectiveEditForm(
                  |  setTimeout(function(){
                  |    $$('.bs-tooltip').bsTooltip();
                  |  }, 400);
+                 |});
+                 |$$("#complianceLinkTab").on("click", function (){
+                 |  app.ports.loadCompliance.send("");
+                 |
                  |});""".stripMargin)
       )
     )
