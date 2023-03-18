@@ -682,7 +682,7 @@ object SearchNodeComponent {
     )
   }
 
-  val defaultLine: CriterionLine = {
+  val defaultLine = {
     // in case of further modification in ditQueryData
     require(
       ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS",

@@ -57,6 +57,7 @@ import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
+import org.joda.time.DateTime
 import zio._
 import zio.syntax._
 
@@ -97,7 +98,7 @@ class WoLDAPNodeRepository(
                            case LDIFNoopChangeRecord(_) => ZIO.unit
                            case _                       =>
                              val diff = ModifyNodeDiff(oldNode, node)
-                             actionLogger.saveModifyNode(modId, actor, diff, reason)
+                             actionLogger.saveModifyNode(modId, actor, diff, reason, DateTime.now())
                          }
       } yield {
         node
@@ -164,7 +165,7 @@ class WoLDAPNodeRepository(
                            case _                       =>
                              val diff =
                                ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
-                             actionLogger.saveModifyNode(modId, actor, diff, reason)
+                             actionLogger.saveModifyNode(modId, actor, diff, reason, DateTime.now())
                          }
       } yield ())
     }

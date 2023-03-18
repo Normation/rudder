@@ -18,9 +18,9 @@ trait JsonSpecMatcher { self: MustMatchers with Specification =>
 
   /**
       * Tests for a non-strict equality of json, by comparing the string.
-      * Ignores any whitespace between words, non-words, and lines 
+      * Ignores any whitespace between words, non-words, and lines
       * i.e. additional whitespace in either side would still make the test pass.
-      * 
+      *
       * Displays the actual and expected json in the error message in a pretty format.
       */
   def equalsJson(res: String): Matcher[String] = {

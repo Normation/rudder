@@ -528,27 +528,32 @@ class RwLDAPConnection(
    * better than us for orchestrating its changes.
    *
    */
-  private def applyMod[MOD <: ReadOnlyLDAPRequest](
+  def applyMod[MOD <: ReadOnlyLDAPRequest](
       modName:            String,
       toLDIFChangeRecord: MOD => LDIFChangeRecord,
       backendAction:      MOD => LDAPResult,
       onlyReportThat:     ResultCode => Boolean
   )(req:                  MOD): LDAPIOResult[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
-    blocking {
-      ldifFileLogger.records(Seq(record)) // ignore return value
-      backendAction(req)
-    } flatMap { res =>
-      if (res.getResultCode == SUCCESS) {
-        record.succeed
-      } else if (onlyReportThat(res.getResultCode)) {
-        LDIFNoopChangeRecord(record.getParsedDN).succeed
-      } else {
-        LDAPRudderError
-          .FailureResult(s"Error when doing action '${modName}' with and LDIF change request: ${res.getDiagnosticMessage}", res)
-          .fail
-      }
-    } catchAll { x =>
+    ZIO
+      .blocking(blocking {
+        ldifFileLogger.records(Seq(record)) // ignore return value
+        backendAction(req)
+      })
+      .flatMap { res =>
+        (if (res.getResultCode == SUCCESS) {
+           record.succeed
+         } else if (onlyReportThat(res.getResultCode)) {
+           LDIFNoopChangeRecord(record.getParsedDN).succeed
+         } else {
+           LDAPRudderError
+             .FailureResult(
+               s"Error when doing action '${modName}' with and LDIF change request: ${res.getDiagnosticMessage}",
+               res
+             )
+             .fail
+         })
+      } catchAll { x =>
       (x: @unchecked) match {
         case ex: LDAPException =>
           if (onlyReportThat(ex.getResultCode)) {
@@ -591,7 +596,7 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for AddRequest modification type
    */
-  private val applyAdds = applyMods[AddRequest](
+  val applyAdds = applyMods[AddRequest](
     "adds",
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),

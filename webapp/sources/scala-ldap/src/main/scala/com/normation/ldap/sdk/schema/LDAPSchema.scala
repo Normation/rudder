@@ -99,7 +99,11 @@ class LDAPSchema {
       sup:  LDAPObjectClass = LDAPObjectClass.TOP,
       must: Set[String] = Set(),
       may:  Set[String] = Set()
-  ): LDAPSchema = addObjectClass(new LDAPObjectClass(name, sup, must, may))
+  ): LDAPObjectClass = {
+    val oc = new LDAPObjectClass(name, sup, must, may)
+    addObjectClass(oc)
+    oc
+  }
 
   /**
    * Returned the set of children object classes for the

@@ -60,9 +60,9 @@ final case class Query(
  */
 sealed trait QSBackend
 object QSBackend {
-  case object LdapBackend      extends QSBackend
-  case object DirectiveBackend extends QSBackend
-
+  final case object LdapBackend      extends QSBackend
+  final case object DirectiveBackend extends QSBackend
+  final case object NodeFactBackend  extends QSBackend
   final val all: Set[QSBackend] = sealerate.values[QSBackend]
 }
 

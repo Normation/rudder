@@ -54,8 +54,8 @@ import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
+import com.normation.rudder.MockNodes.allNodeFacts
 import com.normation.rudder.campaigns.Campaign
 import com.normation.rudder.campaigns.CampaignDetails
 import com.normation.rudder.campaigns.CampaignEvent
@@ -98,7 +98,19 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFactFullInventoryRepositoryProxy
+import com.normation.rudder.facts.nodes.NodeFactStorage
+import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
+import com.normation.rudder.facts.nodes.SelectFacts
+import com.normation.rudder.facts.nodes.SoftDaoGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.StorageChangeEventDelete
+import com.normation.rudder.facts.nodes.StorageChangeEventSave
+import com.normation.rudder.facts.nodes.StorageChangeEventStatus
+import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -116,7 +128,6 @@ import com.normation.rudder.rule.category._
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
@@ -124,6 +135,7 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.FactListNewNodes
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
@@ -132,6 +144,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
+import com.softwaremill.quicklens._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
@@ -142,13 +155,13 @@ import org.eclipse.jgit.lib.ObjectId
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
-import scala.collection.SortedMap
-import scala.collection.immutable
+import scala.collection.immutable.{SortedMap => ISortedMap}
 import scala.util.control.NonFatal
 import scala.xml.Elem
 import zio.{System => _, Tag => _, _}
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
+import zio.stream.ZStream
 import zio.syntax._
 
 /*
@@ -748,14 +761,16 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def getActiveTechniqueByCategory(
         includeSystem: Boolean
-    ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
+    ): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
       implicit val ordering = ActiveTechniqueCategoryOrdering
-      rootActiveTechniqueCategory.get.map(_.fullIndex.map {
-        case (path, fat) =>
-          (
-            path,
-            CategoryWithActiveTechniques(fat.toActiveTechniqueCategory(), fat.activeTechniques.map(_.toActiveTechnique()).toSet)
-          )
+      rootActiveTechniqueCategory.get.map(c => {
+        ISortedMap.empty[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques] ++ c.fullIndex.map {
+          case (path, fat) =>
+            (
+              path,
+              CategoryWithActiveTechniques(fat.toActiveTechniqueCategory(), fat.activeTechniques.map(_.toActiveTechnique()).toSet)
+            )
+        }
       })
     }
 
@@ -1626,9 +1641,7 @@ final case class NodeBase(
     deleted:  Map[NodeId, NodeDetails]
 )
 
-class MockNodes() {
-  val t2 = System.currentTimeMillis()
-
+object MockNodes {
   val softwares = List(
     Software(SoftwareUuid("s00"), name = Some("s00"), version = Some(new Version("1.0"))),
     Software(SoftwareUuid("s01"), name = Some("s01"), version = Some(new Version("1.0"))),
@@ -1772,10 +1785,22 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     processes = Seq(Process(54432, Some("/bin/true"), Some(34.5f), Some(4235))),
     vms = Seq(),
     networks = Seq(
-      Network("enp0s3", None, InetAddressUtils.getAddressByName("10.0.2.15").toSeq, speed = Some("1000"), status = Some("Up"))
+      Network(
+        "enp0s3",
+        None,
+        InetAddressUtils.getAddressByName("10.0.2.15").toSeq,
+        speed = Some("1000"),
+        status = Some("Up")
+      )
     ),
-    fileSystems =
-      Seq(FileSystem("/", Some("ext4"), freeSpace = Some(MemorySize(12076449792L)), totalSpace = Some(MemorySize(55076449792L))))
+    fileSystems = Seq(
+      FileSystem(
+        "/",
+        Some("ext4"),
+        freeSpace = Some(MemorySize(12076449792L)),
+        totalSpace = Some(MemorySize(55076449792L))
+      )
+    )
   )
 
   val node1Node = Node(
@@ -1819,7 +1844,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     ),
     name = None,
     description = None,
-    ram = Some(MemorySize(100000)),
+    ram = Some(MemorySize(1460132)),
     swap = Some(MemorySize(1000000)),
     inventoryDate = None,
     receiveDate = None,
@@ -1837,10 +1862,22 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     processes = Seq(Process(54432, Some("/bin/true"), Some(34.5f), Some(4235))),
     vms = Seq(),
     networks = Seq(
-      Network("enp0s3", None, InetAddressUtils.getAddressByName("10.0.2.15").toSeq, speed = Some("1000"), status = Some("Up"))
+      Network(
+        "enp0s3",
+        None,
+        InetAddressUtils.getAddressByName("10.0.2.15").toSeq,
+        speed = Some("1000"),
+        status = Some("Up")
+      )
     ),
-    fileSystems =
-      Seq(FileSystem("/", Some("ext4"), freeSpace = Some(MemorySize(12076449792L)), totalSpace = Some(MemorySize(55076449792L))))
+    fileSystems = Seq(
+      FileSystem(
+        "/",
+        Some("ext4"),
+        freeSpace = Some(MemorySize(12076449792L)),
+        totalSpace = Some(MemorySize(55076449792L))
+      )
+    )
   )
 
   // node1 us a relay
@@ -1928,139 +1965,13 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     fileSystems = Seq()
   )
 
-  val allNodesInfo = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
-  // both nodeInfoService and repo, since we deal with the same underlying node objects
-  object nodeInfoService extends NodeInfoService with LDAPFullInventoryRepository with WoNodeRepository {
-
-    // node status is in inventory.main.
-    val nodeBase = Ref.Synchronized
-      .make(
-        Map(
-          (rootId, NodeDetails(root, rootInventory, None)),
-          (node1.id, NodeDetails(node1, nodeInventory1, None)),
-          (node2.id, NodeDetails(node2, nodeInventory2, None)),
-          (dscNode1.id, NodeDetails(dscNode1, dscInventory1, None))
-        )
-      )
-      .runNow
-
-    def getGenericOne[A](id: NodeId, status: InventoryStatus, f: NodeDetails => Option[A]): IOResult[Option[A]]      = {
-      nodeBase.get.map(_.collectFirst { case (i, n) if (i == id && n.nInv.main.status == status && f(n).isDefined) => f(n).get })
-    }
-    def getGenericAll[A](status: InventoryStatus, f: NodeDetails => Option[A]):             IOResult[Map[NodeId, A]] = {
-      nodeBase.get.map(_.collect { case (id, n) if (n.nInv.main.status == status && f(n).isDefined) => (id, f(n).get) })
-    }
-    def _info(node: NodeDetails) = Option(node.info)
-    def _fullInventory(node: NodeDetails) = Option(FullInventory(node.nInv, node.mInv))
-
-    override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, AcceptedInventory, _info)
-
-    override def getAll(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(AcceptedInventory, _info)
-
-    override def getNodeInfos(nodesId: Set[NodeId]):    IOResult[Set[NodeInfo]]     = ZIO.foreach(nodesId) { nodeId =>
-      getGenericOne(nodeId, AcceptedInventory, _info).map(x => x.get)
-    }
-    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]]     =
-      ZIO.foreach(nodeIds)(nodeId => getGenericOne(nodeId, AcceptedInventory, _info).map(x => x.get)).map(_.toSeq)
-    override def getAllNodes():                         IOResult[Map[NodeId, Node]] = getAll().map(_.map(kv => (kv._1, kv._2.node)))
-    override def getAllNodesIds():                      IOResult[Set[NodeId]]       = getAllNodes().map(_.keySet)
-    override def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]     = getAll().map(_.values.toSeq)
-    override def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]       = {
-      nodeBase.get.map(_.collect { case (id, n) if (n.info.isSystem) => id }.toSeq)
-    }
-
-    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = getGenericOne(nodeId, PendingInventory, _info)
-    override def getPendingNodeInfos():              IOResult[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info)
-
-    override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = getGenericOne(nodeId, RemovedInventory, _info)
-    override def getDeletedNodeInfos():              IOResult[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info)
-
-    override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] =
-      getGenericOne(id, inventoryStatus, _fullInventory)
-    override def get(id: NodeId):                                   IOResult[Option[FullInventory]] = {
-      nodeBase.get.map(_.collectFirst { case (id, n) if (id == id) => FullInventory(n.nInv, n.mInv) })
-    }
-
-    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[(MachineUuid, InventoryStatus)]] = {
-      getGenericOne(id, inventoryStatus, n => n.mInv.map(x => (x.id, x.status)))
-    }
-
-    override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] =
-      getGenericAll(inventoryStatus, _fullInventory)
-
-    override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]] =
-      getAllInventories(inventoryStatus).map(_.filter(x => nodeIds.contains(x._1)))
-
-    override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] =
-      getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
-
-    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = {
-
-      // logic is in LDAPEntityMapper#inventoryEntriesToNodeInfos
-      def mainFromInventory(inv: FullInventory): NodeInfo = {
-        NodeInfo(
-          Node(inv),
-          inv.node.main.hostname,
-          inv.machine.map(m => MachineInfo(m.id, m.machineType, m.systemSerialNumber, m.manufacturer)),
-          inv.node.main.osDetails,
-          inv.node.serverIps.toList,
-          inv.node.inventoryDate.getOrElse(new DateTime(0)),
-          inv.node.main.keyStatus,
-          inv.node.agents,
-          inv.node.main.policyServerId,
-          inv.node.main.rootUser,
-          inv.node.archDescription,
-          inv.node.ram,
-          inv.node.timezone
-        )
-      }
-      val id = serverAndMachine.node.main.id
-
-      nodeBase
-        .updateZIO(nodes => {
-          (nodes.get(id) match {
-            case None                             => // new node
-              nodes + ((id, NodeDetails(mainFromInventory(serverAndMachine), serverAndMachine.node, serverAndMachine.machine)))
-            case Some(NodeDetails(m, nInv, mInv)) => // only update inventory
-              nodes + ((id, NodeDetails(m, serverAndMachine.node, serverAndMachine.machine)))
-          }).succeed
-        })
-        .map(_ => Nil)
-    }
-
-    // not implemented yet
-    override def getNumberOfManagedNodes: Int = ???
-
-    override def delete(id: NodeId, inventoryStatus: InventoryStatus):               IOResult[Seq[LDIFChangeRecord]] = ???
-    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]] = ???
-    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
-
-    override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-      nodeBase.modifyZIO { nodes =>
-        nodes.get(node.id) match {
-          case None    => Inconsistency(s"Node ${node.id.value} does not exists").fail
-          case Some(n) =>
-            import com.softwaremill.quicklens._
-            val newN = n.modify(_.info.node).setTo(node)
-            (node, (nodes + ((node.id, newN)))).succeed
-        }
-      }
-    }
-
-    override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
-
-    override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
-
-    override def updateNodeKeyInfo(
-        nodeId:         NodeId,
-        agentKey:       Option[SecurityToken],
-        agentKeyStatus: Option[KeyStatus],
-        modId:          ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[Unit] = ???
-  }
-
+  val allNodesInfo       = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
+  val allNodeFacts       = Map(
+    rootId      -> NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7)),
+    node1.id    -> NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10)),
+    node2.id    -> NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10)),
+    dscNode1.id -> NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7))
+  )
   val defaultModesConfig = NodeModeConfig(
     globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
     nodeHeartbeatPeriod = None,
@@ -2103,35 +2014,118 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   /**
    * Some more nodes
    */
-  val nodeIds = (for {
-    i <- 0 to 10
-  } yield {
-    NodeId(s"${i}")
-  }).toSet
+  val nodeIds = (
+    for {
+      i <- 0 to 10
+    } yield {
+      NodeId(s"${i}")
+    }
+  ).toSet
 
   def newNode(id: NodeId) =
     Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None)
 
-  val nodes = (Set(root, node1, node2) ++ nodeIds.map { id =>
-    NodeInfo(
-      newNode(id),
-      s"Node-${id}",
-      None,
-      Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
-      Nil,
-      DateTime.now,
-      UndefinedKey,
-      Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())),
-      NodeId("root"),
-      "",
-      None,
-      None,
-      None
-    )
-  }).map(n => (n.id, n)).toMap
+  val nodes = (
+    Set(root, node1, node2) ++ nodeIds.map { id =>
+      NodeInfo(
+        newNode(id),
+        s"Node-${id}",
+        None,
+        Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
+        Nil,
+        DateTime.now,
+        UndefinedKey,
+        Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())),
+        NodeId("root"),
+        "",
+        None,
+        None,
+        None
+      )
+    }
+  ).map(n => (n.id, n)).toMap
+
+}
+
+class MockNodes() {
+  val t2 = System.currentTimeMillis()
+
+  object nodeFactStorage extends NodeFactStorage {
+    val nodeFactBase = Ref.make(allNodeFacts).runNow
+
+    override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts = SelectFacts.all): IOResult[StorageChangeEventSave] = {
+      nodeFactBase.modify { b =>
+        val opt     = b.get(nodeFact.id)
+        val updated = SelectFacts.merge(nodeFact, opt)
+        (
+          opt match {
+            case Some(n) =>
+              StorageChangeEventSave.Updated(n, updated, attrs)
+            case None    =>
+              StorageChangeEventSave.Created(nodeFact, attrs)
+          },
+          b + (nodeFact.id -> updated)
+        )
+      }
+    }
+
+    override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[StorageChangeEventStatus] = {
+      nodeFactBase.modify(base => {
+        base.get(nodeId) match {
+          case Some(n) =>
+            (StorageChangeEventStatus.Done(nodeId), base + (n.id -> n.modify(_.rudderSettings.status).setTo(status)))
+          case None    => (StorageChangeEventStatus.Noop(nodeId), base)
+        }
+      })
+    }
+
+    override def delete(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[StorageChangeEventDelete] = {
+      nodeFactBase.modify(b => {
+        b.get(nodeId) match {
+          case Some(n) => (StorageChangeEventDelete.Deleted(n, attrs), b.removed(nodeId))
+          case None    => (StorageChangeEventDelete.Noop(nodeId), b)
+        }
+      })
+    }
+
+    def get(nodeId: NodeId, status: InventoryStatus)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = {
+      nodeFactBase.get.map(_.get(nodeId) match {
+        case Some(n) if (n.rudderSettings.status == status) => Some(SelectFacts.mask(n))
+        case _                                              => None
+      })
+    }
+
+    override def getPending(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = {
+      get(nodeId, PendingInventory)
+    }
+
+    override def getAccepted(nodeId: NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = {
+      get(nodeId, AcceptedInventory)
+    }
+
+    def getAll(status: InventoryStatus)(implicit attrs: SelectFacts): IOStream[NodeFact] = {
+      ZStream
+        .fromZIO(
+          nodeFactBase.get.map(base => {
+            ZStream.fromIterable(base.collect {
+              case (_, f) if (f.rudderSettings.status == status) => SelectFacts.mask(f)
+            })
+          })
+        )
+        .flatten
+    }
+
+    override def getAllPending()(implicit attrs: SelectFacts): IOStream[NodeFact] = {
+      getAll(PendingInventory)
+    }
+
+    override def getAllAccepted()(implicit attrs: SelectFacts): IOStream[NodeFact] = {
+      getAll(AcceptedInventory)
+    }
+  }
 
   object softwareDao extends ReadOnlySoftwareDAO {
-    val softRef = Ref.Synchronized.make(softwares.map(s => (s.id, s)).toMap).runNow
+    val softRef = Ref.Synchronized.make(MockNodes.softwares.map(s => (s.id, s)).toMap).runNow
 
     override def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
       softRef.get.map(_.map(_._2).toList)
@@ -2139,73 +2133,78 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
     override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
       for {
-        inventories <- nodeInfoService.getAllInventories(status)
-        softwares   <- softRef.get
+        facts <- nodeFactRepo.slowGetAllCompat(status, SelectFacts.softwareOnly).runCollect
       } yield {
-        inventories.collect {
-          case (id, inv) if (nodeIds.contains(id)) =>
+        (facts.collect {
+          case f if (nodeIds.contains(f.id)) =>
             (
-              id,
-              softwares.collect {
-                case (k, s) if (inv.node.softwareIds.contains(k)) => s
-              }.toList
+              f.id,
+              f.software.map(_.toSoftware)
             )
-        }
+        }).toMap
       }
     }
 
     override def getAllSoftwareIds(): IOResult[Set[SoftwareUuid]] = softRef.get.map(_.keySet)
 
     override def getSoftwaresForAllNodes(): IOResult[Set[SoftwareUuid]] = {
-      nodeInfoService.getAllInventories(AcceptedInventory).map(_.flatMap(_._2.node.softwareIds).toSet)
+      ???
     }
 
     def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
       for {
-        inventories <- nodeInfoService.getAllInventories(AcceptedInventory)
-        softwares   <- softRef.get
+        facts <- nodeFactRepo.slowGetAllCompat(AcceptedInventory, SelectFacts.softwareOnly).runCollect
       } yield {
-
-        inventories.toList.flatMap {
-          case (id, inv) =>
-            softwares.collect {
-              case (k, s) if (s.name.exists(_ == softName) && inv.node.softwareIds.contains(k)) => (id, s)
-            }
-
-        }
+        facts.collect {
+          case f if (f.software.map(_.name).contains(f.id)) =>
+            (
+              f.id,
+              f.software
+                .find(_.name == softName)
+                .getOrElse(throw new IllegalArgumentException("for test - we just check it's here"))
+                .toSoftware
+            )
+        }.toList
       }
     }
   }
 
+  val getNodesbySofwareName = new SoftDaoGetNodesbySofwareName(softwareDao)
+
+  val nodeFactRepo = CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, Chunk()).runNow
+
   object queryProcessor extends QueryProcessor {
+
     import cats.implicits._
     import com.normation.inventory.ldap.core.LDAPConstants._
     import com.normation.rudder.domain.RudderLDAPConstants._
 
     // return the value to corresponding to the given object/attribute
-    def buildValues(objectName: String, attribute: String): PureResult[NodeDetails => List[String]] = {
+    def buildValues(objectName: String, attribute: String): PureResult[NodeFact => List[String]] = {
       objectName match {
         case OC_NODE =>
           attribute match {
-            case "OS"                 => Right((n: NodeDetails) => List(n.info.osDetails.os.name))
-            case A_NODE_UUID          => Right((n: NodeDetails) => List(n.info.id.value))
-            case A_HOSTNAME           => Right((n: NodeDetails) => List(n.info.hostname))
-            case A_OS_NAME            => Right((n: NodeDetails) => List(n.info.osDetails.os.name))
-            case A_OS_FULL_NAME       => Right((n: NodeDetails) => List(n.info.osDetails.fullName))
-            case A_OS_VERSION         => Right((n: NodeDetails) => List(n.info.osDetails.version.value))
-            case A_OS_SERVICE_PACK    => Right((n: NodeDetails) => n.info.osDetails.servicePack.toList)
-            case A_OS_KERNEL_VERSION  => Right((n: NodeDetails) => List(n.info.osDetails.kernelVersion.value))
-            case A_ARCH               => Right((n: NodeDetails) => n.info.archDescription.toList)
-            case A_STATE              => Right((n: NodeDetails) => List(n.info.state.name))
-            case A_OS_RAM             => Right((n: NodeDetails) => n.info.ram.map(_.size.toString).toList)
-            case A_OS_SWAP            => Right((n: NodeDetails) => n.nInv.swap.map(_.size.toString).toList)
-            case A_AGENTS_NAME        => Right((n: NodeDetails) => n.info.agentsName.map(_.agentType.id).toList)
-            case A_ACCOUNT            => Right((n: NodeDetails) => n.nInv.accounts.toList)
-            case A_LIST_OF_IP         => Right((n: NodeDetails) => n.info.ips)
-            case A_ROOT_USER          => Right((n: NodeDetails) => List(n.info.localAdministratorAccountName))
+            case "OS"                 => Right((n: NodeFact) => List(n.os.os.name))
+            case A_NODE_UUID          => Right((n: NodeFact) => List(n.id.value))
+            case A_HOSTNAME           => Right((n: NodeFact) => List(n.fqdn))
+            case A_OS_NAME            => Right((n: NodeFact) => List(n.os.os.name))
+            case A_OS_FULL_NAME       => Right((n: NodeFact) => List(n.os.fullName))
+            case A_OS_VERSION         => Right((n: NodeFact) => List(n.os.version.value))
+            case A_OS_SERVICE_PACK    => Right((n: NodeFact) => n.os.servicePack.toList)
+            case A_OS_KERNEL_VERSION  => Right((n: NodeFact) => List(n.os.kernelVersion.value))
+            case A_ARCH               => Right((n: NodeFact) => n.archDescription.toList)
+            case A_STATE              => Right((n: NodeFact) => List(n.rudderSettings.state.name))
+            case A_OS_RAM             => Right((n: NodeFact) => n.ram.map(_.size.toString).toList)
+            case A_OS_SWAP            => Right((n: NodeFact) => n.swap.map(_.size.toString).toList)
+            case A_AGENTS_NAME        => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
+            case A_ACCOUNT            => Right((n: NodeFact) => n.accounts.toList)
+            case A_LIST_OF_IP         => Right((n: NodeFact) => n.ipAddresses.map(_.inet).toList)
+            case A_ROOT_USER          => Right((n: NodeFact) => List(n.rudderAgent.user))
             case A_INVENTORY_DATE     =>
-              Right((n: NodeDetails) => List(n.info.inventoryDate.toString(ISODateTimeFormat.dateTimeNoMillis())))
-            case A_POLICY_SERVER_UUID => Right((n: NodeDetails) => List(n.info.policyServerId.value))
+              Right((n: NodeFact) =>
+                List(n.lastInventoryDate.getOrElse(n.factProcessedDate).toString(ISODateTimeFormat.dateTimeNoMillis()))
+              )
+            case A_POLICY_SERVER_UUID => Right((n: NodeFact) => List(n.rudderSettings.policyServerId.value))
             case _                    => Left(Inconsistency(s"object '${objectName}' doesn't have attribute '${attribute}'"))
           }
         case x       => Left(Unexpected(s"Case value '${x}' for query processor not yet implemented in test, see `MockServices.scala`"))
@@ -2229,7 +2228,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }
 
-    def filterForLine(line: CriterionLine, nodes: List[NodeDetails]): PureResult[List[NodeDetails]] = {
+    def filterForLine(line: CriterionLine, nodes: List[NodeFact]): PureResult[List[NodeFact]] = {
       for {
         values   <- buildValues(line.objectType.objectType, line.attribute.name)
         matching <- nodes.traverse(n => compare(values(n), line.comparator, line.value).map(if (_) Some(n) else None))
@@ -2241,8 +2240,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     def filterForLines(
         lines:   List[CriterionLine],
         combine: CriterionComposition,
-        nodes:   List[NodeDetails]
-    ): PureResult[List[NodeDetails]] = {
+        nodes:   List[NodeFact]
+    ): PureResult[List[NodeFact]] = {
       for {
         byLine <- lines.traverse(filterForLine(_, nodes))
       } yield {
@@ -2257,58 +2256,48 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
     override def process(query: Query): Box[Seq[NodeId]] = {
       for {
-        nodes    <- nodeInfoService.nodeBase.get
+        nodes    <- nodeFactStorage.nodeFactBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
       } yield {
-        matching.map(_.info.id).toSeq
+        matching.map(_.id).toSeq
       }
     }.toBox
 
     override def processOnlyId(query: Query): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
+  val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
+  val fullInventoryRepository = new NodeFactFullInventoryRepositoryProxy(nodeFactRepo)
+  val woNodeRepository        = new WoFactNodeRepositoryProxy(nodeFactRepo)
+
   object newNodeManager extends NewNodeManager {
-    def nodeToSrv(n: NodeDetails): Srv           = {
-      Srv(
-        n.nInv.main.id,
-        n.nInv.main.status,
-        n.nInv.main.hostname,
-        n.nInv.main.osDetails.os.kernelName,
-        n.nInv.main.osDetails.os.name,
-        n.nInv.main.osDetails.fullName,
-        n.info.ips,
-        n.info.creationDate,
-        n.info.isPolicyServer
-      )
-    }
-    override def listNewNodes:     Box[Seq[Srv]] = {
-      for {
-        nodes  <- nodeInfoService.nodeBase.get
-        pending = nodes.toList.collect {
-                    case (id, n @ NodeDetails(info, nInv, mInv)) if (nInv.main.status == PendingInventory) => nodeToSrv(n)
-                  }
-      } yield pending
-    }.toBox
+    val list = new FactListNewNodes(nodeFactRepo)
 
-    override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
-      (nodeInfoService.nodeBase.modifyZIO { nodes =>
-        nodes.get(id) match {
-          case None    => Inconsistency(s"node is missing").fail
-          case Some(x) =>
-            import com.softwaremill.quicklens._
-            val xx = x.modify(_.nInv.main.status).setTo(AcceptedInventory)
-            (FullInventory(xx.nInv, xx.mInv), nodes + ((id, xx))).succeed
+    override def listNewNodes: IOResult[Seq[CoreNodeFact]] = list.listNewNodes
+
+    override def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
+      nodeFactRepo.changeStatus(id, AcceptedInventory) *>
+      nodeFactRepo
+        .getCompat(id, AcceptedInventory)
+        .notOptional(s"Accepted node '${id.value}' is missing")
+    }
+
+    override def refuse(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
+      nodeFactRepo
+        .getCompat(id, PendingInventory)
+        .flatMap {
+          case None    => Inconsistency(s"node not found").fail
+          case Some(x) => nodeFactRepo.delete(id) *> x.succeed
         }
-      }).toBox
     }
 
-    override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = ???
+    override def acceptAll(ids: Seq[NodeId])(implicit cc: ChangeContext): IOResult[Seq[CoreNodeFact]] = {
+      ZIO.foreach(ids)(accept)
+    }
 
-    override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] =
-      ???
-
-    override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = ???
-
+    override def refuseAll(ids: Seq[NodeId])(implicit cc: ChangeContext): IOResult[Seq[CoreNodeFact]] = {
+      ZIO.foreach(ids)(refuse)
+    }
   }
 }
 
@@ -2349,12 +2338,12 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
     override def getGroupsByCategory(
         includeSystem: Boolean
-    ): IOResult[immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
+    ): IOResult[ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
       def getChildren(
           parents: List[NodeGroupCategoryId],
           root:    FullNodeGroupCategory
-      ): immutable.SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
-        val c = immutable.SortedMap(
+      ): ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
+        val c = ISortedMap(
           (root.id :: parents, CategoryAndNodeGroup(root.toNodeGroupCategory, root.ownGroups.values.map(_.nodeGroup).toSet))
         )
         root.subCategories.foldLeft(c) { case (current, n) => current ++ getChildren(root.id :: parents, n) }
@@ -2369,7 +2358,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       c
     }
 
-    override def getCategoryHierarchy: IOResult[immutable.SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+    override def getCategoryHierarchy: IOResult[ISortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
       getGroupsByCategory(true).map(
         _.map { case (k, v) => (k, v.category) }
       )
@@ -2724,7 +2713,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     g0props,
     None,
     false,
-    Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id),
+    Set(MockNodes.rootId, MockNodes.node1.id, MockNodes.node2.id),
     true
   )
   val g1     =
@@ -2746,7 +2735,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Nil,
     None,
     false,
-    nodesRepo.nodeIds.filter(_.value.toInt % 2 == 0),
+    MockNodes.nodeIds.filter(_.value.toInt % 2 == 0),
     true
   )
   val g4     = NodeGroup(
@@ -2756,7 +2745,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Nil,
     None,
     false,
-    nodesRepo.nodeIds.filter(_.value.toInt % 2 != 0),
+    MockNodes.nodeIds.filter(_.value.toInt % 2 != 0),
     true
   )
   val g5     = NodeGroup(
@@ -2766,7 +2755,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Nil,
     None,
     false,
-    nodesRepo.nodeIds.filter(_.value.toInt % 3 == 0),
+    MockNodes.nodeIds.filter(_.value.toInt % 3 == 0),
     true
   )
   val g6     = NodeGroup(
@@ -2776,7 +2765,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Nil,
     None,
     false,
-    nodesRepo.nodeIds.filter(_.value.toInt % 5 == 0),
+    MockNodes.nodeIds.filter(_.value.toInt % 5 == 0),
     true
   )
   val groups = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
@@ -2886,8 +2875,9 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
   val nodeDit             = new NodeDit(LDAP_BASEDN)
   val inventoryDitService: InventoryDitService =
     new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
-  val getSubGroupChoices = () => mockNodeGroups.groupsRepo.getAll().map(seq => seq.map(g => SubGroupChoice(g.id, g.name)))
-  val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
+  val getSubGroupChoices = new DefaultSubGroupComparatorRepository(mockNodeGroups.groupsRepo)
+  val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
+  val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
   val queryParser        = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }

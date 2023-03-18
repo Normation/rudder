@@ -98,21 +98,9 @@ trait WriteOnlyMachineRepository[R] {
 trait MachineRepository[R] extends ReadOnlyMachineRepository with WriteOnlyMachineRepository[R]
 
 trait ReadOnlyFullInventoryRepository {
-
-  /**
-   * Retrieve a full ServerAndMachine.
-   * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
-   */
   def get(id:          NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]]
   def get(id:          NodeId): IOResult[Option[FullInventory]]
   def getMachineId(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[(MachineUuid, InventoryStatus)]]
-
-  def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]]
-
-  // get inventories for a set of nodes
-  def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]]
-
-  def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]]
 }
 
 trait WriteOnlyFullInventoryRepository[R] {

@@ -71,6 +71,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie._
+import org.joda.time.DateTime
 
 trait EventLogRepository {
   def eventLogFactory: EventLogFactory
@@ -396,14 +397,16 @@ trait EventLogRepository {
       modId:      ModificationId,
       principal:  EventActor,
       modifyDiff: ModifyNodeDiff,
-      reason:     Option[String]
+      reason:     Option[String],
+      eventDate:  DateTime
   ) = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyNodeFromDiff(
         principal = principal,
         modifyDiff = modifyDiff,
-        reason = reason
+        reason = reason,
+        creationDate = eventDate
       )
     )
   }

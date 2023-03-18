@@ -33,7 +33,6 @@ final case class LDAPObjectClass(
   val attributes = mustAttr ++ mayAttr
   assert(null != name && name.nonEmpty, "Name can't be null or empty")
   assert(attributes.forall(a => null != a && a.nonEmpty), "Attributes name can't be null or empty")
-
 }
 
 object LDAPObjectClass {

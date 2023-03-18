@@ -288,19 +288,19 @@ object LDAPConstants {
     may = Set(A_MB_UUID, A_MANUFACTURER, A_SERIAL_NUMBER)
   )
 
-  OC.createObjectClass(OC_PM)
-  OC.createObjectClass(OC_VM)
-  OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
-  OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
-  OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
-  OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
-  OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
-  OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
-  OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
-  OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
-  OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
-  OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
-  OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
+  val OC_OC_PM              = OC.createObjectClass(OC_PM)
+  val OC_OC_VM              = OC.createObjectClass(OC_VM)
+  val OC_OC_VM_VIRTUALBOX   = OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
+  val OC_OC_VM_XEN          = OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
+  val OC_OC_VM_VMWARE       = OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
+  val OC_OC_VM_SOLARIS_ZONE = OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
+  val OC_OC_VM_QEMU         = OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
+  val OC_OC_VM_AIX_LPAR     = OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
+  val OC_OC_VM_HYPERV       = OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
+  val OC_OC_VM_BSDJAIL      = OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
+  val OC_OC_VM_LXC          = OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
+  val OC_OC_VM_VIRTUOZZO    = OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
+  val OC_OC_VM_OPENVZ       = OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
 
   OC.createObjectClass(
     OC_PE,
@@ -421,10 +421,10 @@ object LDAPConstants {
   OC.createObjectClass(OC_WINDOWS_NODE, sup = OC(OC_NODE), may = Set(A_WIN_USER_DOMAIN, A_WIN_COMPANY, A_WIN_KEY, A_WIN_ID))
 
   OC.createObjectClass(OC_LE, must = Set(), may = Set(A_NAME, A_DESCRIPTION))
-  OC.createObjectClass(OC_FS, must = Set(A_MOUNT_POINT), may = Set(A_FILE_COUNT, A_FREE_SPACE, A_TOTAL_SPACE))
+  OC.createObjectClass(OC_FS, sup = OC(OC_LE), must = Set(A_MOUNT_POINT), may = Set(A_FILE_COUNT, A_FREE_SPACE, A_TOTAL_SPACE))
   OC.createObjectClass(
     OC_NET_IF,
-    sup = OC(OC_TOP),
+    sup = OC(OC_LE),
     must = Set(A_NETWORK_NAME),
     may = Set(
       A_SPEED,
@@ -440,6 +440,7 @@ object LDAPConstants {
   )
   OC.createObjectClass(
     OC_VM_INFO,
+    sup = OC(OC_LE),
     must = Set(A_VM_ID),
     may = Set(A_VM_CPU, A_VM_MEMORY, A_VM_NAME, A_VM_OWNER, A_VM_STATUS, A_VM_SUBSYSTEM, A_VM_TYPE)
   )

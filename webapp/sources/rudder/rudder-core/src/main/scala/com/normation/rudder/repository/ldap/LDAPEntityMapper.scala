@@ -259,7 +259,9 @@ class LDAPEntityMapper(
                          )
                          .fail
                      }
-      nodeInfo    <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
+      nodeInfo    <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry).chainError(
+                       s"Error when getting '${node.id.value}' from LDAP"
+                     )
     } yield {
       nodeInfo
     }

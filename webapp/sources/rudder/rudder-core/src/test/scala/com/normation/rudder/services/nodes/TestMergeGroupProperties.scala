@@ -77,7 +77,7 @@ class TestMergeGroupProperties extends Specification {
 
   implicit class ToTarget(g: NodeGroup) {
     def toTarget    = FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", true, true)
-    def toCriterion = CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.serialize)
+    def toCriterion = CriterionLine(null, Criterion("some ldap attr", SubGroupComparator(null), null), null, g.id.serialize)
   }
 
   implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {

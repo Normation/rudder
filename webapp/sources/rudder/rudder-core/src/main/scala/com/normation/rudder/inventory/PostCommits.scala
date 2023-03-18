@@ -115,8 +115,8 @@ class PostCommitInventoryHooks[A](
 }
 
 class FactRepositoryPostCommit[A](
-    nodeFactStorage: NodeFactStorage,
-    nodeInfoService: NodeInfoService
+    nodeFactsRepository: NodeFactStorage,
+    nodeInfoService:     NodeInfoService
 ) extends PostCommit[A] {
   override def name: String = "commit node in fact-repository"
 
@@ -140,7 +140,7 @@ class FactRepositoryPostCommit[A](
                      ZIO.unit // does nothing
 
                    case Some(nodeInfo) =>
-                     nodeFactStorage.save(
+                     nodeFactsRepository.save(
                        NodeFact.fromCompat(
                          nodeInfo,
                          Right(FullInventory(inventory.node, Some(inventory.machine))),

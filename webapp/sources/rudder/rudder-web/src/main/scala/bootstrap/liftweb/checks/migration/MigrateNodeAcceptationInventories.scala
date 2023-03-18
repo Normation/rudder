@@ -151,13 +151,16 @@ class MigrateNodeAcceptationInventories(
       _.headOption match {
         case None    => ZIO.unit
         case Some(v) =>
-          for {
-            last <- fileLogRepository.get(nodeId, v)
-            opt  <- nodeInfoService.getNodeInfo(nodeId)
-            _    <- ZIO.when(opt.isDefined || last.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
-                      saveInDB(nodeId, last.datetime, last.data, !opt.isDefined)
-                    }
-          } yield ()
+          fileLogRepository.get(nodeId, v).flatMap {
+            case None    => ZIO.unit
+            case Some(l) =>
+              for {
+                opt <- nodeInfoService.getNodeInfo(nodeId)
+                _   <- ZIO.when(opt.isDefined || l.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
+                         saveInDB(nodeId, l.datetime, l.data, !opt.isDefined)
+                       }
+              } yield ()
+          }
       }
     } *> purgeLogFile(nodeId)
   }

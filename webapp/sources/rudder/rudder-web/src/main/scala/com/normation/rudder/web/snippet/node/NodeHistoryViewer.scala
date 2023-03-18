@@ -75,9 +75,9 @@ class NodeHistoryViewer extends StatefulSnippet {
           <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect _)}</p>
           {
           historyRepos.get(uuid, selectedDate).toBox match {
-            case Failure(m, _, _) => <div class="error">Error while trying to display node history. Error message: {m}</div>
-            case Empty            => <div class="error">No history was retrieved for the chosen date</div>
-            case Full(sm)         =>
+            case Failure(m, _, _)   => <div class="error">Error while trying to display node history. Error message: {m}</div>
+            case Empty | Full(None) => <div class="error">No history was retrieved for the chosen date</div>
+            case Full(Some(sm))     =>
               <div id={hid}>{
                 DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist") ++
                 Script(DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist"))
@@ -117,9 +117,9 @@ class NodeHistoryViewer extends StatefulSnippet {
 
   private def onSelect(date: DateTime): JsCmd = {
     historyRepos.get(uuid, date).toBox match {
-      case Failure(m, _, _) => Alert("Error while trying to display node history. Error message:" + m)
-      case Empty            => Alert("No history was retrieved for the chosen date")
-      case Full(sm)         =>
+      case Failure(m, _, _)   => Alert("Error while trying to display node history. Error message:" + m)
+      case Empty | Full(None) => Alert("No history was retrieved for the chosen date")
+      case Full(Some(sm))     =>
         SetHtml(hid, DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist")) &
         DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist")
     }

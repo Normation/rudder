@@ -45,11 +45,9 @@ import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors._
-import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -562,7 +560,6 @@ trait PromiseGenerationService {
   def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]
   def getGroupLibrary():            Box[FullNodeGroupCategory]
   def getAllGlobalParameters:       Box[Seq[GlobalParameter]]
-  def getAllInventories():          Box[Map[NodeId, NodeInventory]]
   def getGlobalComplianceMode():    Box[GlobalComplianceMode]
   def getGlobalAgentRun():          Box[AgentRunInterval]
   def getScriptEngineEnabled:       () => Box[FeatureSwitch]
@@ -908,8 +905,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   }
   override def getGroupLibrary():                          Box[FullNodeGroupCategory]       = roNodeGroupRepository.getFullGroupLibrary().toBox
   override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
-  override def getAllInventories():                        Box[Map[NodeId, NodeInventory]]  =
-    roInventoryRepository.getAllNodeInventories(AcceptedInventory).toBox
   override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode
   override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(

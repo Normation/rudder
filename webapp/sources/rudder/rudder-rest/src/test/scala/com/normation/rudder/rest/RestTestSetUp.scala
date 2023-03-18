@@ -50,7 +50,6 @@ import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder._
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.ApiVersion
@@ -79,6 +78,10 @@ import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
@@ -109,7 +112,6 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
-import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
 import com.normation.rudder.services.policies.InterpolationContext
@@ -289,7 +291,6 @@ class RestTestSetUp {
     override def getDirectiveLibrary(ids: Set[DirectiveId]):                                   Box[FullActiveTechniqueCategory]        = ???
     override def getGroupLibrary():                                                            Box[FullNodeGroupCategory]              = ???
     override def getAllGlobalParameters:                                                       Box[Seq[GlobalParameter]]               = ???
-    override def getAllInventories():                                                          Box[Map[NodeId, NodeInventory]]         = ???
     override def getGlobalComplianceMode():                                                    Box[GlobalComplianceMode]               = ???
     override def getGlobalAgentRun():                                                          Box[AgentRunInterval]                   = ???
     override def getScriptEngineEnabled:                                                       () => Box[FeatureSwitch]                = ???
@@ -580,16 +581,6 @@ class RestTestSetUp {
   val fakeScriptLauncher      = new DebugInfoService {
     override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
-  val nodeInfoService         = new NodeInfoServiceCachedImpl(
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    FiniteDuration(100, "millis")
-  )
 
   val fakeUpdateDynamicGroups = {
     new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1, () => Full("1")) {
@@ -616,7 +607,7 @@ class RestTestSetUp {
     List(
       CheckCoreNumber,
       CheckFreeSpace,
-      new CheckFileDescriptorLimit(nodeInfoService) // should I create all services to get this one ?
+      new CheckFileDescriptorLimit(mockNodes.nodeInfoService)
     )
   )
   val fakeHcNotifService     = new HealthcheckNotificationService(fakeHealthcheckService, 5.minute)
@@ -732,7 +723,6 @@ class RestTestSetUp {
   val authzToken       = AuthzToken(EventActor("fakeToken"))
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
-  val nodeInfo                     = mockNodes.nodeInfoService
   val softDao                      = mockNodes.softwareDao
   val roReportsExecutionRepository = new RoReportsExecutionRepository {
     override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] =
@@ -743,43 +733,37 @@ class RestTestSetUp {
     def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = ???
   }
 
-  val nodeApiService2  = new NodeApiService2(null, nodeInfo, null, uuidGen, restExtractorService, restDataSerializer)
-  val nodeApiService4  = new NodeApiService4(
-    nodeInfo,
-    nodeInfo,
-    softDao,
+  val nodeApiService = new NodeApiService(
+    null,
+    mockNodes.nodeFactRepo,
+    mockNodes.fullInventoryRepository,
+    null,
+    null,
+    roReportsExecutionRepository,
+    mockNodes.woNodeRepository,
+    null,
     uuidGen,
+    null,
+    null,
+    null,
+    mockNodes.nodeInfoService,
+    mockNodes.newNodeManager,
+    null,
     restExtractorService,
     restDataSerializer,
-    roReportsExecutionRepository
-  )
-  val nodeApiService6  = new NodeApiService6(
-    nodeInfo,
-    nodeInfo,
-    softDao,
-    restExtractorService,
-    restDataSerializer,
+    null,
     mockNodes.queryProcessor,
     null,
-    roReportsExecutionRepository
-  )
-  val nodeApiService8  = new NodeApiService8(nodeInfo, nodeInfo, uuidGen, asyncDeploymentAgent, "relay", userService)
-  val nodeApiService12 = new NodeApiService12(null, uuidGen, restDataSerializer)
-  val nodeApiService13 = new NodeApiService13(
-    nodeInfo,
-    roReportsExecutionRepository,
-    softDao,
-    restExtractorService,
+    asyncDeploymentAgent,
+    userService,
     () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
-    null,
-    null,
-    null
-  )
-  // override ldap methods to use mock nodes
-  val nodeApiService16 = new NodeApiService15(nodeInfo, null, null, mockNodes.newNodeManager, uuidGen, null, null, null) {
+    "relay"
+  ) {
+    implicit val testCC: ChangeContext =
+      ChangeContext(ModificationId(uuidGen.newUuid), EventActor("test"), DateTime.now(), None, None)
 
     override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
-      mockNodes.nodeInfoService
+      mockNodes.nodeFactRepo
         .get(nodeId)
         .map(_.nonEmpty)
         .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
@@ -787,8 +771,8 @@ class RestTestSetUp {
     }
 
     override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeInfoService
-        .save(inventory)
+      mockNodes.nodeFactRepo
+        .updateInventory(inventory, None)
         .mapBoth(
           err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
           _ => inventory.node.main.id
@@ -796,16 +780,13 @@ class RestTestSetUp {
     }
 
     override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeInfoService.nodeBase.updateZIO { nodes =>
-        nodes.get(id) match {
-          case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail
-          case Some(n) =>
-            import com.softwaremill.quicklens._
-            val res = n.modify(_.info.node).using(x => mergeNodeSetup(x, setup))
-
-            (nodes + ((id, res))).succeed
-        }
-      }.map(_ => id)
+      (for {
+        n <- mockNodes.nodeFactRepo.get(id).notOptional(s"Can not merge node: missing")
+        n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
+        _ <- mockNodes.nodeFactRepo.save(NodeFact.fromMinimal(n2))(testCC, SelectFacts.none)
+      } yield {
+        n.id
+      }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))
     }
   }
 
@@ -920,13 +901,7 @@ class RestTestSetUp {
     new NodeApi(
       restExtractorService,
       restDataSerializer,
-      nodeApiService2,
-      nodeApiService4,
-      nodeApiService6,
-      nodeApiService8,
-      nodeApiService12,
-      nodeApiService13,
-      nodeApiService16,
+      nodeApiService,
       null,
       DeleteMode.Erase
     ),
@@ -946,7 +921,7 @@ class RestTestSetUp {
       asyncDeploymentAgent,
       uuidGen,
       settingsService.policyServerManagementService,
-      nodeInfo
+      mockNodes.nodeInfoService
     ),
     archiveAPIModule.api,
     campaignApiModule.api

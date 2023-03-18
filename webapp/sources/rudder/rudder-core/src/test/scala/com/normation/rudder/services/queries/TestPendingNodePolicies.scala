@@ -51,6 +51,7 @@ import com.normation.rudder.domain.queries.Criterion
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.ExactStringComparator
+import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
@@ -63,6 +64,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import zio.Chunk
 import zio.syntax._
 
 /**
@@ -101,7 +103,7 @@ class TestPendingNodePolicies extends Specification {
   val groupCriterion = ObjectCriterion(
     "group",
     Seq(
-      Criterion(A_NODE_GROUP_UUID, ExactStringComparator)
+      Criterion(A_NODE_GROUP_UUID, ExactStringComparator, NodeCriterionMatcherString(_ => Chunk("group id")))
     )
   )
 
@@ -109,8 +111,11 @@ class TestPendingNodePolicies extends Specification {
   def sub(g: NodeGroup) = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
   // a random query that will be added as dummy content - query checker will returns pre-defined things
   val cl                = CriterionLine(
-    ObjectCriterion(OC_MACHINE, Seq(Criterion(A_MACHINE_UUID, StringComparator))),
-    Criterion(A_MACHINE_UUID, StringComparator),
+    ObjectCriterion(
+      OC_MACHINE,
+      Seq(Criterion(A_MACHINE_UUID, StringComparator, NodeCriterionMatcherString(n => Chunk(n.machine.id.value))))
+    ),
+    Criterion(A_MACHINE_UUID, StringComparator, NodeCriterionMatcherString(n => Chunk(n.machine.id.value))),
     Equals,
     "dummy"
   )

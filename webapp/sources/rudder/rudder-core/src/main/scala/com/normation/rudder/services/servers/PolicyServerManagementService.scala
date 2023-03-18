@@ -75,6 +75,7 @@ import com.normation.rudder.domain.queries.Criterion
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
+import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
@@ -611,9 +612,10 @@ object PolicyServerConfigurationObjects {
         Criterion(
           "policyServerId",
           StringComparator,
+          NodeCriterionMatcherString(n => Chunk(n.rudderSettings.policyServerId.value)),
           None
         ),
-        Criterion("agentName", AgentComparator, None)
+        Criterion("agentName", AgentComparator, NodeCriterionMatcherString(n => Chunk(n.rudderAgent.agentType.id)), None)
       )
     )
     NodeGroup(
@@ -629,13 +631,17 @@ object PolicyServerConfigurationObjects {
           List(
             CriterionLine(
               objectType,
-              Criterion("agentName", StringComparator),
+              Criterion("agentName", StringComparator, NodeCriterionMatcherString(n => Chunk(n.rudderAgent.agentType.id))),
               Equals,
               "cfengine"
             ),
             CriterionLine(
               objectType,
-              Criterion("policyServerId", StringComparator),
+              Criterion(
+                "policyServerId",
+                StringComparator,
+                NodeCriterionMatcherString(n => Chunk(n.rudderSettings.policyServerId.value))
+              ),
               Equals,
               nodeId.value
             )

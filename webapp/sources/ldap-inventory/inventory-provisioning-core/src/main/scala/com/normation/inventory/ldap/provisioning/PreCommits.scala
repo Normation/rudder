@@ -40,7 +40,6 @@ package com.normation.inventory.ldap.provisioning
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.Inventory
-import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.services.provisioning._
 import zio.syntax._
 
@@ -67,64 +66,6 @@ object CheckOsType extends PreCommit {
     }
 
   }
-}
-
-/**
- * Normalize machine Name.
- * They are mandatory, but not always provided
- */
-object CheckMachineName extends PreCommit {
-
-  private[this] def checkName(machine: MachineInventory): MachineInventory = {
-    // machine cn is mandatory, if not set we use the uuid
-    if (!machine.name.isDefined) {
-      machine.copy(name = Some(machine.id.value))
-    } else {
-      machine
-    }
-  }
-
-  override val name = "pre_commit_inventory:check_machine_cn"
-
-  override def apply(inventory: Inventory): IOResult[Inventory] = {
-    // machine are in FullMachine and VMs
-    inventory
-      .copy(
-        machine = checkName(inventory.machine),
-        vms = inventory.vms.map(m => checkName(m))
-      )
-      .succeed
-  }
-}
-
-/**
- * Log the inventory to save
- */
-class LogInventoryPreCommit(
-    mapper:     InventoryMapper,
-    ldifLogger: LDIFInventoryLogger
-) extends PreCommit {
-  private[this] def inventoryToLdif(invenotry: Inventory) = {
-    mapper.treeFromNode(invenotry.node).toLDIFRecords ++
-    mapper.treeFromMachine(invenotry.machine).toLDIFRecords ++
-    invenotry.vms.flatMap(vm => mapper.treeFromMachine(vm).toLDIFRecords) ++
-    invenotry.applications.map(s => mapper.entryFromSoftware(s).toLDIFRecord)
-  }
-
-  override val name = "pre_commit_inventory:log_inventory"
-
-  override def apply(inventory: Inventory): IOResult[Inventory] = {
-    ldifLogger.log(
-      inventory.name,
-      Some(
-        "LDIF describing the state of inventory to reach after save. What will be actually saved may be modified by pre/post processing"
-      ),
-      Some("REPORT"),
-      inventoryToLdif(inventory)
-    )
-    inventory.succeed
-  }
-
 }
 
 /**

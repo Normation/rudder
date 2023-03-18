@@ -37,8 +37,12 @@
 
 package com.normation.rudder.facts.nodes
 
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.{Version => SVersion}
+import com.normation.rudder.apidata.NodeDetailLevel
+import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -157,7 +161,7 @@ final case class SoftwareFact(
 object SoftwareFact {
   implicit class ToSoftware(sf: SoftwareFact) {
     def toSoftware: Software = Software(
-      SoftwareUuid(sf.name),
+      SoftwareUuid(""), // here, we don't know the uuid. We need a way to mark that it's not valid and don't risk using a bad one
       Some(sf.name),
       None,
       Some(sf.version),
@@ -166,6 +170,117 @@ object SoftwareFact {
       sf.licenseName.map(l => License(l, sf.licenseDescription, sf.productId, sf.productKey, sf.oem, sf.expirationDate)),
       sf.sourceName,
       sf.sourceVersion
+    )
+  }
+
+  def fromSoftware(s: Software): Option[SoftwareFact] = {
+    import NodeFact._
+    s.toFact
+  }
+}
+
+object MinimalNodeFactInterface {
+
+  /*
+   * Check if the node fact are the same.
+   * Sameness is not equality. It does not look for:
+   * - inventory date
+   * - fact processing time
+   * - acceptation time
+   * - order in any collection
+   *
+   * Having a hashcode on node fact would be inefficient,
+   * most node fact are never compared for sameness.
+   * Same is heavy, don't use it often !
+   */
+  def same(a: MinimalNodeFactInterface, b: MinimalNodeFactInterface): Boolean = {
+    def eq[A](accessor: MinimalNodeFactInterface => A):                                           Boolean = {
+      accessor(a) == accessor(b)
+    }
+    def compare[A, B: Ordering](accessor: MinimalNodeFactInterface => Chunk[A])(orderOn: A => B): Boolean = {
+      accessor(a).size == accessor(b).size &&
+      accessor(a).sortBy(orderOn) == accessor(b).sortBy(orderOn)
+    }
+
+    eq(_.id) &&
+    eq(_.description) &&
+    eq(_.fqdn) &&
+    eq(_.os) &&
+    eq(_.machine) &&
+    eq(_.rudderSettings) &&
+    eq(_.rudderAgent) &&
+    compare(_.properties)(_.name) &&
+    compare(_.ipAddresses)(_.inet) &&
+    eq(_.timezone)
+  }
+
+  def isSystem(node: MinimalNodeFactInterface): Boolean = {
+    node.rudderSettings.kind != NodeKind.Node
+  }
+
+  def ipAddresses(node: MinimalNodeFactInterface): List[String] = {
+    node.ipAddresses.map(_.inet).toList
+  }
+
+  def toNode(node: MinimalNodeFactInterface): Node = Node(
+    node.id,
+    node.fqdn,
+    "", // description
+    node.rudderSettings.state,
+    isSystem(node),
+    isSystem((node)),
+    node.creationDate,
+    node.rudderSettings.reportingConfiguration,
+    node.properties.toList,
+    node.rudderSettings.policyMode
+  )
+
+  def toNodeInfo(node: MinimalNodeFactInterface, ram: Option[MemorySize], archDescription: Option[String]): NodeInfo = NodeInfo(
+    toNode(node),
+    node.fqdn,
+    Some(node.machine),
+    node.os,
+    node.ipAddresses.toList.map(_.inet),
+    node.lastInventoryDate.getOrElse(node.factProcessedDate),
+    node.rudderSettings.keyStatus,
+    Chunk(
+      AgentInfo(
+        node.rudderAgent.agentType,
+        Some(node.rudderAgent.version),
+        node.rudderAgent.securityToken,
+        node.rudderAgent.capabilities.toSet
+      )
+    ),
+    node.rudderSettings.policyServerId,
+    node.rudderAgent.user,
+    archDescription,
+    ram,
+    node.timezone
+  )
+
+  def toSrv(node: MinimalNodeFactInterface): Srv = {
+    Srv(
+      node.id,
+      node.rudderSettings.status,
+      node.fqdn,
+      node.os.os.kernelName,
+      node.os.os.name,
+      node.os.fullName,
+      ipAddresses(node),
+      node.creationDate,
+      isSystem(node)
+    )
+  }
+
+  def toNodeSummary(node: MinimalNodeFactInterface): NodeSummary = {
+    NodeSummary(
+      node.id,
+      node.rudderSettings.status,
+      node.rudderAgent.user,
+      node.fqdn,
+      node.os,
+      node.rudderSettings.policyServerId,
+      node.rudderSettings.keyStatus
     )
   }
 }
@@ -184,27 +299,21 @@ object NodeFact {
    * most node fact are never compared for sameness.
    * Same is heavy, don't use it often !
    */
-  def same(a: NodeFact, b: NodeFact): Boolean = {
+  def same(nfa: NodeFact, nfb: NodeFact)(implicit attrs: SelectFacts): Boolean = {
+
+    val a = SelectFacts.mask(nfa)
+    val b = SelectFacts.mask(nfb)
+
+    def eq[A](accessor: NodeFact => A):                                           Boolean = {
+      accessor(a) == accessor(b)
+    }
     // compare two chunk sameness
     def compare[A, B: Ordering](accessor: NodeFact => Chunk[A])(orderOn: A => B): Boolean = {
       accessor(a).size == accessor(b).size &&
       accessor(a).sortBy(orderOn) == accessor(b).sortBy(orderOn)
     }
 
-    def eq[A](accessor: NodeFact => A): Boolean = {
-      accessor(a) == accessor(b)
-    }
-
-    eq(_.id) &&
-    eq(_.description) &&
-    eq(_.fqdn) &&
-    eq(_.os) &&
-    eq(_.machine) &&
-    eq(_.rudderSettings) &&
-    eq(_.rudderAgent) &&
-    compare(_.properties)(_.name) &&
-    compare(_.ipAddresses)(_.inet) &&
-    eq(_.timezone) &&
+    MinimalNodeFactInterface.same(a, b) &&
     eq(_.ram) &&
     eq(_.swap) &&
     eq(_.archDescription) &&
@@ -282,7 +391,7 @@ object NodeFact {
       .using(_.sortBy(_.name))
   }
 
-  def toMachineId(nodeId: NodeId) = MachineUuid("machine-" + nodeId.value)
+  def toMachineId(nodeId: NodeId) = MachineUuid("machine-for-" + nodeId.value)
 
   implicit class IterableToChunk[A](it: Iterable[A]) {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
@@ -330,68 +439,49 @@ object NodeFact {
   }
 
   implicit class ToCompat(node: NodeFact) {
-
-    def toNode: Node = Node(
-      node.id,
-      node.fqdn,
-      "", // description
-      node.rudderSettings.state,
-      node.isSystem,
-      node.isPolicyServer,
-      node.creationDate,
-      node.rudderSettings.reportingConfiguration,
-      node.properties.toList,
-      node.rudderSettings.policyMode
-    )
-
-    def toNodeInfo: NodeInfo = NodeInfo(
-      node.toNode,
-      node.fqdn,
-      Some(node.machine),
-      node.os,
-      node.ipAddresses.toList.map(_.inet),
-      node.lastInventoryDate.getOrElse(node.factProcessedDate),
-      node.rudderSettings.keyStatus,
-      Chunk(
-        AgentInfo(
-          node.rudderAgent.agentType,
-          Some(node.rudderAgent.version),
-          node.rudderAgent.securityToken,
-          node.rudderAgent.capabilities.toSet
-        )
-      ),
-      node.rudderSettings.policyServerId,
-      node.rudderAgent.user,
-      node.archDescription,
-      node.ram,
-      node.timezone
-    )
-
-    def toSrv: Srv = {
-      Srv(
-        node.id,
-        node.rudderSettings.status,
-        node.fqdn,
-        node.os.os.kernelName,
-        node.os.os.name,
-        node.os.fullName,
-        node.serverIps,
-        node.creationDate,
-        node.isPolicyServer
-      )
+    def mask[A](s: SelectFactConfig[A]) = {
+      s.mode match {
+        case SelectMode.Retrieve => node
+        case SelectMode.Ignore   => s.modify.setTo(s.zero)(node)
+      }
     }
 
-    def toNodeSummary: NodeSummary = {
-      NodeSummary(
-        node.id,
-        node.rudderSettings.status,
-        node.rudderAgent.user,
-        node.fqdn,
-        node.os,
-        node.rudderSettings.policyServerId,
-        node.rudderSettings.keyStatus
-      )
+    def maskWith(attrs: SelectFacts): NodeFact = {
+      node
+        .mask(attrs.swap)
+        .mask(attrs.accounts)
+        .mask(attrs.bios)
+        .mask(attrs.controllers)
+        .mask(attrs.environmentVariables)
+        .mask(attrs.inputs)
+        .mask(attrs.fileSystems)
+        .mask(attrs.localGroups)
+        .mask(attrs.localUsers)
+        .mask(attrs.logicalVolumes)
+        .mask(attrs.memories)
+        .mask(attrs.networks)
+        .mask(attrs.ports)
+        .mask(attrs.physicalVolumes)
+        .mask(attrs.processes)
+        .mask(attrs.processors)
+        .mask(attrs.slots)
+        .mask(attrs.software)
+        .mask(attrs.softwareUpdate)
+        .mask(attrs.sounds)
+        .mask(attrs.storages)
+        .mask(attrs.videos)
+        .mask(attrs.vms)
     }
+
+    def toCore: CoreNodeFact = CoreNodeFact.fromMininal(node)
+
+    def toNode: Node = MinimalNodeFactInterface.toNode(node)
+
+    def toNodeInfo: NodeInfo = MinimalNodeFactInterface.toNodeInfo(node, node.ram, node.archDescription)
+
+    def toSrv: Srv = MinimalNodeFactInterface.toSrv(node)
+
+    def toNodeSummary: NodeSummary = MinimalNodeFactInterface.toNodeSummary(node)
 
     def toNodeInventory: NodeInventory = NodeInventory(
       node.toNodeSummary,
@@ -456,7 +546,12 @@ object NodeFact {
       },
       nodeInfo.hostname,
       nodeInfo.osDetails,
-      nodeInfo.machine.getOrElse(MachineInfo(NodeFact.toMachineId(nodeInfo.id), UnknownMachineType, None, None)),
+      nodeInfo.machine.getOrElse(inventory match {
+        case Right(FullInventory(_, Some(m))) =>
+          MachineInfo(m.id, m.machineType, m.systemSerialNumber, m.manufacturer)
+        case _                                => // in that case, we just don't have any info on the matchine, derive a false id from node id
+          MachineInfo(NodeFact.toMachineId(nodeInfo.id), UnknownMachineType, None, None)
+      }),
       RudderSettings(
         nodeInfo.keyStatus,
         nodeInfo.nodeReportingConfiguration,
@@ -480,9 +575,9 @@ object NodeFact {
       Some(nodeInfo.inventoryDate),
       nodeInfo.ips.map(IpAddress(_)).toChunk,
       nodeInfo.timezone,
+      nodeInfo.archDescription,
       nodeInfo.ram,
       inventory.toOption.flatMap(_.node.swap),
-      nodeInfo.archDescription,
       inventory.toChunk.flatMap(_.node.accounts),
       inventory.toChunk.flatMap(_.machine.chunk(_.bios)),
       inventory.toChunk.flatMap(_.machine.chunk(_.controllers)),
@@ -538,7 +633,8 @@ object NodeFact {
       inventory.node.main.hostname,
       inventory.node.main.osDetails,
       MachineInfo(
-        NodeFact.toMachineId(inventory.node.main.id),
+        // we should have the machine in a new full inventory, else generate an uuid for the unknown one
+        inventory.machine.map(_.id).getOrElse(NodeFact.toMachineId(inventory.node.main.id)),
         inventory.machine.map(_.machineType).getOrElse(UnknownMachineType),
         inventory.machine.flatMap(_.systemSerialNumber),
         inventory.machine.flatMap(_.manufacturer)
@@ -556,6 +652,30 @@ object NodeFact {
     newFromFullInventory(FullInventory(inventory.node, Some(inventory.machine)), Some(inventory.applications))
   }
 
+  def fromMinimal(a: MinimalNodeFactInterface): NodeFact = {
+    a match {
+      case x: NodeFact => x
+      case _ =>
+        NodeFact(
+          a.id,
+          a.description,
+          a.fqdn,
+          a.os,
+          a.machine,
+          a.rudderSettings,
+          a.rudderAgent,
+          a.properties,
+          a.creationDate,
+          a.factProcessedDate,
+          a.lastInventoryDate,
+          a.ipAddresses,
+          a.timezone,
+          a.archDescription,
+          a.ram
+        )
+    }
+  }
+
   /*
    * Update all inventory parts from that node fact.
    * The inventory parts are overridden, there is no merge
@@ -563,6 +683,14 @@ object NodeFact {
    */
   def updateInventory(node: NodeFact, inventory: Inventory): NodeFact = {
     updateFullInventory(node, FullInventory(inventory.node, Some(inventory.machine)), Some(inventory.applications))
+  }
+
+  def updateInventory(core: CoreNodeFact, inventory: Inventory): NodeFact = {
+    updateFullInventory(
+      NodeFact.fromMinimal(core),
+      FullInventory(inventory.node, Some(inventory.machine)),
+      Some(inventory.applications)
+    )
   }
 
   // FullInventory does keep the software, but only their IDs, which is not a concept we still have.
@@ -592,7 +720,7 @@ object NodeFact {
     // now machine are mandatory so if we don't have it inventory, don't update
     val machine = inventory.machine.map { m =>
       MachineInfo(
-        NodeFact.toMachineId(inventory.node.main.id),
+        m.id,
         m.machineType,
         m.systemSerialNumber,
         m.manufacturer
@@ -686,6 +814,357 @@ object NodeFact {
 
 }
 
+trait MinimalNodeFactInterface {
+  def id:                NodeId
+  def description:       Option[String]
+  def fqdn:              String
+  def os:                OsDetails
+  def machine:           MachineInfo
+  def rudderSettings:    RudderSettings
+  def rudderAgent:       RudderAgent
+  def properties:        Chunk[NodeProperty]
+  def creationDate:      DateTime
+  def factProcessedDate: DateTime
+  def lastInventoryDate: Option[DateTime]
+  def ipAddresses:       Chunk[IpAddress]
+  def timezone:          Option[NodeTimezone]
+  def archDescription:   Option[String]
+  def ram:               Option[MemorySize]
+}
+
+/*
+ * Subset of commonly used properties of node fact, same as NodeInfo.
+ * It should have exactly the same fields as MinimalNodeFactInterface
+ */
+final case class CoreNodeFact(
+    id:                NodeId,
+    description:       Option[String],
+    @jsonField("hostname")
+    fqdn:              String,
+    os:                OsDetails,
+    machine:           MachineInfo,
+    rudderSettings:    RudderSettings,
+    rudderAgent:       RudderAgent,
+    properties:        Chunk[NodeProperty],
+    creationDate:      DateTime,
+    factProcessedDate: DateTime,
+    lastInventoryDate: Option[DateTime] = None,
+    ipAddresses:       Chunk[IpAddress] = Chunk.empty,
+    timezone:          Option[NodeTimezone] = None,
+    archDescription:   Option[String] = None,
+    ram:               Option[MemorySize] = None
+) extends MinimalNodeFactInterface
+
+object CoreNodeFact {
+
+  def updateNode(node: CoreNodeFact, n: Node): CoreNodeFact = {
+    import com.softwaremill.quicklens._
+    node
+      .modify(_.description)
+      .setTo(Some(n.description))
+      .modify(_.rudderSettings.state)
+      .setTo(n.state)
+      .modify(_.rudderSettings.kind)
+      .setTo(if (n.isPolicyServer) NodeKind.Relay else NodeKind.Node)
+      .modify(_.creationDate)
+      .setTo(n.creationDate)
+      .modify(_.rudderSettings.reportingConfiguration)
+      .setTo(n.nodeReportingConfiguration)
+      .modify(_.properties)
+      .setTo(Chunk.fromIterable(n.properties))
+      .modify(_.rudderSettings.policyMode)
+      .setTo(n.policyMode)
+  }
+
+  def fromMininal(a: MinimalNodeFactInterface): CoreNodeFact = {
+    a match {
+      case c: CoreNodeFact => c
+      case _ =>
+        CoreNodeFact(
+          a.id,
+          a.description,
+          a.fqdn,
+          a.os,
+          a.machine,
+          a.rudderSettings,
+          a.rudderAgent,
+          a.properties,
+          a.creationDate,
+          a.factProcessedDate,
+          a.lastInventoryDate,
+          a.ipAddresses,
+          a.timezone,
+          a.archDescription,
+          a.ram
+        )
+    }
+  }
+
+  def same(a: CoreNodeFact, b: CoreNodeFact): Boolean = {
+    MinimalNodeFactInterface.same(a, b) &&
+    a.archDescription == b.archDescription &&
+    a.ram == b.ram
+  }
+
+  implicit class ToCompat(node: CoreNodeFact) {
+
+    def toNode: Node = MinimalNodeFactInterface.toNode(node)
+
+    def toNodeInfo: NodeInfo = MinimalNodeFactInterface.toNodeInfo(node, node.ram, node.archDescription)
+
+    def toSrv: Srv = MinimalNodeFactInterface.toSrv(node)
+
+    def toNodeSummary: NodeSummary = MinimalNodeFactInterface.toNodeSummary(node)
+  }
+}
+
+sealed trait SelectMode
+object SelectMode {
+  case object Ignore   extends SelectMode
+  case object Retrieve extends SelectMode
+}
+
+case class SelectFactConfig[A](
+    mode:     SelectMode,
+    selector: NodeFact => A,
+    modify:   PathLazyModify[NodeFact, A],
+    zero:     A
+) {
+  // copy helper for fluent api
+  def toIgnore:   SelectFactConfig[A] = this.copy(mode = SelectMode.Ignore)
+  def toRetrieve: SelectFactConfig[A] = this.copy(mode = SelectMode.Retrieve)
+  def invertMode: SelectFactConfig[A] = if (this.mode == SelectMode.Ignore) toRetrieve else toIgnore
+
+  override def toString = this.mode.toString
+}
+
+case class SelectFacts(
+    swap:                 SelectFactConfig[Option[MemorySize]],
+    accounts:             SelectFactConfig[Chunk[String]],
+    bios:                 SelectFactConfig[Chunk[Bios]],
+    controllers:          SelectFactConfig[Chunk[Controller]],
+    environmentVariables: SelectFactConfig[Chunk[(String, String)]],
+    fileSystems:          SelectFactConfig[Chunk[FileSystem]],
+    inputs:               SelectFactConfig[Chunk[InputDevice]],
+    localGroups:          SelectFactConfig[Chunk[LocalGroup]],
+    localUsers:           SelectFactConfig[Chunk[LocalUser]],
+    logicalVolumes:       SelectFactConfig[Chunk[LogicalVolume]],
+    memories:             SelectFactConfig[Chunk[MemorySlot]],
+    networks:             SelectFactConfig[Chunk[Network]],
+    physicalVolumes:      SelectFactConfig[Chunk[PhysicalVolume]],
+    ports:                SelectFactConfig[Chunk[Port]],
+    processes:            SelectFactConfig[Chunk[Process]],
+    processors:           SelectFactConfig[Chunk[Processor]],
+    slots:                SelectFactConfig[Chunk[Slot]],
+    software:             SelectFactConfig[Chunk[SoftwareFact]],
+    softwareUpdate:       SelectFactConfig[Chunk[SoftwareUpdate]],
+    sounds:               SelectFactConfig[Chunk[Sound]],
+    storages:             SelectFactConfig[Chunk[Storage]],
+    videos:               SelectFactConfig[Chunk[Video]],
+    vms:                  SelectFactConfig[Chunk[VirtualMachine]]
+) {
+  def debugString =
+    this.productElementNames.zip(this.productIterator).map { case (a, b) => s"${a}: ${b.toString}" }.mkString(", ")
+}
+
+sealed trait SelectNodeStatus { def name: String }
+object SelectNodeStatus       {
+  object Pending  extends SelectNodeStatus { val name = PendingInventory.name  }
+  object Accepted extends SelectNodeStatus { val name = AcceptedInventory.name }
+  object Any      extends SelectNodeStatus { val name = "any"                  }
+}
+
+object SelectFacts {
+
+  implicit class Invert(c: SelectFacts) {
+    def invert: SelectFacts = {
+      SelectFacts(
+        c.swap.invertMode,
+        c.accounts.invertMode,
+        c.bios.invertMode,
+        c.controllers.invertMode,
+        c.environmentVariables.invertMode,
+        c.fileSystems.invertMode,
+        c.inputs.invertMode,
+        c.localGroups.invertMode,
+        c.localUsers.invertMode,
+        c.logicalVolumes.invertMode,
+        c.memories.invertMode,
+        c.networks.invertMode,
+        c.physicalVolumes.invertMode,
+        c.ports.invertMode,
+        c.processes.invertMode,
+        c.processors.invertMode,
+        c.slots.invertMode,
+        c.software.invertMode,
+        c.softwareUpdate.invertMode,
+        c.sounds.invertMode,
+        c.storages.invertMode,
+        c.videos.invertMode,
+        c.vms.invertMode
+      )
+    }
+  }
+
+  // format: off
+  // there's perhaps a better way to do that, but `shrug` don't know about it
+  val none = SelectFacts(
+    SelectFactConfig(SelectMode.Ignore,_.swap, modifyLens[NodeFact](_.swap), None),
+    SelectFactConfig(SelectMode.Ignore,_.accounts, modifyLens[NodeFact](_.accounts), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.bios, modifyLens[NodeFact](_.bios), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.controllers, modifyLens[NodeFact](_.controllers), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.environmentVariables, modifyLens[NodeFact](_.environmentVariables), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.fileSystems, modifyLens[NodeFact](_.fileSystems), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.inputs, modifyLens[NodeFact](_.inputs), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.localGroups, modifyLens[NodeFact](_.localGroups), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.localUsers, modifyLens[NodeFact](_.localUsers), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.logicalVolumes, modifyLens[NodeFact](_.logicalVolumes), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.memories, modifyLens[NodeFact](_.memories), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.networks, modifyLens[NodeFact](_.networks), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.physicalVolumes, modifyLens[NodeFact](_.physicalVolumes), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.ports, modifyLens[NodeFact](_.ports), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.processes, modifyLens[NodeFact](_.processes), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.processors, modifyLens[NodeFact](_.processors), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.slots, modifyLens[NodeFact](_.slots), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.software, modifyLens[NodeFact](_.software), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.softwareUpdate, modifyLens[NodeFact](_.softwareUpdate), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.sounds, modifyLens[NodeFact](_.sounds), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.storages, modifyLens[NodeFact](_.storages), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.videos, modifyLens[NodeFact](_.videos), Chunk.empty),
+    SelectFactConfig(SelectMode.Ignore,_.vms, modifyLens[NodeFact](_.vms), Chunk.empty)
+  )
+
+  val all = SelectFacts(
+    none.swap.toRetrieve,
+    none.accounts.toRetrieve,
+    none.bios.toRetrieve,
+    none.controllers.toRetrieve,
+    none.environmentVariables.toRetrieve,
+    none.fileSystems.toRetrieve,
+    none.inputs.toRetrieve,
+    none.localGroups.toRetrieve,
+    none.localUsers.toRetrieve,
+    none.logicalVolumes.toRetrieve,
+    none.memories.toRetrieve,
+    none.networks.toRetrieve,
+    none.physicalVolumes.toRetrieve,
+    none.ports.toRetrieve,
+    none.processes.toRetrieve,
+    none.processors.toRetrieve,
+    none.slots.toRetrieve,
+    none.software.toRetrieve,
+    none.softwareUpdate.toRetrieve,
+    none.sounds.toRetrieve,
+    none.storages.toRetrieve,
+    none.videos.toRetrieve,
+    none.vms.toRetrieve
+  )
+  // format: on
+
+  val softwareOnly = none.copy(software = none.software.toRetrieve)
+  val noSoftware   = all.copy(software = all.software.toIgnore)
+  val default      = all.copy(processes = all.processes.toIgnore, software = all.software.toIgnore)
+
+  // inventory elements, not carring for software
+  def retrieveInventory(attrs: SelectFacts): Boolean = {
+    !(attrs.copy(software = SelectFacts.none.software) == SelectFacts.none)
+  }
+
+  def fromNodeDetailLevel(level: NodeDetailLevel): SelectFacts = {
+    // change from none to get
+    def toGet[A](s: SelectFactConfig[A], switch: Boolean): SelectFactConfig[A] = {
+      if (switch) s.toRetrieve
+      else s
+    }
+    SelectFacts(
+      toGet(none.swap, level.fields.contains("fileSystems")),
+      toGet(none.accounts, level.fields.contains("accounts")),
+      toGet(none.bios, level.fields.contains("bios")),
+      toGet(none.controllers, level.fields.contains("controllers")),
+      toGet(none.environmentVariables, level.fields.contains("environmentVariables")),
+      toGet(none.fileSystems, level.fields.contains("fileSystems")),
+      none.inputs,
+      none.localGroups,
+      none.localUsers,
+      none.logicalVolumes,
+      toGet(none.memories, level.fields.contains("memories")),
+      toGet(none.networks, level.fields.contains("networkInterfaces")),
+      none.physicalVolumes,
+      toGet(none.ports, level.fields.contains("ports")),
+      toGet(none.processes, level.fields.contains("processes")),
+      toGet(none.processors, level.fields.contains("processors")),
+      toGet(none.slots, level.fields.contains("slots")),
+      toGet(none.software, level.fields.contains("software")),
+      toGet(none.softwareUpdate, level.fields.contains("softwareUpdate")),
+      toGet(none.sounds, level.fields.contains("sound")),
+      toGet(none.storages, level.fields.contains("storage")),
+      toGet(none.videos, level.fields.contains("videos")),
+      toGet(none.vms, level.fields.contains("virtualMachines"))
+    )
+  }
+
+  // semantic: having a new node fact, keep old fact info if the select mode says "ignore"
+  // and keep new fact if it says "retrieve"
+  def merge(newFact: NodeFact, existing: Option[NodeFact])(implicit attrs: SelectFacts): NodeFact = {
+    implicit class NodeFactMerge(newFact: NodeFact) {
+
+      // keep newFact
+      def update[A](config: SelectFactConfig[A])(implicit oldFact: NodeFact) = {
+        config.mode match {
+          case SelectMode.Retrieve => // keep new fact
+            newFact
+          case SelectMode.Ignore   => // get info from old fact
+            config.modify.setTo(config.selector(oldFact))(newFact)
+        }
+      }
+    }
+
+    existing match {
+      case None     => newFact
+      // we assume that all the properties not in SelectFacts are up-to-date, so we start with newFact and only update
+      case Some(of) =>
+        implicit val oldFact = of
+
+        newFact
+          .update(attrs.swap)
+          .update(attrs.accounts)
+          .update(attrs.bios)
+          .update(attrs.controllers)
+          .update(attrs.environmentVariables)
+          .update(attrs.inputs)
+          .update(attrs.fileSystems)
+          .update(attrs.localGroups)
+          .update(attrs.localUsers)
+          .update(attrs.logicalVolumes)
+          .update(attrs.memories)
+          .update(attrs.networks)
+          .update(attrs.ports)
+          .update(attrs.physicalVolumes)
+          .update(attrs.processes)
+          .update(attrs.processors)
+          .update(attrs.slots)
+          .update(attrs.software)
+          .update(attrs.softwareUpdate)
+          .update(attrs.sounds)
+          .update(attrs.storages)
+          .update(attrs.videos)
+          .update(attrs.vms)
+    }
+  }
+
+  // given a core node fact, add attributes from an other fact based on what attrs says
+  def mergeCore(cnf: CoreNodeFact, fact: NodeFact)(implicit attrs: SelectFacts): NodeFact = {
+    // from a implementation point of view, it's the opposite of merge WRT SelectFacts
+    merge(NodeFact.fromMinimal(cnf), Some(fact))(attrs.invert)
+  }
+
+  // mask the given NodeFact to only expose attrs that are in "Retrieve"
+  def mask(fact: NodeFact)(implicit attrs: SelectFacts): NodeFact = {
+    // masking is merging with the input fact as "old" and a version with everything set to empty
+    mergeCore(CoreNodeFact.fromMininal(fact), fact)
+  }
+}
+
 final case class NodeFact(
     id:             NodeId,
     description:    Option[String],
@@ -712,9 +1191,9 @@ final case class NodeFact(
 
     // inventory details, optional
 
+    archDescription:      Option[String] = None,
     ram:                  Option[MemorySize] = None,
     swap:                 Option[MemorySize] = None,
-    archDescription:      Option[String] = None,
     accounts:             Chunk[String] = Chunk.empty,
     bios:                 Chunk[Bios] = Chunk.empty,
     controllers:          Chunk[Controller] = Chunk.empty,
@@ -737,9 +1216,8 @@ final case class NodeFact(
     storages:             Chunk[Storage] = Chunk.empty,
     videos:               Chunk[Video] = Chunk.empty,
     vms:                  Chunk[VirtualMachine] = Chunk.empty
-) {
-  // we don't have a machine id anymore, by convention it's the node id prefixed by "machine-"
-  def machineId = NodeFact.toMachineId(id)
+) extends MinimalNodeFactInterface {
+  def machineId = machine.id
 
   def isPolicyServer: Boolean = rudderSettings.kind != NodeKind.Node
   def isSystem:       Boolean = isPolicyServer
@@ -774,6 +1252,60 @@ final case class JsonAgentRunInterval(
 final case class JSecurityToken(kind: String, token: String)
 
 final case class JNodeProperty(name: String, value: ConfigValue, mode: Option[String], provider: Option[String])
+
+sealed trait NodeFactChangeEvent {
+  def name:        String
+  def debugString: String
+}
+
+object NodeFactChangeEvent {
+  final case class NewPending(node: NodeFact, attrs: SelectFacts)                           extends NodeFactChangeEvent {
+    override val name:        String = "newPending"
+    override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+  }
+  final case class UpdatedPending(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts) extends NodeFactChangeEvent {
+    override val name:        String = "updatedPending"
+    override def debugString: String = s"[${name}] node '${newNode.fqdn}' (${newNode.id.value})"
+  }
+  final case class Accepted(node: NodeFact, attrs: SelectFacts)                             extends NodeFactChangeEvent {
+    override val name:        String = "accepted"
+    override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+  }
+  final case class Refused(node: NodeFact, attrs: SelectFacts)                              extends NodeFactChangeEvent {
+    override val name:        String = "refused"
+    override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+  }
+  final case class Updated(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts)        extends NodeFactChangeEvent {
+    override val name:        String = "updatedAccepted"
+    override def debugString: String = s"[${name}] node '${newNode.fqdn}' (${newNode.id.value})"
+  }
+  final case class Deleted(node: NodeFact, attrs: SelectFacts)                              extends NodeFactChangeEvent {
+    override val name:        String = "deleted"
+    override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+  }
+  final case class Noop(nodeId: NodeId, attrs: SelectFacts)                                 extends NodeFactChangeEvent {
+    override val name:        String = "noop"
+    override def debugString: String = s"[${name}] node '${nodeId.value}' "
+  }
+}
+
+final case class ChangeContext(
+    modId:     ModificationId,
+    actor:     EventActor,
+    eventDate: DateTime,
+    message:   Option[String],
+    actorIp:   Option[String]
+)
+
+object ChangeContext {
+  def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None) =
+    ChangeContext(ModificationId(java.util.UUID.randomUUID.toString), eventlog.RudderEventActor, DateTime.now(), msg, actorIp)
+}
+
+final case class NodeFactChangeEventCC(
+    event: NodeFactChangeEvent,
+    cc:    ChangeContext
+)
 
 object NodeFactSerialisation {
 

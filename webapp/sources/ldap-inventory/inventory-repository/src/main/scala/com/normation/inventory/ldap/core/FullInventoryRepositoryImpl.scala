@@ -120,6 +120,13 @@ class FullInventoryRepositoryImpl(
     }
   }
 
+  def getStatus(nodeId: NodeId): IOResult[Option[InventoryStatus]] = {
+    for {
+      con <- ldap
+      res <- findDnForId[NodeId](con, nodeId, dn)
+    } yield res.map(_._2)
+  }
+
   /**
    * Get a machine by its ID
    */
@@ -270,19 +277,6 @@ class FullInventoryRepositoryImpl(
     }
   }.chainError(s"Error when getting machine with ID '${id.value}' and status '${inventoryStatus.name}'")
 
-  override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = {
-    (for {
-      con       <- ldap
-      nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
-      nodes     <- nodeTrees match {
-                     case Some(root) => ZIO.foreach(root.children.values)(tree => mapper.nodeFromTree(tree))
-                     case None       => Seq().succeed
-                   }
-    } yield {
-      nodes.map(n => (n.main.id, n)).toMap
-    })
-  }.chainError(s"Error when getting all node inventories")
-
   // utility methods to get node/machine from ldap entries from the base dn
   private[core] def machinesFromOuMachines(machinesTree: LDAPTree): IOResult[Iterable[Option[MachineInventory]]] = {
     ZIO.foreach(machinesTree.children.values) { tree =>
@@ -312,43 +306,7 @@ class FullInventoryRepositoryImpl(
     }
   }
 
-  override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] = {
-
-    for {
-      con  <- ldap
-      dit   = inventoryDitService.getDit(inventoryStatus)
-      // Get base tree, we will go into each subtree after
-      tree <- con.getTree(dit.BASE_DN)
-
-      // Get into Nodes subtree
-      nodesTree <- tree.flatMap(_.children.get(dit.NODES.rdn)) match {
-                     case None       => LDAPRudderError.Consistancy(s"Could not find node inventories in ${dit.BASE_DN.toString}").fail
-                     case Some(tree) => tree.succeed
-                   }
-      // we don't want that one error somewhere breaks everything
-      nodes     <- nodesFromOuNodes(nodesTree)
-
-      // Get into Machines subtree
-      machinesTree <- tree.flatMap(_.children.get(dit.MACHINES.rdn)) match {
-                        case None       =>
-                          LDAPRudderError.Consistancy(s"Could not find machine inventories in ${dit.BASE_DN.toString}").fail
-                        case Some(tree) => tree.succeed
-                      }
-      machines     <- machinesFromOuMachines(machinesTree)
-
-    } yield {
-      val machineMap = machines.flatten.map(m => (m.id, m)).toMap
-      nodes.flatten
-        .map(node => {
-          val machine   = node.machineId.flatMap(mid => machineMap.get(mid._1))
-          val inventory = FullInventory(node, machine)
-          node.main.id -> inventory
-        })
-        .toMap
-    }
-  }.chainError(s"Error when getting all node inventories for status '${inventoryStatus.name}'")
-
-  override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]] = {
+  def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]] = {
     /*
      * We need to only get back the tree for nodes that we are looking for, we need to build filter like:
      * "(entryDN:dnSubtreeMatch:=cn=group_a,dc=abc,dc=xyz)"
@@ -400,32 +358,56 @@ class FullInventoryRepositoryImpl(
   }
 
   override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = {
-    for {
-      con        <- ldap
-      tree       <- con.getTree(dn(id, inventoryStatus))
-      server     <- tree match {
-                      case Some(t) => mapper.nodeFromTree(t).map(Some(_))
-                      case None    => None.succeed
-                    }
-      // now, try to add a machine
-      optMachine <- {
-        server.flatMap(_.machineId) match {
-          case None                      => None.succeed
-          case Some((machineId, status)) =>
-            // here, we want to actually use the provided DN to:
-            // 1/ not make 3 existence tests each time we get a node,
-            // 2/ make the thing more debuggable. If we don't use the DN and display
-            //    information taken elsewhere, future debugging will leads people to madness
-            con.getTree(dnMachine(machineId, status)).flatMap {
-              case None    => None.succeed
-              case Some(x) => mapper.machineFromTree(x).map(Some(_))
-            }
+    getWithSoftware(id, inventoryStatus, false).map(_.map(_._1))
+  }
+
+  // if getSoftware is true, return the seq of software UUIDs, else an empty seq in addition to inventory.
+  def getWithSoftware(
+      id:              NodeId,
+      inventoryStatus: InventoryStatus,
+      getSoftware:     Boolean
+  ): IOResult[Option[(FullInventory, Seq[SoftwareUuid])]] = {
+    (
+      for {
+        con        <- ldap
+        tree       <- con.getTree(dn(id, inventoryStatus))
+        server     <- tree match {
+                        case Some(t) => mapper.nodeFromTree(t).map(Some(_))
+                        case None    => None.succeed
+                      }
+        // now, try to add a machine
+        optMachine <- {
+          server.flatMap(_.machineId) match {
+            case None                      => None.succeed
+            case Some((machineId, status)) =>
+              // here, we want to actually use the provided DN to:
+              // 1/ not make 3 existence tests each time we get a node,
+              // 2/ make the thing more debuggable. If we don't use the DN and display
+              //    information taken elsewhere, future debugging will leads people to madness
+              con.getTree(dnMachine(machineId, status)).flatMap {
+                case None    => None.succeed
+                case Some(x) => mapper.machineFromTree(x).map(Some(_))
+              }
+          }
         }
+      } yield {
+        server.map(s => {
+          (
+            FullInventory(s, optMachine),
+            if (getSoftware) {
+              tree.map(t => getSoftwareUuids(t.root)).getOrElse(Seq())
+            } else Seq()
+          )
+        })
       }
-    } yield {
-      server.map(s => FullInventory(s, optMachine))
-    }
-  }.chainError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}")
+    ).chainError(s"Error when getting node with ID '${id.value}' and status ${inventoryStatus.name}")
+  }
+
+  def getSoftwareUuids(e: LDAPEntry): Chunk[SoftwareUuid] = {
+    // it's faster to get all software in one go than doing N requests, one for each DN
+    e.valuesForChunk(LDAPConstants.A_SOFTWARE_DN)
+      .map(dn => SoftwareUuid(new DN(dn).getRDN.getAttributeValues()(0))) // RDN has at least one value
+  }
 
   override def get(id: NodeId): IOResult[Option[FullInventory]] = {
     for {

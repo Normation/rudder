@@ -37,10 +37,9 @@
 
 package com.normation.rudder.rest
 
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.NodeInventory
-import com.normation.inventory.domain.NodeSummary
-import com.normation.rudder.NodeDetails
+import com.normation.GitVersion.Revision
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.zio._
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
@@ -49,7 +48,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-import zio.syntax._
 
 // test that the "+" in path is correctly kept as a "+", not changed into " "
 // See: https://issues.rudder.io/issues/20943
@@ -62,30 +60,20 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
-  val env    = RestTestSetUp.newEnv
+  val env  = RestTestSetUp.newEnv
   import com.softwaremill.quicklens._
-  val myNode = env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
-  override def beforeAll(): Unit = {
-    val inventory = NodeInventory(
-      NodeSummary(
-        myNode.id,
-        AcceptedInventory,
-        "root",
-        myNode.hostname,
-        myNode.osDetails,
-        myNode.policyServerId,
-        myNode.keyStatus
-      )
-    )
-    val details   = NodeDetails(myNode, inventory, None)
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes + (myNode.id -> details)).succeed))
-  }
-
-  override def afterAll(): Unit = {
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes - (myNode.id)).succeed))
-  }
-
+  val rule = env.mockRules.ruleRepo
+    .get(RuleId(RuleUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")))
+    .runNow
+    .modify(_.id.rev)
+    .setTo(Revision("gitrevision"))
   val test = new RestTest(env.liftRules)
+
+  override def beforeAll(): Unit = {
+    ZioRuntime.unsafeRun(env.mockRules.ruleRepo.rulesMap.update(_ + (rule.id -> rule)))
+  }
+
+  override def afterAll(): Unit = {}
 
   sequential
 
@@ -94,16 +82,27 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
   "A plus in the path part of the url should be kept as a plus" >> {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
     mockReq.method = "GET"
-    mockReq.path = "/api/latest/nodes/my+node" // should be kept
-    mockReq.queryString = "include=minimal"
+    mockReq.path = "/api/latest/rules/ff44fb97-b65e-43c4-b8c2-0df8d5e8549f+gitrevision" // should be kept
     mockReq.body = ""
     mockReq.headers = Map()
     mockReq.contentType = "text/plain"
 
-    // authorize space in response formating
+    // authorize space in response formatting
     val expected = {
-      """{"action":"nodeDetails","id":"my+node","result":"success","data":""" +
-      """{"nodes":[{"id":"my+node","hostname":"my+node.rudder.local","status":"accepted"}]}}"""
+      """{"action":"ruleDetails","id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f+gitrevision",
+        |"result":"success","data":{"rules":[{
+        |"id":"ff44fb97-b65e-43c4-b8c2-0df8d5e8549f+gitrevision",
+        |"displayName":"60-rule-technique-std-lib",
+        |"categoryId":"rootRuleCategory",
+        |"shortDescription":"default rule",
+        |"longDescription":"",
+        |"directives":["16617aa8-1f02-4e4a-87b6-d0bcdfb4019f","99f4ef91-537b-4e03-97bc-e65b447514cc",
+        |"e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
+        |"targets":["special:all"],
+        |"enabled":true,"system":false,"tags":[],"policyMode":"enforce",
+        |"status":{"value":"Partially applied",
+        |"details":"Directive 'directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f' disabled, Directive 'directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9' disabled"
+        |}}]}}""".stripMargin.replaceAll("\n", "")
     }
 
     test.execRequestResponse(mockReq)(response => {

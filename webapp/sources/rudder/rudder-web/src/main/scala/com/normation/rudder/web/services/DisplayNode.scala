@@ -52,6 +52,8 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
 import com.normation.rudder.services.reports.Pending
@@ -91,7 +93,7 @@ import scala.xml.Utility.escape
  */
 object DisplayNode extends Loggable {
 
-  private[this] val getSoftwareService    = RudderConfig.readOnlySoftwareDAO
+  private[this] val nodeFactRepository    = RudderConfig.nodeFactRepository
   private[this] val removeNodeService     = RudderConfig.removeNodeService
   private[this] val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
@@ -145,9 +147,10 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def loadSoftware(jsId: JsNodeId, softIds: Seq[SoftwareUuid])(nodeId: String): JsCmd = {
+  private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
+    implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
     (for {
-      seq       <- getSoftwareService.getSoftware(softIds)
+      seq       <- nodeFactRepository.slowGet(NodeId(nodeId)).map(_.toList.flatMap(_.software.map(_.toSoftware)))
       gridDataId = htmlId(jsId, "soft_grid_data_")
       gridId     = "soft"
     } yield SetExp(
@@ -288,7 +291,7 @@ object DisplayNode extends Loggable {
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
         $$("#${softPanelId}").click(function() {
-            ${SHtml.ajaxCall(JsRaw("'" + nodeId.value + "'"), loadSoftware(jsId, softIds))._2.toJsCmd}
+            ${SHtml.ajaxCall(JsRaw("'" + nodeId.value + "'"), loadSoftware(jsId))._2.toJsCmd}
         });
         """)
     )
@@ -681,9 +684,9 @@ object DisplayNode extends Loggable {
       case None          => NodeSeq.Empty
       case Some(machine) => (
         machine.machineType match {
+          case UnknownMachineType         => Text("Unknown machine type")
           case PhysicalMachineType        => Text("Physical machine")
           case VirtualMachineType(vmType) => Text("Virtual machine (%s)".format(S.?("vm.type." + vmType.name)))
-          case UnknownMachineType         => Text("Unknown machine type")
         }
       )
     }
@@ -1145,12 +1148,18 @@ object DisplayNode extends Loggable {
   }
 
   private[this] def removeNode(node: NodeSummary): JsCmd = {
-    val modId = ModificationId(uuidGen.newUuid)
-    removeNodeService
-      .removeNodePure(node.id, DeleteMode.Erase, modId, CurrentUser.actor) // only erase for Rudder 8.0
-      .toBox match {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      CurrentUser.actor,
+      DateTime.now(),
+      None,
+      S.request.map(_.remoteAddr).toOption
+    )
+
+    // only erase for Rudder 8.0
+    removeNodeService.removeNodePure(node.id, DeleteMode.Erase).toBox match {
       case Full(_) =>
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         onSuccess(node)
       case eb: EmptyBox =>
         val message = s"There was an error while deleting node '${node.hostname}' [${node.id.value}]"

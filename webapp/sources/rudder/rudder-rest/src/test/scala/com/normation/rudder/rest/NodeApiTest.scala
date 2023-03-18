@@ -84,13 +84,13 @@ class NodeApiTest extends Specification with Loggable {
         resp match {
           case Full(JsonResponsePrettify(content, _, _, 200, _)) =>
             val jsonString = compactRender(content)
-            val nodes      = restTestSetUp.mockNodes.nodeInfoService.nodeBase.get.runNow
+            val nodes      = restTestSetUp.mockNodes.nodeFactStorage.nodeFactBase.get.runNow
             val n1         = nodes.get(NodeId(node1)).getOrElse(throw new IllegalArgumentException("error: node1"))
             val n2         = nodes.get(NodeId(node2)).getOrElse(throw new IllegalArgumentException("error: node2"))
 
             (jsonString must beEqualTo(jsonRes)) and
-            (n1.nInv.main.status must beEqualTo(PendingInventory)) and
-            (n2.nInv.main.status must beEqualTo(AcceptedInventory))
+            (n1.rudderSettings.status must beEqualTo(PendingInventory)) and
+            (n2.rudderSettings.status must beEqualTo(AcceptedInventory))
 
           case _ => ko("unexpected answer")
         }

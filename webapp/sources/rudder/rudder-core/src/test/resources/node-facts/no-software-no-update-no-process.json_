@@ -1,0 +1,340 @@
+{
+    "id" : "2d3a43bc-8508-46a2-92d7-cfe7320309a5",
+    "hostname" : "no-software-no-update",
+    "os" : {
+      "type" : "Linux",
+      "name" : "Ubuntu",
+      "version" : "22.04",
+      "fullName" : "Ubuntu 22.04 LTS",
+      "kernelVersion" : "5.15.0-41-generic"
+    },
+    "rudderSettings" : {
+      "keyStatus" : "certified",
+      "reportingConfiguration" : {
+
+      },
+      "kind" : "node",
+      "status" : "pending",
+      "state" : "enabled",
+      "policyMode" : "default",
+      "policyServerId" : "root"
+    },
+    "rudderAgent" : {
+      "type" : "cfengine-community",
+      "user" : "root",
+      "version" : "7.2.0~rc1-ubuntu22.04",
+      "securityToken" : {
+        "kind" : "certificate",
+        "token" : "-----BEGIN CERTIFICATE-----\nMIIFqzCCA5OgAwIBAgIULhYaqmQZGDMab0FnySgkA3tCWpgwDQYJKoZIhvcNAQEL\nBQAwNjE0MDIGCgmSJomT8ixkAQEMJDRkM2E0M2JjLTg1MDgtNDZhMi05MmQ3LWNm\nZTczMjAzMDlhNTAeFw0yMjA5MDcwODUyNDdaFw0zMjA5MDQwODUyNDdaMDYxNDAy\nBgoJkiaJk/IsZAEBDCQ0ZDNhNDNiYy04NTA4LTQ2YTItOTJkNy1jZmU3MzIwMzA5\nYTUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDD7/K+BfMAT4pwJf03\nHH9nTBXdDyibg4wbSy0zjiUrQ2Ri5tiwCsfUQtpkeHl3a643FBmHKE2oDvKOvFFV\nrBJWqtJBydVMwhBlDuDXR0WV9fPyIizIcAX/LBt1yPRSrtBkWQZ2IAN/lCADmtEe\ngkVyLiVcp/msMAdwm0QkDvB1o+g3USq0DFbwkQyopvTsYfGgcW/Rn9ifCyxq2rKe\nF+zbUIF7AK5dPjXyDFEEo80WUAZEkn3hQrEKYOCXkEiRLI6+KCArnv9jRop92dCg\nTjGIoMLtAQYb+txytf8/4oQDpCdEENvRJqQ2SVB1K1dtvLPXe7jQ2vK9/chtmFut\ndirZCOBRtbRV0eAZ7te4K0RC5L0R2EI7uowmhE5a8xwmWGH1U7BMVKR9B76iPdR3\nK9fXiPRUEBvs2N/06OBviY18VSR5k4sp9sEifAq3kgP/kvVKTA1dNavoB1gDH8KS\n+0Nnp9nA+AxMLyU5PFFvwSfgYZjp+sbDlFPrOgryVK0BLfGNdm27xftKW8yyzNPM\nbRirrnIngvh8wPHjDxC02/SJ7Pikx0ffOV09ee+Ik4dTbqj+bHy/z8rp0aAtLbZV\nNIGqvzCaByWWJhmYZ3FFwHo3LXUeonljQOYVl8kSEQkcE8b5X657fG3RTrLUE6DK\nobsJcr7JUwijGcB+tADQ+gngtQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD\nVR0OBBYEFChVcwIhgIr5vgRy8T8ol3MktitiMHEGA1UdIwRqMGiAFChVcwIhgIr5\nvgRy8T8ol3MktitioTqkODA2MTQwMgYKCZImiZPyLGQBAQwkNGQzYTQzYmMtODUw\nOC00NmEyLTkyZDctY2ZlNzMyMDMwOWE1ghQuFhqqZBkYMxpvQWfJKCQDe0JamDAL\nBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAEzLJFdRib1gHQ3ZFU6YCeEX\nUYd8DBRAnPUdjSi/6+Qz9KhQdo5F+vngAdqWFggL2lv1yaahLKTYSdxibBpzX9ee\nH8mP+Gxt0su0xoAtuwkzvfg3G6BTtAXorVgsEfya3re3eShOuvXprzqi7Xsnbv9a\nUzJX4FCJJAXA+Qd/frzpw33cSa8M4SHn7xTo3c9ZgOs1zJ4BepFz/2MpKYY9RSfU\nDpeksnS+ij1BUcrScitwCVvmh0nFXIMWcnUREqxkRAPY1ln1ExAaSmYA0SKsUhoJ\nGx08WfzprwunlzZCA91gmNW+1WjMFr9Nonp6SlMXH0ZrBm+K+zNm6+aAnZdN2ttG\nPmmqotUbbCG737HY8VxE27rgZ8SYidprqvuPtz4WaQPg+4JPeCzOqLWfcX3nfmJM\nkO7nfL0DCqDaZgW+O3FCSFfXnb8TQnMgJZlnakI/w+mzx26YkxtZ2xgWi7yLyBk6\nJDeC5KwgyP+nJpgSOIwGNf4ZaOEYtg3DeFjXmFi5N4Vtq98819cTp3QL+RZG4cVs\nDwFR0T3KjB6QWcvSB2QpQUvdOITtUsACP/zk73y7RwZVQT0DHVWVw6eHhGH6LpKI\nY8skyhHnHUjG1A9eOvk4ZQGPedL9cG0af7TzmaUwFg5fGN594lv79o7iGT1srNBp\n2A/Eff5z/oWypwrLbjiI\n-----END CERTIFICATE-----"
+      },
+      "capabilities" : [
+        "jq",
+        "yaml",
+        "cfengine",
+        "curl",
+        "acl",
+        "xml",
+        "http_reporting"
+      ]
+    },
+    "properties" : [
+      {
+        "name" : "rudder_original_hostname",
+        "value" : "node1.rudder.local",
+        "provider" : "inventory"
+      },
+      {
+        "name" : "rudder_override_hostname",
+        "value" : "node1-overridden.rudder.local.override",
+        "provider" : "inventory"
+      }
+    ],
+    "lastInventoryDate" : "2022-09-07T17:56:55Z",
+    "inventoryReceivedDate" : "2022-09-07T17:56:55Z",
+    "ipAddresses" : [
+      "192.168.32.4",
+      "0:0:0:0:0:0:0:1",
+      "127.0.0.1",
+      "fe80:0:0:0:a00:27ff:fe94:72e8",
+      "fe80:0:0:0:e5:1bff:fe70:f463",
+      "10.0.2.15"
+    ],
+    "timezone" : {
+      "name" : "UTC",
+      "offset" : "+0000"
+    },
+    "machine" : {
+      "id" : "a9445c97-2640-5736-961f-514e9a34940a",
+      "provider" : "vbox",
+      "systemSerial" : "28eba2ed-b589-ec45-bae4-d33155c8288d",
+      "manufacturer" : "innotek GmbH"
+    },
+    "ram" : 489684992,
+    "archDescription" : "x86_64",
+    "accounts" : [
+      "_apt",
+      "backup",
+      "bin",
+      "daemon",
+      "games",
+      "gnats",
+      "irc",
+      "landscape",
+      "list",
+      "lp",
+      "lxd",
+      "mail",
+      "man",
+      "messagebus",
+      "news",
+      "nobody",
+      "pollinate",
+      "proxy",
+      "root",
+      "sshd",
+      "sync",
+      "sys",
+      "syslog",
+      "systemd-network",
+      "systemd-resolve",
+      "systemd-timesync",
+      "tcpdump",
+      "tss",
+      "ubuntu",
+      "uucp",
+      "uuidd",
+      "vagrant",
+      "www-data"
+    ],
+    "bios" : [
+      {
+        "name" : "VirtualBox",
+        "version" : "VirtualBox",
+        "editor" : "innotek GmbH",
+        "releaseDate" : "2006-11-30T23:00:00Z",
+        "quantity" : 1
+      }
+    ],
+    "controllers" : [
+      {
+        "name" : "440FX - 82441FX PMC [Natoma]",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Host bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "53c1030 PCI-X Fusion-MPT Dual Ultra320 SCSI",
+        "manufacturer" : "LSI Logic / Symbios Logic",
+        "cType" : "SCSI storage controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371AB/EB/MB PIIX4 ACPI",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371AB/EB/MB PIIX4 IDE",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "IDE interface",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371SB PIIX3 ISA [Natoma/Triton II]",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "ISA bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "82540EM Gigabit Ethernet Controller",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Ethernet controller",
+        "quantity" : 2
+      },
+      {
+        "name" : "82801AA AC'97 Audio Controller",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Multimedia audio controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "VirtualBox Graphics Adapter",
+        "manufacturer" : "InnoTek Systemberatung GmbH",
+        "cType" : "VGA compatible controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "VirtualBox Guest Service",
+        "manufacturer" : "InnoTek Systemberatung GmbH",
+        "cType" : "System peripheral",
+        "quantity" : 1
+      }
+    ],
+    "customProperties" : [
+      {
+        "name" : "rudder_original_hostname",
+        "value" : "node1.rudder.local"
+      },
+      {
+        "name" : "rudder_override_hostname",
+        "value" : "node1-overridden.rudder.local.override"
+      }
+    ],
+    "environmentVariables" : [
+      ["BASEDIR", "/opt/rudder/share/commands"],
+      ["DEBIAN_FRONTEND", "noninteractive"],
+      ["HOME", "/root"],
+      ["LESSCLOSE", "/usr/bin/lesspipe %s %s"],
+      ["LESSOPEN", "| /usr/bin/lesspipe %s"],
+      ["LOGNAME", "root"],
+      ["LS_COLORS", "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:"],
+      ["MAIL", "/var/mail/root"],
+      ["PATH", "/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/usr/sbin:/sbin:/usr/sbin"],
+      ["PWD", "/var/rudder"],
+      ["RUDDER_BIN", "/usr/bin/rudder"],
+      ["SHELL", "/bin/bash"],
+      ["SHLVL", "1"],
+      ["SUDO_COMMAND", "/usr/bin/su"],
+      ["SUDO_GID", "1000"],
+      ["SUDO_UID", "1000"],
+      ["SUDO_USER", "vagrant"],
+      ["TERM", "xterm"],
+      ["USER", "root"],
+      ["_", "/usr/bin/rudder"]
+    ],
+    "fileSystems" : [
+      {
+        "mountPoint" : "/",
+        "name" : "ext4",
+        "freeSpace" : 39669727232,
+        "totalSpace" : 41555066880
+      },
+      {
+        "mountPoint" : "/vagrant",
+        "name" : "vboxsf",
+        "freeSpace" : 91722088448,
+        "totalSpace" : 397236240384
+      }
+    ],
+    "inputs" : [],
+    "localGroups" : [],
+    "localUsers" : [],
+    "logicalVolumes" : [],
+    "memories" : [],
+    "networks" : [
+      {
+        "name" : "enp0s3",
+        "ifAddresses" : [
+          "fe80:0:0:0:e5:1bff:fe70:f463",
+          "10.0.2.15"
+        ],
+        "ifGateway" : [
+          "10.0.2.2"
+        ],
+        "ifMask" : [
+          "ffff:ffff:ffff:ffff:0:0:0:0",
+          "255.255.255.0"
+        ],
+        "ifSubnet" : [
+          "fe80:0:0:0:0:0:0:0",
+          "10.0.2.0"
+        ],
+        "macAddress" : "02:e5:1b:70:f4:63",
+        "status" : "Up",
+        "ifType" : "ethernet",
+        "speed" : "1000"
+      },
+      {
+        "name" : "enp0s8",
+        "ifAddresses" : [
+          "fe80:0:0:0:a00:27ff:fe94:72e8",
+          "192.168.32.4"
+        ],
+        "ifGateway" : [],
+        "ifMask" : [
+          "ffff:ffff:ffff:ffff:0:0:0:0",
+          "255.255.255.0"
+        ],
+        "ifSubnet" : [
+          "fe80:0:0:0:0:0:0:0",
+          "192.168.32.0"
+        ],
+        "macAddress" : "08:00:27:94:72:e8",
+        "status" : "Up",
+        "ifType" : "ethernet",
+        "speed" : "1000"
+      },
+      {
+        "name" : "lo",
+        "ifAddresses" : [
+          "0:0:0:0:0:0:0:1",
+          "127.0.0.1"
+        ],
+        "ifGateway" : [],
+        "ifMask" : [
+          "fff0:0:0:0:0:0:0:0",
+          "255.0.0.0"
+        ],
+        "ifSubnet" : [
+          "0:0:0:0:0:0:0:0",
+          "127.0.0.0"
+        ],
+        "macAddress" : "00:00:00:00:00:00",
+        "status" : "Up",
+        "ifType" : "loopback"
+      }
+    ],
+    "physicalVolumes" : [],
+    "ports" : [],
+    "processes" : [],
+    "processors" : [
+      {
+        "manufacturer" : "Intel",
+        "name" : "Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz",
+        "arch" : "i386",
+        "speed" : 2800,
+        "core" : 1,
+        "thread" : 1,
+        "stepping" : 9,
+        "family" : 6,
+        "model" : 158,
+        "quantity" : 1
+      }
+    ],
+    "slots" : [],
+    "software" : [],
+    "softwareUpdate" : [],
+    "sounds" : [
+      {
+        "name" : "Multimedia audio controller - Intel Corporation 82801AA AC'97 Audio Controller",
+        "description" : "rev 01",
+        "quantity" : 1
+      }
+    ],
+    "storages" : [
+      {
+        "name" : "sda",
+        "description" : "SCSI",
+        "size" : 45035290624,
+        "firmware" : "10",
+        "manufacturer" : "VBOX",
+        "model" : "HARDDISK",
+        "serialNumber" : "a23d4170",
+        "sType" : "disk",
+        "quantity" : 1
+      },
+      {
+        "name" : "sdb",
+        "description" : "SCSI",
+        "size" : 10485760,
+        "firmware" : "10",
+        "manufacturer" : "VBOX",
+        "model" : "HARDDISK",
+        "sType" : "disk",
+        "quantity" : 1
+      }
+    ],
+    "videos" : [],
+    "vms" : []
+}

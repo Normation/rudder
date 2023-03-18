@@ -136,7 +136,7 @@ object PendingHistoryGrid extends Loggable {
       ("tr [jsuuid]" #> jsuuid &
       "tr [serveruuid]" #> details.nodeId.value &
       "tr [kind]" #> status.toLowerCase &
-      "tr [inventory]" #> details.inventoryVersion.toString() &
+      "tr [inventory]" #> DateFormaterService.serialize(event.creationDate) &
       ".date *" #> DateFormaterService.getDisplayDate(event.creationDate) &
       ".name *" #> details.hostname &
       ".os *" #> details.fullOsName &
@@ -220,9 +220,9 @@ object PendingHistoryGrid extends Loggable {
       val version      = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
       val isAcceptLine = arr(3) == "accepted"
       history.get(id, version).toBox match {
-        case Failure(m, _, _) => Alert("Error while trying to display node history. Error message:" + m)
-        case Empty            => Alert("No history was retrieved for the chosen date")
-        case Full(sm)         =>
+        case Failure(m, _, _)   => Alert("Error while trying to display node history. Error message:" + m)
+        case Empty | Full(None) => Alert("No history was retrieved for the chosen date")
+        case Full(Some(sm))     =>
           SetHtml(
             jsuuid,
             (if (isAcceptLine)

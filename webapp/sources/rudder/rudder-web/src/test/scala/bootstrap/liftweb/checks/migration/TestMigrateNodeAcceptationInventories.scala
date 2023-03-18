@@ -185,11 +185,20 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       } yield files.toSeq.map(f => NodeId(f.name))
     }
 
-    override def get(id: NodeId, version: DateTime): IOResult[FactLog] = {
-      for {
-        json <- IOResult.attempt(s"Read json for ${id.value}}")(factFile(id, version).contentAsString)
-        fact <- json.fromJson[NodeFact].toIO
-      } yield FactLog(id, version, FactLogData(fact, EventActor("rudder-migration"), AcceptedInventory))
+    override def get(id: NodeId, version: DateTime): IOResult[Option[FactLog]] = {
+      val file = factFile(id, version)
+      ZIO
+        .whenZIO(IOResult.attempt(file.exists)) {
+          IOResult.attempt(s"Read json for ${id.value}}")(file.contentAsString)
+        }
+        .flatMap {
+          case Some(json) =>
+            for {
+              fact <- json.fromJson[NodeFact].toIO
+            } yield Some(FactLog(id, version, FactLogData(fact, EventActor("rudder-migration"), AcceptedInventory)))
+          case None       =>
+            None.succeed
+        }
     }
 
     override def versions(id: NodeId): IOResult[Seq[DateTime]] = {
@@ -254,7 +263,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     }
     override def getNodeInfos(nodeIds: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
     override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
-    override def getNumberOfManagedNodes:               Int                             = ???
+    override def getNumberOfManagedNodes:               IOResult[Int]                   = ???
     override def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
     override def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
     override def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???

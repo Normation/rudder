@@ -31,7 +31,7 @@ trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
    * @param historyLog
    * @return
    */
-  def save(id: ID, data: T, datetime: DateTime = DateTime.now): IOResult[HLog]
+  def save(id: ID, data: T, datetime: DateTime): IOResult[HLog]
 
 }
 
@@ -50,7 +50,7 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
    *     recorded history
    *   Full(hlog) the recorded version of hlog
    */
-  def get(id: ID, version: V): IOResult[HLog]
+  def get(id: ID, version: V): IOResult[Option[HLog]]
 
   /**
    * Return the list of version for ID.

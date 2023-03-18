@@ -42,9 +42,11 @@ import com.normation.box._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PendingInventory
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.rudder.web.services.CurrentUser
@@ -60,6 +62,7 @@ import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import scala.xml._
+import zio.stream.ZSink
 
 /**
  * Check for server in the pending repository and propose to
@@ -68,10 +71,10 @@ import scala.xml._
  */
 class AcceptNode extends Loggable {
 
-  val newNodeManager       = RudderConfig.newNodeManager
-  val rudderDit            = RudderConfig.rudderDit
-  val serverGrid           = RudderConfig.nodeGrid
-  val serverSummaryService = RudderConfig.nodeSummaryService
+  val newNodeManager     = RudderConfig.newNodeManager
+  val rudderDit          = RudderConfig.rudderDit
+  val serverGrid         = RudderConfig.nodeGrid
+  val nodeFactRepository = RudderConfig.nodeFactRepository
 
   val historyRepos     = RudderConfig.inventoryHistoryJdbcRepository
   val logRepository    = RudderConfig.eventLogRepository
@@ -113,7 +116,7 @@ class AcceptNode extends Loggable {
 
   def list(html: NodeSeq): NodeSeq = {
 
-    newNodeManager.listNewNodes match {
+    newNodeManager.listNewNodes.toBox match {
       case Empty                => <div>Error, no server found</div>
       case f @ Failure(_, _, _) => <div>Error while retrieving pending nodes list</div>
       case Full(seq)            => display(html, seq)
@@ -141,8 +144,18 @@ class AcceptNode extends Loggable {
     // TODO : manage error message
     S.clearCurrentNotices
     listNode.foreach { id =>
+      implicit val cc: ChangeContext = {
+        ChangeContext(
+          modId,
+          CurrentUser.actor,
+          DateTime.now(),
+          None,
+          S.request.map(_.remoteAddr).toOption
+        )
+      }
       val now    = System.currentTimeMillis
-      val accept = newNodeManager.accept(id, modId, CurrentUser.actor)
+      val accept =
+        newNodeManager.accept(id).toBox
       if (TimingDebugLogger.isDebugEnabled) {
         TimingDebugLogger.debug(s"Accepting node ${id.value}: ${System.currentTimeMillis - now}ms")
       }
@@ -168,7 +181,9 @@ class AcceptNode extends Loggable {
     S.clearCurrentNotices
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
-      newNodeManager.refuse(id, modId, CurrentUser.actor) match {
+      newNodeManager
+        .refuse(id)(ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, S.request.map(_.remoteAddr).toOption))
+        .toBox match {
         case e: EmptyBox =>
           logger.error(s"Refuse node '${id.value}' lead to Failure.", e)
           S.error(<span class="error">Error while refusing node(s).</span>)
@@ -233,7 +248,11 @@ class AcceptNode extends Loggable {
       "#server_os *" #> srv.osFullName)(serverLine)
     }
 
-    serverSummaryService.find(PendingInventory, listNode: _*) match {
+    nodeFactRepository
+      .getAll()(SelectNodeStatus.Pending)
+      .collect { case n if (listNode.contains(n.id)) => n.toSrv }
+      .run(ZSink.collectAll)
+      .toBox match {
       case Full(servers) =>
         val lines: NodeSeq = servers.flatMap(displayServerLine)
         ("#server_lines" #> lines).apply(
@@ -295,10 +314,10 @@ class AcceptNode extends Loggable {
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")"""))
   }
 
-  def display(html: NodeSeq, nodes: Seq[Srv]): NodeSeq = {
+  def display(html: NodeSeq, nodes: Seq[CoreNodeFact]): NodeSeq = {
     val servers = {
       serverGrid.displayAndInit(
-        nodes,
+        nodes.map(_.toSrv),
         "acceptNodeGrid",
         Seq(
           (Text("Since"), { e => Text(DateFormaterService.getDisplayDate(e.creationDate)) }),

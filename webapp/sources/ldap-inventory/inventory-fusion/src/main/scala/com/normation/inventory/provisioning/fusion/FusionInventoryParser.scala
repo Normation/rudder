@@ -492,6 +492,8 @@ class FusionInventoryParser(
           .setTo(NodeId(policyServerId))
           .modify(_.node.main.id)
           .setTo(NodeId(uuid))
+          .modify(_.machine.id.value)
+          .setTo(IdGenerator.md5Hash(uuid))
           .modify(_.node.agents)
           .setTo(agents.map(_._1.copy(capabilities = capabilities)))
           .modify(_.node.customProperties)

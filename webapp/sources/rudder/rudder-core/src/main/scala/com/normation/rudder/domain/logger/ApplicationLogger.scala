@@ -147,6 +147,14 @@ object NodeLoggerPure extends NamedZioLogger { parent =>
     def loggerName: String = parent.loggerName + ".cache"
   }
 
+  object Metrics extends NamedZioLogger {
+    def loggerName: String = parent.loggerName + ".metrics"
+  }
+
+  object Details extends NamedZioLogger {
+    def loggerName: String = parent.loggerName + ".details"
+  }
+
   object PendingNode extends NamedZioLogger {
     // the logger for information about pending nodes (accept/refuse)
     def loggerName: String = parent.loggerName + ".pending"
@@ -228,8 +236,12 @@ object ReportLogger extends Logger {
   }
 }
 
-object FactQueryProcessorPure extends NamedZioLogger {
+object FactQueryProcessorLoggerPure extends NamedZioLogger {
   override def loggerName: String = "query.node-fact"
+
+  object Metrics extends NamedZioLogger {
+    override def loggerName: String = FactQueryProcessorLoggerPure.loggerName + ".metrics"
+  }
 }
 
 object ReportLoggerPure extends NamedZioLogger {

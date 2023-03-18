@@ -118,7 +118,7 @@ class InventoryHistoryJdbcRepository(
    * Save an inventory and return the ID of the saved inventory, and
    * its version
    */
-  override def save(id: NodeId, data: FactLogData, datetime: DateTime = DateTime.now): IOResult[FactLog] = {
+  override def save(id: NodeId, data: FactLogData, datetime: DateTime): IOResult[FactLog] = {
     val event = NodeAcceptRefuseEvent(datetime, data.actor.name, data.status.name)
     val q     = sql"""insert into nodefacts (nodeId, acceptRefuseEvent, acceptRefuseFact) values (${id}, ${event}, ${data.fact})
                   on conflict (nodeId) do update set (acceptRefuseEvent, acceptRefuseFact) = (EXCLUDED.acceptRefuseEvent, EXCLUDED.acceptRefuseFact)"""
@@ -141,13 +141,13 @@ class InventoryHistoryJdbcRepository(
   /**
    * Get the record for the given UUID and version.
    */
-  override def get(id: NodeId, version: DateTime): IOResult[FactLog] = {
+  override def get(id: NodeId, version: DateTime): IOResult[Option[FactLog]] = {
     val q = {
       sql"select nodeId, acceptRefuseEvent, acceptRefuseFact from nodefacts where nodeId = ${id.value} and acceptRefuseEvent ->>'date' = ${DateFormaterService
           .serialize(version)}"
     }
 
-    transactIOResult(s"error when getting node '${id.value}' accept/refuse fact")(xa => q.query[FactLog].unique.transact(xa))
+    transactIOResult(s"error when getting node '${id.value}' accept/refuse fact")(xa => q.query[FactLog].option.transact(xa))
   }
 
   /**

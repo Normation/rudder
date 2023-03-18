@@ -151,15 +151,14 @@ class FileHistoryLogRepository[ID: ClassTag, T](
   }
 
   /**
-   * Get the list of record for the given UUID and version.
-   * If no version is specified, get the last.
+   * Get the record for the given UUID and version if exists
    */
-  def get(id: ID, version: DateTime): IOResult[HLog] = {
+  def get(id: ID, version: DateTime): IOResult[Option[HLog]] = {
     for {
       i    <- idDir(id)
       file <- ZIO.succeed(new File(i, vToS(version)))
-      data <- parser.fromFile(file)
-    } yield DefaultHLog(id, version, data)
+      data <- ZIO.whenZIO(IOResult.attempt(file.exists()))(parser.fromFile(file))
+    } yield data.map(d => DefaultHLog(id, version, d))
   }
 
   // we don't want to catch exception here

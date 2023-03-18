@@ -38,7 +38,6 @@ package com.normation.rudder.services.queries
 
 import cats.implicits._
 import com.normation.NamedZioLogger
-import com.normation.box._
 import com.normation.errors._
 import com.normation.errors.RudderError
 import com.normation.inventory.domain._
@@ -53,13 +52,10 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.nodes.NodeInfoServiceCached
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import java.util.regex.Pattern
-import net.liftweb.common._
-import net.liftweb.util.Helpers
 import org.slf4j.LoggerFactory
 import zio.{System => _, _}
 import zio.syntax._
@@ -132,79 +128,6 @@ object DefaultRequestLimits extends RequestLimits(0, 0, 0, 0)
 
 object InternalLDAPQueryProcessorLoggerPure extends NamedZioLogger {
   override def loggerName: String = "com.normation.rudder.services.queries.InternalLDAPQueryProcessor"
-}
-
-/**
- * Processor that translates Queries into LDAP search operations
- * for accepted nodes (it also checks that the node is registered
- * in the ou=Nodes branch)
- */
-class AcceptedNodesLDAPQueryProcessor(
-    nodeDit:         NodeDit,
-    inventoryDit:    InventoryDit,
-    processor:       InternalLDAPQueryProcessor,
-    nodeInfoService: NodeInfoServiceCached
-) extends QueryProcessor with Loggable {
-
-  private[this] case class QueryResult(
-      nodeEntry:      LDAPEntry,
-      inventoryEntry: LDAPEntry,
-      machineInfo:    Option[LDAPEntry]
-  )
-
-  /**
-   * only report entries that match query in also in node
-   * @param query
-   * @param select
-   * @param limitToNodeIds
-   * @return
-   */
-  private[this] def queryAndChekNodeId(
-      query:          Query,
-      select:         Seq[String],
-      limitToNodeIds: Option[Seq[NodeId]]
-  ): Box[Seq[NodeId]] = {
-
-    val debugId        = if (logger.isDebugEnabled) Helpers.nextNum else 0L
-    val timePreCompute = System.currentTimeMillis
-
-    for {
-      foundNodes <-
-        processor.internalQueryProcessor(query, select, limitToNodeIds, debugId, () => nodeInfoService.getAllNodeInfos()).toBox
-      timeres     = (System.currentTimeMillis - timePreCompute)
-      _           = logger.debug(s"LDAP result: ${foundNodes.size} entries obtained in ${timeres}ms for query ${query.toString}")
-    } yield {
-      // filter out Rudder server component if necessary
-      query.returnType match {
-        case NodeReturnType              =>
-          // we have a special case for the root node that always never to that group, even if some weird
-          // scenario lead to the removal (or non addition) of them
-          val withoutServerRole = foundNodes.filterNot(_.value == "root")
-          if (logger.isDebugEnabled) {
-            val filtered = foundNodes.filter(_.value == "root")
-            if (!filtered.isEmpty) {
-              logger.debug(
-                "[%s] [post-filter:policyServer] %s results: %s".format(debugId, withoutServerRole.size, filtered.mkString(", "))
-              )
-            }
-          }
-          withoutServerRole
-        case NodeAndRootServerReturnType => foundNodes
-      }
-    }
-  }
-
-  override def process(query: Query): Box[Seq[NodeId]] = {
-
-    // only keep the one of the form Full(...)
-    queryAndChekNodeId(query, Seq(A_NODE_UUID), None)
-  }
-
-  override def processOnlyId(query: Query): Box[Seq[NodeId]] = {
-    // only keep the one of the form Full(...)
-    queryAndChekNodeId(query, Seq(A_NODE_UUID), None)
-  }
-
 }
 
 /**
@@ -391,13 +314,138 @@ class InternalLDAPQueryProcessor(
      * We have to make separated requests for special filter,
      * and we need to have one by filter. So these one are in separated requests.
      *
+     * => getMapDn
      */
-    def ldapObjectTypeSets(normalizedQuery: LDAPNodeQuery) = createLDAPObjects(normalizedQuery, debugId)
 
+    for {
+      // log start query
+      _             <- logPure.debug(s"[${debugId}] Start search for ${query.toString}")
+      timeStart     <- currentTimeMillis
+      // Construct & normalize the data
+      nq            <- normalizedQuery
+      // special case: no query, but we create a dummy one,
+      // identified by noFilterButTakeAllFromCache = true
+      // in this case, we skip all the ldap part
+      optdms        <- if (nq.noFilterButTakeAllFromCache) {
+                         None.succeed
+                       } else {
+                         getMapDn(nq, debugId)
+                       }
+
+      // Fetching all node infos if necessary
+      // This is an optimisation procedue, as it is a bit costly to fetch it, so we want to
+      // have it only if the query is an OR, and Invertion, or and AND and there ae
+      // no LDAP criteria
+      allNodesInfos <- query.composition match {
+                         case Or                                                    => lambdaAllNodeInfos()
+                         case And if nq.noFilterButTakeAllFromCache                 => lambdaAllNodeInfos()
+                         case And if query.transform == ResultTransformation.Invert => lambdaAllNodeInfos()
+                         case And if optdms.isDefined                               => lambdaAllNodeInfos()
+
+                         case _ => Seq[NodeInfo]().succeed
+                       }
+      timefetch     <- currentTimeMillis
+      _             <-
+        logPure.debug(
+          s"[${debugId}] LDAP result: fetching if necessary all nodesInfos  (${allNodesInfos.size} entries) in nodes obtained in ${timefetch - timeStart} ms for query ${query.toString}."
+        )
+
+      // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
+      // so we skip the last query
+      // It needs to returns a Seq because a Set of NodeInfo is really expensive to compute
+      results       <- optdms match {
+                         case None if nq.noFilterButTakeAllFromCache =>
+                           allNodesInfos.succeed
+                         case None                                   =>
+                           Seq[NodeInfo]().succeed
+                         case Some(dms)                              =>
+                           for {
+                             ids <- executeLdapQueries(dms, nq, select, debugId)
+                             _   <- logPure.trace(
+                                      s"[${debugId}] Found ${ids.size} entries ; filtering with ${allNodesInfos.size} accepted nodes"
+                                    )
+                           } yield {
+                             allNodesInfos.filter(nodeInfo => ids.contains(nodeInfo.node.id))
+                           }
+                       }
+      // No more LDAP query is required here
+      // Do the filtering about non LDAP data here
+      timeldap      <- currentTimeMillis
+      _             <-
+        logPure.debug(
+          s"[${debugId}] LDAP result: ${results.size} entries in nodes obtained in ${timeldap - timeStart} ms for query ${query.toString}"
+        )
+
+      nodeIdFiltered = query.composition match {
+                         case And if results.isEmpty =>
+                           // And and nothing returns nothing
+                           Seq[NodeId]()
+                         case And                    =>
+                           // If i'm doing and AND, there is no need for the allNodes here
+                           PostFilterNodeFromInfoService.getLDAPNodeInfo(results, nq.nodeInfoFilters, query.composition, Seq())
+                         case Or                     =>
+                           // Here we need the list of all nodes
+                           PostFilterNodeFromInfoService.getLDAPNodeInfo(
+                             results,
+                             nq.nodeInfoFilters,
+                             query.composition,
+                             allNodesInfos
+                           )
+                       }
+      timefilter    <- currentTimeMillis
+      _             <-
+        logPure.debug(
+          s"[post-filter:rudderNode] Found ${nodeIdFiltered.size} nodes when filtering for info service existence and properties (${timefilter - timeldap} ms)"
+        )
+      _             <- logPure.ifDebugEnabled {
+                         val filtered = results.map(x => x.node.id.value).diff(nodeIdFiltered.map(x => x.value))
+                         if (filtered.nonEmpty) {
+                           logPure.debug(
+                             s"[${debugId}] [post-filter:rudderNode] ${nodeIdFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered
+                                 .mkString(", ")}"
+                           )
+                         } else {
+                           logPure.debug(
+                             s"[${debugId}] [post-filter:rudderNode] ${nodeIdFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered
+                                 .mkString(", ")}"
+                           )
+
+                         }
+                       }
+
+      inverted     = query.transform match {
+                       case ResultTransformation.Identity => nodeIdFiltered
+                       case ResultTransformation.Invert   =>
+                         logPure.logEffect.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
+                         val res = allNodesInfos.map(_.id).diff(nodeIdFiltered)
+                         logPure.logEffect.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
+                         res
+                     }
+      postFiltered = postFilterNode(inverted, query.returnType, limitToNodeIds)
+    } yield {
+      postFiltered
+    }
+  }
+
+  /*
+   * A raw execution without log, special optimisation case, invert, etc
+   */
+  def rawInternalQueryProcessor(query: Query, debugId: Long = 0L): IOResult[Seq[NodeId]] = {
+    for {
+      nq  <- normalize(query).toIO.chainError("Error when normalizing LDAP query")
+      ids <- getMapDn(nq, debugId).flatMap {
+               case None      => Seq().succeed
+               case Some(dns) => executeLdapQueries(dns, nq, Seq("1.1"), debugId)
+             }
+    } yield ids
+  }
+
+  def getMapDn(nq: LDAPNodeQuery, debugId: Long): IOResult[Option[Map[DnType, Set[DN]]]] = {
     // then, actually execute queries
     def dnMapMapSets(
         normalizedQuery:    LDAPNodeQuery,
-        ldapObjectTypeSets: Map[DnType, Map[String, LDAPObjectType]]
+        ldapObjectTypeSets: Map[DnType, Map[String, LDAPObjectType]],
+        debugId:            Long
     ): IOResult[Map[DnType, Map[String, Set[DN]]]] = {
       ZIO
         .foreach(ldapObjectTypeSets) {
@@ -465,14 +513,30 @@ class InternalLDAPQueryProcessor(
       }
     }
 
+    for {
+      lots <- createLDAPObjects(nq, debugId)
+      dmms <- dnMapMapSets(nq, lots, debugId)
+    } yield {
+      dnMapSets(nq, dmms)
+    }
+  }
+
+  def executeLdapQueries(
+      dms:     Map[DnType, Set[DN]],
+      nq:      LDAPNodeQuery,
+      select:  Seq[String],
+      debugId: Long
+  ): IOResult[Seq[NodeId]] = {
     // transform all the DNs we get to filters for the targeted object type
     // here, we are objectType dependent: we use a mapping that is saying
     // "for that objectType, that dnType is transformed into a filter like that"
     def filterSeqSet(dnMapSets: Map[DnType, Set[DN]]): Seq[Set[Filter]] = {
-      (dnMapSets map {
-        case (dnType, dnMapSet) =>
-          dnMapSet map { dn => nodeJoinFilters(dnType)(dn) }
-      }).toSeq
+      (
+        dnMapSets map {
+          case (dnType, dnMapSet) =>
+            dnMapSet map { dn => nodeJoinFilters(dnType)(dn) }
+        }
+      ).toSeq
     }
 
     // now, build last filter depending on comparator :
@@ -515,148 +579,39 @@ class InternalLDAPQueryProcessor(
       }
     }
 
-    for {
-      // log start query
-      _             <- logPure.debug(s"[${debugId}] Start search for ${query.toString}")
-      timeStart     <- currentTimeMillis
-      // Construct & normalize the data
-      nq            <- normalizedQuery
-      // special case: no query, but we create a dummy one,
-      // identified by noFilterButTakeAllFromCache = true
-      // in this case, we skip all the ldap part
-      optdms        <- {
-        if (nq.noFilterButTakeAllFromCache) {
-          None.succeed
-        } else {
+    (
+      for {
+        // Ok, do the computation here
+        // still rely on LDAP here
+        _   <- logPure.ifTraceEnabled {
+                 ZIO.foreachDiscard(dms) {
+                   case (dnType, dns) =>
+                     logPure.trace(s"/// ${dnType} ==> ${dns.map(_.getRDN).mkString(", ")}")
+                 }
+               }
+        fss  = filterSeqSet(dms)
+        blf <- buildLastFilter(nq, fss)
 
-          for {
-            lots       <- ldapObjectTypeSets(nq)
-            dmms       <- dnMapMapSets(nq, lots)
-            inneroptdms = dnMapSets(nq, dmms)
-          } yield {
-            inneroptdms
-          }
-        }
-      }
+        // for convenience
+        (finalLdapFilter, finalSpecialFilters) = blf
 
-      // Fetching all node infos if necessary
-      // This is an optimisation procedue, as it is a bit costly to fetch it, so we want to
-      // have it only if the query is an OR, and Invertion, or and AND and there ae
-      // no LDAP criteria
-      allNodesInfos <- query.composition match {
-                         case Or                                                    => lambdaAllNodeInfos()
-                         case And if nq.noFilterButTakeAllFromCache                 => lambdaAllNodeInfos()
-                         case And if query.transform == ResultTransformation.Invert => lambdaAllNodeInfos()
-                         case And if optdms.isDefined                               => lambdaAllNodeInfos()
-
-                         case _ => Seq[NodeInfo]().succeed
-                       }
-      timefetch     <- currentTimeMillis
-      _             <-
-        logPure.debug(
-          s"LDAP result: fetching if necessary all nodesInfos  (${allNodesInfos.size} entries) in nodes obtained in ${timefetch - timeStart} ms for query ${query.toString}."
-        )
-
-      // If dnMapSets returns a None, then it means that we are ANDing composition with an empty value
-      // so we skip the last query
-      // It needs to returns a Seq because a Set of NodeInfo is really expensive to compute
-      results       <- optdms match {
-                         case None if nq.noFilterButTakeAllFromCache =>
-                           allNodesInfos.succeed
-                         case None                                   =>
-                           Seq[NodeInfo]().succeed
-                         case Some(dms)                              =>
-                           (for {
-                             // Ok, do the computation here
-                             // still rely on LDAP here
-                             _   <- logPure.ifTraceEnabled {
-                                      ZIO.foreachDiscard(dms) {
-                                        case (dnType, dns) =>
-                                          logPure.trace(s"/// ${dnType} ==> ${dns.map(_.getRDN).mkString(", ")}")
-                                      }
-                                    }
-                             fss  = filterSeqSet(dms)
-                             blf <- buildLastFilter(nq, fss)
-
-                             // for convenience
-                             (finalLdapFilter, finalSpecialFilters) = blf
-
-                             // final query, add "match only server id" filter if needed
-                             rt        = nodeObjectTypes.copy(filter = finalLdapFilter)
-                             _        <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
-                             entries  <- executeQuery(
-                                           rt.baseDn,
-                                           rt.scope,
-                                           nodeObjectTypes.objectFilter,
-                                           rt.filter,
-                                           finalSpecialFilters,
-                                           select.toSet,
-                                           nq.composition,
-                                           debugId
-                                         )
-                             // convert these entries into nodeInfo
-                             nodesId   = entries.flatMap(x => x(A_NODE_UUID)).toSet
-                             nodeInfos = allNodesInfos.filter(nodeInfo => nodesId.contains(nodeInfo.node.id.value))
-                           } yield nodeInfos)
-                             .tapError(err => logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}"))
-                             .tap(seq => logPure.debug(s"[${debugId}] `-> ${seq.size} results"))
-                       }
-      // No more LDAP query is required here
-      // Do the filtering about non LDAP data here
-      timeldap      <- currentTimeMillis
-      _             <- logPure.debug(
-                         s"LDAP result: ${results.size} entries in nodes obtained in ${timeldap - timeStart} ms for query ${query.toString}"
-                       )
-
-      nodeIdFiltered = query.composition match {
-                         case And if results.isEmpty =>
-                           // And and nothing returns nothing
-                           Seq[NodeId]()
-                         case And                    =>
-                           // If i'm doing and AND, there is no need for the allNodes here
-                           PostFilterNodeFromInfoService.getLDAPNodeInfo(results, nq.nodeInfoFilters, query.composition, Seq())
-                         case Or                     =>
-                           // Here we need the list of all nodes
-                           PostFilterNodeFromInfoService.getLDAPNodeInfo(
-                             results,
-                             nq.nodeInfoFilters,
-                             query.composition,
-                             allNodesInfos
-                           )
-                       }
-      timefilter    <- currentTimeMillis
-      _             <-
-        logPure.debug(
-          s"[post-filter:rudderNode] Found ${nodeIdFiltered.size} nodes when filtering for info service existence and properties (${timefilter - timeldap} ms)"
-        )
-      _             <- logPure.ifDebugEnabled {
-                         val filtered = results.map(x => x.node.id.value).diff(nodeIdFiltered.map(x => x.value))
-                         if (filtered.nonEmpty) {
-                           logPure.debug(
-                             s"[${debugId}] [post-filter:rudderNode] ${nodeIdFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered
-                                 .mkString(", ")}"
-                           )
-                         } else {
-                           logPure.debug(
-                             s"[${debugId}] [post-filter:rudderNode] ${nodeIdFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered
-                                 .mkString(", ")}"
-                           )
-
-                         }
-                       }
-
-      inverted     = query.transform match {
-                       case ResultTransformation.Identity => nodeIdFiltered
-                       case ResultTransformation.Invert   =>
-                         logPure.logEffect.debug(s"[${debugId}] |- (need to get all nodeIds for inversion) ")
-                         val res = allNodesInfos.map(_.id).diff(nodeIdFiltered)
-                         logPure.logEffect.debug(s"[${debugId}] |- (invert) entries after inversion: ${res.size}")
-                         res
-                     }
-      postFiltered = postFilterNode(inverted, query.returnType, limitToNodeIds)
-    } yield {
-      postFiltered
-    }
+        // final query, add "match only server id" filter if needed
+        rt       = nodeObjectTypes.copy(filter = finalLdapFilter)
+        _       <- logPure.debug(s"[${debugId}] |- (final query) ${rt}")
+        entries <- executeQuery(
+                     rt.baseDn,
+                     rt.scope,
+                     nodeObjectTypes.objectFilter,
+                     rt.filter,
+                     finalSpecialFilters,
+                     select.toSet,
+                     nq.composition,
+                     debugId
+                   )
+      } yield entries.flatMap(x => x(A_NODE_UUID).map(NodeId(_)))
+    )
+      .tapError(err => logPure.debug(s"[${debugId}] `-> error: ${err.fullMsg}"))
+      .tap(seq => logPure.debug(s"[${debugId}] `-> ${seq.size} results"))
   }
 
   /**

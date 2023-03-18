@@ -46,6 +46,7 @@ import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 
 sealed trait NodeDetailLevel {
+
   def fields: Set[String]
 
   /**
@@ -277,7 +278,7 @@ object NodeDetailLevel {
       if (soft.isEmpty) {
         JNothing
       } else {
-        val softwares = soft.toList.map { software =>
+        val softwares = soft.toList.sortBy(_.name).map { software =>
           ("name"        -> software.name) ~
           ("editor"      -> software.editor.map(_.name)) ~
           ("version"     -> software.version.map(_.value)) ~
