@@ -139,6 +139,10 @@ paths:
     $ref: paths/compliance/rules.yml
   "/compliance/rules/{ruleId}":
     $ref: paths/compliance/rule.yml
+  "/compliance/directives/{directiveId}":
+    $ref: paths/compliance/directive.yml
+  "/compliance/directives":
+    $ref: paths/compliance/directives.yml
   "/compliance/nodes":
     $ref: paths/compliance/nodes.yml
   "/compliance/nodes/{nodeId}":
