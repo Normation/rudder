@@ -13,6 +13,7 @@ anyhow = "1"
 askama = "0.12"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
+jsonschema = "0.17"
 quick-xml = { version = "0.27.1", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.11"
