@@ -83,7 +83,6 @@ pub mod action {
 
     use anyhow::{bail, Context, Result};
     use boon::{Compiler, Schemas};
-    use log::error;
     use rudder_commons::Target;
     use serde_json::Value;
 
@@ -129,9 +128,8 @@ pub mod action {
         // ... and validate
         let result = schemas.validate(&instance, sch_index);
         if let Err(error) = result {
-            error!("{error:#}");
             // :# gives error details
-            bail!("{error}");
+            bail!("{error:#}");
         }
         // Compilation test
         compile(libraries, input, target)?;
