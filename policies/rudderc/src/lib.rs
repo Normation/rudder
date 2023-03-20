@@ -75,7 +75,6 @@ pub fn run(args: MainArgs) -> Result<()> {
 
 // Actions
 pub mod action {
-    use std::fs::read_to_string;
     use std::{
         fs::File,
         io::{self, Write},
@@ -83,7 +82,7 @@ pub mod action {
     };
 
     use anyhow::{bail, Context, Result};
-    use jsonschema::{Draft, JSONSchema};
+    use boon::{Compiler, Schemas};
     use log::error;
     use rudder_commons::Target;
     use serde_json::Value;
@@ -117,24 +116,22 @@ pub mod action {
     /// Linter mode, check JSON schema compliance and ability to compile
     pub fn check(libraries: &[PathBuf], input: &Path, target: Target) -> Result<()> {
         // JSON schema validity
-        let schema =
-            serde_yaml::from_str(include_str!("./technique.schema.json")).expect("invalid schema");
-        let compiled = JSONSchema::options()
-            .with_draft(Draft::Draft7)
-            .compile(&schema)
-            .expect("technique schema is invalid");
-
-        // Read policy as value
-        let data = read_to_string(input)
-            .with_context(|| format!("Failed to read input from {}", input.display()))?;
-        let policy: Value = serde_yaml::from_str(&data)?;
-
-        let result = compiled.validate(&policy);
-        if let Err(errors) = result {
-            for error in errors {
-                error!("{error}");
-            }
-            bail!("Technique syntax validation failed");
+        //
+        // load schema first
+        let schema_url = "https://docs.rudder.io/schemas/technique.schema.json";
+        let schema: Value = serde_json::from_str(include_str!("./technique.schema.json")).unwrap();
+        let mut schemas = Schemas::new();
+        let mut compiler = Compiler::new();
+        compiler.add_resource(schema_url, schema).unwrap();
+        let sch_index = compiler.compile(schema_url, &mut schemas).unwrap();
+        // the load technique file
+        let instance: Value = serde_yaml::from_reader(File::open(input)?)?;
+        // ... and validate
+        let result = schemas.validate(&instance, sch_index);
+        if let Err(error) = result {
+            error!("{error:#}");
+            // :# gives error details
+            bail!("{error}");
         }
         // Compilation test
         compile(libraries, input, target)?;
