@@ -156,7 +156,7 @@ decodeRuleComplianceDetails =
     |> required "mode"       string
     |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required "directives" (list (decodeDirectiveCompliance "nodes" decodeNodeCompliance) )
+    |> required "directives" (list (decodeDirectiveCompliance "nodes" (list decodeNodeCompliance)) )
     |> required "nodes" (list decodeRuleComplianceByNode )
 
 
@@ -167,10 +167,10 @@ decodeRuleComplianceByNode =
     |> required "name"       string
     |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required "directives" (list (decodeDirectiveCompliance "values" decodeValueCompliance ))
+    |> required "directives" (list (decodeDirectiveCompliance "values" decodeValues ))
 
 
-decodeBlockCompliance :  String -> Decoder a -> () -> Decoder (BlockCompliance a)
+decodeBlockCompliance :  String -> Decoder (List a) -> () -> Decoder (BlockCompliance a)
 decodeBlockCompliance elem decoder _ =
   require "name" string <| \name ->
   require "compliance" float <| \compliance ->
@@ -179,22 +179,22 @@ decodeBlockCompliance elem decoder _ =
     succeed ({ component = name, compliance = compliance, complianceDetails = details, components =  components } )
 
 
-decodeComponentValueCompliance : String -> Decoder a -> Decoder (ComponentValueCompliance a)
+decodeComponentValueCompliance : String -> Decoder (List a) -> Decoder (ComponentValueCompliance a)
 decodeComponentValueCompliance elem decoder =
   succeed ComponentValueCompliance
     |> required "name"       string
     |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required elem (list decoder)
+    |> required elem decoder
 
-decodeComponentCompliance : String -> Decoder a -> Decoder (ComponentCompliance a)
+decodeComponentCompliance : String -> Decoder (List a) -> Decoder (ComponentCompliance a)
 decodeComponentCompliance elem decoder =
   oneOf [
      map  (\b -> Block b) <| decodeBlockCompliance elem decoder ()
   ,  map  (\v -> Value v) <| decodeComponentValueCompliance elem decoder
   ]
 
-decodeDirectiveCompliance  : String -> Decoder a ->  Decoder (DirectiveCompliance a)
+decodeDirectiveCompliance  : String -> Decoder (List a) ->  Decoder (DirectiveCompliance a)
 decodeDirectiveCompliance elem decoder =
   succeed DirectiveCompliance
     |> required "id"         (map DirectiveId string)
@@ -222,17 +222,18 @@ decodeTime =
               Err e -> fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "" ) e)
           ) (map (Time.Iso8601.toZonedDateTime utc) string)
 
-decodeValueCompliance : Decoder ValueCompliance
-decodeValueCompliance =
-  succeed ValueCompliance
-    |> required "value"      string
-    |> required "reports" (list decodeReport)
 
-decodeReport : Decoder Report
-decodeReport =
-  succeed Report
-    |> required "status"      string
-    |> optional "message"    (maybe  string) Nothing
+decodeValues : Decoder ( List ValueLine)
+decodeValues =
+    (list (field "value" string |> andThen (\v -> field "reports" (list (decodeValueCompliance v)))))
+    |> map  (List.concatMap identity )
+
+decodeValueCompliance : String -> Decoder ValueLine
+decodeValueCompliance v =
+  succeed (ValueLine v)
+    |> optional "message" string ""
+    |> required "status"  string
+
 
 decodeNodeCompliance : Decoder NodeValueCompliance
 decodeNodeCompliance =
@@ -241,7 +242,7 @@ decodeNodeCompliance =
     |> required "name"    string
     |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
-    |> required "values" (list decodeValueCompliance)
+    |> required "values" decodeValues
 
 decodeComplianceDetails : Decoder ComplianceDetails
 decodeComplianceDetails =
