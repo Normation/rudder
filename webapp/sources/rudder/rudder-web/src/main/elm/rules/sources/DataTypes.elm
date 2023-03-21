@@ -144,7 +144,7 @@ type alias NodeCompliance =
   , name              : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , directives        : List (DirectiveCompliance ValueCompliance)
+  , directives        : List (DirectiveCompliance ValueLine)
   }
 
 type alias DirectiveCompliance value =
@@ -179,12 +179,13 @@ type alias NodeValueCompliance =
   , name   : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
-  , values : List ValueCompliance
+  , values : List ValueLine
   }
 
-type alias ValueCompliance =
-  { value   : String
-  , reports : List Report
+type alias  ValueLine =
+  {  value   : String
+  , message : String
+  , status  : String
   }
 
 type alias Report =
