@@ -1,13 +1,17 @@
 # Rudder 7 - HTTP communications
 
-*Notice*: This document was written during Rudder 7 development, some parts may be outdated.
+*Notice*: This document was last reviewed and updated in 2023/03 (for Rudder 7.3.0). It may now be outdated.
+
+## Resources
+
+* [Security & hardening guide for Rudder](https://docs.rudder.io/reference/7.3/administration/security.html), including items related to this document.
 
 ## Overview
 
 This document describes the changes in network communication security for 7.X.
 
 The goal is to make the security mechanisms more consistent and to properly
-authenticate all communications by default, especially HTTPS communications, as syslog is dropped in 7.0 and CFEngine provides its own security mechanisms, described below.
+authenticate all communications by default, especially HTTPS communications, as syslog is dropped in 7.0 and CFEngine provides its own security mechanisms, described below. We also want to improve configurability, by allowing changing used ports or using HTTPS proxies.
 
 ## Rudder Unix agent communications (CFEngine-based)
 
@@ -345,3 +349,37 @@ The required changes are to comment the default configuration and enable the spl
 * Different source IP ranges, etc.
 
 The custom certificates can be placed _anywhere_, apart from their previous location in `/opt/rudder/etc/ssl/rudder.{crt,key}` as the upgrade script will remove them.
+
+## Timeline
+
+### 2020 Q4: Preliminary steps
+
+Setting requirements:
+
+* We need to be able to use a different certificate for Web and node-server flows.
+* We want to use the agent certificate for HTTPS
+* We want to make hardcoded 443 port configurable
+* We want to keep a TOFU principle, with the ability to pre-provision
+
+### 2021 Q1/Q2: Beginning of the project
+
+- Study of possible implementation options
+
+- Development of various proofs of concept
+
+  - In particular, we tested the opportunity to provide a unified client (in either perl or [C](https://github.com/Normation/rudder/pull/3646)) for Unix and Windows agent, that would abstract HTTPS communication through curl, but finally went for simple shell/powershell separate implementations.
+
+  - We also initially tried to use the policy server's certificate
+    as only CA (and disable hostname verification) in curl calls but failed due to the openssl bug described in the relayd
+    section, and the fact we didn't want to embed openssl on all agents.
+
+### 2022/01/26: Rudder 7.0
+
+* Implement the new authentication mechanism for HTTPS
+* No functional changes in other 7.X releases
+
+### Future
+
+* The main next goal for HTTPS flows will be the ability to
+  use user-provided certificates/PKI everywhere, even for internal Rudder
+  communication. For now this is blocked by the usage of the CFEngine network protocol (uses peer-to-peer trust and TOFU + only accepts RSA). At some point we could make it possible if (when?) CFEngine network protocol gets replaced with HTTPS in Rudder.
