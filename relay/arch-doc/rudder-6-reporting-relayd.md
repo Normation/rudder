@@ -1,6 +1,6 @@
 # Rudder 6 - reporting and relayd architecture
 
-*Notice*: This document was written while developing Rudder 6.0, some parts may be outdated.
+*Notice*: This document was last reviewed and updated in 2023/03 (for Rudder 7.3.0). It may now be outdated.
 
 ## Resources
 
@@ -129,6 +129,8 @@ CREATE TABLE RudderSysEvents (
 , msg                text
 );
 ```
+
+*Note*: `serial` is replaced by `reportid` in 7.0+.
 
 There are two specific control logs, allowing to delimitate and contextualize a run: a start and end flag (resp. `StartRun` and `EndRun`). The application starts considering a run once the `EndRun` has arrived.
 
@@ -402,7 +404,7 @@ Leverage the inotify-based watcher used for reports in relayd to forward invento
 
 We tried to follow current best practices in terms of process confinement, by providing seccomp, namespace and SELinux configurations and allowing easy contenerization, besides running as a dedicated system user with minimal permissions.
 
-We will continue applying these kind of configuration to other Rudder components in future releases.
+We will continue applying this kind of configuration to other Rudder components in future releases.
 
 #### SELinux
 
@@ -422,23 +424,9 @@ This prevents the process from writing outside of its working directories (repor
 
 ## Security model
 
-### 5.0 situation
+### Reporting in 5.0
 
-#### Inventories
-
-To be completed.
-
-#### Unix agent policy copy
-
-To be completed.
-
-#### Windows agent policy copy
-
-To be completed.
-
-#### Reporting
-
-All nodes currently have:
+All nodes have:
 
 - An RSA 4096 key pair (1024 bits for agents installed before ...)
 
@@ -453,7 +441,7 @@ We decided to:
 
 ### TLS 1.2+
 
-We [are also be able](https://issues.rudder.io/issues/14786), now we control the tooling with embedded dependencies when needed, to enforce the usage of TLS 1.2+ everywhere in Rudder communications (except for nodes still using legacy syslog reporting of course).
+We [are also able](https://issues.rudder.io/issues/14786), now we control the tooling with embedded dependencies when needed, to enforce the usage of TLS 1.2+ everywhere in Rudder communications (except for nodes still using legacy syslog reporting of course).
 
 ### Keys
 
@@ -583,7 +571,7 @@ We will also add a locked-down mode to disable syslog once all nodes are compati
 
 ## Time-line
 
-### 2018 Q2 : Beginning of the project
+### 2018 Q2: Beginning of the project
 
 - Study of possible options
 
@@ -607,14 +595,21 @@ We will also add a locked-down mode to disable syslog once all nodes are compati
 - Add HTTPS reporting support in "changes only" reporting mode
 - Continue sandboxing services
 
-### 2020-2021: Rudder 7.0+
+### 2022 Q1: Rudder 7.0
 
-- Remove syslog reporting mode
-- Implement remote-run for Windows nodes
-- Add delta information for most components, including files to repaired and audit components
+- Remove syslog reporting mode completely
+- Migration from tokio 0.1 to tokio 1.0 in relayd
+- Prometheus support in relayd
+- Use native Rust `zlib` implementation instead of the system library
+- Embed openssl in the relayd binary
+- The ability to validate user-provided certificate in node-server communications
+  is totally replaced by the new authentication mechanism.
 
 ### Future
 
+- Extend Rust usage (rudderc, agent components)
+- Implement remote-run for Windows nodes
+- Add delta information for most components, including files to repaired and audit components
 - New runlog serialization in reporting, standard, more compact and properly organized (maybe binary, maybe with a schema, but factorized compared to what we have)
 - Connected mode
 - End-to-end encryption
