@@ -6,8 +6,8 @@
 
 This document describes the changes in network communication security for 7.X.
 
-The goal is to make the security mechanisms more consistent, and to properly
-authenticate all communications by default, especially HTTPS communications. as syslog is dropped in 7.0, and CFEngine provides its own security mechanisms, described below.
+The goal is to make the security mechanisms more consistent and to properly
+authenticate all communications by default, especially HTTPS communications, as syslog is dropped in 7.0 and CFEngine provides its own security mechanisms, described below.
 
 ## Rudder Unix agent communications (CFEngine-based)
 
@@ -56,10 +56,13 @@ All following inventories need to be signed with the node's key.
 
 ## Pre-7.X HTTPS security
 
-In 6.X, we have:
+In 6.X we have, for node-server communication:
 
 * Agent client authentication using the key for policy and shared-files download for the Windows agent.
-* For server authentication, two modes: unverified (default) and verified using user provided certificates for HTTP servers (relays and root).
+* For server authentication, two modes:
+
+  * unverified (by default)
+  * verified using user provided certificates for HTTP servers (relays and root).
 
 ## Changes in 7.X
 
@@ -69,11 +72,12 @@ This means replacing the current HTTPS certificates, and enforce using Rudder ke
 
 This means:
 
-* Replace server HTTPS certificate by the agent certificate. This means they won't be replaceable by user-provided certificates
+* Replace server HTTPS certificate used for node-server communication by the agent certificate. This means they won't be replaceable by user-provided certificates
   like in 6.X, and that we won't support custom reverse proxies.
 * For the web/API part, it will be possible to configure a different virtual host with a proper certificates.
 * Add a new agent shell/powershell library to handle communications. It will handle key pinning.
-* Make HTTP post configurable (but keep 443 by default), and allow configuring a proxy for Linux systems for
+* The HTTPS trust is configured from the policies content (the hash file is deployed as part of the policies). On Unix systems this means the policy protocol (i.e. CFEngine's protocol) has priority and can override HTTPS settings.
+* Make HTTPS port configurable (but keep 443 by default), and allow configuring a proxy for Linux systems for
   more flexible network requirements.
 * Add an `agent.conf` file extending uuid/policy server configuration with other connection information: path to key hash, port and proxy to use.
   We will keep it minimal, and it will only contain what is necessary to connect to the server a first time.
@@ -86,11 +90,13 @@ from the agent private key.
 This allows using it directly in other programs configuration (like httpd) without trouble, without significant
 added risk as the passphrase was publicly known.
 
-### On the agent
+Note: It hasn't been removed on Windows nodes yet.
+
+### HTTPS calls with `curl`
 
 We use the public key pinning feature of curl. This feature is close to [HPKP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning), now deprecated and removed from browsers.
 
-We will change the curl calls to add a `--pinnedpubkey <hashes>` option using the stored public key hash.
+We change the curl calls to add a `--pinnedpubkey <hashes>` option using the stored public key hash.
 
 The required hash (a base64-encoded sha256 hash of the server public key in DER format) will be stored in a file, similar to what is already done for CFEngine in `ppkeys/policy_server_hash`.
 
@@ -105,7 +111,7 @@ openssl x509 -in agent.cert -pubkey -noout | openssl pkey -pubin -outform der | 
 
 *Note*: This does not work with *localhost.pub* as it is a raw RSA key and not in X.509 wrapper. Without this we could have used the path to `localhost.pub` directly as `--pinedpubkey` parameter.
 
-### `relayd`
+### HTTPS calls from `relayd`
 
 We can't easily use public key pinning for `relayd` as it is not exposed by the Rust http stack in `tokio`.
 
@@ -154,13 +160,13 @@ replace the previous one.
 
 #### Port and proxy change
 
-We add new entries to the configuration file for these parameters, and pass them to the HTTP clients.
+We add new entries to the `relayd` configuration file for these parameters, and pass them to the HTTP clients.
 
 #### Service reload/restart
 
 The service reload is triggered by the agent at each configuration or data file change.
 
-### `agent.conf`
+### Agent configuration in `agent.conf`
 
 A new `/opt/rudder/etc/agent.conf` (in toml like our other recent configuration files, but staying simple so that it can be parsed with grep) will allow configuring everything linked to agent-server communication, the rest being part of the policies.
 
@@ -174,7 +180,9 @@ https_port = 443
 https_proxy = "https://user:password@proxy.example.com"
 ```
 
-### Apache httpd
+These parameters are read by the agent CLI which makes the `curl` calls.
+
+### Apache httpd configuration
 
 These changes also require modifications in our Apache httpd configuration, to properly configure
 the node-server communication. In addition, we also cleaned up the configuration files to make them
@@ -211,7 +219,7 @@ All these files are provided by the packages and replaced by upgrades.
 
 #### Virtual hosts configuration
 
-The relay package contains the configuration file containing the virtual hosts:
+The relay package also contains the configuration file containing the virtual hosts:
 
 * `/etc/apache2/sites-available/rudder.conf` on Debian/Ubuntu/SLES
 * `/etc/httpd/conf.d/rudder.conf` on RHEL
@@ -229,7 +237,7 @@ It default skeleton is:
 
 <VirtualHost *:443>
   Include         /opt/rudder/etc/rudder-apache-relay-ssl.conf
-  # optional as webapp may ot may not be installed
+  # optional as webapp may or may not be installed
   IncludeOptional /opt/rudder/etc/rudder-apache-webapp-ssl.conf
 </VirtualHost>
 ```
