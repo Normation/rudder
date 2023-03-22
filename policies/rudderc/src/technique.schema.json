@@ -1,8 +1,136 @@
-
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://docs.rudder.io/schemas/technique.schema.json",
-  "title": "Technique",
-  "description": "A Rudder technique",
-  "type": "object"
+  "title": "Rudder Technique",
+  "description": "A rudder technique",
+  "type": "object",
+  "required": [ "id", "name", "version", "items" ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/techniqueId"
+    },
+    "description": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/techniqueParameter"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "$ref": "#/$defs/techniqueVersion"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "techniqueParameterName": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_]+$"
+    },
+    "techniqueVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]$"
+    },
+    "techniqueId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_]+$"
+    },
+    "techniqueParameter": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/techniqueParameterName"
+        }
+      }
+    },
+    "reportingMode" :{
+      "oneOf": [
+        { "const": "disabled" },
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "enum": [ "worst-case-weighted-one", "worst-case-weighted-sum" ]  }
+          },
+          "required": [ "mode" ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+             "id": { "$ref": "#/$defs/uuid" },
+             "mode": { "const": "focus" }
+          },
+          "required": [ "mode", "id" ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "item": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "reporting": {
+          "$ref": "#/$defs/reportingMode"
+        },
+        "method": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        },
+        "tags": {
+          "type": "object"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/item"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [ "id" ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [ "params", "items" ]
+          },
+          {
+            "required": [ "method", "items" ]
+          }
+        ]
+      },
+      "dependencies": {
+        "params": [ "method" ],
+        "method": [ "params" ]
+      }
+    }
+  }
 }
