@@ -11,6 +11,7 @@ license = "GPL-3.0-or-later"
 [dependencies]
 anyhow = "1"
 askama = "0.12"
+boon = "0.3.1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
 quick-xml = { version = "0.27.1", features = ["serialize"] }

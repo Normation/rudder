@@ -16,7 +16,18 @@ use test_generator::test_resources;
 #[test_resources("tests/cases/*/*/*.yml")]
 fn compile(filename: &str) {
     for t in [Target::Unix, Target::Windows, Target::Metadata] {
+        lint_file(Path::new(filename), t);
         compile_file(Path::new(filename), t);
+    }
+}
+
+/// Lint the given file
+fn lint_file(source: &Path, target: Target) {
+    let result = rudderc::action::check(&[PathBuf::from("tests/methods")], source, target);
+    if should_fail(source) {
+        assert!(result.is_err());
+    } else {
+        result.expect("Test check failed");
     }
 }
 
