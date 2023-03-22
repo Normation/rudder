@@ -14,11 +14,12 @@ authenticate all communications by default, especially HTTPS communications, as 
 *Note*: The security mechanism evolved in 6.0.10/6.1.6 to address a security vulnerability. This description includes these changes.
 
 This model is based on CFEngine model but extends it a bit to match some of our use cases.
+Each agent has an id to identify it (a UUID, except for root) and an RSA key pair (4096 bit by default, stored in `/var/rudder/cfengine-community/ppkeys/localhost.{priv,pub}`). It is used both by the agent and the server programs. All communications use TLS (1.2+), authenticated by these keys.
+These are generated during agent post-installation with the `cf-key` command.
 
-Each agent has an id to identify it (a UUID, except for root) and an RSA key pair (4096 bit by default, stored in `/var/rudder/cfengine-community/ppkeys/localhost.{priv,pub}`). It used both by the agent and the server programs. All communications use TLS (1.2+), authenticated by these keys.
-These are generated during agent installation.
+*Note*: TLS authentication in CFEngine uses an unusual on-the-fly certificate generation from the keypair.
 
-CFEngine provides two layers of restrictions:
+Vanilla CFEngine provides two layers of restrictions:
 
 * a list of trusted public keys
 * public-key based ACLs for specific resources
@@ -30,12 +31,11 @@ In Rudder, we cannot rely on this list to limit access to policy servers as we n
 However, on simple agents, we rely on this mechanism to only trust the first server we connect to, and stop trusting new servers after the first correct policy download. When a server public key hash is provisioned at installation, automatic trust is even totally disabled. This prevents connection to unknown policy servers. This works as an additional protection layer, with the ACL system described below.
 
 As it cannot work on policy servers, we rely heavily on public-key based ACLs.
-
-We as them in three different contexts:
+We use them in three different contexts:
 
 * On all agents (either simple agent or policy server) to control which server we can download policies or shared-files if policies from. This uses the (`copyfrom_restrict_keys` keyword.
 * On all agents (either simple agent or policy server) to control which server are allowed to trigger a remote agent execution.
-* On policy server, policy downloads uses different folders for each nodes, and
+* On policy server, policy downloads uses different folders for each node, and
 only allow the target node to download its policies.
 
 The only actions available on policy server without explicit authorization is the initial policies and configuration library ("ncf") downloads.
@@ -52,7 +52,7 @@ The workflow from the beginning:
 * the new node appears on the server, and once accepted, its policies are generated and made available on the policy server, with
   a key ACL based on the key provided in the inventory.
 
-All following inventories need to be signed with the node's key.
+All following inventories and reports need to be signed with the node's key.
 
 ## Pre-7.X HTTPS security
 
@@ -76,30 +76,52 @@ This means:
   like in 6.X, and that we won't support custom reverse proxies.
 * For the web/API part, it will be possible to configure a different virtual host with a proper certificates.
 * Add a new agent shell/powershell library to handle communications. It will handle key pinning.
-* The HTTPS trust is configured from the policies content (the hash file is deployed as part of the policies). On Unix systems this means the policy protocol (i.e. CFEngine's protocol) has priority and can override HTTPS settings.
 * Make HTTPS port configurable (but keep 443 by default), and allow configuring a proxy for Linux systems for
   more flexible network requirements.
 * Add an `agent.conf` file extending uuid/policy server configuration with other connection information: path to key hash, port and proxy to use.
   We will keep it minimal, and it will only contain what is necessary to connect to the server a first time.
+* The HTTPS trust is configured from the policies content (the hash file is deployed as part of the policies). On Unix systems this means the policy protocol (i.e. CFEngine's protocol) has priority and can override HTTPS settings. This avoids potential conflicts between the protocols.
+
+### Policies
+
+The generated policies for each node contain:
+
+* `inputs/certs/root.pem`: the Rudder root's certificate. It could be used at some point for end-to-end encryption of inventory or reports.
+* `inputs/certs/policy-server.pem`: the node's policy server's certificate (either root or a relay). Is it used in `relayd` configuration as explained below.
+
+The `inputs/rudder.json` file contains:
+
+```json
+{
+  "HTTPS_POLICY_DISTRIBUTION_PORT":"443",
+  "POLICY_SERVER_KEY":"MD5=1ec2213e08921bd3444861f7b4a60919",
+  "POLICY_SERVER_KEY_HASH":"sha256//LqSz+lTXd9VN4qhpQfGagTrQJjw/msKoczOc4XddhkA="
+}
+```
+
+Here:
+
+* `POLICY_SERVER_KEY` is the hash for CFEngine ACLs
+* `POLICY_SERVER_KEY_HASH` is the hash for `curl` key pinning
+
+The CFEngine configuration is handled by the CFEngine policies, the curl
+pinning from the provided hash is handled by the agent CLI.
 
 ### Passphrase on agent private key
 
 Following a behavior change in CFEngine 3.18, we decided to also remove the passphrase (which was hardcoded everywhere)
 from the agent private key.
-
 This allows using it directly in other programs configuration (like httpd) without trouble, without significant
 added risk as the passphrase was publicly known.
 
-Note: It hasn't been removed on Windows nodes yet.
+*Note*: It hasn't been removed on Windows nodes yet.
 
 ### HTTPS calls with `curl`
 
 We use the public key pinning feature of curl. This feature is close to [HPKP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning), now deprecated and removed from browsers.
-
 We change the curl calls to add a `--pinnedpubkey <hashes>` option using the stored public key hash.
 
 The required hash (a base64-encoded sha256 hash of the server public key in DER format) will be stored in a file, similar to what is already done for CFEngine in `ppkeys/policy_server_hash`.
-
 This hash can be computed with:
 
 ```bash
@@ -110,6 +132,11 @@ openssl x509 -in agent.cert -pubkey -noout | openssl pkey -pubin -outform der | 
 ```
 
 *Note*: This does not work with *localhost.pub* as it is a raw RSA key and not in X.509 wrapper. Without this we could have used the path to `localhost.pub` directly as `--pinedpubkey` parameter.
+
+The hash pinning is handled directly by the CLI script that wraps curl.
+If the policies contain a hash in `rudder.json`, it is stored outside the `inputs` directory
+(to survive policy resets) and passed to the curl calls.
+The status of HTTPS key pinning is shown is `rudder agent info` output.
 
 ### HTTPS calls from `relayd`
 
@@ -155,7 +182,7 @@ will reload only the modified HTTP clients without restarting the whole service.
 This only applies when the `cert_pinning` peer authentication mechanism is used (i.e. with a 7.X+ server). In this case,
 when creating the clients, we also store the pinned certificate along with it. Then when a configuration and data files reload
 is triggered, when can read the certificates on the filesystem and compare with what is stored with the clients.
-If it is up-to-date, the client is kept intact. If not, of if it a new relay, a new client will be created, and will
+If it is up-to-date, the client is kept intact. If not, or if it is a new relay, a new client will be created, and will
 replace the previous one.
 
 #### Port and proxy change
@@ -168,7 +195,7 @@ The service reload is triggered by the agent at each configuration or data file 
 
 ### Agent configuration in `agent.conf`
 
-A new `/opt/rudder/etc/agent.conf` (in toml like our other recent configuration files, but staying simple so that it can be parsed with grep) will allow configuring everything linked to agent-server communication, the rest being part of the policies.
+A new `/opt/rudder/etc/agent.conf` or `C:\Program Files\Rudder\etc\agent.conf` (in toml like our other recent configuration files, but staying simple so that it can be parsed with grep) will allow configuring everything linked to agent-server communication, the rest being part of the policies.
 
 ```toml
 # This file configures the way the Rudder agent connects to its server
@@ -244,7 +271,6 @@ It default skeleton is:
 
 This means that both node-server and Web/API communications use the
 same virtual host by default, and the internal Rudder certificate in particular.
-
 It also provides commented configuration to allow using another certificate for
 Web/API flows, with this skeleton:
 
@@ -278,7 +304,6 @@ The `rudder.{key,crt}` were a key and self-signed certificate generated by the p
 As this key is meaningless, all HTTPS calls to the relay and server ignored the certificate validation by default.
 
 To allow improving security we [documented](https://docs.rudder.io/history/6.2/reference/6.2/administration/security.html#_setup_root_server) how to replace these generated files with valid key/certificate. This allowed proper browser validation, and we also provided a setting to validate HTTPS certificates in calls from agents.
-
 We hence have three possible cases on upgrade:
 
 * Default settings, using the self-signed certificate and no certificate validation
@@ -312,7 +337,7 @@ For people using a custom certificate in 6.X, 7.X migration requires **manual ch
 A common error pattern for users is to continue placing their certificates in the previous path,
 which is now removed at each upgrade.
 
-The changes needed are to comment the default configuration and enable the split virtual hosts, and most importantly to add a discriminator for the network flows. It can be:
+The required changes are to comment the default configuration and enable the split virtual hosts, and most importantly to add a discriminator for the network flows. It can be:
 
 * Different hostnames as done in the example configuration. In general, the Web/API access uses
   a specific host and the node-server doesn't. In this case it works as the default virtual host is the node-server one.
