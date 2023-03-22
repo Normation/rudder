@@ -1,13 +1,13 @@
 # Rudder 7 - HTTP communications
 
-*Notice*: This document was written during Rudder 7.0 development, some parts may be outdated.
+*Notice*: This document was written during Rudder 7 development, some parts may be outdated.
 
 ## Overview
 
-This document describes the changes in network communication security for 7.0.
+This document describes the changes in network communication security for 7.X.
 
 The goal is to make the security mechanisms more consistent, and to properly
-authenticate all communications by default, especially HTTPS communications. as syslog is dropped in 7.0, and CFEngine provide its own security mechanisms, described below.
+authenticate all communications by default, especially HTTPS communications. as syslog is dropped in 7.0, and CFEngine provides its own security mechanisms, described below.
 
 ## Rudder Unix agent communications (CFEngine-based)
 
@@ -25,7 +25,7 @@ CFEngine provides two layers of restrictions:
 
 The list of trusted keys is controlled either manually or by automatically trusting keys from a specific list of hosts. They are stored in `/var/rudder/cfengine-community/ppkeys/MD5-${KEY_HASH}.pub`.
 
-In Rudder we cannot rely on this list to limit access to policy servers as we need to distribute initial policies, so we need to allow anyone (in the allowed networks) to be automatically trusted by the server.
+In Rudder, we cannot rely on this list to limit access to policy servers as we need to distribute initial policies, so we need to allow anyone (in the allowed networks) to be automatically trusted by the server.
 
 However, on simple agents, we rely on this mechanism to only trust the first server we connect to, and stop trusting new servers after the first correct policy download. When a server public key hash is provisioned at installation, automatic trust is even totally disabled. This prevents connection to unknown policy servers. This works as an additional protection layer, with the ACL system described below.
 
@@ -40,28 +40,28 @@ only allow the target node to download its policies.
 
 The only actions available on policy server without explicit authorization is the initial policies and configuration library ("ncf") downloads.
 
-In case of policy reset (either in case of policy corruption or manual `rudder agent reset`) we need to keep configured trust. To do so, in addition to the policies, the policy server hash is stored outside of the `inputs`, in `/var/rudder/cfengine-community/ppkeys/policy_server_hash` (containing the md5 hash of the key used by CFEngine). If this file is present, policy download will only be possible from the policy server it identifies.
+In case of policy reset (either in case of policy corruption or manual `rudder agent reset`) we need to keep configured trust. To do so, in addition to the policies, the policy server hash is stored outside the `inputs`, in `/var/rudder/cfengine-community/ppkeys/policy_server_hash` (containing the md5 hash of the key used by CFEngine). If this file is present, policy download will only be possible from the policy server it identifies.
 
 The workflow from the beginning:
 
 * an agent is installed on a new node, it creates its key pair automatically (plus a self-signed X.509 certificate based on this key)
 * the user configures the policy server's address (or hostname). Optionally, the user can provide the server's public key.
 * the node then downloads its initial policies from the configured server. It automatically
-  trust the server's key if no key was pinned at installation.
+  trusts the server's key if no key was pinned at installation.
 * the initial policies will create and send an inventory containing the agent certificate (containing the public key)
 * the new node appears on the server, and once accepted, its policies are generated and made available on the policy server, with
   a key ACL based on the key provided in the inventory.
 
 All following inventories need to be signed with the node's key.
 
-## Existing HTTPS security
+## Pre-7.X HTTPS security
 
-Currently we have:
+In 6.X, we have:
 
 * Agent client authentication using the key for policy and shared-files download for the Windows agent.
 * For server authentication, two modes: unverified (default) and verified using user provided certificates for HTTP servers (relays and root).
 
-## Changes
+## Changes in 7.X
 
 We want to generalize the pinning used for CFEngine for all HTTPS communications and use the same authentication mechanisms (agent key + certificate). We want to make it TOFU by default, but make it possible to pre-establish trust too.
 
@@ -88,7 +88,7 @@ added risk as the passphrase was publicly known.
 
 ### On the agent
 
-We use the public key pinning feature of curl. This feature is close to [HPKP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning), now deprecated and removed from browser.
+We use the public key pinning feature of curl. This feature is close to [HPKP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning), now deprecated and removed from browsers.
 
 We will change the curl calls to add a `--pinnedpubkey <hashes>` option using the stored public key hash.
 
@@ -105,7 +105,7 @@ openssl x509 -in agent.cert -pubkey -noout | openssl pkey -pubin -outform der | 
 
 *Note*: This does not work with *localhost.pub* as it is a raw RSA key and not in X.509 wrapper. Without this we could have used the path to `localhost.pub` directly as `--pinedpubkey` parameter.
 
-### On the relay
+### `relayd`
 
 We can't easily use public key pinning for `relayd` as it is not exposed by the Rust http stack in `tokio`.
 
@@ -115,9 +115,9 @@ Today our HTTPS stack is:
 reqwest -> hyper-tls -> tokio-native-tls -> native-tls -> openssl -> (openssl lib)
 ```
 
-Ideally pinning should be checked at connection and not once connected, so it would require a new parameter in https://docs.rs/native-tls/0.2.7/native_tls/struct.TlsConnectorBuilder.html (plus the actual public key comparison implementation). Then we need to make it available higher in the stack, in `reqwest` client builder.
+Ideally pinning should be checked at connection and not once connected, so it would require a new parameter in [TlsConnectorBuilder](https://docs.rs/native-tls/0.2.7/native_tls/struct.TlsConnectorBuilder.html) (plus the actual public key comparison implementation). Then we need to make it available higher in the stack, in `reqwest` client builder.
 
-We will use X.509 certificate validation, with some tricks to make it validate the identify with a pinned certificate.
+We will use X.509 certificate validation, with some tricks to make it validate the identity with a pinned certificate.
 
 A relay connects to:
 
@@ -126,7 +126,7 @@ A relay connects to:
 
 The sub relays certificates are already available in `allnodescerts.pem` on the root server, but will need to be distributed to simple relays to allow chaining.
 
-The policy server's certificate will be distributed as part of the policies, along with the root server's certificate in allow cases to allow future end to end file encryption. Is is enough as we can't do anything before the first policy update anyway.
+The policy server's certificate will be distributed as part of the policies, along with the root server's certificate in allow cases to allow future end to end file encryption. It is enough as we can't do anything before the first policy update anyway.
 
 `relayd` is modified to use a different HTTP client for each node it talks to, configured with:
 
@@ -136,7 +136,7 @@ The policy server's certificate will be distributed as part of the policies, alo
 
 This is equivalent to the public key pinning, and only check if the remote server has the right private key, matching the certificate.
 
-However this only works since openssl 1.1.1h ([with this commit](https://github.com/openssl/openssl/commit/e2590c3a162eb118c36b09c2168164283aa099b4)), and is not available in rustls which does not permit skipping hostname validation for now. Before this, the certificate is not considered valid and fails with `depth lookup: unable to get local issuer certificate`.
+However, this only works since openssl 1.1.1h ([with this commit](https://github.com/openssl/openssl/commit/e2590c3a162eb118c36b09c2168164283aa099b4)), and is not available in `rustls` which does not permit skipping hostname validation for now. Before this, the certificate is not considered valid and fails with `depth lookup: unable to get local issuer certificate`.
 
 As a workaround we use the vendoring feature of `rust-openssl` to embed the latest openssl in `relayd`.
 
@@ -146,7 +146,7 @@ As policy server and sub relays certificates can change (for example when a rela
 which would close all open connections (like running remote-runs, API calls which would fail, etc.) In order to avoid this, we
 will reload only the modified HTTP clients without restarting the whole service.
 
-This only applies when the "cert_pinning" peer authentication mechanism is used (i.e. with a 7.0 server). In this case,
+This only applies when the `cert_pinning` peer authentication mechanism is used (i.e. with a 7.X+ server). In this case,
 when creating the clients, we also store the pinned certificate along with it. Then when a configuration and data files reload
 is triggered, when can read the certificates on the filesystem and compare with what is stored with the clients.
 If it is up-to-date, the client is kept intact. If not, of if it a new relay, a new client will be created, and will
@@ -158,7 +158,7 @@ We add new entries to the configuration file for these parameters, and pass them
 
 #### Service reload/restart
 
-TODO
+The service reload is triggered by the agent at each configuration or data file change.
 
 ### `agent.conf`
 
@@ -167,13 +167,148 @@ A new `/opt/rudder/etc/agent.conf` (in toml like our other recent configuration 
 ```toml
 # This file configures the way the Rudder agent connects to its server
 
-# Public key hash used by our policy server
-#server_pubkey_hash = "C:\\Program Files\\Rudder\\var\\ssl\policy_server_hash"
-#server_pubkey_hash = "/var/rudder/lib/ssl/policy_server_hash"
-
 # Port used for HTTP-like communication
-#https_port = 443
+https_port = 443
 
 # Proxy configuration for HTTP-like communication
-#proxy = "https://user:password@proxy.example.com"
+https_proxy = "https://user:password@proxy.example.com"
 ```
+
+### Apache httpd
+
+These changes also require modifications in our Apache httpd configuration, to properly configure
+the node-server communication. In addition, we also cleaned up the configuration files to make them
+more straightforward.
+
+#### Packaged configuration files
+
+The configurations provided in the packaging in 7.X:
+
+* in the `rudder-relay` package:
+
+  * `rudder-apache-relay-common.conf` is empty and kept for compatibility (in case people have old virtual host leftovers that included it)
+
+  * `rudder-apache-relay-nossl.conf` redirects HTTP to HTTPS (and does nothing else)
+
+  * `rudder-apache-relay-ssl.conf` handles all node-server communication, including the TLS certificate configuration.
+
+    * ```apacheconf
+      # certificate linked to agent keys
+      SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
+      # agent private key
+      SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
+      ```
+
+* in the `rudder-server` package:
+
+  * `rudder-apache-webapp-common.conf` is empty and kept for compatibility (in case people have old virtual host leftovers that included it)
+
+  * `rudder-apache-webapp-nossl.conf` is empty and kept for compatibility (in case people have old virtual host leftovers that included it), as redirection to https is handled by relay configuration.
+
+  * `rudder-apache-webapp-ssl.conf` handles public Web/API communication (in particular reverse proxy to Jetty). It contains no TLS configuration.
+
+All these files are provided by the packages and replaced by upgrades.
+
+#### Virtual hosts configuration
+
+The relay package contains the configuration file containing the virtual hosts:
+
+* `/etc/apache2/sites-available/rudder.conf` on Debian/Ubuntu/SLES
+* `/etc/httpd/conf.d/rudder.conf` on RHEL
+
+This file is marked as a configuration file in the package, and never replaced at upgrade.
+It is the only Apache configuration file designed to be edited by the users.
+
+It default skeleton is:
+
+```apacheconf
+<VirtualHost *:80>
+  # include redirection to https
+  Include /opt/rudder/etc/rudder-apache-relay-nossl.conf
+</VirtualHost>
+
+<VirtualHost *:443>
+  Include         /opt/rudder/etc/rudder-apache-relay-ssl.conf
+  # optional as webapp may ot may not be installed
+  IncludeOptional /opt/rudder/etc/rudder-apache-webapp-ssl.conf
+</VirtualHost>
+```
+
+This means that both node-server and Web/API communications use the
+same virtual host by default, and the internal Rudder certificate in particular.
+
+It also provides commented configuration to allow using another certificate for
+Web/API flows, with this skeleton:
+
+```apacheconf
+<VirtualHost *:443>
+  Include /opt/rudder/etc/rudder-apache-relay-ssl.conf
+</VirtualHost>
+
+<VirtualHost *:443>
+  # example with Letsencrypt
+  SSLCertificateFile      /etc/letsencrypt/live/example.com/cert.pem
+  SSLCertificateKeyFile   /etc/letsencrypt/live/example.com/privkey.pem
+  SSLCertificateChainFile /etc/letsencrypt/live/example.com/fullchain.pem
+  # contains no TLS configuration
+  Include /opt/rudder/etc/rudder-apache-webapp-ssl.conf
+</VirtualHost>
+```
+
+Note: It is also [now possible](https://docs.rudder.io/reference/7.2/administration/port.html) to change the ports used by these two virtual hosts.
+
+## Migration
+
+The 6.X setup was a single virtual host in `rudder.conf` which included:
+
+```apacheconf
+SSLCertificateFile      /opt/rudder/etc/ssl/rudder.crt
+SSLCertificateKeyFile   /opt/rudder/etc/ssl/rudder.key
+```
+
+The `rudder.{key,crt}` were a key and self-signed certificate generated by the post-installation script, only for this Apache configuration.
+As this key is meaningless, all HTTPS calls to the relay and server ignored the certificate validation by default.
+
+To allow improving security we [documented](https://docs.rudder.io/history/6.2/reference/6.2/administration/security.html#_setup_root_server) how to replace these generated files with valid key/certificate. This allowed proper browser validation, and we also provided a setting to validate HTTPS certificates in calls from agents.
+
+We hence have three possible cases on upgrade:
+
+* Default settings, using the self-signed certificate and no certificate validation
+* A custom certificate, without certificate validation for Rudder flows
+* A custom certificate, with certificate validation for Rudder flows
+
+The relevant post-installation script from the relay package:
+
+```shell
+# Backup and remove old HTTPS key and cert
+if [ -f /opt/rudder/etc/ssl/rudder.crt ]; then
+  mv /opt/rudder/etc/ssl/rudder.crt "${BACKUP_DIR}/rudder-`date +%Y%m%d`.crt"
+fi
+if [ -f /opt/rudder/etc/ssl/rudder.key ]; then
+  mv /opt/rudder/etc/ssl/rudder.key "${BACKUP_DIR}/rudder-`date +%Y%m%d`.key"
+fi
+if [ -f /opt/rudder/etc/ssl/ca.cert ]; then
+  mv /opt/rudder/etc/ssl/ca.cert "${BACKUP_DIR}/ca-`date +%Y%m%d`.cert"
+fi
+
+# Internal certificate is now in a packaged file, remove references from
+# virtual hosts. Edition needed as it is not replaced on upgrade.
+sed -i '/SSLCertificateFile.*\/opt\/rudder\/etc\/ssl\/rudder.crt/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
+sed -i '/SSLCertificateKeyFile.*\/opt\/rudder\/etc\/ssl\/rudder.key/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
+```
+
+The old `rudder.{crt,key}`/`ca.cert` files are removed for clarity as we don't want to keep unused
+files in the configuration, but this also moves custom certificates as they usually live in the same path in 6.X.
+
+For people using a custom certificate in 6.X, 7.X migration requires **manual changes** to the virtual host configuration. We made an [upgrade note](https://docs.rudder.io/reference/7.2/installation/upgrade/notes.html#_https_certificate), but as expected it caused several migration issues for users.
+A common error pattern for users is to continue placing their certificates in the previous path,
+which is now removed at each upgrade.
+
+The changes needed are to comment the default configuration and enable the split virtual hosts, and most importantly to add a discriminator for the network flows. It can be:
+
+* Different hostnames as done in the example configuration. In general, the Web/API access uses
+  a specific host and the node-server doesn't. In this case it works as the default virtual host is the node-server one.
+* Different ports, also documented in the [dedicated page](https://docs.rudder.io/reference/7.2/administration/port.html).
+* Different source IP ranges, etc.
+
+The custom certificates can be placed _anywhere_, apart from their previous location in `/opt/rudder/etc/ssl/rudder.{crt,key}` as the upgrade script will remove them.
