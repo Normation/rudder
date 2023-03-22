@@ -126,6 +126,10 @@
   color: #fff;
   background-color: #337ab7;
 }
+.form-control:disabled {
+  background-color: #e6e9f1;
+  color: #36474E;
+}
 /* === TEMPLATE === */
 .flex-container{
   display: flex;

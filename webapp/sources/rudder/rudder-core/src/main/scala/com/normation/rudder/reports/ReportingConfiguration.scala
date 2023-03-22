@@ -69,9 +69,8 @@ final case class HeartbeatConfiguration(
 )
 
 final case class AgentRunInterval(
-    overrides: Option[Boolean],
-    interval:  Int, // in minute
-
+    overrides:   Option[Boolean],
+    interval:    Int, // in minute
     startMinute: Int,
     startHour:   Int,
     splaytime:   Int
