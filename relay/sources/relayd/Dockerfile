@@ -1,4 +1,4 @@
-FROM rust:1.42.0-buster
+FROM rust:1.62.1-bullseye
 
 ARG USER_ID=1000
 COPY ci/user.sh .
