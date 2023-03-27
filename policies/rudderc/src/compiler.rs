@@ -7,6 +7,8 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
+use askama::Template;
+use comrak::{markdown_to_html, ComrakOptions};
 use log::warn;
 use rudder_commons::{is_canonified, Target};
 
@@ -104,6 +106,19 @@ pub fn methods_documentation(libraries: &[PathBuf]) -> Result<String> {
         out.push_str(&doc::render(m)?);
     }
     Ok(out)
+}
+
+#[derive(Template)]
+#[template(path = "doc.html.askama", escape = "none")]
+struct MethodsDocTemplate {
+    methods: String,
+}
+
+pub fn methods_web_documentation(libraries: &[PathBuf]) -> Result<String> {
+    let md = methods_documentation(libraries)?;
+    let methods = markdown_to_html(&md, &ComrakOptions::default());
+    let doc = MethodsDocTemplate { methods };
+    doc.render().map_err(|e| e.into())
 }
 
 /// Inject metadata information into method calls

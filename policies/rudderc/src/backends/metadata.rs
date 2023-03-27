@@ -134,7 +134,7 @@ impl Agent {
         match t {
             Target::Unix => "cfengine-community,cfengine-nova",
             Target::Windows => "dsc",
-            Target::Docs | Target::Metadata => unreachable!(),
+            Target::Docs | Target::Metadata | Target::WebDocs => unreachable!(),
         }
     }
 

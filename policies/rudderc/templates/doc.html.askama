@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Rudder methods</title>
+  <style>
+    body {
+       width: 800px;
+       margin:0 auto;
+    }
+  </style>
+</head>
+<body>
+<h1>Rudder methods</h1>
+{{ methods }}
+</body>
+</html>
