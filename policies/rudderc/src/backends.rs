@@ -71,7 +71,7 @@ pub fn backend(target: Target) -> Box<dyn Backend> {
         Target::Unix => Box::new(Unix::new()),
         Target::Windows => Box::new(Windows::new()),
         Target::Metadata => Box::new(Metadata),
-        Target::Docs => unreachable!(),
+        Target::Docs | Target::WebDocs => unreachable!(),
     }
 }
 

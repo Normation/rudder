@@ -88,7 +88,7 @@ pub mod action {
 
     pub use crate::compiler::{compile, methods_description};
     use crate::{
-        compiler::{metadata, methods_documentation},
+        compiler::{metadata, methods_documentation, methods_web_documentation},
         logs::ok_output,
     };
 
@@ -97,6 +97,7 @@ pub mod action {
         let data = match target {
             Target::Metadata => methods_description(libraries)?,
             Target::Docs => methods_documentation(libraries)?,
+            Target::WebDocs => methods_web_documentation(libraries)?,
             _ => bail!("modules flag requires a metadata target"),
         };
 
