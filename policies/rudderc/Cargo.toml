@@ -14,7 +14,7 @@ askama = "0.12"
 boon = "0.3.1"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
-comrak = { version = "0.16", default-features = false }
+comrak = { version = "0.17", default-features = false }
 quick-xml = { version = "0.27.1", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.11"
