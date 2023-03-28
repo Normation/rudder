@@ -39,6 +39,7 @@ package com.normation.rudder.rest.data
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.ComplianceLevel
@@ -89,6 +90,7 @@ final case class ByDirectiveCompliance(
     name:       String,
     compliance: ComplianceLevel,
     mode:       ComplianceModeName,
+    policyMode: Option[PolicyMode],
     rules:      Seq[ByDirectiveByRuleCompliance]
 ) {
   lazy val nodes: Seq[ByDirectiveNodeCompliance] = GroupComponentCompliance.fromRules(rules).toSeq
@@ -104,6 +106,7 @@ final case class ByDirectiveByRuleCompliance(
 final case class ByDirectiveNodeCompliance(
     id:         NodeId,
     name:       String,
+    mode:       Option[PolicyMode],
     compliance: ComplianceLevel,
     rules:      Seq[ByDirectiveByNodeRuleCompliance]
 )
@@ -142,6 +145,7 @@ final case class ByRuleValueCompliance(
 final case class ByRuleNodeCompliance(
     id:         NodeId,
     name:       String,
+    mode:       Option[PolicyMode],
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
 )
@@ -190,7 +194,7 @@ object GroupComponentCompliance {
   // This function do the recursive treatment of components, we will have each time a pair of Sequence of tuple (NodeId , component compliance structure)
   def recurseComponent(
       byRuleComponentCompliance: ByRuleComponentCompliance
-  ): Seq[((NodeId, String), ByRuleByNodeByDirectiveByComponentCompliance)] = {
+  ): Seq[((NodeId, String, Option[PolicyMode]), ByRuleByNodeByDirectiveByComponentCompliance)] = {
     byRuleComponentCompliance match {
       // Block case
       case b: ByRuleBlockCompliance =>
@@ -217,7 +221,7 @@ object GroupComponentCompliance {
           // You get all reports that were for a Node matching our value, regroup these report for our node in the structure)
           // Node name should be the same for all items, take the first one. We need to send it to upper structure, link it with id
           (
-            (nodeId, data.map(_.name).headOption.getOrElse(nodeId.value)),
+            (nodeId, data.map(_.name).headOption.getOrElse(nodeId.value), data.map(_.mode).headOption.getOrElse(None)),
             ByRuleByNodeByDirectiveByValueCompliance(
               v.name,
               ComplianceLevel.sum(data.map(_.compliance)),
@@ -288,7 +292,7 @@ object GroupComponentCompliance {
     } yield {
       // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
       val subs = data.map(_._2)
-      ByDirectiveNodeCompliance(nodeId._1, nodeId._2, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+      ByDirectiveNodeCompliance(nodeId._1, nodeId._2, nodeId._3, ComplianceLevel.sum(subs.map(_.compliance)), subs)
     }
   }
 
@@ -303,8 +307,7 @@ object GroupComponentCompliance {
  * - ruleUnderNodeCompliance: the list of compliance for each rule, for that node
  */
 final case class ByNodeNodeCompliance(
-    id: NodeId, // compliance by nodes
-
+    id:              NodeId, // compliance by nodes
     name:            String,
     compliance:      ComplianceLevel,
     mode:            ComplianceModeName,
@@ -418,6 +421,7 @@ object JsonCompliance {
         ~ ("name"              -> directive.name)
         ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
         ~ ("mode"              -> directive.mode.name)
+        ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(directive.compliance, precision))
         ~ ("rules"             -> rules(directive.rules, level, precision))
         ~ ("nodes"             -> byNodes(directive.nodes, level, precision))
@@ -434,6 +438,7 @@ object JsonCompliance {
           (
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
+            ~ ("policyMode"        -> node.mode.map(_.name).getOrElse("default"))
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("rules"             -> byRule(node.rules, level, precision))
@@ -576,6 +581,7 @@ object JsonCompliance {
           (
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
+            ~ ("policyMode"        -> node.mode.map(_.name).getOrElse("default"))
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("values"            -> values(node.values, level))

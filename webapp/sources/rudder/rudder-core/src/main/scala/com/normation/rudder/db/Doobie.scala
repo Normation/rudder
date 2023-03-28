@@ -170,8 +170,8 @@ object Doobie {
   implicit val DateTimeMeta: Meta[DateTime] =
     Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime()))(dt => new java.sql.Timestamp(dt.getMillis))
 
-  implicit val ReadRuleId:       Read[RuleId]       = {
-    Read[String].map(r => {
+  implicit val ReadRuleId:       Get[RuleId]      = {
+    Get[String].map(r => {
       RuleId.parse(r) match {
         case Right(rid) => rid
         case Left(err)  =>
@@ -179,11 +179,11 @@ object Doobie {
       }
     })
   }
-  implicit val WriteRuleId:      Write[RuleId]      = {
-    Write[String].contramap(_.serialize)
+  implicit val PutRuleId:        Put[RuleId]      = {
+    Put[String].contramap(_.serialize)
   }
-  implicit val ReadDirectiveId:  Read[DirectiveId]  = {
-    Read[String].map(r => {
+  implicit val ReadDirectiveId:  Get[DirectiveId] = {
+    Get[String].map(r => {
       DirectiveId.parse(r) match {
         case Right(rid) => rid
         case Left(err)  =>
@@ -193,8 +193,8 @@ object Doobie {
       }
     })
   }
-  implicit val WriteDirectiveId: Write[DirectiveId] = {
-    Write[String].contramap(_.serialize)
+  implicit val WriteDirectiveId: Put[DirectiveId] = {
+    Put[String].contramap(_.serialize)
   }
 
   implicit val ReportRead: Read[Reports] = {

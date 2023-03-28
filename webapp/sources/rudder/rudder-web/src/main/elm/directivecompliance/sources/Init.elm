@@ -9,7 +9,7 @@ init flags =
   let
     initFilters  = (TableFilters Asc "" Dict.empty)
     initUI       = UI initFilters initFilters RulesView True False
-    initModel    = Model (DirectiveId flags.directiveId) flags.contextPath "" initUI Nothing Dict.empty Dict.empty
+    initModel    = Model (DirectiveId flags.directiveId) flags.contextPath "" initUI Nothing
     listInitActions =
       [ getPolicyMode initModel
       ]

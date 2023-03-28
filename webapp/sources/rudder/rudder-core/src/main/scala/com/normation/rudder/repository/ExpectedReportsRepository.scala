@@ -39,6 +39,7 @@ package com.normation.rudder.repository
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import net.liftweb.common.Box
@@ -108,6 +109,13 @@ trait FindExpectedReportRepository {
    * only limited on the nodeIds in parameter (used when cache is incomplete)
    */
   def findCurrentNodeIdsForRule(ruleId: RuleId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]]
+
+  /**
+   * Return node ids associated to the rule (based on expectedreports (the one still pending)) for this Rule,
+   * only limited on the nodeIds in parameter (used when cache is incomplete)
+   */
+  def findCurrentNodeIdsForDirective(ruleId: DirectiveId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]]
+  def findCurrentNodeIdsForDirective(ruleId: DirectiveId): IOResult[Set[NodeId]]
 
   /*
    * Retrieve the expected reports by config version of the nodes.

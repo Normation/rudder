@@ -39,6 +39,7 @@ package com.normation.rudder.repository
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.reports.execution.AgentRun
@@ -72,7 +73,11 @@ trait ReportsRepository {
    * That method doesn't check if there is missing execution in
    * the result compared to inputs.
    */
-  def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]]
+  def getExecutionReports(
+      runs:               Set[AgentRunId],
+      filterByRules:      Set[RuleId],
+      filterByDirectives: Set[DirectiveId]
+  ): Box[Map[NodeId, Seq[Reports]]]
 
   /**
    * Returns all reports for the node, between the two differents date (optionnal)

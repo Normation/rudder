@@ -30,38 +30,6 @@ getPolicyMode model =
   in
     req
 
-getAllRules : Model -> Cmd Msg
-getAllRules model =
-  let
-    req =
-      request
-        { method  = "GET"
-        , headers = []
-        , url     = getUrl model [ "rules" ] []
-        , body    = emptyBody
-        , expect  = expectJson GetRulesList decodeGetRules
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-  in
-    req
-
-getNodesList : Model -> Cmd Msg
-getNodesList model =
-  let
-    req =
-      request
-        { method  = "GET"
-        , headers = []
-        , url     = getUrl model ["nodes"] []
-        , body    = emptyBody
-        , expect  = expectJson GetNodesList decodeGetNodesList
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-  in
-    req
-
 getDirectiveCompliance : Model -> Cmd Msg
 getDirectiveCompliance model =
   let

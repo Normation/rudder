@@ -7,43 +7,11 @@ import Http exposing (Error)
 -- All our data types
 --
 
-type RuleTarget = Composition RuleTarget RuleTarget | And (List RuleTarget) | Or (List RuleTarget) | NodeGroupId String | Special String | Node String
-
 type alias RuleId      = { value : String }
 type alias DirectiveId = { value : String }
 type alias NodeId      = { value : String }
 
-type alias Rule =
-  { id                : RuleId
-  , name              : String
-  , categoryId        : String
-  , shortDescription  : String
-  , longDescription   : String
-  , enabled           : Bool
-  , isSystem          : Bool
-  , directives        : List DirectiveId
-  , targets           : List RuleTarget
-  , policyMode        : String
-  , status            : RuleStatus
-  , tags              : List Tag
-  }
 
-type alias RuleStatus =
-  { value   : String
-  , details : Maybe String
-  }
-
-type alias Tag =
-  { key   : String
-  , value : String
-  }
-
-type alias NodeInfo =
-  { id          : String
-  , hostname    : String
-  , description : String
-  , policyMode  : String
-  }
 
 type alias RuleCompliance value =
   { ruleId            : RuleId
@@ -70,8 +38,9 @@ type alias ComponentValueCompliance value =
   }
 
 type alias NodeValueCompliance =
-  { nodeId : NodeId
-  , name   : String
+  { nodeId            : NodeId
+  , name              : String
+  , policyMode        : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
   , values : List ValueCompliance
@@ -81,6 +50,7 @@ type alias NodeCompliance =
   { nodeId            : NodeId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , rules             : List (RuleCompliance ValueCompliance)
   }
@@ -114,6 +84,7 @@ type alias ComplianceDetails =
 
 type alias DirectiveCompliance =
   { compliance        : Float
+  , policyMode : String
   , complianceDetails : ComplianceDetails
   , rules : List (RuleCompliance NodeValueCompliance)
   , nodes : List NodeCompliance
@@ -142,8 +113,6 @@ type alias Model =
   , policyMode  : String
   , ui          : UI
   , directiveCompliance : Maybe DirectiveCompliance
-  , nodes       : Dict String NodeInfo
-  , rules       : Dict String Rule
   }
 
 type Msg
@@ -155,8 +124,6 @@ type Msg
   | ToggleRowSort       String String SortOrder
   | GetPolicyModeResult (Result Error String)
   | GetDirectiveComplianceResult (Result Error DirectiveCompliance)
-  | GetRulesList        (Result Error (List Rule))
-  | GetNodesList        (Result Error (List NodeInfo))
   | Export (Result Error String)
   | CallApi  (Model -> Cmd Msg)
   | LoadCompliance String
