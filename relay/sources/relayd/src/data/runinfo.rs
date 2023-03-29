@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{data::node::NodeId, error::RudderError};
+use std::{
+    convert::TryFrom,
+    fmt::{self, Display},
+    path::Path,
+    str::{self, FromStr},
+};
+
 use anyhow::Error;
 use chrono::prelude::*;
 use nom::{
@@ -10,13 +16,9 @@ use nom::{
     IResult,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    convert::TryFrom,
-    fmt::{self, Display},
-    path::Path,
-    str::{self, FromStr},
-};
 use tracing::debug;
+
+use crate::{data::node::NodeId, error::RudderError};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RunInfo {
@@ -91,8 +93,9 @@ impl TryFrom<&Path> for RunInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::{prop_assert, prop_assert_eq, proptest};
+
+    use super::*;
 
     #[test]
     fn it_parses_root_runinfo() {

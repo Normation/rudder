@@ -3,14 +3,15 @@
 
 mod processing_reporting;
 
-use filetime::{set_file_times, FileTime};
-use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 use std::{
     fs::{copy, create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
     thread,
     time::Duration,
 };
+
+use filetime::{set_file_times, FileTime};
+use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 
 #[test]
 fn it_cleans_old_reports() {

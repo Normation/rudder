@@ -34,18 +34,13 @@ impl FromStr for Class {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Default)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum ActionPolicy {
     #[serde(alias = "nop")]
     Warn,
+    #[default]
     Fix,
-}
-
-impl Default for ActionPolicy {
-    fn default() -> Self {
-        ActionPolicy::Fix
-    }
 }
 
 impl From<ActionPolicy> for PolicyMode {

@@ -228,7 +228,7 @@ impl fmt::Display for BlockReporting {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BlockReportingMode {
     #[serde(rename = "worst-case-weighted-sum")]
     WorstCaseWeightedSum,
@@ -238,6 +238,7 @@ pub enum BlockReportingMode {
     Focus,
     #[serde(rename = "weighted")]
     #[serde(alias = "enabled")]
+    #[default]
     Weighted,
     #[serde(rename = "disabled")]
     Disabled,
@@ -259,22 +260,11 @@ impl fmt::Display for BlockReportingMode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum LeafReporting {
     #[serde(rename = "enabled")]
+    #[default]
     Enabled,
     #[serde(rename = "disabled")]
     Disabled,
-}
-
-impl Default for BlockReportingMode {
-    fn default() -> Self {
-        BlockReportingMode::Weighted
-    }
-}
-
-impl Default for LeafReporting {
-    fn default() -> Self {
-        LeafReporting::Enabled
-    }
 }

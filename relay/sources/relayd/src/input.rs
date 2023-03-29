@@ -3,7 +3,12 @@
 
 pub mod watch;
 
-use crate::error::RudderError;
+use std::{
+    ffi::OsStr,
+    io::{Cursor, Read},
+    path::Path,
+};
+
 use anyhow::Error;
 use flate2::read::GzDecoder;
 use openssl::{
@@ -11,14 +16,11 @@ use openssl::{
     stack::Stack,
     x509::{store::X509StoreBuilder, X509},
 };
-use std::{
-    ffi::OsStr,
-    io::{Cursor, Read},
-    path::Path,
-};
 use tokio::fs::read;
 use tracing::debug;
 use zip::read::ZipArchive;
+
+use crate::error::RudderError;
 
 pub async fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
     let path = path.as_ref();
@@ -98,8 +100,9 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs::read_to_string;
+
+    use super::*;
 
     #[tokio::test]
     async fn it_reads_gzipped_files() {

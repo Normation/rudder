@@ -41,9 +41,8 @@ pub mod handlers {
     use urlencoding::decode;
     use warp::{filters::path::Peek, reject, reply, Rejection, Reply};
 
-    use crate::JobConfig;
-
     use super::*;
+    use crate::JobConfig;
 
     pub async fn head(
         file: Peek,

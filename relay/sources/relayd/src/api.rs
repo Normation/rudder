@@ -153,9 +153,8 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
 mod tests {
     use anyhow::Error;
 
-    use crate::error::RudderError;
-
     use super::*;
+    use crate::error::RudderError;
 
     #[test]
     fn it_serializes_api_response() {

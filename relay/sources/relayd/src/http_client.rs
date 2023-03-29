@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{CRATE_NAME, CRATE_VERSION};
+use std::time::Duration;
+
 use anyhow::Error;
 use lazy_static::lazy_static;
 use reqwest::{Certificate, Client};
-use std::time::Duration;
 use tracing::debug;
+
+use crate::{CRATE_NAME, CRATE_VERSION};
 
 lazy_static! {
     /// User-Agent used in our HTTP requests
@@ -108,8 +110,9 @@ impl HttpClient {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs;
+
+    use super::*;
 
     #[test]
     fn it_creates_pinned_cert_client() {

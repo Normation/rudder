@@ -4,12 +4,11 @@
 use std::{env, process::exit};
 
 use gumdrop::Options;
-use tracing::error;
-
 use rudder_relayd::{
     configuration::{check_configuration, cli::CliConfiguration},
     init_logger, start, ExitStatus, CRATE_NAME, CRATE_VERSION,
 };
+use tracing::error;
 
 /// Everything in a lib to allow extensive testing
 fn main() {

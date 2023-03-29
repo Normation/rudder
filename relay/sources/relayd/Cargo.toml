@@ -45,7 +45,7 @@ sha2 = "0.10"
 thiserror = "1"
 tokio = { version = "1", default-features = false, features = [ "rt-multi-thread", "process", "macros", "signal", "fs"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["io-util"] }
-toml = "0.6"
+toml = "0.7"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }

@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::sync::Arc;
+
+use serde::Serialize;
+use warp::{
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
+};
+
 use crate::{
     api::{ApiResponse, ApiResult},
     configuration::check_configuration,
     output::database::ping,
     Error, JobConfig, CRATE_VERSION,
-};
-use serde::Serialize;
-use std::sync::Arc;
-use warp::{
-    filters::{method, BoxedFilter},
-    path, Filter, Reply,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -42,8 +44,9 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use super::*;
     use warp::{Rejection, Reply};
+
+    use super::*;
 
     pub async fn reload(job_config: Arc<JobConfig>) -> Result<impl Reply, Rejection> {
         Ok(ApiResponse::<()>::new::<Error>(

@@ -12,7 +12,6 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
-
 use rudder_relayd::{
     configuration::{main::DatabaseConfig, Secret},
     data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
