@@ -16,10 +16,10 @@ test-docs: $(DOC_EXAMPLES_CF)
 test: libs
 	cargo test --locked
 	# Parse lib
-	cargo run --bin rudderc --quiet -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
+	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 
 %.cf: %.yml libs
-	cd $(shell dirname $@) && cargo run --bin rudderc --quiet -- --quiet build -l ../../../../target/repos/ncf/tree/30_generic_methods/
+	cd $(shell dirname $@) && cargo run --quiet --bin rudderc -- --quiet build -l ../../../../target/repos/ncf/tree/30_generic_methods/
 docs: test-docs
 	mkdir -p target/docs
 	cp -r rudderc/docs/images target/docs/
@@ -27,7 +27,7 @@ docs: test-docs
 
 libs-docs: libs
 	mkdir -p target/docs
-	cargo run --bin rudderc -- lib --library target/repos/ncf/tree/30_generic_methods/ \
+	cargo run --quiet --bin rudderc -- --quiet lib --library target/repos/ncf/tree/30_generic_methods/ \
            --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --stdout > target/methods.md
 	pandoc --standalone --metadata=mainfont:sans --metadata=title:"Rudder methods docs" \
 	       --from commonmark_x --to html5 --toc --toc-depth=2 --output target/docs/methods.html target/methods.md
