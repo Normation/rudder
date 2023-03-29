@@ -65,6 +65,23 @@ impl fmt::Display for Id {
     }
 }
 
+impl Default for Technique {
+    fn default() -> Self {
+        Self {
+            format: 0,
+            id: Id::from_str("my_technique").unwrap(),
+            name: "My technique".to_string(),
+            version: "0.1".to_string(),
+            tags: None,
+            category: None,
+            description: Some("A technique".to_string()),
+            documentation: None,
+            items: vec![],
+            parameters: vec![],
+        }
+    }
+}
+
 /// A Rudder technique (based on methods and/or modules)
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Technique {

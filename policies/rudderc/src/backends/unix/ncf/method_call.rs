@@ -12,9 +12,10 @@ use std::convert::TryFrom;
 use anyhow::{bail, Error};
 use rudder_commons::canonify;
 
-use crate::backends::unix::cfengine::{cfengine_escape, expanded};
 use crate::{
-    backends::unix::cfengine::{bundle::Bundle, promise::Promise, quoted},
+    backends::unix::cfengine::{
+        bundle::Bundle, cfengine_escape, expanded, promise::Promise, quoted,
+    },
     frontends::methods::method::Agent,
     ir::{
         condition::Condition,

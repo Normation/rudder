@@ -20,12 +20,6 @@ pub enum Target {
     Unix,
     /// Actually (Windows, Dotnet + DSC, )
     Windows,
-    /// Pseudo-target for documentation
-    Docs,
-    /// Pseudo-target for documentation
-    WebDocs,
-    /// Pseudo-target for metadata
-    Metadata,
 }
 
 impl Target {
@@ -34,9 +28,6 @@ impl Target {
         match self {
             Self::Unix => "cf",
             Self::Windows => "ps1",
-            Self::Docs => "md",
-            Self::WebDocs => "html",
-            Self::Metadata => "xml",
         }
     }
 }
@@ -64,9 +55,6 @@ impl fmt::Display for Target {
             match self {
                 Target::Unix => "unix",
                 Target::Windows => "windows",
-                Target::Docs => "documentation",
-                Target::WebDocs => "documentation",
-                Target::Metadata => "metadata",
             }
         )
     }
@@ -79,9 +67,6 @@ impl FromStr for Target {
         match target {
             "cf" | "cfengine" | "CFEngine" | "unix" | "Unix" => Ok(Target::Unix),
             "ps1" | "powershell" | "dsc" | "windows" | "Windows" => Ok(Target::Windows),
-            "md" | "markdown" => Ok(Target::Docs),
-            "html" | "doc" | "docs" => Ok(Target::WebDocs),
-            "json" | "metadata" => Ok(Target::Metadata),
             "yml" | "yaml" => bail!("YAML is not a valid target format but only a source"),
             _ => bail!("Could not recognize target {:?}", target),
         }

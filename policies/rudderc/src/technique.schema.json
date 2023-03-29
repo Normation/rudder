@@ -7,6 +7,9 @@
   "required": [ "id", "name", "version", "items" ],
   "additionalProperties": false,
   "properties": {
+    "format": {
+      "type": "number"
+    },
     "id": {
       "$ref": "#/$defs/techniqueId"
     },

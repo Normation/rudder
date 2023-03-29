@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use anyhow::Result;
-use clap::{error::ErrorKind, CommandFactory};
-use rudder_commons::Target;
+use std::fs::create_dir_all;
+use std::path::{Path, PathBuf};
 
-use crate::cli::MainArgs;
+use anyhow::{Context, Result};
+
+use crate::cli::{Command, MainArgs};
 
 pub mod backends;
 pub mod cli;
@@ -28,6 +29,12 @@ macro_rules! regex {
 
 pub(crate) use regex;
 
+pub const TARGET_DIR: &str = "target";
+pub const TECHNIQUE: &str = "technique";
+pub const TECHNIQUE_SRC: &str = "technique.yml";
+pub const METADATA_FILE: &str = "metadata.xml";
+pub const RESOURCES_DIR: &str = "resources";
+
 /// Main entry point for rudderc
 ///
 /// # Error management
@@ -35,39 +42,37 @@ pub(crate) use regex;
 /// The current process is to stop at first error, and move it up to `main()` where it will
 /// be displayed.
 pub fn run(args: MainArgs) -> Result<()> {
-    // guess output target
-    let target = args.target()?;
+    let input = Path::new(TECHNIQUE_SRC);
+    let cwd = PathBuf::from(".");
+    let target = PathBuf::from(TARGET_DIR);
 
-    if args.modules {
-        action::describe(args.library.as_slice(), args.output.as_ref(), target)
-    } else {
-        let input = match args.input {
-            Some(input) => input,
-            None => {
-                let mut cmd = MainArgs::command();
-                cmd.error(ErrorKind::MissingRequiredArgument, "Missing input path")
-                    .exit()
-            }
-        };
-
-        if args.check {
-            action::check(args.library.as_slice(), &input, target)
-        } else {
-            let output = match args.output {
-                Some(output) => output,
-                None => {
-                    let mut cmd = MainArgs::command();
-                    cmd.error(ErrorKind::MissingRequiredArgument, "Missing output path")
-                        .exit()
-                }
-            };
-            let output_metadata = args.metadata.as_ref();
-            action::write(
-                args.library.as_slice(),
-                &input,
-                &output,
-                target,
-                output_metadata,
+    match args.command {
+        Command::Init => action::init(&cwd),
+        Command::Check { library } => action::check(library.as_slice(), input),
+        Command::Build { library, output } => {
+            let actual_output = output.unwrap_or(target);
+            create_dir_all(&actual_output).with_context(|| {
+                format!(
+                    "Failed to create target directory {}",
+                    actual_output.display()
+                )
+            })?;
+            action::build(library.as_slice(), input, actual_output.as_path())
+        }
+        Command::Lib {
+            library,
+            output,
+            format,
+            open,
+            stdout,
+        } => {
+            let actual_output = output.unwrap_or(target);
+            action::lib_doc(
+                library.as_slice(),
+                actual_output.as_path(),
+                format,
+                open,
+                stdout,
             )
         }
     }
@@ -75,46 +80,73 @@ pub fn run(args: MainArgs) -> Result<()> {
 
 // Actions
 pub mod action {
+    use std::process::Command;
     use std::{
-        fs::File,
+        fs,
+        fs::{create_dir, read_to_string, File},
         io::{self, Write},
         path::{Path, PathBuf},
     };
 
     use anyhow::{bail, Context, Result};
     use boon::{Compiler, Schemas};
-    use rudder_commons::Target;
+    use rudder_commons::ALL_TARGETS;
     use serde_json::Value;
 
-    pub use crate::compiler::{compile, methods_description};
+    pub use crate::compiler::compile;
     use crate::{
-        compiler::{metadata, methods_documentation, methods_web_documentation},
-        logs::ok_output,
+        compiler::metadata, doc::Format, frontends::methods::read_methods, ir::Technique,
+        logs::ok_output, METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
     };
 
-    /// Describe available modules
-    pub fn describe(libraries: &[PathBuf], output: Option<&PathBuf>, target: Target) -> Result<()> {
-        let data = match target {
-            Target::Metadata => methods_description(libraries)?,
-            Target::Docs => methods_documentation(libraries)?,
-            Target::WebDocs => methods_web_documentation(libraries)?,
-            _ => bail!("modules flag requires a metadata target"),
-        };
+    /// Create a technique skeleton
+    pub fn init(output: &Path) -> Result<()> {
+        let t = serde_yaml::to_string(&Technique::default())?;
+        let tech_path = output.join(TECHNIQUE_SRC);
+        let mut file = File::create(tech_path.as_path())
+            .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
+        file.write_all(t.as_bytes())?;
+        let resources_dir = output.join(RESOURCES_DIR);
+        create_dir(resources_dir.as_path()).with_context(|| {
+            format!("Failed to create resources dir {}", resources_dir.display())
+        })?;
+        ok_output("Wrote", tech_path.display());
+        Ok(())
+    }
 
-        if let Some(out) = output {
-            let mut file = File::create(out)
-                .with_context(|| format!("Failed to create output file {}", out.display()))?;
-            file.write_all(data.as_bytes())?;
-            ok_output("Wrote", out.display());
-        } else {
-            // If not output, write on stdout
+    /// Describe available modules
+    pub fn lib_doc(
+        libraries: &[PathBuf],
+        output_dir: &Path,
+        format: Format,
+        open: bool,
+        stdout: bool,
+    ) -> Result<()> {
+        let data = format.render(read_methods(libraries)?)?;
+        fs::create_dir_all(output_dir)?;
+        let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
+
+        if stdout {
             io::stdout().write_all(data.as_bytes())?;
+        } else {
+            let mut file = File::create(doc_file.as_path())
+                .with_context(|| format!("Failed to create output file {}", doc_file.display()))?;
+            file.write_all(data.as_bytes())?;
+            ok_output("Wrote", doc_file.display());
+
+            // Open in browser
+            if open {
+                // For now try and ignore result
+                let _ = Command::new("xdg-open").args([doc_file]).output();
+            }
         }
         Ok(())
     }
 
     /// Linter mode, check JSON schema compliance and ability to compile
-    pub fn check(libraries: &[PathBuf], input: &Path, target: Target) -> Result<()> {
+    pub fn check(libraries: &[PathBuf], input: &Path) -> Result<()> {
+        let policy = read_to_string(input)
+            .with_context(|| format!("Failed to read input from {}", input.display()))?;
         // JSON schema validity
         //
         // load schema first
@@ -125,7 +157,7 @@ pub mod action {
         compiler.add_resource(schema_url, schema).unwrap();
         let sch_index = compiler.compile(schema_url, &mut schemas).unwrap();
         // the load technique file
-        let instance: Value = serde_yaml::from_reader(File::open(input)?)?;
+        let instance: Value = serde_yaml::from_str(&policy)?;
         // ... and validate
         let result = schemas.validate(&instance, sch_index);
         if let Err(error) = result {
@@ -133,31 +165,68 @@ pub mod action {
             bail!("{error:#}");
         }
         // Compilation test
-        compile(libraries, input, target)?;
+        let methods = read_methods(libraries)?;
+        for target in ALL_TARGETS {
+            compile(methods, &policy, *target, input)?;
+        }
         //
         ok_output("Checked", input.display());
         Ok(())
     }
 
     /// Write output
-    pub fn write(
-        libraries: &[PathBuf],
-        input: &Path,
-        output: &Path,
-        target: Target,
-        output_metadata: Option<&PathBuf>,
-    ) -> Result<()> {
-        let mut file = File::create(output)
-            .with_context(|| format!("Failed to create output file {}", input.display()))?;
-        file.write_all(compile(libraries, input, target)?.as_bytes())?;
-        ok_output("Wrote", output.display());
+    pub fn build(libraries: &[PathBuf], input: &Path, output_dir: &Path) -> Result<()> {
+        let policy = read_to_string(input)
+            .with_context(|| format!("Failed to read input from {}", input.display()))?;
+        let methods = read_methods(libraries)?;
+        fs::create_dir_all(output_dir)?;
 
-        if let Some(metadata_file) = output_metadata {
-            let mut file = File::create(metadata_file).with_context(|| {
-                format!("Failed to create metadata output file {}", input.display())
+        // Technique implementation
+        for target in ALL_TARGETS {
+            let policy_file =
+                output_dir.join(Path::new(TECHNIQUE).with_extension(target.extension()));
+            let mut file = File::create(&policy_file).with_context(|| {
+                format!("Failed to create output file {}", policy_file.display())
             })?;
-            file.write_all(metadata(input)?.as_bytes())?;
-            ok_output("Wrote", metadata_file.display());
+            file.write_all(compile(methods, &policy, *target, input)?.as_bytes())?;
+            ok_output("Wrote", policy_file.display());
+        }
+
+        // Metadata for the webapp
+        let metadata_file = output_dir.join(METADATA_FILE);
+        let mut file = File::create(&metadata_file).with_context(|| {
+            format!(
+                "Failed to create metadata output file {}",
+                metadata_file.display()
+            )
+        })?;
+        file.write_all(metadata(methods, &policy, input)?.as_bytes())?;
+        ok_output("Wrote", metadata_file.display());
+
+        // Resources folder
+        let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
+        if resources_path.exists() {
+            pub fn copy_recursively(
+                source: impl AsRef<Path>,
+                destination: impl AsRef<Path>,
+            ) -> io::Result<()> {
+                fs::create_dir_all(&destination)?;
+                for entry in fs::read_dir(source)? {
+                    let entry = entry?;
+                    let filetype = entry.file_type()?;
+                    if filetype.is_dir() {
+                        copy_recursively(
+                            entry.path(),
+                            destination.as_ref().join(entry.file_name()),
+                        )?;
+                    } else {
+                        fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
+                    }
+                }
+                Ok(())
+            }
+            copy_recursively(&resources_path, output_dir.join(RESOURCES_DIR))?;
+            ok_output("Copied", resources_path.display());
         }
 
         Ok(())

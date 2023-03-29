@@ -12,10 +12,10 @@
 //!   * We generate a program directly.
 //! * Unix backend, targeting CFEngine. In this case we use an intermediary internal representation.
 
-use crate::backends::metadata::Metadata;
+use std::path::Path;
+
 use anyhow::{Error, Result};
 use rudder_commons::Target;
-use std::path::Path;
 use walkdir::WalkDir;
 
 pub use self::{unix::Unix, windows::Windows};
@@ -70,11 +70,5 @@ pub fn backend(target: Target) -> Box<dyn Backend> {
     match target {
         Target::Unix => Box::new(Unix::new()),
         Target::Windows => Box::new(Windows::new()),
-        Target::Metadata => Box::new(Metadata),
-        Target::Docs | Target::WebDocs => unreachable!(),
     }
-}
-
-pub fn metadata_backend() -> impl Backend {
-    Metadata
 }

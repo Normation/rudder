@@ -3,7 +3,7 @@
 
 include ../rust.makefile
 
-DOC_EXAMPLES := $(wildcard rudderc/docs/examples/*.yml)
+DOC_EXAMPLES := $(wildcard rudderc/docs/examples/*/technique.yml)
 DOC_EXAMPLES_CF := $(DOC_EXAMPLES:.yml=.cf)
 
 install: build
@@ -16,11 +16,10 @@ test-docs: $(DOC_EXAMPLES_CF)
 test: libs
 	cargo test --locked
 	# Parse lib
-	cargo run --bin rudderc --quiet -- -o /tmp/test.cf rudderc/tests/cases/general/ntp/technique.yml -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/
+	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 
 %.cf: %.yml libs
-	cargo run --bin rudderc --quiet -- --quiet -l target/repos/ncf/tree/30_generic_methods/ --output $@ --target cf $<
-
+	cd $(shell dirname $@) && cargo run --quiet --bin rudderc -- --quiet build -l ../../../../target/repos/ncf/tree/30_generic_methods/
 docs: test-docs
 	mkdir -p target/docs
 	cp -r rudderc/docs/images target/docs/
@@ -28,8 +27,8 @@ docs: test-docs
 
 libs-docs: libs
 	mkdir -p target/docs
-	cargo run --bin rudderc -- --library target/repos/ncf/tree/30_generic_methods/ \
-           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --modules --output target/methods.md
+	cargo run --quiet --bin rudderc -- --quiet lib --library target/repos/ncf/tree/30_generic_methods/ \
+           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --stdout > target/methods.md
 	pandoc --standalone --metadata=mainfont:sans --metadata=title:"Rudder methods docs" \
 	       --from commonmark_x --to html5 --toc --toc-depth=2 --output target/docs/methods.html target/methods.md
 

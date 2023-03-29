@@ -12,5 +12,5 @@ license = "GPL-3.0-or-later"
 [dependencies]
 assert_cmd = "2"
 tempfile = "3"
-predicates = "2"
+predicates = "3"
 rudder_module_type = { path = "../rudder-module-type" }
