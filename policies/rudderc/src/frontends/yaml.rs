@@ -3,9 +3,7 @@
 
 //! Rudder module_type represented in YAML format
 
-use std::{fs::read_to_string, path::Path};
-
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use log::trace;
 
 use crate::ir::Technique;

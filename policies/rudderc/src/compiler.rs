@@ -1,26 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
-use askama::Template;
-use comrak::{markdown_to_html, ComrakOptions};
 use log::warn;
 use rudder_commons::{is_canonified, Target};
 
-use crate::ir::Technique;
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
-    doc,
-    frontends::{
-        methods::{method::MethodInfo, reader::read_lib},
-        yaml,
+    frontends::{methods::method::MethodInfo, yaml},
+    ir::{
+        technique::{Block, BlockReportingMode, ItemKind, Method, Parameter},
+        Technique,
     },
-    ir::technique::{Block, BlockReportingMode, ItemKind, Method, Parameter},
     logs::ok_output,
     RESOURCES_DIR,
 };

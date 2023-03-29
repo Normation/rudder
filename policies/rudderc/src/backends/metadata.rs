@@ -147,7 +147,6 @@ impl Agent {
         let name = match target {
             Target::Unix => technique_name.clone(),
             Target::Windows => Windows::technique_name(&technique_name),
-            _ => unreachable!(),
         };
 
         let mut files = vec![File {

@@ -3,10 +3,9 @@
 
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 
-use crate::{doc::Format, Target};
+use crate::doc::Format;
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]

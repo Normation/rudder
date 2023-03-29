@@ -9,10 +9,11 @@ use std::{
 };
 
 use pretty_assertions::assert_eq;
-use quick_xml::escape::unescape;
 use rudder_commons::{Target, ALL_TARGETS};
-use rudderc::compiler::{metadata, Methods};
-use rudderc::frontends::methods::read_methods;
+use rudderc::{
+    compiler::{metadata, Methods},
+    frontends::methods::read_methods,
+};
 use test_generator::test_resources;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.

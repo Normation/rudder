@@ -3,20 +3,15 @@
 
 //! Render documentation about modules.
 
-use std::{collections::HashMap, ffi::OsStr, fmt, path::Path, str::FromStr};
+use std::{fmt, str::FromStr};
 
-use anyhow::{anyhow, bail, Context, Error, Result};
+use anyhow::{bail, Context, Error, Result};
 use askama::Template;
 use clap::ValueEnum;
 use comrak::{markdown_to_html, ComrakOptions};
-use rudder_commons::{Target, DEFAULT_MAX_PARAM_LENGTH};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::Serialize;
 
-use crate::{
-    compiler::Methods,
-    frontends::methods::method::{MethodInfo, Parameter},
-    logs::ok_output,
-};
+use crate::{compiler::Methods, logs::ok_output};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, ValueEnum)]
 pub enum Format {
@@ -92,8 +87,8 @@ impl Format {
 fn markdown(methods: &'static Methods) -> Result<String> {
     ok_output("Generating", "modules documentation".to_owned());
     // Sort methods
-    let mut methods: Vec<_> = methods.into_iter().collect();
-    methods.sort_by(|x, y| x.0.cmp(&y.0));
+    let mut methods: Vec<_> = methods.iter().collect();
+    methods.sort_by(|x, y| x.0.cmp(y.0));
 
     let mut out = String::new();
     for (_, m) in methods {
@@ -116,22 +111,17 @@ fn html(methods: &'static Methods) -> Result<String> {
 }
 
 mod markdown {
-    use std::{collections::HashMap, ffi::OsStr, fmt, path::Path, str::FromStr};
+    use std::collections::HashMap;
 
-    use anyhow::{anyhow, bail, Context, Error, Result};
-    use comrak::{markdown_to_html, ComrakOptions};
+    use anyhow::Result;
     use rudder_commons::{Target, DEFAULT_MAX_PARAM_LENGTH};
-    use serde::{Deserialize, Deserializer, Serialize};
+    use serde::Serialize;
 
-    use crate::{
-        compiler::Methods,
-        frontends::methods::method::{MethodInfo, Parameter},
-        logs::ok_output,
-    };
+    use crate::frontends::methods::method::{MethodInfo, Parameter};
 
     /// Render method doc to markdown
     pub fn method(m: &'static MethodInfo) -> Result<String> {
-        let example = example(&m)?;
+        let example = example(m)?;
 
         Ok(format!(
             "

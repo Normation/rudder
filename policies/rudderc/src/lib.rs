@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::path::PathBuf;
-use std::{env, path::Path};
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-use clap::{error::ErrorKind, CommandFactory};
-use rudder_commons::{Target, ALL_TARGETS};
 
 use crate::cli::{Command, MainArgs};
 
@@ -58,23 +55,22 @@ pub fn run(args: MainArgs) -> Result<()> {
             library,
             output,
             format,
-            open,
+            open: _,
         } => action::lib_doc(library.as_slice(), output, format),
     }
 }
 
 // Actions
 pub mod action {
-    use std::fs::read_to_string;
     use std::{
-        fs::{create_dir, File},
+        fs::{create_dir, read_to_string, File},
         io::{self, Write},
         path::{Path, PathBuf},
     };
 
     use anyhow::{bail, Context, Result};
     use boon::{Compiler, Schemas};
-    use rudder_commons::{Target, ALL_TARGETS};
+    use rudder_commons::ALL_TARGETS;
     use serde_json::Value;
 
     pub use crate::compiler::compile;
@@ -84,7 +80,7 @@ pub mod action {
     };
 
     /// Create a technique skeleton
-    pub fn init(output: &PathBuf) -> Result<()> {
+    pub fn init(output: &Path) -> Result<()> {
         let t = serde_yaml::to_string(&Technique::default())?;
         let tech_path = output.join(TECHNIQUE_SRC);
         let mut file = File::create(tech_path.as_path())

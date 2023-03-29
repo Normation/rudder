@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use crate::compiler::Methods;
-use crate::frontends::methods::method::MethodInfo;
-use crate::frontends::methods::reader::read_lib;
-use crate::logs::ok_output;
+use std::{collections::HashMap, path::PathBuf};
+
 use anyhow::Result;
-use std::collections::HashMap;
-use std::path::PathBuf;
+
+use crate::{
+    compiler::Methods,
+    frontends::methods::{method::MethodInfo, reader::read_lib},
+    logs::ok_output,
+};
 
 pub mod method;
 pub mod reader;

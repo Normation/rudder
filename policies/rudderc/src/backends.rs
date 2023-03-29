@@ -19,7 +19,7 @@ use rudder_commons::Target;
 use walkdir::WalkDir;
 
 pub use self::{unix::Unix, windows::Windows};
-use crate::{backends::metadata::Metadata, ir::Technique};
+use crate::ir::Technique;
 
 // Special "backend" for reporting data for the webapp
 pub mod metadata;
