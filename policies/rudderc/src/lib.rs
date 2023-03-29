@@ -97,8 +97,12 @@ pub mod action {
 
     pub use crate::compiler::compile;
     use crate::{
-        compiler::metadata, doc::Format, frontends::methods::read_methods, ir::Technique,
-        logs::ok_output, METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
+        compiler::metadata,
+        doc::{book, Format},
+        frontends::methods::read_methods,
+        ir::Technique,
+        logs::ok_output,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
     };
 
     /// Create a technique skeleton
@@ -124,24 +128,39 @@ pub mod action {
         open: bool,
         stdout: bool,
     ) -> Result<()> {
-        let data = format.render(read_methods(libraries)?)?;
-        fs::create_dir_all(output_dir)?;
-        let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
-
-        if stdout {
-            io::stdout().write_all(data.as_bytes())?;
+        let methods = read_methods(libraries)?;
+        // Special case as output is multi-file
+        let file_to_open = if format == Format::Html {
+            book::render(methods, output_dir)?;
+            let index = output_dir.join("book/index.html");
+            ok_output("Wrote", index.display());
+            Some(index)
         } else {
-            let mut file = File::create(doc_file.as_path())
-                .with_context(|| format!("Failed to create output file {}", doc_file.display()))?;
-            file.write_all(data.as_bytes())?;
-            ok_output("Wrote", doc_file.display());
+            let data = format.render(methods)?;
+            fs::create_dir_all(output_dir)?;
+            let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
 
-            // Open in browser
+            if stdout {
+                io::stdout().write_all(data.as_bytes())?;
+                None
+            } else {
+                let mut file = File::create(doc_file.as_path()).with_context(|| {
+                    format!("Failed to create output file {}", doc_file.display())
+                })?;
+                file.write_all(data.as_bytes())?;
+                ok_output("Wrote", doc_file.display());
+
+                Some(doc_file)
+            }
+        };
+
+        // Open in browser
+        if let Some(f) = file_to_open {
             if open {
-                // For now try and ignore result
-                let _ = Command::new("xdg-open").args([doc_file]).output();
+                let _ = Command::new("xdg-open").args([f]).output();
             }
         }
+
         Ok(())
     }
 
