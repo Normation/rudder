@@ -57,9 +57,8 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 pub mod handlers {
     use warp::{reply, Rejection, Reply};
 
-    use crate::JobConfig;
-
     use super::*;
+    use crate::JobConfig;
 
     pub async fn put(
         target_id: String,

@@ -167,13 +167,12 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 mod tests {
     use diesel::dsl::count;
 
+    use super::*;
     use crate::{
         configuration::Secret,
         data::report::QueryableReport,
         output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     };
-
-    use super::*;
 
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {

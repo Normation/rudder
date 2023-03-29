@@ -5,11 +5,12 @@ pub mod cli;
 pub mod logging;
 pub mod main;
 
+use std::{fmt, path::Path};
+
 use anyhow::Error;
 use logging::LogConfig;
 use main::Configuration;
 use serde::Deserialize;
-use std::{fmt, path::Path};
 
 /// Allows hiding a value in logs
 #[derive(Deserialize, PartialEq, Eq, Clone, Default)]

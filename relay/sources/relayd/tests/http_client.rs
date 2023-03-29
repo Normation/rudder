@@ -3,9 +3,10 @@
 
 mod common;
 
+use std::{fs, thread};
+
 use common::{fake_server_start, fake_server_stop};
 use rudder_relayd::{configuration::cli::CliConfiguration, init_logger, start};
-use std::{fs, thread};
 
 fn upstream_call_ok(client: &reqwest::blocking::Client, should_be_ok: bool) {
     let params_sync = [

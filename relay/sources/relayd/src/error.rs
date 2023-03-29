@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::data::node::NodeId;
 use std::path::PathBuf;
+
 use thiserror::Error;
+
+use crate::data::node::NodeId;
 
 #[derive(Debug, Error)]
 pub enum RudderError {

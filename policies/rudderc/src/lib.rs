@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::create_dir_all,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result};
 
@@ -80,12 +82,12 @@ pub fn run(args: MainArgs) -> Result<()> {
 
 // Actions
 pub mod action {
-    use std::process::Command;
     use std::{
         fs,
         fs::{create_dir, read_to_string, File},
         io::{self, Write},
         path::{Path, PathBuf},
+        process::Command,
     };
 
     use anyhow::{bail, Context, Result};

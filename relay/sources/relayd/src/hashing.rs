@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::error::RudderError;
+use std::{fmt, str, str::FromStr};
+
 use anyhow::{anyhow, Error};
 use base64::{engine::general_purpose as base64_engine, Engine};
 use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
-use std::{fmt, str, str::FromStr};
+
+use crate::error::RudderError;
 
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct Hash {
@@ -93,16 +95,11 @@ impl fmt::Display for Hash {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HashType {
     Sha256,
+    #[default]
     Sha512,
-}
-
-impl Default for HashType {
-    fn default() -> Self {
-        HashType::Sha512
-    }
 }
 
 impl FromStr for HashType {

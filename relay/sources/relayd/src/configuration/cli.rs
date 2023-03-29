@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use gumdrop::Options;
 use std::path::{Path, PathBuf};
+
+use gumdrop::Options;
 
 #[derive(Debug, Options)]
 // version and description are taken from Cargo.toml

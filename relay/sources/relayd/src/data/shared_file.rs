@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::{
-    error::RudderError,
-    hashing::{Hash, HashType},
-};
+use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr};
+
 use anyhow::Error;
 use openssl::{
     error::ErrorStack,
@@ -13,7 +11,11 @@ use openssl::{
     sign::Verifier,
 };
 use regex::Regex;
-use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr};
+
+use crate::{
+    error::RudderError,
+    hashing::{Hash, HashType},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SignatureFormat {
@@ -233,8 +235,9 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use openssl::sign::Signer;
+
+    use super::*;
 
     #[test]
     fn it_checks_shared_file() {

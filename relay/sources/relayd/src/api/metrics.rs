@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use crate::metrics::REGISTRY;
 use warp::{
     filters::{method, BoxedFilter},
     path, Filter, Reply,
 };
+
+use crate::metrics::REGISTRY;
 
 /// Special case for /metrics, standard for prometheus
 pub fn routes() -> BoxedFilter<(impl Reply,)> {
@@ -16,10 +17,11 @@ pub fn routes() -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use super::*;
-    use crate::api::RudderReject;
     use prometheus::proto::MetricFamily;
     use warp::{reject, Rejection, Reply};
+
+    use super::*;
+    use crate::api::RudderReject;
 
     pub async fn metrics() -> Result<impl Reply, Rejection> {
         use prometheus::Encoder;

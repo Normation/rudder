@@ -10,7 +10,6 @@ use std::{
 
 use diesel::{self, prelude::*, PgConnection};
 use filetime::{set_file_times, FileTime};
-
 use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,
