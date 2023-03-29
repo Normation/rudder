@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::{
     compiler::Methods,
@@ -24,6 +24,11 @@ pub fn read_methods(libraries: &[PathBuf]) -> Result<&'static Methods> {
         }
         ok_output("Read", format!("{} methods ({})", len, library.display()))
     }
+
+    if methods.is_empty() {
+        bail!("No methods were loaded.");
+    }
+
     let methods = Box::new(methods);
     // Get a static reference to allow easier usage. Methods don't change
     // during execution.

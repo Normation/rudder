@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::cli::{Command, MainArgs};
 
@@ -41,28 +42,47 @@ pub const RESOURCES_DIR: &str = "resources";
 /// The current process is to stop at first error, and move it up to `main()` where it will
 /// be displayed.
 pub fn run(args: MainArgs) -> Result<()> {
-    let input = Path::new(TARGET_DIR).join(TECHNIQUE_SRC);
+    let input = Path::new(TECHNIQUE_SRC);
     let cwd = PathBuf::from(".");
+    let target = PathBuf::from(TARGET_DIR);
 
     match args.command {
         Command::Init => action::init(&cwd),
-        Command::Check { library } => action::check(library.as_slice(), input.as_path()),
+        Command::Check { library } => action::check(library.as_slice(), input),
         Command::Build { library, output } => {
-            let actual_output = output.unwrap_or(cwd);
-            action::build(library.as_slice(), input.as_path(), actual_output.as_path())
+            let actual_output = output.unwrap_or(target);
+            create_dir_all(&actual_output).with_context(|| {
+                format!(
+                    "Failed to create target directory {}",
+                    actual_output.display()
+                )
+            })?;
+            action::build(library.as_slice(), input, actual_output.as_path())
         }
-        Command::LibDoc {
+        Command::Lib {
             library,
             output,
             format,
-            open: _,
-        } => action::lib_doc(library.as_slice(), output, format),
+            open,
+            stdout,
+        } => {
+            let actual_output = output.unwrap_or(target);
+            action::lib_doc(
+                library.as_slice(),
+                actual_output.as_path(),
+                format,
+                open,
+                stdout,
+            )
+        }
     }
 }
 
 // Actions
 pub mod action {
+    use std::process::Command;
     use std::{
+        fs,
         fs::{create_dir, read_to_string, File},
         io::{self, Write},
         path::{Path, PathBuf},
@@ -95,16 +115,30 @@ pub mod action {
     }
 
     /// Describe available modules
-    pub fn lib_doc(libraries: &[PathBuf], output: Option<PathBuf>, format: Format) -> Result<()> {
+    pub fn lib_doc(
+        libraries: &[PathBuf],
+        output_dir: &Path,
+        format: Format,
+        open: bool,
+        stdout: bool,
+    ) -> Result<()> {
         let data = format.render(read_methods(libraries)?)?;
-        if let Some(out) = output {
-            let mut file = File::create(out.as_path())
-                .with_context(|| format!("Failed to create output file {}", out.display()))?;
-            file.write_all(data.as_bytes())?;
-            ok_output("Wrote", out.display());
-        } else {
-            // If not output, write on stdout
+        fs::create_dir_all(output_dir)?;
+        let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
+
+        if stdout {
             io::stdout().write_all(data.as_bytes())?;
+        } else {
+            let mut file = File::create(doc_file.as_path())
+                .with_context(|| format!("Failed to create output file {}", doc_file.display()))?;
+            file.write_all(data.as_bytes())?;
+            ok_output("Wrote", doc_file.display());
+
+            // Open in browser
+            if open {
+                // For now try and ignore result
+                let _ = Command::new("xdg-open").args([doc_file]).output();
+            }
         }
         Ok(())
     }
@@ -145,7 +179,9 @@ pub mod action {
         let policy = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let methods = read_methods(libraries)?;
+        fs::create_dir_all(output_dir)?;
 
+        // Technique implementation
         for target in ALL_TARGETS {
             let policy_file =
                 output_dir.join(Path::new(TECHNIQUE).with_extension(target.extension()));
@@ -156,6 +192,7 @@ pub mod action {
             ok_output("Wrote", policy_file.display());
         }
 
+        // Metadata for the webapp
         let metadata_file = output_dir.join(METADATA_FILE);
         let mut file = File::create(&metadata_file).with_context(|| {
             format!(
@@ -165,6 +202,32 @@ pub mod action {
         })?;
         file.write_all(metadata(methods, &policy, input)?.as_bytes())?;
         ok_output("Wrote", metadata_file.display());
+
+        // Resources folder
+        let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
+        if resources_path.exists() {
+            pub fn copy_recursively(
+                source: impl AsRef<Path>,
+                destination: impl AsRef<Path>,
+            ) -> io::Result<()> {
+                fs::create_dir_all(&destination)?;
+                for entry in fs::read_dir(source)? {
+                    let entry = entry?;
+                    let filetype = entry.file_type()?;
+                    if filetype.is_dir() {
+                        copy_recursively(
+                            entry.path(),
+                            destination.as_ref().join(entry.file_name()),
+                        )?;
+                    } else {
+                        fs::copy(entry.path(), destination.as_ref().join(entry.file_name()))?;
+                    }
+                }
+                Ok(())
+            }
+            copy_recursively(&resources_path, output_dir.join(RESOURCES_DIR))?;
+            ok_output("Copied", resources_path.display());
+        }
 
         Ok(())
     }

@@ -7,16 +7,16 @@
 
 Example:
 
-.ntp.yml
+.technique.yml
 [source,yaml]
 ----
-include::examples/ntp.yml[]
+include::examples/ntp/technique.yml[]
 ----
 
 Generates:
 
-.ntp.cf
+.technique.cf
 [source]
 ----
-include::examples/ntp.cf[]
+include::examples/ntp/target/technique.cf[]
 ----

@@ -3,9 +3,9 @@
 
 //! Render documentation about modules.
 
-use std::{fmt, str::FromStr};
+use std::fmt;
 
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{Context, Result};
 use askama::Template;
 use clap::ValueEnum;
 use comrak::{markdown_to_html, ComrakOptions};
@@ -38,19 +38,6 @@ impl Format {
             Self::Markdown => "md",
             Self::Html => "html",
             Self::Json => "json",
-        }
-    }
-}
-
-impl FromStr for Format {
-    type Err = Error;
-
-    fn from_str(target: &str) -> Result<Self> {
-        match target {
-            "md" | "markdown" => Ok(Format::Markdown),
-            "html" => Ok(Format::Html),
-            "json" => Ok(Format::Json),
-            _ => bail!("Could not recognize format {:?}", target),
         }
     }
 }

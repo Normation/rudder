@@ -58,8 +58,13 @@ pub fn compile(
 pub fn metadata(methods: &'static Methods, input: &str, src: &Path) -> Result<String> {
     let policy = read_technique(methods, input)?;
     ok_output(
-        "Generating metadata",
-        format!("{} v{} ({})", policy.name, policy.version, src.display()),
+        "Generating",
+        format!(
+            "{} v{} [metadata] ({})",
+            policy.name,
+            policy.version,
+            src.display()
+        ),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
     Metadata.generate(policy, resources_path.as_path())

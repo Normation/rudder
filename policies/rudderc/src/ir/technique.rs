@@ -68,7 +68,7 @@ impl fmt::Display for Id {
 impl Default for Technique {
     fn default() -> Self {
         Self {
-            format: 1,
+            format: 0,
             id: Id::from_str("my_technique").unwrap(),
             name: "My technique".to_string(),
             version: "0.1".to_string(),

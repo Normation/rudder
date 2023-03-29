@@ -25,17 +25,17 @@ pub struct MainArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Creates the technique structure in the current directory
+    /// Create the technique structure in the current directory
     Init,
 
-    /// Builds the technique
+    /// Check the technique for errors
     Check {
         /// Load a library from the given path
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
     },
 
-    /// Builds the technique
+    /// Build the technique
     Build {
         /// Load a library from the given path
         #[arg(short, long, action = clap::ArgAction::Append)]
@@ -46,8 +46,8 @@ pub enum Command {
         output: Option<PathBuf>,
     },
 
-    /// Builds the methods documentation
-    LibDoc {
+    /// Build the methods documentation
+    Lib {
         /// Load a library from the given path
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
@@ -57,12 +57,17 @@ pub enum Command {
         output: Option<PathBuf>,
 
         /// Output format
+        #[arg(short, long)]
         #[arg(value_enum)]
         #[arg(default_value_t = Format::Html)]
         format: Format,
 
         /// Open in browser
-        #[arg(short, long)]
+        #[arg(long)]
         open: bool,
+
+        /// Output in stdout
+        #[arg(long)]
+        stdout: bool,
     },
 }

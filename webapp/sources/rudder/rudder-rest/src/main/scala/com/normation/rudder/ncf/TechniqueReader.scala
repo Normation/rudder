@@ -133,12 +133,12 @@ class TechniqueReader(
       systemLib :: Nil
     }
     val ruddercBin    = "/opt/rudder/bin/rudderc"
+    val ruddercParams = "lib" :: "--format" :: "json" :: "--stdout" :: Nil
     val ruddercLibs   = methodLibs.flatMap(l => "--library" :: l :: Nil)
-    val ruddercParams = "--modules" :: "--target" :: "json" :: Nil
     // We want everything in configuration repository to belong to the "rudder" group
     val groupOwner    = "rudder"
 
-    val cmd = Cmd(ruddercBin, ruddercLibs ::: ruddercParams, Map.empty)
+    val cmd = Cmd(ruddercBin, ruddercParams ::: ruddercLibs, Map.empty)
     for {
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
