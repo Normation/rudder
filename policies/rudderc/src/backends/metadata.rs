@@ -8,19 +8,18 @@
 //! WARNING: We do not implement the format exhaustively but only the parts we need to
 //! generate our metadata file. There are parts that are could be made optional, and others are missing.
 
+use std::path::Path;
+
 use anyhow::{Error, Result};
 use quick_xml::se::Serializer;
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
-use std::path::Path;
 
-use crate::backends::Windows;
-use crate::compiler::RESOURCES_DIR;
-use crate::ir::technique::LeafReporting;
 use crate::{
-    backends::Backend,
+    backends::{Backend, Windows},
     ir,
-    ir::technique::{Id, ItemKind},
+    ir::technique::{Id, ItemKind, LeafReporting},
+    RESOURCES_DIR,
 };
 
 pub struct Metadata;
@@ -34,9 +33,11 @@ impl Backend for Metadata {
 
 impl Metadata {
     fn xml(technique: Technique) -> Result<String> {
-        let mut ser = Serializer::with_root(String::new(), Some("TECHNIQUE")).unwrap();
+        let mut out = String::new();
+        let mut ser = Serializer::with_root(&mut out, Some("TECHNIQUE")).unwrap();
         ser.indent(' ', 2);
-        Ok(technique.serialize(ser)?)
+        technique.serialize(ser)?;
+        Ok(out)
     }
 }
 
@@ -134,7 +135,6 @@ impl Agent {
         match t {
             Target::Unix => "cfengine-community,cfengine-nova",
             Target::Windows => "dsc",
-            Target::Docs | Target::Metadata | Target::WebDocs => unreachable!(),
         }
     }
 

@@ -11,11 +11,11 @@ license = "GPL-3.0-or-later"
 [dependencies]
 anyhow = "1"
 askama = "0.12"
-boon = "0.3.1"
+boon = "0.5.0"
 clap = { version = "4", features = ["derive"] }
 colored = "2"
-comrak = { version = "0.16", default-features = false }
-quick-xml = { version = "0.27.1", features = ["serialize"] }
+comrak = { version = "0.17.1", default-features = false }
+quick-xml = { version = "0.28.1", features = ["serialize"] }
 regex = "1"
 fancy-regex = "0.11"
 serde = { version = "1", features = ["derive"] }

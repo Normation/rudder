@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use super::Backend;
-use crate::ir::Technique;
 use std::path::Path;
 
-use crate::ir::condition::Condition;
-use crate::ir::technique::{ItemKind, LeafReporting, Method, Parameter};
 use anyhow::{bail, Error, Result};
 use askama::Template;
+
+use super::Backend;
+use crate::ir::{
+    condition::Condition,
+    technique::{ItemKind, LeafReporting, Method, Parameter},
+    Technique,
+};
 
 pub struct Windows;
 

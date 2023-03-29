@@ -7,11 +7,12 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use crate::regex;
 use anyhow::{bail, Error, Result};
 use log::debug;
 use rudder_commons::{Constraint, Constraints, ParameterType, Target};
 use serde::{Deserialize, Serialize};
+
+use crate::regex;
 
 /// Supported agent for a legacy method, now replaced by `Target`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

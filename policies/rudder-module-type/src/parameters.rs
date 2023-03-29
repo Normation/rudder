@@ -5,9 +5,10 @@
 
 use std::path::PathBuf;
 
-use crate::cfengine::protocol::ActionPolicy;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+use crate::cfengine::protocol::ActionPolicy;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Parameters {

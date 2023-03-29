@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::path::Path;
+
 use anyhow::Result;
 use log::trace;
-use std::path::Path;
 
 use super::Backend;
 use crate::{

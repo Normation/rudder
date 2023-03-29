@@ -4,33 +4,14 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
-use crate::Target;
+use crate::{doc::Format, Target};
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct MainArgs {
-    /// File to compile
-    pub input: Option<PathBuf>,
-
-    /// Output file
-    #[arg(short, long)]
-    pub output: Option<PathBuf>,
-
-    /// Output target runner
-    #[arg(short, long)]
-    pub target: Option<Target>,
-
-    /// Output metadata.xml file
-    #[arg(short, long)]
-    pub metadata: Option<PathBuf>,
-
-    /// Check mode
-    #[arg(short, long)]
-    pub check: bool,
-
     /// Verbose
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
@@ -39,26 +20,50 @@ pub struct MainArgs {
     #[arg(short, long)]
     pub quiet: bool,
 
-    /// Load a library from the given path
-    #[arg(short, long, action = clap::ArgAction::Append)]
-    pub library: Vec<PathBuf>,
-
-    /// Generate information about available modules and exit
-    #[arg(long)]
-    pub modules: bool,
+    #[command(subcommand)]
+    pub command: Command,
 }
 
-impl MainArgs {
-    /// Compute target from CLI arguments
-    pub fn target(&self) -> Result<Target> {
-        self.target
-            .ok_or_else(|| anyhow!("No target specified"))
-            // Guess from the file extension
-            .or_else(|_| {
-                self.output
-                    .as_ref()
-                    .ok_or_else(|| anyhow!("Missing output path"))
-                    .and_then(|p| p.as_path().try_into())
-            })
-    }
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    /// Creates the technique structure in the current directory
+    Init,
+
+    /// Builds the technique
+    Check {
+        /// Load a library from the given path
+        #[arg(short, long, action = clap::ArgAction::Append)]
+        library: Vec<PathBuf>,
+    },
+
+    /// Builds the technique
+    Build {
+        /// Load a library from the given path
+        #[arg(short, long, action = clap::ArgAction::Append)]
+        library: Vec<PathBuf>,
+
+        /// Output directory
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Builds the methods documentation
+    LibDoc {
+        /// Load a library from the given path
+        #[arg(short, long, action = clap::ArgAction::Append)]
+        library: Vec<PathBuf>,
+
+        /// Output directory
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Output format
+        #[arg(value_enum)]
+        #[arg(default_value_t = Format::Html)]
+        format: Format,
+
+        /// Open in browser
+        #[arg(short, long)]
+        open: bool,
+    },
 }

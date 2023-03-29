@@ -12,42 +12,41 @@ use comrak::{markdown_to_html, ComrakOptions};
 use log::warn;
 use rudder_commons::{is_canonified, Target};
 
-use crate::ir::technique::{Block, BlockReportingMode, Parameter};
+use crate::ir::Technique;
 use crate::{
-    backends::{backend, metadata_backend, Backend},
+    backends::{backend, metadata::Metadata, Backend},
     doc,
     frontends::{
         methods::{method::MethodInfo, reader::read_lib},
         yaml,
     },
-    ir::technique::{ItemKind, Method},
+    ir::technique::{Block, BlockReportingMode, ItemKind, Method, Parameter},
     logs::ok_output,
+    RESOURCES_DIR,
 };
 
-pub const RESOURCES_DIR: &str = "resources";
+pub type Methods = HashMap<String, MethodInfo>;
 
-fn read_methods(libraries: &[PathBuf]) -> Result<HashMap<String, MethodInfo>> {
-    let mut methods = HashMap::new();
-    for library in libraries {
-        let add = read_lib(library)?;
-        let len = add.len();
-        for m in add {
-            methods.insert(m.bundle_name.clone(), m);
-        }
-        ok_output("Read", format!("{} methods ({})", len, library.display()))
+/// Read technique and augment with data from libraries
+fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+    let mut policy = yaml::read(input)?;
+    // Inject methods info into policy
+    // Also check consistency (parameters, constraints, etc.)
+    methods_metadata(&mut policy.items, methods)?;
+    for p in policy.parameters.as_slice() {
+        check_parameter(p)?;
     }
-    Ok(methods)
+    Ok(policy)
 }
 
 /// Compute the output of the file
-pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<String> {
-    let mut policy = yaml::read(input)?;
-    let methods = read_methods(libraries)?;
-    let methods = Box::new(methods);
-    // Get a static reference to allow easier usage. Methods don't change
-    // during execution.
-    let methods: &'static mut HashMap<String, MethodInfo> = Box::leak(methods);
-
+pub fn compile(
+    methods: &'static Methods,
+    input: &str,
+    target: Target,
+    src: &Path,
+) -> Result<String> {
+    let policy = read_technique(methods, input)?;
     ok_output(
         "Compiling",
         format!(
@@ -55,77 +54,26 @@ pub fn compile(libraries: &[PathBuf], input: &Path, target: Target) -> Result<St
             policy.name,
             policy.version,
             target,
-            input.display()
+            src.display()
         ),
     );
-
-    // Inject methods info into policy
-    // Also check consistency (parameters, constraints, etc.)
-    methods_metadata(&mut policy.items, methods)?;
-
-    for p in policy.parameters.as_slice() {
-        check_parameter(p)?;
-    }
-
-    // TODO other checks and optimizations here
-
-    let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
+    let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
     backend(target).generate(policy, resources_path.as_path())
 }
 
 /// Compile metadata file
-pub fn metadata(input: &Path) -> Result<String> {
-    let policy = yaml::read(input)?;
+pub fn metadata(methods: &'static Methods, input: &str, src: &Path) -> Result<String> {
+    let policy = read_technique(methods, input)?;
     ok_output(
         "Generating metadata",
-        format!("{} v{} ({})", policy.name, policy.version, input.display()),
+        format!("{} v{} ({})", policy.name, policy.version, src.display()),
     );
-    let resources_path = input.parent().unwrap().join(RESOURCES_DIR);
-    metadata_backend().generate(policy, resources_path.as_path())
-}
-
-/// Compute the output of the JSON file for the webapp
-///
-/// It replaces the legacy `generic_methods.json` produced by `ncf.py`.
-pub fn methods_description(libraries: &[PathBuf]) -> Result<String> {
-    let methods = read_methods(libraries)?;
-    ok_output("Generating", "modules description".to_owned());
-    // FIXME: sort output to limit changes
-    serde_json::to_string_pretty(&methods).context("Serializing modules")
-}
-
-pub fn methods_documentation(libraries: &[PathBuf]) -> Result<String> {
-    let methods = read_methods(libraries)?;
-    ok_output("Generating", "modules documentation".to_owned());
-    // Sort methods
-    let mut methods: Vec<_> = methods.into_iter().collect();
-    methods.sort_by(|x, y| x.0.cmp(&y.0));
-
-    let mut out = String::new();
-    for (_, m) in methods {
-        out.push_str(&doc::render(m)?);
-    }
-    Ok(out)
-}
-
-#[derive(Template)]
-#[template(path = "doc.html.askama", escape = "none")]
-struct MethodsDocTemplate {
-    methods: String,
-}
-
-pub fn methods_web_documentation(libraries: &[PathBuf]) -> Result<String> {
-    let md = methods_documentation(libraries)?;
-    let methods = markdown_to_html(&md, &ComrakOptions::default());
-    let doc = MethodsDocTemplate { methods };
-    doc.render().map_err(|e| e.into())
+    let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
+    Metadata.generate(policy, resources_path.as_path())
 }
 
 /// Inject metadata information into method calls
-fn methods_metadata(
-    modules: &mut Vec<ItemKind>,
-    info: &'static HashMap<String, MethodInfo>,
-) -> Result<()> {
+fn methods_metadata(modules: &mut Vec<ItemKind>, info: &'static Methods) -> Result<()> {
     for r in modules {
         match r {
             ItemKind::Method(m) => {
