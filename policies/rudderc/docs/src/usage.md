@@ -4,16 +4,16 @@
 
 Rudder comes with a tool dedicated to the
 techniques development and usage.
-It is especially important as technique are not run as YAML, but compiled into
+It is especially important as techniques are not run as YAML, but compiled into
 an executable policy file depending on the target platform.
-There are currently two possible target, which are the platforms Rudder has agents for:
+There are currently two possible targets, which are the platforms Rudder has agents for:
 
 * Linux/AIX
 * Windows
 
 These platforms use different agent technology but the YAML policies
-allows unifying them.
-To be able to check and compile technique, the `rudderc` program
+unify them.
+To be able to check and compile techniques, the `rudderc` program
 needs access to the methods library of the target systems.
 
 To get access to the base Linux methods set, you can use git
