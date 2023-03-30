@@ -11,7 +11,7 @@ RUN ./rust.sh
 
 ENV RUSTC_WRAPPER="sccache"
 
-RUN apt-get update && apt-get install -y pandoc asciidoctor
+RUN apt-get update && apt-get install -y rsync
 
 # we need cf-promises
 # the easiest way is to install an agent
