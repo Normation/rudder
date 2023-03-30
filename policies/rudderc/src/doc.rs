@@ -173,6 +173,8 @@ mod markdown {
 
 #### Parameters
 
+| Name | Documentation |
+|------|---------------|
 {parameters}
 
 #### Example
@@ -202,18 +204,12 @@ mod markdown {
             } else {
                 format!("{}.", m.description)
             },
-            parameters = format!(
-                "
-| Name | Documentation |
-|------|---------------|
-{}
-",
-                m.parameter
-                    .iter()
-                    .map(parameter)
-                    .collect::<Vec<String>>()
-                    .join("\n")
-            ),
+            parameters = m
+                .parameter
+                .iter()
+                .map(parameter)
+                .collect::<Vec<String>>()
+                .join("\n"),
             example = example,
             documentation = m
                 .documentation
@@ -263,11 +259,11 @@ mod markdown {
                 format!("**{}**", p.name)
             },
             constraints = constraints.join("<br>"),
-            description = if p.description.ends_with(".") {
+            description = if p.description.ends_with('.') {
                 p.description.clone()
             } else {
                 let mut d = p.description.clone();
-                d.push_str(".");
+                d.push('.');
                 d
             },
         )

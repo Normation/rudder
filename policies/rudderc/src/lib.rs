@@ -88,10 +88,9 @@ pub fn run(args: MainArgs) -> Result<()> {
 
 // Actions
 pub mod action {
-    use std::fs::remove_dir_all;
     use std::{
         fs,
-        fs::{create_dir, read_to_string, File},
+        fs::{create_dir, read_to_string, remove_dir_all, File},
         io::{self, Write},
         path::{Path, PathBuf},
         process::Command,
@@ -134,7 +133,7 @@ pub mod action {
     /// Clean the generated files
     pub fn clean(target: &Path) -> Result<()> {
         if target.exists() {
-            remove_dir_all(&target).with_context(|| {
+            remove_dir_all(target).with_context(|| {
                 format!("Failed to clean generated files from {}", target.display())
             })?;
             ok_output("Cleaned", target.display());
