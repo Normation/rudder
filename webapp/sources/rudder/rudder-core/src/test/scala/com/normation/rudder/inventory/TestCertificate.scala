@@ -113,13 +113,15 @@ class TestCertificate extends Specification with Loggable {
       )
       .map(_ => Nil)
 
-    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus):         IOResult[Option[(MachineUuid, InventoryStatus)]] =
+    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus):             IOResult[Option[(MachineUuid, InventoryStatus)]] =
       ???
-    override def getAllInventories(inventoryStatus: InventoryStatus):                IOResult[Map[NodeId, FullInventory]]             = ???
-    override def getAllNodeInventories(inventoryStatus: InventoryStatus):            IOResult[Map[NodeId, NodeInventory]]             = ???
-    override def delete(id: NodeId, inventoryStatus: InventoryStatus):               IOResult[Seq[LDIFChangeRecord]]                  = ???
-    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]]                  = ???
-    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def getAllInventories(inventoryStatus: InventoryStatus):                    IOResult[Map[NodeId, FullInventory]]             = ???
+    override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]]             =
+      ???
+    override def getAllNodeInventories(inventoryStatus: InventoryStatus):                IOResult[Map[NodeId, NodeInventory]]             = ???
+    override def delete(id: NodeId, inventoryStatus: InventoryStatus):                   IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):         IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]]                  = ???
   }
 
   val processor = new InventoryProcessor(

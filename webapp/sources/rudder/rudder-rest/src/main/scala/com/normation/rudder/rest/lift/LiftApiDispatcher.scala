@@ -40,6 +40,7 @@ package com.normation.rudder.rest.lift
 import cats.data._
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
+import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.rest._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -149,12 +150,12 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
 }
 
 object LiftApiProcessingLogger extends Log {
-  protected def _logger = LoggerFactory.getLogger("api-processing")
-  def trace(msg: => String): Unit = _logger.trace(msg)
-  def debug(msg: => String): Unit = _logger.debug(msg)
-  def info(msg: => String):  Unit = _logger.info(msg)
-  def warn(msg: => String):  Unit = _logger.warn(msg)
-  def error(msg: => String): Unit = _logger.error(msg)
+  protected def _logger:     Logger = ApiLogger
+  def trace(msg: => String): Unit   = _logger.trace(msg)
+  def debug(msg: => String): Unit   = _logger.debug(msg)
+  def info(msg: => String):  Unit   = _logger.info(msg)
+  def warn(msg: => String):  Unit   = _logger.warn(msg)
+  def error(msg: => String): Unit   = _logger.error(msg)
 }
 
 class LiftHandler(

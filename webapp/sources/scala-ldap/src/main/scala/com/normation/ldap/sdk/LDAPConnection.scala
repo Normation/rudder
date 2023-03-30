@@ -250,6 +250,13 @@ trait ReadOnlyTreeLDAPConnection {
    *   Failure(message) if something goes wrong.
    */
   def getTree(dn: DN): LDAPIOResult[Option[LDAPTree]]
+
+  /*
+   * Get a tree with a filter.
+   * Be very careful with the filter, you need to have something compatible with subtree lookup,
+   * so something likely base on: "(entryDN:dnSubtreeMatch:=cn=group_a,dc=abc,dc=xyz)"
+   */
+  def getTreeFilter(dn: DN, filter: Filter): LDAPIOResult[Option[LDAPTree]]
 }
 
 trait WriteOnlyTreeLDAPConnection {
@@ -363,8 +370,12 @@ sealed class RoLDAPConnection(
    */
 
   override def getTree(dn: DN): LDAPIOResult[Option[LDAPTree]] = {
+    getTreeFilter(dn, BuildFilter.ALL)
+  }
+
+  override def getTreeFilter(dn: DN, filter: Filter): LDAPIOResult[Option[LDAPTree]] = {
     blocking {
-      backed.search(dn.toString, Sub.toUnboundid, BuildFilter.ALL)
+      backed.search(dn.toString, Sub.toUnboundid, filter)
     } flatMap { all =>
       if (all.getEntryCount() > 0) {
         // build the tree
@@ -379,6 +390,7 @@ sealed class RoLDAPConnection(
       }
     }
   }
+
 }
 
 object RwLDAPConnection {

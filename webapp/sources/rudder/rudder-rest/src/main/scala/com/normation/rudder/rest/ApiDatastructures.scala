@@ -501,7 +501,7 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
  * P: extracted parameters from request
  */
 trait BuildHandler[REQ, RESP, T, P] {
-  // external service nneeded
+  // external service needed
   def authz:             ApiAuthorization[T]
   def connectEndpoint:   ConnectEndpoint
   def supportedVersions: List[ApiVersion]
