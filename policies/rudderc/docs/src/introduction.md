@@ -17,7 +17,7 @@ or its permissions).
 Rudder includes a graphical editor for techniques, providing easy access
 creation and customization of configuration policies in Rudder.
 
-![The technique editor page](../images/technique-editor.png)
+![The technique editor page](images/technique-editor.png)
 
 In addition to this visual editor, it is possible to create and modify
 techniques as code, in YAML format, like:
