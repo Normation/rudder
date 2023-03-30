@@ -1983,19 +1983,19 @@ function buildComplianceBar(compliance, minPxSize) {
     if(okStatus[0] != 0) {
       var text = []
       if (enforceSuccess[0] != 0) {
-        text.push("Success (enforce): "+enforceSuccess[1].toFixed(precision)+"% <br> ");
+        text.push("Success (enforce): "+enforceSuccess[1].toFixed(precision)+"% ");
       }
       if (compliant[0] != 0) {
-        text.push("Compliant: "+compliant[1].toFixed(precision)+"% <br> ");
+        text.push("Compliant: "+compliant[1].toFixed(precision)+"% ");
       }
       if (repaired[0] != 0) {
-        text.push("Repaired: "+repaired[1].toFixed(precision)+"% <br> ");
+        text.push("Repaired: "+repaired[1].toFixed(precision)+"% ");
       }
       if (enforceNotApplicable[0] != 0) {
-        text.push("Not applicable (enforce): "+enforceNotApplicable[1].toFixed(precision)+"% <br> ");
+        text.push("Not applicable (enforce): "+enforceNotApplicable[1].toFixed(precision)+"% ");
       }
       if (auditNotApplicable[0] != 0) {
-        text.push("Not applicable (audit): "+auditNotApplicable[1].toFixed(precision)+"% <br> ");
+        text.push("Not applicable (audit): "+auditNotApplicable[1].toFixed(precision)+"% ");
       }
       content.append('<div class="progress-bar progress-bar-success" style="width:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
     }
@@ -2009,10 +2009,10 @@ function buildComplianceBar(compliance, minPxSize) {
     if(error[0] != 0) {
       var text = []
       if (enforceError[0] != 0) {
-        text.push("Errors (enforce): "+enforceError[1].toFixed(precision)+"% <br> ");
+        text.push("Errors (enforce): "+enforceError[1].toFixed(precision)+"% ");
       }
       if (auditError[0] != 0) {
-        text.push("Errors (audit): "+auditError[1].toFixed(precision)+"% <br> ");
+        text.push("Errors (audit): "+auditError[1].toFixed(precision)+"% ");
       }
       content.append('<div class="progress-bar progress-bar-error" style="width:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
     }
@@ -2020,13 +2020,13 @@ function buildComplianceBar(compliance, minPxSize) {
     if(unexpected[0] != 0) {
       var text = []
       if (missing[0] != 0) {
-        text.push("Missing reports: "+missing[1].toFixed(precision)+"% <br> ");
+        text.push("Missing reports: "+missing[1].toFixed(precision)+"% ");
       }
       if (unknown[0] != 0) {
-        text.push("Unknown reports: "+unknown[1].toFixed(precision)+"% <br> ");
+        text.push("Unknown reports: "+unknown[1].toFixed(precision)+"% ");
       }
       if (badPolicyMode[0] != 0) {
-        text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode[1].toFixed(precision)+"% <br> ");
+        text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode[1].toFixed(precision)+"% ");
       }
       content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
     }
