@@ -47,7 +47,7 @@ my_technique/
 The `technique.yml` is the technique content,
 and the `resources` directory can be used to include
 external files (configuration files, templates, etc.).
-All file produced by `rudderc` will be placed in the `target`
+All files produced by `rudderc` will be placed in the `target`
 directory.
 
 ### Checking a technique
@@ -62,7 +62,7 @@ $ rudderc check --library /path/to/methods/lib
      Checked technique.yml
 ```
 
-This will check the technique schema and check the compilation
+This will check the technique [schema](https://raw.githubusercontent.com/Normation/rudder/master/policies/rudderc/src/technique.schema.json) and check the compilation
 to the target platforms.
 
 ### Compile for the target platforms
