@@ -9,7 +9,10 @@
       [string]$technique_parameter,
       [Rudder.PolicyMode]$policyMode
   )
-  BeginTechniqueCall -Name $techniqueName
+  $techniqueParams = @{
+    "technique_parameter" = $technique_parameter
+  }
+  BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
   $reportIdBase = $reportId.Substring(0,$reportId.Length-1)
   $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
   $localContext.Merge($system_classes)
