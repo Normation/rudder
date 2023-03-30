@@ -49,7 +49,13 @@ pub fn run(args: MainArgs) -> Result<()> {
     let target = PathBuf::from(TARGET_DIR);
 
     match args.command {
-        Command::Init => action::init(&cwd),
+        Command::Init => action::init(&cwd, None),
+        Command::New { name } => {
+            create_dir_all(&name)
+                .with_context(|| format!("Failed to create technique directory {}", name))?;
+            action::init(&cwd.join(&name), Some(name))
+        }
+        Command::Clean => action::clean(target.as_path()),
         Command::Check { library } => action::check(library.as_slice(), input),
         Command::Build { library, output } => {
             let actual_output = output.unwrap_or(target);
@@ -84,7 +90,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 pub mod action {
     use std::{
         fs,
-        fs::{create_dir, read_to_string, File},
+        fs::{create_dir, read_to_string, remove_dir_all, File},
         io::{self, Write},
         path::{Path, PathBuf},
         process::Command,
@@ -97,13 +103,21 @@ pub mod action {
 
     pub use crate::compiler::compile;
     use crate::{
-        compiler::metadata, doc::Format, frontends::methods::read_methods, ir::Technique,
-        logs::ok_output, METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
+        compiler::metadata,
+        doc::{book, Format},
+        frontends::methods::read_methods,
+        ir::Technique,
+        logs::ok_output,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
     };
 
     /// Create a technique skeleton
-    pub fn init(output: &Path) -> Result<()> {
-        let t = serde_yaml::to_string(&Technique::default())?;
+    pub fn init(output: &Path, name: Option<String>) -> Result<()> {
+        let mut technique = Technique::default();
+        if let Some(n) = name {
+            technique.name = n;
+        }
+        let t = serde_yaml::to_string(&technique)?;
         let tech_path = output.join(TECHNIQUE_SRC);
         let mut file = File::create(tech_path.as_path())
             .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
@@ -116,6 +130,17 @@ pub mod action {
         Ok(())
     }
 
+    /// Clean the generated files
+    pub fn clean(target: &Path) -> Result<()> {
+        if target.exists() {
+            remove_dir_all(target).with_context(|| {
+                format!("Failed to clean generated files from {}", target.display())
+            })?;
+            ok_output("Cleaned", target.display());
+        }
+        Ok(())
+    }
+
     /// Describe available modules
     pub fn lib_doc(
         libraries: &[PathBuf],
@@ -124,24 +149,39 @@ pub mod action {
         open: bool,
         stdout: bool,
     ) -> Result<()> {
-        let data = format.render(read_methods(libraries)?)?;
-        fs::create_dir_all(output_dir)?;
-        let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
-
-        if stdout {
-            io::stdout().write_all(data.as_bytes())?;
+        let methods = read_methods(libraries)?;
+        // Special case as output is multi-file
+        let file_to_open = if format == Format::Html {
+            let index = book::render(methods, output_dir)?;
+            ok_output("Wrote", index.display());
+            Some(index)
         } else {
-            let mut file = File::create(doc_file.as_path())
-                .with_context(|| format!("Failed to create output file {}", doc_file.display()))?;
-            file.write_all(data.as_bytes())?;
-            ok_output("Wrote", doc_file.display());
+            let data = format.render(methods)?;
+            fs::create_dir_all(output_dir)?;
+            let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
 
-            // Open in browser
+            if stdout {
+                io::stdout().write_all(data.as_bytes())?;
+                None
+            } else {
+                let mut file = File::create(doc_file.as_path()).with_context(|| {
+                    format!("Failed to create output file {}", doc_file.display())
+                })?;
+                file.write_all(data.as_bytes())?;
+                ok_output("Wrote", doc_file.display());
+
+                Some(doc_file)
+            }
+        };
+
+        // Open in browser
+        if let Some(f) = file_to_open {
             if open {
-                // For now try and ignore result
-                let _ = Command::new("xdg-open").args([doc_file]).output();
+                ok_output("Opening", f.display());
+                let _ = Command::new("xdg-open").args([f]).output();
             }
         }
+
         Ok(())
     }
 

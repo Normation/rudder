@@ -20,17 +20,9 @@ test: libs
 
 %.cf: %.yml libs
 	cd $(shell dirname $@) && cargo run --quiet --bin rudderc -- --quiet build -l ../../../../target/repos/ncf/tree/30_generic_methods/
-docs: test-docs
-	mkdir -p target/docs
-	cp -r rudderc/docs/images target/docs/
-	asciidoctor -a stylesheet=assets/css/rudder.css --doctype=book --destination-dir=target/docs rudderc/docs/index.adoc
 
-libs-docs: libs
-	mkdir -p target/docs
-	cargo run --quiet --bin rudderc -- --quiet lib --library target/repos/ncf/tree/30_generic_methods/ \
-           --library target/repos/dsc/plugin/src/ncf/30_generic_methods/ --stdout > target/methods.md
-	pandoc --standalone --metadata=mainfont:sans --metadata=title:"Rudder methods docs" \
-	       --from commonmark_x --to html5 --toc --toc-depth=2 --output target/docs/methods.html target/methods.md
+docs: libs
+	cargo run --quiet --bin rudderc -- lib -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/
 
 libs:
 	mkdir -p target/repos

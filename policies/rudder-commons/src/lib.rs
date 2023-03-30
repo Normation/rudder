@@ -53,8 +53,8 @@ impl fmt::Display for Target {
             f,
             "{}",
             match self {
-                Target::Unix => "unix",
-                Target::Windows => "windows",
+                Target::Unix => "Linux",
+                Target::Windows => "Windows",
             }
         )
     }

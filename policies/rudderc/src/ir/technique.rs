@@ -86,6 +86,7 @@ impl Default for Technique {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Technique {
     #[serde(default)]
+    #[serde(skip_serializing_if = "Technique::format_is_default")]
     pub format: usize,
     pub id: Id,
     pub name: String,
@@ -102,6 +103,12 @@ pub struct Technique {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub parameters: Vec<Parameter>,
+}
+
+impl Technique {
+    fn format_is_default(format: &usize) -> bool {
+        *format == 0
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
