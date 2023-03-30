@@ -73,4 +73,7 @@ pub enum Command {
         #[arg(long)]
         stdout: bool,
     },
+
+    /// Remove all generated files
+    Clean,
 }

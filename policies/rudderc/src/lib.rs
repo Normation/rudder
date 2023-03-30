@@ -53,8 +53,9 @@ pub fn run(args: MainArgs) -> Result<()> {
         Command::New { name } => {
             create_dir_all(&name)
                 .with_context(|| format!("Failed to create technique directory {}", name))?;
-            action::init(&cwd.join(&name), Some(name.clone()))
+            action::init(&cwd.join(&name), Some(name))
         }
+        Command::Clean => action::clean(target.as_path()),
         Command::Check { library } => action::check(library.as_slice(), input),
         Command::Build { library, output } => {
             let actual_output = output.unwrap_or(target);
@@ -87,6 +88,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
 // Actions
 pub mod action {
+    use std::fs::remove_dir_all;
     use std::{
         fs,
         fs::{create_dir, read_to_string, File},
@@ -126,6 +128,17 @@ pub mod action {
             format!("Failed to create resources dir {}", resources_dir.display())
         })?;
         ok_output("Wrote", tech_path.display());
+        Ok(())
+    }
+
+    /// Clean the generated files
+    pub fn clean(target: &Path) -> Result<()> {
+        if target.exists() {
+            remove_dir_all(&target).with_context(|| {
+                format!("Failed to clean generated files from {}", target.display())
+            })?;
+            ok_output("Cleaned", target.display());
+        }
         Ok(())
     }
 

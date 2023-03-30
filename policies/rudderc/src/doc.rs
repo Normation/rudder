@@ -84,11 +84,10 @@ fn markdown(methods: &'static Methods) -> Result<String> {
 }
 
 pub mod book {
-    use std::path::PathBuf;
     use std::{
         fs::{create_dir_all, remove_dir_all, File, OpenOptions},
         io::Write,
-        path::Path,
+        path::{Path, PathBuf},
     };
 
     use anyhow::{Context, Result};
@@ -203,12 +202,18 @@ mod markdown {
             } else {
                 format!("{}.", m.description)
             },
-            parameters = m
-                .parameter
-                .iter()
-                .map(parameter)
-                .collect::<Vec<String>>()
-                .join("\n"),
+            parameters = format!(
+                "
+| Name | Documentation |
+|------|---------------|
+{}
+",
+                m.parameter
+                    .iter()
+                    .map(parameter)
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            ),
             example = example,
             documentation = m
                 .documentation
@@ -219,46 +224,52 @@ mod markdown {
     }
 
     fn parameter(p: &Parameter) -> String {
-        let mut constraints = String::new();
+        let mut constraints = vec![];
         if let Some(list) = &p.constraints.select {
             let values = list
                 .iter()
-                .map(|v| {
-                    if v.is_empty() {
-                        "_empty_".to_string()
-                    } else {
-                        format!("`{v}`")
-                    }
-                })
+                // empty value is assimilated to "optional" and handled below
+                .filter(|v| !v.is_empty())
+                .map(|v| format!("<li>`{v}`</li>"))
                 .collect::<Vec<String>>()
-                .join(", ");
-            constraints.push_str(&format!("\n  * Possible values: {values}"));
+                .join("");
+            constraints.push(format!("Choices:<br><ul>{values}</ul>"));
         } else {
-            // No list of allowed valued, document other constraints
-            if p.constraints.allow_empty_string {
-                constraints.push_str("\n  * Can be empty")
-            }
             if p.constraints.allow_whitespace_string {
-                constraints.push_str("\n  * Can be empty")
+                constraints.push("This parameter can contain only whitespaces.".to_string())
             }
             if let Some(r) = &p.constraints.regex {
-                constraints.push_str(&format!("\n  * Must match `{r}`"));
+                constraints.push(format!("This parameter must match `{r}`."));
             }
             if p.constraints.max_length != DEFAULT_MAX_PARAM_LENGTH {
-                constraints.push_str(&format!(
-                    "\n  * Maximal allowed length is {} characters",
+                constraints.push(format!(
+                    "The maximal length for thi parameter is {} characters.",
                     p.constraints.max_length
                 ));
             }
         }
+        // No list of allowed valued, document other constraints
+        if p.constraints.allow_empty_string {
+            constraints.push("This parameter is optional.".to_string())
+        } else {
+            constraints.push("This parameter is required.".to_string())
+        }
 
         format!(
-            "
-* **{name}**: {description}
-{constraints}
-",
-            name = p.name,
-            description = p.description,
+            "|{name}|{description}<br><br>{constraints}|",
+            name = if p.constraints.allow_empty_string {
+                format!("_{}_", p.name)
+            } else {
+                format!("**{}**", p.name)
+            },
+            constraints = constraints.join("<br>"),
+            description = if p.description.ends_with(".") {
+                p.description.clone()
+            } else {
+                let mut d = p.description.clone();
+                d.push_str(".");
+                d
+            },
         )
     }
 

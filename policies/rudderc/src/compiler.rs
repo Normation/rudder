@@ -42,13 +42,7 @@ pub fn compile(
     let policy = read_technique(methods, input)?;
     ok_output(
         "Compiling",
-        format!(
-            "{} v{} [{}] ({})",
-            policy.name,
-            policy.version,
-            target,
-            src.display()
-        ),
+        format!("{} v{} [{}]", policy.name, policy.version, target,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
     backend(target).generate(policy, resources_path.as_path())
@@ -59,12 +53,7 @@ pub fn metadata(methods: &'static Methods, input: &str, src: &Path) -> Result<St
     let policy = read_technique(methods, input)?;
     ok_output(
         "Generating",
-        format!(
-            "{} v{} [metadata] ({})",
-            policy.name,
-            policy.version,
-            src.display()
-        ),
+        format!("{} v{} [Metadata]", policy.name, policy.version,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
     Metadata.generate(policy, resources_path.as_path())
