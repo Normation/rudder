@@ -1,0 +1,7 @@
+[book]
+authors = ["Rudder developers"]
+title = "Rudder techniques"
+description = "Documentation for the Rudder YAML-based techniques"
+
+[output.html]
+no-section-label = true

@@ -84,36 +84,42 @@ fn markdown(methods: &'static Methods) -> Result<String> {
 }
 
 pub mod book {
+    use std::path::PathBuf;
     use std::{
-        fs::{create_dir_all, remove_dir_all, File},
+        fs::{create_dir_all, remove_dir_all, File, OpenOptions},
         io::Write,
         path::Path,
     };
 
-    use anyhow::Result;
-    use mdbook::{
-        book::{Link, Summary, SummaryItem},
-        config::Config,
-        MDBook,
-    };
+    use anyhow::{Context, Result};
+    use include_dir::{include_dir, Dir};
+    use mdbook::MDBook;
 
     use crate::{compiler::Methods, doc::markdown};
 
-    pub fn render(methods: &'static Methods, target_dir: &Path) -> Result<()> {
-        let src_dir = target_dir.join("src");
+    // Include doc dir at compile time
+    static BOOK_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs");
+
+    pub fn render(methods: &'static Methods, target_dir: &Path) -> Result<PathBuf> {
+        let root_dir = target_dir.join("doc");
+        let src_dir = root_dir.join("src");
         if src_dir.exists() {
+            // Clean generated files
             remove_dir_all(&src_dir)?;
         }
-        create_dir_all(&src_dir)?;
+        create_dir_all(&root_dir)?;
 
-        let mut cfg = Config::default();
-        cfg.book.title = Some("Rudder methods".to_string());
-        cfg.book.description =
-            Some("Documentation for Rudder methods to be used in YAML techniques".to_string());
-        cfg.book.authors.push("Rudder developers".to_string());
-        let mut summary = Summary::default();
+        // Static docs
+        BOOK_DIR.extract(&root_dir)?;
 
-        // Now let's populate the sources and summary
+        // we will append content to the static summary
+        let summary_file = src_dir.join("SUMMARY.md");
+        let mut summary = OpenOptions::new()
+            .append(true)
+            .open(&summary_file)
+            .with_context(|| format!("Failed to open summary file '{}'", summary_file.display()))?;
+
+        // Now let's extract the categories from method list
         let mut methods: Vec<_> = methods.iter().collect();
         methods.sort_by(|x, y| x.0.cmp(y.0));
         let mut categories: Vec<&str> = methods
@@ -122,27 +128,24 @@ pub mod book {
             .collect();
         categories.dedup();
 
+        // Dynamic content
         for category in categories {
             let mut pretty_category = category.to_string();
             if let Some(r) = pretty_category.get_mut(0..1) {
                 r.make_ascii_uppercase();
             }
-            let item = SummaryItem::PartTitle(pretty_category);
-            summary.numbered_chapters.push(item);
-
+            writeln!(summary, "# {pretty_category}")?;
             for (_, m) in methods.iter().filter(|(n, _)| n.starts_with(category)) {
                 let md_file = format!("{}.md", m.bundle_name);
-                let link = Link::new(m.bundle_name.clone(), &md_file);
-                let item = SummaryItem::Link(link);
-                summary.numbered_chapters.push(item);
-                let mut file = File::create(src_dir.join(md_file))?;
+                let mut file = File::create(src_dir.join(&md_file))?;
                 file.write_all(markdown::method(m)?.as_bytes())?;
+                writeln!(summary, "- [{}]({})", m.bundle_name, &md_file)?;
             }
         }
+
         // Build
-        let book = MDBook::load_with_config_and_summary(target_dir, cfg, summary)?;
-        book.build()?;
-        Ok(())
+        MDBook::load(&root_dir)?.build()?;
+        Ok(root_dir.join("book").join("index.html"))
     }
 }
 

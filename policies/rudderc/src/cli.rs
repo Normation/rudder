@@ -28,6 +28,9 @@ pub enum Command {
     /// Create the technique structure in the current directory
     Init,
 
+    /// Create the technique structure in the given directory
+    New { name: String },
+
     /// Check the technique for errors
     Check {
         /// Load a library from the given path

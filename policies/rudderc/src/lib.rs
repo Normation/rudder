@@ -49,7 +49,12 @@ pub fn run(args: MainArgs) -> Result<()> {
     let target = PathBuf::from(TARGET_DIR);
 
     match args.command {
-        Command::Init => action::init(&cwd),
+        Command::Init => action::init(&cwd, None),
+        Command::New { name } => {
+            create_dir_all(&name)
+                .with_context(|| format!("Failed to create technique directory {}", name))?;
+            action::init(&cwd.join(&name), Some(name.clone()))
+        }
         Command::Check { library } => action::check(library.as_slice(), input),
         Command::Build { library, output } => {
             let actual_output = output.unwrap_or(target);
@@ -106,8 +111,12 @@ pub mod action {
     };
 
     /// Create a technique skeleton
-    pub fn init(output: &Path) -> Result<()> {
-        let t = serde_yaml::to_string(&Technique::default())?;
+    pub fn init(output: &Path, name: Option<String>) -> Result<()> {
+        let mut technique = Technique::default();
+        if let Some(n) = name {
+            technique.name = n;
+        }
+        let t = serde_yaml::to_string(&technique)?;
         let tech_path = output.join(TECHNIQUE_SRC);
         let mut file = File::create(tech_path.as_path())
             .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
@@ -131,8 +140,7 @@ pub mod action {
         let methods = read_methods(libraries)?;
         // Special case as output is multi-file
         let file_to_open = if format == Format::Html {
-            book::render(methods, output_dir)?;
-            let index = output_dir.join("book/index.html");
+            let index = book::render(methods, output_dir)?;
             ok_output("Wrote", index.display());
             Some(index)
         } else {
@@ -157,6 +165,7 @@ pub mod action {
         // Open in browser
         if let Some(f) = file_to_open {
             if open {
+                ok_output("Opening", f.display());
                 let _ = Command::new("xdg-open").args([f]).output();
             }
         }
