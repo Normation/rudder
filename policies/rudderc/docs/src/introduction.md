@@ -1,6 +1,6 @@
 # Rudder techniques
 
-This guide covers the usage [Rudder](https://www.rudder.io) YAML-based techniques,
+This guide covers the usage of YAML-based techniques in [Rudder](https://www.rudder.io),
 including the techniques syntax and usage of the `rudderc`
 tool.
 
