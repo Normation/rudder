@@ -1042,19 +1042,14 @@ class DSCTechniqueWriter(
 
   def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
 
-    val parameters = technique.parameters match {
-      case Nil    => ""
-      case params =>
-        params.map { p =>
-          val mandatory = if (p.mayBeEmpty) "$false" else "$true"
-          s"""      [parameter(Mandatory=${mandatory})]
-             |      [string]$$${p.name.value},"""
-        }
-          .mkString("\n", "\n", "")
-          .stripMargin('|')
-    }
+    val parameters = technique.parameters.map { p =>
+      val mandatory = if (p.mayBeEmpty) "$false" else "$true"
+      s"""      [parameter(Mandatory=${mandatory})]
+         |      [string]$$${p.name.value},"""
+    }.mkString("\n").stripMargin('|')
 
-    val techniquePath = computeTechniqueFilePath(technique)
+    val techniquePath       = computeTechniqueFilePath(technique)
+    val techniqueParameters = technique.parameters.map(p => s"""    "${p.name.value}" = $$${p.name.value}""").mkString("\n")
 
     for {
 
@@ -1067,10 +1062,14 @@ class DSCTechniqueWriter(
             |      [parameter(Mandatory=$$true)]
             |      [string]$$reportId,
             |      [parameter(Mandatory=$$true)]
-            |      [string]$$techniqueName,${parameters}
+            |      [string]$$techniqueName,
+            |${parameters}
             |      [Rudder.PolicyMode]$$policyMode
             |  )
-            |  BeginTechniqueCall -Name $$techniqueName
+            |  $$techniqueParams = @{
+            |${techniqueParameters}
+            |  }
+            |  BeginTechniqueCall -Name $$techniqueName -Parameters $$techniqueParams
             |  $$reportIdBase = $$reportId.Substring(0,$$reportId.Length-1)
             |  $$localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($$techniqueName)
             |  $$localContext.Merge($$system_classes)
