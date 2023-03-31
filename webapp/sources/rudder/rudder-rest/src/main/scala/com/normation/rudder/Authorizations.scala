@@ -36,6 +36,7 @@
  */
 package com.normation.rudder
 
+import cats.implicits._
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
@@ -230,34 +231,55 @@ final object AuthorizationType {
    * Error is only if the string isn't well formed (for example "foo"), or if it's well formed but action is not one of
    * edit, write, read, all (ex: "foo_bar").
    */
-  def parseRight(right: String): PureResult[Set[AuthorizationType]] = {
+  // check if it's a valid right syntaxt, and if it's a special one word case or a (object, operation) one
+  def checkSyntax(right: String): Option[Either[AuthorizationType.AnyRights.type, (String, String)]] = {
     val regex = """(.*)_(.*)""".r
     right.toLowerCase() match {
-      case "any"                 => Right(AuthorizationType.allKind)
-      case regex(obj, operation) =>
-        val allOps = if (operation == "all") {
-          Right(ActionType.VALUE.all)
-        } else {
-          ActionType.VALUE.parse(operation) match {
-            case Some(a) => Right(Set(a))
-            case None    =>
-              Left(
-                Inconsistency(
-                  s"Permission operation with identifier name '${operation}' is not known. Possible values: ${ActionType.VALUE.all.map(_.name).mkString(", ")}'"
-                )
-              )
-          }
-        }
+      case "any"                 => Some(Left(AuthorizationType.AnyRights))
+      case regex(obj, operation) => Some(Right((obj, operation)))
+      case _                     => None
+    }
 
-        allOps.map(
-          _.flatMap(a => AuthorizationType.allKind.find(x => x.authzKind.toLowerCase == obj && x.action == a.name).toSet)
-        )
-      case _                     =>
+  }
+
+  def parseRight(right: String): PureResult[Set[AuthorizationType]] = {
+    checkSyntax(right) match {
+      case None                          =>
         Left(
           Inconsistency(
             s"String '${right}' is not recognized as a right string. It should be either 'any' or structured 'object_[edit|write|read]'"
           )
         )
+      case Some(Left(_))                 =>
+        Right(AuthorizationType.allKind)
+      case Some(Right((obj, operation))) =>
+        for {
+          ops <- if (operation == "all") {
+                   Right(ActionType.VALUE.all)
+                 } else {
+                   ActionType.VALUE.parse(operation) match {
+                     case Some(a) => Right(Set(a))
+                     case None    =>
+                       Left(
+                         Inconsistency(
+                           s"Permission operation with identifier name '${operation}' is not known. Possible values: ${ActionType.VALUE.all.map(_.name).mkString(", ")}'"
+                         )
+                       )
+                   }
+                 }
+          r   <- ops.toList.traverse { a =>
+                   AuthorizationType.allKind
+                     .find(x => x.authzKind.toLowerCase == obj && x.action == a.name)
+                     .toRight(
+                       // we can have something that has a valid syntax but is not a valid known action (for example, when plugin is not loaded)
+                       Inconsistency(
+                         s"Permission operation with identifier name '${operation}' is not known. Possible values: ${ActionType.VALUE.all.map(_.name).mkString(", ")}'"
+                       )
+                     )
+                 }
+        } yield {
+          r.toSet
+        }
     }
   }
 
@@ -500,10 +522,10 @@ object RudderRoles {
 
     // utility sub-function used to check that the named custom role does not overlap with authorization patterns
     def checkExistingName(role: UncheckedCustomRole): Either[String, Unit] = {
-      AuthorizationType.parseRight(role.name) match {
-        case Right(value) =>
+      AuthorizationType.checkSyntax(role.name) match {
+        case Some(_) =>
           Left("'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role")
-        case Left(err)    =>
+        case None    =>
           Right(())
       }
     }
@@ -522,6 +544,7 @@ object RudderRoles {
               ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] not found in existing role: ${roleName}")
               // try to parse role as an authorization, it is
               AuthorizationType.parseRight(roleName) match {
+                // here, we need to take care of valid authz syntax that are from non loaded plugin, or just non existing
                 case Right(x) =>
                   ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] valid authorization: ${roleName}")
                   current.modify(_.role.permissions).using(_.appended(Role.forRights(x)))
@@ -588,7 +611,7 @@ object RudderRoles {
             .foreach(filtered) { cr =>
               checkExistingName(cr) match {
                 case Left(err) => errors.update((cr, err) :: _)
-                case Right(_)  =>
+                case Right(()) =>
                   for {
                     // for each role, resolve it or put it in pending
                     v <- resolved.get
