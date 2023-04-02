@@ -211,7 +211,7 @@ class NodeGroupForm(
       & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group row">
-                      <label class="wbBaseFieldLabel">Rudder ID</label>
+                      <label class="wbBaseFieldLabel">Group ID</label>
                       <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
                     </div>
       & "group-cfeclasses" #> <div class="form-group row">
