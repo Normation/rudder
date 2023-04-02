@@ -2,7 +2,6 @@ module ViewTechniqueList exposing (..)
 
 import DataTypes exposing (..)
 import Dict
-import Dict.Extra
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -185,6 +184,8 @@ draftsItem model draft =
 techniqueItem: Model -> Technique -> Html Msg
 techniqueItem model technique =
   let
+    techniqueMethods = List.concatMap allMethodCalls technique.elems
+    unknownMethods = (List.filter (\c -> Maybe.Extra.isNothing (Dict.get c.methodName.value model.methods)) techniqueMethods)
     activeClass = case model.mode of
                     TechniqueDetails t (Edit _) _ ->
                       if t.id == technique.id then
@@ -193,6 +194,15 @@ techniqueItem model technique =
                         ""
                     _ -> ""
     hasDeprecatedMethod = List.any (\m -> Maybe.Extra.isJust m.deprecated )(List.concatMap (\c -> Maybe.Extra.toList (Dict.get c.methodName.value model.methods)) (List.concatMap allMethodCalls technique.elems))
+    hasUnknownMethod =
+      if List.isEmpty techniqueMethods then
+        False
+      else
+        if List.isEmpty unknownMethods then
+          False
+        else
+          True
+
   in
 
     li [class "jstree-node jstree-leaf"]
@@ -209,6 +219,13 @@ techniqueItem model technique =
                      , attribute "data-container" "body", attribute  "data-placement" "right", attribute "data-title" technique.name
                      , attribute "data-content" "<div>This technique uses <b>deprecated</b> generic methods.</div>"
                      , attribute "data-html" "true" ] [ i [ class "glyphicon glyphicon-info-sign deprecated-icon" ] [] ]
+              else
+                text ""
+            , if hasUnknownMethod  then
+                span [ class "cursor-help popover-bs", attribute "data-toggle"  "popover", attribute "data-trigger" "hover"
+                     , attribute "data-container" "body", attribute  "data-placement" "right", attribute "data-title" technique.name
+                     , attribute "data-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join "," (List.map (\m -> m.methodName.value) unknownMethods)) ++ ".</br>These methods does not exists in provided ncf library, you must provide it or it will break at run time</div>")
+                     , attribute "data-html" "true" ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]
               else
                 text ""
             ]

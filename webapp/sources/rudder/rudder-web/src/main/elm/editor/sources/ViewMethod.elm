@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Encode
 import List.Extra
+import Maybe.Extra
 import MethodConditions exposing (..)
 import Regex
 import String.Extra
@@ -488,15 +489,20 @@ callBody model ui techniqueUi call pid =
     shoudHoveredMethod = case model.isMethodHovered of
                            Just methodId -> if((methodId.value == call.id.value) && ui.mode == Closed) then " hovered" else ""
                            Nothing -> ""
+    methodNameLabelClass =
+      if List.isEmpty (Maybe.Extra.toList (Dict.get method.id.value model.methods)) then
+        "gm-label-unknown-name"
+      else
+        ""
     methodName = case ui.mode of
                    Opened -> element "div"
                              |> addClass "method-name"
                              |> appendChild
                                 ( element "div"
-                                    |> addClass "component-name-wrapper"
+                                    |> addClass ("component-name-wrapper")
                                     |> appendChildList
                                        [ element "div"
-                                         |> addClass "gm-label-name"
+                                         |> addClass ("gm-label-name " ++ methodNameLabelClass)
                                          |> appendText method.name
                                          |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                        , element "div"
@@ -523,7 +529,7 @@ callBody model ui techniqueUi call pid =
                                 )
                              |> appendChildConditional
                                 ( element "div"
-                                  |> addClass "gm-label-name"
+                                  |> addClass ("gm-label-name " ++ methodNameLabelClass)
                                   |> appendText method.name
                                 )
                                 ((not (String.isEmpty call.component)) && call.component /= method.name )
