@@ -260,3 +260,8 @@ form.readonly-form .tags-container{
 .focused {
   background-color:#ecf7fa;
 }
+
+.rules-tab {
+  padding-left: 15px;
+  padding-top: 0px !important;
+}

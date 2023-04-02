@@ -64,10 +64,10 @@ getSortFunction model r1 r2 =
         EQ -> EQ
         GT -> LT
 
-buildRulesTable : Model -> List(Html Msg)
-buildRulesTable model =
+buildRulesTable : Model -> List Rule -> List(Html Msg)
+buildRulesTable model rules =
   let
-    rulesList       = getListRules model.rulesTree
+    rulesList       = rules
     sortedRulesList = rulesList
       |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
       |> List.filter (\r -> filterTags r.tags model.ui.ruleFilters.treeFilters.tags)
