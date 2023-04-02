@@ -278,7 +278,9 @@ class NodeGroupForm(
                     <input readonly="" class="form-control" value={target.target}/>
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
-    & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(JsRaw(s"""setupMarkdown("", "longDescriptionField")""")))
+    & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
+      JsRaw(s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")""")
+    ))
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
