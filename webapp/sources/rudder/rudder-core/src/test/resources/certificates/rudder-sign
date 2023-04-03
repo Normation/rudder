@@ -52,7 +52,7 @@ PASSPHRASE="Cfengine passphrase"
 SIGNATURE=`openssl dgst -passin "pass:${PASSPHRASE}" -${HASH} -hex -sign "${PRIVKEY}" < "${FILE}" | sed -e 's/.*= //'`
 
 # Hostname (informative only, it can be slightly different from the rudder detected one)
-HOSTNAME=`hostname`
+HOSTNAME=`hostnamectl hostname`
 
 # Private key modification date
 KEYDATE=`stat -c %y ${PRIVKEY}`
