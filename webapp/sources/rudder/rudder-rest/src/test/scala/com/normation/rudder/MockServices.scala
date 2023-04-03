@@ -1997,8 +1997,12 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       getGenericOne(id, inventoryStatus, n => n.mInv.map(x => (x.id, x.status)))
     }
 
-    override def getAllInventories(inventoryStatus: InventoryStatus):     IOResult[Map[NodeId, FullInventory]] =
+    override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] =
       getGenericAll(inventoryStatus, _fullInventory)
+
+    override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]] =
+      getAllInventories(inventoryStatus).map(_.filter(x => nodeIds.contains(x._1)))
+
     override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] =
       getGenericAll(inventoryStatus, _fullInventory(_).map(_.node))
 

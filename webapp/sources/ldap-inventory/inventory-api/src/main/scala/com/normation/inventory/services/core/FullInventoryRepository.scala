@@ -109,6 +109,9 @@ trait ReadOnlyFullInventoryRepository {
 
   def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]]
 
+  // get inventories for a set of nodes
+  def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]]
+
   def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]]
 }
 
