@@ -741,3 +741,23 @@ btnSave saving disable action =
   in
     button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
     [ icon ]
+
+rulesTableHeader : Filters -> Html Msg
+rulesTableHeader ruleFilters =
+ tr [class "head"]
+ [ th [ class (thClass ruleFilters.tableFilters Name) , rowspan 1, colspan 1
+       , onClick (UpdateRuleFilters (sortTable ruleFilters Name))
+       ] [ text "Name" ]
+ , th [ class (thClass ruleFilters.tableFilters Parent) , rowspan 1, colspan 1
+      , onClick (UpdateRuleFilters (sortTable ruleFilters Parent))
+      ] [ text "Category" ]
+ , th [ class (thClass ruleFilters.tableFilters Status) , rowspan 1, colspan 1
+      , onClick (UpdateRuleFilters (sortTable ruleFilters Status))
+      ] [ text "Status" ]
+ , th [ class (thClass ruleFilters.tableFilters Compliance) , rowspan 1, colspan 1
+      , onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))
+      ] [ text "Compliance" ]
+ , th [ class (thClass ruleFilters.tableFilters RuleChanges) , rowspan 1, colspan 1
+      , onClick (UpdateRuleFilters (sortTable ruleFilters RuleChanges))
+      ] [ text "Changes" ]
+ ]
