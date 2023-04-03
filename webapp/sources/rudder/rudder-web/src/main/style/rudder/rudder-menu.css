@@ -948,7 +948,7 @@ header.main-header .logo-lg img{
  }
  aside.main-sidebar.fixed {
   position:fixed;
-  z-index:850;
+  z-index: 1030;
   height: calc(100% - 50px);
   min-height: calc(100% - 50px);
   margin-top: 50px;
