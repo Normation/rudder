@@ -197,15 +197,15 @@ angular-filemanager .modal .modal-header .close:hover{
 .content-wrapper .filemanager-window table a{
   text-decoration:none;
 }
+
 /* toolbar */
-.content-wrapper .filemanager-window .fileManager-actions{
+.fileManager-actions {
   border-top: 1px solid #dddddd;
   padding: 7px;
   text-align: right;
-  position: absolute;
   width: 100%;
-  height: auto;
   bottom: 0;
+  background-color:#fafafa;
 }
 .content-wrapper .filemanager-window .fileManager-actions > .btn{
     margin-left: 20px;
