@@ -1,8 +1,8 @@
 module View exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h3, ul, li, input, a, table, thead, tbody, tr, th, label)
-import Html.Attributes exposing (checked, class, colspan, disabled, for, href, id, placeholder, rowspan, style, tabindex, type_, value)
+import Html exposing (Html, button, div, i, span, text, h1, h3, ul, li, input, a, table, thead, tbody, label)
+import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
@@ -17,6 +17,7 @@ import ViewUtils exposing (..)
 view : Model -> Html Msg
 view model =
   let
+    rulesList = getListRules model.rulesTree
     allMissingCategoriesId = List.map .id (getAllMissingCats model.rulesTree)
     ruleTreeElem : Rule -> Html Msg
     ruleTreeElem item =
@@ -111,26 +112,8 @@ view model =
         div [class "main-table"]
         [ div [class "table-container"]
           [ table [ class "no-footer dataTable"]
-            [ thead []
-              [ tr [class "head"]
-                [ th [ class (thClass model.ui.ruleFilters.tableFilters Name) , rowspan 1, colspan 1
-                     , onClick (UpdateRuleFilters (sortTable ruleFilters Name))
-                     ] [ text "Name" ]
-                , th [ class (thClass model.ui.ruleFilters.tableFilters Parent) , rowspan 1, colspan 1
-                     , onClick (UpdateRuleFilters (sortTable ruleFilters Parent))
-                     ] [ text "Category" ]
-                , th [ class (thClass model.ui.ruleFilters.tableFilters Status) , rowspan 1, colspan 1
-                     , onClick (UpdateRuleFilters (sortTable ruleFilters Status))
-                     ] [ text "Status" ]
-                , th [ class (thClass model.ui.ruleFilters.tableFilters Compliance) , rowspan 1, colspan 1
-                     , onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))
-                     ] [ text "Compliance" ]
-                , th [ class (thClass model.ui.ruleFilters.tableFilters RuleChanges) , rowspan 1, colspan 1
-                     , onClick (UpdateRuleFilters (sortTable ruleFilters RuleChanges))
-                     ] [ text "Changes" ]
-                ]
-              ]
-            , tbody [] (buildRulesTable model)
+            [ thead [] [rulesTableHeader model.ui.ruleFilters]
+            , tbody [] (buildRulesTable model rulesList)
             ]
           ]
         ]

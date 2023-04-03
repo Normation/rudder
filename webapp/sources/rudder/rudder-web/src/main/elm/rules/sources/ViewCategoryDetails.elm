@@ -1,17 +1,16 @@
 module ViewCategoryDetails exposing (..)
 
 import DataTypes exposing (..)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
+import Html exposing (Html, button, div, i, span, text, h1, ul, li, input, a, p, form, label, textarea, select, table, thead, tbody)
+import Html.Attributes exposing (id, class, type_, placeholder, value, for, style)
 import Html.Events exposing (onClick, onInput, onSubmit)
-import List.Extra
 import List
 import Maybe.Extra
-import String exposing ( fromFloat)
-import NaturalOrdering exposing (compareOn)
+import String
 import ApiCalls exposing (..)
+import ViewRulesTable exposing (buildRulesTable)
 import ViewTabContent exposing (buildListCategories)
-import ViewUtils exposing (btnSave)
+import ViewUtils exposing (btnSave, getListRules, rulesTableHeader)
 
 
 --
@@ -23,10 +22,22 @@ editionTemplateCat model details =
   let
     originCat = details.originCategory
     category  = details.category
+
+    -- missing categories logic
     allMissingCategories = List.filter (\sub -> sub.id == missingCategoryId) (getSubElems model.rulesTree)
     listOfCat = List.concatMap getAllCats (allMissingCategories)
     listCatIdMissing = List.map (\r -> r.id) (listOfCat)
+
     writeRights = model.ui.hasWriteRights && (not (category.id == missingCategoryId) && not (List.member category.id listCatIdMissing))
+
+    -- Logic to get all rule above a category, it take the sub categories rules too
+    categoryInfos = List.filter (\c -> c.id == details.category.id) (getAllCats model.rulesTree)
+    rulesList =
+      -- Category ID must be unique, so the list contains an unique element
+      case (List.head categoryInfos) of
+        Just c  -> getListRules c
+        Nothing -> []
+
     categoryTitle =
       case originCat of
        Nothing -> span[style "opacity" "0.4"][text "New category"]
@@ -68,7 +79,21 @@ editionTemplateCat model details =
             )
           ]
         ]
-
+    categoryFormTab =
+      if(details.tab == Information) then
+        div[class "row"]
+        [ categoryForm
+        , div [class "col-xs-12 col-sm-6 col-lg-5"][] -- <== Right column
+        ]
+      else
+        div [class "main-table"]
+        [ div [class "table-container"]
+          [ table [ class "no-footer dataTable"]
+            [ thead [] [rulesTableHeader model.ui.ruleFilters]
+            , tbody [] (buildRulesTable model rulesList)
+            ]
+          ]
+         ]
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -97,15 +122,18 @@ editionTemplateCat model details =
       ]
     , div [class "main-navbar" ]
       [ ul[class "ui-tabs-nav "]
-        [ li[class "ui-tabs-tab ui-tabs-active"]
-          [ a[][ text "Information" ]
+        [ li[class ("ui-tabs-tab" ++ (if details.tab == Information    then " ui-tabs-active" else ""))]
+          [ a[onClick (UpdateCategoryForm {details | tab = Information})][ text "Information" ]
+          ]
+        , li[class ("ui-tabs-tab" ++ (if details.tab == Rules    then " ui-tabs-active" else ""))]
+          [ a[onClick (UpdateCategoryForm {details | tab = Rules})][ text "Rules" ]
+          , span[class "badge badge-secondary badge-resources tooltip-bs"]
+            [ span [class "nb-resources"] [text (String.fromInt (List.length rulesList))]
+            ]
           ]
         ]
       ]
-    , div [class "main-details"]
-      [ div[class "row"]
-        [ categoryForm
-        , div [class "col-xs-12 col-sm-6 col-lg-5"][] -- <== Right column
-        ]
+    , div [class ("main-details " ++ if(details.tab == Rules) then "rules-tab" else "")]
+      [ categoryFormTab
       ]
     ]

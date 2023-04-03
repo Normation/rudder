@@ -5,7 +5,7 @@ import Dict
 import Dict.Extra
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onSubmit)
+import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
 import Maybe.Extra
@@ -225,6 +225,7 @@ tabContent model details =
       Nodes         -> nodesTab model details
       Groups        -> groupsTab model details
       TechnicalLogs -> ViewRepairedReports.showTab model details
+      Rules         -> div [] []
 
 directivesTab: Model -> RuleDetails -> Html Msg
 directivesTab model details =
