@@ -17,6 +17,7 @@ mod doc;
 pub mod frontends;
 pub mod ir;
 pub mod logs;
+pub mod test;
 
 /// We want to only compile the regex once
 ///
@@ -32,6 +33,7 @@ macro_rules! regex {
 pub(crate) use regex;
 
 pub const TARGET_DIR: &str = "target";
+pub const TESTS_DIR: &str = "tests";
 pub const TECHNIQUE: &str = "technique";
 pub const TECHNIQUE_SRC: &str = "technique.yml";
 pub const METADATA_FILE: &str = "metadata.xml";
@@ -57,15 +59,27 @@ pub fn run(args: MainArgs) -> Result<()> {
         }
         Command::Clean => action::clean(target.as_path()),
         Command::Check { library } => action::check(library.as_slice(), input),
-        Command::Build { library, output } => {
+        Command::Build {
+            library,
+            output,
+            standalone,
+        } => {
             let actual_output = output.unwrap_or(target);
-            create_dir_all(&actual_output).with_context(|| {
-                format!(
-                    "Failed to create target directory {}",
-                    actual_output.display()
-                )
-            })?;
-            action::build(library.as_slice(), input, actual_output.as_path())
+            action::build(
+                library.as_slice(),
+                input,
+                actual_output.as_path(),
+                standalone,
+            )
+        }
+        Command::Test { library, filter } => {
+            action::build(library.as_slice(), input, target.as_path(), true)?;
+            action::test(
+                target.join("technique.cf").as_path(),
+                Path::new(TESTS_DIR),
+                library.as_slice(),
+                filter,
+            )
         }
         Command::Lib {
             library,
@@ -89,8 +103,8 @@ pub fn run(args: MainArgs) -> Result<()> {
 // Actions
 pub mod action {
     use std::{
-        fs,
-        fs::{create_dir, read_to_string, remove_dir_all, File},
+        env, fs,
+        fs::{create_dir, create_dir_all, read_to_string, remove_dir_all, File},
         io::{self, Write},
         path::{Path, PathBuf},
         process::Command,
@@ -103,11 +117,13 @@ pub mod action {
 
     pub use crate::compiler::compile;
     use crate::{
+        backends::unix::cfengine::cf_agent,
         compiler::metadata,
         doc::{book, Format},
         frontends::methods::read_methods,
         ir::Technique,
         logs::ok_output,
+        test::TestCase,
         METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
     };
 
@@ -157,7 +173,7 @@ pub mod action {
             Some(index)
         } else {
             let data = format.render(methods)?;
-            fs::create_dir_all(output_dir)?;
+            create_dir_all(output_dir)?;
             let doc_file = output_dir.join(Path::new(TECHNIQUE).with_extension(format.extension()));
 
             if stdout {
@@ -209,19 +225,82 @@ pub mod action {
         // Compilation test
         let methods = read_methods(libraries)?;
         for target in ALL_TARGETS {
-            compile(methods, &policy, *target, input)?;
+            compile(methods, &policy, *target, input, false)?;
         }
         //
         ok_output("Checked", input.display());
         Ok(())
     }
 
+    /// Run a test
+    pub fn test(
+        technique: &Path,
+        test_dir: &Path,
+        libraries: &[PathBuf],
+        filter: Option<String>,
+    ) -> Result<()> {
+        // Run everything relatively to the test directory
+        let cwd = env::current_dir()?;
+        let technique_file = cwd.join(technique);
+        env::set_current_dir(test_dir)?;
+        // Collect test cases
+        let mut cases = vec![];
+        for entry in fs::read_dir(".")? {
+            let e = entry?;
+            let name = e.file_name().into_string().unwrap();
+            if e.file_type()?.is_file() && name.ends_with(".yml") {
+                if let Some(ref f) = filter {
+                    // Filter by file name
+                    if e.path().file_stem().unwrap().to_string_lossy().contains(f) {
+                        cases.push(e.path())
+                    }
+                } else {
+                    cases.push(e.path())
+                }
+            }
+        }
+        ok_output("Running", format!("{} test(s)", cases.len()));
+        for case_path in cases {
+            ok_output("Testing", case_path.to_string_lossy());
+            let yaml = read_to_string(&case_path)?;
+            let case: TestCase = serde_yaml::from_str(&yaml)?;
+            // Run test setup
+            case.setup()?;
+            // Run the technique
+            // TODO: support several lib dirs
+            ok_output(
+                "Running",
+                format!(
+                    "technique test with parameters from '{}'",
+                    case_path.display()
+                ),
+            );
+            cf_agent(
+                technique_file.as_path(),
+                case_path.as_path(),
+                libraries[0].as_path(),
+            )?;
+            // Run test checks
+            case.check()?;
+        }
+        env::set_current_dir(&cwd)?;
+        Ok(())
+    }
+
     /// Write output
-    pub fn build(libraries: &[PathBuf], input: &Path, output_dir: &Path) -> Result<()> {
+    pub fn build(
+        libraries: &[PathBuf],
+        input: &Path,
+        output_dir: &Path,
+        standalone: bool,
+    ) -> Result<()> {
+        create_dir_all(output_dir).with_context(|| {
+            format!("Failed to create target directory {}", output_dir.display())
+        })?;
         let policy = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let methods = read_methods(libraries)?;
-        fs::create_dir_all(output_dir)?;
+        create_dir_all(output_dir)?;
 
         // Technique implementation
         for target in ALL_TARGETS {
@@ -230,7 +309,7 @@ pub mod action {
             let mut file = File::create(&policy_file).with_context(|| {
                 format!("Failed to create output file {}", policy_file.display())
             })?;
-            file.write_all(compile(methods, &policy, *target, input)?.as_bytes())?;
+            file.write_all(compile(methods, &policy, *target, input, standalone)?.as_bytes())?;
             ok_output("Wrote", policy_file.display());
         }
 
@@ -252,7 +331,7 @@ pub mod action {
                 source: impl AsRef<Path>,
                 destination: impl AsRef<Path>,
             ) -> io::Result<()> {
-                fs::create_dir_all(&destination)?;
+                create_dir_all(&destination)?;
                 for entry in fs::read_dir(source)? {
                     let entry = entry?;
                     let filetype = entry.file_type()?;

@@ -239,7 +239,7 @@ mod markdown {
             }
             if p.constraints.max_length != DEFAULT_MAX_PARAM_LENGTH {
                 constraints.push(format!(
-                    "The maximal length for thi parameter is {} characters.",
+                    "The maximal length for this parameter is {} characters.",
                     p.constraints.max_length
                 ));
             }

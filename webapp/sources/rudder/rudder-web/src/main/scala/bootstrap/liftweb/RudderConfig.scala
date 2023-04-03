@@ -1949,12 +1949,12 @@ object RudderConfigInit {
      * - 5.2.5: 16
      */
     lazy val ApiVersions: List[ApiVersion] = {
-      ApiVersion(14, true) :: // rudder 7.0
-        ApiVersion(15, true) :: // rudder 7.1 - system update on node details
-        ApiVersion(16, true) :: // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
-        ApiVersion(17, true) :: // rudder 7.3 - directive compliance, campaign API is public
-        ApiVersion(18, false) :: // rudder 8.0 - allowed network
-        Nil
+      ApiVersion(14, true) ::  // rudder 7.0
+      ApiVersion(15, true) ::  // rudder 7.1 - system update on node details
+      ApiVersion(16, true) ::  // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
+      ApiVersion(17, true) ::  // rudder 7.3 - directive compliance, campaign API is public
+      ApiVersion(18, false) :: // rudder 8.0 - allowed network
+      Nil
     }
 
     lazy val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")

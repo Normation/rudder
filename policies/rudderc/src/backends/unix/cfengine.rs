@@ -5,14 +5,14 @@
 //!
 //! # Goals
 //!
-//! This module does not cover full CFEngine syntax but only a subset of it, which is our
+//! This module doesn't cover full CFEngine syntax but only a subset of it, which is our
 //! execution target, plus some Rudder-specific metadata in comments, required for reporting.
-//! In particular there is no need to handle all promises and attributes, we only need to support the ones we are
-//! able to generate.
+//! In particular, there is no need to handle all promises and attributes;
+//! we only need to support the ones we're able to generate.
 //!
 //! This subset should be safe, fast and readable (in that order).
 //!
-//! Everything that does not have an effect on applied state
+//! Everything that doesn't have an effect on applied state
 //! should follow a deterministic rendering process (attribute order, etc.)
 //! This allows an easy diff between produced files.
 //!
@@ -24,16 +24,25 @@
 //! cf-promises --eval-functions=false --policy-output-format cf --file ./policy.json
 //! ```
 //!
-//! So it could partially replace this module. But it does not store macro information
+//! So it could partially replace this module.
+//! But it doesn't store macro information
 //! which could prove really useful for producing fallback modes in generation.
 
 pub(crate) mod bundle;
 pub(crate) mod promise;
 
+use std::{fs, path::Path, process::Command};
+
+use anyhow::Result;
+use log::{debug, error};
+use tempfile::tempdir;
+
 use crate::regex;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
+/// Where are CFEngine binaries? As we only target Rudder, we use its path.
+pub const CF_BIN_DIR: &str = "/opt/rudder/bin/";
 
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
@@ -48,11 +57,11 @@ pub fn expanded(s: &str) -> String {
 /// Escapes the string for usage in CFEngine
 ///
 /// Here the goal is that what is written in the YAML source
-/// (for example a file content) gets correctly passed into the
+/// (for example, a file content) gets correctly passed into the
 /// destination configuration item (correctly = verbatim).
 ///
-/// It is specially tricky as we often have to have several escaping levels
-/// for examples for commands included in CFEngine strings, themselves
+/// It is specially tricky as we often have to have several escaping levels, for example,
+/// for commands included in CFEngine strings, themselves
 /// including escaping for the shell.
 ///
 /// CFEngine also provides variables for non-expressible things in
@@ -62,7 +71,7 @@ pub fn expanded(s: &str) -> String {
 /// What we need to do:
 ///
 /// * CFEngine strings use either simple or double quotes as delimiters.
-///   `rudderc` only writes double quotes, so we need to escape them using a backslash
+///   `Rudderc` only writes double quotes, so we need to escape them using a backslash
 ///   inside string literals.
 /// * CFEngine uses backslashes for escaping, so we'll need to escape them to pass them
 ///   verbatim in the output, by doubling them.
@@ -84,7 +93,7 @@ pub fn cfengine_escape(s: &str) -> String {
 /// Canonify a string the same way CFEngine does, i.e. one underscore for each
 /// non-ascii byte.
 ///
-/// ```text
+/// ```Text
 /// $ cat test.cf
 /// bundle agent main {
 ///     vars:
@@ -118,8 +127,8 @@ pub fn cfengine_canonify(input: &str) -> String {
 /// We need to take special care to preserve variable expansion as
 /// our classes include the class_parameter variable value.
 ///
-/// To do so, we split the condition to only canonify text
-/// outside of variables.
+/// To do so, we split the condition to only canonify literal text
+/// outside variables.
 fn cfengine_canonify_condition(c: &str) -> String {
     // not a big deal if as specific as possible
     if !c.contains("${") {
@@ -132,6 +141,49 @@ fn cfengine_canonify_condition(c: &str) -> String {
             var.replace_all(c, r##"",canonify("$1"),""##)
         )
     }
+}
+
+pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<()> {
+    debug!("Running cf-agent on {}", input.display());
+    // Use a dedicated workdir for each test
+    // Required to run agents concurrently without trouble
+    let work_dir = tempdir().unwrap();
+    let bin_dir = work_dir.path().join("bin");
+    fs::create_dir(&bin_dir)?;
+    fs::copy(
+        Path::new(CF_BIN_DIR).join("cf-promises"),
+        bin_dir.join("cf-promises"),
+    )?;
+    // CFEngine looks in its default dir otherwise
+    let input_absolute = if input.is_absolute() {
+        input.to_path_buf()
+    } else {
+        Path::new(".").join(input)
+    };
+    let cmd = Command::new(Path::new(CF_BIN_DIR).join("cf-agent"))
+        .args([
+            "--no-lock",
+            "--workdir",
+            &work_dir.path().to_string_lossy(),
+            "--file",
+            &input_absolute.to_string_lossy(),
+        ])
+        // No way to pass textual data as parameter, so we use env variables
+        .env("PARAMS_FILE", params)
+        .env("LIB_PATH", lib_path)
+        .env("TMP_DIR", work_dir.path().to_string_lossy().to_string())
+        .output()?;
+    if !cmd.status.success() {
+        error!(
+            "Failed to run cf-agent:\nstdout: {}\nstderr:{}",
+            String::from_utf8(cmd.stdout)?,
+            String::from_utf8(cmd.stderr)?
+        );
+    } else {
+        // Our CFEngine does not output on stderr
+        debug!("cf-agent output: {}", String::from_utf8(cmd.stdout)?);
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -154,7 +206,7 @@ mod tests {
         assert_eq!(cfengine_canonify("a-bc"), "a_bc".to_string());
         assert_eq!(cfengine_canonify("a_bc"), "a_bc".to_string());
         assert_eq!(cfengine_canonify("a bc"), "a_bc".to_string());
-        assert_eq!(cfengine_canonify("aàbc"), "a__bc".to_string());
+        assert_eq!(cfengine_canonify("a_à_bc"), "a____bc".to_string());
         assert_eq!(cfengine_canonify("a&bc"), "a_bc".to_string());
         assert_eq!(cfengine_canonify("a9bc"), "a9bc".to_string());
         assert_eq!(cfengine_canonify("a😋bc"), "a____bc".to_string());

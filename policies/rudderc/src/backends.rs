@@ -31,7 +31,10 @@ pub mod windows;
 /// A backend is something that can generate final code for a given language from an IR
 pub trait Backend {
     // For now, we only generate one file content
-    fn generate(&self, policy: Technique, resources: &Path) -> Result<String>;
+    //
+    // The `standalone` parameter generates wrapping code (hopefully) allowing to run the generated file
+    // without a Rudder server.
+    fn generate(&self, policy: Technique, resources: &Path, standalone: bool) -> Result<String>;
 
     /// List resources in directory
     ///

@@ -25,7 +25,12 @@ use crate::{
 pub struct Metadata;
 
 impl Backend for Metadata {
-    fn generate(&self, technique: ir::Technique, resources: &Path) -> Result<String> {
+    fn generate(
+        &self,
+        technique: ir::Technique,
+        resources: &Path,
+        _standalone: bool,
+    ) -> Result<String> {
         let technique: Technique = (technique, resources).try_into()?;
         Self::xml(technique)
     }
@@ -133,7 +138,7 @@ impl Agent {
     /// Types used in metadata.xml
     fn type_from_target(t: Target) -> &'static str {
         match t {
-            Target::Unix => "cfengine-community,cfengine-nova",
+            Target::Unix => "cfengine-community",
             Target::Windows => "dsc",
         }
     }

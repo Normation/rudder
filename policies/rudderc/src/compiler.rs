@@ -38,6 +38,7 @@ pub fn compile(
     input: &str,
     target: Target,
     src: &Path,
+    standalone: bool,
 ) -> Result<String> {
     let policy = read_technique(methods, input)?;
     ok_output(
@@ -45,7 +46,7 @@ pub fn compile(
         format!("{} v{} [{}]", policy.name, policy.version, target,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
-    backend(target).generate(policy, resources_path.as_path())
+    backend(target).generate(policy, resources_path.as_path(), standalone)
 }
 
 /// Compile metadata file
@@ -56,7 +57,7 @@ pub fn metadata(methods: &'static Methods, input: &str, src: &Path) -> Result<St
         format!("{} v{} [Metadata]", policy.name, policy.version,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
-    Metadata.generate(policy, resources_path.as_path())
+    Metadata.generate(policy, resources_path.as_path(), false)
 }
 
 /// Inject metadata information into method calls

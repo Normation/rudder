@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 use crate::{
     compiler::Methods,
@@ -17,7 +17,8 @@ pub mod reader;
 pub fn read_methods(libraries: &[PathBuf]) -> Result<&'static Methods> {
     let mut methods = HashMap::new();
     for library in libraries {
-        let add = read_lib(library)?;
+        let add = read_lib(library)
+            .with_context(|| format!("Reading methods from {}", library.display()))?;
         let len = add.len();
         for m in add {
             methods.insert(m.bundle_name.clone(), m);

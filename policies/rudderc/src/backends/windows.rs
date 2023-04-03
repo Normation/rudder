@@ -22,7 +22,12 @@ impl Default for Windows {
 }
 
 impl Backend for Windows {
-    fn generate(&self, technique: Technique, resources: &Path) -> Result<String> {
+    fn generate(
+        &self,
+        technique: Technique,
+        resources: &Path,
+        _standalone: bool,
+    ) -> Result<String> {
         Self::technique(technique, resources)
     }
 }

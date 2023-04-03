@@ -1,0 +1,18 @@
+---
+id: one_param
+name: Test with one parameter
+version: "0.1"
+description: "Test the testing process with one parameter"
+parameters:
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
+    name: server
+    description: "The server hostname"
+    may_be_empty: true
+items:
+  - name: "Ensure correct ntp configuration"
+    id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+    method: file_content
+    params:
+      path: "/tmp/plop"
+      lines: "${server}"
+      enforce: "true"

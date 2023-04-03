@@ -11,7 +11,7 @@ use rudderc::frontends::methods::method::MethodInfo;
 use test_generator::test_resources;
 
 /// Compiles all files in `cases`. Files ending in `.fail.yml` are expected to fail.
-#[test_resources("tests/methods/*.yml")]
+#[test_resources("tests/lib/common/30_generic_methods/*.yml")]
 fn compile(filename: &str) {
     let path = Path::new(filename);
     let result: Result<MethodInfo> = read_to_string(path.with_extension("cf")).unwrap().parse();

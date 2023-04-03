@@ -47,9 +47,26 @@ pub enum Command {
         /// Output directory
         #[arg(short, long)]
         output: Option<PathBuf>,
+
+        /// Generate a file that can run by itself
+        #[arg(long)]
+        standalone: bool,
     },
 
-    /// Build the methods documentation
+    /// Run the provided technique with the provided tests cases
+    ///
+    /// Note: It runs on the current system.
+    // TODO: ability to run the test un a container or through ssh
+    Test {
+        /// Load a library from the given path
+        #[arg(short, long, action = clap::ArgAction::Append)]
+        library: Vec<PathBuf>,
+
+        /// Fliter tests cases
+        filter: Option<String>,
+    },
+
+    /// Build the method documentation
     Lib {
         /// Load a library from the given path
         #[arg(short, long, action = clap::ArgAction::Append)]

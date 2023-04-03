@@ -12,7 +12,11 @@ use crate::{
         cfengine::{bundle::Bundle, promise::Promise},
         ncf::technique::Technique,
     },
-    ir::{self, condition::Condition, technique::ItemKind},
+    ir::{
+        self,
+        condition::Condition,
+        technique::{Id, ItemKind},
+    },
 };
 
 // TODO support macros at the policy or bundle level
@@ -34,10 +38,34 @@ impl Unix {
     pub fn new() -> Self {
         Self
     }
+
+    /// To call the technique in standalone policies
+    fn prelude(technique_id: Id, params: Vec<String>) -> String {
+        // Static content including parts of the system tehcniques required to run most techniques,
+        // i.e. lib loading and global vars (`g.X`).
+        let static_prelude = include_str!("unix/prelude.cf");
+        let init = Promise::usebundle("rudder_test_init", None, None, vec![]);
+        let technique = Promise::usebundle(
+            technique_id.to_string(),
+            None,
+            None,
+            params
+                .iter()
+                .map(|p| cfengine::quoted(&format!("${{rudder_test_init.test_case[params][{p}]}}")))
+                .collect(),
+        );
+        let call = Bundle::agent("main").promise_group(vec![init, technique]);
+        format!("{static_prelude}\n{}", call)
+    }
 }
 
 impl Backend for Unix {
-    fn generate(&self, technique: ir::Technique, resources: &Path) -> Result<String> {
+    fn generate(
+        &self,
+        technique: ir::Technique,
+        resources: &Path,
+        standalone: bool,
+    ) -> Result<String> {
         fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<(Promise, Bundle)>> {
             match r {
                 ItemKind::Block(r) => {
@@ -97,12 +125,27 @@ impl Backend for Unix {
                 call_bundles.push(bundle)
             }
         }
-        let technique = Technique::new()
+        let cf_technique = Technique::new()
             .name(technique.name)
             .version(technique.version)
             .bundle(main_bundle)
             .bundles(call_bundles);
-        trace!("Generated policy:\n{:#?}", technique);
-        Ok(technique.to_string())
+        trace!("Generated policy:\n{:#?}", cf_technique);
+        Ok(if standalone {
+            format!(
+                "{}\n{}",
+                Unix::prelude(
+                    technique.id,
+                    technique
+                        .parameters
+                        .iter()
+                        .map(|p| p.name.to_string())
+                        .collect()
+                ),
+                cf_technique
+            )
+        } else {
+            cf_technique.to_string()
+        })
     }
 }

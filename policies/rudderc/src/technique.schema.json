@@ -42,7 +42,7 @@
     },
     "techniqueParameterName": {
       "type": "string",
-      "pattern": "^[a-zA-Z_]+$"
+      "pattern": "^[a-zA-Z0-9_]+$"
     },
     "techniqueVersion": {
       "type": "string",

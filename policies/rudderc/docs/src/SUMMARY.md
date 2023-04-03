@@ -8,5 +8,6 @@
 
 - [Usage](./usage.md)
 - [Syntax](./syntax.md)
+- [Testing](./test.md)
 
 ---

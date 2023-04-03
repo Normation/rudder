@@ -1,0 +1,89 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File content
+# @description Enforce the content of a file
+# @documentation Enforce the content of a file.
+# The enforce parameter changes the edition method:
+#
+# * If *enforce* is set to *true* the file content will be forced
+# * If *enforce* is set to *false* the file content will be forced line by line.
+#   Which means that each line managed can not be duplicated and the order will
+#   not be guaranteed.
+#
+# In most cases, the *enforce* parameter should be set to *true*.
+# When *enforce* is set to *false*, and the managed lines are:
+#
+# ```
+# Bob
+# Alice
+# Charly
+# ```
+#
+# Will be compliant with the following file contents:
+#
+# ```
+# Bob
+# Alice
+# Charly
+# ```
+#
+# ```
+# Charly
+# Bob
+# Alice
+# Charly
+# ```
+#
+# ```
+# Bob
+# Charly
+# Alice
+# ```
+#
+# @parameter path  File name to edit (absolute path on the target node)
+# @parameter lines Line(s) to add in the file - if lines is a list, please use @{lines} to pass the iterator rather than iterating over each values
+# @parameter enforce Enforce the file to contain only line(s) defined (true or false)
+#
+# 
+# @parameter_rename file path
+# @class_prefix file_lines_present
+# @class_parameter path
+
+bundle agent file_content(path, lines, enforce)
+{
+  # **slightly** simpler implementation, we only really need to modify a file
+  files:
+    "${path}"
+      create        => "true",
+      edit_line     => insert_lines("${lines}"),
+      edit_defaults => ncf_empty_select("${enforce}");
+}
+
+bundle edit_line insert_lines(lines)
+{
+  insert_lines:
+      "$(lines)";
+}
+
+body edit_defaults ncf_empty_select(select)
+{
+    empty_file_before_editing => "${select}";
+    max_file_size             => "25M";
+    edit_backup               => "timestamp";
+}

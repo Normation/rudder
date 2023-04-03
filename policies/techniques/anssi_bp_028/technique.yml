@@ -19,7 +19,7 @@ items:
       anssi_bp_028_level: I
       anssi_bp_028_id: R3
     # To allow skipping
-    conditions: "!skip_anssi_bp_028_r3"
+    condition: "!skip_anssi_bp_028_r3"
     method: audit_from_command
     params:
       # Assume that mokutil is there for now
@@ -32,7 +32,7 @@ items:
     tags:
       anssi_bp_028_level: I
       anssi_bp_028_id: R13
-    conditions: "!skip_anssi_bp_028_r13"
+    condition: "!skip_anssi_bp_028_r13"
     reporting:
       mode: worst-case-weighted-one
     items:

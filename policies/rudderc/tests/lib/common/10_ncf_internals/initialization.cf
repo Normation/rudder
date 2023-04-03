@@ -1,0 +1,3 @@
+bundle agent initialization {}
+bundle agent rudder_reporting_context_v4(a, b, c, d, e, f) {}
+bundle agent _method_reporting_context_v4(d, e, f) {}

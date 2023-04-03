@@ -37,21 +37,4 @@
 
 bundle agent package_present(name, version, architecture, provider)
 {
-  vars:
-      "class_prefix"                string => "package_present_${name}";
-
-  classes:
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
-  methods:
-    pass3::
-      "${report_data.method_id}" usebundle => call_method("ncf_package");
-      "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "present", "");
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
-
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "${ncf_package.message}", "");
 }
