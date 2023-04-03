@@ -75,6 +75,8 @@ class RudderUserDetailsTest extends Specification {
     override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = Nil
   })
 
+  // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+
   def getUserDetailList(xml: Elem, debugName: String, extendedAuthz: Boolean = true) =
     UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz, false).force
 
@@ -115,44 +117,50 @@ class RudderUserDetailsTest extends Specification {
 
   val userXML_3 = <authentication>
     <custom-roles>
-      <role name="role_a1" permissions="ROLE_a0,roLE_A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
-      <role name="role_a0" permissions="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role-a1" permissions="ROLE-a0,roLE-A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role-a0" permissions="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
 
-      <role name="ROLE_B0" permissions="inventory"/> <!-- node_read -->
-      <role name="role_c0" permissions="rule_only"/> <!-- node_* -->
+      <role name="ROLE-B0" permissions="inventory"/> <!-- node_read -->
+      <role name="role-c0" permissions="rule_only"/> <!-- node_* -->
+      <role name="role-c1" permissions="rule_only,cve_read"/> <!--valid permissions but not loaded: should be ignored -->
+      <role name="role-c2" permissions="cve_read"/> <!--valid perm not loaded: role doesn't have any right -->
 
-      <role name="role_d0" permissions="role_a1,ROLE_B0,role_c0"/>  <!-- node_*,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role-d0" permissions="role-a1,ROLE-B0,role-c0"/>  <!-- node_*,config_*,parameter_*,technique_*,directive_*,rule_* -->
 
-      <role name="role_e0" permissions="inventory,role_e0"/> <!-- error + role removed - self reference leads to nothing -->
-      <role name="role_e1" permissions="role_e2"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e2" permissions="role_e1"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e3" permissions="role_e4,role_c0"/>   <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e4" permissions="role_e3"/>           <!-- error + role removed - mutual reference leads to nothing -->
-      <role name="role_e6" permissions="role_e5"/>           <!-- warn - non existing reference is ignored -->
+      <role name="role-e0" permissions="inventory,role-e0"/> <!-- error + role removed - self reference leads to nothing -->
+      <role name="role-e1" permissions="role-e2"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role-e2" permissions="role-e1"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role-e3" permissions="role-e4,role-c0"/>   <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role-e4" permissions="role-e3"/>           <!-- error + role removed - mutual reference leads to nothing -->
+      <role name="role-e6" permissions="role-e5"/>           <!-- warn - non existing reference is ignored -->
       <role name="inventory" permissions="administrator"/>   <!-- error + role removed - already defined -->
     </custom-roles>
 
     <user name="admin" role="administrator" password="..."/>
     <user name="user_a0" password="..." permissions="inventory"/> <!-- node read -->
-    <user name="user_a1" password="..." permissions="role_A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+    <user name="user_a1" password="..." permissions="role-A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
   </authentication>
 
   "general rules around custom roles definition and error should be parsed correctly" >> {
     import AuthorizationType._
     val userDetailList = getUserDetailList(userXML_3, "userXML_3")
 
-    val roleA0 = NamedCustom("role_a0", List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.Configuration))
-    val roleA1 = NamedCustom("role_a1", List(roleA0))
-    val roleB0 = NamedCustom("ROLE_B0", List(Role.Inventory))
-    val roleC0 = NamedCustom("role_c0", List(Role.RuleOnly))
+    val roleA0 = NamedCustom("role-a0", List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.Configuration))
+    val roleA1 = NamedCustom("role-a1", List(roleA0))
+    val roleB0 = NamedCustom("ROLE-B0", List(Role.Inventory))
+    val roleC0 = NamedCustom("role-c0", List(Role.RuleOnly))
+    val roleC1 = NamedCustom("role-c1", List(Role.RuleOnly))
+    val roleC2 = NamedCustom("role-c2", List())
 
     val parsedRoles = {
       roleA0 ::
       roleA1 ::
       roleB0 ::
       roleC0 ::
-      NamedCustom("role_d0", List(roleA1, roleB0, roleC0)) ::
-      NamedCustom("role_e6", Nil) ::
+      roleC1 ::
+      roleC2 ::
+      NamedCustom("role-d0", List(roleA1, roleB0, roleC0)) ::
+      NamedCustom("role-e6", Nil) ::
       Nil
     }
 
