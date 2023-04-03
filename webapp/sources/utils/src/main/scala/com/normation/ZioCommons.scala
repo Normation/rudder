@@ -548,7 +548,7 @@ trait ZioLogger {
 trait NamedZioLogger extends ZioLogger {
   import org.slf4j.LoggerFactory
 
-  // ensure that children use def or lazy val - val leads to UnitializedFieldError.
+  // ensure that children use def or lazy val - val leads to UninitializedFieldError.
   def loggerName: String
 
   final val logEffect = LoggerFactory.getLogger(loggerName)

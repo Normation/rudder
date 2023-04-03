@@ -59,6 +59,7 @@ import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -1387,23 +1388,52 @@ class NodeApiService6(
       nodeIds      = nodeFilter.getOrElse(nodeInfos.keySet).toSet
       runs        <- roAgentRunsRepository.getNodesLastRun(nodeIds)
       inventories <- if (detailLevel.needFullInventory()) {
-                       inventoryRepository.getAllInventories(state).chainError("Error when looking for node inventories")
+                       for {
+                         d1  <- currentTimeMillis
+                         // the request with filter if quite complex, and just sending all the node DN for it to LDAP produces
+                         // a lot of data transfer. So a some point, it's better to just get everything back and filter out
+                         // data below, trading ram for LDAP processing. No idea what a good heuristic would be, setting
+                         // it to 2/3
+                         res <- (if (nodeIds.size < nodeInfos.size * 2 / 3) {
+                                   inventoryRepository.getInventories(state, nodeIds)
+                                 } else {
+                                   inventoryRepository.getAllInventories(state)
+                                 }).chainError("Error when looking for node inventories")
+                         d2  <- currentTimeMillis
+                         _   <- ApiLoggerPure.Metrics.debug(s"[${d2 - d1} ms] Getting inventories for level '${detailLevel}' ")
+                       } yield res
                      } else {
                        Map[NodeId, FullInventory]().succeed
                      }
       software    <- if (detailLevel.needSoftware()) {
-                       softwareRepository.getSoftwareByNode(nodeIds, state)
+                       for {
+                         d1  <- currentTimeMillis
+                         res <- softwareRepository.getSoftwareByNode(nodeIds, state)
+                         d2  <- currentTimeMillis
+                         _   <- ApiLoggerPure.Metrics.debug(s"[${d2 - d1} ms] Getting software for level '${detailLevel}'")
+                       } yield res
                      } else {
                        Map[NodeId, Seq[Software]]().succeed
                      }
+      d1          <- currentTimeMillis
+      jsons        = nodeIds.flatMap { id =>
+                       nodeInfos
+                         .get(id)
+                         .map { nodeInfo =>
+                           serializeInventory(
+                             nodeInfo,
+                             state,
+                             runs.get(id).flatMap(_.map(_.agentRunId.date)),
+                             inventories.get(id),
+                             software.getOrElse(id, Seq()),
+                             detailLevel
+                           )
+                         }
+                     }
+      d2          <- currentTimeMillis
+      _           <- ApiLoggerPure.Metrics.debug(s"[${d2 - d1} ms] Serializing nodes to json values")
     } yield {
-      for {
-        nodeId   <- nodeIds
-        nodeInfo <- nodeInfos.get(nodeId)
-      } yield {
-        val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-        serializeInventory(nodeInfo, state, runDate, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel)
-      }
+      jsons
     }).either.runNow match {
       case Right(nodes) => {
         toJsonResponse(None, ("nodes" -> JArray(nodes.toList)))

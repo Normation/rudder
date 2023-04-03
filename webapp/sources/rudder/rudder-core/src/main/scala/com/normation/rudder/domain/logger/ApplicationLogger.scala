@@ -70,7 +70,11 @@ object ApiLogger extends Logger {
 }
 
 object ApiLoggerPure extends NamedZioLogger {
-  def loggerName = "api"
+  def loggerName = "api-processing"
+
+  object Metrics extends NamedZioLogger {
+    def loggerName = "api-processing.metrics"
+  }
 }
 
 /**
