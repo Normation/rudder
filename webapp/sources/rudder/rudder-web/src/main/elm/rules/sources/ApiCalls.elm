@@ -142,6 +142,7 @@ getRuleDetails model ruleId =
   in
     req
 
+-- Warning: This API doesn't get sub categories and sub elements
 getRulesCategoryDetails : Model -> String -> Cmd Msg
 getRulesCategoryDetails model catId =
   let

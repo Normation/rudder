@@ -14,6 +14,7 @@ type TabMenu
   | Nodes
   | Groups
   | TechnicalLogs
+  | Rules
 
 
 type alias Tag =
