@@ -126,19 +126,19 @@ class ReportsTest extends DBCommon {
     }
 
     "find the last reports for node0" in {
-      val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1)), Set()).open
+      val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1)), Set(), Set()).open
       result.values.flatten.toSeq must contain(exactly(reports("n0")(0)))
     }
 
     "find reports for node 0,1,2" in {
       val runs   = Set(("n0", run1), ("n1", run1), ("n2", run1))
-      val result = repostsRepo.getExecutionReports(runs, Set()).open
+      val result = repostsRepo.getExecutionReports(runs, Set(), Set()).open
       result.values.flatten.toSeq must contain(exactly(reports("n0") ++ reports("n1").reverse.tail ++ reports("n2"): _*))
     }
 
     "not find report for none existing agent run id" in {
       val runs   = Set(("n2", run2), ("n3", run1))
-      val result = repostsRepo.getExecutionReports(runs, Set()).open
+      val result = repostsRepo.getExecutionReports(runs, Set(), Set()).open
       result must beEmpty
     }
   }

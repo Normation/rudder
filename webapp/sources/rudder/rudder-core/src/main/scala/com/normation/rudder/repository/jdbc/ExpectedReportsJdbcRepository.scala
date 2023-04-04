@@ -206,10 +206,30 @@ class FindExpectedReportsJdbcRepository(
     }
   }
 
+  /**
+   * Return node ids associated to the directive (based on expectedreports (the one still pending)) for this Directive,
+   * only limited on the nodeIds in parameter (used when cache is incomplete)
+   */
+  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]]                              = {
+    if (nodeIds.isEmpty) Set.empty[NodeId].succeed
+    else {
+      transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => sql"""
+        select distinct nodeid from nodeconfigurations
+        where enddate is null and configuration like ${"%" + directiveId.serialize + "%"}
+        and nodeid in (${nodeIds.map(id => s"'${id}'").mkString(",")})
+      """.query[NodeId].to[Set].transact(xa))
+    }
+  }
+  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId):                       IOResult[Set[NodeId]]                              = {
+    transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => sql"""
+      select distinct nodeid from nodeconfigurations
+      where enddate is null and configuration like ${"%" + directiveId.serialize + "%"}
+    """.query[NodeId].to[Set].transact(xa))
+  }
   /*
    * Retrieve the list of node config ids
    */
-  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
+  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]):                                     Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
     if (nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
     else {
       val batchedNodesId = nodeIds.grouped(jdbcMaxBatchSize).toSeq

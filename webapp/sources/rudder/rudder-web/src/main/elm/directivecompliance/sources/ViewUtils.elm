@@ -130,7 +130,7 @@ byNodeCompliance mod =
         List.sortWith sortFunction item.rules
     )
     (\m i -> i)
-    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\n1 n2 -> compare n1.name n2.name))
+    [ ("Node", (\nId -> span[][ (badgePolicyMode mod.policyMode nId.policyMode), text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\n1 n2 -> compare n1.name n2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar,  (\n1 n2 -> compare n1.compliance n2.compliance))
     ]
     (.nodeId >> .value)
@@ -138,7 +138,7 @@ byNodeCompliance mod =
     (always (List.map Tuple3.first rule.rows))
 
 
-byRuleCompliance : Model -> ItemFun value subValue valueData -> ItemFun (RuleCompliance value) (ComponentCompliance value) (Rule, RuleCompliance value)
+byRuleCompliance : Model -> ItemFun value subValue valueData -> ItemFun (RuleCompliance value) (ComponentCompliance value) (RuleCompliance value)
 byRuleCompliance model subFun =
   let
     contextPath  = model.contextPath
@@ -150,9 +150,9 @@ byRuleCompliance model subFun =
     in
       List.sortWith sortFunction item.components
     )
-    (\m i -> (Maybe.withDefault (Rule i.ruleId i.name "" "" "" False False [] [] "unknown" (RuleStatus "" Nothing) [] ) (Dict.get i.ruleId.value m.rules), i ))
-    [ ("Rule", \(r,i)  -> span [] [ (badgePolicyMode model.policyMode r.policyMode) , text r.name , goToBtn (getRuleLink contextPath r.id) ],  (\(_,r1) (_,r2) -> compare r1.name r2.name ))
-    , ("Compliance", \(r,i) -> buildComplianceBar  i.complianceDetails,  (\(_,r1) (_,r2) -> compare r1.compliance r2.compliance ))
+    (\m i ->  i )
+    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode (Maybe.map .policyMode model.directiveCompliance|> Maybe.withDefault "default")), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> compare r1.name r2.name ))
+    , ("Compliance", \i -> buildComplianceBar  i.complianceDetails,  (\(r1) (r2) -> compare r1.compliance r2.compliance ))
     ]
     (.ruleId >> .value)
     (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
@@ -168,7 +168,7 @@ nodeValueCompliance mod =
         List.sortWith sortFunction item.values
     )
     (\_ i -> i)
-    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
+    [ ("Node", (\nId -> span[][text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\d1 d2 -> compare d1.name d2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
@@ -233,11 +233,9 @@ searchFieldRuleCompliance r =
   , r.name
   ]
 
-searchFieldNodeCompliance n nodes =
+searchFieldNodeCompliance n =
   [ n.nodeId.value
-  , case Dict.get n.nodeId.value nodes of
-    Just nn -> nn.hostname
-    Nothing -> ""
+  , n.name
   ]
 
 filterSearch : String -> List String -> Bool
@@ -254,49 +252,6 @@ filterSearch filterString searchFields =
   in
     String.contains searchString stringToCheck
 
--- TAGS DISPLAY
-filterTags : List Tag -> List Tag -> Bool
-filterTags ruleTags tags =
-  if List.isEmpty tags then
-    True
-  else if List.isEmpty ruleTags then
-    False
-  else
-    --List.Extra.count (\t -> List.Extra.notMember t ruleTags) tags <= 0
-    tags
-      |> List.all (\tag ->
-        if not (String.isEmpty tag.key) && not (String.isEmpty tag.value) then
-          List.member tag ruleTags
-        else if String.isEmpty tag.key then
-          case List.Extra.find (\t -> t.value == tag.value) ruleTags of
-            Just ok -> True
-            Nothing -> False
-        else if String.isEmpty tag.value then
-          case List.Extra.find (\t -> t.key == tag.key) ruleTags of
-            Just ok -> True
-            Nothing -> False
-        else
-          True
-        )
-
--- WARNING:
---
--- Here we are building an html snippet that will be placed inside an attribute, so
--- we can't easily use the Html type as there is no built-in way to serialize it manually.
--- This means it will be vulnerable to XSS on its parameters (here the description).
---
--- We resort to escaping it manually here.
-buildHtmlStringTag : Tag -> String
-buildHtmlStringTag tag =
-  let
-    tagOpen  = "<span class='tags-label'>"
-    tagIcon  = "<i class='fa fa-tag'></i>"
-    tagKey   = "<span class='tag-key'>"   ++ htmlEscape tag.key   ++ "</span>"
-    tagSep   = "<span class='tag-separator'>=</span>"
-    tagVal   = "<span class='tag-value'>" ++ htmlEscape tag.value ++ "</span>"
-    tagClose = "</span>"
-  in
-    tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
 
 htmlEscape : String -> String
 htmlEscape s =
@@ -307,38 +262,6 @@ htmlEscape s =
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
 
-buildTagsList : List Tag -> Html Msg
-buildTagsList tags =
-  let
-    nbTags = List.length tags
-
-    spanTags : Tag -> Html Msg
-    spanTags t =
-      span [class "tags-label"]
-      [ i [class "fa fa-tag"][]
-      , span [class "tag-key"       ][(if (String.isEmpty t.key  ) then i [class "fa fa-asterisk"][] else span[][text t.key  ])]
-      , span [class "tag-separator" ][text "="]
-      , span [class "tag-value"     ][(if (String.isEmpty t.value) then i [class "fa fa-asterisk"][] else span[][text t.value])]
-      ]
-
-    tooltipContent : List Tag -> String
-    tooltipContent listTags =
-      buildTooltipContent ("Tags <span class='tags-label'><i class='fa fa-tags'></i><b><i>"++ (String.fromInt (nbTags - 2)) ++" more</i></b></span>") (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags))
-  in
-    if (nbTags > 0) then
-      if (nbTags > 2) then
-        span[class "tags-list"](
-          List.append (List.map (\t -> spanTags t) (List.take 2 tags)) [
-            span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent (List.drop 2 tags))]
-            [ i [class "fa fa-tags"][]
-            , b [][ i[][text (String.fromInt (nbTags - 2)), text " more"]]
-            ]
-          ]
-        )
-      else
-        span[class "tags-list"](List.map (\t -> spanTags t) tags)
-    else
-      text ""
 
 -- WARNING:
 --
@@ -397,7 +320,7 @@ buildComplianceReport reports =
         "auditNotApplicable"         -> "Not applicable"
         "unexpectedUnknownComponent" -> "Unexpected"
         "unexpectedMissingComponent" -> "Missing"
-        "AuditNotApplicable"         -> "Not applicable"
+        "enforceNotApplicable"         -> "Not applicable"
         "auditError"                 -> "Error"
         "auditCompliant"             -> "Compliant"
         "auditNonCompliant"          -> "Non compliant"
@@ -417,8 +340,6 @@ getNodeLink : String -> String -> String
 getNodeLink contextPath id =
   contextPath ++ "/secure/nodeManager/node/" ++ id
 
-getNodeHostname : Model -> String -> String
-getNodeHostname model id = (Maybe.withDefault (NodeInfo id id "" "" ) (Dict.get id model.nodes)).hostname
 
 goToBtn : String -> Html Msg
 goToBtn link =

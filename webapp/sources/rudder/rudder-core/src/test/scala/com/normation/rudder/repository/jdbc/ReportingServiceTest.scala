@@ -162,15 +162,16 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
-    def defaultFindRuleNodeStatusReports:                     DefaultFindRuleNodeStatusReports        = null
-    def nodeInfoService:                                      NodeInfoService                         = self.nodeInfoService
-    def nodeConfigrationService:                              NodeConfigurationService                = null
-    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findNodeStatusReport(nodeId: NodeId):                 Box[NodeStatusReport]                   = null
-    def findUserNodeStatusReport(nodeId: NodeId):             Box[NodeStatusReport]                   = null
-    def findSystemNodeStatusReport(nodeId: NodeId):           Box[NodeStatusReport]                   = null
-    def getGlobalUserCompliance():                            Box[Option[(ComplianceLevel, Long)]]    = null
-    def findUncomputedNodeStatusReports():                    Box[Map[NodeId, NodeStatusReport]]      = null
+    def defaultFindRuleNodeStatusReports:                        DefaultFindRuleNodeStatusReports        = null
+    def nodeInfoService:                                         NodeInfoService                         = self.nodeInfoService
+    def nodeConfigrationService:                                 NodeConfigurationService                = null
+    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId):    IOResult[Map[NodeId, NodeStatusReport]] = null
+    def findNodeStatusReport(nodeId: NodeId):                    Box[NodeStatusReport]                   = null
+    def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = null
+    def findUserNodeStatusReport(nodeId: NodeId):                Box[NodeStatusReport]                   = null
+    def findSystemNodeStatusReport(nodeId: NodeId):              Box[NodeStatusReport]                   = null
+    def getGlobalUserCompliance():                               Box[Option[(ComplianceLevel, Long)]]    = null
+    def findUncomputedNodeStatusReports():                       Box[Map[NodeId, NodeStatusReport]]      = null
 
     def getUserNodeStatusReports():                                           Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getSystemAndUserCompliance(
@@ -179,6 +180,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
 
     override def batchSize: Int = 5000
+
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000

@@ -153,6 +153,20 @@ object NodeStatusReport {
       nodeStatusReport.reports.filter(r => ruleIds.contains(r.ruleId))
     )
   }
+
+  def filterByDirectives(nodeStatusReport: NodeStatusReport, directiveIds: Set[DirectiveId]): NodeStatusReport = {
+
+    new NodeStatusReport(
+      nodeStatusReport.nodeId,
+      nodeStatusReport.runInfo,
+      nodeStatusReport.statusInfo,
+      nodeStatusReport.overrides,
+      nodeStatusReport.reports.flatMap { r =>
+        val filterRule = r.copy(directives = r.directives.filter(d => directiveIds.contains(d._1)))
+        if (filterRule.directives.isEmpty) None else Some(filterRule)
+      }
+    )
+  }
 }
 
 /**

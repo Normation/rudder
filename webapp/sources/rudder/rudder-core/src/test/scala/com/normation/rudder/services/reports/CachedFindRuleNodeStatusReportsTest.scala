@@ -41,6 +41,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -178,6 +179,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
         updated = (updated ++ nodeIds)
         Full(reports.filter(x => nodeIds.contains(x._1)))
       }
+
+      def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = ???
     }
     override def nodeInfoService: NodeInfoService = testNodeInfoService
 
@@ -193,6 +196,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
         optNodeIds: Option[Set[NodeId]]
     ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
 
+    def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = ???
   }
 
   /*
