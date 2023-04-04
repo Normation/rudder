@@ -22,7 +22,7 @@ displayNodesComplianceTable model =
       Just dc -> dc.nodes
       Nothing -> []
     childrenSort = childs
-      |> List.filter (\n -> (filterSearch filters.filter (searchFieldNodeCompliance n model.nodes)))
+      |> List.filter (\n -> (filterSearch filters.filter (searchFieldNodeCompliance n)))
       |> List.sortWith sort
 
     (children, order, newOrder) = case sortOrder of

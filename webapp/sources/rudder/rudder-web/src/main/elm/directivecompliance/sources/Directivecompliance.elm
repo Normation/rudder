@@ -103,20 +103,6 @@ update msg model =
         Err err ->
           processApiError "Getting Policy Mode" err model
 
-    GetRulesList res ->
-      case res of
-        Ok rules ->
-            ( {model | rules = Dict.Extra.fromListBy (\r -> r.id.value) rules} , Cmd.none )
-        Err err ->
-          processApiError "Getting rules list" err model
-
-    GetNodesList res ->
-      case res of
-        Ok nodes ->
-          ({model | nodes = Dict.Extra.fromListBy (.id) nodes}, Cmd.none)
-        Err err  ->
-          processApiError "Getting nodes list" err model
-
     GetDirectiveComplianceResult res ->
       let
         ui = model.ui
@@ -144,9 +130,7 @@ update msg model =
           Cmd.none
           else
           Cmd.batch
-          [ getAllRules model
-          , getNodesList model
-          , getDirectiveCompliance model
+          [ getDirectiveCompliance model
           ]
         newModel = {model | ui = {ui | loaded = True}}
       in

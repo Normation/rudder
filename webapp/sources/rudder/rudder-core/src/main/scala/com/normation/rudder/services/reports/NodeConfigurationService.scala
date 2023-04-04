@@ -40,6 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLoggerPure
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
@@ -78,7 +79,8 @@ trait NodeConfigurationService {
    * get the nodes applying the rule
    *
    */
-  def findNodesApplyingRule(ruleId: RuleId): IOResult[Set[NodeId]]
+  def findNodesApplyingRule(ruleId:           RuleId):      IOResult[Set[NodeId]]
+  def findNodesApplyingDirective(directiveId: DirectiveId): IOResult[Set[NodeId]]
 }
 
 trait NewExpectedReportsAvailableHook {
@@ -282,6 +284,32 @@ class CachedNodeConfigurationService(
   }
 
   /**
+   * get the nodes applying the rule
+   *
+   */
+  def findNodesApplyingDirective(directiveId: DirectiveId): IOResult[Set[NodeId]] = {
+    // this don't need to be in a semaphore, since it's only one atomic cache read
+    for {
+      nodeConfs      <- cache.get
+      nodesNotInCache = nodeConfs.collect { case (k, value) if (value.isEmpty) => k }.toSet
+      dataFromCache   = {
+        nodeConfs.collect {
+          case (k, Some(nodeExpectedReports))
+              if (nodeExpectedReports.ruleExpectedReports.flatMap(_.directives.map(_.directiveId)).contains(directiveId)) =>
+            k
+        }.toSet
+      }
+      fromRepo       <- if (nodesNotInCache.isEmpty) {
+                          Set.empty[NodeId].succeed
+                        } else { // query the repo
+                          confExpectedRepo.findCurrentNodeIdsForDirective(directiveId, nodesNotInCache)
+                        }
+    } yield {
+      dataFromCache ++ fromRepo
+    }
+  }
+
+  /**
    * retrieve expected reports by config version
    */
   def findNodeExpectedReports(
@@ -346,4 +374,13 @@ class NodeConfigurationServiceImpl(
   def findNodesApplyingRule(ruleId: RuleId): IOResult[Set[NodeId]] = {
     confExpectedRepo.findCurrentNodeIds(ruleId).toIO
   }
+
+  /**
+   * get the nodes applying the rule
+   *
+   */
+  def findNodesApplyingDirective(directiveId: DirectiveId): IOResult[Set[NodeId]] = {
+    confExpectedRepo.findCurrentNodeIdsForDirective(directiveId)
+  }
+
 }

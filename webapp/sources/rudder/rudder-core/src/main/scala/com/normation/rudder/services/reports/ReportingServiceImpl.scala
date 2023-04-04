@@ -45,6 +45,7 @@ import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
@@ -181,6 +182,22 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
                    s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.serialize}' took ${time_1 - time_0}ms"
                  )
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId)).toIO
+    } yield {
+      reports
+    }
+  }
+
+  override def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = {
+    // here, the logic is ONLY to get the node for which that rule applies and then step back
+    // on the other method
+    for {
+      time_0  <- currentTimeMillis
+      nodeIds <- nodeConfigService.findNodesApplyingDirective(directiveId)
+      time_1  <- currentTimeMillis
+      _       <- TimingDebugLoggerPure.debug(
+                   s"findCurrentNodeIds: Getting node IDs for directive '${directiveId.serialize}' took ${time_1 - time_0}ms"
+                 )
+      reports <- findDirectiveNodeStatusReports(nodeIds, Set(directiveId)).toIO
     } yield {
       reports
     }
@@ -604,6 +621,26 @@ trait CachedFindRuleNodeStatusReports
   }
 
   /**
+   * Find node status reports. That method returns immediatly with the information it has in cache, which
+   * can be outdated. This is the prefered way to avoid huge contention (see https://issues.rudder.io/issues/16557).
+   *
+   * That method nonetheless check for expiration dates.
+   */
+  override def findDirectiveNodeStatusReports(
+      nodeIds:      Set[NodeId],
+      directiveIds: Set[DirectiveId]
+  ): Box[Map[NodeId, NodeStatusReport]] = {
+    val n1 = System.currentTimeMillis
+    for {
+      reports <- checkAndGetCache(nodeIds).toBox
+      n2       = System.currentTimeMillis
+      _        = ReportLogger.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
+    } yield {
+      filterReportsByDirectives(reports, directiveIds)
+    }
+  }
+
+  /**
    * Retrieve a set of rule/node compliances given the nodes Id.
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
@@ -654,6 +691,8 @@ trait CachedFindRuleNodeStatusReports
       (systemCompliance, userCompliance)
     }
   }
+
+  // def findStatusReportsForDirective(directive: DirectiveId): IOResult[NodeStatusReport] =
 
   /**
    * Clear cache. Try a reload asynchronously, disregarding
@@ -722,7 +761,59 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _               = TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(runInfos, ruleIds, Set(), complianceMode.mode, unexpectedMode)
+
+      t2 = System.currentTimeMillis
+      _  = TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
+    } yield {
+      nodeStatusReports
+    }
+  }
+
+  override def findDirectiveNodeStatusReports(
+      nodeIds:      Set[NodeId],
+      directiveIds: Set[DirectiveId]
+  ): Box[Map[NodeId, NodeStatusReport]] = {
+    /*
+     * This is the main logic point to get reports.
+     *
+     * Compliance for a given node is a function of ONLY(expectedNodeConfigId, lastReceivedAgentRun).
+     *
+     * The logic is:
+     *
+     * - for a (or n) given node (we have a node-bias),
+     * - get the expected configuration right now
+     *   - errors may happen if the node does not exist or if
+     *     it does not have config right now. For example, it
+     *     was added just a second ago.
+     *     => "no data for that node"
+     * - get the last run for the node.
+     *
+     * If nodeConfigId(last run) == nodeConfigId(expected config)
+     *  => simple compare & merge
+     * else {
+     *   - expected reports INTERSECTION received report ==> compute the compliance on
+     *      received reports (with an expiration date)
+     *   - expected reports - received report ==> pending reports (with an expiration date)
+     *
+     * }
+     *
+     * All nodeIds get a value in the returnedMap, because:
+     * - getNodeRunInfos(nodeIds).keySet == nodeIds AND
+     * - runInfos.keySet == buildNodeStatusReports(runInfos,...).keySet
+     * So nodeIds === returnedMap.keySet holds
+     */
+    val t0 = System.currentTimeMillis
+    for {
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
+      // we want compliance on these nodes
+      runInfos       <- getNodeRunInfos(nodeIds, complianceMode).toBox
+      t1              = System.currentTimeMillis
+      _               = TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
+
+      // compute the status
+      nodeStatusReports <- buildNodeStatusReports(runInfos, Set(), directiveIds, complianceMode.mode, unexpectedMode)
 
       t2 = System.currentTimeMillis
       _  = TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -745,7 +836,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _              <- TimingDebugLoggerPure.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(runInfos, filterByRules, complianceMode.mode, unexpectedMode).toIO
+      nodeStatusReports <- buildNodeStatusReports(runInfos, filterByRules, Set(), complianceMode.mode, unexpectedMode).toIO
       compliance         = nodeStatusReports.map { case (k, v) => (k, v.compliance) }
       t2                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -769,8 +860,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _               = TimingDebugLogger.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeUserStatusReports   <- buildNodeStatusReports(runInfos, filterByUserRules, complianceMode.mode, unexpectedMode).toIO
-      nodeSystemStatusReports <- buildNodeStatusReports(runInfos, filterBySystemRules, complianceMode.mode, unexpectedMode).toIO
+      nodeUserStatusReports   <-
+        buildNodeStatusReports(runInfos, filterByUserRules, Set(), complianceMode.mode, unexpectedMode).toIO
+      nodeSystemStatusReports <-
+        buildNodeStatusReports(runInfos, filterBySystemRules, Set(), complianceMode.mode, unexpectedMode).toIO
       nodeUserCompliance       = nodeUserStatusReports.map {
                                    case (nodeId, nodeStatusReports) => (nodeId, nodeStatusReports.compliance)
                                  }
@@ -855,7 +948,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _               = TimingDebugLogger.trace(s"Compliance: get uncomputed node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(uncomputedRuns, Set(), complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(uncomputedRuns, Set(), Set(), complianceMode.mode, unexpectedMode)
 
       t2 = System.currentTimeMillis
       _  = TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -894,6 +987,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   private[this] def buildNodeStatusReports(
       runInfos:                 Map[NodeId, RunAndConfigInfo],
       ruleIds:                  Set[RuleId],
+      directiveIds:             Set[DirectiveId],
       complianceModeName:       ComplianceModeName,
       unexpectedInterpretation: UnexpectedReportInterpretation
   ): Box[Map[NodeId, NodeStatusReport]] = {
@@ -926,7 +1020,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
          */
         reports <- complianceModeName match {
                      case ReportsDisabled => Full(Map[NodeId, Seq[Reports]]())
-                     case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+                     case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds, directiveIds)
                    }
         t1       = System.nanoTime()
         _        = u1 += (t1 - t0)

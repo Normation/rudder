@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.Reports
@@ -77,26 +78,23 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   private[this] val idQuery      = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
 
   // We assume that this method is called with a limited list of runs
-  override def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]] = {
-    if (runs.isEmpty) Full(Map())
-    else {
-      val ruleClause = {
-        if (filterByRules.isEmpty) ""
-        else s"and ruleid in ${filterByRules.map(_.serialize).mkString("('", "','", "')")}"
-      }
+  override def getExecutionReports(
+      runs:               Set[AgentRunId],
+      filterByRules:      Set[RuleId],
+      filterByDirectives: Set[DirectiveId]
+  ): Box[Map[NodeId, Seq[Reports]]] = {
+    runs.map(n => (n.nodeId.value, n.date)).toList.toNel match {
+      case None             => Full(Map())
+      case Some(nodeValues) =>
+        val ruleClause      = filterByRules.toList.toNel.map(r => Fragments.in(fr"ruleid", r))
+        val directiveClause = filterByDirectives.toList.toNel.map(r => Fragments.in(fr"directiveid", r))
+        val values          = Fragments.in(fr"(nodeid, executiontimestamp)", nodeValues)
+        val where           = Fragments.whereAndOpt(Some(values), ruleClause, directiveClause)
 
-      val nodeParam = runs.map(x => s"('${x.nodeId.value}','${new Timestamp(x.date.getMillis)}'::timestamp)").mkString(",")
-      /*
-       * be careful in the number of parenthesis for "in values", it is:
-       * ... in (VALUES ('a', 'b') );
-       * ... in (VALUES ('a', 'b'), ('c', 'd') );
-       * etc. No more, no less.
-       */
-      transactRunBox(xa => query[Reports](s"""select ${common_reports_column}
-          from RudderSysEvents
-          where (nodeid, executiontimestamp) in (VALUES ${nodeParam})
-      """ + ruleClause).to[Vector].transact(xa)).map(_.groupBy(_.nodeId)) ?~!
-      s"Error when trying to get last run reports for ${runs.size} nodes"
+        val q =
+          sql"select executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, eventtype, msg from RudderSysEvents " ++ where
+        transactRunBox(xa => q.query[Reports].to[Vector].transact(xa)).map(_.groupBy(_.nodeId)) ?~!
+        s"Error when trying to get last run reports for ${runs.size} nodes"
     }
   }
 

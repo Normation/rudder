@@ -43,6 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
@@ -213,9 +214,10 @@ class ComplianceApi(
         precision <- restExtractor.extractPercentPrecision(req.params)
         format    <- restExtractorService.extractComplianceFormat(req.params)
         id        <- DirectiveId.parse(directiveId).toBox
+        d         <- readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found'").toBox
         t2         = System.currentTimeMillis
         _          = TimingDebugLogger.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
-        directive <- complianceService.getDirectiveCompliance(id, level)
+        directive <- complianceService.getDirectiveCompliance(d, level)
         t3         = System.currentTimeMillis
         _          = TimingDebugLogger.trace(s"API DirectiveCompliance - getting directive compliance '${id.uid.value}' in ${t3 - t2} ms")
       } yield {
@@ -254,19 +256,15 @@ class ComplianceApi(
       implicit val prettify = params.prettify
 
       (for {
-        level       <- restExtractor.extractComplianceLevel(req.params)
-        t1           = System.currentTimeMillis
-        precision   <- restExtractor.extractPercentPrecision(req.params)
-        t2           = System.currentTimeMillis
-        _            = TimingDebugLogger.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
-        fullLibrary <- readDirective.getFullDirectiveLibrary().toBox ?~! "Could not fetch Directives"
-        directiveIds = fullLibrary.allDirectives.values.filter(!_._2.isSystem).map(_._2.id).toList
-        t3           = System.currentTimeMillis
-        _            = TimingDebugLogger.trace(s"API DirectivesCompliance - getting directives id ${t3 - t2} ms")
-        t4           = System.currentTimeMillis
-        directives   = directiveIds.flatMap(complianceService.getDirectiveCompliance(_, level))
-        t5           = System.currentTimeMillis
-        _            = TimingDebugLogger.trace(s"API DirectivesCompliance - getting directives compliance in ${t5 - t4} ms")
+        level      <- restExtractor.extractComplianceLevel(req.params)
+        t1          = System.currentTimeMillis
+        precision  <- restExtractor.extractPercentPrecision(req.params)
+        t2          = System.currentTimeMillis
+        _           = TimingDebugLogger.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
+        t4          = System.currentTimeMillis
+        directives <- complianceService.getDirectivesCompliance(level)
+        t5          = System.currentTimeMillis
+        _           = TimingDebugLogger.trace(s"API DirectivesCompliance - getting directives compliance in ${t5 - t4} ms")
 
       } yield {
         val json = directives.map(
@@ -389,6 +387,134 @@ class ComplianceAPIService(
     val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
 ) {
 
+  private[this] def components(
+      nodeInfos: Map[NodeId, NodeInfo]
+  )(name:        String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+
+    val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
+      case (a, b: BlockStatusReport) => Left((a, b))
+      case (a, b: ValueStatusReport) => Right((a, b))
+    }
+
+    (if (groupsComponents.isEmpty) {
+       Nil
+     } else {
+       val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub)) }
+         .groupBy(_._2.componentName)
+       ByRuleBlockCompliance(
+         name,
+         ComplianceLevel.sum(groupsComponents.map(_._2.compliance)),
+         bidule.flatMap(c => components(nodeInfos)(c._1, c._2)).toList
+       ) :: Nil
+     }) ::: (if (uniqueComponents.isEmpty) {
+               Nil
+             } else {
+               ByRuleValueCompliance(
+                 name,
+                 ComplianceLevel.sum(
+                   uniqueComponents.map(_._2.compliance)
+                 ), // here, we finally group by nodes for each components !
+                 {
+                   val byNode = uniqueComponents.groupBy(_._1)
+                   byNode.map {
+                     case (nodeId, components) =>
+                       val optNodeInfo = nodeInfos.get(nodeId)
+                       ByRuleNodeCompliance(
+                         nodeId,
+                         optNodeInfo.map(_.hostname).getOrElse("Unknown node"),
+                         optNodeInfo.map(_.policyMode).getOrElse(None),
+                         ComplianceLevel.sum(components.map(_._2.compliance)),
+                         components.sortBy(_._2.componentName).flatMap(_._2.componentValues)
+                       )
+                   }.toSeq
+                 }
+               ) :: Nil
+             })
+  }
+
+  private[this] def getByDirectivesCompliance(
+      directives: Seq[Directive],
+      level:      Option[Int]
+  ): IOResult[Seq[ByDirectiveCompliance]] = {
+    val computedLevel = level.getOrElse(10)
+
+    for {
+      t1 <- currentTimeMillis
+
+      // this can be optimized, as directive only happen for level=2
+      rules <- if (computedLevel >= 2) {
+                 rulesRepo.getAll()
+               } else {
+                 Seq().succeed
+               }
+      t2    <- currentTimeMillis
+      _     <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getAllRules in ${t2 - t1} ms")
+
+      nodeInfos <- nodeInfoService.getAll()
+      t3        <- currentTimeMillis
+      _         <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeInfoService.getAll() in ${t3 - t2} ms")
+
+      compliance    <- getGlobalComplianceMode().toIO
+      t4            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getGlobalComplianceMode in ${t4 - t3} ms")
+      reportsByNode <- reportingService
+                         .findDirectiveNodeStatusReports(
+                           nodeInfos.keySet,
+                           directives.map(_.id).toSet
+                         )
+                         .toIO
+      t5            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - findRuleNodeStatusReports in ${t5 - t4} ms")
+
+    } yield {
+
+      val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      val t6            = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t6 - t5} ms")
+      for {
+        // We will now compute compliance for each directive we want
+        directive <- directives
+      } yield {
+        // We will compute compliance for each rule for the current Directive
+        val rulesCompliance = for {
+          (ruleId, ruleReports) <- reportsByRule.toSeq
+
+          // We will now gather our report by component for the current Directive
+          reportsByComponents = (for {
+                                  ruleReport       <- ruleReports
+                                  nodeId            = ruleReport.nodeId
+                                  directiveReports <- ruleReport.directives.get(directive.id).toList
+                                  component        <- directiveReports.components
+                                } yield {
+                                  (nodeId, component)
+                                }).groupBy(_._2.componentName).toSeq
+
+        } yield {
+          val componentsCompliance = reportsByComponents.flatMap(c => components(nodeInfos)(c._1, c._2.toList))
+
+          val ruleName          = rules.find(_.id == ruleId).map(_.name).getOrElse("")
+          val componentsDetails = if (computedLevel <= 3) Seq() else componentsCompliance
+
+          ByDirectiveByRuleCompliance(
+            ruleId,
+            ruleName,
+            ComplianceLevel.sum(componentsCompliance.map(_.compliance)),
+            componentsDetails
+          )
+        }
+        // level = ComplianceLevel.sum(reportsByDir.map(_.compliance))
+        ByDirectiveCompliance(
+          directive.id,
+          directive.name,
+          ComplianceLevel.sum(rulesCompliance.map(_.compliance)),
+          compliance.mode,
+          directive.policyMode,
+          rulesCompliance
+        )
+      }
+    }
+  }
+
   /**
    * Get the compliance for everything
    * level is optionnally the selected level.
@@ -450,47 +576,6 @@ class ComplianceAPIService(
             reports.flatMap(r => r.directives.values.map(d => (r.nodeId, d)).toSeq).groupBy(_._2.directiveId)
           }
 
-          def components(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
-
-            val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
-              case (a, b: BlockStatusReport) => Left((a, b))
-              case (a, b: ValueStatusReport) => Right((a, b))
-            }
-
-            (if (groupsComponents.isEmpty) {
-               Nil
-             } else {
-               val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub)) }
-                 .groupBy((_._2.componentName))
-               ByRuleBlockCompliance(
-                 name,
-                 ComplianceLevel.sum(groupsComponents.map(_._2.compliance)),
-                 bidule.flatMap(c => components(c._1, c._2)).toList
-               ) :: Nil
-             }) ::: (if (uniqueComponents.isEmpty) {
-                       Nil
-                     } else {
-                       ByRuleValueCompliance(
-                         name,
-                         ComplianceLevel.sum(
-                           uniqueComponents.map(_._2.compliance)
-                         ), // here, we finally group by nodes for each components !
-                         {
-                           val byNode = uniqueComponents.groupBy(_._1)
-                           byNode.map {
-                             case (nodeId, components) =>
-                               ByRuleNodeCompliance(
-                                 nodeId,
-                                 nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node"),
-                                 ComplianceLevel.sum(components.map(_._2.compliance)),
-                                 components.sortBy(_._2.componentName).flatMap(_._2.componentValues)
-                               )
-                           }.toSeq
-                         }
-                       ) :: Nil
-                     })
-          }
-
           ByRuleRuleCompliance(
             ruleId,
             ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule"),
@@ -512,7 +597,9 @@ class ComplianceAPIService(
                       nodeDirectives.flatMap { case (nodeId, d) => d.components.map(c => (nodeId, c)).toSeq }
                         .groupBy(_._2.componentName)
                     }
-                    byComponents.flatMap { case (name, nodeComponents) => components(name, nodeComponents.toList) }.toSeq
+                    byComponents.flatMap {
+                      case (name, nodeComponents) => components(nodeInfos)(name, nodeComponents.toList)
+                    }.toSeq
                   }
                 )
             }.toSeq
@@ -569,34 +656,20 @@ class ComplianceAPIService(
     }
   }.toBox
 
-  def getDirectiveCompliance(directiveId: DirectiveId, level: Option[Int]): Box[ByDirectiveCompliance] = {
-    for {
-      rules        <- rulesRepo.getAll()
-      directive    <- directiveRepo.getDirective(directiveId.uid)
-      relevantRules = rules.filter(_.directiveIds.contains(directiveId))
-
-      byRules <- getByRulesCompliance(relevantRules, level)
-      rules    = byRules.flatMap { rule =>
-                   rule.directives.map { directive =>
-                     ByDirectiveByRuleCompliance(
-                       rule.id,
-                       rule.name,
-                       rule.compliance,
-                       directive.components
-                     )
-                   }
-                 }
-
-      compliance <- getGlobalComplianceMode().toIO
-
-    } yield {
-      ByDirectiveCompliance(
-        directiveId,
-        directive.map(_.name).getOrElse("Unknown"),
-        ComplianceLevel.sum(byRules.map(_.compliance)),
-        compliance.mode,
-        rules
+  def getDirectiveCompliance(directive: Directive, level: Option[Int]): Box[ByDirectiveCompliance] = {
+    getByDirectivesCompliance(Seq(directive), level)
+      .flatMap(
+        _.find(_.id == directive.id).notOptional(s"No reports were found for directive with ID '${directive.id.serialize}'")
       )
+      .toBox
+  }
+
+  def getDirectivesCompliance(level: Option[Int]): Box[Seq[ByDirectiveCompliance]] = {
+    for {
+      directives <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives.values.map(_._2))
+      reports    <- getByDirectivesCompliance(directives.toSeq, level)
+    } yield {
+      reports
     }
   }.toBox
 
@@ -668,10 +741,10 @@ class ComplianceAPIService(
                       )
                     }.toSeq
                   )
-                }).toSeq
+                })
               )
             )
-        }.toMap
+        }
       }
 
       // for each rule for each node, we want to have a
@@ -701,7 +774,7 @@ class ComplianceAPIService(
               })
             )
           )
-      }.toMap
+      }
 
       // return the full list, even for non responding nodes/directives
       // but override with values when available.

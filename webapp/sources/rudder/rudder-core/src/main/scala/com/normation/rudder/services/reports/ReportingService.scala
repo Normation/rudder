@@ -40,6 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -57,6 +58,10 @@ trait ReportingService {
    * find node status reports for all rules)
    */
   def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]
+  def findDirectiveNodeStatusReports(
+      nodeIds:                           Set[NodeId],
+      filterByDirectives:                Set[DirectiveId]
+  ): Box[Map[NodeId, NodeStatusReport]]
 
   def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]]
 
@@ -103,6 +108,8 @@ trait ReportingService {
    */
   def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]]
 
+  def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]]
+
   /**
    * find node status reports for user and system rules but in a separated couple (system is first element, user second)
    */
@@ -145,7 +152,44 @@ trait ReportingService {
       }.toMap
   }
 
+  def filterReportsByDirectives(
+      reports:      Map[NodeId, NodeStatusReport],
+      directiveIds: Set[DirectiveId]
+  ): Map[NodeId, NodeStatusReport] = {
+    if (directiveIds.isEmpty) {
+      reports
+    } else
+      {
+        val n1     = System.currentTimeMillis
+        val result = reports.view.mapValues {
+          case status =>
+            NodeStatusReport.filterByDirectives(status, directiveIds)
+        }.filter { case (_, v) => v.reports.nonEmpty || v.overrides.nonEmpty }
+        val n2     = System.currentTimeMillis
+        TimingDebugLogger.trace(s"Filter Node Status Reports on ${directiveIds.size} Directives in : ${n2 - n1}ms")
+        result
+      }.toMap
+  }
+
   def complianceByRules(report: NodeStatusReport, ruleIds: Set[RuleId]): ComplianceLevel = {
+    if (ruleIds.isEmpty) {
+      report.compliance
+    } else {
+      // compute compliance only for the selected rules
+      // BE CAREFUL: reports is a SET - and it's likely that
+      // some compliance will be equals. So change to seq.
+      ComplianceLevel.sum(report.reports.toSeq.collect {
+        case report if (ruleIds.contains(report.ruleId)) =>
+          report.compliance
+      })
+    }
+  }
+
+  def complianceByRulesByDirectives(
+      report:       NodeStatusReport,
+      ruleIds:      Set[RuleId],
+      directiveIds: Set[DirectiveId]
+  ): ComplianceLevel = {
     if (ruleIds.isEmpty) {
       report.compliance
     } else {
