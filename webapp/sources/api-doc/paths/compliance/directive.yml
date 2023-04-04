@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+get:
+  summary: Compliance details by directive
+  description: Get current compliance of a directive of a Rudder server
+  operationId: getDirectiveComplianceId
+  parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+      description: format of export
+      style: form
+      explode: false
+      examples:
+        oneId:
+          summary: CSV format for the export
+          value: [ csv ]   # ?format=csv
+    - $ref: ../../components/parameters/directive-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: ../../components/responses/compliance-directive-id.yml
+              - $ref: ../../components/responses/compliance-directive-id-csv.yml
+  tags:
+    - Compliance
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/compliance/directive.sh
+
+
+

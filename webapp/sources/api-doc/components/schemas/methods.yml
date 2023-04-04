@@ -48,7 +48,7 @@ properties:
     description: List of agents compatible with this method
     items:
       type: string
-      description: name of an agent
+      description: Name of an agent
       example: "dsc"
   condition:
     type: object

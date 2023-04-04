@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+type: string
+format: binary
+example: >-
+  Rule, Component, Node, Value, Status, Message\n
+  Global configuration for all nodes, MOTD Configuration, server.rudder.local, None, successAlreadyOK, The MOTD file was correct\n
+  Global configuration for all nodes, MOTD Configuration, agent1.rudder.local, None, successAlreadyOK, The MOTD file was correct\n
+  Test user, Users, server.rudder.local, toto, successAlreadyOK, The user toto ( Without any defined full name ) is already present on the system\n
+  Test user, Password, server.rudder.local, toto, successAlreadyOK, The user toto ( Without any defined full name ) password change is not required\n
+  Test user, Home directory, server.rudder.local, toto, successNotApplicable, The user toto doesn't need to have its home directory checked"\n

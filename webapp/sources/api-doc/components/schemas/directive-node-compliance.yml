@@ -1,0 +1,55 @@
+type: object
+required:
+  - id
+  - name
+  - compliance
+  - complianceDetails
+  - rules
+properties:
+  id:
+    type: string
+    format: uuid
+    description: id of the node
+    example: b6ded8e2-2709-4986-973d-8e5522d20718
+  name:
+    type: string
+    description: Name of the node
+    example: agent1.rudder.local
+  compliance:
+    type: number
+    format: float
+    description: Directive compliance level
+    example: 83.34
+  complianceDetails:
+    type: object
+    properties:
+      successAlreadyOK:
+        type: number
+        format: float
+        example: 100.0
+      noReport:
+        type: number
+        format: float
+        example: 0.0
+      successNotApplicable:
+        type: number
+        format: float
+        example: 0.0
+      unexpectedMissingComponent:
+        type: number
+        format: float
+        example: 0.0
+      error:
+        type: number
+        format: float
+        example: 0.0
+      unexpectedUnknownComponent:
+        type: number
+        format: float
+        example: 0.0
+      successRepaired:
+        type: number
+        format: float
+        example: 0.0
+  rules:
+    $ref: rule-compliance-component.yml

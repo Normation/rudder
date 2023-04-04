@@ -1,0 +1,128 @@
+type: object
+required:
+  - id
+  - name
+  - compliance
+  - complianceDetails
+  - components
+properties:
+  id:
+    type: string
+    format: uuid
+    description: id of the rule
+    example: 835c068d-f01e-44c0-a0f4-7a436d46ad35
+  name:
+    type: string
+    description: Name of the rule
+    example: Test users
+  compliance:
+    type: number
+    format: float
+    description: Rule compliance level
+    example: 100.0
+  complianceDetails:
+    type: object
+    properties:
+      successAlreadyOK:
+        type: number
+        format: float
+        example: 66.67
+      noReport:
+        type: number
+        format: float
+        example: 0.0
+      successNotApplicable:
+        type: number
+        format: float
+        example: 33.33
+      unexpectedMissingComponent:
+        type: number
+        format: float
+        example: 0.0
+      error:
+        type: number
+        format: float
+        example: 0.0
+      unexpectedUnknownComponent:
+        type: number
+        format: float
+        example: 0.0
+      successRepaired:
+        type: number
+        format: float
+        example: 0.0
+  components:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - compliance
+        - complianceDetails
+        - values
+      properties:
+        name:
+          type: string
+          description: Name of the component
+          example: test directive
+        compliance:
+          type: number
+          format: float
+          description: directive compliance level
+          example: 100.0
+        complianceDetails:
+          type: object
+          properties:
+            successAlreadyOK:
+              type: number
+              format: float
+              example: 66.67
+            noReport:
+              type: number
+              format: float
+              example: 0.0
+            successNotApplicable:
+              type: number
+              format: float
+              example: 33.33
+            unexpectedMissingComponent:
+              type: number
+              format: float
+              example: 0.0
+            error:
+              type: number
+              format: float
+              example: 0.0
+            unexpectedUnknownComponent:
+              type: number
+              format: float
+              example: 0.0
+            successRepaired:
+              type: number
+              format: float
+              example: 0.0
+        values:
+          type: array
+          items:
+            type: object
+            required:
+              - value
+              - reports
+            properties:
+              value:
+                type: string
+                example: tutu
+              reports:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - status
+                    - message
+                  properties:
+                    status:
+                      type: string
+                      example: successAlreadyOK
+                    message:
+                      type: string
+                      example: The user tutu ( Without any defined full name ) is already present on the system
