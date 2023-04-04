@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+get:
+  summary: Compliance details for all directives
+  description: Get current compliance of all the nodes of a Rudder server
+  operationId: getDirectivesCompliance
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getDirectiveComplianceId
+              data:
+                type: object
+                required:
+                  - directivesCompliance
+                properties:
+                  directivesCompliance:
+                    type: object
+                    required:
+                      - id
+                      - name
+                      - mode
+                      - compliance
+                      - complianceDetails
+                      - rules
+                      - nodes
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: id of the directive
+                        example: 9a1773c9-0889-40b6-be89-f6504443ac1b
+                      name:
+                        type: string
+                        description: Name of the directive
+                        example: test directive
+                      mode:
+                        type: string
+                        enum:
+                          - full-compliance
+                          - changes-only
+                          - reports-disabled
+                      compliance:
+                        type: number
+                        format: float
+                        description: Directive compliance level
+                        example: 83.34
+                      complianceDetails:
+                        type: object
+                        properties:
+                          successAlreadyOK:
+                            type: number
+                            format: float
+                            example: 66.68
+                          noReport:
+                            type: number
+                            format: float
+                            example: 7.45
+                          successNotApplicable:
+                            type: number
+                            format: float
+                            example: 16.66
+                          unexpectedMissingComponent:
+                            type: number
+                            format: float
+                            example: 2.63
+                          error:
+                            type: number
+                            format: float
+                            example: 1.32
+                          unexpectedUnknownComponent:
+                            type: number
+                            format: float
+                            example: 2.63
+                          successRepaired:
+                            type: number
+                            format: float
+                            example: 2.63
+                      rules:
+                        $ref: ../../components/schemas/directive-rule-compliance.yml
+                      nodes:
+                        $ref: ../../components/schemas/directive-node-compliance.yml
+
+  tags:
+    - Compliance
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/compliance/directives.sh

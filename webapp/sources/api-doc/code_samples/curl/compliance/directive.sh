@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request GET 'https://rudder.example.com/rudder/api/latest/compliance/directives/704afe7b-1a65-4d2e-b4c9-54f4f548c316'
