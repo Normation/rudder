@@ -25,6 +25,9 @@
 # This allows executing actions only once on a given machine.
 # The created condition is global to the agent.
 #
+# In case of reinstallation or factory-reset of the Rudder agent, this method 
+# will no longer detect if the condition has already been defined.
+#
 # ##### Example:
 #
 # If you use:

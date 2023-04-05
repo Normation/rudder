@@ -27,6 +27,9 @@
 # it is better to use the `condition_from_command` method to test the state coupled with
 # the `command_execution_result` method to run the command if necessary.
 #
+# In case of reinstallation or factory-reset of the Rudder agent, this method 
+# will no longer detect if a command has already been executed.
+#
 # ##### The method will:
 #
 # **Define** the `command_execution_once_${command}_kept` condition and do nothing if
