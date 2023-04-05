@@ -156,44 +156,10 @@ class AcceptNode extends Loggable {
           </span>
           )
         case e: EmptyBox =>
-          logger.error("Add new node '%s' lead to Failure.".format(id.value.toString), e)
+          logger.error(s"Add new node '$id.value' lead to Failure.", e)
           S.error(<span class="error">Error while accepting node(s).</span>)
         case Full(inventory) =>
-          // TODO : this will probably move to the NewNodeManager, when we'll know
-          // how we handle the user
-          val version = retrieveLastVersions(id)
-          version match {
-            case Some(x) =>
-              serverSummaryService.find(acceptedNodesDit, id) match {
-                case Full(srvs) if (srvs.size == 1) =>
-                  val srv   = srvs.head
-                  val entry = AcceptNodeEventLog.fromInventoryLogDetails(
-                    principal = authedUser,
-                    inventoryDetails = InventoryLogDetails(
-                      nodeId = srv.id,
-                      inventoryVersion = x,
-                      hostname = srv.hostname,
-                      fullOsName = srv.osFullName,
-                      actorIp = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
-                    )
-                  )
-
-                  logRepository.saveEventLog(modId, entry).toBox match {
-                    case Full(_) => logger.debug("Successfully added node '%s'".format(id.value.toString))
-                    case _       => logger.warn("Node '%s'added, but the action couldn't be logged".format(id.value.toString))
-                  }
-
-                case _ =>
-                  logger.error(
-                    "Something bad happened while searching for node %s to log the acceptation, search %s".format(
-                      id.value.toString,
-                      id.value
-                    )
-                  )
-              }
-
-            case None => logger.warn("Node '%s'added, but couldn't find it's inventory %s".format(id.value.toString, id.value))
-          }
+          logger.debug(s"Successfully added node '${id.value}'")
       }
     }
 
@@ -206,32 +172,10 @@ class AcceptNode extends Loggable {
     listNode.foreach { id =>
       newNodeManager.refuse(id, modId, CurrentUser.actor) match {
         case e: EmptyBox =>
-          logger.error("Refuse node '%s' lead to Failure.".format(id.value.toString), e)
+          logger.error(s"Refuse node '${id.value}' lead to Failure.", e)
           S.error(<span class="error">Error while refusing node(s).</span>)
         case Full(srv) =>
-          // TODO : this will probably move to the NewNodeManager, when we'll know
-          // how we handle the user
-          val version = retrieveLastVersions(srv.id)
-          version match {
-            case Some(x) =>
-              val entry = RefuseNodeEventLog.fromInventoryLogDetails(
-                principal = authedUser,
-                inventoryDetails = InventoryLogDetails(
-                  nodeId = srv.id,
-                  inventoryVersion = x,
-                  hostname = srv.hostname,
-                  fullOsName = srv.osFullName,
-                  actorIp = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
-                )
-              )
-
-              logRepository.saveEventLog(modId, entry).toBox match {
-                case Full(_) => logger.debug("Successfully refused node '%s'".format(id.value.toString))
-                case _       => logger.warn("Node '%refused, but the action couldn't be logged".format(id.value.toString))
-              }
-
-            case None => logger.warn("Node '%s' refused, but couldn't find it's inventory %s".format(id.value.toString, id.value))
-          }
+          logger.debug(s"Successfully refused node '${id.value}'")
       }
     }
   }
