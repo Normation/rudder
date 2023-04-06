@@ -416,7 +416,7 @@ class RoLDAPDirectiveRepository(
       con        <- ldap
       uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_ACTIVE_TECHNIQUE_UUID, id.value))
       uptEntry   <- uptEntries.size match {
-                      case 0 => s"Can not find active technique with id '${id.value}}'".fail
+                      case 0 => s"Can not find active technique with id '${id.value}'".fail
                       case 1 => uptEntries(0).succeed
                       case _ =>
                         s"Found more than one active technique with id '${id.value}' : ${uptEntries.map(_.dn).mkString("; ")}".fail
@@ -1356,39 +1356,39 @@ class WoLDAPDirectiveRepository(
       reason:             Option[String]
   ): IOResult[ActiveTechniqueId] = {
     userLibMutex.writeLock(for {
-      con        <- ldap
-      oldParents <- if (autoExportOnModify) {
-                      activeTechniqueBreadCrump(uactiveTechniqueId)
-                    } else Nil.succeed
-      done       <- getUPTEntry(con, uactiveTechniqueId).flatMap {
-                      case None                  => "done".succeed
-                      case Some(activeTechnique) =>
-                        val ldapEntryTechnique = LDAPEntry(activeTechnique.backed)
-                        for {
-                          oldTechnique <- mapper.entry2ActiveTechnique(ldapEntryTechnique).toIO
-                          deleted      <- con.delete(activeTechnique.dn, false)
-                          diff          = DeleteTechniqueDiff(oldTechnique)
-                          loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
-                          autoArchive  <- ZIO
-                                            .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
-                                              for {
-                                                ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {
-                                                              case None    => Inconsistency("Missing required reference technique name").fail
-                                                              case Some(x) => x.succeed
-                                                            }
-                                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                                res      <- gitATArchiver.deleteActiveTechnique(
-                                                              TechniqueName(ptName),
-                                                              oldParents.map(_.id),
-                                                              Some((modId, commiter, reason))
-                                                            )
-                                              } yield res
-                                            }
-                                            .chainError("Error when trying to archive automatically the category deletion")
-                        } yield {
-                          "done"
-                        }
-                    }
+      con  <- ldap
+      done <- getUPTEntry(con, uactiveTechniqueId).flatMap {
+                case None                  => "done".succeed
+                case Some(activeTechnique) =>
+                  val ldapEntryTechnique = LDAPEntry(activeTechnique.backed)
+                  for {
+                    oldParents   <- if (autoExportOnModify) {
+                                      activeTechniqueBreadCrump(uactiveTechniqueId)
+                                    } else Nil.succeed
+                    oldTechnique <- mapper.entry2ActiveTechnique(ldapEntryTechnique).toIO
+                    deleted      <- con.delete(activeTechnique.dn, false)
+                    diff          = DeleteTechniqueDiff(oldTechnique)
+                    loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
+                    autoArchive  <- ZIO
+                                      .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
+                                        for {
+                                          ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {
+                                                        case None    => Inconsistency("Missing required reference technique name").fail
+                                                        case Some(x) => x.succeed
+                                                      }
+                                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                          res      <- gitATArchiver.deleteActiveTechnique(
+                                                        TechniqueName(ptName),
+                                                        oldParents.map(_.id),
+                                                        Some((modId, commiter, reason))
+                                                      )
+                                        } yield res
+                                      }
+                                      .chainError("Error when trying to archive automatically the category deletion")
+                  } yield {
+                    "done"
+                  }
+              }
     } yield {
       uactiveTechniqueId
     })
