@@ -118,7 +118,7 @@ object PasswordEncoder {
         OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
       } catch {
         case e: Exception =>
-          ApplicationLogger.error(s"Invalid password format: ${e.getMessage}")
+          ApplicationLogger.debug(s"Invalid password format: ${e.getMessage}")
           false
       }
     }
