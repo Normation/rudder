@@ -466,24 +466,21 @@ object DisplayNode extends Loggable {
       <div class="id-card node">
         <div class={"card-img " ++ osIcon}></div>
         <div class="card-info">
-          <div><label>Hostname:         </label>
-            {sm.node.main.hostname}
-              {
+          <div><label>Hostname:         </label>{sm.node.main.hostname}{
       nodeAndGlobalMode match {
         case Some((n, _)) => <span class={"node-state " ++ getNodeState(n.state).toLowerCase}></span>
         case None         => NodeSeq.Empty
       }
     }
           </div>
-          <div><label>Node ID:          </label> {sm.node.main.id.value}</div>
-          <div><label>Operating system: </label> {
+          <div><label>Node ID:          </label>{sm.node.main.id.value}</div>
+          <div><label>Operating system: </label>{
       escape(sm.node.main.osDetails.fullName)
     }<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
       osTooltip
     }></span></div>
           <div>
-            <label>Machine:             </label>
-            {displayMachineType(sm.machine)}
+            <label>Machine:             </label>{displayMachineType(sm.machine)}
             <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
             <span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
       machineTooltip
