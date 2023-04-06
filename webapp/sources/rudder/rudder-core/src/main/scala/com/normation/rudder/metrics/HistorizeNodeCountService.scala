@@ -253,7 +253,7 @@ class CommitLogServiceImpl(val gitRepo: GitRepositoryProvider, val commitInfo: R
 
   def commitLog(cause: String): IOResult[RevCommit] = {
     commitInfo.get.flatMap { info =>
-      IOResult.effect {
+      val add = IOResult.effect {
         gitRepo.git.add().addFilepattern(".").setUpdate(false).call()
         gitRepo.git
           .commit()
@@ -261,6 +261,14 @@ class CommitLogServiceImpl(val gitRepo: GitRepositoryProvider, val commitInfo: R
           .setMessage("Log node metrics: " + cause)
           .setSign(info.sign)
           .call()
+      }
+      add.catchAll { ex =>
+        // it may be because repo has a stalled .lock file. Nobody else than rudder should write/read here,
+        // so in that case, try to delete it. Then in all case, try to reset, and try again
+        // if it's not enough, let the error pop
+        val lock = gitRepo.rootDirectory / ".git/index.lock"
+        IOResult.effect(lock.exists).flatMap(exists => if (exists) IOResult.effect(lock.delete()) else UIO.unit) *> IOResult
+          .effect(gitRepo.git.reset().call()) *> add
       }
     }
   }
