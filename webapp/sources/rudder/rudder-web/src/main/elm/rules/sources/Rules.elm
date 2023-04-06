@@ -327,12 +327,13 @@ update msg model =
       case model.mode of
         CategoryForm details ->
           let
+            modelUi = model.ui
             oldCategory = details.category
             action      = case details.originCategory of
               Just _ -> "saved"
               Nothing -> "created"
             newCategory = {category | subElems = oldCategory.subElems, elems = oldCategory.elems}
-            newModel    = {model | mode = CategoryForm {details | originCategory = Just newCategory, category = newCategory}}
+            newModel    = {model | mode = CategoryForm {details | originCategory = Just newCategory, category = newCategory}, ui = {modelUi | saving = False} }
           in
             (newModel, Cmd.batch [(successNotification ("Category '"++ category.name ++"' successfully " ++ action)), (getRulesTree newModel)])
         _   -> (model, Cmd.none)
