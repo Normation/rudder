@@ -51,5 +51,5 @@ interface DynamicRudderProviderManager {
     /*
      * Always return a non-null list of authentication provider
      */
-    public AuthenticationProvider[] getEnabledProviders();
+    public RudderAuthenticationProvider[] getEnabledProviders();
 }

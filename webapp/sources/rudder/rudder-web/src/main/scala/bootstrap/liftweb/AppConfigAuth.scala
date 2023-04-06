@@ -73,6 +73,7 @@ import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
+import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -483,11 +484,11 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   /*
    * what we
    */
-  override def getEnabledProviders(): Array[AuthenticationProvider] = {
+  override def getEnabledProviders(): Array[RudderAuthenticationProvider] = {
     authenticationMethods.flatMap { m =>
       if (allowedToUseBackend.isDefinedAt(m.name)) {
         if (allowedToUseBackend(m.name)() == true) {
-          springProviders.get(m.name)
+          springProviders.get(m.name).map(p => RudderAuthenticationProvider(m.name, p))
         } else {
           ApplicationLogger.debug(s"Authentication backend '${m.name}' is not currently enable. Perhaps a plugin is not enabled?")
           None
@@ -683,5 +684,18 @@ class RestAuthenticationFilter(
         chain.doFilter(request, response)
     }
 
+  }
+}
+
+/*
+ * A class that simply add the rudder name to the authentication provider so that we can provide helpful messages
+ */
+case class RudderAuthenticationProvider(name: String, provider: AuthenticationProvider) extends AuthenticationProvider {
+  override def authenticate(authentication: Authentication): Authentication = {
+    provider.authenticate(authentication)
+  }
+
+  override def supports(authentication: Class[_]): Boolean = {
+    provider.supports(authentication)
   }
 }
