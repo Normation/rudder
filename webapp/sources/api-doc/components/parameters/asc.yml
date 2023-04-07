@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+name: asc
+in: query
+required: false
+schema:
+  type: string
+  enum:
+    - asc
+    - desc

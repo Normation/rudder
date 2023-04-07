@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  info:
+    type: object
+    description: common data about campaign
+    properties:
+      id:
+        type: string
+        description: Campaign id
+        example: 0076a379-f32d-4732-9e91-33ab219d8fde
+        format: uuid
+      name:
+        type: string
+        description: Campaign name
+        example: "Update all systems"
+      description:
+        type: string
+        description: Campaign description
+        example: ""
+      status:
+
+        oneOf:
+          - $ref: './campaign-status-enabled.yml'
+          - $ref: './campaign-status-disabled.yml'
+          - $ref: './campaign-status-archived.yml'
+      schedule:
+        oneOf:
+          - $ref: './campaign-schedule-weekly.yml'
+          - $ref: './campaign-schedule-oneshot.yml'
+          - $ref: './campaign-schedule-monthly.yml'
+  campaignType:
+    type: string
+    example : system-update
+    description: Type of campaign (with version determine what kind of campaign you handle and the details object)
+  version:
+    type: integer
+    example: 2
+    description: Version of campaign (with type determine what kind of campaign you handle and the details object)
+  details:
+    oneOf:
+      - $ref: './campaign-system-update.yml'
+      - $ref: './campaign-software-update.yml'

@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  start:
+    type: object
+    properties:
+      day:
+        type: integer
+        format: "[1-7]"
+        description: Day of the week the campaign should start
+      hour:
+        type: integer
+        format: "[0-23]"
+        description: Hour of the day the campaign should start
+      minute:
+        type: integer
+        format: "[0-59]"
+        description: Minute of the hour the campaign should start
+    description: Date when the campaign should start
+  end:
+    type: object
+    properties:
+      day:
+        type: integer
+        format: "[1-7]"
+        description: Day of the week the campaign should end
+      hour:
+        type: integer
+        format: "[0-23]"
+        description: Hour of the day the campaign should end
+      minute:
+        type: integer
+        format: "[0-59]"
+        description: Minute of the hour the campaign should end
+    description: Date when the campaign should end
+  position:
+    type: integer
+    format: -2, -1, 1, 2, 3
+    description: Week during the month in which our campaign start, 1/2/3 means first/second/last, -1/-2 means Last/secondLast
+  type:
+    type: string
+    format: monthly

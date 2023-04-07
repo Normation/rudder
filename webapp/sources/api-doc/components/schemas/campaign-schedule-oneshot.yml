@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  start:
+    type: string
+    format: rfc3339
+    description: Date when the campaign should start
+  end:
+    type: string
+    format: rfc3339
+    description: Date when the campaign should end
+  type:
+    type: string
+    format: one-shot

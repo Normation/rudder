@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: Campaign event id
+    example: 0076a379-f32d-4732-9e91-33ab219d8fde
+    format: uuid
+  name:
+    type: string
+    description: Campaign event name
+    example: "Update all systems #1"
+  start:
+    type: string
+    description: Campaign event start date
+    example: ""
+  end:
+    type: string
+    description: Campaign event end date
+    example: ""
+  status:
+    type: object
+    properties:
+      value:
+        type: string
+        enum:
+          - scheduled
+          - running
+          - finished
+          - skipped
+      reason:
+        type: string
+        description: used only for skipped status
+  campaignType:
+    type: string
+    example : system-update
+    description: Type of campaign
+  campaignId:
+    type: string
+    description: Id of the campaign for this event

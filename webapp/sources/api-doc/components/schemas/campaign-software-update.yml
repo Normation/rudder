@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAStype: object
+description: Software update campaign details (type software-update, version 1)
+properties:
+  reboot:
+    type: string
+    enum:
+      - as-needed
+      - disabled
+      - always
+      - services-only
+    description: Define the behavior after update
+  targets:
+    type: array
+    description: List of all  groups of node to target the campaign
+    items:
+      $ref: ./rule-targets.yml
+  softwareUpdate:
+    type: array
+    description: List of all software to update
+    items:
+      type: object
+      properties:
+        name:
+          type : string
+          description: Name of the package  to update
+          example: htop
+        version:
+          type : string
+          description: Target version of the package to update to
+          example: "49.3"
+        arch:
+          type : string
+          description: Architecture of the packkage to update
+          example: "x64"
