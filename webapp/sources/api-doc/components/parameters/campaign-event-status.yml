@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+name: state
+in: query
+required: false
+description: Status of the campaign events we want
+schema:
+  type: string
+  enum:
+    - scheduled
+    - running
+    - finished
+    - skipped
+  example: enabled

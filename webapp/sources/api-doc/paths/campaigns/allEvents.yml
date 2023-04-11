@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get all campaign events
+  description: Get all campaign events
+  operationId: getAllCampaignEvents
+  parameters:
+    - $ref: ../../components/parameters/campaign-type.yml
+    - $ref: ../../components/parameters/campaign-event-status.yml
+    - $ref: ../../components/parameters/campaign-id.yml
+    - $ref: ../../components/parameters/limit.yml
+    - $ref: ../../components/parameters/offset.yml
+    - $ref: ../../components/parameters/before.yml
+    - $ref: ../../components/parameters/after.yml
+    - $ref: ../../components/parameters/order.yml
+    - $ref: ../../components/parameters/asc.yml
+  responses:
+    "200":
+      description: Campaign event details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCampaignEvent
+              data:
+                type: object
+                required:
+                  - campaignEvents
+                properties:
+                  campaignEvents:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-event-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/allEvents.sh

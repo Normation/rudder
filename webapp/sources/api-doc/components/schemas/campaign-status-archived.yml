@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+description: Campaign status
+properties:
+  value:
+    type: string
+    format: archived
+  reason:
+    type: string
+    description: Reason of to archive this campaign
+  date:
+    type: string
+    format: rfc3339
+    description: Date when the campaign was archived

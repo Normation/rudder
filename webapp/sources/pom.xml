@@ -401,8 +401,13 @@ limitations under the License.
     <!-- Libraries version that MUST be used in all children project -->
 
     <current-year>2023</current-year>
+<<<<<<< HEAD
     <rudder-major-version>7.4</rudder-major-version>
     <rudder-version>7.4.0~alpha1-SNAPSHOT</rudder-version>
+=======
+    <rudder-major-version>7.3</rudder-major-version>
+    <rudder-version>7.3.1-SNAPSHOT</rudder-version>
+>>>>>>> branches/rudder/7.3
 
     <scala-version>2.13.10</scala-version>
     <silencer-lib-version>1.7.12</silencer-lib-version>

@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+description: System update campaign details (type system-update, version 2)
+properties:
+  reboot:
+    type: string
+    enum:
+      - as-needed
+      - disabled
+      - always
+      - services-only
+    description: Define the behavior after update
+  targets:
+    type: array
+    description: List of all  groups of node to target the campaign
+    items:
+      $ref: ./rule-targets.yml

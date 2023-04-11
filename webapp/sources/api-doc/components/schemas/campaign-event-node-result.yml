@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: Campaign event id
+    example: 0076a379-f32d-4732-9e91-33ab219d8fde
+    format: uuid
+  nodes:
+    type: array
+    items:
+      type: object
+      properties:
+        nodeId:
+          type: string
+          description: Node id
+          example: "b81d08e8-03f8-46b7-9399-9bea54e41ec7"
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+              description: Campaign result
+              enum:
+                - success
+                - error
+                - scheduled
+                - missing
+            software-updated:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Name of the software updated
+                  before:
+                    type: string
+                    description: Version of the software before update
+                  after:
+                    type: string
+                    description: Version of the software after update
+              description: List of updated software
+            output:
+              type: string
+              description: campaign standard output
+            errors:
+              type: string
+              description: campaign standard errors
+        date:
+          type: string
+          format: date

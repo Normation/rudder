@@ -34,6 +34,7 @@ post:
               description: Only send CVE with a score lower than the value
             publishedDate:
               type: string
+              format: date
               description: Only send CVE with a publication date more recent than the value
   responses:
     "200":

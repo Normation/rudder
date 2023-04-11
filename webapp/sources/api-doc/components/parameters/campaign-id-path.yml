@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+name: id
+in: path
+required: true
+description: Id of the campaign
+schema:
+  type: string
+  format: uuid
+  example: 0076a379-f32d-4732-9e91-33ab219d8fde

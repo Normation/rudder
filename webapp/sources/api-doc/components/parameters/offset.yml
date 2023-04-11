@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+name: "offset"
+in: query
+required: false
+schema:
+  type: integer
+description: Offset of data in response (skip X elements)
