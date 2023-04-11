@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+name: campaignType
+in: query
+required: false
+description: Type of the campaigns we want
+schema:
+  type: string
+  enum:
+    - system-update
+    - software-update
+  example: system-update

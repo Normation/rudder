@@ -65,7 +65,7 @@ sealed trait CampaignApi extends EndpointSchema with GeneralApi with SortIndex
 object CampaignApi       extends ApiModuleProvider[CampaignApi] {
   final case object GetCampaigns              extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex {
     val z              = implicitly[Line].value
-    val description    = "Get all campaigns model"
+    val description    = "Get all campaigns"
     val (action, path) = GET / "campaigns"
     val dataContainer  = Some("campaigns")
   }
@@ -77,37 +77,37 @@ object CampaignApi       extends ApiModuleProvider[CampaignApi] {
   }
   final case object GetCampaignEventDetails   extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Get all campaigns events"
+    val description    = "Get a campaigns events details"
     val (action, path) = GET / "campaigns" / "events" / "{id}"
     val dataContainer  = Some("campaignEvents")
   }
   final case object SaveCampaign              extends CampaignApi with ZeroParam with StartsAtVersion16 with SortIndex {
     val z              = implicitly[Line].value
-    val description    = "Save a campaign model"
+    val description    = "Save a campaign"
     val (action, path) = POST / "campaigns"
     val dataContainer  = Some("campaigns")
   }
   final case object ScheduleCampaign          extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Save a campaign model"
+    val description    = "Schedule an event for a campaign"
     val (action, path) = POST / "campaigns" / "{id}" / "schedule"
     val dataContainer  = Some("campaigns")
   }
   final case object GetCampaignDetails        extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Get a campaign model"
+    val description    = "Get a campaign"
     val (action, path) = GET / "campaigns" / "{id}"
     val dataContainer  = Some("campaigns")
   }
   final case object DeleteCampaign            extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Get a campaign model"
+    val description    = "Delete a campaign"
     val (action, path) = DELETE / "campaigns" / "{id}"
     val dataContainer  = None
   }
   final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Get a campaign model"
+    val description    = "Get events for a campaign"
     val (action, path) = GET / "campaigns" / "{id}" / "events"
     val dataContainer  = Some("campaignEvents")
   }
@@ -119,7 +119,7 @@ object CampaignApi       extends ApiModuleProvider[CampaignApi] {
   }
   final case object DeleteCampaignEvent       extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z              = implicitly[Line].value
-    val description    = "Save a campaign event"
+    val description    = "Delete a campaign event"
     val (action, path) = DELETE / "campaigns" / "events" / "{id}"
     val dataContainer  = None
   }

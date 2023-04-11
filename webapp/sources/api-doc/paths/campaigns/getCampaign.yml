@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get a campaign details
+  description: Get a campaign details
+  operationId: getCampaign
+  parameters:
+    - $ref: ../../components/parameters/campaign-id-path.yml
+  responses:
+    "200":
+      description: Campaign details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCampaign
+              data:
+                type: object
+                required:
+                  - campaigns
+                properties:
+                  campaigns:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/campaignDetails.sh
+
+delete:
+  summary: Delete a campaign
+  description: Delete a campaign
+  operationId: deleteCampaign
+  parameters:
+    - $ref: ../../components/parameters/campaign-id-path.yml
+  responses:
+    "200":
+      description: Campaign details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteCampaign
+              data:
+                type: object
+                required:
+                  - campaigns
+                properties:
+                  campaigns:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/deleteCampaign.sh

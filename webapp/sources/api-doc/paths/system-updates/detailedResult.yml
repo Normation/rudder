@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get detailed campaign event result for a Node
+  description: Get detailed campaign event result for a Node
+  operationId: getCampaignEventResultForNode
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Campaign event result for a node
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCampaignEventResultForNode
+              data:
+                type: object
+                required:
+                  - nodeResult
+                properties:
+                  noderesult:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-event-node-result.yml
+  tags:
+    - 🧩 System update campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/system-updates/campaignEventNodeResult.sh

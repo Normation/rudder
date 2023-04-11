@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Get a campaign event details
+  description: Get a campaign event details
+  operationId: getCampaignEvent
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: Campaign details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getCampaignEvent
+              data:
+                type: object
+                required:
+                  - campaignEvents
+                properties:
+                  campaignEvents:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-event-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/campaignEventDetails.sh
+
+post:
+  summary: Update an existing event
+  description: Update an existing event
+  operationId: saveCampaignEvent
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: Campaign event details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - saveCampaignEvent
+              data:
+                type: object
+                required:
+                  - campaignEvents
+                properties:
+                  campaignEvents:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-event-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/saveEvent.sh
+
+delete:
+  summary: Delete a campaign event details
+  description: Delete a campaign event details
+  operationId: deleteCampaignEvent
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: Campaign event details result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteCampaignEvent
+              data:
+                type: object
+                required:
+                  - campaignEvents
+                properties:
+                  campaignEvents:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/campaign-event-details.yml
+  tags:
+    - Campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/campaigns/deleteEvent.sh
+
+
