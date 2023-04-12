@@ -31,6 +31,9 @@
 # * If the variable **can not be found**:
 #     * a `${condition}_false` condition
 #     * and an **error outcome** status
+# 
+# Be careful, we are using variable *name* not the value. For example if you want to match the property value "foo"
+# you will just need `node.properties[foo]` without `${...}` syntax
 #
 # /!\ Regex for unix machine must be PCRE compatible and those for Windows agent must respect the .Net regex format.
 #
