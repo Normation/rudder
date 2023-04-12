@@ -1562,6 +1562,10 @@ ul li.hide-method {
   top: -16px;
   right: 80px;
 }
+.gm-label-unknown-name {
+  background-color:#da291c;
+  color: #ffffff;
+}
 .method-info .method-condition:not(.hidden) + .method-name .gm-label-name{
   top: -24px;
 }
@@ -1600,4 +1604,10 @@ ul li.hide-method {
 }
 .mandatory-param {
   color: #da291c;
+}
+.cursor-help {
+  margin-left: 4px;
+}
+.unknown-gm-icon {
+  color:#da291c;
 }
