@@ -46,7 +46,6 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
-import org.slf4j.LoggerFactory
 import scala.util.control.NonFatal
 
 final case class DefaultParams(
