@@ -111,7 +111,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
   "when the feature switch is disabled, request" should {
     "error in GET /archives/export" in {
-      restTest.testGETResponse("/api/archives/export") {
+      restTest.testGETResponse("/api/latest/archives/export") {
         case Full(InMemoryResponse(json, _, _, 500)) =>
           new String(json, StandardCharsets.UTF_8) must beMatching(".*This API is disabled.*")
         case err                                     => ko(s"I got an error in test: ${err}")
@@ -119,7 +119,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
 
     "error in POST /archives/export" in {
-      restTest.testEmptyPostResponse("/api/archives/import") {
+      restTest.testEmptyPostResponse("/api/latest/archives/import") {
         case Full(InMemoryResponse(json, _, _, 500)) =>
           new String(json, StandardCharsets.UTF_8) must beMatching(".*This API is disabled.*")
         case err                                     => ko(s"I got an error in test: ${err}")
@@ -133,7 +133,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       // feature switch change needs to be at that level and not under "should" directly,
       // else it contaminated all tests, even with the sequential annotation
       restTestSetUp.archiveAPIModule.featureSwitchState.set(FeatureSwitch.Enabled).runNow
-      restTest.testGETResponse("/api/archives/export") {
+      restTest.testGETResponse("/api/latest/archives/export") {
         case Full(resp) => resp.toResponse.code must beEqualTo(200)
         case err        => ko(s"I got an error in test: ${err}")
       }
@@ -150,7 +150,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-rule-no-dep"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?rules=rule1&include=none") {
+    restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=none") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -174,7 +174,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-rule-with-dep"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?rules=rule1&include=groups,techniques") {
+    restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=groups,techniques") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -205,7 +205,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-directive"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?directives=directive1&include=none") {
+    restTest.testGETResponse("/api/latest/archives/export?directives=directive1&include=none") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -230,7 +230,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?directives=test_import_export_archive_directive&include=all") {
+    restTest.testGETResponse("/api/latest/archives/export?directives=test_import_export_archive_directive&include=all") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -260,7 +260,12 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         .runNow
         .getOrElse(throw new IllegalArgumentException("test"))
       restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
-      restTest.testBinaryPOSTResponse(s"/api/archives/import", "archive", zipFile.name, zipFile.newInputStream.readAllBytes()) {
+      restTest.testBinaryPOSTResponse(
+        s"/api/latest/archives/import",
+        "archive",
+        zipFile.name,
+        zipFile.newInputStream.readAllBytes()
+      ) {
         case Full(LiftJsonResponse(res, _, 200)) =>
           restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
             case None         => ko(s"No policies were saved")
@@ -319,7 +324,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-group"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?groups=0000f5d3-8c61-4d20-88a7-bb947705ba8a&include=none") {
+    restTest.testGETResponse("/api/latest/archives/export?groups=0000f5d3-8c61-4d20-88a7-bb947705ba8a&include=none") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -341,7 +346,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-technique"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
     val techniqueId = "Create_file/1.0"
-    restTest.testGETResponse(s"/api/archives/export?techniques=${techniqueId}&include=none") {
+    restTest.testGETResponse(s"/api/latest/archives/export?techniques=${techniqueId}&include=none") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -370,7 +375,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-two-rules-with-dep"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/archives/export?rules=rule1,ff44fb97-b65e-43c4-b8c2-0df8d5e8549f&include=groups,directives") {
+    restTest.testGETResponse(
+      "/api/latest/archives/export?rules=rule1,ff44fb97-b65e-43c4-b8c2-0df8d5e8549f&include=groups,directives"
+    ) {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -516,7 +523,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val zip = File(dest.pathAsString + ".zip")
     dest.zipTo(zip)
 
-    restTest.testBinaryPOSTResponse(s"/api/archives/import", "archive", zip.name, zip.newInputStream.readAllBytes()) {
+    restTest.testBinaryPOSTResponse(s"/api/latest/archives/import", "archive", zip.name, zip.newInputStream.readAllBytes()) {
       case Full(LiftJsonResponse(res, _, 200)) =>
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
           case None         => ko(s"No policies were saved")
@@ -572,7 +579,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     {
       val archiveName = "archive-technique-head"
       restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
-      restTest.testGETResponse(s"/api/archives/export?rules=${ruleId}&techniques=${techniqueId}") {
+      restTest.testGETResponse(s"/api/latest/archives/export?rules=${ruleId}&techniques=${techniqueId}") {
         case Full(OutputStreamResponse(out, _, _, _, 200)) =>
           val zipFile = testDir / s"${archiveName}.zip"
           val zipOut  = new FileOutputStream(zipFile.toJava)
@@ -596,7 +603,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       val archiveName = "archive-technique-init"
       restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
       // TODO: rule are not serialized in test repos, we won't find it!
-      restTest.testGETResponse(s"/api/archives/export?rules=${ruleId}&techniques=${techniqueId}%2B${initRev}") {
+      restTest.testGETResponse(s"/api/latest/archives/export?rules=${ruleId}&techniques=${techniqueId}%2B${initRev}") {
         case Full(OutputStreamResponse(out, _, _, _, 200)) =>
           val zipFile = testDir / s"${archiveName}.zip"
           val zipOut  = new FileOutputStream(zipFile.toJava)
