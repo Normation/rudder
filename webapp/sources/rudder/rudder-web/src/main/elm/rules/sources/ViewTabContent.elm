@@ -544,9 +544,9 @@ directivesTab model details =
               ])
             else
               Nothing
-        (noChange, cancelDirectives) = case details.originRule of
-          Just oR -> (rule.directives == oR.directives, oR.directives)
-          Nothing -> (rule.directives == [], [])
+        cancelDirectives = case details.originRule of
+          Just oR -> oR.directives
+          Nothing -> []
       in
         div[class "row flex-container"]
         [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
@@ -554,7 +554,7 @@ directivesTab model details =
             [ div[class "list-heading"]
               [ h4[][text "Apply these directives"]
               , div [class "btn-actions"]
-                [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives} }), disabled noChange]
+                [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives}, ui = {ui | editDirectives = False} })]
                   [text "Cancel", i[class "fa fa-undo-alt"][]]
                 , ( if isNewRule then
                     text ""
