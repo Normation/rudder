@@ -550,6 +550,11 @@ object DisplayNode extends Loggable {
               <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
             case _                                                            => NodeSeq.Empty
           }
+          val curlHash    = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
+            case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
+              <div><label>Key hash:</label> <samp>sha256//{nodeInfo.keyHashBase64Sha256}</samp></div>
+            case _                                                            => NodeSeq.Empty
+          }
 
           val tokenKind = agent.securityToken match {
             case _: PublicKey   => "Public key"
@@ -573,6 +578,7 @@ object DisplayNode extends Loggable {
                 }
             }
           }
+                {curlHash}
                 {cfKeyHash}
                 <button type="button" class="toggle-security-info btn btn-default" onclick={
             s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
