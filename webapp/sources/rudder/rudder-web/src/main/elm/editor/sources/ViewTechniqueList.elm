@@ -224,7 +224,7 @@ techniqueItem model technique =
             , if hasUnknownMethod  then
                 span [ class "cursor-help popover-bs", attribute "data-toggle"  "popover", attribute "data-trigger" "hover"
                      , attribute "data-container" "body", attribute  "data-placement" "right", attribute "data-title" technique.name
-                     , attribute "data-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join "," (List.map (\m -> m.methodName.value) unknownMethods)) ++ ".</br>These methods does not exists in provided ncf library, you must provide it or it will break at run time</div>")
+                     , attribute "data-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join "," (List.map (\m -> m.methodName.value) unknownMethods)) ++ ".</br>These methods does not exists in provided library, you must provide it or it will break at run time</div>")
                      , attribute "data-html" "true" ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]
               else
                 text ""
