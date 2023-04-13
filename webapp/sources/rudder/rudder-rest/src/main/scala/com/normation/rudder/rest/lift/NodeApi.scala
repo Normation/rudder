@@ -94,12 +94,12 @@ import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data._
 import com.normation.rudder.rest.data.Creation.CreationError
-import com.normation.rudder.rest.data.NodeDetailsSerialize
 import com.normation.rudder.rest.data.NodeSetup
 import com.normation.rudder.rest.data.NodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.normation.rudder.rest.data.Rest
+import com.normation.rudder.rest.data.Rest.NodeDetails
 import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
 import com.normation.rudder.services.nodes.MergeNodeProperties
@@ -168,8 +168,6 @@ class NodeApi(
     deleteDefaultMode:    DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
-  val serializeNodeDetails = new NodeDetailsSerialize(restExtractorService)
-
   def schemas = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
@@ -206,12 +204,14 @@ class NodeApi(
     val restExtractor = restExtractorService
 
     import ResultHolder._
+    import com.normation.rudder.rest.data.Rest.JsonCodecNodeDetails._
+    import zio.json._
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       import com.softwaremill.quicklens._
       (for {
-        json  <- (req.json ?~! "This API only Accept JSON request").toIO
-        nodes <- serializeNodeDetails.parseAll(json)
+        json  <- (if (req.json_?) req.body else Failure("This API only Accept JSON request")).toIO
+        nodes <- new String(json, StandardCharsets.UTF_8).fromJson[List[NodeDetails]].toIO
         res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) {
                    case (res, node) =>
                      apiV15.saveNode(node, authzToken.actor).either.map {
