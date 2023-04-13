@@ -40,7 +40,6 @@ package com.normation.rudder.rest.data
 import cats.data._
 import cats.implicits._
 import com.normation.NamedZioLogger
-import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.Dsc
@@ -48,7 +47,6 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
@@ -68,7 +66,7 @@ object CreateNodeApiLogger extends NamedZioLogger {
 
 /*
  * This is the RestNodeDetails as provided by RestDataSerializer, but in a Scala format.
- * Do not change it without versionning, it's an actual API definition.
+ * Do not change it without versioning, it's an actual API definition.
  */
 object Rest {
 
@@ -101,6 +99,31 @@ object Rest {
       ipAddresses:    List[String],
       timezone:       Option[NodeTimezone]
   )
+
+  object JsonCodecNodeDetails {
+
+    import com.typesafe.config.ConfigRenderOptions
+    import zio.json._
+    import zio.json.ast._
+    import zio.json.internal.Write
+
+    implicit val codecConfigValue: JsonCodec[ConfigValue] = JsonCodec(
+      new JsonEncoder[ConfigValue] {
+        override def unsafeEncode(a: ConfigValue, indent: Option[Int], out: Write): Unit = {
+          out.write(
+            a.render(ConfigRenderOptions.defaults().setJson(true).setComments(false).setFormatted(indent.getOrElse(0) > 0))
+          )
+        }
+      },
+      JsonDecoder[Json].map(json => GenericProperty.fromZioJson(json))
+    )
+
+    implicit val codecAgentKey:     JsonCodec[AgentKey]     = DeriveJsonCodec.gen
+    implicit val codecOS:           JsonCodec[OS]           = DeriveJsonCodec.gen
+    implicit val codecNodeTimezone: JsonCodec[NodeTimezone] = DeriveJsonCodec.gen
+    implicit val codecNodeProp:     JsonCodec[NodeProp]     = DeriveJsonCodec.gen
+    implicit val codecNodeDetails:  JsonCodec[NodeDetails]  = DeriveJsonCodec.gen
+  }
 }
 
 /*
@@ -174,30 +197,6 @@ object ResultHolder {
         case CreationError.OnValidation(nel)    => JArray(nel.map(e => JString(s"[validation] ${e.msg}")).toList)
       }
     }
-  }
-}
-
-class NodeDetailsSerialize(
-    restExtractorService: RestExtractorService
-) {
-  import net.liftweb.json._
-
-  implicit val formats = DefaultFormats + new ConfigValueSerializer
-
-  class ConfigValueSerializer extends Serializer[ConfigValue] {
-    private val ConfigValueClass = classOf[ConfigValue]
-
-    def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ConfigValue] = {
-      case (TypeInfo(ConfigValueClass, _), json) => GenericProperty.fromJsonValue(json)
-    }
-
-    def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case x: ConfigValue => net.liftweb.json.parse(GenericProperty.serializeToJson(x))
-    }
-  }
-
-  def parseAll(json: JValue): IOResult[List[Rest.NodeDetails]] = {
-    IOResult.effect(s"Error when deserializing a nodes for creation API")(json.extract[List[Rest.NodeDetails]])
   }
 }
 
