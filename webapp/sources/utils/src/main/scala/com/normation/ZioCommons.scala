@@ -395,6 +395,22 @@ object zio {
    * Default ZIO Runtime used everywhere.
    */
   object ZioRuntime {
+    import _root_.zio.internal._
+
+    /*
+     * Create a signal handler for signal USR2 that dumps Fibers on log. Can be
+     * handy to understand what happened when a service stopped working for ex.
+     */
+    private val installedSignals = new java.util.concurrent.atomic.AtomicBoolean(false)
+    if (!installedSignals.getAndSet(true)) {
+
+      val dumpFibers = { () =>
+        Unsafe.unsafe(implicit unsafe => Runtime.default.unsafe.run(Fiber.dumpAll).getOrThrowFiberFailure())
+      }
+
+      Unsafe.unsafe(implicit unsafe => Platform.addSignalHandler("USR2", dumpFibers))
+    }
+
     /*
      * Internal runtime. You should not access it within rudder.
      * If you need to use it for "unsafeRun", you should always pin the
@@ -402,14 +418,14 @@ object zio {
      * a hierarchy of calls.
      */
     val internal = Runtime.default
-//    def platform: RuntimeConfig = internal.runtimeConfig
+
+    def installSignalHandlers(): Unit = {}
+
     def layers:      ZLayer[Any, Nothing, Any] = ZLayer.fromZIOEnvironment(internal.environment.succeed)
     def environment: ZEnvironment[Any]         = internal.environment
 
     def runNow[A](io: IOResult[A]): A = {
-      // unsafeRun will display a formatted fiber trace in case there is an error, which likely what we wants:
-      // here, error were not prevented before run, so it's a defect that should be corrected.
-      Unsafe.unsafe(implicit unsafe => internal.unsafe.run(io).getOrThrowFiberFailure())
+      unsafeRun[RudderError, A](io)
     }
 
     /*
@@ -424,6 +440,8 @@ object zio {
      * effect marked as blocking.
      */
     def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = {
+      // unsafeRun will display a formatted fiber trace in case there is an error, which likely what we wants:
+      // here, error were not prevented before run, so it's a defect that should be corrected.
       Unsafe.unsafe(implicit unsafe => internal.unsafe.run(zio).getOrThrowFiberFailure())
     }
 
