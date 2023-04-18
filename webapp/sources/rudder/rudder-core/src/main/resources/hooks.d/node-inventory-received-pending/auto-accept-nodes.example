@@ -32,7 +32,7 @@
 # In a real production script, you should store information about what is done in real log files,
 # correctly rotated, or in journald.
 
-LOG="/tmp/rudder-auto-accept-nodes.log"
+LOG="/var/log/rudder/rudder-auto-accept-nodes.log"
 echo "[$(date --iso-8601=s)] received inventory for pending node '${RUDDER_NODE_HOSTNAME}' (${RUDDER_NODE_ID})" >> ${LOG}
 
 # Only a small subset of node attributes is given as parameters for that script (see above).
