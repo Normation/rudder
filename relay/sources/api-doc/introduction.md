@@ -1,5 +1,10 @@
 Download OpenAPI specification: [openapi.yml](openapi.yml)
 
+**Other documentation sources**:
+
+* [Main documentation](https://docs.rudder.io)
+* [Public API](https://docs.rudder.io/api/)
+
 # Introduction
 
 Rudder relay exposes an internal API, enabling the agents and other services to interact with the relay.
