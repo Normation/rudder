@@ -18,9 +18,6 @@ info:
 servers:
   - url: "https://rudder.example.local/rudder/api/latest"
     description: "Rudder server"
-externalDocs:
-  description: "Learn more about Rudder."
-  url: "https://docs.rudder.io"
 components:
   securitySchemes:
     $ref: components/securitySchemes/token.yml

@@ -1,5 +1,10 @@
 Download OpenAPI specification: [openapi.yml](openapi.yml)
 
+**Other documentation sources**:
+
+* [Main documentation](https://docs.rudder.io)
+* [Internal relay API](https://docs.rudder.io/api/relay/)
+
 # Introduction
 
 Rudder exposes a REST API, enabling the user to interact with Rudder without using the webapp, for example in scripts or cronjobs.
