@@ -9,7 +9,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, Context, Error};
 use tokio::{
     fs::{read, remove_file},
     time::interval,
@@ -33,7 +33,9 @@ pub fn start(job_config: &Arc<JobConfig>) {
 }
 
 async fn expired(file: &Path) -> Result<bool, Error> {
-    let raw = read(file.with_extension("metadata")).await?;
+    let raw = read(file)
+        .await
+        .with_context(|| format!("opening {}", file.display()))?;
     let metadata = str::from_utf8(&raw)?;
 
     let parsed = Metadata::from_str(metadata)?;
@@ -65,9 +67,9 @@ pub async fn cleanup(path: WatchedDirectory, cfg: SharedFilesCleanupConfig) -> R
             if file.extension().and_then(OsStr::to_str) == Some("metadata") {
                 debug!("considering shared-files {:?}", file);
 
-                // Get file name by removing the extension
+                // Get file name by removing the `.metadata` extension
                 let shared_file = file.parent().unwrap().join(file.file_stem().unwrap());
-                match expired(&shared_file).await {
+                match expired(file).await {
                     Ok(true) => {
                         info!("removing expired shared-file: {:?}", shared_file);
                         remove_file(&shared_file)
