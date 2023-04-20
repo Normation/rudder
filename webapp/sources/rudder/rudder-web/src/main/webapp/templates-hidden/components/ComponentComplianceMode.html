@@ -82,73 +82,8 @@
           </li>
         </ul>
       </div>
-
-      <div ng-hide="complianceMode.name !== 'changes-only'" class="agent-run-form animate-hide">
-        <h4 class="space-top">Agent run heartbeat</h4>
-        <div class="portlet-content" >
-          <div class="callout-fade callout-info">
-          <!-- global run is defined on node page, so first section is displayed in global settings page -->
-            <div ng-if="!isNodePage">
-              In "<b>changes only</b>" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
-              A heartbeat is a set of two reports (startRun/endRun). When no other events are reported (no errors and no repairs),
-              this is the only feedback sent by the node.<br/>
-              The bandwidth consumed by these messages is tiny, but can add up over time. The setting below allows to change
-              the frequency of the heartbeat message, so that it is only sent every N runs.
-          </div>
-            <div ng-if="isNodePage">
-              In "changes only" compliance mode, the agent will report a "heartbeat" when no other events are reported
-              (no errors and no repairs). This frequency can be changed to send a heartbeat only every N runs.<br/>
-              This setting is defined as a default for all nodes in the global
-              <b>Settings</b>.<br/>
-              The current global setting is to run every <b>{{globalValue.heartbeatPeriod}} runs</b>,
-              (so every <b>{{globalValue.heartbeatPeriod * agentRun}} minutes)</b>.<br/>
-              You may override this global setting just for this node below:
-            </div>
-          </div>
-          <div>
-
-            <ul ng-show="isNodePage">
-              <li class="rudder-form">
-                <div class="input-group">
-                  <label class="input-group-addon" for="overrideHeartbeat">
-                    <input id="overrideHeartbeat" ng-model="complianceMode.overrides" type="checkbox"/>
-                    <label for="overrideHeartbeat" class="label-radio">
-                      <span class="ion ion-checkmark-round"></span>
-                    </label>
-                    <span class="ion ion-checkmark-round check-icon"></span>
-                  </label>
-                  <label class="form-control" for="overrideHeartbeat">
-                    Override global value
-                    <span id="denyBadClocksTooltip"></span>
-                  </label>
-                </div>
-              </li>
-            </ul>
-
-            <div class="form-group " ng-class="{ 'has-error' : complianceModeForm.heartbeat.$invalid }">
-              <label class="control-label pull-left" for="heartbeat">Send heartbeat every</label>
-              <div class="pull-left col-sm-1">
-                <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="disableHeartbeat()" ng-model="complianceMode.heartbeatPeriod"/>
-              </div>
-              <label class="control-label pull-left" for="heartbeat">runs</label>
-            </div>
-
-            <div class="form-group">
-              <div class="control-label pull-left" ng-hide="complianceModeForm.$invalid">
-                Heartbeat will be sent every {{complianceMode.heartbeatPeriod * agentRun}} minutes
-              </div>
-              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.required">Number of runs between heartbeats cannot be empty</span>
-              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.number">Number of runs between heartbeats must be a valid integer</span>
-              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.min || complianceModeForm.heartbeat.$error.max">
-                Number of runs between heartbeats must be in range from 1 to {{checkMaximumValue()}} (24 hours with a {{agentRun}} minutes frequency)
-              </span>
-            </div>
-
-          </div>
-        </div>
-      </div>
       <lift:authz role="administration_write">
-        <div ng-hide="isNodePage && complianceMode.name === 'full-compliance'">
+        <div ng-hide="isNodePage">
           <button type="submit" class="btn btn-success" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
         </div>
       </lift:authz>

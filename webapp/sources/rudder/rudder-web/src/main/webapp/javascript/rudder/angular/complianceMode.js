@@ -54,7 +54,7 @@ function updateAgentRun (run) {
 var complianceModeModule = angular.module("complianceMode", ['ngAnimate'])
 complianceModeModule.controller("complianceModeController", function($scope) {
 
-  $scope.complianceMode = { name : "full-compliance", heartbeatPeriod : 1};
+  $scope.complianceMode = { name : "full-compliance" };
   $scope.globalValue
   $scope.agentRun = 5;
   if (currentAgentRun !== undefined) {
@@ -81,10 +81,6 @@ complianceModeModule.controller("complianceModeController", function($scope) {
      return $scope.complianceMode.overrides;
    }
  }
-
-  $scope.checkMaximumValue = function() {
-   return 60 * 24 / $scope.agentRun
-  }
 
   $scope.updateAgentRun = function(run) {
     $scope.agentRun = run;
