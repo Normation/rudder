@@ -92,9 +92,8 @@ Rudder is composed of several repositories:
 |Component | Description and Repositories
 
 | Rudder documentation |
-We have a project for main documentation and API documentation:
+We have a dedicated project for Rudder main documentation:
 https://github.com/Normation/rudder-doc
-https://github.com/Normation/rudder-api-doc
 
 | Rudder agent |
 This project contains the CLI for Rudder agent
