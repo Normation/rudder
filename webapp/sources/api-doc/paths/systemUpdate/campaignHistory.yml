@@ -1,15 +1,20 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get detailed campaign event result for a Node
-  description: Get detailed campaign event result for a Node
-  operationId: getCampaignEventResultForNode
+  summary: Get a campaign result history
+  description: Get a campaign result history
+  operationId: getCampaignResults
   parameters:
-    - $ref: ../../components/parameters/campaign-event-id-path.yml
-    - $ref: ../../components/parameters/node-id.yml
+    - $ref: ../../components/parameters/campaign-id-path.yml
+    - $ref: ../../components/parameters/limit.yml
+    - $ref: ../../components/parameters/offset.yml
+    - $ref: ../../components/parameters/before.yml
+    - $ref: ../../components/parameters/after.yml
+    - $ref: ../../components/parameters/order.yml
+    - $ref: ../../components/parameters/asc.yml
   responses:
     "200":
-      description: Campaign event result for a node
+      description: Campaign result history result
       content:
         application/json:
           schema:
@@ -29,19 +34,19 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getCampaignEventResultForNode
+                  - getCampaignResults
               data:
                 type: object
                 required:
-                  - nodeResult
+                  - campaignHistory
                 properties:
-                  noderesult:
+                  campaignHistory:
                     type: array
                     items:
-                      $ref: ../../components/schemas/campaign-event-node-result.yml
+                      $ref: ../../components/schemas/campaign-event-result.yml
   tags:
     - 🧩 System update campaigns
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/system-updates/campaignEventNodeResult.sh
+        $ref: ../../code_samples/curl/systemUpdate/campaignHistory.sh

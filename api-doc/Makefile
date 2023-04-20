@@ -1,4 +1,4 @@
-API:=webapp relay
+API:=relay webapp
 
 all: deps $(API)
 

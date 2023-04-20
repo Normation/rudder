@@ -319,8 +319,8 @@ paths:
   "/campaigns/{id}/schedule":
     $ref: paths/campaigns/scheduleCampaign.yml
   "/systemUpdate/events/{id}/result/{nodeId}":
-    $ref: paths/system-updates/detailedResult.yml
+    $ref: paths/systemUpdate/detailedResult.yml
   "/systemUpdate/events/{id}/result":
-    $ref: paths/system-updates/eventResult.yml
-  "/systemUpdate/campaigns/{id}/history":
-    $ref: paths/system-updates/campaignHistory.yml
+    $ref: paths/systemUpdate/eventResult.yml
+  "/systemUpdate/campaign/{id}/history":
+    $ref: paths/systemUpdate/campaignHistory.yml
