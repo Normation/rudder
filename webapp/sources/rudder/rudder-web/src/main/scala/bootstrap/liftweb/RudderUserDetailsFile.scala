@@ -87,8 +87,10 @@ object PasswordEncoder {
 
   val random = new SecureRandom()
 
-  def randomHexa(byteLength: Int) = {
-    val token = new Array[Byte](byteLength)
+  // see https://stackoverflow.com/a/44227131
+  // produce a random hexa string of 32 chars
+  def randomHexa32: String = {
+    val token = new Array[Byte](16)
     random.nextBytes(token)
     new java.math.BigInteger(1, token).toString(16)
   }
@@ -568,7 +570,7 @@ object UserFileProcessing {
                 // If the attribute is defined several times, use the first occurrence.
                 val p = pwd match {
                   case Some(p :: _) if (p.strip().size > 0) => p
-                  case _                                    => PasswordEncoder.randomHexa(10).mkString("")
+                  case _                                    => PasswordEncoder.randomHexa32
                 }
                 Some(ParsedUser(name, p, permissions)).succeed
 

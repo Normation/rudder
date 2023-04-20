@@ -109,10 +109,10 @@ class RudderUserDetailsTest extends Specification {
     (userDetailList.users.size must beEqualTo(0))
   }
 
-  "an account without password field get a random 20 char pass" >> {
+  "an account without password field get a random 32 chars pass" >> {
     val userDetailList = getUserDetailList(userXML_empty, "userXML_empty")
 
-    (userDetailList.users.size must beEqualTo(1)) and (userDetailList.users("admin").getPassword.size must beEqualTo(20))
+    (userDetailList.users.size must beEqualTo(1)) and (userDetailList.users("admin").getPassword.size must beEqualTo(32))
   }
 
   val userXML_3 = <authentication>
