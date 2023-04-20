@@ -33,3 +33,4 @@ properties:
         date:
           type: string
           format: date
+          example: "2023-04-19T16:59:53Z"

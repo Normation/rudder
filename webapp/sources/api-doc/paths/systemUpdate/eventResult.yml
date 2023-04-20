@@ -29,6 +29,11 @@ get:
                 description: The id of the action
                 enum:
                   - getCampaignEventResult
+              id:
+                type: string
+                description: Campaign event id
+                example: 0076a379-f32d-4732-9e91-33ab219d8fde
+                format: uuid
               data:
                 type: object
                 required:
@@ -43,4 +48,4 @@ get:
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/system-updates/campaignEventResult.sh
+        $ref: ../../code_samples/curl/systemUpdate/campaignEventResult.sh
