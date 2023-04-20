@@ -47,11 +47,6 @@ bundle agent report_if_condition(report_message, condition)
       "full_class_prefix" string => canonify("report_if_condition_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-    pass1::
-      "extended_message"  string => "${report_message} was correct",
-                              if => "local_expression";
-      "extended_message"  string => "${report_message} was incorrect",
-                              if => not("local_expression");
   classes:
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -69,7 +64,7 @@ bundle agent report_if_condition(report_message, condition)
       "error class prefix"      usebundle => _classes_failure("${class_prefix}"),
                                        if => not("local_expression");
 
-      "report"                  usebundle => _log_v3("${extended_message}", "${report_message}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                  usebundle => _log_v3("${report_message}", "${report_message}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                        if => "${old_class_prefix}_reached|${class_prefix}_reached";
   reports:
    pass2.local_expression::
