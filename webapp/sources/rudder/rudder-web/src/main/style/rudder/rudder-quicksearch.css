@@ -113,7 +113,7 @@
   padding: 2px 0;
 }
 
-.skin-yellow .sidebar-form.topbar-search-form .input-group .input-group-addon,
+.sidebar-form.topbar-search-form .input-group .input-group-addon,
 .wrapper #searchInput,
 .wrapper #clear-search{
   background-color: #e8eaed;
@@ -530,7 +530,7 @@
   color:#ccc;
   transition-duration:.2s;
 }
-.skin-yellow .sidebar-form.topbar-search-form input.form-control{
+.sidebar-form.topbar-search-form input.form-control{
   background-color: rgb(244 244 244);
   border: none;
 }
