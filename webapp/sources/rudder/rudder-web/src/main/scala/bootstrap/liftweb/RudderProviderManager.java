@@ -17,6 +17,7 @@
 package bootstrap.liftweb;
 
 import com.normation.rudder.domain.logger.ApplicationLogger;
+import com.normation.rudder.web.services.RudderUserDetail;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -132,6 +133,33 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 			catch (AuthenticationException e) {
 				lastException = e;
 			}
+            finally {
+                if(provider instanceof RudderAuthenticationProvider) {
+                    RudderAuthenticationProvider p = (RudderAuthenticationProvider) provider;
+                    String principal = "unknown";
+                    if(authentication.getPrincipal() != null) {
+                        principal = authentication.getPrincipal().toString();
+                    }
+
+                    Boolean authenticated = false;
+
+                    if(result != null) {
+                        authenticated = result.isAuthenticated();
+                        if(result.getPrincipal() != null && result.getPrincipal() instanceof RudderUserDetail) {
+                            principal = ((RudderUserDetail) result.getPrincipal()).getUsername();
+                        }
+                    }
+                    String msg = "Rudder authentication attempt for principal '" +principal+
+                            "' with backend '"+p.name()+"': " + (authenticated? "success":"failure");
+
+                    // we don't want to log info about "rootAdmin" backend
+                    if(p.name() == "rootAdmin") {
+                        logger.debug(msg);
+                    } else {
+                        ApplicationLogger.info(() -> msg);
+                    }
+                }
+            }
 		}
 
 		if (result == null && parent != null) {
