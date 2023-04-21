@@ -1,4 +1,4 @@
-FROM centos:8
+FROM rockylinux:9
 ARG VERSION=latest
 EXPOSE 443 5309
 

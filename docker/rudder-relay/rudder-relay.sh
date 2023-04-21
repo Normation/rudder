@@ -3,6 +3,17 @@
 set -e
 #set -x
 
+# This script runs as entry point for the container
+# It encures the configuration is correct, then
+# starts the services.
+
+# It is configured through the following environement variables:
+#
+# * RUDDER_RELAY_ID: the node id
+# * RUDDER_RELAY_SERVER: the relay's policy server hostname/IP
+# * RUDDER_RELAY_SERVER_PUBKEY: the relay's policy server public key
+# * RUDDER_RELAY_PRIVKEY: the relay's private key
+
 # Allow using our binaries
 export PATH="/opt/rudder/bin/:$PATH"
 
@@ -24,8 +35,9 @@ fi
 
 if [ -n "$RUDDER_RELAY_SERVER" ]; then
   echo "$RUDDER_RELAY_SERVER" > "${PPKEYS}/policy_server.dat"
-elif [ ! -f "${PPKEYS}/policy_server.dat" ]; then
-  echo "rudder" > "${PPKEYS}/policy_server.dat"
+elif [ ! -f "$RUDDER_RELAY_SERVER" ]; then
+  echo "Missing policy server configuration, exiting" >&2
+  exit 1
 fi
 
 ################
@@ -55,29 +67,29 @@ elif [ ! -f "${PPKEYS}/localhost.priv" ]; then
   cf-key --key-type 4096 --output-file "${PPKEYS}/localhost"
 fi
 
-# Generate public key based on private key to be sure it's correct
+# Regenerate public key based on private key to be sure it's correct
 openssl rsa -in "${PPKEYS}/localhost.priv" -RSAPublicKey_out > "${PPKEYS}/localhost.pub"
 
 ################
 # Certificate
 ################
 
-if [ -n "$RUDDER_RELAY_CERTIFICATE" ]; then
-  (
-    echo "-----BEGIN CERTIFICATE-----"
-    echo "$RUDDER_RELAY_CERTIFICATE" | fold -w 64 
-    echo "-----END CERTIFICATE-----"
-  ) > "${PPKEYS}/agent.cert"
-elif [ ! -f "${PPKEYS}/agent.cert" ]; then
-  openssl req -new -sha256 -key "${PPKEYS}/localhost.priv" -out "${PPKEYS}/agent.cert" -x509 -days 3650 -extensions agent_cert -config /opt/rudder/etc/ssl/openssl-agent.cnf -subj "/UID=${uuid}"
+# Generate a certificate for the key pair.
+# We can regenerate it on the fly as the pinning is only done on the public key level.
+
+# Remove if not matching public key to allow updating it
+if [ -f "${PPKEYS}/agent.cert" ]; then
+  # We verify that the certificate belongs to the private key (Modulus is identical)
+  modulus_cert=$(openssl x509 -noout -modulus -in "${PPKEYS}/agent.cert")
+  modulus_key=$(openssl rsa  -noout -modulus -in "${PPKEYS}/localhost.priv")
+  if [ "${modulus_cert}" != "${modulus_key}" ]; then
+    rm "${PPKEYS}/agent.cert"
+    echo "Certificate does not match agent key, updating"
+  fi
 fi
 
-# We verify that the certificate belongs to the private key (Modulus is identical)
-modulus_cert=$(openssl x509 -noout -modulus -in "${PPKEYS}/agent.cert")
-modulus_key=$(openssl rsa  -noout -modulus -in "${PPKEYS}/localhost.priv")
-if [ "${modulus_cert}" != "${modulus_key}" ]; then
-  echo "Certificate does not match agent key" >&2
-  exit 1
+if [ ! -f "${PPKEYS}/agent.cert" ]; then
+  openssl req -new -sha256 -key "${PPKEYS}/localhost.priv" -out "${PPKEYS}/agent.cert" -x509 -days 3650 -extensions agent_cert -config /opt/rudder/etc/ssl/openssl-agent.cnf -subj "/UID=${uuid}"
 fi
 
 # Copy files from persisted folder
