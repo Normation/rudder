@@ -136,7 +136,7 @@ class TestMergeGroupProperties extends Specification {
     "parent1",
     "",
     List(GroupProperty("foo", GitVersion.DEFAULT_REV, "bar1".toConfigValue, None, None)),
-    Some(NewQuery(NodeReturnType, And, Identity, List())),
+    Some(Query(NodeReturnType, And, Identity, List())),
     true,
     Set(),
     true
@@ -147,13 +147,13 @@ class TestMergeGroupProperties extends Specification {
     "parent2",
     "",
     List(parent2Prop),
-    Some(NewQuery(NodeReturnType, And, Identity, List())),
+    Some(Query(NodeReturnType, And, Identity, List())),
     true,
     Set(),
     true
   )
   val childProp   = GroupProperty("foo", GitVersion.DEFAULT_REV, "baz".toConfigValue, None, None)
-  val query       = NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion))
+  val query       = Query(NodeReturnType, And, Identity, List(parent1.toCriterion))
   val child       = NodeGroup(NodeGroupId(NodeGroupUid("child")), "child", "", List(childProp), Some(query), true, Set(), true)
   val nodeInfo    =
     NodeConfigData.node1.modify(_.node.properties).setTo(NodeProperty("foo", "barNode".toConfigValue, None, None) :: Nil)
@@ -204,7 +204,7 @@ class TestMergeGroupProperties extends Specification {
         "parent1",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -214,7 +214,7 @@ class TestMergeGroupProperties extends Specification {
         "parent2",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -234,7 +234,7 @@ class TestMergeGroupProperties extends Specification {
         "parent1",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -244,7 +244,7 @@ class TestMergeGroupProperties extends Specification {
         "parent2",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -254,7 +254,7 @@ class TestMergeGroupProperties extends Specification {
         "parent3",
         "",
         Nil,
-        Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
+        Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
         true,
         Set(),
         true
@@ -280,7 +280,7 @@ class TestMergeGroupProperties extends Specification {
         "parent1",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "1.1.1.1".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -290,7 +290,7 @@ class TestMergeGroupProperties extends Specification {
         "parent2",
         "",
         List(GroupProperty("dns", GitVersion.DEFAULT_REV, "9.9.9.9".toConfigValue, None, None)),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -300,7 +300,7 @@ class TestMergeGroupProperties extends Specification {
         "parent3",
         "",
         Nil,
-        Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
+        Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
         true,
         Set(),
         true
@@ -310,7 +310,7 @@ class TestMergeGroupProperties extends Specification {
         "parent4",
         "",
         Nil,
-        Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion))),
+        Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion))),
         true,
         Set(),
         true
@@ -360,7 +360,7 @@ class TestMergeGroupProperties extends Specification {
         "parent1",
         "",
         toProps(parentProps),
-        Some(NewQuery(NodeReturnType, And, Identity, List())),
+        Some(Query(NodeReturnType, And, Identity, List())),
         true,
         Set(),
         true
@@ -370,7 +370,7 @@ class TestMergeGroupProperties extends Specification {
         "child",
         "",
         toProps(childProps),
-        Some(NewQuery(NodeReturnType, And, Identity, List(parent1.toCriterion))),
+        Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion))),
         true,
         Set(),
         true

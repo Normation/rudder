@@ -45,9 +45,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
-import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import net.liftweb.common._
@@ -126,7 +124,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     </head>
   }
 
-  private[this] def setCreationPopup(query: Option[NewQuery], serverList: Box[Seq[NodeInfo]]): Unit = {
+  private[this] def setCreationPopup(query: Option[Query], serverList: Box[Seq[NodeInfo]]): Unit = {
     creationPopup.set(
       Full(
         new CreateCategoryOrGroupPopup(
@@ -155,7 +153,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )
   }
 
-  private[this] def setSearchComponent(query: Option[NewQuery]): SearchNodeComponent = {
+  private[this] def setSearchComponent(query: Option[Query]): SearchNodeComponent = {
     def showNodeDetails(nodeId: String, displayCompliance: Boolean): JsCmd = {
       linkUtil.redirectToNodeLink(NodeId(nodeId))
     }
@@ -195,9 +193,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    */
   private[this] def parseHashtag(): JsCmd = {
     def executeQuery(query: String): JsCmd = {
-      val q  = queryParser(query).map(_ match {
-        case q: NewQuery => q; case q: Query => NewQuery(q.returnType, q.composition, ResultTransformation.Identity, q.criteria)
-      })
+      val q  = queryParser(query)
       val sc = setSearchComponent(q)
 
       q match {
@@ -225,7 +221,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     }
   }
 
-  private[this] def showPopup():                                         JsCmd = {
+  private[this] def showPopup():                                      JsCmd = {
     searchNodeComponent.get match {
       case Full(r) =>
         setCreationPopup(r.getQuery(), r.getSrvList())
@@ -236,7 +232,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       case eb: EmptyBox => Alert("Error when trying to retrieve the request, please try again")
     }
   }
-  private def updateQueryHash(button: Boolean, query: Option[NewQuery]): JsCmd = {
+  private def updateQueryHash(button: Boolean, query: Option[Query]): JsCmd = {
     query match {
       case Some(q) =>
         JsRaw(s"updateHashString('query', ${q.toJSONString})")

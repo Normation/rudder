@@ -70,9 +70,9 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Or
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -904,7 +904,7 @@ class AcceptHostnameAndIp(
     }
 
     for {
-      duplicatesH   <- queryProcessor.process(NewQuery(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion))
+      duplicatesH   <- queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion))
       // here, all nodes found are duplicate-in-being. They should be unique, but
       // if not, we don't group them that the duplicate appears in the list
       noDuplicatesH <- if (duplicatesH.isEmpty) Full({})

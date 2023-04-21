@@ -1035,14 +1035,27 @@ object ResultTransformation       {
   }
 }
 
-// This trait and the apply method are necessary to allow backward compatibilty in 6.2.5 for plugin scale-out relay due to changes to apply method in https://issues.rudder.io/issues/19138
-// This can be removed in 7.0, going back to a case class Query with 4 fields
-// The issue was that we added a new field to a case class and this breaks binary compatibility
-sealed trait QueryTrait {
-  def returnType:  QueryReturnType     // "node" or "node and policy servers"
-  def composition: CriterionComposition
-  def criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
-  def transform:   ResultTransformation
+object Query {
+  /*
+   * Compare two queries without taking into account the order of criterions
+   */
+  def equalsUnsorted(q1: Query, q2: Query) = {
+    // we don't care if the cardinal of equals criterion is not the same on the two,
+    // ie [c1,c2,c1] == [c2,c2,c1] yields true
+    q1.returnType == q2.returnType &&
+    q1.composition == q2.composition &&
+    q1.transform == q2.transform &&
+    q1.criteria.size == q2.criteria.size &&
+    q1.criteria.forall(c1 => q2.criteria.exists(c2 => c1 == c2))
+  }
+}
+
+final case class Query(
+    returnType:  QueryReturnType,    // "node" or "node and policy servers"
+    composition: CriterionComposition,
+    transform:   ResultTransformation,
+    criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
+) {
 
   override def toString() = {
     s"{ returnType:'${returnType.value}' (${transform.value}) with '${composition.toString}' criteria [${criteria.map { x =>
@@ -1075,48 +1088,4 @@ sealed trait QueryTrait {
   }
 
   lazy val toJSONString = compactRender(toJSON)
-
-  override def equals(other: Any): Boolean = {
-    other match {
-      case a: QueryTrait => // criteria order does not matter
-        this.returnType == a.returnType &&
-        this.composition == a.composition &&
-        this.transform == a.transform &&
-        this.criteria.size == a.criteria.size &&
-        this.criteria.forall(c1 => a.criteria.exists(c2 => c1 == c2))
-      // we don't care if the cardinal of equals criterion is not the same on the two,
-      // ie [c1,c2,c1] == [c2,c2,c1] yields true
-      case _ => false
-    }
-  }
-
-  override def hashCode() =
-    returnType.hashCode * 17 + composition.hashCode * 3 + transform.hashCode * 11 + criteria.toSet.hashCode * 7
 }
-
-final case class Query(
-    returnType: QueryReturnType, // "node" or "node and policy servers"
-
-    composition: CriterionComposition,
-    criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
-) extends QueryTrait {
-  override def transform: ResultTransformation = ResultTransformation.Identity
-}
-
-object Query {
-  def apply(
-      returnType: QueryReturnType, // "node" or "node and policy servers"
-
-      composition: CriterionComposition,
-      transform:   ResultTransformation,
-      criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
-  ): NewQuery = NewQuery(returnType, composition, transform, criteria)
-}
-
-final case class NewQuery(
-    returnType: QueryReturnType, // "node" or "node and policy servers"
-
-    composition: CriterionComposition,
-    transform:   ResultTransformation,
-    criteria:    List[CriterionLine] // list of all criteria to be matched by returned values
-) extends QueryTrait

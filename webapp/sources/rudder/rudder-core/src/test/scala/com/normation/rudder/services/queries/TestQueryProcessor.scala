@@ -134,7 +134,7 @@ class TestQueryProcessor extends Loggable {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
   }
 
-  case class TestQuery(name: String, query: QueryTrait, awaited: Seq[NodeId])
+  case class TestQuery(name: String, query: Query, awaited: Seq[NodeId])
 
   // when one need to debug search, you can just uncomment that to set log-level to trace
   // val l: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.queries").asInstanceOf[ch.qos.logback.classic.Logger]
@@ -225,7 +225,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_0_ = TestQuery(
       "q2_0_",
-      query = q2_0.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q2_0.query.copy(composition = Or),
       q2_0.awaited
     )
 
@@ -241,7 +241,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_1_ = TestQuery(
       "q2_1_",
-      query = q2_1.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q2_1.query.copy(composition = Or),
       q2_1.awaited
     )
 
@@ -257,7 +257,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_2_ = TestQuery(
       "q2_2_",
-      query = q2_2.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q2_2.query.copy(composition = Or),
       q2_2.awaited
     )
 
@@ -591,7 +591,7 @@ class TestQueryProcessor extends Loggable {
 
     val q1_ = TestQuery(
       "q1_",
-      query = q1.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q1.query.copy(composition = Or),
       s(0) :: s(1) :: Nil
     )
 
@@ -612,7 +612,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_ = TestQuery(
       "q2_",
-      query = q2.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q2.query.copy(composition = Or),
       (s(0) :: s(1) :: s(7) ::        // nodeId
       s(2) :: s(7) ::                 // software
       s(4) :: s(5) :: s(6) :: s(7) :: // machine
@@ -776,7 +776,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_ = TestQuery(
       "q2_",
-      query = q2.query match { case q: Query => q.copy(composition = Or); case q: NewQuery => q.copy(composition = Or) },
+      query = q2.query.copy(composition = Or),
       (s(2) :: s(7) ::                // software
       s(4) :: s(5) :: s(6) :: s(7) :: // machine
       s(2) :: root ::                 // free space
@@ -1356,7 +1356,7 @@ class TestQueryProcessor extends Loggable {
 
   }
 
-  private def testQueryResultProcessor(name: String, query: QueryTrait, nodes: Seq[NodeId], doInternalQueryTest: Boolean) = {
+  private def testQueryResultProcessor(name: String, query: Query, nodes: Seq[NodeId], doInternalQueryTest: Boolean) = {
     val ids   = nodes.sortBy(_.value)
     val found = queryProcessor.process(query).openOrThrowException("For tests").sortBy(_.value)
     // also test with requiring only the expected node to check consistancy

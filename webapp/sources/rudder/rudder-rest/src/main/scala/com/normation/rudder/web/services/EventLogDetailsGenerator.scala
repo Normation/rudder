@@ -49,7 +49,7 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
@@ -482,7 +482,7 @@ class EventLogDetailsGenerator(
                     "#shortDescription *" #> mapSimpleDiff(modDiff.modDescription) &
                     "#query" #> (
                       modDiff.modQuery.map { diff =>
-                        val mapOptionQuery = (opt: Option[QueryTrait]) => {
+                        val mapOptionQuery = (opt: Option[Query]) => {
                           opt match {
                             case None    => Text("None")
                             case Some(q) => Text(q.toJSONString)

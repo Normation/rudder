@@ -59,7 +59,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category._
@@ -196,7 +196,7 @@ final case class RestGroup(
     name:        Option[String] = None,
     description: Option[String] = None,
     properties:  Option[List[GroupProperty]],
-    query:       Option[QueryTrait] = None,
+    query:       Option[Query] = None,
     isDynamic:   Option[Boolean] = None,
     enabled:     Option[Boolean] = None,
     category:    Option[NodeGroupCategoryId] = None

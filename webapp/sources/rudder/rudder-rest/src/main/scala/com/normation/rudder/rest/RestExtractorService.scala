@@ -75,8 +75,8 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
-import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.ncf.BundleName
@@ -187,7 +187,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toQuery(value: String): Box[QueryTrait] = {
+  private[this] def toQuery(value: String): Box[Query] = {
     queryParser(value)
   }
 
@@ -1120,7 +1120,7 @@ final case class RestExtractorService(
     }
   }
 
-  def extractQuery(params: Map[String, List[String]]): Box[Option[QueryTrait]] = {
+  def extractQuery(params: Map[String, List[String]]): Box[Option[Query]] = {
     extractOneValue(params, "query")(toQuery) match {
       case Full(None)  =>
         extractOneValue(params, CRITERIA)(toQueryCriterion) match {

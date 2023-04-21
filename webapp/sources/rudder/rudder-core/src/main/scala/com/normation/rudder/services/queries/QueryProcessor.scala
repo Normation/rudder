@@ -39,7 +39,7 @@ package com.normation.rudder.services.queries
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import net.liftweb.common.Box
 
 trait QueryProcessor {
@@ -49,13 +49,13 @@ trait QueryProcessor {
    * @param query - the query to process
    * @return
    */
-  def process(query: QueryTrait): Box[Seq[NodeId]]
+  def process(query: Query): Box[Seq[NodeId]]
 
   /**
    * Only get node ids corresponding to that request, with minimal consistency check.
    * This method is useful to maximize performance (low memory, high throughout) for ex for dynamic groups.
    */
-  def processOnlyId(query: QueryTrait): Box[Seq[NodeId]]
+  def processOnlyId(query: Query): Box[Seq[NodeId]]
 }
 
 trait QueryChecker {
@@ -72,6 +72,6 @@ trait QueryChecker {
    *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
-  def check(query: QueryTrait, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]]
+  def check(query: Query, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]]
 
 }
