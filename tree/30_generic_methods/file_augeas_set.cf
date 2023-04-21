@@ -114,8 +114,10 @@ bundle agent file_augeas_set(path, value, lens, file)
   methods:
     pass2::
       "disable_reporting_${class_prefix}" usebundle => disable_reporting;
+      # required to have unique local copy paths
+      "copy to unique name" usebundle => file_from_local_source("${file}.augnew", "${file}.${cpath}.augnew");
       # allows automatic backup in case file path was provided
-      "copy file"    usebundle => file_from_local_source("${file}.augnew", "${file}"),
+      "copy file"           usebundle => file_from_local_source("${file}.${cpath}.augnew", "${file}"),
                             if => "file_defined.repaired";
       "remove"       usebundle => file_absent("${file}.augnew"),
                             if => fileexists("${file}.augnew");
@@ -144,6 +146,6 @@ bundle agent file_augeas_set(path, value, lens, file)
 
   reports:
     info::
-      "Augeas output: ${output}";
+      "Augeas output for setting ${path} to ${value}: ${output}";
 }
 
