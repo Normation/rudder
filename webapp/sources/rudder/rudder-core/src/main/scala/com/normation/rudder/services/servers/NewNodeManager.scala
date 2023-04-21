@@ -51,6 +51,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.ldap.sdk.BuildFilter.ALL
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -75,6 +76,7 @@ import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
@@ -100,13 +102,20 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import zio.{System => _, _}
+import zio.stream.ZSink
 import zio.syntax._
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
  */
-trait NewNodeManagerHooks {
+trait NewNodePostAcceptHooks {
 
+  def name: String
+  def run(nodeId: NodeId): Unit
+
+}
+
+trait NewNodeManagerHooks {
   /*
    * Hooks to call after the node is accepted.
    * These hooks are async and we don't wait for
@@ -115,12 +124,13 @@ trait NewNodeManagerHooks {
    */
   def afterNodeAcceptedAsync(nodeId: NodeId): Unit
 
+  def appendPostAcceptCodeHook(hook: NewNodePostAcceptHooks): Unit
 }
 
 /**
  * A trait to manage the acceptation of new node in Rudder
  */
-trait NewNodeManager extends NewNodeManagerHooks {
+trait NewNodeManager {
 
   /**
    * List all pending node
@@ -151,7 +161,6 @@ trait NewNodeManager extends NewNodeManagerHooks {
    */
   def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]]
 
-  def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,9 +172,10 @@ class PostNodeAcceptanceHookScripts(
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String],
     nodeInfoService:       NodeInfoService
-) extends NewNodeManagerHooks {
+) extends NewNodePostAcceptHooks {
+  override def name: String = "new-node-post-accept-hooks"
 
-  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
+  override def run(nodeId: NodeId): Unit = {
     val systemEnv = {
       import scala.jdk.CollectionConverters._
       HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
@@ -199,6 +209,27 @@ class PostNodeAcceptanceHookScripts(
   }
 }
 
+class NewNodeManagerHooksImpl(
+    nodeInfoService:       NodeInfoService,
+    HOOKS_D:               String,
+    HOOKS_IGNORE_SUFFIXES: List[String]
+) extends NewNodeManagerHooks {
+
+  private[this] val codeHooks = collection.mutable.Buffer[NewNodePostAcceptHooks]()
+
+  // by default, add the script hooks
+  appendPostAcceptCodeHook(new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeInfoService))
+
+  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
+    codeHooks.foreach(_.run(nodeId))
+  }
+
+  def appendPostAcceptCodeHook(hook: NewNodePostAcceptHooks): Unit = {
+    this.codeHooks.append(hook)
+  }
+
+}
+
 /**
  * Default implementation: a new server manager composed with a sequence of
  * "unit" accept, one by main goals of what it means to accept a server;
@@ -206,47 +237,49 @@ class PostNodeAcceptanceHookScripts(
  * a global post accept task, and a rollback mechanism.
  * Rollback is always a "best effort" task.
  */
-class NewNodeManagerImpl(
-    override val ldap:                           LDAPConnectionProvider[RoLDAPConnection],
-    override val pendingNodesDit:                InventoryDit,
-    override val acceptedNodesDit:               InventoryDit,
-    override val serverSummaryService:           NodeSummaryServiceImpl,
-    override val smRepo:                         LDAPFullInventoryRepository,
-    override val unitAcceptors:                  Seq[UnitAcceptInventory],
-    override val unitRefusors:                   Seq[UnitRefuseInventory],
-    val historyLogRepository:                    InventoryHistoryLogRepository,
-    val eventLogRepository:                      EventLogRepository,
-    override val updateDynamicGroups:            UpdateDynamicGroups,
-    val cacheToClear:                            List[CachedRepository],
-    override val cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction],
-    override val cachedReportingService:         InvalidateCache[CacheComplianceQueueAction],
-    nodeInfoService:                             NodeInfoService,
-    HOOKS_D:                                     String,
-    HOOKS_IGNORE_SUFFIXES:                       List[String]
-) extends NewNodeManager with ListNewNode with ComposedNewNodeManager with NewNodeManagerHooks {
+class NewNodeManagerImpl[A](
+    composedNewNodeManager: ComposedNewNodeManager[A],
+    listNodes:              ListNewNode
+) extends NewNodeManager {
 
-  private[this] val codeHooks = collection.mutable.Buffer[NewNodeManagerHooks]()
-
-  // by default, add the script hooks
-  appendPostAcceptCodeHook(new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeInfoService))
-
-  override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = {
-    codeHooks.foreach(_.afterNodeAcceptedAsync(nodeId))
+  override def listNewNodes: Box[Seq[Srv]] = {
+    listNodes.listNewNodes
   }
 
-  def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit = {
-    this.codeHooks.append(hook)
+  override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+    composedNewNodeManager.accept(id, modId, actor)
   }
 
+  override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = {
+    composedNewNodeManager.refuse(id, modId, actor)
+  }
+
+  override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = {
+    composedNewNodeManager.accept(ids, modId, actor, actorIp)
+  }
+
+  override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = {
+    composedNewNodeManager.refuse(id, modId, actor, actorIp)
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait ListNewNode extends NewNodeManager {
-  def ldap:                 LDAPConnectionProvider[RoLDAPConnection]
-  def serverSummaryService: NodeSummaryServiceImpl
-  def pendingNodesDit:      InventoryDit
+trait ListNewNode {
+  def listNewNodes: Box[Seq[Srv]]
+}
 
+class FactListNewNodes(backend: NodeFactRepository) extends ListNewNode {
+  override def listNewNodes: Box[Seq[Srv]] = {
+    backend.getAllPending().map(_.toSrv).run(ZSink.collectAll).toBox
+  }
+}
+
+class LdapListNewNode(
+    ldap:                 LDAPConnectionProvider[RoLDAPConnection],
+    serverSummaryService: NodeSummaryServiceImpl,
+    pendingNodesDit:      InventoryDit
+) extends ListNewNode {
   override def listNewNodes: Box[Seq[Srv]] = {
     for {
       con  <- ldap
@@ -325,26 +358,19 @@ trait UnitAcceptInventory {
 
 }
 
-trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
-
-  def ldap:                 LDAPConnectionProvider[RoLDAPConnection]
-  def pendingNodesDit:      InventoryDit
-  def acceptedNodesDit:     InventoryDit
-  def smRepo:               LDAPFullInventoryRepository
-  def serverSummaryService: NodeSummaryService
-  def unitAcceptors:        Seq[UnitAcceptInventory]
-  def unitRefusors:         Seq[UnitRefuseInventory]
-
-  def historyLogRepository: InventoryHistoryLogRepository
-  def eventLogRepository:   EventLogRepository
-
-  def updateDynamicGroups: UpdateDynamicGroups
-
-  def cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction]
-  def cachedReportingService:         InvalidateCache[CacheComplianceQueueAction]
-
-  def cacheToClear: List[CachedRepository]
-
+class ComposedNewNodeManager[A](
+    smRepo:                         FullInventoryRepository[A],
+    serverSummaryService:           NodeSummaryService,
+    unitAcceptors:                  Seq[UnitAcceptInventory],
+    unitRefusors:                   Seq[UnitRefuseInventory],
+    historyLogRepository:           InventoryHistoryLogRepository,
+    eventLogRepository:             EventLogRepository,
+    updateDynamicGroups:            UpdateDynamicGroups,
+    cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction],
+    cachedReportingService:         InvalidateCache[CacheComplianceQueueAction],
+    cacheToClear:                   List[CachedRepository],
+    hooksRunner:                    NewNodeManagerHooks
+) {
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////
@@ -388,18 +414,18 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     }
   }
 
-  override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = {
     for {
-      srvs   <- serverSummaryService.find(pendingNodesDit, id)
+      srvs   <- serverSummaryService.find(PendingInventory, id)
       srv    <-
-        if (srvs.size == 1) Full(srvs(0)) else Failure("Found several pending nodes matchin id %s: %s".format(id.value, srvs))
+        if (srvs.size == 1) Full(srvs(0)) else Failure("Found several pending nodes matching id %s: %s".format(id.value, srvs))
       refuse <- refuseOne(srv, modId, actor)
     } yield {
       refuse
     }
   }
 
-  override def refuse(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = {
+  def refuse(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = {
 
     // Best effort it, starting with an empty result
     val start: Box[Seq[Srv]] = Full(Seq())
@@ -407,7 +433,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
       case (result, id) =>
         // Refuse the node and get the result
         val refusal = for {
-          srvs   <- serverSummaryService.find(pendingNodesDit, id)
+          srvs   <- serverSummaryService.find(PendingInventory, id)
           // I don't think this is possible, either we have one, either we don't have any
           srv    <- if (srvs.size == 1) {
                       Full(srvs.head)
@@ -492,7 +518,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     }
   }
 
-  override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+  def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
     accept(List(id), modId, actor, "rudder-ui").flatMap {
       case h +: _ => Full(h)
       case _      =>
@@ -503,7 +529,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
     }
   }
 
-  override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = {
+  def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = {
 
     // Get inventory from a nodeId
     def getInventory(nodeId: NodeId) = {
@@ -620,7 +646,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
         }
 
         // Update hooks for the node
-        afterNodeAcceptedAsync(id)
+        hooksRunner.afterNodeAcceptedAsync(id)
         // ping the NodeConfiguration Cache and NodeCompliance Cache about this new node
 
         for {
@@ -630,6 +656,7 @@ trait ComposedNewNodeManager extends NewNodeManager with NewNodeManagerHooks {
           _ <- cachedReportingService
                  .invalidateWithAction(Seq((id, ExpectedReportAction(InsertNodeInCache(id)))))
                  .toBox ?~! s"Error when adding node ${id.value} to compliance cache"
+          _ <- ZIO.foreach(cacheToClear)(c => IOResult.attempt(c.clearCache())).toBox
         } yield {
           ()
         }
@@ -1042,7 +1069,7 @@ class UpdateFactRepoOnChoice(
   def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
     // in 7.0, we don't fail on historization problem, only log
     factRepo
-      .changeStatus(sm.node.main.id, PendingInventory)
+      .changeStatus(sm.node.main.id, PendingInventory)(ChangeContext(modId, actor, None))
       .catchAll(err => {
         NodeLoggerPure.info(
           s"Error when trying to update facts historization when accepting node '${sm.node.main.hostname}' (${sm.node.main.id.value})"
@@ -1062,7 +1089,7 @@ class UpdateFactRepoOnChoice(
   override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
     // in 7.0, we don't fail on historization problem, only log
     factRepo
-      .changeStatus(srv.id, RemovedInventory)
+      .changeStatus(srv.id, RemovedInventory)(ChangeContext(modId, actor, None))
       .catchAll(err => {
         NodeLoggerPure.info(
           s"Error when trying to update facts historization when accepting node '${srv.hostname}' (${srv.id.value})"

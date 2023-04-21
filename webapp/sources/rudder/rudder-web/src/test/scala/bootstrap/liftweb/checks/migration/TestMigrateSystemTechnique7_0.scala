@@ -167,7 +167,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     override def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = ???
     override def getNodeInfos(nodeIds: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
     override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
-    override def getNumberOfManagedNodes:               Int                             = ???
+    override def getNumberOfManagedNodes:               IOResult[Int]                   = ???
     override def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
     override def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
     override def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???

@@ -152,8 +152,8 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
                       ).fail
                     }
       limit      <- IOResult.attempt(res.stdout.trim.toLong)
+      nodeCount  <- nodeInfoService.getNumberOfManagedNodes
     } yield {
-      val nodeCount            = nodeInfoService.getNumberOfManagedNodes
       val reasonableMaxLimit   = 64_000
       val approximatedMinLimit = 100 * nodeCount
       // 64000 seems to be more than enough even with hundreds of nodes see https://issues.rudder.io/issues/22430

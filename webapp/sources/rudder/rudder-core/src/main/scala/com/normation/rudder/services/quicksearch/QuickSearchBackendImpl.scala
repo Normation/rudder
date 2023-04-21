@@ -38,7 +38,6 @@
 package com.normation.rudder.services.quicksearch
 
 import com.normation.box._
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LDAPBoolean
@@ -46,15 +45,16 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.Sub
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.policies.Tag
 import com.normation.rudder.domain.policies.TagName
 import com.normation.rudder.domain.policies.TagValue
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Filter
 import java.util.regex.Pattern
@@ -62,6 +62,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.control.NonFatal
+import zio.stream.ZSink
 
 /**
  * Correctly quote a token
@@ -72,15 +73,118 @@ object QSPattern {
 }
 
 /**
- * This file contains the differents possible implementation of
+ * This file contains the different possible implementations of
  * quick search backends.
  *
  * Backend are able to transform a query in a set of
  * quicksearch results.
  *
- * For now, we have one for directive, and a different one
+ * For now, we have one for nodefacts, one for directive, and a different one
  * of everything else.
  */
+object QSNodeFactBackend extends Loggable {
+  import QSAttribute.{NodeId => QSNodeId, _}
+  import QSObject.{Node => QSNode}
+  import QuickSearchResultId.QRNodeId
+
+  /*
+   * The filter that allows to know if a couple (activeTechnique, directive) match
+   * the expected query
+   */
+
+  /**
+   * Lookup directives
+   */
+  def search(query: Query)(implicit repo: NodeFactRepository): Box[Set[QuickSearchResult]] = {
+
+    // only search if query is on Directives and attributes contains
+    // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
+
+    val attributes: Set[QSAttribute] = query.attributes.intersect(QSObject.Node.attributes)
+
+    if (query.objectClass.contains(QSNode) && attributes.nonEmpty) {
+
+      repo
+        .getAllAccepted()
+        .mapConcat((n: NodeFact) => attributes.flatMap(a => a.find(n, query.userToken)))
+        .run(ZSink.collectAll)
+        .toBox
+        .map(_.toSet)
+    } else {
+      Full(Set())
+    }
+  }
+
+  implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
+
+    private[this] def toMatch(node: NodeFact): Option[Set[(String, String)]] = {
+
+      def someSet(v: String)        = Some(Set((v, v)))
+      def optSet(v: Option[String]) = v.map(x => Set((x, x)))
+
+      /*
+       * A set of value to check against / value to return to the user
+       */
+      a match {
+        case QSNodeId          => someSet(node.id.value)
+        case Fqdn              => someSet(node.fqdn)
+        case OsType            => someSet(node.os.os.kernelName)
+        case OsName            => someSet(node.os.os.name)
+        case OsVersion         => someSet(node.os.version.value)
+        case OsFullName        => someSet(node.os.fullName)
+        case OsKernelVersion   => someSet(node.os.kernelVersion.value)
+        case OsServicePack     => optSet(node.os.servicePack)
+        case Arch              => optSet(node.archDescription)
+        case Ram               => optSet(node.ram.map(_.size.toString))
+        case IpAddresses       => Some(node.serverIps.map(ip => (ip, ip)).toSet)
+        case PolicyServerId    => someSet(node.rudderSettings.policyServerId.value)
+        case Properties        =>
+          Some(node.properties.collect {
+            case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => (p.toData, p.toData)
+          }.toSet)
+        case CustomProperties  =>
+          Some(node.properties.collect {
+            case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => (p.toData, p.toData)
+          }.toSet)
+        case NodeState         => someSet(node.rudderSettings.state.name)
+        case DirectiveId       => None
+        case DirectiveVarName  => None
+        case DirectiveVarValue => None
+        case TechniqueName     => None
+        case TechniqueId       => None
+        case TechniqueVersion  => None
+        case Description       => None
+        case LongDescription   => None
+        case Name              => None
+        case IsEnabled         => None
+        case Tags              => None
+        case TagKeys           => None
+        case TagValues         => None
+        case GroupId           => None
+        case IsDynamic         => None
+        case ParameterName     => None
+        case ParameterValue    => None
+        case RuleId            => None
+        case DirectiveIds      => None
+        case Targets           => None
+      }
+    }
+
+    def find(node: NodeFact, token: String): Option[QuickSearchResult] = {
+      toMatch(node).flatMap { set =>
+        set.collectFirst {
+          case (s, value) if QSPattern(token).matcher(s).matches =>
+            QuickSearchResult(
+              QRNodeId(node.id.value),
+              s"${node.fqdn} [${node.id.value}]",
+              Some(a),
+              value
+            )
+        }
+      }
+    }
+  }
+}
 
 object QSDirectiveBackend extends Loggable {
   import QSAttribute.{DirectiveId => QSDirectiveId, _}
@@ -196,8 +300,8 @@ object QSDirectiveBackend extends Loggable {
 }
 
 /**
- * The whole LDAP backend logic: look for Nodes, NodeGroups, Parameters, Rules,
- * but not Directives.
+ * The whole LDAP backend logic: look for NodeGroups, Parameters, Rules,
+ * but not Directives nor Nodes
  */
 object QSLdapBackend {
   import QSAttribute._
@@ -208,10 +312,7 @@ object QSLdapBackend {
    */
   def search(query: Query)(implicit
       ldap:         LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit: InventoryDit,
-      nodeDit:      NodeDit,
-      rudderDit:    RudderDit,
-      nodeInfos:    NodeInfoService
+      rudderDit:    RudderDit
   ): Box[Seq[QuickSearchResult]] = {
     // the filter for attribute and for attributes must be non empty, else return nothing
     val ocFilter           = query.objectClass.map(_.filter).flatten.toSeq
@@ -228,31 +329,16 @@ object QSLdapBackend {
 
     for {
       connection <- ldap
-      nodeIds    <- nodeInfos.getAllNodesIds()
-      entries    <- connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes: _*)
+      entries    <- connection.search(rudderDit.BASE_DN, Sub, filter, returnedAttributes: _*)
     } yield {
 
       if (ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
         Seq()
       } else {
-
-        // here, we must merge "nodes" so that we don't report in log two times too many results,
-        // and we get node always with a hostname
-        val (nodes, others) = entries.partition(x => x.isA(OC_NODE) || x.isA(OC_RUDDER_NODE))
-        // merge node attribute for node entries with same node id
-        val merged          = nodes.groupBy(_.value_!(A_NODE_UUID)).filter(e => nodeIds.map(_.value).contains(e._1)).map {
-          case (_, samenodes) =>
-            samenodes.reduce[LDAPEntry] {
-              case (n1, n2) =>
-                n2.attributes.foreach(a => n1 mergeAttribute a)
-                n1
-            }
-        }
-
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
         // Also, only keep nodes that exists.
-        (others ++ merged).flatMap(_.toResult(query))
+        entries.flatMap(_.toResult(query))
       }
     }
   }.toBox
@@ -266,23 +352,23 @@ object QSLdapBackend {
       Description       -> A_DESCRIPTION,
       LongDescription   -> A_LONG_DESCRIPTION,
       IsEnabled         -> A_IS_ENABLED,
-      NodeId            -> A_NODE_UUID,
-      Fqdn              -> A_HOSTNAME,
-      OsType            -> A_OC,
-      OsName            -> A_OS_NAME,
-      OsVersion         -> A_OS_VERSION,
-      OsFullName        -> A_OS_FULL_NAME,
-      OsKernelVersion   -> A_OS_KERNEL_VERSION,
-      OsServicePack     -> A_OS_SERVICE_PACK,
-      Arch              -> A_ARCH,
-      Ram               -> A_OS_RAM,
-      IpAddresses       -> A_LIST_OF_IP,
-      PolicyServerId    -> A_POLICY_SERVER_UUID,
-      Properties        -> A_NODE_PROPERTY,
-      CustomProperties  -> A_CUSTOM_PROPERTY,
-      NodeState         -> A_STATE,
       GroupId           -> A_NODE_GROUP_UUID,
       IsDynamic         -> A_IS_DYNAMIC,
+      NodeId            -> A_NODE_UUID,
+      Fqdn              -> "",
+      OsType            -> "",
+      OsName            -> "",
+      OsVersion         -> "",
+      OsFullName        -> "",
+      OsKernelVersion   -> "",
+      OsServicePack     -> "",
+      Arch              -> "",
+      Ram               -> "",
+      IpAddresses       -> "",
+      PolicyServerId    -> "",
+      Properties        -> "",
+      CustomProperties  -> "",
+      NodeState         -> "",
       DirectiveId       -> "",
       DirectiveVarName  -> "",
       DirectiveVarValue -> "",
@@ -460,17 +546,12 @@ object QSLdapBackend {
    * Build LDAP filter for a QSObject
    */
   implicit final class QSObjectLDAPFilter(obj: QSObject)(implicit
-      inventoryDit:                            InventoryDit,
-      nodeDit:                                 NodeDit,
       rudderDit:                               RudderDit
   ) {
 
     def filter = obj match {
       case Common    => Nil
-      case Node      => (
-        AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-        :: AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}")) :: Nil
-      )
+      case Node      => Nil
       case Group     => AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=${rudderDit.GROUP.dn.toString}")) :: Nil
       case Directive => Nil
       case Parameter =>
@@ -482,15 +563,13 @@ object QSLdapBackend {
   /**
    * correctly transform entry to a result, putting what is needed in type and description
    */
-  implicit final class EntryToSearchResult(val e: LDAPEntry)(implicit val nodeInfos: NodeInfoService) {
+  implicit final class EntryToSearchResult(val e: LDAPEntry) {
     import QSAttributeLdapFilter._
     import QuickSearchResultId._
 
     def toResult(query: Query): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
-        if (e.isA(OC_NODE)) { e(A_NODE_UUID).map(QRNodeId) }
-        else if (e.isA(OC_RUDDER_NODE)) { e(A_NODE_UUID).map(QRNodeId) }
-        else if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId) }
+        if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId) }
         else if (e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map(QRGroupId) }
         else if (e.isA(OC_PARAMETER)) {
           e(A_PARAMETER_NAME).map(QRParameterId)
@@ -562,17 +641,7 @@ object QSLdapBackend {
         if (isNodeOrNotSystem(e))
       } yield {
         // prefer hostname for nodes
-        val defaultName = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
-        val name        = {
-          if (e.isA(OC_NODE) || e.isA(OC_RUDDER_NODE)) {
-            import com.normation.zio._
-            getId(e)
-              .flatMap(id => nodeInfos.getNodeInfo(com.normation.inventory.domain.NodeId(id.value)).runNow.map(_.hostname))
-              .getOrElse(defaultName)
-          } else {
-            defaultName
-          }
-        }
+        val name = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
         QuickSearchResult(id, name, Some(attr), desc)
       }
     }

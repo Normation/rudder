@@ -38,16 +38,22 @@
 package com.normation.rudder.inventory
 
 import com.normation.errors._
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.services.provisioning._
+import com.normation.rudder.batch.AsyncDeploymentActor
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentTimeMillis
-import com.unboundid.ldif.LDIFChangeRecord
 import zio._
 import zio.syntax._
 
@@ -60,15 +66,15 @@ import zio.syntax._
  * A post commit that start node-inventory-received-pending
  * node-inventory-received-accepted hooks
  */
-class PostCommitInventoryHooks(
+class PostCommitInventoryHooks[A](
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String]
-) extends PostCommit[Seq[LDIFChangeRecord]] {
+) extends PostCommit[A] {
   import scala.jdk.CollectionConverters._
 
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
-  override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]): IOResult[Seq[LDIFChangeRecord]] = {
+  override def apply(inventory: Inventory, records: A): IOResult[A] = {
     val node  = inventory.node.main
     val hooks = (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq: _*))
@@ -109,16 +115,17 @@ class PostCommitInventoryHooks(
   }
 }
 
-class FactRepositoryPostCommit(
+class FactRepositoryPostCommit[A](
     nodeFactsRepository: NodeFactRepository,
     nodeInfoService:     NodeInfoService
-) extends PostCommit[Seq[LDIFChangeRecord]] {
-  override def name:                                                        String                          = "commit node in fact-repository"
+) extends PostCommit[A] {
+  override def name: String = "commit node in fact-repository"
+
   /*
    * This part is responsible of saving the inventory in the fact repository.
    * For now, it can't fail: errors are logged but don't stop inventory processing.
    */
-  override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]): IOResult[Seq[LDIFChangeRecord]] = {
+  override def apply(inventory: Inventory, records: A): IOResult[A] = {
     (for {
       optInfo <- inventory.node.main.status match {
                    case AcceptedInventory => nodeInfoService.getNodeInfo(inventory.node.main.id)
@@ -134,11 +141,13 @@ class FactRepositoryPostCommit(
                      ZIO.unit // does nothing
 
                    case Some(nodeInfo) =>
-                     nodeFactsRepository.persist(
-                       nodeInfo,
-                       FullInventory(inventory.node, Some(inventory.machine)),
-                       inventory.applications
-                     )
+                     nodeFactsRepository.save(
+                       NodeFact.fromCompat(
+                         nodeInfo,
+                         Right(FullInventory(inventory.node, Some(inventory.machine))),
+                         inventory.applications
+                       )
+                     )(ChangeContext.newForRudder())
                  }
     } yield ())
       .catchAll(err => {
@@ -149,5 +158,23 @@ class FactRepositoryPostCommit(
       })
       .map(_ => records)
 
+  }
+}
+
+// we should enforce that A has something to let us know if there is changes
+class TriggerPolicyGenerationPostCommit[A](
+    asyncGenerationActor: AsyncDeploymentActor,
+    uuidGen:              StringUuidGenerator
+) extends PostCommit[A] {
+  override def name: String = "trigger policy generation on inventory change"
+
+  /*
+   * This part is responsible of saving the inventory in the fact repository.
+   * For now, it can't fail: errors are logged but don't stop inventory processing.
+   */
+  override def apply(inventory: Inventory, records: A): IOResult[A] = {
+    (if (inventory.node.main.status == AcceptedInventory) {
+       IOResult.attempt(asyncGenerationActor ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
+     } else ZIO.unit) *> records.succeed
   }
 }

@@ -67,30 +67,28 @@ response:
             "properties":[],
             "policyMode":"enforce",
             "timezone":{"name":"UTC","offset":"+00"},
-            "accounts":["root","httpd"],
+            "accounts":["httpd","root"],
             "environmentVariables":{"THE_VAR":"THE_VAR value!"},
             "fileSystems":[
               {"name":"swap","totalSpace":0},
               {"name":"ext4","freeSpace":11517,"totalSpace":52524,"mountPoint":"/"}
             ],
-            "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"},
+            "managementTechnologyDetails":{
+              "cfengineKeys":[
+                "-----BEGINRSAPUBLICKEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----ENDRSAPUBLICKEY-----"
+              ],"cfengineUser":"root"},
             "networkInterfaces":[{"name":"enp0s3","mask":[],"speed":"1000","status":"Up","ipAddresses":["10.0.2.15"]}],
             "processes":[{"pid":54432,"name":"/bin/true","memory":4235,"cpuUsage":34.5}],
             "software":[
-              {"name":"s09","version":"1.0"},
-              {"name":"s06","version":"1.0"},
               {"name":"s05","version":"1.0"},
-              {"name":"s13","version":"1.0"},
+              {"name":"s06","version":"1.0"},
+              {"name":"s07","version":"1.0"},
               {"name":"s08","version":"1.0"},
-              {"name":"s02","version":"1.0"},
-              {"name":"s03","version":"1.0"},
-              {"name":"s04","version":"1.0"},
+              {"name":"s09","version":"1.0"},
               {"name":"s10","version":"1.0"},
               {"name":"s11","version":"1.0"},
               {"name":"s12","version":"1.0"},
-              {"name":"s01","version":"1.0"},
-              {"name":"s00","version":"1.0"},
-              {"name":"s07","version":"1.0"}
+              {"name":"s13","version":"1.0"}
             ],
             "softwareUpdate":[
               {"name":"s00","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect","description":"Some explanation","severity":"critical","ids":["RHSA-2020-4566","CVE-2021-4034"]},
@@ -117,7 +115,10 @@ response:
             "id":"node1",
             "hostname":"node1.localhost",
             "status":"accepted",
-            "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"}
+            "managementTechnologyDetails":{
+              "cfengineKeys":[
+                "-----BEGINRSAPUBLICKEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----ENDRSAPUBLICKEY-----"
+              ],"cfengineUser":"root"}
           }
         ]
       }

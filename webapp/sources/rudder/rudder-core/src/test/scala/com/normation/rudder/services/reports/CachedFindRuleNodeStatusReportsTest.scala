@@ -143,7 +143,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
     def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
     def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    def getNumberOfManagedNodes:               Int                             = ???
+    def getNumberOfManagedNodes:               IOResult[Int]                   = ???
     val getAll:                                IOResult[Map[NodeId, NodeInfo]] = {
       nodes.map { case (n, _, _) => (n.id, n) }.toMap.succeed
     }

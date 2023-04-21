@@ -846,6 +846,11 @@ limitations under the License.
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
+      <artifactId>zio-concurrent_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.zio</groupId>
       <artifactId>zio-streams_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
     </dependency>

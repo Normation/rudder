@@ -62,6 +62,7 @@ sealed trait QSBackend
 object QSBackend {
   case object LdapBackend      extends QSBackend
   case object DirectiveBackend extends QSBackend
+  case object NodeFactBackend  extends QSBackend
 
   final val all: Set[QSBackend] = sealerate.values[QSBackend]
 }

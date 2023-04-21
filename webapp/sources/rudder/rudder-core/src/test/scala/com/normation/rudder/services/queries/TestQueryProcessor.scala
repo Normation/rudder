@@ -44,6 +44,7 @@ import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain._
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
@@ -55,6 +56,7 @@ import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
+import zio.Chunk
 import zio.syntax._
 
 /*
@@ -114,7 +116,11 @@ class TestQueryProcessor extends Loggable {
   val nodeDit    = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit  = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, () => Inconsistency("For test, no subgroup").fail)
+  object mockSubGroupComparatorRepo extends SubGroupComparatorRepository {
+    override def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]]         = Inconsistency("For test, no subgroup").fail
+    override def getGroups:                        IOResult[Chunk[SubGroupChoice]] = Inconsistency("For test, no subgroup").fail
+  }
+  val ditQueryData = new DitQueryData(DIT, nodeDit, rudderDit, new NodeQueryCriteriaData(() => mockSubGroupComparatorRepo))
 
   val inventoryMapper            = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val ldapMapper                 = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)
@@ -131,7 +137,7 @@ class TestQueryProcessor extends Loggable {
   )
 
   val parser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
+    override val criterionObjects = ditQueryData.criteriaMap.toMap
   }
 
   case class TestQuery(name: String, query: Query, awaited: Seq[NodeId])

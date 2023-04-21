@@ -41,7 +41,7 @@ import com.normation.appconfig.ReadConfigService
 import com.normation.box._
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core._
+import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.ChooseTemplate
@@ -77,7 +77,7 @@ final case class JsonArg(jsid: String, id: String, status: String)
  * - call the display(servers) method
  */
 final class NodeGrid(
-    getNodeAndMachine: LDAPFullInventoryRepository,
+    getNodeAndMachine: FullInventoryRepository[_],
     nodeInfoService:   NodeInfoService,
     configService:     ReadConfigService
 ) extends Loggable {

@@ -38,6 +38,7 @@
 package com.normation.utils
 
 import java.nio.charset.Charset
+import zio.Chunk
 
 /**
  * When comparing two version numbers, first the epoch of each are compared, then
@@ -141,15 +142,21 @@ object PartType {
   // snapshot < nightly < alpha < beta < milestone < rc < [0-9] < other
 
   // we keep original name in value
-  final case class Snapshot(value: String)  extends PartType { def index = 0; def toVersionString: String = value          }
-  final case class Nightly(value: String)   extends PartType { def index = 1; def toVersionString: String = value          }
-  final case class Alpha(value: String)     extends PartType { def index = 2; def toVersionString: String = value          }
-  final case class Beta(value: String)      extends PartType { def index = 3; def toVersionString: String = value          }
-  final case class Milestone(value: String) extends PartType { def index = 4; def toVersionString: String = value          }
-  final case class RC(value: String)        extends PartType { def index = 5; def toVersionString: String = value          }
-  final case class Numeric(value: Long)     extends PartType { def index = 6; def toVersionString: String = value.toString }
-  final case class Chars(value: String)     extends PartType { def index = 7; def toVersionString: String = value          }
+  final case class Snapshot(value: String)      extends PartType { def index = 0; def toVersionString: String = value          }
+  final case class Nightly(value: String)       extends PartType { def index = 1; def toVersionString: String = value          }
+  final case class Alpha(value: String)         extends PartType { def index = 2; def toVersionString: String = value          }
+  final case class Beta(value: String)          extends PartType { def index = 3; def toVersionString: String = value          }
+  final case class Milestone(value: String)     extends PartType { def index = 4; def toVersionString: String = value          }
+  final case class RC(value: String)            extends PartType { def index = 5; def toVersionString: String = value          }
+  final case class Numeric private (value: Int) extends PartType { def index = 6; def toVersionString: String = value.toString }
+  final case class Chars(value: String)         extends PartType { def index = 7; def toVersionString: String = value          }
 
+  object Numeric {
+    // with software in node, we have zillion of duplication of numeric of low ran, so we store them here:
+    val cacheSize = 100
+    val numCache  = Chunk.fromIterable((0 until cacheSize).map(i => new Numeric(i)))
+    def apply(n: Int): Numeric = if (n < cacheSize) numCache(n) else new Numeric(n)
+  }
   def compare(a: PartType, b: PartType): Int = {
     val d = a.index - b.index
     if (d == 0) {
@@ -229,8 +236,8 @@ object ParseVersion {
     case (seq, n) => // seq is at least 1
       seq.last match {
         case Separator.Tilde =>
-          listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n)) :: Nil
-        case sep             => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, PartType.Numeric(n)) :: Nil
+          listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n.toInt)) :: Nil
+        case sep             => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, PartType.Numeric(n.toInt)) :: Nil
       }
   }
 
@@ -244,9 +251,9 @@ object ParseVersion {
   }
 
   def noSepPart1[A: P] = P(chars).map(c => VersionPart.After(Separator.None, c) :: Nil)
-  def noSepPart2[A: P] = P(num).map(n => VersionPart.After(Separator.None, PartType.Numeric(n)) :: Nil)
+  def noSepPart2[A: P] = P(num).map(n => VersionPart.After(Separator.None, PartType.Numeric(n.toInt)) :: Nil)
 
-  def startNum[A: P] = P(num).map(PartType.Numeric)
+  def startNum[A: P] = P(num).map(i => PartType.Numeric(i.toInt))
 
   def version[A: P] = P(
     Start ~ epoch.? ~/ startNum ~/

@@ -76,6 +76,8 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.ncf.BundleName

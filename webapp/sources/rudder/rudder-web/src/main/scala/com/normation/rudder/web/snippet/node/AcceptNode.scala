@@ -59,6 +59,7 @@ import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import scala.xml._
+import zio.stream.ZSink
 
 /**
  * Check for server in the pending repository and propose to
@@ -67,10 +68,10 @@ import scala.xml._
  */
 class AcceptNode extends Loggable {
 
-  val newNodeManager       = RudderConfig.newNodeManager
-  val rudderDit            = RudderConfig.rudderDit
-  val serverGrid           = RudderConfig.nodeGrid
-  val serverSummaryService = RudderConfig.nodeSummaryService
+  val newNodeManager     = RudderConfig.newNodeManager
+  val rudderDit          = RudderConfig.rudderDit
+  val serverGrid         = RudderConfig.nodeGrid
+  val nodeFactRepository = RudderConfig.nodeFactRepository
 
   val diffRepos        = RudderConfig.inventoryHistoryLogRepository
   val logRepository    = RudderConfig.eventLogRepository
@@ -232,7 +233,11 @@ class AcceptNode extends Loggable {
       "#server_os *" #> srv.osFullName)(serverLine)
     }
 
-    serverSummaryService.find(pendingNodeDit, listNode: _*) match {
+    nodeFactRepository
+      .getAllPending()
+      .collect { case n if (listNode.contains(n.id)) => n.toSrv }
+      .run(ZSink.collectAll)
+      .toBox match {
       case Full(servers) =>
         val lines: NodeSeq = servers.flatMap(displayServerLine)
         ("#server_lines" #> lines).apply(

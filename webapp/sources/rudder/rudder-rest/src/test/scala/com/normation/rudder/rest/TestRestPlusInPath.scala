@@ -38,9 +38,12 @@
 package com.normation.rudder.rest
 
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.NodeSummary
-import com.normation.rudder.NodeDetails
+import com.normation.rudder.MockNodes
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.zio._
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
@@ -49,7 +52,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-import zio.syntax._
+import zio.Chunk
 
 // test that the "+" in path is correctly kept as a "+", not changed into " "
 // See: https://issues.rudder.io/issues/20943
@@ -64,7 +67,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .setLevel(ch.qos.logback.classic.Level.OFF)
   val env    = RestTestSetUp.newEnv
   import com.softwaremill.quicklens._
-  val myNode = env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
+  val myNode = MockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
   override def beforeAll(): Unit = {
     val inventory = NodeInventory(
       NodeSummary(
@@ -77,12 +80,14 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
         myNode.keyStatus
       )
     )
-    val details   = NodeDetails(myNode, inventory, None)
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes + (myNode.id -> details)).succeed))
+    val inv       = Right(FullInventory(inventory, None))
+    ZioRuntime.unsafeRun(
+      env.mockNodes.nodeFactRepo.save(NodeFact.fromCompat(myNode, inv, Chunk.empty))(ChangeContext.newForRudder())
+    )
   }
 
   override def afterAll(): Unit = {
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes - (myNode.id)).succeed))
+    ZioRuntime.unsafeRun(env.mockNodes.nodeFactRepo.delete(myNode.id)(ChangeContext.newForRudder()))
   }
 
   val test = new RestTest(env.liftRules)

@@ -80,19 +80,23 @@ class NodeApiTest extends Specification with Loggable {
 
       val jsonRes = s"""{"action":"createNodes","result":"success","data":{"created":["${node1}","${node2}"],"failed":[]}}"""
 
+      org.slf4j.LoggerFactory
+        .getLogger("nodes.pending")
+        .asInstanceOf[ch.qos.logback.classic.Logger]
+        .setLevel(ch.qos.logback.classic.Level.TRACE)
+
       restTest.testPUTResponse(s"/api/latest/nodes", JsonParser.parse(json)) { resp =>
         resp match {
           case Full(JsonResponsePrettify(content, _, _, 200, _)) =>
             val jsonString = compactRender(content)
-            val nodes      = restTestSetUp.mockNodes.nodeInfoService.nodeBase.get.runNow
-            val n1         = nodes.get(NodeId(node1)).getOrElse(throw new IllegalArgumentException("error: node1"))
-            val n2         = nodes.get(NodeId(node2)).getOrElse(throw new IllegalArgumentException("error: node2"))
+            val n1         = restTestSetUp.mockNodes.nodeFactRepo.getPending(NodeId(node1)).notOptional("missing node1").runNow
+            val n2         = restTestSetUp.mockNodes.nodeFactRepo.getAccepted(NodeId(node2)).notOptional("missing node2").runNow
 
             (jsonString must beEqualTo(jsonRes)) and
-            (n1.nInv.main.status must beEqualTo(PendingInventory)) and
-            (n2.nInv.main.status must beEqualTo(AcceptedInventory))
+            (n1.rudderSettings.status must beEqualTo(PendingInventory)) and
+            (n2.rudderSettings.status must beEqualTo(AcceptedInventory))
 
-          case _ => ko("unexpected answer")
+          case x => ko(s"unexpected answer: ${x}")
         }
       }
     }

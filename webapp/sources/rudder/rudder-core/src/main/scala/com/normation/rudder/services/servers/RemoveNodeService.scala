@@ -55,14 +55,13 @@ import com.normation.ldap.sdk._
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
@@ -72,9 +71,8 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
+import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoServiceCached
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
@@ -83,6 +81,7 @@ import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction.RemoveNodeInCache
 import com.normation.rudder.services.servers.DeletionResult._
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
@@ -152,8 +151,8 @@ import PostNodeDeleteAction._
 trait RemoveNodeService {
 
   /**
-   * Remove a pending or accepted node by moving it to the "removed" btranch
-   * It is not really deleted from directoctory
+   * Remove a pending or accepted node by moving it to the "removed" branch
+   * It is not really deleted from directory
    * What it does :
    * - clean the ou=Nodes
    * - clean the groups
@@ -165,36 +164,52 @@ trait RemoveNodeService {
   }
 
   def removeNodePure(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[NodeInfo]
+}
 
-  /**
-    * Purge from the removed inventories ldap tree all nodes modified before date
-    */
-  def purgeDeletedNodesPreviousDate(date: DateTime): IOResult[Seq[NodeId]]
+trait RemoveNodeBackend {
+
+  // find the status of node to delete. It can have multiple result if inventories exists in several status (ex: pending and deleted)
+  def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]]
+
+  // the abstract method that actually commit in backend repo the deletion from accepted nodes
+  def commitDeleteAccepted(nodeInfo: NodeInfo, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[Unit]
+
+  // the abstract method that actually commit in backend repo the deletion from accepted nodes
+  def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[Unit]
+
+}
+
+class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBackend {
+  override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
+    backend.getStatus(nodeId).map(x => Set(x))
+  }
+
+  override def commitDeleteAccepted(
+      nodeInfo: NodeInfo,
+      mode:     DeleteMode,
+      modId:    ModificationId,
+      actor:    EventActor
+  ): IOResult[Unit] = {
+    backend.delete(nodeInfo.id)(ChangeContext(modId, actor, None)).unit
+  }
+
+  override def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[Unit] = {
+    backend.delete(nodeId)(ChangeContext(modId, actor, None)).unit
+  }
 }
 
 class RemoveNodeServiceImpl(
-    nodeDit:               NodeDit,
-    rudderDit:             RudderDit,
-    pendingDit:            InventoryDit,
-    acceptedDit:           InventoryDit,
-    deletedDit:            InventoryDit,
-    ldap:                  LDAPConnectionProvider[RwLDAPConnection],
-    ldapEntityMapper:      LDAPEntityMapper,
-    roNodeGroupRepository: RoNodeGroupRepository,
-    woNodeGroupRepository: WoNodeGroupRepository,
-    nodeInfoService:       NodeInfoServiceCached,
-    fullNodeRepo:          LDAPFullInventoryRepository,
-    actionLogger:          EventLogRepository,
-    nodeLibMutex:          ScalaReadWriteLock, // that's a scala-level mutex to have some kind of consistency with LDAP
-
+    backend:                   RemoveNodeBackend,
+    nodeInfoService:           NodeInfoService,
     pathComputer:              PathComputer,
     newNodeManager:            NewNodeManager,
+    actionLogger:              EventLogRepository,
     val postNodeDeleteActions: Ref[List[PostNodeDeleteAction]],
     HOOKS_D:                   String,
     HOOKS_IGNORE_SUFFIXES:     List[String]
 ) extends RemoveNodeService {
 
-  // effectuffuly add an action
+  // effectually add an action
   def addPostNodeDeleteAction(action: PostNodeDeleteAction): Unit = {
     postNodeDeleteActions.update(_.prepended(action)).runNowLogError(e => ApplicationLogger.error(e.fullMsg))
   }
@@ -218,7 +233,7 @@ class RemoveNodeServiceImpl(
       case _                               => {
         for {
           _       <- NodeLoggerPure.Delete.debug(s"Deleting node with ID '${nodeId.value}' [mode:${mode.name}]")
-          status  <- findNodeStatuses(nodeId)
+          status  <- backend.findNodeStatuses(nodeId)
           -       <- NodeLoggerPure.Delete.debug(s"  - node '${nodeId.value}' has status: [${status.map(_.name).mkString(",")}]")
           info    <- Ref.make(Option.empty[NodeInfo]) // a place to store the maybe node info
           // always delete in order pending then accepted then deleted
@@ -256,7 +271,6 @@ class RemoveNodeServiceImpl(
           _       <- NodeLoggerPure.Delete.info(
                        s"Node '${nodeId.value}' ${optInfo.map(_.hostname).getOrElse("")} was successfully deleted"
                      )
-          _       <- effectUioUnit(nodeInfoService.clearCache())
         } yield {
           optInfo match {
             case Some(info) =>
@@ -295,40 +309,9 @@ class RemoveNodeServiceImpl(
     }
   }
 
-  def purgeDeletedNodesPreviousDate(date: DateTime): IOResult[Seq[NodeId]] = {
-    for {
-      con            <- ldap
-      deletedEntries <- con.search(
-                          deletedDit.NODES.dn,
-                          One,
-                          AND(IS(OC_NODE), LTEQ(A_MOD_TIMESTAMP, GeneralizedTime(date).toString))
-                        )
-      _              <- NodeLoggerPure.Delete.trace(s"Found ${deletedEntries.length} older than ${date}")
-
-      ids <- ZIO.foreach(deletedEntries)(e => deletedDit.NODES.NODE.idFromDN(e.dn).toIO)
-
-      _ <- ZIO.foreach(ids)(id => fullNodeRepo.delete(id, RemovedInventory))
-    } yield {
-      ids
-    }
-  }
-
   ////////////////////////////////
   //// implementation details ////
   ////////////////////////////////
-
-  // find the status of node to delete. It can have multiple result if inventories exists in several status (ex: pending and deleted)
-  def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
-    for {
-      con <- ldap
-      res <- con.search(deletedDit.BASE_DN.getParent, Sub, AND(IS(OC_NODE), EQ(A_NODE_UUID, nodeId.value)), A_NODE_UUID)
-    } yield {
-      List((pendingDit, PendingInventory), (acceptedDit, AcceptedInventory), (deletedDit, RemovedInventory)).map {
-        case (dit, status) =>
-          res.collect { case e if (dit.NODES.NODE.dn(nodeId.value) == e.dn) => status }.headOption
-      }.flatten.toSet
-    }
-  }
 
   // delete pending node is just refusing it
   def deletePendingNode(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[DeletionResult] = {
@@ -344,17 +327,6 @@ class RemoveNodeServiceImpl(
       modId:    ModificationId,
       actor:    EventActor
   ): IOResult[DeletionResult] = {
-    // the part that just move/delete node
-    def delete(nodeInfo: NodeInfo, mode: DeleteMode) = {
-      for {
-        deleted      <-
-          nodeLibMutex.writeLock(atomicDelete(nodeInfo.id, mode, modId, actor)).chainError("Error when deleting a node")
-        invLogDetails =
-          InventoryLogDetails(nodeInfo.id, nodeInfo.inventoryDate, nodeInfo.hostname, nodeInfo.osDetails.fullName, actor.name)
-        eventlog      = DeleteNodeEventLog.fromInventoryLogDetails(None, actor, invLogDetails)
-        saved        <- actionLogger.saveEventLog(modId, eventlog)
-      } yield deleted
-    }
 
     for {
       _       <- NodeLoggerPure.Delete.debug(s"-> deleting node with ID '${nodeInfo.id.value}' from accepted nodes")
@@ -366,10 +338,21 @@ class RemoveNodeServiceImpl(
                      PreHookFailed(a).succeed
                    case _ =>
                      for {
-                       _       <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in LDAP (mode='${mode.name}')")
-                       deleted <- delete(nodeInfo, mode)
-                       _       <- NodeLoggerPure.Delete.debug(s"  - run node post hooks for '${nodeInfo.id.value}'")
-                       postRun <- runPostHooks(hookEnv)
+                       _            <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in LDAP (mode='${mode.name}')")
+                       _            <- backend.commitDeleteAccepted(nodeInfo, mode, modId, actor)
+                       invLogDetails = {
+                         InventoryLogDetails(
+                           nodeInfo.id,
+                           nodeInfo.inventoryDate,
+                           nodeInfo.hostname,
+                           nodeInfo.osDetails.fullName,
+                           actor.name
+                         )
+                       }
+                       eventlog      = DeleteNodeEventLog.fromInventoryLogDetails(None, actor, invLogDetails)
+                       saved        <- actionLogger.saveEventLog(modId, eventlog)
+                       _            <- NodeLoggerPure.Delete.debug(s"  - run node post hooks for '${nodeInfo.id.value}'")
+                       postRun      <- runPostHooks(hookEnv)
                      } yield {
                        postRun match {
                          case stop: HookReturnCode.Error => PostHookFailed(stop)
@@ -387,7 +370,7 @@ class RemoveNodeServiceImpl(
       Success.succeed
     } else { // erase
       NodeLoggerPure.Delete.debug(s"-> erase '${nodeId.value}' from removed nodes") *>
-      fullNodeRepo.delete(nodeId, RemovedInventory).map(_ => Success)
+      backend.commitPurgeRemoved(nodeId, mode, modId, actor).map(_ => Success)
     }
   }
 
@@ -397,7 +380,7 @@ class RemoveNodeServiceImpl(
   // returns (hooks env, system env) for hooks
   def buildHooksEnv(nodeInfo: NodeInfo): IOResult[(HookEnvPairs, HookEnvPairs)] = {
     def getNodePath(node: NodeInfo): IOResult[NodePoliciesPaths] = {
-      // accumumate all the node infos from node id to root throught relay servers
+      // accumulate all the node infos from node id to root through relay servers
       def recGetParent(node: NodeInfo): IOResult[Map[NodeId, NodeInfo]] = {
         if (node.id == Constants.ROOT_POLICY_SERVER_ID) {
           Map((node.id, node)).succeed
@@ -467,6 +450,46 @@ class RemoveNodeServiceImpl(
       res._1
     }
   }
+}
+
+class LdapRemoveNodeBackend(
+    nodeDit:      NodeDit,
+    pendingDit:   InventoryDit,
+    acceptedDit:  InventoryDit,
+    deletedDit:   InventoryDit,
+    ldap:         LDAPConnectionProvider[RwLDAPConnection],
+    fullNodeRepo: LDAPFullInventoryRepository,
+    nodeLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
+) extends RemoveNodeBackend {
+
+  override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
+    for {
+      con <- ldap
+      res <- con.search(deletedDit.BASE_DN.getParent, Sub, AND(IS(OC_NODE), EQ(A_NODE_UUID, nodeId.value)), A_NODE_UUID)
+    } yield {
+      List((pendingDit, PendingInventory), (acceptedDit, AcceptedInventory), (deletedDit, RemovedInventory)).map {
+        case (dit, status) =>
+          res.collect { case e if (dit.NODES.NODE.dn(nodeId.value) == e.dn) => status }.headOption
+      }.flatten.toSet
+    }
+  }
+
+  override def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[Unit] = {
+    fullNodeRepo.delete(nodeId, RemovedInventory).unit
+  }
+
+  // the part that just move/delete node
+  override def commitDeleteAccepted(
+      nodeInfo: NodeInfo,
+      mode:     DeleteMode,
+      modId:    ModificationId,
+      actor:    EventActor
+  ): IOResult[Unit] = {
+    for {
+      _ <-
+        nodeLibMutex.writeLock(atomicDelete(nodeInfo.id, mode, modId, actor)).chainError("Error when deleting a node")
+    } yield ()
+  }
 
   def atomicDelete(
       nodeId: NodeId,
@@ -475,8 +498,6 @@ class RemoveNodeServiceImpl(
       actor:  EventActor
   ): IOResult[Seq[LDIFChangeRecord]] = {
     for {
-      cleanGroup        <-
-        deleteFromGroups(nodeId, modId, actor).chainError(s"Could not remove the node '${nodeId.value}' from some groups")
       cleanNode         <- deleteFromNodes(nodeId).chainError(s"Could not remove the node '${nodeId.value}' from base")
       moveNodeInventory <- mode match {
                              case DeleteMode.MoveToRemoved => fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
@@ -501,32 +522,45 @@ class RemoveNodeServiceImpl(
     }
   }
 
-  /**
-   * Look for the groups containing this node in their nodes list, and remove the node
-   * from the list
-   */
-  def deleteFromGroups(nodeId: NodeId, modId: ModificationId, actor: EventActor): IOResult[Seq[ModifyNodeGroupDiff]] = {
+}
 
-    for {
+/**
+ * Look for the groups containing this node in their nodes list, and remove the node
+ * from the list
+ */
+class RemoveNodeFromGroups(
+    roNodeGroupRepository: RoNodeGroupRepository,
+    woNodeGroupRepository: WoNodeGroupRepository,
+    uuidGen:               StringUuidGenerator
+) extends PostNodeDeleteAction {
+  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+    (for {
       _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from his groups")
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
-      deleted      <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
+      _            <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
                         val msg = Some("Automatic update of group due to deletion of node " + nodeId.value)
                         woNodeGroupRepository
-                          .updateDiffNodes(nodeGroupId, add = Nil, delete = List(nodeId), modId, actor, msg)
+                          .updateDiffNodes(
+                            nodeGroupId,
+                            add = Nil,
+                            delete = List(nodeId),
+                            ModificationId(uuidGen.newUuid),
+                            RudderEventActor,
+                            msg
+                          )
                           .chainError(
                             s"Could not update group '${nodeGroupId.serialize}' to remove node '${nodeId.value}'"
                           )
                       }
-    } yield {
-      deleted.flatten
-    }
+    } yield ()).catchAll(err =>
+      NodeLoggerPure.Delete.error(s"Error when cleaning node with ID '${nodeId.value}' from groups: ${err.fullMsg}")
+    )
   }
 }
 
 class RemoveNodeInfoFromCache(nodeInfoService: NodeInfoServiceCached)                    extends PostNodeDeleteAction {
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
-    NodeLoggerPure.Delete.debug(s"  - remove node from NodeInfoService Cache'${nodeId.value}'") *>
+    NodeLoggerPure.Delete.debug(s"  - remove node from NodeInfoService Cache '${nodeId.value}'") *>
     nodeInfoService
       .removeNodeFromCache(nodeId)
       .catchAll(err => NodeLoggerPure.Delete.error(s"Error when removing node ${(nodeId, info).name} from cache: ${err.fullMsg}"))
@@ -752,9 +786,10 @@ class DeleteNodeFact(nodeFactRepo: NodeFactRepository) extends PostNodeDeleteAct
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - delete fact about node '${nodeId.value}'") *>
     nodeFactRepo
-      .changeStatus(nodeId, RemovedInventory)
+      .changeStatus(nodeId, RemovedInventory)(ChangeContext.newForRudder())
       .catchAll(err =>
         NodeLoggerPure.info(s"Error when trying to update fact when deleting node '${nodeId.value}': ${err.fullMsg}")
       )
+      .unit
   }
 }

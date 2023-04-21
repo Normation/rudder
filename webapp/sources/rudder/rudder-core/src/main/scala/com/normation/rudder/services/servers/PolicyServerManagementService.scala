@@ -41,6 +41,7 @@ import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLogDetails
@@ -75,6 +76,7 @@ import com.normation.rudder.domain.queries.Criterion
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
+import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
@@ -82,6 +84,7 @@ import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.servers.json._
+
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import com.unboundid.ldap.sdk.DN
@@ -89,6 +92,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+
 import zio._
 import zio.json._
 import zio.syntax._
@@ -607,7 +611,15 @@ object PolicyServerConfigurationObjects {
   def groupHasPolicyServer(nodeId: NodeId) = {
     val objectType = ObjectCriterion(
       "node",
-      Seq(Criterion("policyServerId", StringComparator, None), Criterion("agentName", AgentComparator, None))
+      Seq(
+        Criterion(
+          "policyServerId",
+          StringComparator,
+          NodeCriterionMatcherString(n => Chunk(n.rudderSettings.policyServerId.value)),
+          None
+        ),
+        Criterion("agentName", AgentComparator, NodeCriterionMatcherString(n => Chunk(n.rudderAgent.agentType.id)), None)
+      )
     )
     NodeGroup(
       NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}")),
@@ -620,8 +632,22 @@ object PolicyServerConfigurationObjects {
           And,
           ResultTransformation.Identity,
           List(
-            CriterionLine(objectType, Criterion("agentName", StringComparator), Equals, "cfengine"),
-            CriterionLine(objectType, Criterion("policyServerId", StringComparator), Equals, nodeId.value)
+            CriterionLine(
+              objectType,
+              Criterion("agentName", StringComparator, NodeCriterionMatcherString(n => Chunk(n.rudderAgent.agentType.id))),
+              Equals,
+              "cfengine"
+            ),
+            CriterionLine(
+              objectType,
+              Criterion(
+                "policyServerId",
+                StringComparator,
+                NodeCriterionMatcherString(n => Chunk(n.rudderSettings.policyServerId.value))
+              ),
+              Equals,
+              nodeId.value
+            )
           )
         )
       ),

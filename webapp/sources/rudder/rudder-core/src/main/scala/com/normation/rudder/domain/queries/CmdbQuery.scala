@@ -103,6 +103,42 @@ object KeyValueComparator {
   def values = ca.mrvisser.sealerate.values[KeyValueComparator]
 }
 
+object NodePropertyMatcherUtils {
+
+  // split k=v (v may not exists if there is no '='
+  // is there is several '=', we consider they are part of the value
+  def splitInput(value: String, sep: String): SplittedValue = {
+    val array = value.split(sep)
+    val k     = array(0) // always exists with split
+    val v     = array.toList.tail
+    SplittedValue(k, v, sep)
+  }
+
+  def matchJsonPath(key: String, path: PureResult[JsonPath])(p: NodeProperty): Boolean = {
+    (p.name == key) && path.flatMap(JsonSelect.exists(_, p.valueAsString).toPureResult).getOrElse(false)
+  }
+
+  val regexMatcher = (value: String) => {
+    new NodeInfoMatcher {
+      override val debugString = s"Prop matches '${value}'"
+
+      override def matches(node: NodeInfo): Boolean = matchesRegex(value, node.properties)
+    }
+  }
+
+  def matchesRegex(value: String, properties: Iterable[NodeProperty]) = {
+    val predicat = (p: NodeProperty) => {
+      try {
+        value.r.pattern.matcher(s"${p.name}=${p.valueAsString}").matches()
+      } catch { // malformed patterned should not be saved, but never let an exception be silent
+        case ex: PatternSyntaxException => false
+      }
+    }
+    properties.exists(predicat)
+  }
+
+}
+
 sealed trait ComparatorList {
 
   def comparators: Seq[CriterionComparator]
@@ -180,7 +216,7 @@ trait NodeInfoMatcher {
 }
 
 object NodeInfoMatcher {
-  // default builder: it will evaluated each time, sufficiant if all parts of the matcher uses NodeInfo
+  // default builder: it will evaluated each time, sufficient if all parts of the matcher uses NodeInfo
   def apply(s: String, f: NodeInfo => Boolean): NodeInfoMatcher = {
     new NodeInfoMatcher {
       override val debugString:             String  = s
@@ -188,6 +224,9 @@ object NodeInfoMatcher {
     }
   }
 }
+
+/************************* old matcher logic **********************************/
+// we will need to only keep the rendering part //
 
 /*
  * Below goes all NodeInfo Criterion Type
@@ -363,21 +402,12 @@ case object NodeIpListComparator extends NodeCriterionType {
  *   {"name":"k","value":{ "any":"json","here":"here"}}
  *
  */
-final case class SplittedValue(key: String, values: List[String]) {
-  def value = values.mkString("=")
+final case class SplittedValue(key: String, values: List[String], separator: String = "=") {
+  def value = values.mkString(separator)
 }
 
 final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionType {
   override val comparators = KeyValueComparator.values.toList ++ BaseComparators.comparators
-
-  // split k=v (v may not exists if there is no '='
-  // is there is several '=', we consider they are part of the value
-  def splitInput(value: String, sep: String): SplittedValue = {
-    val array = value.split(sep)
-    val k     = array(0) // always exists with split
-    val v     = array.toList.tail
-    SplittedValue(k, v)
-  }
 
   override def validateSubCase(value: String, comparator: CriterionComparator): PureResult[String] = {
     comparator match {
@@ -408,31 +438,13 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
     }
   }
 
-  def matchJsonPath(key: String, path: PureResult[JsonPath])(p: NodeProperty): Boolean = {
-    (p.name == key) && path.flatMap(JsonSelect.exists(_, p.valueAsString).toPureResult).getOrElse(false)
-  }
-
-  val regexMatcher = (value: String) => {
-    new NodeInfoMatcher {
-      val predicat             = (p: NodeProperty) => {
-        try {
-          value.r.pattern.matcher(s"${p.name}=${p.valueAsString}").matches()
-        } catch { // malformed patterned should not be saved, but never let an exception be silent
-          case ex: PatternSyntaxException => false
-        }
-      }
-      override val debugString = s"Prop matches '${value}'"
-      override def matches(node: NodeInfo): Boolean = node.properties.exists(predicat)
-    }
-  }
-
   override def matches(comparator: CriterionComparator, value: String): NodeInfoMatcher = {
     import com.normation.rudder.domain.queries.{KeyValueComparator => KVC}
 
     comparator match {
       // equals mean: the key is equals to kv._1 and the value is defined and the value is equals to kv._2.get
       case Equals         => {
-        val kv = splitInput(value, "=")
+        val kv = NodePropertyMatcherUtils.splitInput(value, "=")
         NodeInfoMatcher(
           s"Prop name=value equals'${value}'",
           (node: NodeInfo) => node.properties.find(p => p.name == kv.key && p.valueAsString == kv.value).isDefined
@@ -445,19 +457,19 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
         NodeInfoMatcher(s"Prop name=value exists (at least one property)", (node: NodeInfo) => node.properties.nonEmpty)
       case NotExists      =>
         NodeInfoMatcher(s"Prop name=value not exists (empty properties)", (node: NodeInfo) => node.properties.isEmpty)
-      case Regex          => regexMatcher(value)
+      case Regex          => NodePropertyMatcherUtils.regexMatcher(value)
       case NotRegex       =>
         new NodeInfoMatcher {
-          val regex                = regexMatcher(value)
+          val regex                = NodePropertyMatcherUtils.regexMatcher(value)
           override val debugString = s"Prop matches regex '${value}'"
           override def matches(node: NodeInfo): Boolean = !regex.matches(node)
         }
       case KVC.HasKey     => NodeInfoMatcher(s"Prop has key '${value}'", (node: NodeInfo) => node.properties.exists(_.name == value))
       case KVC.JsonSelect =>
         new NodeInfoMatcher {
-          val kv                   = splitInput(value, ":")
+          val kv                   = NodePropertyMatcherUtils.splitInput(value, ":")
           val path                 = JsonSelect.compilePath(kv.value).toPureResult
-          val matcher              = matchJsonPath(kv.key, path) _
+          val matcher              = NodePropertyMatcherUtils.matchJsonPath(kv.key, path) _
           override val debugString = s"Prop json select '${value}'"
           override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
         }
@@ -886,11 +898,10 @@ final case class NameValueComparator(ldapAttr: String) extends TStringComparator
   // split k=v (v may not exists if there is no '='
   // is there is several '=', we consider they are part of the value
   def splitInput(value: String): (String, Option[String]) = {
-    val array = value.split('=')
-    val k     = array(0) // always exists with split
-    val v     = array.toList.tail match {
+    val SplittedValue(k, l, s) = NodePropertyMatcherUtils.splitInput(value, "=")
+    val v                      = l match {
       case Nil => None
-      case t   => Some(t.mkString("="))
+      case t   => Some(t.mkString(s))
     }
     (k, v)
   }
@@ -937,7 +948,8 @@ final case class NameValueComparator(ldapAttr: String) extends TStringComparator
  */
 final case class SubGroupChoice(id: NodeGroupId, name: String)
 
-class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends TStringComparator {
+// we must use `() => IOResult[...]` to avoid cyclic reference
+final case class SubGroupComparator(subGroupComparatorRepo: () => SubGroupComparatorRepository) extends TStringComparator {
   override val comparators = Equals :: Nil
 
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
@@ -949,7 +961,7 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
     // we need to query for the list of groups here
     val subGroups: Seq[SelectableOption[String]] = {
       (for {
-        res <- getGroups()
+        res <- subGroupComparatorRepo().getGroups
       } yield {
         val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
         // if current value is defined but not in the list, add it with a "missing group" label
@@ -986,7 +998,12 @@ class SubGroupComparator(getGroups: () => IOResult[Seq[SubGroupChoice]]) extends
  * on an inventory (or successlly on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
-final case class Criterion(val name: String, val cType: CriterionType, overrideObjectType: Option[String] = None) {
+final case class Criterion(
+    val name:             String,
+    val cType:            CriterionType,
+    nodeCriterionMatcher: NodeCriterionMatcher,
+    overrideObjectType:   Option[String] = None
+) {
   require(name != null && name.nonEmpty, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
 }
@@ -995,7 +1012,7 @@ case class ObjectCriterion(val objectType: String, val criteria: Seq[Criterion])
   require(objectType.nonEmpty, "Unique identifier for line must be defined")
   require(criteria.nonEmpty, "You must at least have one criterion for the line")
 
-  // optionnaly retrieve the criterion from a "string" attribute
+  // optionally retrieve the criterion from a "string" attribute
   def criterionForName(name: String): (Option[Criterion]) = {
     for (c <- criteria) {
       if (name.equalsIgnoreCase(c.name)) return Some(c)

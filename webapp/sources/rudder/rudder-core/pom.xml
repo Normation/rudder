@@ -90,6 +90,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
   <dependencies>
     <dependency>
+      <groupId>org.openjdk.jol</groupId>
+      <artifactId>jol-core</artifactId>
+      <version>0.17</version>
+    </dependency>
+    <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-api</artifactId>
       <version>${rudder-version}</version>
@@ -98,6 +103,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
+      <version>${rudder-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.normation.inventory</groupId>
+      <artifactId>inventory-provisioning-core</artifactId>
       <version>${rudder-version}</version>
     </dependency>
 

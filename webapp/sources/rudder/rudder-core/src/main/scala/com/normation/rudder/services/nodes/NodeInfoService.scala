@@ -119,10 +119,8 @@ trait NodeInfoService {
   /**
    * Return the number of managed (ie non policy server, no rudder role nodes.
    * Implementation of that method must as efficient as possible.
-   * It can't fails (implementation must use a sane default if backend is not accessible,
-   * or cache the information)
    */
-  def getNumberOfManagedNodes: Int
+  def getNumberOfManagedNodes: IOResult[Int]
 
   /**
    * Get all node infos.
@@ -606,7 +604,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   // containerDn look like  machineId=000f6268-e825-d13c-fa14-f9e55d05038c,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
   def getBackendLdapContainerinfo(containersDn: Seq[String]): IOResult[Seq[LDAPNodeInfo]]
 
-  override def getNumberOfManagedNodes: Int = nodeCache.map(_.managedNodes).getOrElse(0)
+  override def getNumberOfManagedNodes = nodeCache.map(_.managedNodes).getOrElse(0).succeed
 
   /*
    * Our cache
@@ -861,7 +859,6 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    */
   private[this] def getNotAcceptedNodeDataFromBackend(status: InventoryStatus): IOResult[Map[NodeId, NodeInfo]] = {
     import scala.collection.mutable.{Map => MutMap}
-
     for {
       con        <- ldap
       allEntries <- getNodeInfoEntries(con, searchAttributes, status, None)

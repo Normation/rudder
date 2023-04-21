@@ -1,0 +1,1804 @@
+{
+    "id" : "1d3a43bc-8508-46a2-92d7-cfe7320309a5",
+    "hostname" : "no-software",
+    "os" : {
+      "type" : "Linux",
+      "name" : "Ubuntu",
+      "version" : "22.04",
+      "fullName" : "Ubuntu 22.04 LTS",
+      "kernelVersion" : "5.15.0-41-generic"
+    },
+    "rudderSettings" : {
+      "keyStatus" : "certified",
+      "reportingConfiguration" : {
+
+      },
+      "kind" : "node",
+      "status" : "pending",
+      "state" : "enabled",
+      "policyMode" : "default",
+      "policyServerId" : "root"
+    },
+    "rudderAgent" : {
+      "type" : "cfengine-community",
+      "user" : "root",
+      "version" : "7.2.0~rc1-ubuntu22.04",
+      "securityToken" : {
+        "kind" : "certificate",
+        "token" : "-----BEGIN CERTIFICATE-----\nMIIFqzCCA5OgAwIBAgIULhYaqmQZGDMab0FnySgkA3tCWpgwDQYJKoZIhvcNAQEL\nBQAwNjE0MDIGCgmSJomT8ixkAQEMJDRkM2E0M2JjLTg1MDgtNDZhMi05MmQ3LWNm\nZTczMjAzMDlhNTAeFw0yMjA5MDcwODUyNDdaFw0zMjA5MDQwODUyNDdaMDYxNDAy\nBgoJkiaJk/IsZAEBDCQ0ZDNhNDNiYy04NTA4LTQ2YTItOTJkNy1jZmU3MzIwMzA5\nYTUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDD7/K+BfMAT4pwJf03\nHH9nTBXdDyibg4wbSy0zjiUrQ2Ri5tiwCsfUQtpkeHl3a643FBmHKE2oDvKOvFFV\nrBJWqtJBydVMwhBlDuDXR0WV9fPyIizIcAX/LBt1yPRSrtBkWQZ2IAN/lCADmtEe\ngkVyLiVcp/msMAdwm0QkDvB1o+g3USq0DFbwkQyopvTsYfGgcW/Rn9ifCyxq2rKe\nF+zbUIF7AK5dPjXyDFEEo80WUAZEkn3hQrEKYOCXkEiRLI6+KCArnv9jRop92dCg\nTjGIoMLtAQYb+txytf8/4oQDpCdEENvRJqQ2SVB1K1dtvLPXe7jQ2vK9/chtmFut\ndirZCOBRtbRV0eAZ7te4K0RC5L0R2EI7uowmhE5a8xwmWGH1U7BMVKR9B76iPdR3\nK9fXiPRUEBvs2N/06OBviY18VSR5k4sp9sEifAq3kgP/kvVKTA1dNavoB1gDH8KS\n+0Nnp9nA+AxMLyU5PFFvwSfgYZjp+sbDlFPrOgryVK0BLfGNdm27xftKW8yyzNPM\nbRirrnIngvh8wPHjDxC02/SJ7Pikx0ffOV09ee+Ik4dTbqj+bHy/z8rp0aAtLbZV\nNIGqvzCaByWWJhmYZ3FFwHo3LXUeonljQOYVl8kSEQkcE8b5X657fG3RTrLUE6DK\nobsJcr7JUwijGcB+tADQ+gngtQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD\nVR0OBBYEFChVcwIhgIr5vgRy8T8ol3MktitiMHEGA1UdIwRqMGiAFChVcwIhgIr5\nvgRy8T8ol3MktitioTqkODA2MTQwMgYKCZImiZPyLGQBAQwkNGQzYTQzYmMtODUw\nOC00NmEyLTkyZDctY2ZlNzMyMDMwOWE1ghQuFhqqZBkYMxpvQWfJKCQDe0JamDAL\nBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAEzLJFdRib1gHQ3ZFU6YCeEX\nUYd8DBRAnPUdjSi/6+Qz9KhQdo5F+vngAdqWFggL2lv1yaahLKTYSdxibBpzX9ee\nH8mP+Gxt0su0xoAtuwkzvfg3G6BTtAXorVgsEfya3re3eShOuvXprzqi7Xsnbv9a\nUzJX4FCJJAXA+Qd/frzpw33cSa8M4SHn7xTo3c9ZgOs1zJ4BepFz/2MpKYY9RSfU\nDpeksnS+ij1BUcrScitwCVvmh0nFXIMWcnUREqxkRAPY1ln1ExAaSmYA0SKsUhoJ\nGx08WfzprwunlzZCA91gmNW+1WjMFr9Nonp6SlMXH0ZrBm+K+zNm6+aAnZdN2ttG\nPmmqotUbbCG737HY8VxE27rgZ8SYidprqvuPtz4WaQPg+4JPeCzOqLWfcX3nfmJM\nkO7nfL0DCqDaZgW+O3FCSFfXnb8TQnMgJZlnakI/w+mzx26YkxtZ2xgWi7yLyBk6\nJDeC5KwgyP+nJpgSOIwGNf4ZaOEYtg3DeFjXmFi5N4Vtq98819cTp3QL+RZG4cVs\nDwFR0T3KjB6QWcvSB2QpQUvdOITtUsACP/zk73y7RwZVQT0DHVWVw6eHhGH6LpKI\nY8skyhHnHUjG1A9eOvk4ZQGPedL9cG0af7TzmaUwFg5fGN594lv79o7iGT1srNBp\n2A/Eff5z/oWypwrLbjiI\n-----END CERTIFICATE-----"
+      },
+      "capabilities" : [
+        "jq",
+        "yaml",
+        "cfengine",
+        "curl",
+        "acl",
+        "xml",
+        "http_reporting"
+      ]
+    },
+    "properties" : [
+      {
+        "name" : "rudder_original_hostname",
+        "value" : "node1.rudder.local",
+        "provider" : "inventory"
+      },
+      {
+        "name" : "rudder_override_hostname",
+        "value" : "node1-overridden.rudder.local.override",
+        "provider" : "inventory"
+      }
+    ],
+    "lastInventoryDate" : "2022-09-07T17:56:55Z",
+    "inventoryReceivedDate" : "2022-09-07T17:56:55Z",
+    "ipAddresses" : [
+      "192.168.32.4",
+      "0:0:0:0:0:0:0:1",
+      "127.0.0.1",
+      "fe80:0:0:0:a00:27ff:fe94:72e8",
+      "fe80:0:0:0:e5:1bff:fe70:f463",
+      "10.0.2.15"
+    ],
+    "timezone" : {
+      "name" : "UTC",
+      "offset" : "+0000"
+    },
+    "machine" : {
+      "id" : "a9445c97-2640-5736-961f-514e9a34940a",
+      "provider" : "vbox",
+      "systemSerial" : "28eba2ed-b589-ec45-bae4-d33155c8288d",
+      "manufacturer" : "innotek GmbH"
+    },
+    "ram" : 489684992,
+    "archDescription" : "x86_64",
+    "accounts" : [
+      "_apt",
+      "backup",
+      "bin",
+      "daemon",
+      "games",
+      "gnats",
+      "irc",
+      "landscape",
+      "list",
+      "lp",
+      "lxd",
+      "mail",
+      "man",
+      "messagebus",
+      "news",
+      "nobody",
+      "pollinate",
+      "proxy",
+      "root",
+      "sshd",
+      "sync",
+      "sys",
+      "syslog",
+      "systemd-network",
+      "systemd-resolve",
+      "systemd-timesync",
+      "tcpdump",
+      "tss",
+      "ubuntu",
+      "uucp",
+      "uuidd",
+      "vagrant",
+      "www-data"
+    ],
+    "bios" : [
+      {
+        "name" : "VirtualBox",
+        "version" : "VirtualBox",
+        "editor" : "innotek GmbH",
+        "releaseDate" : "2006-11-30T23:00:00Z",
+        "quantity" : 1
+      }
+    ],
+    "controllers" : [
+      {
+        "name" : "440FX - 82441FX PMC [Natoma]",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Host bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "53c1030 PCI-X Fusion-MPT Dual Ultra320 SCSI",
+        "manufacturer" : "LSI Logic / Symbios Logic",
+        "cType" : "SCSI storage controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371AB/EB/MB PIIX4 ACPI",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371AB/EB/MB PIIX4 IDE",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "IDE interface",
+        "quantity" : 1
+      },
+      {
+        "name" : "82371SB PIIX3 ISA [Natoma/Triton II]",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "ISA bridge",
+        "quantity" : 1
+      },
+      {
+        "name" : "82540EM Gigabit Ethernet Controller",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Ethernet controller",
+        "quantity" : 2
+      },
+      {
+        "name" : "82801AA AC'97 Audio Controller",
+        "manufacturer" : "Intel Corporation",
+        "cType" : "Multimedia audio controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "VirtualBox Graphics Adapter",
+        "manufacturer" : "InnoTek Systemberatung GmbH",
+        "cType" : "VGA compatible controller",
+        "quantity" : 1
+      },
+      {
+        "name" : "VirtualBox Guest Service",
+        "manufacturer" : "InnoTek Systemberatung GmbH",
+        "cType" : "System peripheral",
+        "quantity" : 1
+      }
+    ],
+    "customProperties" : [
+      {
+        "name" : "rudder_original_hostname",
+        "value" : "node1.rudder.local"
+      },
+      {
+        "name" : "rudder_override_hostname",
+        "value" : "node1-overridden.rudder.local.override"
+      }
+    ],
+    "environmentVariables" : [
+      ["BASEDIR", "/opt/rudder/share/commands"],
+      ["DEBIAN_FRONTEND", "noninteractive"],
+      ["HOME", "/root"],
+      ["LESSCLOSE", "/usr/bin/lesspipe %s %s"],
+      ["LESSOPEN", "| /usr/bin/lesspipe %s"],
+      ["LOGNAME", "root"],
+      ["LS_COLORS", "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:"],
+      ["MAIL", "/var/mail/root"],
+      ["PATH", "/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/usr/sbin:/sbin:/usr/sbin"],
+      ["PWD", "/var/rudder"],
+      ["RUDDER_BIN", "/usr/bin/rudder"],
+      ["SHELL", "/bin/bash"],
+      ["SHLVL", "1"],
+      ["SUDO_COMMAND", "/usr/bin/su"],
+      ["SUDO_GID", "1000"],
+      ["SUDO_UID", "1000"],
+      ["SUDO_USER", "vagrant"],
+      ["TERM", "xterm"],
+      ["USER", "root"],
+      ["_", "/usr/bin/rudder"]
+    ],
+    "fileSystems" : [
+      {
+        "mountPoint" : "/",
+        "name" : "ext4",
+        "freeSpace" : 39669727232,
+        "totalSpace" : 41555066880
+      },
+      {
+        "mountPoint" : "/vagrant",
+        "name" : "vboxsf",
+        "freeSpace" : 91722088448,
+        "totalSpace" : 397236240384
+      }
+    ],
+    "inputs" : [],
+    "localGroups" : [],
+    "localUsers" : [],
+    "logicalVolumes" : [],
+    "memories" : [],
+    "networks" : [
+      {
+        "name" : "enp0s3",
+        "ifAddresses" : [
+          "fe80:0:0:0:e5:1bff:fe70:f463",
+          "10.0.2.15"
+        ],
+        "ifGateway" : [
+          "10.0.2.2"
+        ],
+        "ifMask" : [
+          "ffff:ffff:ffff:ffff:0:0:0:0",
+          "255.255.255.0"
+        ],
+        "ifSubnet" : [
+          "fe80:0:0:0:0:0:0:0",
+          "10.0.2.0"
+        ],
+        "macAddress" : "02:e5:1b:70:f4:63",
+        "status" : "Up",
+        "ifType" : "ethernet",
+        "speed" : "1000"
+      },
+      {
+        "name" : "enp0s8",
+        "ifAddresses" : [
+          "fe80:0:0:0:a00:27ff:fe94:72e8",
+          "192.168.32.4"
+        ],
+        "ifGateway" : [],
+        "ifMask" : [
+          "ffff:ffff:ffff:ffff:0:0:0:0",
+          "255.255.255.0"
+        ],
+        "ifSubnet" : [
+          "fe80:0:0:0:0:0:0:0",
+          "192.168.32.0"
+        ],
+        "macAddress" : "08:00:27:94:72:e8",
+        "status" : "Up",
+        "ifType" : "ethernet",
+        "speed" : "1000"
+      },
+      {
+        "name" : "lo",
+        "ifAddresses" : [
+          "0:0:0:0:0:0:0:1",
+          "127.0.0.1"
+        ],
+        "ifGateway" : [],
+        "ifMask" : [
+          "fff0:0:0:0:0:0:0:0",
+          "255.0.0.0"
+        ],
+        "ifSubnet" : [
+          "0:0:0:0:0:0:0:0",
+          "127.0.0.0"
+        ],
+        "macAddress" : "00:00:00:00:00:00",
+        "status" : "Up",
+        "ifType" : "loopback"
+      }
+    ],
+    "physicalVolumes" : [],
+    "ports" : [],
+    "processes" : [
+      {
+        "pid" : 24832,
+        "commandName" : "(sd-pam)",
+        "cpuUsage" : 0.0,
+        "memory" : 1.0,
+        "started" : "2022-09-07 15:30",
+        "tty" : "?",
+        "user" : "vagrant",
+        "virtualMemory" : 170396.0
+      },
+      {
+        "pid" : 24915,
+        "commandName" : "-bash",
+        "cpuUsage" : 0.0,
+        "memory" : 0.8,
+        "started" : "2022-09-07 15:30",
+        "tty" : "pts/0",
+        "user" : "vagrant",
+        "virtualMemory" : 9148.0
+      },
+      {
+        "pid" : 50026,
+        "commandName" : "/bin/sh /opt/rudder/bin/rudder-perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/var/rudder/tmp/inventory/node1-4d3a43bc-8508-46a2-92d7-cfe7320309a5.ocs",
+        "cpuUsage" : 0.0,
+        "memory" : 0.2,
+        "started" : "2022-09-07 19:56",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 50022,
+        "commandName" : "/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory/node1-4d3a43bc-8508-46a2-92d7-cfe7320309a5.ocs",
+        "cpuUsage" : 0.0,
+        "memory" : 0.1,
+        "started" : "2022-09-07 19:56",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 49923,
+        "commandName" : "/bin/sh /opt/rudder/share/commands/../lib/timestamp",
+        "cpuUsage" : 0.0,
+        "memory" : 0.2,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 49785,
+        "commandName" : "/bin/sh /opt/rudder/share/commands/agent-inventory",
+        "cpuUsage" : 0.0,
+        "memory" : 0.3,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 49925,
+        "commandName" : "/bin/sh /opt/rudder/share/commands/agent-run -N -D force_inventory -b doInventory",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 49825,
+        "commandName" : "/bin/sh /opt/rudder/share/commands/agent-run -N -D force_inventory -b doInventory",
+        "cpuUsage" : 0.0,
+        "memory" : 0.4,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 2888.0
+      },
+      {
+        "pid" : 24830,
+        "commandName" : "/lib/systemd/systemd --user",
+        "cpuUsage" : 0.0,
+        "memory" : 1.5,
+        "started" : "2022-09-07 15:30",
+        "tty" : "?",
+        "user" : "vagrant",
+        "virtualMemory" : 17080.0
+      },
+      {
+        "pid" : 339,
+        "commandName" : "/lib/systemd/systemd-journald",
+        "cpuUsage" : 0.0,
+        "memory" : 1.9,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 48364.0
+      },
+      {
+        "pid" : 683,
+        "commandName" : "/lib/systemd/systemd-logind",
+        "cpuUsage" : 0.0,
+        "memory" : 1.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 23720.0
+      },
+      {
+        "pid" : 1628,
+        "commandName" : "/lib/systemd/systemd-networkd",
+        "cpuUsage" : 0.0,
+        "memory" : 0.9,
+        "started" : "2022-09-07 11:44",
+        "tty" : "?",
+        "user" : "systemd+",
+        "virtualMemory" : 16248.0
+      },
+      {
+        "pid" : 558,
+        "commandName" : "/lib/systemd/systemd-resolved",
+        "cpuUsage" : 0.0,
+        "memory" : 1.7,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "systemd+",
+        "virtualMemory" : 25392.0
+      },
+      {
+        "pid" : 411,
+        "commandName" : "/lib/systemd/systemd-timesyncd",
+        "cpuUsage" : 0.0,
+        "memory" : 0.6,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "systemd+",
+        "virtualMemory" : 89352.0
+      },
+      {
+        "pid" : 385,
+        "commandName" : "/lib/systemd/systemd-udevd",
+        "cpuUsage" : 0.0,
+        "memory" : 1.2,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 23304.0
+      },
+      {
+        "pid" : 49921,
+        "commandName" : "/opt/rudder/bin/cf-agent -I -D info -Cnever -K -b doInventory -D force_inventory",
+        "cpuUsage" : 55.0,
+        "memory" : 5.6,
+        "started" : "2022-09-07 19:56",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 74680.0
+      },
+      {
+        "pid" : 4493,
+        "commandName" : "/opt/rudder/bin/cf-execd --no-fork",
+        "cpuUsage" : 0.0,
+        "memory" : 2.8,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 33460.0
+      },
+      {
+        "pid" : 4495,
+        "commandName" : "/opt/rudder/bin/cf-serverd --graceful-detach=600 --no-fork --inform",
+        "cpuUsage" : 0.0,
+        "memory" : 2.6,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 33480.0
+      },
+      {
+        "pid" : 746,
+        "commandName" : "/sbin/agetty -o -p -- \\u --keep-baud 115200,57600,38400,9600 ttyS0 vt220",
+        "cpuUsage" : 0.0,
+        "memory" : 0.1,
+        "started" : "2022-09-07 11:43",
+        "tty" : "ttyS0",
+        "user" : "root",
+        "virtualMemory" : 6216.0
+      },
+      {
+        "pid" : 757,
+        "commandName" : "/sbin/agetty -o -p -- \\u --noclear tty1 linux",
+        "cpuUsage" : 0.0,
+        "memory" : 0.1,
+        "started" : "2022-09-07 11:43",
+        "tty" : "tty1",
+        "user" : "root",
+        "virtualMemory" : 6172.0
+      },
+      {
+        "pid" : 1,
+        "commandName" : "/sbin/init",
+        "cpuUsage" : 0.0,
+        "memory" : 2.2,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 167620.0
+      },
+      {
+        "pid" : 381,
+        "commandName" : "/sbin/multipathd -d -s",
+        "cpuUsage" : 0.0,
+        "memory" : 5.6,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 354888.0
+      },
+      {
+        "pid" : 674,
+        "commandName" : "/usr/bin/python3 /usr/bin/networkd-dispatcher --run-startup-triggers",
+        "cpuUsage" : 0.0,
+        "memory" : 2.3,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 32992.0
+      },
+      {
+        "pid" : 773,
+        "commandName" : "/usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal",
+        "cpuUsage" : 0.0,
+        "memory" : 2.6,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 110088.0
+      },
+      {
+        "pid" : 681,
+        "commandName" : "/usr/lib/snapd/snapd",
+        "cpuUsage" : 0.0,
+        "memory" : 5.6,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 743408.0
+      },
+      {
+        "pid" : 2287,
+        "commandName" : "/usr/libexec/packagekitd",
+        "cpuUsage" : 0.0,
+        "memory" : 1.8,
+        "started" : "2022-09-07 11:44",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 295940.0
+      },
+      {
+        "pid" : 675,
+        "commandName" : "/usr/libexec/polkitd --no-debug",
+        "cpuUsage" : 0.0,
+        "memory" : 0.8,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 234484.0
+      },
+      {
+        "pid" : 689,
+        "commandName" : "/usr/libexec/udisks2/udisksd",
+        "cpuUsage" : 0.0,
+        "memory" : 1.8,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 392700.0
+      },
+      {
+        "pid" : 732,
+        "commandName" : "/usr/sbin/ModemManager",
+        "cpuUsage" : 0.0,
+        "memory" : 0.9,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 316932.0
+      },
+      {
+        "pid" : 665,
+        "commandName" : "/usr/sbin/cron -f -P",
+        "cpuUsage" : 0.0,
+        "memory" : 0.5,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 7284.0
+      },
+      {
+        "pid" : 680,
+        "commandName" : "/usr/sbin/rsyslogd -n -iNONE",
+        "cpuUsage" : 0.0,
+        "memory" : 0.9,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "syslog",
+        "virtualMemory" : 222400.0
+      },
+      {
+        "pid" : 666,
+        "commandName" : "@dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only",
+        "cpuUsage" : 0.0,
+        "memory" : 0.8,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "message+",
+        "virtualMemory" : 8884.0
+      },
+      {
+        "pid" : 87,
+        "commandName" : "[acpi_thermal_pm]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5965,
+        "commandName" : "[arc_evict]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5964,
+        "commandName" : "[arc_prune]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5966,
+        "commandName" : "[arc_reap]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 75,
+        "commandName" : "[ata_sff]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 73,
+        "commandName" : "[blkcg_punt_bio]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 115,
+        "commandName" : "[charger_manager]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 17,
+        "commandName" : "[cpuhp/0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 153,
+        "commandName" : "[cryptd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5967,
+        "commandName" : "[dbu_evict]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5968,
+        "commandName" : "[dbuf_evict]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 78,
+        "commandName" : "[devfreq_wq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5911,
+        "commandName" : "[dio/sda1]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 84,
+        "commandName" : "[ecryptfs-kthrea]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 77,
+        "commandName" : "[edac-poller]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 267,
+        "commandName" : "[ext4-rsv-conver]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 16,
+        "commandName" : "[idle_inject/0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 19,
+        "commandName" : "[inet_frag_wq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 362,
+        "commandName" : "[ipmi-msghandler]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 96,
+        "commandName" : "[ipv6_addrconf]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 266,
+        "commandName" : "[jbd2/sda1-8]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 372,
+        "commandName" : "[kaluad]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 20,
+        "commandName" : "[kauditd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 72,
+        "commandName" : "[kblockd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 24,
+        "commandName" : "[kcompactd0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 18,
+        "commandName" : "[kdevtmpfs]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 21,
+        "commandName" : "[khungtaskd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 71,
+        "commandName" : "[kintegrityd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 379,
+        "commandName" : "[kmpath_handlerd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 374,
+        "commandName" : "[kmpath_rdacd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 376,
+        "commandName" : "[kmpathd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 25,
+        "commandName" : "[ksmd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 13,
+        "commandName" : "[ksoftirqd/0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 106,
+        "commandName" : "[kstrp]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 83,
+        "commandName" : "[kswapd0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 2,
+        "commandName" : "[kthreadd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 86,
+        "commandName" : "[kthrotld]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 32626,
+        "commandName" : "[kworker/0:0-cgroup_destroy]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 16:50",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 7,
+        "commandName" : "[kworker/0:0H-events_highpri]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 81,
+        "commandName" : "[kworker/0:1H-kblockd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 47519,
+        "commandName" : "[kworker/0:2-events]",
+        "cpuUsage" : 0.1,
+        "memory" : 0.0,
+        "started" : "2022-09-07 19:34",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 47059,
+        "commandName" : "[kworker/u2:0-writeback]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 19:32",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 48342,
+        "commandName" : "[kworker/u2:1-ext4-rsv-conversion]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 19:40",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 48785,
+        "commandName" : "[kworker/u2:2-flush-8:0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 19:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 110,
+        "commandName" : "[kworker/u3:0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5970,
+        "commandName" : "[l2arc_feed]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 76,
+        "commandName" : "[md]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 15,
+        "commandName" : "[migration/0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 95,
+        "commandName" : "[mld]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 10,
+        "commandName" : "[mm_percpu_wq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 162,
+        "commandName" : "[mpt/0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 161,
+        "commandName" : "[mpt_poll_0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5,
+        "commandName" : "[netns]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 22,
+        "commandName" : "[oom_reaper]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 222,
+        "commandName" : "[raid5wq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 3,
+        "commandName" : "[rcu_gp]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 4,
+        "commandName" : "[rcu_par_gp]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 14,
+        "commandName" : "[rcu_sched]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 11,
+        "commandName" : "[rcu_tasks_rude_]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 12,
+        "commandName" : "[rcu_tasks_trace]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 89,
+        "commandName" : "[scsi_eh_0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 91,
+        "commandName" : "[scsi_eh_1]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 189,
+        "commandName" : "[scsi_eh_2]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 90,
+        "commandName" : "[scsi_tmf_0]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 92,
+        "commandName" : "[scsi_tmf_1]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 190,
+        "commandName" : "[scsi_tmf_2]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5960,
+        "commandName" : "[spl_delay_taskq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5961,
+        "commandName" : "[spl_dynamic_tas]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5962,
+        "commandName" : "[spl_kmem_cache]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5959,
+        "commandName" : "[spl_system_task]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 74,
+        "commandName" : "[tpm_dev_wq]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 94,
+        "commandName" : "[vfio-irqfd-clea]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 79,
+        "commandName" : "[watchdogd]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 23,
+        "commandName" : "[writeback]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5969,
+        "commandName" : "[z_vdev_file]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 109,
+        "commandName" : "[zswap-shrink]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 5963,
+        "commandName" : "[zvol]",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 0.0
+      },
+      {
+        "pid" : 49926,
+        "commandName" : "awk -v info=0 -v full_strings=0 -v summary_only=0 -v quiet=0 -v multihost=0 -v green=\\033[1;32m -v darkgreen=\\033[0;32m -v red=\\033[1;31m -v yellow=\\033[1;33m -v magenta=\\033[1;35m -v normal=\\033[0;39m\\033[0;49m -v white=\\033[0;02m -v cyan=\\033[1;36m -v dblue=\\033[0;34m -v dgreen=\\033[0;32m -v timing=0 -v has_fflush=OK -v full_compliance=1 -v partial_run=1 -v error_fail=0 -v noncompliant_fail=0 -f /opt/rudder/share/commands/../lib/reports.awk",
+        "cpuUsage" : 0.0,
+        "memory" : 0.8,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 11872.0
+      },
+      {
+        "pid" : 24930,
+        "commandName" : "bash",
+        "cpuUsage" : 0.0,
+        "memory" : 0.7,
+        "started" : "2022-09-07 15:30",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 8024.0
+      },
+      {
+        "pid" : 5927,
+        "commandName" : "bpfilter_umh",
+        "cpuUsage" : 0.0,
+        "memory" : 0.1,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 2772.0
+      },
+      {
+        "pid" : 49922,
+        "commandName" : "cat",
+        "cpuUsage" : 0.0,
+        "memory" : 0.2,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 6328.0
+      },
+      {
+        "pid" : 50027,
+        "commandName" : "fusioninventory-agent: running task Inventory",
+        "cpuUsage" : 47.0,
+        "memory" : 10.1,
+        "started" : "2022-09-07 19:56",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 50496.0
+      },
+      {
+        "pid" : 5878,
+        "commandName" : "lxcfs /var/snap/lxd/common/var/lib/lxcfs -p /var/snap/lxd/common/lxcfs.pid",
+        "cpuUsage" : 0.0,
+        "memory" : 0.0,
+        "started" : "2022-09-07 11:45",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 85652.0
+      },
+      {
+        "pid" : 50040,
+        "commandName" : "ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command",
+        "cpuUsage" : 0.0,
+        "memory" : 0.3,
+        "started" : "2022-09-07 19:56",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 7060.0
+      },
+      {
+        "pid" : 797,
+        "commandName" : "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups",
+        "cpuUsage" : 0.0,
+        "memory" : 1.1,
+        "started" : "2022-09-07 11:43",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 15416.0
+      },
+      {
+        "pid" : 24827,
+        "commandName" : "sshd: vagrant [priv]",
+        "cpuUsage" : 0.0,
+        "memory" : 1.3,
+        "started" : "2022-09-07 15:30",
+        "tty" : "?",
+        "user" : "root",
+        "virtualMemory" : 17036.0
+      },
+      {
+        "pid" : 24914,
+        "commandName" : "sshd: vagrant@pts/0",
+        "cpuUsage" : 0.0,
+        "memory" : 1.3,
+        "started" : "2022-09-07 15:30",
+        "tty" : "?",
+        "user" : "vagrant",
+        "virtualMemory" : 17420.0
+      },
+      {
+        "pid" : 24929,
+        "commandName" : "su",
+        "cpuUsage" : 0.0,
+        "memory" : 0.5,
+        "started" : "2022-09-07 15:30",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 10592.0
+      },
+      {
+        "pid" : 24928,
+        "commandName" : "sudo su",
+        "cpuUsage" : 0.0,
+        "memory" : 0.1,
+        "started" : "2022-09-07 15:30",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 11892.0
+      },
+      {
+        "pid" : 24927,
+        "commandName" : "sudo su",
+        "cpuUsage" : 0.0,
+        "memory" : 0.6,
+        "started" : "2022-09-07 15:30",
+        "tty" : "pts/0",
+        "user" : "root",
+        "virtualMemory" : 11892.0
+      },
+      {
+        "pid" : 49924,
+        "commandName" : "tee /var/rudder/tmp/reports//2022-09-07T19:56:54+00:00@4d3a43bc-8508-46a2-92d7-cfe7320309a5.log",
+        "cpuUsage" : 0.0,
+        "memory" : 0.2,
+        "started" : "2022-09-07 19:56",
+        "tty" : "pts/1",
+        "user" : "root",
+        "virtualMemory" : 6192.0
+      }
+    ],
+    "processors" : [
+      {
+        "manufacturer" : "Intel",
+        "name" : "Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz",
+        "arch" : "i386",
+        "speed" : 2800,
+        "core" : 1,
+        "thread" : 1,
+        "stepping" : 9,
+        "family" : 6,
+        "model" : 158,
+        "quantity" : 1
+      }
+    ],
+    "slots" : [],
+    "software" : [],
+    "softwareUpdate" : [
+      {
+        "name" : "snapd",
+        "version" : "2.56.2+22.04ubuntu1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "python3-software-properties",
+        "version" : "0.99.22.3",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "software-properties-common",
+        "version" : "0.99.22.3",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libldap-common",
+        "version" : "2.5.13+dfsg-0ubuntu0.22.04.1",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libgstreamer1.0-0",
+        "version" : "1.20.3-0ubuntu1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "cryptsetup",
+        "version" : "2:2.4.3-1ubuntu1.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "cryptsetup-bin",
+        "version" : "2:2.4.3-1ubuntu1.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "cryptsetup-initramfs",
+        "version" : "2:2.4.3-1ubuntu1.1",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "python3-distupgrade",
+        "version" : "1:22.04.13",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "ubuntu-release-upgrader-core",
+        "version" : "1:22.04.13",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libnftables1",
+        "version" : "1.0.2-1ubuntu3",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "nftables",
+        "version" : "1.0.2-1ubuntu3",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "ubuntu-advantage-tools",
+        "version" : "27.10.1~22.04.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "python3-gi",
+        "version" : "3.42.1-0ubuntu1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "python3-apt",
+        "version" : "2.3.0ubuntu2.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "python-apt-common",
+        "version" : "2.3.0ubuntu2.1",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "locales",
+        "version" : "2.35-0ubuntu3.1",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libnetplan0",
+        "version" : "0.104-0ubuntu2.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "netplan.io",
+        "version" : "0.104-0ubuntu2.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libcryptsetup12",
+        "version" : "2:2.4.3-1ubuntu1.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "isc-dhcp-common",
+        "version" : "4.4.1-2.3ubuntu2.2",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "isc-dhcp-client",
+        "version" : "4.4.1-2.3ubuntu2.2",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "apt-utils",
+        "version" : "2.4.7",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "apt",
+        "version" : "2.4.7",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libapt-pkg6.0",
+        "version" : "2.4.7",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libc-bin",
+        "version" : "2.35-0ubuntu3.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "base-files",
+        "version" : "12ubuntu4.2",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "libc6",
+        "version" : "2.35-0ubuntu3.1",
+        "arch" : "amd64",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      },
+      {
+        "name" : "motd-news-config",
+        "version" : "12ubuntu4.2",
+        "arch" : "all",
+        "from" : "apt-get",
+        "kind" : "none",
+        "source" : "Ubuntu:22.04/jammy-updates"
+      }
+    ],
+    "sounds" : [
+      {
+        "name" : "Multimedia audio controller - Intel Corporation 82801AA AC'97 Audio Controller",
+        "description" : "rev 01",
+        "quantity" : 1
+      }
+    ],
+    "storages" : [
+      {
+        "name" : "sda",
+        "description" : "SCSI",
+        "size" : 45035290624,
+        "firmware" : "10",
+        "manufacturer" : "VBOX",
+        "model" : "HARDDISK",
+        "serialNumber" : "a23d4170",
+        "sType" : "disk",
+        "quantity" : 1
+      },
+      {
+        "name" : "sdb",
+        "description" : "SCSI",
+        "size" : 10485760,
+        "firmware" : "10",
+        "manufacturer" : "VBOX",
+        "model" : "HARDDISK",
+        "sType" : "disk",
+        "quantity" : 1
+      }
+    ],
+    "videos" : [],
+    "vms" : []
+}

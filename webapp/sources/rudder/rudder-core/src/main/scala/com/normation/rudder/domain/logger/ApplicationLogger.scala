@@ -129,7 +129,7 @@ object NodeLogger extends Logger {
 }
 
 /*
- * Log things related to global parameter, group and node properties interpolication and
+ * Log things related to global parameter, group and node properties interpolation and
  * policy generation (ie: not if a problem with global param API, but something like overriding is
  * broken for it, or property engine is broken
  */
@@ -221,6 +221,10 @@ object ReportLogger extends Logger {
   object Cache extends Logger {
     override protected def _logger = LoggerFactory.getLogger("report.cache")
   }
+}
+
+object FactQueryProcessorPure extends NamedZioLogger {
+  override def loggerName: String = "query.node-fact"
 }
 
 object ReportLoggerPure extends NamedZioLogger {

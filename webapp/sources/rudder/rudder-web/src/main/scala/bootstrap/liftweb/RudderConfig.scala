@@ -66,16 +66,10 @@ import com.normation.errors.SystemError
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning.AddIpValues
-import com.normation.inventory.ldap.provisioning.CheckMachineName
 import com.normation.inventory.ldap.provisioning.CheckOsType
-import com.normation.inventory.ldap.provisioning.DefaultInventorySaver
-import com.normation.inventory.ldap.provisioning.DefaultLDIFInventoryLogger
 import com.normation.inventory.ldap.provisioning.FromMotherBoardUuidIdFinder
 import com.normation.inventory.ldap.provisioning.LastInventoryDate
-import com.normation.inventory.ldap.provisioning.LogInventoryPreCommit
 import com.normation.inventory.ldap.provisioning.NameAndVersionIdFinder
-import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
-import com.normation.inventory.ldap.provisioning.PostCommitLogger
 import com.normation.inventory.ldap.provisioning.UseExistingMachineIdFinder
 import com.normation.inventory.ldap.provisioning.UseExistingNodeIdFinder
 import com.normation.inventory.ldap.provisioning.UuidMergerPreCommit
@@ -115,19 +109,31 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.FactNodeSummaryService
+import com.normation.rudder.facts.nodes.GitNodeFactRepositoryImpl
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
+import com.normation.rudder.facts.nodes.NodeFactFullInventoryRepository
+import com.normation.rudder.facts.nodes.NodeFactInventorySaver
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
+import com.normation.rudder.facts.nodes.WoFactNodeRepository
 import com.normation.rudder.facts.nodes.GitNodeFactRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.inventory.DefaultProcessInventoryService
-import com.normation.rudder.inventory.FactRepositoryPostCommit
 import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryMover
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.inventory.ProcessFile
+import com.normation.rudder.inventory.TriggerPolicyGenerationPostCommit
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
@@ -194,6 +200,7 @@ import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
+import com.unboundid.ldif.LDIFChangeRecord
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -206,6 +213,7 @@ import org.joda.time.DateTimeZone
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 import zio.{Scheduler => _, System => _, _}
+import zio.concurrent.ReentrantLock
 import zio.syntax._
 
 object RUDDER_CHARSET {
@@ -390,7 +398,7 @@ object RudderParsedProperties {
   // Here, we define static nouns for all theses properties
   //
 
-  private[this] val filteredPasswords = scala.collection.mutable.Buffer[String]()
+  val filteredPasswords = scala.collection.mutable.Buffer[String]()
 
   def logRudderParsedProperties() = {
     import scala.jdk.CollectionConverters._
@@ -1009,6 +1017,7 @@ object RudderConfig extends Loggable {
   val acceptedNodeQueryProcessor:          QueryProcessor                             = rci.acceptedNodeQueryProcessor
   val acceptedNodesDit:                    InventoryDit                               = rci.acceptedNodesDit
   val agentRegister:                       AgentRegister                              = rci.agentRegister
+  val aggregateReportScheduler:            FindNewReportsExecution                    = rci.aggregateReportScheduler
   val apiAuthorizationLevelService:        DefaultApiAuthorizationLevel               = rci.apiAuthorizationLevelService
   val apiDispatcher:                       RudderEndpointDispatcher                   = rci.apiDispatcher
   val asyncComplianceService:              AsyncComplianceService                     = rci.asyncComplianceService
@@ -1021,6 +1030,7 @@ object RudderConfig extends Loggable {
   val campaignEventRepo:                   CampaignEventRepositoryImpl                = rci.campaignEventRepo
   val campaignSerializer:                  CampaignSerializer                         = rci.campaignSerializer
   val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer                 = rci.categoryHierarchyDisplayer
+  val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation          = rci.changeRequestChangesSerialisation
   val changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation        = rci.changeRequestChangesUnserialisation
   val changeRequestEventLogService:        ChangeRequestEventLogService               = rci.changeRequestEventLogService
   val checkInventoryUpdate:                CheckInventoryUpdate                       = rci.checkInventoryUpdate
@@ -1046,7 +1056,7 @@ object RudderConfig extends Loggable {
   val eventLogDetailsService:              EventLogDetailsService                     = rci.eventLogDetailsService
   val eventLogRepository:                  EventLogRepository                         = rci.eventLogRepository
   val findExpectedReportRepository:        FindExpectedReportRepository               = rci.findExpectedReportRepository
-  val fullInventoryRepository:             LDAPFullInventoryRepository                = rci.fullInventoryRepository
+  val fullInventoryRepository:             FullInventoryRepository[Unit]              = rci.fullInventoryRepository
   val gitRevisionProvider:                 GitRevisionProvider                        = rci.gitRevisionProvider
   val healthcheckNotificationService:      HealthcheckNotificationService             = rci.healthcheckNotificationService
   val historizeNodeCountBatch:             IOResult[Unit]                             = rci.historizeNodeCountBatch
@@ -1064,6 +1074,7 @@ object RudderConfig extends Loggable {
   val ncfTechniqueReader:                  ncf.TechniqueReader                        = rci.ncfTechniqueReader
   val newNodeManager:                      NewNodeManager                             = rci.newNodeManager
   val nodeDit:                             NodeDit                                    = rci.nodeDit
+  val nodeFactRepository:                  NodeFactRepository                         = rci.nodeFactRepository
   val nodeGrid:                            NodeGrid                                   = rci.nodeGrid
   val nodeInfoService:                     NodeInfoService                            = rci.nodeInfoService
   val nodeSummaryService:                  NodeSummaryService                         = rci.nodeSummaryService
@@ -1101,6 +1112,7 @@ object RudderConfig extends Loggable {
   val ruleApplicationStatus:               RuleApplicationStatusService               = rci.ruleApplicationStatus
   val ruleCategoryService:                 RuleCategoryService                        = rci.ruleCategoryService
   val rwLdap:                              LDAPConnectionProvider[RwLDAPConnection]   = rci.rwLdap
+  val secretEventLogService:               SecretEventLogService                      = rci.secretEventLogService
   val sharedFileApi:                       SharedFilesAPI                             = rci.sharedFileApi
   val snippetExtensionRegister:            SnippetExtensionRegister                   = rci.snippetExtensionRegister
   val srvGrid:                             SrvGrid                                    = rci.srvGrid
@@ -1213,7 +1225,7 @@ case class RudderServiceApi(
     personIdentService:                  PersonIdentService,
     gitRevisionProvider:                 GitRevisionProvider,
     logDisplayer:                        LogDisplayer,
-    fullInventoryRepository:             LDAPFullInventoryRepository,
+    fullInventoryRepository:             FullInventoryRepository[Unit],
     acceptedNodeQueryProcessor:          QueryProcessor,
     categoryHierarchyDisplayer:          CategoryHierarchyDisplayer,
     dynGroupService:                     DynGroupService,
@@ -1283,7 +1295,8 @@ case class RudderServiceApi(
     secretEventLogService:               SecretEventLogService,
     changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation,
     gitRepo:                             GitRepositoryProvider,
-    gitModificationRepository:           GitModificationRepository
+    gitModificationRepository:           GitModificationRepository,
+    nodeFactRepository:                  NodeFactRepository
 )
 
 /*
@@ -1306,8 +1319,7 @@ object RudderConfigInit {
     lazy val clearableCache: Seq[CachedRepository] = Seq(
       cachedAgentRunRepository,
       recentChangesService,
-      reportingServiceImpl,
-      nodeInfoServiceImpl
+      reportingServiceImpl
     )
 
     lazy val pluginSettingsService = new FilePluginSettingsService(
@@ -1474,7 +1486,7 @@ object RudderConfigInit {
         acceptedNodesDit,
         rudderDit,
         roDirectiveRepository,
-        nodeInfoService
+        nodeFactRepository
       ),
       userService,
       linkUtil
@@ -1513,7 +1525,7 @@ object RudderConfigInit {
         woRuleCategoryRepository,
         roDirectiveRepository,
         roNodeGroupRepository,
-        nodeInfoService,
+        nodeFactInfoService,
         configService.rudder_global_policy_mode _,
         ruleApplicationStatus
       )
@@ -1600,73 +1612,30 @@ object RudderConfigInit {
       )
     }
 
-    lazy val nodeApiService2 = new NodeApiService2(
-      newNodeManager,
-      nodeInfoService,
-      removeNodeService,
-      uuidGen,
-      restExtractorService,
-      restDataSerializer
-    )
-
-    lazy val nodeApiService4 = new NodeApiService4(
-      fullInventoryRepository,
-      nodeInfoService,
-      softwareInventoryDAO,
-      uuidGen,
-      restExtractorService,
-      restDataSerializer,
-      roAgentRunsRepository
-    )
-
-    lazy val nodeApiService8 = {
-      new NodeApiService8(
-        woNodeRepository,
-        nodeInfoService,
-        uuidGen,
-        asyncDeploymentAgent,
-        RUDDER_RELAY_API,
-        userService
-      )
-    }
-
-    lazy val nodeApiService12 = new NodeApiService12(
-      removeNodeService,
-      uuidGen,
-      restDataSerializer
-    )
-
-    lazy val nodeApiService6 = new NodeApiService6(
-      nodeInfoService,
-      fullInventoryRepository,
-      softwareInventoryDAO,
-      restExtractorService,
-      restDataSerializer,
-      queryProcessor,
-      inventoryQueryChecker,
-      roAgentRunsRepository
-    )
-
-    lazy val nodeApiService13 = new NodeApiService13(
-      nodeInfoService,
-      cachedAgentRunRepository,
-      readOnlySoftwareDAO,
-      restExtractorService,
-      () => configService.rudder_global_policy_mode().toBox,
-      reportingServiceImpl,
+    lazy val nodeApiService = new NodeApiService(
+      nodeFactRepository,
+      factFullInventoryRepo,
       roNodeGroupRepository,
-      roLDAPParameterRepository
-    )
-
-    lazy val nodeApiService16 = new NodeApiService15(
-      fullInventoryRepository,
-      rwLdap,
+      roLDAPParameterRepository,
+      roAgentRunsRepository,
+      woFactNodeRepository,
       ldapEntityMapper,
-      newNodeManager,
       stringUuidGenerator,
       nodeDit,
       pendingNodesDit,
-      acceptedNodesDit
+      acceptedNodesDit,
+      nodeFactInfoService,
+      newNodeManagerImpl,
+      removeNodeServiceImpl,
+      restExtractorService,
+      restDataSerializer,
+      reportingServiceImpl,
+      queryProcessor,
+      inventoryQueryChecker,
+      asyncDeploymentAgent,
+      userService,
+      () => configService.rudder_global_policy_mode().toBox,
+      RUDDER_RELAY_API
     )
 
     lazy val parameterApiService2  = {
@@ -1716,14 +1685,14 @@ object RudderConfigInit {
       healthcheckService,
       healthcheckNotificationService,
       restDataSerializer,
-      softwareService
+      deprecated.softwareService
     )
 
-    lazy val ruleInternalApiService = new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, nodeInfoService)
+    lazy val ruleInternalApiService = new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, nodeFactInfoService)
 
     lazy val complianceAPIService = new ComplianceAPIService(
       roRuleRepository,
-      nodeInfoService,
+      nodeFactInfoService,
       roNodeGroupRepository,
       reportingService,
       roDirectiveRepository,
@@ -1770,76 +1739,88 @@ object RudderConfigInit {
       )
     }
 
-    lazy val automaticMerger: PreCommit = new UuidMergerPreCommit(
-      uuidGen,
-      acceptedNodesDit,
-      new NodeInventoryDNFinderService(
-        Seq(
-          // start by trying to use an already given UUID
-          NamedNodeInventoryDNFinderAction(
-            "use_existing_id",
-            new UseExistingNodeIdFinder(inventoryDitService, roLdap, acceptedNodesDit.BASE_DN.getParent)
-          )
-        )
-      ),
-      new MachineDNFinderService(
-        Seq(
-          // start by trying to use an already given UUID
-          NamedMachineDNFinderAction(
-            "use_existing_id",
-            new UseExistingMachineIdFinder(inventoryDitService, roLdap, acceptedNodesDit.BASE_DN.getParent)
-          ), // look if it's in the accepted inventories
-
-          NamedMachineDNFinderAction(
-            "check_mother_board_uuid_accepted",
-            new FromMotherBoardUuidIdFinder(roLdap, acceptedNodesDit, inventoryDitService)
-          ), // see if it's in the "pending" branch
-
-          NamedMachineDNFinderAction(
-            "check_mother_board_uuid_pending",
-            new FromMotherBoardUuidIdFinder(roLdap, pendingNodesDit, inventoryDitService)
-          ), // see if it's in the "removed" branch
-
-          NamedMachineDNFinderAction(
-            "check_mother_board_uuid_removed",
-            new FromMotherBoardUuidIdFinder(roLdap, removedNodesDitImpl, inventoryDitService)
-          )
-        )
-      ),
-      new NameAndVersionIdFinder(
-        "check_name_and_version",
-        roLdap,
-        inventoryMapper,
-        acceptedNodesDit
-      )
-    )
-
-    lazy val gitFactRepo   = GitRepositoryProviderImpl
+    lazy val gitFactRepoProvider = GitRepositoryProviderImpl
       .make(RUDDER_GIT_ROOT_FACT_REPO)
       .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
-    lazy val gitFactRepoGC = new GitGC(gitFactRepo, RUDDER_GIT_GC)
-    lazy val factRepo      = new GitNodeFactRepository(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO)
-    factRepo.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
+    lazy val gitFactRepoGC       = new GitGC(gitFactRepoProvider, RUDDER_GIT_GC)
+    gitFactRepoGC.start()
+    lazy val gitFactRepo         = new GitNodeFactRepositoryImpl(gitFactRepoProvider, RUDDER_GROUP_OWNER_CONFIG_REPO)
+    gitFactRepo.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
 
-    lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
-    lazy val inventorySaver      = new DefaultInventorySaver(
-      rwLdap,
-      acceptedNodesDit,
-      inventoryMapper,
+    // TODO WARNING POC: this can't work on a machine with lots of node
+    lazy val nodeFactRepository = {
+      println(s"****** init node fact repo")
+
+      // software are sooooo slow that even on test data, we can't get them
+      def getFacts(nodeInfos: Iterable[NodeInfo], status: InventoryStatus): IOResult[Map[NodeId, NodeFact]] = {
+        ZIO
+          .foreachPar(nodeInfos.zipWithIndex) {
+            case (nodeInfo, i) =>
+              for {
+                _    <-
+                  InventoryDataLogger.trace(s"Retrieving inv for ${i}/${nodeInfos.size} '${nodeInfo.id.value}' (${status.name})")
+                inv  <- deprecated.ldapFullInventoryRepository.get(nodeInfo.id, status)
+                _    <- InventoryDataLogger.trace(s"  ... software ...")
+                soft <- deprecated.softwareInventoryDAO.getSoftwareByNode(Set(nodeInfo.id), status)
+              } yield {
+                (
+                  nodeInfo.id,
+                  NodeFact.fromCompat(
+                    nodeInfo,
+                    inv.toRight(status),
+                    soft.getOrElse(nodeInfo.id, Nil)
+                  )
+                )
+              }
+          }
+          .withParallelism(16)
+          .map(_.toMap)
+      }
+
+      val app = for {
+        _             <- InventoryDataLogger.debug("===== ********* =========")
+        _             <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
+        // empty because too long for test
+        pendingInfos  <- deprecated.ldapNodeInfoServiceImpl.getPendingNodeInfos()
+        pendingFacts  <- getFacts(pendingInfos.values, PendingInventory)
+        pending       <- Ref.make(pendingFacts)
+        pending       <- Ref.make(Map[NodeId, NodeFact]())
+        _             <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
+        acceptedInfos <- deprecated.ldapNodeInfoServiceImpl.getAllNodeInfos()
+        acceptedFacts <- getFacts(acceptedInfos, AcceptedInventory)
+        accepted      <- Ref.make(acceptedFacts)
+        lock          <- ReentrantLock.make()
+        callbacks     <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
+        _             <- InventoryDataLogger.debug("Creating node fact repos")
+      } yield {
+        new CoreNodeFactRepository(gitFactRepo, pending, accepted, callbacks, lock)
+      }
+
+      ZioRuntime.unsafeRun(app)
+    }
+
+//  lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
+    lazy val inventorySaver = new NodeFactInventorySaver(
+      nodeFactRepository,
       (
         CheckOsType
-        :: automaticMerger
-        :: CheckMachineName
+        // :: automaticMerger
+        // :: CheckMachineName
         :: new LastInventoryDate()
         :: AddIpValues
-        :: new LogInventoryPreCommit(inventoryMapper, ldifInventoryLogger)
+        // :: new LogInventoryPreCommit(inventoryMapper, ldifInventoryLogger)
         :: Nil
       ),
       (
-        new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
-        :: new FactRepositoryPostCommit(factRepo, nodeInfoService)
-        :: new PostCommitLogger(ldifInventoryLogger)
-        :: new PostCommitInventoryHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+        // deprecated: nodes are fully deleted now
+//      new PendingNodeIfNodeWasRemoved(fullInventoryRepository)
+        // already commited in fact repos
+//      new FactRepositoryPostCommit[Unit](factRepo, nodeFactInfoService)
+        // deprecated: we use fact repo now
+//      :: new PostCommitLogger(ldifInventoryLogger)
+        new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+        // trigger node regeneration if the inventory changed
+        :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, uuidGen)
         :: Nil
       )
     )
@@ -1877,10 +1858,8 @@ object RudderConfigInit {
         pipelinedInventoryParser,
         inventorySaver,
         maxParallel,
-        fullInventoryRepository,
-        new InventoryDigestServiceV1(fullInventoryRepository),
-        checkLdapAlive,
-        pendingNodesDit
+        new InventoryDigestServiceV1((id: NodeId) => factFullInventoryRepo.get(id)),
+        checkLdapAlive
       )
     }
 
@@ -1915,6 +1894,8 @@ object RudderConfigInit {
         List(better.files.File(INVENTORY_DIR_FAILED), better.files.File(INVENTORY_DIR_RECEIVED))
       )
     }
+
+    lazy val factFullInventoryRepo = new NodeFactFullInventoryRepository(nodeFactRepository)
 
     lazy val archiveApi = {
       val archiveBuilderService =
@@ -1971,7 +1952,7 @@ object RudderConfigInit {
       import com.normation.rudder.rest.lift._
 
       val nodeInheritedProperties  =
-        new NodeApiInheritedProperties(nodeInfoService, roNodeGroupRepository, roLDAPParameterRepository)
+        new NodeApiInheritedProperties(nodeFactInfoService, roNodeGroupRepository, roLDAPParameterRepository)
       val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
 
       val campaignApi = new lift.CampaignApi(
@@ -2005,13 +1986,7 @@ object RudderConfigInit {
         new NodeApi(
           restExtractorService,
           restDataSerializer,
-          nodeApiService2,
-          nodeApiService4,
-          nodeApiService6,
-          nodeApiService8,
-          nodeApiService12,
-          nodeApiService13,
-          nodeApiService16,
+          nodeApiService,
           nodeInheritedProperties,
           RUDDER_DEFAULT_DELETE_NODE_MODE
         ),
@@ -2022,7 +1997,7 @@ object RudderConfigInit {
           asyncDeploymentAgent,
           stringUuidGenerator,
           policyServerManagementService,
-          nodeInfoService
+          nodeFactInfoService
         ),
         new TechniqueApi(
           restExtractorService,
@@ -2237,15 +2212,15 @@ object RudderConfigInit {
      * For now, we don't want to query server other
      * than the accepted ones.
      */
-    lazy val getSubGroupChoices = () => roLdapNodeGroupRepository.getAll().map(seq => seq.map(g => SubGroupChoice(g.id, g.name)))
-    lazy val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, getSubGroupChoices)
+    lazy val getSubGroupChoices = new DefaultSubGroupComparatorRepository(roLdapNodeGroupRepository)
+    lazy val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
+    lazy val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
     lazy val queryParser        = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
       override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
     }
     lazy val inventoryMapper: InventoryMapper =
       new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
-    lazy val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries =
-      new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
+
     lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
 
     lazy val activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
@@ -2406,47 +2381,25 @@ object RudderConfigInit {
     }
 
     // query processor for accepted nodes
-    lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
-      nodeDitImpl,
-      acceptedNodesDitImpl,
-      new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, nodeDit, ditQueryDataImpl, ldapEntityMapper),
-      nodeInfoServiceImpl
+    lazy val queryProcessor = new NodeFactQueryProcessor(
+      nodeFactRepository,
+      new DefaultSubGroupComparatorRepository(roNodeGroupRepository),
+      AcceptedInventory
     )
 
     // we need a roLdap query checker for nodes in pending
-    lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(
-      new InternalLDAPQueryProcessor(
-        roLdap,
-        pendingNodesDitImpl,
-        nodeDit, // here, we don't want to look for subgroups to show them in the form => always return an empty list
-
-        new DitQueryData(pendingNodesDitImpl, nodeDit, rudderDit, () => Nil.succeed),
-        ldapEntityMapper
-      ),
-      nodeInfoServiceImpl
+    lazy val inventoryQueryChecker = new NodeFactQueryProcessor(
+      nodeFactRepository,
+      new DefaultSubGroupComparatorRepository(roNodeGroupRepository),
+      PendingInventory
     )
-    lazy val dynGroupServiceImpl   = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper)
+
+    lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper)
 
     lazy val pendingNodeCheckGroup = new CheckPendingNodeInDynGroups(inventoryQueryChecker)
 
-    lazy val ldapFullInventoryRepository =
-      new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
-    lazy val fullInventoryRepository     = ldapFullInventoryRepository
-    lazy val unitRefuseGroup:              UnitRefuseInventory                          =
+    lazy val unitRefuseGroup: UnitRefuseInventory =
       new RefuseGroups("refuse_node:delete_id_in_groups", roLdapNodeGroupRepository, woLdapNodeGroupRepository)
-    lazy val acceptInventory:              UnitAcceptInventory with UnitRefuseInventory =
-      new AcceptInventory("accept_new_server:inventory", pendingNodesDitImpl, acceptedNodesDitImpl, ldapFullInventoryRepository)
-    lazy val acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = {
-      new AcceptFullInventoryInNodeOu(
-        "accept_new_server:ou=node",
-        nodeDitImpl,
-        rwLdap,
-        ldapEntityMapper,
-        PendingInventory,
-        () => configService.rudder_node_onaccept_default_policy_mode().toBox,
-        () => configService.rudder_node_onaccept_default_state().toBox
-      )
-    }
 
     lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
       "accept_new_server:check_hostname_unicity",
@@ -2454,25 +2407,31 @@ object RudderConfigInit {
       queryProcessor,
       ditQueryDataImpl,
       psMngtService,
-      nodeInfoServiceImpl,
+      nodeFactInfoService,
       configService.node_accept_duplicated_hostname()
     )
+
+    // used in accept node to see & store inventories on acceptation
+    lazy val inventoryHistoryLogRepository: InventoryHistoryLogRepository = {
+      val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries =
+        new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
+
+      new InventoryHistoryLogRepository(
+        HISTORY_INVENTORIES_ROOTDIR,
+        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper)
+      )
+    }
 
     lazy val historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = {
       new HistorizeNodeStateOnChoice(
         "accept_or_refuse_new_node:historize_inventory",
-        ldapFullInventoryRepository,
-        diffRepos,
+        factFullInventoryRepo,
+        inventoryHistoryLogRepository,
         PendingInventory
       )
     }
-    lazy val updateFactRepoOnChoice:     UnitAcceptInventory with UnitRefuseInventory = new UpdateFactRepoOnChoice(
-      "accept_or_refuse_new_node:update_fact_repo",
-      PendingInventory,
-      factRepo
-    )
 
-    lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl, configService)
+    lazy val nodeGridImpl = new NodeGrid(factFullInventoryRepo, nodeFactInfoService, configService)
 
     lazy val modificationService      =
       new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, uuidGen)
@@ -2482,29 +2441,15 @@ object RudderConfigInit {
       logRepository,
       roLdapNodeGroupRepository,
       roLdapDirectiveRepository,
-      nodeInfoServiceImpl,
+      nodeFactInfoService,
       roLDAPRuleCategoryRepository,
       modificationService,
       personIdentServiceImpl,
       linkUtil,
       diffDisplayer
     )
-    lazy val databaseManagerImpl      = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
-    lazy val softwareInventoryDAO: ReadOnlySoftwareDAO =
-      new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
-    lazy val readOnlySoftwareDAO = softwareInventoryDAO
-    lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(acceptedNodesDitImpl, rwLdap)
-    lazy val softwareService:        SoftwareService      =
-      new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO, acceptedNodesDit)
 
-    lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
-    lazy val diffRepos: InventoryHistoryLogRepository = {
-      new InventoryHistoryLogRepository(
-        HISTORY_INVENTORIES_ROOTDIR,
-        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper)
-      )
-    }
-    lazy val inventoryHistoryLogRepository = diffRepos
+    lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
 
     lazy val personIdentServiceImpl: PersonIdentService = new TrivialPersonIdentService
     lazy val personIdentService = personIdentServiceImpl
@@ -2646,17 +2591,7 @@ object RudderConfigInit {
     )
     lazy val woRuleRepository = woLdapRuleRepository
 
-    lazy val woLdapNodeRepository: WoNodeRepository = new WoLDAPNodeRepository(
-      nodeDitImpl,
-      acceptedNodesDit,
-      ldapEntityMapper,
-      rwLdap,
-      logRepository,
-      nodeReadWriteMutex,
-      cachedNodeConfigurationService,
-      reportingServiceImpl
-    )
-    lazy val woNodeRepository = woLdapNodeRepository
+    lazy val woFactNodeRepository: WoNodeRepository = new WoFactNodeRepository(nodeFactRepository)
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,
@@ -2754,7 +2689,7 @@ object RudderConfigInit {
     }
     lazy val globalAgentRunService:       AgentRunIntervalService = {
       new AgentRunIntervalServiceImpl(
-        nodeInfoServiceImpl,
+        nodeFactInfoService,
         () => configService.agent_run_interval().toBox,
         () => configService.agent_run_start_hour().toBox,
         () => configService.agent_run_start_minute().toBox,
@@ -2845,7 +2780,7 @@ object RudderConfigInit {
         ruleValService,
         systemVariableService,
         nodeConfigurationHashRepo,
-        nodeInfoServiceImpl,
+        nodeFactInfoService,
         updateExpectedRepo,
         roNodeGroupRepository,
         roDirectiveRepository,
@@ -2853,7 +2788,7 @@ object RudderConfigInit {
         ruleApplicationStatusImpl,
         roParameterServiceImpl,
         interpolationCompiler,
-        ldapFullInventoryRepository,
+        factFullInventoryRepo,
         globalComplianceModeService,
         globalAgentRunService,
         reportingServiceImpl,
@@ -2894,13 +2829,12 @@ object RudderConfigInit {
     }
     lazy val asyncDeploymentAgent = asyncDeploymentAgentImpl
 
-    lazy val newNodeManagerImpl = {
+    lazy val nodeSummaryServiceImpl = new FactNodeSummaryService(nodeFactRepository)
+    lazy val newNodeManagerImpl     = {
+
       // the sequence of unit process to accept a new inventory
       val unitAcceptors = {
         historizeNodeStateOnChoice ::
-        updateFactRepoOnChoice ::
-        acceptNodeAndMachineInNodeOu ::
-        acceptInventory ::
         acceptHostnameAndIp ::
         Nil
       }
@@ -2908,32 +2842,33 @@ object RudderConfigInit {
       // the sequence of unit process to refuse a new inventory
       val unitRefusors = {
         historizeNodeStateOnChoice ::
-        updateFactRepoOnChoice ::
         unitRefuseGroup ::
-        acceptInventory ::
         Nil
       }
 
-      new NewNodeManagerImpl(
-        roLdap,
-        pendingNodesDitImpl,
-        acceptedNodesDitImpl,
+      val hooksRunner     = new NewNodeManagerHooksImpl(nodeFactInfoService, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+      val composedManager = new ComposedNewNodeManager[Unit](
+        factFullInventoryRepo,
         nodeSummaryServiceImpl,
-        ldapFullInventoryRepository,
         unitAcceptors,
         unitRefusors,
         inventoryHistoryLogRepository,
         eventLogRepository,
         dyngroupUpdaterBatch,
-        List(nodeInfoServiceImpl),
         cachedNodeConfigurationService,
         reportingServiceImpl,
-        nodeInfoServiceImpl,
-        HOOKS_D,
-        HOOKS_IGNORE_SUFFIXES
+        List(),
+        hooksRunner
+      )
+      val listNodes       = new FactListNewNodes(nodeFactRepository)
+
+      new NewNodeManagerImpl[Unit](
+        composedManager,
+        listNodes
       )
     }
-    lazy val newNodeManager: NewNodeManager = newNodeManagerImpl
+
+    /////// reporting ///////
 
     lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = {
       val x = new FileBasedNodeConfigurationHashRepository(FileBasedNodeConfigurationHashRepository.defaultHashesPath)
@@ -2948,7 +2883,7 @@ object RudderConfigInit {
           reportsRepositoryImpl,
           roAgentRunsRepository,
           globalAgentRunService,
-          nodeInfoServiceImpl,
+          nodeFactInfoService,
           roLdapDirectiveRepository,
           roRuleRepository,
           cachedNodeConfigurationService,
@@ -2957,7 +2892,7 @@ object RudderConfigInit {
           () => configService.rudder_compliance_unexpected_report_interpretation().toBox,
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
-        nodeInfoServiceImpl,
+        nodeFactInfoService,
         RUDDER_JDBC_BATCH_MAX_SIZE, // use same size as for SQL requests
 
         complianceRepositoryImpl
@@ -3051,7 +2986,7 @@ object RudderConfigInit {
       inventoryMapper,
       FiniteDuration(LDAP_CACHE_NODE_INFO_MIN_INTERVAL.toMillis, "millis")
     )
-    lazy val nodeInfoService:              NodeInfoService              = nodeInfoServiceImpl
+    lazy val nodeFactInfoService           = new NodeInfoServiceProxy(nodeFactRepository)
     lazy val dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
       new FindDependenciesImpl(roLdap, rudderDitImpl, ldapEntityMapper),
       roLdapDirectiveRepository,
@@ -3124,45 +3059,38 @@ object RudderConfigInit {
      */
     lazy val postNodeDeleteActions = Ref
       .make(
-        new RemoveNodeInfoFromCache(nodeInfoServiceImpl)
+        //      new RemoveNodeInfoFromCache(ldapNodeInfoServiceImpl)
+        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository, uuidGen)
         :: new CloseNodeConfiguration(updateExpectedRepo)
         :: new RemoveNodeFromComplianceCache(cachedNodeConfigurationService, reportingServiceImpl)
         :: new DeletePolicyServerPolicies(policyServerManagementService)
         :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
         :: new CleanUpCFKeys()
         :: new CleanUpNodePolicyFiles("/var/rudder/share")
-        :: new DeleteNodeFact(factRepo)
+        :: new DeleteNodeFact(nodeFactRepository)
         :: Nil
       )
       .runNow
 
+    lazy val factRemoveNodeBackend = new FactRemoveNodeBackend(nodeFactRepository)
+
     lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
-      nodeDitImpl,
-      rudderDitImpl,
-      pendingNodesDitImpl,
-      acceptedNodesDitImpl,
-      removedNodesDitImpl,
-      rwLdap,
-      ldapEntityMapper,
-      roLdapNodeGroupRepository,
-      woLdapNodeGroupRepository,
-      nodeInfoServiceImpl,
-      ldapFullInventoryRepository,
-      logRepository,
-      nodeReadWriteMutex,
+      //    deprecated.ldapRemoveNodeBackend,
+      factRemoveNodeBackend,
+      nodeFactInfoService,
       pathComputer,
-      newNodeManager,
+      newNodeManagerImpl,
+      logRepository,
       postNodeDeleteActions,
       HOOKS_D,
       HOOKS_IGNORE_SUFFIXES
     )
-    lazy val removeNodeService: RemoveNodeService = removeNodeServiceImpl
 
     lazy val healthcheckService = new HealthcheckService(
       List(
         CheckCoreNumber,
         CheckFreeSpace,
-        new CheckFileDescriptorLimit(nodeInfoService)
+        new CheckFileDescriptorLimit(nodeFactInfoService)
       )
     )
 
@@ -3178,7 +3106,7 @@ object RudderConfigInit {
     lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
-    /*
+    /**
      * *************************************************
      * Bootstrap check actions
      * **************************************************
@@ -3195,7 +3123,7 @@ object RudderConfigInit {
       new CheckMigratedSystemTechniques(
         policyServerManagementService,
         gitConfigRepo,
-        nodeInfoService,
+        nodeFactInfoService,
         rwLdap,
         techniqueRepository,
         techniqueRepositoryImpl,
@@ -3241,7 +3169,7 @@ object RudderConfigInit {
         uuidGen
       ),
       new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),
-      new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
+      new LoadNodeComplianceCache(nodeFactInfoService, reportingServiceImpl)
     )
 
     //////////////////////////////////////////////////////////////////////////////////////////
@@ -3328,7 +3256,7 @@ object RudderConfigInit {
       reportsRepositoryImpl,
       roLdapRuleRepository,
       roLdapDirectiveRepository,
-      nodeInfoServiceImpl,
+      nodeFactInfoService,
       RUDDER_BATCH_REPORTS_LOGINTERVAL
     )
 
@@ -3339,7 +3267,7 @@ object RudderConfigInit {
     lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
     lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
-      val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeInfoServiceImpl)
+      val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactInfoService)
       cached.init().runOrDie(err => new RuntimeException(s"Error when initializing node configuration cache: " + err))
       cached
     }
@@ -3420,24 +3348,232 @@ object RudderConfigInit {
       _         <- cron.start
     } yield ()
 
-    lazy val checkInventoryUpdate       = new CheckInventoryUpdate(
+    lazy val checkInventoryUpdate = new CheckInventoryUpdate(
       nodeInfoServiceImpl,
       asyncDeploymentAgent,
       uuidGen,
       RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL
     )
-    lazy val purgeDeletedInventories    = new PurgeDeletedInventories(
-      removeNodeServiceImpl,
-      FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"),
-      RUDDER_BATCH_PURGE_DELETED_INVENTORIES
-    )
-    lazy val purgeUnreferencedSoftwares = {
-      new PurgeUnreferencedSoftwares(
-        softwareService,
-        FiniteDuration(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.toLong, "hours")
+
+    lazy val asynComplianceService = new AsyncComplianceService(reportingService)
+
+    /*
+     * here goes deprecated services that we can't remove yet, for example because they are used for migration
+     */
+    object deprecated {
+      lazy val ldapFullInventoryRepository =
+        new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
+
+      lazy val softwareInventoryDAO: ReadOnlySoftwareDAO =
+        new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
+
+      lazy val softwareInventoryRWDAO: WriteOnlySoftwareDAO = new WriteOnlySoftwareDAOImpl(
+        acceptedNodesDitImpl,
+        rwLdap
+      )
+
+      lazy val softwareService: SoftwareService =
+        new SoftwareServiceImpl(softwareInventoryDAO, softwareInventoryRWDAO, acceptedNodesDit)
+
+      lazy val purgeUnreferencedSoftwares = {
+        new PurgeUnreferencedSoftwares(
+          softwareService,
+          FiniteDuration(RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL.toLong, "hours")
+        )
+      }
+
+      lazy val purgeDeletedInventories = new PurgeDeletedInventories(
+        new PurgeDeletedNodesImpl(rwLdap, removedNodesDitImpl, ldapFullInventoryRepository),
+        FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"),
+        RUDDER_BATCH_PURGE_DELETED_INVENTORIES
+      )
+
+      lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
+
+      lazy val ldapNodeInfoServiceImpl = new NodeInfoServiceCachedImpl(
+        roLdap,
+        nodeDitImpl,
+        acceptedNodesDitImpl,
+        removedNodesDitImpl,
+        pendingNodesDitImpl,
+        ldapEntityMapper,
+        inventoryMapper,
+        FiniteDuration(LDAP_CACHE_NODE_INFO_MIN_INTERVAL.toMillis, "millis")
+      )
+
+      lazy val ldapRemoveNodeBackend = new LdapRemoveNodeBackend(
+        nodeDitImpl,
+        pendingNodesDitImpl,
+        acceptedNodesDitImpl,
+        removedNodesDitImpl,
+        rwLdap,
+        ldapFullInventoryRepository,
+        nodeReadWriteMutex
+      )
+
+      lazy val ldapNewNodeManagerImpl = {
+        val updateFactRepoOnChoice:       UnitAcceptInventory with UnitRefuseInventory = new UpdateFactRepoOnChoice(
+          "accept_or_refuse_new_node:update_fact_repo",
+          PendingInventory,
+          nodeFactRepository
+        )
+        val acceptInventory:              UnitAcceptInventory with UnitRefuseInventory = {
+          new AcceptInventory(
+            "accept_new_server:inventory",
+            pendingNodesDitImpl,
+            acceptedNodesDitImpl,
+            ldapFullInventoryRepository
+          )
+        }
+        val acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = {
+          new AcceptFullInventoryInNodeOu(
+            "accept_new_server:ou=node",
+            nodeDitImpl,
+            rwLdap,
+            ldapEntityMapper,
+            PendingInventory,
+            () => configService.rudder_node_onaccept_default_policy_mode().toBox,
+            () => configService.rudder_node_onaccept_default_state().toBox
+          )
+        }
+
+        // the sequence of unit process to accept a new inventory
+        val unitAcceptors = {
+          historizeNodeStateOnChoice ::
+          updateFactRepoOnChoice ::
+          acceptNodeAndMachineInNodeOu ::
+          acceptInventory ::
+          acceptHostnameAndIp ::
+          Nil
+        }
+
+        // the sequence of unit process to refuse a new inventory
+        val unitRefusors = {
+          historizeNodeStateOnChoice ::
+          updateFactRepoOnChoice ::
+          unitRefuseGroup ::
+          acceptInventory ::
+          Nil
+        }
+
+        val hooksRunner = new NewNodeManagerHooksImpl(nodeFactInfoService, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+
+        val composedManager = new ComposedNewNodeManager[Seq[LDIFChangeRecord]](
+          ldapFullInventoryRepository,
+          nodeSummaryServiceImpl,
+          unitAcceptors,
+          unitRefusors,
+          inventoryHistoryLogRepository,
+          eventLogRepository,
+          dyngroupUpdaterBatch,
+          cachedNodeConfigurationService,
+          reportingServiceImpl,
+          List(ldapNodeInfoServiceImpl),
+          hooksRunner
+        )
+
+        val listNodes = new LdapListNewNode(roLdap, nodeSummaryServiceImpl, pendingNodesDit)
+
+        new NewNodeManagerImpl[Seq[LDIFChangeRecord]](
+          composedManager,
+          listNodes
+        )
+      }
+
+      // used to be use in inventory parsing
+      lazy val automaticMerger: PreCommit = new UuidMergerPreCommit(
+        uuidGen,
+        acceptedNodesDit,
+        new NodeInventoryDNFinderService(
+          Seq(
+            // start by trying to use an already given UUID
+            NamedNodeInventoryDNFinderAction(
+              "use_existing_id",
+              new UseExistingNodeIdFinder(inventoryDitService, roLdap, acceptedNodesDit.BASE_DN.getParent)
+            )
+          )
+        ),
+        new MachineDNFinderService(
+          Seq(
+            // start by trying to use an already given UUID
+            NamedMachineDNFinderAction(
+              "use_existing_id",
+              new UseExistingMachineIdFinder(inventoryDitService, roLdap, acceptedNodesDit.BASE_DN.getParent)
+            ), // look if it's in the accepted inventories
+
+            NamedMachineDNFinderAction(
+              "check_mother_board_uuid_accepted",
+              new FromMotherBoardUuidIdFinder(roLdap, acceptedNodesDit, inventoryDitService)
+            ), // see if it's in the "pending" branch
+
+            NamedMachineDNFinderAction(
+              "check_mother_board_uuid_pending",
+              new FromMotherBoardUuidIdFinder(roLdap, pendingNodesDit, inventoryDitService)
+            ), // see if it's in the "removed" branch
+
+            NamedMachineDNFinderAction(
+              "check_mother_board_uuid_removed",
+              new FromMotherBoardUuidIdFinder(roLdap, removedNodesDitImpl, inventoryDitService)
+            )
+          )
+        ),
+        new NameAndVersionIdFinder(
+          "check_name_and_version",
+          roLdap,
+          inventoryMapper,
+          acceptedNodesDit
+        )
+      )
+
+      lazy val checkInventoryUpdate = new CheckInventoryUpdate(
+        ldapNodeInfoServiceImpl,
+        asyncDeploymentAgent,
+        stringUuidGenerator,
+        RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL
+      )
+
+      lazy val queryProcessor = new AcceptedNodesLDAPQueryProcessor(
+        nodeDitImpl,
+        acceptedNodesDitImpl,
+        new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, nodeDit, ditQueryDataImpl, ldapEntityMapper),
+        ldapNodeInfoServiceImpl
+      )
+
+      lazy val inventoryQueryChecker = {
+        val subGroup = new SubGroupComparatorRepository {
+          override def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]] = Chunk.empty.succeed
+
+          override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
+        }
+        new PendingNodesLDAPQueryChecker(
+          new InternalLDAPQueryProcessor(
+            roLdap,
+            pendingNodesDitImpl,
+            nodeDit,
+            // here, we don't want to look for subgroups to show them in the form => always return an empty list
+            new DitQueryData(
+              pendingNodesDitImpl,
+              nodeDit,
+              rudderDit,
+              new NodeQueryCriteriaData(() => subGroup)
+            ),
+            ldapEntityMapper
+          ),
+          ldapNodeInfoServiceImpl
+        )
+      }
+
+      lazy val woLdapNodeRepository: WoNodeRepository = new WoLDAPNodeRepository(
+        nodeDitImpl,
+        acceptedNodesDit,
+        ldapEntityMapper,
+        rwLdap,
+        logRepository,
+        nodeReadWriteMutex,
+        cachedNodeConfigurationService,
+        reportingServiceImpl
       )
     }
-    lazy val asynComplianceService      = new AsyncComplianceService(reportingService)
 
     // reference services part of the API
     val rci = RudderServiceApi(
@@ -3448,14 +3584,14 @@ object RudderConfigInit {
       rudderDit,
       roLdapRuleRepository,
       woRuleRepository,
-      woNodeRepository,
+      woFactNodeRepository,
       roLdapNodeGroupRepository,
       woLdapNodeGroupRepository,
       techniqueRepositoryImpl,
       techniqueRepositoryImpl,
       roLdapDirectiveRepository,
       woLdapDirectiveRepository,
-      softwareInventoryDAO,
+      deprecated.softwareInventoryDAO,
       eventLogRepository,
       eventLogDetailsServiceImpl,
       reportingServiceImpl,
@@ -3478,8 +3614,8 @@ object RudderConfigInit {
       dynGroupUpdaterService,
       dyngroupUpdaterBatch,
       checkInventoryUpdate,
-      purgeDeletedInventories,
-      purgeUnreferencedSoftwares,
+      deprecated.purgeDeletedInventories,
+      deprecated.purgeUnreferencedSoftwares,
       databaseManagerImpl,
       dbCleaner,
       techniqueLibraryUpdater,
@@ -3492,14 +3628,14 @@ object RudderConfigInit {
       personIdentServiceImpl,
       gitRevisionProviderImpl,
       logDisplayerImpl,
-      ldapFullInventoryRepository,
+      factFullInventoryRepo,
       queryProcessor,
       categoryHierarchyDisplayerImpl,
       dynGroupServiceImpl,
       ditQueryDataImpl,
       reportsRepository,
       eventLogDeploymentServiceImpl,
-      new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeInfoService),
+      new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeFactInfoService),
       findExpectedRepo,
       roLDAPApiAccountRepository,
       woLDAPApiAccountRepository,
@@ -3562,7 +3698,8 @@ object RudderConfigInit {
       secretEventLogService,
       changeRequestChangesSerialisation,
       gitConfigRepo,
-      gitModificationRepository
+      gitModificationRepository,
+      nodeFactRepository
     )
 
     // we need to reference batches not part of the API to start them since
@@ -3570,6 +3707,10 @@ object RudderConfigInit {
     cleanOldInventoryBatch.start()
     gitFactRepoGC.start()
     gitConfigRepoGC.start()
+    // todo: scheduler interval should be a property
+    ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
+    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
+
     // UpdateDynamicGroups is part of rci
     // reportingServiceImpl part of rci
     // checkInventoryUpdate part of rci

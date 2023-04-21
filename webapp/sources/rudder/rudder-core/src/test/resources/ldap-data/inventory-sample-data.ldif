@@ -34,7 +34,7 @@ jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"
 nodeId: node1
 nodeId: node2
 
-dn: nodeGroupId=test-group-node22,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+dn: nodeGroupId=test-group-node23,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
 cn: Only contains node2 and node3

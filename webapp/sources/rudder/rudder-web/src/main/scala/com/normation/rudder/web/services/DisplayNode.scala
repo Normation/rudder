@@ -86,7 +86,7 @@ import scala.xml.Utility.escape
  */
 object DisplayNode extends Loggable {
 
-  private[this] val getSoftwareService    = RudderConfig.readOnlySoftwareDAO
+  private[this] val nodeFactRepository    = RudderConfig.nodeFactRepository
   private[this] val removeNodeService     = RudderConfig.removeNodeService
   private[this] val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
@@ -140,9 +140,9 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def loadSoftware(jsId: JsNodeId, softIds: Seq[SoftwareUuid])(nodeId: String): JsCmd = {
+  private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
     (for {
-      seq       <- getSoftwareService.getSoftware(softIds)
+      seq       <- nodeFactRepository.getAccepted(NodeId(nodeId)).map(_.toList.flatMap(_.software.map(_.toSoftware)))
       gridDataId = htmlId(jsId, "soft_grid_data_")
       gridId     = "soft"
     } yield SetExp(
@@ -283,7 +283,7 @@ object DisplayNode extends Loggable {
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
         $$("#${softPanelId}").click(function() {
-            ${SHtml.ajaxCall(JsRaw("'" + nodeId.value + "'"), loadSoftware(jsId, softIds))._2.toJsCmd}
+            ${SHtml.ajaxCall(JsRaw("'" + nodeId.value + "'"), loadSoftware(jsId))._2.toJsCmd}
         });
         """)
     )
@@ -686,6 +686,7 @@ object DisplayNode extends Loggable {
       case None          => NodeSeq.Empty
       case Some(machine) => (
         machine.machineType match {
+          case UnknownMachineType         => Text("Unknown machine type")
           case PhysicalMachineType        => Text("Physical machine")
           case VirtualMachineType(vmType) => Text("Virtual machine (%s)".format(S.?("vm.type." + vmType.name)))
         }
