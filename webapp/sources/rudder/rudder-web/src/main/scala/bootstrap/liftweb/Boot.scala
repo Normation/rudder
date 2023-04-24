@@ -263,6 +263,9 @@ class Boot extends Loggable {
     //// init plugin code (ie: bootstrap their objects / connections / etc ////
     val plugins = initPlugins()
 
+    // Run post plugin init actions:
+    RudderConfig.postPluginInitActions
+
     ////////// CACHE INVALIDATION FOR RESOURCES //////////
     // fails on invalid JSON body because it's unsufferable
     LiftRules.statelessDispatch.append {

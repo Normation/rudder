@@ -1147,6 +1147,12 @@ object RudderConfig extends Loggable {
     }
   }
 
+  def postPluginInitActions = {
+    // todo: scheduler interval should be a property
+    ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
+    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
+  }
+
 }
 
 /*
@@ -3167,16 +3173,11 @@ object RudderConfigInit {
     lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
-    // todo: scheduler interval should be a property
-    ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
-
-    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
-
-    /**
-   * *************************************************
-   * Bootstrap check actions
-   * **************************************************
-   */
+    /*
+     * *************************************************
+     * Bootstrap check actions
+     * **************************************************
+     */
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap),
