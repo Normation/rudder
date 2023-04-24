@@ -1117,7 +1117,7 @@ object RudderConfig extends Loggable {
   val woRuleCategoryRepository:            WoRuleCategoryRepository                   = rci.woRuleCategoryRepository
   val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
   val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
-  val workflowLevelService:                WorkflowLevelService                       = rci.workflowLevelService
+  val workflowLevelService:                DefaultWorkflowLevel                       = rci.workflowLevelService
   val aggregateReportScheduler:            FindNewReportsExecution                    = rci.aggregateReportScheduler
   val secretEventLogService:               SecretEventLogService                      = rci.secretEventLogService
   val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation          = rci.changeRequestChangesSerialisation
@@ -1234,7 +1234,7 @@ case class RudderServiceApi(
     authorizationApiMapping:             ExtensibleAuthorizationApiMapping,
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
-    workflowLevelService:                WorkflowLevelService,
+    workflowLevelService:                DefaultWorkflowLevel,
     ncfTechniqueReader:                  ncf.TechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
