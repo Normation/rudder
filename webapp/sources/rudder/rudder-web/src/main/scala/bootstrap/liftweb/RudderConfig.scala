@@ -116,6 +116,7 @@ import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.facts.nodes.GitNodeFactRepository
+import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.inventory.DefaultProcessInventoryService
@@ -1121,6 +1122,8 @@ object RudderConfig extends Loggable {
   val aggregateReportScheduler:            FindNewReportsExecution                    = rci.aggregateReportScheduler
   val secretEventLogService:               SecretEventLogService                      = rci.secretEventLogService
   val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation          = rci.changeRequestChangesSerialisation
+  val gitRepo:                             GitRepositoryProvider                      = rci.gitRepo
+  val gitModificationRepository:           GitModificationRepository                  = rci.gitModificationRepository
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1270,7 +1273,9 @@ case class RudderServiceApi(
     jsonReportsAnalyzer:                 JSONReportsAnalyser,
     aggregateReportScheduler:            FindNewReportsExecution,
     secretEventLogService:               SecretEventLogService,
-    changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation
+    changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation,
+    gitRepo:                             GitRepositoryProvider,
+    gitModificationRepository:           GitModificationRepository
 )
 
 /*
@@ -3542,7 +3547,9 @@ object RudderConfigInit {
       jsonReportsAnalyzer,
       aggregateReportScheduler,
       secretEventLogService,
-      changeRequestChangesSerialisation
+      changeRequestChangesSerialisation,
+      gitConfigRepo,
+      gitModificationRepository
     )
 
     // we need to reference batches not part of the API to start them since
