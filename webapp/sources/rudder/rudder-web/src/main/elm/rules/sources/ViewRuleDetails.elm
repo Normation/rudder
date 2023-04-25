@@ -155,7 +155,7 @@ editionTemplate model details =
     [ div [class "main-header "]
       [ div [class "header-title"]
         [ h1[class classDisabled]
-          [ badgePolicy
+          [ badgePolicyMode model.policyMode rule.policyMode
           , ruleTitle
           , badgeDisabled
           ]
