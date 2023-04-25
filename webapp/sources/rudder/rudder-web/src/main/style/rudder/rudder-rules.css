@@ -66,9 +66,7 @@
 #viewAllRulesZone {
   padding: 15px;
 }
-#editRuleZone{
-  font-size:14px;
-}
+
 #clone {
   margin-left:20px;
   float:left;
@@ -96,20 +94,6 @@ label.rule-info + div{
 #grid_rules_grid_zone_length label,#grid_rules_grid_zone_info{
   font-weight:normal;
   font-size:12px;
-}
-/* ----- </RULE FOOTER>  ----- */
-.rule-footer {
-  width: calc(100% - 230px);
-  left: 230px;
-  bottom: 0;
-}
-.skin-yellow.sidebar-collapse .rule-footer {
-  width: calc(100% - 50px);
-  left: 50px;
-}
-.content-wrapper .btn.btn-box-tool{
-  padding-left:2px;
-  padding-right:2px;
 }
 
 .recentChange_refresh{
@@ -143,15 +127,6 @@ label.rule-info + div{
   float: left;
   width: 100%;
 }
-
-@media (max-width: 767px){
-  .skin-yellow.sidebar-collapse .rule-footer,.skin-yellow .rule-footer {
-    width: 100%;
-    left: 0;
-    bottom: 0;
-  }
-}
-
 .dataTable .progress-bar {
   line-height: 22px;
 }

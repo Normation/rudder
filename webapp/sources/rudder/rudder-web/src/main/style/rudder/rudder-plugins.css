@@ -89,6 +89,6 @@
   padding-left: 10px;
 }
 
-.skin-yellow .tooltip > .tooltip-inner {
+.tooltip > .tooltip-inner {
   padding: 0px !important;
 }
