@@ -4,6 +4,9 @@ import org.gradiant.jenkins.slack.SlackNotifier
 // Check vulns in dependencies on repo branches
 
 pipeline {
+    environment {
+      SLACK_CHANNEL = 'ci-security'
+    }
     agent none
     triggers { cron('@daily') }
 
