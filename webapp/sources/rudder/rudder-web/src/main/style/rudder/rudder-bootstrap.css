@@ -93,7 +93,7 @@ body{
   z-index: 99999;
 }
 
-.skin-yellow .modal{
+.modal{
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -111,7 +111,7 @@ body{
   }
 }
 
-.skin-yellow .modal-header {
+.modal-header {
   background-color: #041922;
   font-family: sans-serif;
   font-weight: bold;
@@ -119,7 +119,7 @@ body{
   border-radius: 0;
 }
 
-.skin-yellow .modal-body {
+.modal-body {
   font-size : 14px;
 }
 
@@ -274,22 +274,6 @@ body{
   z-index : 3;
 }
 
-.directive-footer{
-  width:68%
-}
-
-.rule-footer{
-  width:96%;
-  left:25px;
-  margin-left:0px;
-  bottom: 50px;
-  border-right:0;
-}
-
-#editRuleZone form {
-  padding-bottom:40px;
-}
-
 @media (max-width:1280px) {
   .container {
     padding:120px 0 30px;
@@ -409,35 +393,35 @@ body{
   z-index:1050;
 }
 
-.skin-yellow .modal .table#grid_dependentRulesGrid {
+.modal .table#grid_dependentRulesGrid {
   margin-bottom: 0;
 }
 
-.skin-yellow.modal .modal-content {
+.modal .modal-content {
   border-radius: 4px;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
 }
-.skin-yellow .modal .modal-header {
+.modal .modal-header {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
 }
-.skin-yellow .modal .modal-body {
+.modal .modal-body {
   overflow-y: auto;
   max-height: 76vh;
   overflow-x: hidden;
 }
-.skin-yellow.modal .tooltip {
+.modal .tooltip {
   opacity: 1;
 }
 
-.skin-yellow .modal .space-top{
+.modal .space-top{
   margin-top: 30px !important;
 }
-.skin-yellow .modal .space-bottom{
+.modal .space-bottom{
   margin-bottom: 30px !important;
 }
-.skin-yellow .modal .space-right{
+.modal .space-right{
   margin-right: 10px !important;
 }
 .content-wrapper .form-control.errorInput {
@@ -452,14 +436,14 @@ body{
   -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
   box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 6px #ce8483;
 }
-.skin-yellow .modal .well.jstree-rudder.jstree-focused, .skin-yellow .modal .well.jstree-rudder {
+.modal .well.jstree-rudder.jstree-focused, .modal .well.jstree-rudder {
   background: #FBFBFB;
 }
 
 .content-wrapper form input {
   width: auto;
 }
-.skin-yellow .modal #CRStatus {
+.modal #CRStatus {
   background-color: #f5f5f5;
   font-size: 15px;
   font-weight: bold;
@@ -472,7 +456,7 @@ body{
   display: inline-block;
   border: 1px solid #C1BEBE;
 }
-.skin-yellow .modal .form-control.vresize {
+.modal .form-control.vresize {
   resize: vertical; 
 }
 .content-wrapper label.valign, .content-wrapper .valign{
@@ -494,32 +478,32 @@ body{
   margin-bottom: 0;
   font-weight: normal;
 }
-.skin-yellow .modal #validationForm span.col-xs-offset-0.col-sm-offset-0{
+.modal #validationForm span.col-xs-offset-0.col-sm-offset-0{
   margin-left:0;
   width:100%;
 }
 @media (min-width: 1200px){
-  .skin-yellow .modal .subContainerReasonField textarea.form-control.col-lg-12 {
+  .modal .subContainerReasonField textarea.form-control.col-lg-12 {
     width: 75%;
   }
 }
 @media (max-width: 1200px){
-  .skin-yellow .modal .text-right.wbBaseFieldLabel{
+  .modal .text-right.wbBaseFieldLabel{
     text-align: left;
   }
 }
-.skin-yellow .modal .field_errors,.skin-yellow .modal .error,.skin-yellow .modal .errors {
+.modal .field_errors,.modal .error,.modal .errors {
   color: #DA291C;
 }
-.skin-yellow .modal .btn.wideButton{
+.modal .btn.wideButton{
   width: auto;
 }
-.skin-yellow .modal .alert .glyphicon{
+.modal .alert .glyphicon{
   top: 5px;
   font-size: 20px;
 }
 
-.skin-yellow .modal h4.audit-title{
+.modal h4.audit-title{
   padding-left: 0px;
   padding-bottom: 8px;
   margin-bottom: 25px;
@@ -531,13 +515,13 @@ body{
   margin:0;
   border: none;
 }
-.skin-yellow .modal .errors-container{
+.modal .errors-container{
   margin-top: 4px;
   font-size: 12px;
   padding: 0;
   font-weight: bold;
 }
-.skin-yellow .modal .space-top-sm{
+.modal .space-top-sm{
   margin-top: 4px;
 }
 .content-wrapper .panel-group a:hover, .content-wrapper .panel-group a:focus{
@@ -555,14 +539,14 @@ body{
 .content-wrapper .font-bold {
   font-weight: bold !important;
 }
-.skin-yellow .modal .align-radio-generate-input,
-.skin-yellow .reveal-password {
+.modal .align-radio-generate-input,
+.reveal-password {
   height: 34px;
 }
-.skin-yellow .modal #pendingNodeConfirm thead tr{
+.modal #pendingNodeConfirm thead tr{
   background: #DAD9D9;
 }
-.skin-yellow .modal tr.color1 {
+.modal tr.color1 {
    background-color: #fff;
 }
 

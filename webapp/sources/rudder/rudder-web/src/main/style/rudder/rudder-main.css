@@ -459,14 +459,6 @@ body > .modal-backdrop.fade.in{
 .content-wrapper .input-group.rect-padding{
 	margin-left:-3px;
 }
-.directive-footer {
-  width: 59.3%;
-  bottom: 0;
-  border-right: 0;
-}
-.sidebar-collapse .directive-footer {
-  width: 63.2%;style="margin-top: 10px;padding: 0 4px;"
-}
 
 /* --- TECHNIQUES PAGE --- */
 #editForm table{
@@ -744,10 +736,6 @@ body > .modal-backdrop.fade.in{
 .directiveDeleteGroup .btn-danger{
   padding-left:  20px;
   padding-right: 20px;
-}
-#directiveToolbar .btn,.fixed-footer.rule-footer .btn{
-  width:auto;
-  min-width:80px;
 }
 #priority select.form-control,#version select.form-control{
   width: auto;
@@ -2460,9 +2448,6 @@ table a > i.fa-pencil:hover{
 }
 
 /* TABS */
-#editRuleZone .box .box-title .fa {
-  text-align: center;
-}
 .ui-tabs-nav{
   border-bottom: 2px solid #d6deef;
 }
