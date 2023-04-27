@@ -16,6 +16,8 @@ allow = [
 
 [advisories]
 ignore = [
+    # A DoS in h2
+    "RUSTSEC-2023-0034",
 ]
 
 [bans]
