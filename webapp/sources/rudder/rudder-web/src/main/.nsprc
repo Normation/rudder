@@ -1,3 +1,4 @@
 {
-  "GHSA-ww39-953v-wcq6": "Only a DoS, let's ignore it"
+  "GHSA-ww39-953v-wcq6": "Only a DoS, let's ignore it", 
+  "GHSA-w573-4hg7-7wgq": "Only a DoS, let's ignore it" 
 }
