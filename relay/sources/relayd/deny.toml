@@ -25,6 +25,8 @@ ignore = [
     "RUSTSEC-2023-0004",
     # Only used in tests
     "RUSTSEC-2023-0018",
+    # A DoS in h2
+    "RUSTSEC-2023-0034",
 ]
 
 [bans]
