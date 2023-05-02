@@ -15,7 +15,7 @@ items:
     params:
       name: "htop"
   - name: "A simpl block"
-    id: c9e259a1-51c5-40b3-98ef-0eeaf52dca98
+    id: c9e259a1-51c5-40b3-98ef-0eeaf52dca99
     reporting:
       mode: worst-case-weighted-one
     items:
@@ -66,7 +66,7 @@ items:
           id: cf06e919-02b7-41a7-a03f-4239592f3c21
         items:
           - name: "Enabled reporting"
-            id: cf06e919-02b7-41a7-a03f-4239592f3d12
+            id: cf06e919-02b7-41a7-a03f-4239592f3c21
             method: package_present
             params:
               name: ntp

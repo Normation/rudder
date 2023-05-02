@@ -13,7 +13,7 @@ use crate::{frontends::methods::method::MethodInfo, ir::condition::Condition};
 /// Valid id for techniques, methods, etc.
 ///
 /// Lowest common denominator between target platforms.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Hash)]
 #[serde(transparent)]
 pub struct Id {
     inner: String,
@@ -216,7 +216,7 @@ pub struct BlockReporting {
     #[serde(default)]
     pub mode: BlockReportingMode,
     #[serde(default)]
-    pub id: Option<String>,
+    pub id: Option<Id>,
 }
 
 impl fmt::Display for BlockReporting {

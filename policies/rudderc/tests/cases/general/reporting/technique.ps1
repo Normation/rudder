@@ -184,7 +184,7 @@ function reporting
         Rudder-Report-NA @reportParams
     }
 
-    $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3d12"
+    $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c21"
     $componentKey = "ntp"
     $reportParams = @{
     ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
