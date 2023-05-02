@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
@@ -11,7 +14,7 @@ use crate::{
     backends::{backend, metadata::Metadata, Backend},
     frontends::{methods::method::MethodInfo, yaml},
     ir::{
-        technique::{Block, BlockReportingMode, ItemKind, Method, Parameter},
+        technique::{Block, BlockReportingMode, Id, ItemKind, Method, Parameter},
         Technique,
     },
     logs::ok_output,
@@ -29,6 +32,7 @@ fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
     for p in policy.parameters.as_slice() {
         check_parameter(p)?;
     }
+    check_ids_unicity(&policy)?;
     Ok(policy)
 }
 
@@ -135,9 +139,32 @@ fn check_method(method: &mut Method) -> Result<()> {
 
 /// Check block consistency
 fn check_block(block: &Block) -> Result<()> {
+    fn is_id_child(r: &ItemKind, id: &Id) -> bool {
+        match r {
+            ItemKind::Block(r) => {
+                if &r.id == id {
+                    true
+                } else {
+                    r.items.iter().map(|r| is_id_child(r, id)).any(|t| t)
+                }
+            }
+            ItemKind::Method(r) => &r.id == id,
+            _ => todo!(),
+        }
+    }
+
     match &block.reporting.mode {
         BlockReportingMode::Focus => {
-            if block.reporting.id.is_none() {
+            if let Some(ref id) = block.reporting.id {
+                // check the id is valid
+                if block.items.iter().map(|r| is_id_child(r, id)).all(|t| !t) {
+                    bail!(
+                        "Unknown id '{}' of focused report in block '{}'",
+                        id,
+                        block.name
+                    )
+                }
+            } else {
                 bail!("Missing id of focused report in block '{}'", block.name)
             }
         }
@@ -149,6 +176,29 @@ fn check_block(block: &Block) -> Result<()> {
                     block.name
                 )
             }
+        }
+    }
+    Ok(())
+}
+
+/// Check id unicity
+// Could be more efficient...
+fn check_ids_unicity(technique: &Technique) -> Result<()> {
+    fn get_ids(r: &ItemKind) -> Vec<Id> {
+        match r {
+            ItemKind::Block(r) => {
+                let mut ids = vec![r.id.clone()];
+                ids.extend(r.items.iter().flat_map(get_ids));
+                ids
+            }
+            ItemKind::Method(r) => vec![r.id.clone()],
+            _ => todo!(),
+        }
+    }
+    let mut ids = HashSet::new();
+    for id in technique.items.iter().flat_map(get_ids) {
+        if !ids.insert(id.clone()) {
+            bail!("Duplicate id '{}'", &id);
         }
     }
     Ok(())
