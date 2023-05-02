@@ -1,6 +1,6 @@
 # Testing
 
-## Writing technique tests
+## Write technique tests
 
 **NOTE 1**: Techniques tests are only supported on Linux for now.
 
@@ -39,7 +39,7 @@ The detailed test process is, for each `*.yml` file in the `tests` directory:
 
 The build stops when it encounters a command returning a non-zero return code.
 
-## Running technique tests
+## Run technique tests
 
 To run the test `case1` from:
 

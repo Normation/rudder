@@ -1,0 +1,10 @@
+# Parameters for the technique
+# none here
+# Prepare env
+setup:
+  - sh: "rm -f /tmp/plop"
+# Check after technique has run
+check:
+  # Commands to run to check
+  - sh: "test -f /tmp/plop"
+  - sh: "diff ./reference.conf /tmp/plop"

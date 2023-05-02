@@ -8,7 +8,7 @@ tool.
 
 Techniques in Rudder are system configuration or audit templates,
 which can include extra files and take parameters.
-They are instantiated inside of Rudder by directives,
+They are instantiated by directives,
 which are in turn linked to rules to be applied.
 Techniques are based on building blocks called methods,
 which control basic items (like the content of a file

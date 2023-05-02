@@ -11,10 +11,10 @@ There are currently two possible targets, which are the platforms Rudder has age
 * Linux/AIX
 * Windows
 
-These platforms use different agent technology but the YAML policies
+These platforms use different agent technology, but the YAML policies
 unify them.
 To be able to check and compile techniques, the `rudderc` program
-needs access to the methods library of the target systems.
+needs access to the method library of the target systems.
 
 To get access to the base Linux methods set, you can use git
 and use the repository as library argument:
@@ -24,6 +24,10 @@ $ git clone https://github.com/Normation/ncf/
 # [...]
 $ rudderc subcommand -l /.../ncf/tree/30_generic_methods/ 
 ```
+
+Alternatively, if you `rudderc` on a system with a Rudder agent, like a Rudder server,
+which also has a built-in `rudderc` binary, you do not need to specify anything and
+the local library (in `/var/rudder/ncf`) will be used automatically.
 
 ### Create a technique
 
@@ -41,16 +45,18 @@ This will create the base structure of your new technique:
 ```text
 my_technique/
   ├── technique.yml
-  └── resources/
+  ├── resources/
+  └── tests/
 ```
 
 The `technique.yml` is the technique content,
 and the `resources` directory can be used to include
 external files (configuration files, templates, etc.).
+The tests directory will contain your technique's tests.
 All files produced by `rudderc` will be placed in the `target`
 directory.
 
-### Checking a technique
+### Check a technique
 
 You can check the current technique syntax with:
 
@@ -79,7 +85,7 @@ $ rudderc build -l /path/to/methods/lib
       Copied resources
 ```
 
-### Clean you produced
+### Clean files
 
 The `clean` command allows removing all generated files.
 

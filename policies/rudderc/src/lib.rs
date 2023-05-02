@@ -134,8 +134,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 // Actions
 pub mod action {
     use std::{
-        env, fs,
-        fs::{create_dir, create_dir_all, read_to_string, remove_dir_all, File},
+        fs::{self, create_dir, create_dir_all, read_to_string, remove_dir_all, File},
         io::{self, Write},
         path::{Path, PathBuf},
         process::Command,
@@ -155,7 +154,7 @@ pub mod action {
         ir::Technique,
         logs::ok_output,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
     };
 
     /// Create a technique skeleton
@@ -173,6 +172,9 @@ pub mod action {
         create_dir(resources_dir.as_path()).with_context(|| {
             format!("Failed to create resources dir {}", resources_dir.display())
         })?;
+        let tests_dir = output.join(TESTS_DIR);
+        create_dir(tests_dir.as_path())
+            .with_context(|| format!("Failed to create tests dir {}", tests_dir.display()))?;
         ok_output("Wrote", tech_path.display());
         Ok(())
     }
@@ -265,18 +267,15 @@ pub mod action {
 
     /// Run a test
     pub fn test(
-        technique: &Path,
+        technique_file: &Path,
         test_dir: &Path,
         libraries: &[PathBuf],
         filter: Option<String>,
     ) -> Result<()> {
         // Run everything relatively to the test directory
-        let cwd = env::current_dir()?;
-        let technique_file = cwd.join(technique);
-        env::set_current_dir(test_dir)?;
         // Collect test cases
         let mut cases = vec![];
-        for entry in fs::read_dir(".")? {
+        for entry in fs::read_dir(test_dir)? {
             let e = entry?;
             let name = e.file_name().into_string().unwrap();
             if e.file_type()?.is_file() && name.ends_with(".yml") {
@@ -296,7 +295,7 @@ pub mod action {
             let yaml = read_to_string(&case_path)?;
             let case: TestCase = serde_yaml::from_str(&yaml)?;
             // Run test setup
-            case.setup()?;
+            case.setup(test_dir)?;
             // Run the technique
             // TODO: support several lib dirs
             ok_output(
@@ -306,15 +305,10 @@ pub mod action {
                     case_path.display()
                 ),
             );
-            cf_agent(
-                technique_file.as_path(),
-                case_path.as_path(),
-                libraries[0].as_path(),
-            )?;
+            cf_agent(technique_file, case_path.as_path(), libraries[0].as_path())?;
             // Run test checks
-            case.check()?;
+            case.check(test_dir)?;
         }
-        env::set_current_dir(&cwd)?;
         Ok(())
     }
 

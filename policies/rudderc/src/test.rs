@@ -12,6 +12,7 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
+use std::path::Path;
 use std::{collections::HashMap, process::Command};
 
 use anyhow::{bail, Result};
@@ -29,19 +30,22 @@ pub struct Step {
 pub struct TestCase {
     /// Parameters, we don't actually use them as they're loaded directly by the technique
     #[serde(rename = "params")]
+    #[serde(default)]
     parameters: HashMap<String, String>,
     /// Test setup steps
+    #[serde(default)]
     setup: Vec<Step>,
     /// Check test after
     check: Vec<Step>,
 }
 
 impl TestCase {
-    fn run(step: &Step) -> Result<()> {
+    fn run(step: &Step, dir: &Path) -> Result<()> {
         ok_output("Running", format!("'{}'", &step.command));
         let output = Command::new("/bin/sh")
             .arg("-c")
             .arg(&step.command)
+            .current_dir(dir)
             .output()?;
         if !output.status.success() {
             bail!(
@@ -54,16 +58,16 @@ impl TestCase {
         Ok(())
     }
 
-    pub fn setup(&self) -> Result<()> {
+    pub fn setup(&self, dir: &Path) -> Result<()> {
         for s in &self.setup {
-            Self::run(s)?;
+            Self::run(s, dir)?;
         }
         Ok(())
     }
 
-    pub fn check(&self) -> Result<()> {
+    pub fn check(&self, dir: &Path) -> Result<()> {
         for s in &self.check {
-            Self::run(s)?;
+            Self::run(s, dir)?;
         }
         Ok(())
     }
