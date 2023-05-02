@@ -41,10 +41,10 @@ install:
 	mkdir -p $(DESTDIR)/share/man/man1
 
 test:
-	cd tests/acceptance/ && ./testall --info
+	cd tests/acceptance/ && ./testall --printlog --info
 
 test-unsafe:
-	cd tests/acceptance/ && ./testall --info --unsafe
+	cd tests/acceptance/ && ./testall --printlog --info --unsafe
 
 clean:
 	rm -rf tests/style/.succeeded
