@@ -40,7 +40,7 @@ pub enum Command {
 
     /// Build the technique
     Build {
-        /// Load a library from the given path
+        /// Load a library from the given path. Uses `/var/rudder/ncf` if not paths were provided.
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
 
@@ -58,17 +58,17 @@ pub enum Command {
     /// Note: It runs on the current system.
     // TODO: ability to run the test un a container or through ssh
     Test {
-        /// Load a library from the given path
+        /// Load a library from the given path Uses `/var/rudder/ncf` if not paths were provided.
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
 
-        /// Fliter tests cases
+        /// Filter tests cases
         filter: Option<String>,
     },
 
     /// Build the method documentation
     Lib {
-        /// Load a library from the given path
+        /// Load a library from the given path Uses `/var/rudder/ncf` if not paths were provided.
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
 

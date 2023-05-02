@@ -6,7 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
+use log::debug;
 
 use crate::cli::{Command, MainArgs};
 
@@ -39,6 +40,9 @@ pub const TECHNIQUE_SRC: &str = "technique.yml";
 pub const METADATA_FILE: &str = "metadata.xml";
 pub const RESOURCES_DIR: &str = "resources";
 
+/// Where to read the library if no path were provided
+pub const DEFAULT_LIB_PATH: &str = "/var/rudder/ncf/";
+
 /// Main entry point for rudderc
 ///
 /// # Error management
@@ -50,6 +54,27 @@ pub fn run(args: MainArgs) -> Result<()> {
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
 
+    // Check libraries and apply default value if relevant
+    fn check_libraries(parameters: Vec<PathBuf>) -> Result<Vec<PathBuf>> {
+        Ok(if parameters.is_empty() {
+            let path = PathBuf::from(DEFAULT_LIB_PATH);
+            if path.exists() {
+                debug!(
+                    "No library path provided but the default '{}' exists, using it.",
+                    DEFAULT_LIB_PATH
+                );
+                vec![path]
+            } else {
+                bail!(
+                    "No library path provided and default path '{}' does not exist.",
+                    DEFAULT_LIB_PATH
+                );
+            }
+        } else {
+            parameters
+        })
+    }
+
     match args.command {
         Command::Init => action::init(&cwd, None),
         Command::New { name } => {
@@ -58,12 +83,16 @@ pub fn run(args: MainArgs) -> Result<()> {
             action::init(&cwd.join(&name), Some(name))
         }
         Command::Clean => action::clean(target.as_path()),
-        Command::Check { library } => action::check(library.as_slice(), input),
+        Command::Check { library } => {
+            let library = check_libraries(library)?;
+            action::check(library.as_slice(), input)
+        }
         Command::Build {
             library,
             output,
             standalone,
         } => {
+            let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
             action::build(
                 library.as_slice(),
@@ -73,6 +102,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             )
         }
         Command::Test { library, filter } => {
+            let library = check_libraries(library)?;
             action::build(library.as_slice(), input, target.as_path(), true)?;
             action::test(
                 target.join("technique.cf").as_path(),
@@ -88,6 +118,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             open,
             stdout,
         } => {
+            let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
             action::lib_doc(
                 library.as_slice(),
