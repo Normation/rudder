@@ -46,6 +46,7 @@ import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.zio._
 import com.softwaremill.quicklens._
+import java.nio.charset.StandardCharsets
 import org.eclipse.jgit.lib.PersonIdent
 import zio._
 import zio.concurrent.ReentrantLock
@@ -515,6 +516,9 @@ trait NodeFactStorage {
    * any reference to that node.
    */
   def delete(nodeId: NodeId): IOResult[Unit]
+
+  def getAllPending():  IOStream[NodeFact]
+  def getAllAccepted(): IOStream[NodeFact]
 }
 
 /*
@@ -522,9 +526,11 @@ trait NodeFactStorage {
  * in-memory version of the nodeFactRepos is needed.
  */
 object NoopFactStorage extends NodeFactStorage {
-  override def save(nodeFact: NodeFact):                              IOResult[Unit] = ZIO.unit
-  override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[Unit] = ZIO.unit
-  override def delete(nodeId: NodeId):                                IOResult[Unit] = ZIO.unit
+  override def save(nodeFact: NodeFact):                              IOResult[Unit]     = ZIO.unit
+  override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[Unit]     = ZIO.unit
+  override def delete(nodeId: NodeId):                                IOResult[Unit]     = ZIO.unit
+  override def getAllPending():                                       IOStream[NodeFact] = ZStream.empty
+  override def getAllAccepted():                                      IOStream[NodeFact] = ZStream.empty
 }
 
 /*
@@ -547,6 +553,14 @@ object GitNodeFactRepositoryImpl {
   implicit val codecNodeFactArchive: JsonCodec[NodeFactArchive] = DeriveJsonCodec.gen
 }
 
+/*
+ * Nodes are stored in the git facts repo under the relative path "nodes".
+ * They are then stored:
+ * - under nodes/pending or nodes/accepted given their status (which means that changing status of a node is
+ *   a special operation)
+ * -
+ *
+ */
 class GitNodeFactRepositoryImpl(
     override val gitRepo: GitRepositoryProvider,
     groupOwner:           String
@@ -554,11 +568,23 @@ class GitNodeFactRepositoryImpl(
 
   override val relativePath = "nodes"
   override val entity:     String = "node"
-  override val fileFormat: String = "1"
+  override val fileFormat: String = "10"
   val committer = new PersonIdent("rudder-fact", "email not set")
 
+  // name of sub-directories for common nodes, ie the one with a standard UUID.
+  val shardingDirNames = ('0' to '9') ++ ('a' to 'f')
+
   override def getEntityPath(id: (NodeId, InventoryStatus)): String = {
-    s"${id._2.name}/${id._1.value}.json"
+    // head can fail if value is empty, which is forbidden and should have fail before that. Else, an error
+    // is what we want, to know that we are in a bad state and things are broken.
+    val mid = id._1.value.head.toLower
+    if (shardingDirNames.contains(mid)) {
+      println(s"**** save node ${id._1.value} in subdir ${mid}")
+      s"${id._2.name}/${mid}/${id._1.value}.json"
+    } else {
+      println(s"**** save node ${id._1.value} in root because ${mid} is not in ${shardingDirNames}")
+      s"${id._2.name}/${id._1.value}.json"
+    }
   }
 
   def getFile(id: NodeId, status: InventoryStatus): File = {
@@ -571,43 +597,23 @@ class GitNodeFactRepositoryImpl(
    */
   def toJson(nodeFact: NodeFact): IOResult[String] = {
     import GitNodeFactRepositoryImpl._
-    val node = nodeFact
-      .modify(_.accounts)
-      .using(_.sorted)
-      .modify(_.properties)
-      .using(_.sortBy(_.name))
-      .modify(_.environmentVariables)
-      .using(_.sortBy(_._1))
-      .modify(_.fileSystems)
-      .using(_.sortBy(_.name))
-      .modify(_.networks)
-      .using(_.sortBy(_.name))
-      .modify(_.processes)
-      .using(_.sortBy(_.commandName))
-      .modify(_.bios)
-      .using(_.sortBy(_.name))
-      .modify(_.controllers)
-      .using(_.sortBy(_.name))
-      .modify(_.memories)
-      .using(_.sortBy(_.name))
-      .modify(_.ports)
-      .using(_.sortBy(_.name))
-      .modify(_.processors)
-      .using(_.sortBy(_.name))
-      .modify(_.slots)
-      .using(_.sortBy(_.name))
-      .modify(_.sounds)
-      .using(_.sortBy(_.name))
-      .modify(_.storages)
-      .using(_.sortBy(_.name))
-      .modify(_.videos)
-      .using(_.sortBy(_.name))
-
-    NodeFactArchive(entity, fileFormat, node).toJsonPretty.succeed
+    NodeFactArchive(entity, fileFormat, nodeFact).toJsonPretty.succeed
   }
+
+  private[nodes] def getAll(base: File): IOStream[NodeFact] = {
+    // TODO should be from git head, not from file directory
+    val stream = ZStream.fromIterator(base.collectChildren(_.extension(includeDot = true, includeAll = true) == Some(".json")))
+    stream
+      .mapError(ex => SystemError("Error when reading node fact persisted file", ex))
+      .mapZIO(f => f.contentAsString(StandardCharsets.UTF_8).fromJson[NodeFact].toIO.chainError(s"Error when decoding ${f.pathAsString}"))
+  }
+
+  override def getAllPending():  IOStream[NodeFact] = getAll(gitRepo.rootDirectory / relativePath / PendingInventory.name)
+  override def getAllAccepted(): IOStream[NodeFact] = getAll(gitRepo.rootDirectory / relativePath / AcceptedInventory.name)
 
   override def save(nodeFact: NodeFact): IOResult[Unit] = {
     if (nodeFact.rudderSettings.status == RemovedInventory) {
+      InventoryDataLogger.info(s"Not persisting deleted node '${nodeFact.fqdn}' [${nodeFact.id.value}]: it has removed inventory status") *>
       ZIO.unit
     } else {
       for {

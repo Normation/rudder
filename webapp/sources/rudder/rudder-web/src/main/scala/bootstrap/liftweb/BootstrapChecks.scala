@@ -65,6 +65,10 @@ trait BootstrapChecks {
 
 object BootstrapLogger extends NamedZioLogger {
   final override def loggerName: String = "bootchecks"
+
+  object migration extends NamedZioLogger {
+    final override def loggerName: String = "bootchecks.migration"
+  }
 }
 
 class SequentialImmediateBootStrapChecks(_checkActions: BootstrapChecks*) extends BootstrapChecks {

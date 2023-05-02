@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2017 Normation SAS
+ * Copyright 2023 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,64 +35,30 @@
  *************************************************************************************
  */
 
-package bootstrap.liftweb.checks.consistency
+package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.BootstrapChecks
-import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import javax.servlet.UnavailableException
-import net.liftweb.common._
 
-
-object CheckConnections {
-  def FAIL(msg: String) = {
-    BootstrapLogger.logEffect.error(msg)
-    throw new UnavailableException(msg)
-  }
-}
-
-/**
- * This class check that all external connection (LDAP, Postgres)
- * needed for the other bootstrap checks to run are OK.
+/*
+ * This class handles the migration of the format of node serialization that are accepted or refused.
+ * Before 8.0, when a node was accepted of refused, and LDIF dump of the node inventory part was saved
+ * under /var/rudder/inventories/historical
+ * The layout was:
+ * /var/rudder/inventories/historical/c1bab9fc-bcf6-4d59-a397-84c8e2fc06c0/2019-10-10_10:27.55.437
+ * were the UUID is a directory for that node, and the date part is a file in LDIF format.
+ *
+ * We will keep the same layout to simplify other part of Rudder.
+ *
+ * To mark the end of migration, we will create a metadata file format under
+ * /var/rudder/inventories/historical/info.properties with the key/value fileFormat=nodeFactV2
  */
-class CheckLDAPConnections(
-    ldap:     LDAPConnectionProvider[RwLDAPConnection]
+class CheckMigrateNodeAcceptationHistory(
 ) extends BootstrapChecks {
 
-  override val description = "Check LDAP connection"
+  override def description: String = "Change history format for node accepted or refused inventories"
 
-  @throws(classOf[UnavailableException])
   override def checks(): Unit = {
-    // check that an LDAP connection is up and running
-    ldap.map(_.backed.isConnected).toBox match {
-      case _: EmptyBox | Full(false) => CheckConnections.FAIL("Can not open LDAP connection")
-      case _                         => // ok
-    }
-
-    BootstrapLogger.logEffect.info("LDAP connection is OK")
-  }
-
-}
-class CheckPostgreSQLConnections(
-    postgres: RudderDatasourceProvider
-) extends BootstrapChecks {
-
-  override val description = "Check PostgreSQL connection"
-
-  @throws(classOf[UnavailableException])
-  override def checks(): Unit = {
-
-    // check that PostgreSQL pool is OK
-    try {
-      postgres.datasource.getConnection
-    } catch {
-      case e: Exception => CheckConnections.FAIL("Can not open connection to PostgreSQL database server")
-    }
-
-    BootstrapLogger.logEffect.info("LDAP and PostgreSQL connection are OK")
+    ??? // TODO
   }
 
 }

@@ -38,10 +38,8 @@
 package com.normation.rudder.services.quicksearch
 
 import com.normation.box._
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -60,8 +58,6 @@ import net.liftweb.common.Loggable
  */
 class FullQuickSearchService(implicit
     val ldapConnection: LDAPConnectionProvider[RoLDAPConnection],
-    val nodeDit:        NodeDit,
-    val inventoryDit:   InventoryDit,
     val rudderDit:      RudderDit,
     val directiveRepo:  RoDirectiveRepository,
     val nodeInfos:      NodeFactRepository
@@ -108,8 +104,6 @@ object QuickSearchService {
   implicit class QSBackendImpl(b: QSBackend)(implicit
       directiveRepo:              RoDirectiveRepository,
       ldap:                       LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:               InventoryDit,
-      nodeDit:                    NodeDit,
       rudderDit:                  RudderDit,
       nodeFactRepo:               NodeFactRepository
   ) {

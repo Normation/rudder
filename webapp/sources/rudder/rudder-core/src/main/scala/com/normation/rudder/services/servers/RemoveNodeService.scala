@@ -83,8 +83,6 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction.RemoveNod
 import com.normation.rudder.services.servers.DeletionResult._
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
-import com.unboundid.ldap.sdk.Modification
-import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
 import java.nio.file.Files
 import java.nio.file.Path
@@ -627,25 +625,25 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
   }
 }
 
-// clean up certification key status (only in move mode, not erase)
-class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
-    if (mode == DeleteMode.MoveToRemoved) {
-      NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
-      (for {
-        con <- ldap
-        res <- con.modify(
-                 deletedDit.NODES.NODE.dn(nodeId.value),
-                 new Modification(ModificationType.REPLACE, A_KEY_STATUS, UndefinedKey.value)
-               )
-      } yield ()).catchAll(err => {
-        NodeLoggerPure.Delete.error(
-          s"Error when removing the certification status of node key ${(nodeId, info).name}: ${err.fullMsg}"
-        )
-      })
-    } else ZIO.unit
-  }
-}
+//// clean up certification key status (only in move mode, not erase)
+//class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
+//  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+//    if (mode == DeleteMode.MoveToRemoved) {
+//      NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
+//      (for {
+//        con <- ldap
+//        res <- con.modify(
+//                 deletedDit.NODES.NODE.dn(nodeId.value),
+//                 new Modification(ModificationType.REPLACE, A_KEY_STATUS, UndefinedKey.value)
+//               )
+//      } yield ()).catchAll(err => {
+//        NodeLoggerPure.Delete.error(
+//          s"Error when removing the certification status of node key ${(nodeId, info).name}: ${err.fullMsg}"
+//        )
+//      })
+//    } else ZIO.unit
+//  }
+//}
 
 // clean-up cfengine key - only possible if we still have an inventory
 class CleanUpCFKeys extends PostNodeDeleteAction {

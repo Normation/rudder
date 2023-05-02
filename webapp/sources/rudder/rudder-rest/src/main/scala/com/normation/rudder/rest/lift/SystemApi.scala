@@ -42,7 +42,6 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.RestDataSerializer
@@ -603,8 +602,7 @@ class SystemApi(
 class SystemApiService13(
     healthcheckService: HealthcheckService,
     hcNotifService:     HealthcheckNotificationService,
-    serializer:         RestDataSerializer,
-    softwareService:    SoftwareService
+    serializer:         RestDataSerializer
 ) extends Loggable {
 
   def getHealthcheck(schema: EndpointSchema, params: DefaultParams): LiftResponse = {
@@ -630,12 +628,9 @@ class SystemApiService13(
     implicit val action   = schema.name
     implicit val prettify = params.prettify
 
-    // create it an async daemon to execute and handle error
-    softwareService.deleteUnreferencedSoftware().forkDaemon.runNow
-
     RestUtils.toJsonResponse(
       None,
-      JArray(List("Purge of unreference software started. More information in /var/log/rudder/webapp/ logs"))
+      JArray(List("Purge of unreferenced software is not necessary in Rudder 8.0. This action does nothings."))
     )
   }
 }

@@ -41,7 +41,6 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.box._
 import com.normation.errors._
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
@@ -60,9 +59,6 @@ import zio.syntax._
  *
  */
 class CheckDIT(
-    pendingNodesDit: InventoryDit,
-    acceptedDit:     InventoryDit,
-    removedDit:      InventoryDit,
     rudderDit:       RudderDit,
     ldap:            LDAPConnectionProvider[RwLDAPConnection]
 ) extends BootstrapChecks {
@@ -84,10 +80,11 @@ class CheckDIT(
     }
 
     // check that all base DN's entry are already in the LDAP
-    val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN ::
-      acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN ::
-      removedDit.BASE_DN :: removedDit.SOFTWARE_BASE_DN ::
-      rudderDit.BASE_DN :: Nil
+//    val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN ::
+//      acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN ::
+//      removedDit.BASE_DN :: removedDit.SOFTWARE_BASE_DN ::
+//      rudderDit.BASE_DN :: Nil
+    val baseDns = rudderDit.BASE_DN :: Nil
 
     (for {
       con   <- ldap
@@ -109,7 +106,7 @@ class CheckDIT(
 
     // now, check that all DIT entries are here, add missing ones
     val ditEntries =
-      (pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries).toSet
+      (/*pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++*/ rudderDit.getDITEntries).toSet
 
     (for {
       con <- ldap
@@ -130,8 +127,8 @@ class CheckDIT(
 
     // check Root Policy Server entries (from init-policy-server.ldif)
     val dns = List(
-      "nodeId=root,ou=Nodes,cn=rudder-configuration",
-      "nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration",
+//      "nodeId=root,ou=Nodes,cn=rudder-configuration",
+//      "nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration",
       "nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration",
       "ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration",
       "directiveId=common-hasPolicyServer-root,activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration",

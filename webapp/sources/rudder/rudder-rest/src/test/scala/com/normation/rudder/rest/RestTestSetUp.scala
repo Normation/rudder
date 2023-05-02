@@ -618,8 +618,7 @@ class RestTestSetUp {
   val apiService13           = new SystemApiService13(
     fakeHealthcheckService,
     fakeHcNotifService,
-    restDataSerializer,
-    null
+    restDataSerializer
   )
 
   val ruleApiService2 = new RuleApiService2(
