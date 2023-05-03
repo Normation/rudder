@@ -28,7 +28,7 @@
 # This method uses `augtool` to force the value of an augeas node's label.
 #
 # Actually there are two ways to use this method:
-# 
+#
 # * Either by providing the augeas **path** to the node's label and let **lens** and **file** empty.
 # ** this way augeas will load the common files and lens automatically
 # * Or by using a given **file** path and a specific **lens**.
@@ -74,11 +74,11 @@ bundle agent file_augeas_set(path, value, lens, file)
       "cpath" string => canonify("${path}");
 
     pass1.file_defined::
-      "command" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} ${value} \n save \n errors\" | ${ncf_paths.path[augtool]} --noautoload --new";
+      "command" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors\" | ${ncf_paths.path[augtool]} --noautoload --new";
       "cfile" string => canonify("${file}");
 
     pass1.!file_defined::
-      "command" string => "printf \"set /files${path} ${value} \n save \" | ${ncf_paths.path[augtool]}";
+      "command" string => "printf \"set /files${path} \"${value}\" \n save \" | ${ncf_paths.path[augtool]}";
 
     pass1.augeas_binaries.!pass2::
       "output" string => execresult("${command}", "useshell"), comment => "${path}";
