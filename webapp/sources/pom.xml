@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>7.2.6-SNAPSHOT</version>
+  <version>7.2.6</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -409,7 +409,7 @@ limitations under the License.
 
     <current-year>2023</current-year>
     <rudder-major-version>7.2</rudder-major-version>
-    <rudder-version>7.2.6-SNAPSHOT</rudder-version>
+    <rudder-version>7.2.6</rudder-version>
 
     <scala-version>2.13.9</scala-version>
     <silencer-lib-version>1.7.11</silencer-lib-version>
