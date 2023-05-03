@@ -28,7 +28,7 @@
 # This method uses `augtool` to force the value of an augeas node's label.
 #
 # Actually there are two ways to use this method:
-# 
+#
 # * Either by providing the augeas **path** to the node's label and let **lens** and **file** empty.
 # ** this way augeas will load the common files and lens automatically
 # * Or by using a given **file** path and a specific **lens**.
@@ -121,6 +121,8 @@ bundle agent file_augeas_set(path, value, lens, file)
                             if => "file_defined.repaired";
       "remove"       usebundle => file_absent("${file}.augnew"),
                             if => fileexists("${file}.augnew");
+      "remove"       usebundle => file_absent("${file}.${cpath}.augnew"),
+                            if => fileexists("${file}.${cpath}.augnew");
       "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
                                                   if => "should_report";
 
