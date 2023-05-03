@@ -51,9 +51,11 @@ final case class MemorySize(size: Long) extends AnyVal {
     value + " " + unit
   }
 }
-given Ordering[MemorySize] = _.size compareTo _.size
 
 object MemorySize {
+
+  val ord: Ordering[MemorySize] = _.size compareTo _.size
+
   /*
    * We should accept:
    * - no decimal numbers

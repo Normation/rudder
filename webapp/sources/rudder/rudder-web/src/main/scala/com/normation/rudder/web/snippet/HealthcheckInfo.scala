@@ -38,7 +38,6 @@ package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.RoleToRights
 import com.normation.rudder.services.healthcheck.HealthcheckResult
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok

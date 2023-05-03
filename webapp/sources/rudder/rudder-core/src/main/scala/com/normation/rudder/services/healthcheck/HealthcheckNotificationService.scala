@@ -73,5 +73,6 @@ class HealthcheckNotificationService(
   reloadCache(healthcheckCache)
     .repeat(Schedule.spaced(schedulerPeriod).forever)
     .forkDaemon
+    .provide(ZioRuntime.environment)
     .runNow: @nowarn("msg=a type was inferred to be `Any`")
 }

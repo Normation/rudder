@@ -422,7 +422,7 @@ class AutomaticReportsCleaning(
                  )
                  .delay(dur)
                  .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon: @nowarn(msg="a type was inferred to be `\\w+`; this may indicate a programming error.")
+                 .forkDaemon: @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 
              }
   } yield ()).provide(ZioRuntime.environment).runNow

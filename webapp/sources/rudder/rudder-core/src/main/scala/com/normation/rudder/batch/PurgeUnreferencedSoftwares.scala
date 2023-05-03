@@ -63,8 +63,8 @@ class PurgeUnreferencedSoftwares(
       s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()}"
     )
     val prog = softwareService.deleteUnreferencedSoftware()
-    import zio.Duration.{fromScala => zduration}
-    ZioRuntime.unsafeRun(prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon): @nowarn(
+    import zio.duration.Duration.{fromScala => zduration}
+    ZioRuntime.unsafeRun(prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).forkDaemon): @nowarn(
       "msg=a type was inferred to be `Any`"
     )
   }

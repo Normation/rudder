@@ -16,7 +16,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.TwoParam
 import com.normation.rudder.rest.implicits._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
@@ -26,7 +25,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
 import zio.ZIO
-import zio.syntax.*
+import zio.syntax._
 
 class CampaignApi(
     campaignRepository:      CampaignRepository,

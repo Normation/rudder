@@ -97,8 +97,8 @@ class CheckInventoryUpdate(
     )
   }
 
-  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).forkDaemon): @nowarn(msg=
-    "a type was inferred to be `\\w+`; this may indicate a programming error."
+  ZioRuntime.unsafeRun(prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).provide(ZioRuntime.environment).forkDaemon): @nowarn(
+    "msg=a type was inferred to be `\\w+`; this may indicate a programming error."
   )
 
 }

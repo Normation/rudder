@@ -40,7 +40,6 @@ package com.normation.rudder.web.model
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.utils.Utils._
 import net.liftweb.common._
 import net.liftweb.common.Box
 import net.liftweb.http._

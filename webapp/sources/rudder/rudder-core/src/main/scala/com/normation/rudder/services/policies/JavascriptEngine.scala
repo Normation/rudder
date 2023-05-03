@@ -63,6 +63,7 @@ import org.graalvm.polyglot.proxy.ProxyObject
 import scala.concurrent.duration.FiniteDuration
 import zio._
 import zio.syntax._
+import ca.mrvisser.sealerate
 
 sealed trait HashOsType
 

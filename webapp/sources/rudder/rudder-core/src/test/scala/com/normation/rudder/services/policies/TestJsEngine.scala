@@ -61,7 +61,7 @@ import zio.syntax._
  *
  */
 
-@norwarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestJsEngine extends Specification {
 

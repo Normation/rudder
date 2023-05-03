@@ -380,8 +380,9 @@ object Rollback extends EventLogFilter {
         minimizeEmpty = false,
         child = {
           val events = {
-            for ev <- rollbackedEvents
-            yield {
+            for {
+              ev <- rollbackedEvents
+            } yield {
               <rollbackedEvent>
                 <id>{ev.id.get}</id>
                 <type>{ev.eventType.serialize}</type>
