@@ -145,7 +145,7 @@ class InfoApi(
   }
 
   object ApiSubInformations extends LiftApiModule {
-    val schema : OneParam       = API.ApiSubInformations
+    val schema: OneParam = API.ApiSubInformations
     val restExtractor = api.restExtractor
     def process(
         version:    ApiVersion,
@@ -161,7 +161,7 @@ class InfoApi(
   }
 
   object ApiInformations extends LiftApiModule {
-    val schema: OneParam        = API.ApiInformations
+    val schema: OneParam = API.ApiInformations
     val restExtractor = api.restExtractor
     def process(
         version:    ApiVersion,

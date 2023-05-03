@@ -38,7 +38,6 @@
 package com.normation.cfclerk.services
 
 import better.files.File
-import scala.annotation.nowarn
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -61,6 +60,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import scala.annotation.nowarn
 import scala.util.Random
 import zio._
 import zio.syntax._

@@ -80,7 +80,7 @@ import scala.xml._
 sealed trait DisplayColumn
 object DisplayColumn {
   final case class Force(display: Boolean) extends DisplayColumn
-  object FromConfig                  extends DisplayColumn
+  object FromConfig                        extends DisplayColumn
 }
 
 class RuleGrid(
@@ -315,7 +315,7 @@ class RuleGrid(
           try {
             (for {
               case JObject(JField("rules", JArray(childs)) :: Nil) <- JsonParser.parse(arg)
-              case JString(ruleId)                                 <- childs
+              case JString(ruleId) <- childs
             } yield {
               RuleId(RuleUid(ruleId))
             }) match {

@@ -40,7 +40,7 @@ import ca.mrvisser.sealerate.values
 import com.normation.errors._
 
 sealed trait PolicyMode { def name: String }
-final object PolicyMode {
+object PolicyMode       {
   final case object Audit   extends PolicyMode { val name = "audit"   }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 

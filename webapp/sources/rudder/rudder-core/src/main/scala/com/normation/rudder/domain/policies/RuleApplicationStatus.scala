@@ -51,7 +51,7 @@ case object NotAppliedNoPI       extends NotAppliedStatus
 case object NotAppliedNoTarget   extends NotAppliedStatus
 case object NotAppliedCrDisabled extends NotAppliedStatus
 
-case object FullyApplied                                                 extends AppliedStatus
+case object FullyApplied                                                       extends AppliedStatus
 final case class PartiallyApplied(disabled: Seq[(ActiveTechnique, Directive)]) extends AppliedStatus
 
 object ApplicationStatus {

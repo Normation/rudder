@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.policies
 
-import scala.annotation.nowarn
+import ca.mrvisser.sealerate
 import com.normation.cfclerk.domain.AbstactPassword
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.HashAlgoConstraint._
@@ -60,6 +60,7 @@ import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.proxy.ProxyObject
+import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import zio._
 import zio.syntax._
@@ -505,7 +506,7 @@ object JsEngine {
       )
     )(x => effectUioUnit(x.close(true)))
   }
-  object SandboxedJsEngine               {
+  object SandboxedJsEngine                     {
     // we need to set the warning for interpreted mode to off, because, yeah for now, we are doing that only
     System.setProperty("polyglot.engine.WarnInterpreterOnly", "false")
 

@@ -28,7 +28,7 @@ import com.unboundid.ldap.sdk.Modification
  * a tree.
  */
 sealed abstract class TreeModification
-case object NoMod                                 extends TreeModification
+case object NoMod                                       extends TreeModification
 final case class Add(tree: LDAPTree)                    extends TreeModification
 final case class Delete(tree: Tree[DN])                 extends TreeModification
 final case class Replace(mods: (DN, Seq[Modification])) extends TreeModification

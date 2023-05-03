@@ -1001,7 +1001,7 @@ class LDAPEntityMapper(
     import net.liftweb.json.Serialization._
     import net.liftweb.json._
     implicit val formats: Formats = DefaultFormats
-    val toSerialize      = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
+    val toSerialize = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
     write[JsonApiAcl](toSerialize)
   }
   def unserApiAcl(s: String):                Either[String, List[ApiAclElement]] = {

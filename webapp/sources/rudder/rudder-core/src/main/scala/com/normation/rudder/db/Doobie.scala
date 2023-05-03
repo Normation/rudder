@@ -204,7 +204,9 @@ object Doobie {
   }
 
   implicit val NodesConfigVerionRead:  Read[NodeConfigVersions]  = {
-    Read[(NodeId, Option[List[String]])].map(tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId.apply)))
+    Read[(NodeId, Option[List[String]])].map(tuple =>
+      NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId.apply))
+    )
   }
   implicit val NodesConfigVerionWrite: Write[NodeConfigVersions] = {
     Write[(NodeId, Option[List[String]])].contramap(ncv => (ncv.nodeId, Some(ncv.versions.map(_.value))))

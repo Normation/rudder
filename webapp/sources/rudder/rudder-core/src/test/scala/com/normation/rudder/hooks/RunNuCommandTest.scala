@@ -37,7 +37,6 @@
 
 package com.normation.rudder.hooks
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.zio._
 import java.io.File
@@ -46,6 +45,7 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters._
 import zio.duration._
 

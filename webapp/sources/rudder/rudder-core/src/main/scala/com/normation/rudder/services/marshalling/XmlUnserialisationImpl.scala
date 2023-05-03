@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.marshalling
 
-import com.github.ghik.silencer.silent
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
 import com.normation.box._
@@ -269,7 +268,7 @@ class NodeGroupUnserialisationImpl(
                         tryo(s.text.toBoolean)
                       ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
       properties   <- sequence((group \ "properties" \ "property").toList) {
-                        case <property>{p @ (_*)}</property> =>
+                        case <property>{p @ _*}</property> =>
                           val name = (p \\ "name").text.trim
                           if (name.trim.isEmpty) {
                             Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
@@ -278,7 +277,7 @@ class NodeGroupUnserialisationImpl(
                               .parse(
                                 (p \\ "name").text.trim,
                                 ParseRev((p \\ "revision").text.trim),
-                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim): @silent,
+                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim),
                                 (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
                                 (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
                               )
@@ -849,7 +848,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             Full(ApiAuthorization.RO)
                           case Some(Text(ApiAuthorizationKind.RW.name))      =>
                             Full(ApiAuthorization.RW)
-                          case Some(<acl>{xml @ (_*)}</acl>) if (xml.nonEmpty) =>
+                          case Some(<acl>{xml @ _*}</acl>) if (xml.nonEmpty) =>
                             unserAcl(xml.head)
                           // all other case: serialization pb => None
                           case _                                             => Full(ApiAuthorization.None)

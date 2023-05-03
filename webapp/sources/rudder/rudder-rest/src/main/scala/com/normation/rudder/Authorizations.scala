@@ -242,7 +242,7 @@ object Role       {
   final case object Validator     extends Role {
     val name = "validator"; val rights = (ua ++ A.Validator.values ++ A.complianceKind).toRights
   }
-  case object Configuration extends Role {
+  case object Configuration       extends Role {
     val name = "configuration"; val rights = (ua ++ A.configurationKind.map(identity)).toRights
   }
   final case object ReadOnly      extends Role { val name = "read_only"; val rights = (ua ++ allRead).toRights                      }

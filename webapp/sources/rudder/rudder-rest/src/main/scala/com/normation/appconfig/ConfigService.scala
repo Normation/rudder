@@ -540,13 +540,19 @@ class GenericConfigService(
   implicit private[this] def toUnit(p: IOResult[RudderWebProperty]): IOResult[Unit] = p.map(_ => ())
 
   implicit private[this] def toInt(p: RudderWebProperty): IOResult[Int] = {
-    try Integer.parseInt(p).succeed
-    catch case ex: NumberFormatException => Inconsistency(ex.getMessage).fail
+    try {
+      Integer.parseInt(p).succeed
+    } catch {
+      case ex: NumberFormatException => Inconsistency(ex.getMessage).fail
+    }
   }
 
   implicit private[this] def toDuration(p: RudderWebProperty): IOResult[Duration] = {
-    try Duration(p).succeed
-    catch case ex: Exception => Inconsistency(ex.getMessage).fail
+    try {
+      Duration(p).succeed
+    } catch {
+      case ex: Exception => Inconsistency(ex.getMessage).fail
+    }
   }
 
   implicit private[this] def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {

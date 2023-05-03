@@ -94,12 +94,12 @@ class AgentScheduleEditForm(
     val json = parse(s)
 
     (for {
-      case JObject(child)                  <- json
-      case JField("overrides", ov)         <- child
-      case JField("interval", JInt(i))     <- child
-      case JField("startHour", JInt(h))    <- child
-      case JField("startMinute", JInt(m))  <- child
-      case JField("splayHour", JInt(sh))   <- child
+      case JObject(child) <- json
+      case JField("overrides", ov) <- child
+      case JField("interval", JInt(i)) <- child
+      case JField("startHour", JInt(h)) <- child
+      case JField("startMinute", JInt(m)) <- child
+      case JField("splayHour", JInt(sh)) <- child
       case JField("splayMinute", JInt(sm)) <- child
     } yield {
       val splayTime     = (sh.toInt * 60) + sm.toInt

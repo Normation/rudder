@@ -430,7 +430,7 @@ class CreateOrUpdateGlobalParameterPopup(
             </div>
         // TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16458
         </div>//<!-- /.modal-content -->
-    </div>//<!-- /.modal-dialog -->
+    </div> // <!-- /.modal-dialog -->
     )
   }
 }

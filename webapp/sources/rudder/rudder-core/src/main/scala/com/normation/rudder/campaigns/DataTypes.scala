@@ -176,9 +176,9 @@ sealed trait CampaignEventState {
 @jsonHint(Scheduled.value)
 case object Scheduled extends CampaignEventState { val value = "scheduled" }
 @jsonHint(Running.value)
-case object Running                extends CampaignEventState { val value = "running"  }
+case object Running                      extends CampaignEventState { val value = "running"  }
 @jsonHint(Finished.value)
-case object Finished               extends CampaignEventState { val value = "finished" }
+case object Finished                     extends CampaignEventState { val value = "finished" }
 @jsonHint(Skipped("").value)
 final case class Skipped(reason: String) extends CampaignEventState { val value = "skipped"  }
 

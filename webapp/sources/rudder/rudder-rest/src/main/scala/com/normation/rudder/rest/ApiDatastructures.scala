@@ -77,7 +77,7 @@ import com.normation.rudder.api.HttpAction
 //Api supported range version
 sealed trait ApiV extends Any
 object ApiV {
-  case object OnlyLatest                extends ApiV
+  case object OnlyLatest                      extends ApiV
   final case class From(from: Int)            extends AnyVal with ApiV
   final case class FromTo(from: Int, to: Int) extends ApiV // from must be <= to
 }

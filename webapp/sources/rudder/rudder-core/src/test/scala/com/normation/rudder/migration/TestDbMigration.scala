@@ -37,7 +37,6 @@
 
 package com.normation.rudder.migration
 
-import scala.annotation.nowarn
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie._
 import doobie.implicits._
@@ -48,6 +47,7 @@ import net.liftweb.common.Failure
 import org.junit.runner.RunWith
 import org.specs2.matcher.XmlMatchers
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 import scala.xml.Elem
 import zio.interop.catz._
 

@@ -103,7 +103,7 @@ sealed trait DeletionResult
 object DeletionResult {
   final case class PreHookFailed(hookError: HookReturnCode.Error)  extends DeletionResult
   final case class PostHookFailed(hookError: HookReturnCode.Error) extends DeletionResult
-  case object Success                                        extends DeletionResult
+  case object Success                                              extends DeletionResult
   final case class Error(err: RudderError)                         extends DeletionResult
 
   def resolve(results: List[DeletionResult]) = {
@@ -118,7 +118,7 @@ object DeletionResult {
 }
 
 sealed trait DeleteMode { def name: String }
-final object DeleteMode {
+object DeleteMode       {
 
   final case object MoveToRemoved extends DeleteMode { val name = "move"  }
   final case object Erase         extends DeleteMode { val name = "erase" }

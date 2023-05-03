@@ -163,7 +163,7 @@ sealed abstract class MachineType
 final case class VirtualMachineType(vm: VmType) extends MachineType {
   override def toString() = vm.name
 }
-case object PhysicalMachineType           extends MachineType {
+case object PhysicalMachineType                 extends MachineType {
   override def toString() = "physicalMachine"
 }
 

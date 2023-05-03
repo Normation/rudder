@@ -37,13 +37,13 @@
 
 package com.normation.rudder.rest
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.zio._
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
+import scala.annotation.nowarn
 import zio.json._
 import zio.json.DeriveJsonEncoder
 

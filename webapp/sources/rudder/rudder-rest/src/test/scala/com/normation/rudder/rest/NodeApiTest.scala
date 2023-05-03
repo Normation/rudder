@@ -1,6 +1,5 @@
 package com.normation.rudder.rest
 
-import scala.annotation.nowarn
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
@@ -12,6 +11,7 @@ import net.liftweb.json.compactRender
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])

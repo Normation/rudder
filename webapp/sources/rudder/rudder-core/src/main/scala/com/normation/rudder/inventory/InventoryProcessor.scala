@@ -38,7 +38,6 @@
 package com.normation.rudder.inventory
 
 import better.files.File
-import scala.annotation.nowarn
 import com.normation.box.IOManaged
 import com.normation.errors._
 import com.normation.errors.Chained
@@ -67,6 +66,7 @@ import java.security.{PublicKey => JavaSecPubKey}
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
+import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 

@@ -37,7 +37,6 @@
 
 package com.normation.inventory.ldap.core
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
@@ -52,6 +51,7 @@ import org.junit.runner._
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.annotation.nowarn
 import zio._
 
 final case class SystemError(cause: Throwable) extends RudderError {

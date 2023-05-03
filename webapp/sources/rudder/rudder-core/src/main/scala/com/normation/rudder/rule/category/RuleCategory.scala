@@ -37,9 +37,9 @@
 
 package com.normation.rudder.rule.category
 
-import scala.annotation.nowarn
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
+import scala.annotation.nowarn
 
 /**
  * The Id for the server group category

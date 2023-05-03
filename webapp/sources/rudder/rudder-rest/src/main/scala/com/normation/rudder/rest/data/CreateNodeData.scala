@@ -299,20 +299,20 @@ object Validation {
     final case class UUID(x: String)          extends NodeValidationError {
       val msg = s"Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but '${x}' provided"
     }
-    case object Hostname                extends NodeValidationError { val msg = "Hostname can't be empty" }
+    case object Hostname                      extends NodeValidationError { val msg = "Hostname can't be empty" }
     final case class Status(x: String)        extends NodeValidationError {
       val msg = s"Node 'status' must be one of ${names(allStatus)(_.name)} but '${x}' provided"
     }
     final case class PolicyMode(x: String)    extends NodeValidationError {
       val msg = s"Node's policy mode must be one of ${names(PM.allModes)(_.name)} but '${x}' provided"
     }
-    case object PolicyModeOnBadStatus   extends NodeValidationError {
+    case object PolicyModeOnBadStatus         extends NodeValidationError {
       val msg = s"Policy mode can not be specified when status=pending"
     }
     final case class State(x: String)         extends NodeValidationError {
       val msg = s"Node 'state' must be one of ${names(NodeState.values)(_.name)} but '${x}' provided"
     }
-    case object StateOnBadStatus        extends NodeValidationError {
+    case object StateOnBadStatus              extends NodeValidationError {
       val msg = s"Node 'state' can not be specified when status=pending"
     }
     final case class Ram(x: String)           extends NodeValidationError {

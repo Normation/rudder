@@ -46,7 +46,7 @@ import org.joda.time.DateTime
 
 sealed trait PluginStatusInfo
 object PluginStatusInfo {
-  case object EnabledNoLicense                                            extends PluginStatusInfo
+  case object EnabledNoLicense                                                  extends PluginStatusInfo
   final case class EnabledWithLicense(i: PluginLicenseInfo)                     extends PluginStatusInfo
   final case class Disabled(reason: String, details: Option[PluginLicenseInfo]) extends PluginStatusInfo
 }

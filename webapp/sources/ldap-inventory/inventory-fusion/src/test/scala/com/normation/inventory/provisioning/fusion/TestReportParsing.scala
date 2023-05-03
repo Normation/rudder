@@ -37,7 +37,6 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.AgentType._
@@ -49,6 +48,7 @@ import net.liftweb.json.JsonAST._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.annotation.nowarn
 import zio._
 
 /**

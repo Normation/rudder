@@ -37,10 +37,10 @@
 
 package com.normation.rudder.domain.reports
 
-import scala.annotation.nowarn
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
 /**
  * Test properties about Compliance Level,

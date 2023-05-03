@@ -86,14 +86,14 @@ case object Equals    extends BaseComparator { override val id = "eq"    }
 case object NotEquals extends BaseComparator { override val id = "notEq" }
 
 sealed trait OrderedComparator extends BaseComparator
-case object Greater      extends OrderedComparator { override val id = "gt"   } //strictly greater
-case object Lesser       extends OrderedComparator { override val id = "lt"   } //strictly lower
-case object GreaterEq    extends OrderedComparator { override val id = "gteq" } //greater or equals
-case object LesserEq     extends OrderedComparator { override val id = "lteq" } //lower or equals
+case object Greater            extends OrderedComparator { override val id = "gt"   } //strictly greater
+case object Lesser             extends OrderedComparator { override val id = "lt"   } //strictly lower
+case object GreaterEq          extends OrderedComparator { override val id = "gteq" } //greater or equals
+case object LesserEq           extends OrderedComparator { override val id = "lteq" } //lower or equals
 
 sealed trait SpecialComparator extends BaseComparator
-case object Regex        extends SpecialComparator { override val id = "regex"    }
-case object NotRegex     extends SpecialComparator { override val id = "notRegex" }
+case object Regex              extends SpecialComparator { override val id = "regex"    }
+case object NotRegex           extends SpecialComparator { override val id = "notRegex" }
 
 sealed trait KeyValueComparator extends BaseComparator
 object KeyValueComparator {

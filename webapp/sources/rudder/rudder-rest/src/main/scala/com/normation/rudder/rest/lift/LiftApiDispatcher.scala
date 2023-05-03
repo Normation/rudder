@@ -297,12 +297,12 @@ final case class ChooseApiN[R](old: LiftApiModuleN[R], current: LiftApiModuleN[R
   override def process(
       version:    ApiVersion,
       path:       ApiPath,
-      _resources:  schema.RESOURCES,
+      _resources: schema.RESOURCES,
       req:        Req,
       params:     DefaultParams,
       authzToken: AuthzToken
   ): LiftResponse = {
-    val resources = _resources.asInstanceOf[R] 
+    val resources = _resources.asInstanceOf[R]
     if (version.value < 14) old.process(version, path, resources, req, params, authzToken)
     else current.process(version, path, resources, req, params, authzToken)
   }

@@ -152,11 +152,6 @@ limitations under the License.
 <!--          <recompileMode>incremental</recompileMode>-->
           <compilerPlugins>
             <compilerPlugin>
-              <groupId>com.github.ghik</groupId>
-              <artifactId>silencer-plugin_${scala-version}</artifactId>
-              <version>${silencer-lib-version}</version>
-            </compilerPlugin>
-            <compilerPlugin>
               <groupId>org.wartremover</groupId>
               <artifactId>wartremover_2.13</artifactId>
               <version>2.4.10</version>
@@ -195,7 +190,6 @@ limitations under the License.
             <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable paralellisation — change to desired number! -->
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
-            <arg>-P:silencer:checkUnused</arg>
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
           </args>
@@ -412,7 +406,6 @@ limitations under the License.
     <rudder-version>7.2.7-SNAPSHOT</rudder-version>
 
     <scala-version>2.13.9</scala-version>
-    <silencer-lib-version>1.7.11</silencer-lib-version>
     <scala-binary-version>2.13</scala-binary-version>
     <!-- lift force us to remain with 1.3.0 because of
          java.lang.NoSuchMethodError: 'scala.collection.mutable.Stack scala.xml.parsing.NoBindingFactoryAdapter.scopeStack()'net.liftweb.util.Html5Parser.$anonfun$parse$1(HtmlParser.scala:373)

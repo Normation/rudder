@@ -111,8 +111,8 @@ sealed trait AclPathSegment { def value: String }
 
 object AclPathSegment {
   final case class Segment(value: String) extends AclPathSegment
-  case object Wildcard              extends AclPathSegment { val value = "*"  }
-  case object DoubleWildcard        extends AclPathSegment { val value = "**" }
+  case object Wildcard                    extends AclPathSegment { val value = "*"  }
+  case object DoubleWildcard              extends AclPathSegment { val value = "**" }
 
   def parse(s: String): Either[String, AclPathSegment] = {
     s.trim() match {
@@ -206,7 +206,7 @@ final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
 }
 
 sealed trait ApiAuthorizationKind { def name: String }
-final object ApiAuthorizationKind {
+object ApiAuthorizationKind       {
   final case object None extends ApiAuthorizationKind { override val name = "none" }
   final case object RO   extends ApiAuthorizationKind { override val name = "ro"   }
   final case object RW   extends ApiAuthorizationKind { override val name = "rw"   }
@@ -238,10 +238,10 @@ final object ApiAuthorizationKind {
  * - ACL: fine grained authz.
  */
 sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
-object ApiAuthorization {
-  case object None                         extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
-  case object RW                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
-  case object RO                           extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
+object ApiAuthorization       {
+  case object None                               extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
+  case object RW                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
+  case object RO                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
   final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization { override def kind = ApiAuthorizationKind.ACL  }
 
   /**

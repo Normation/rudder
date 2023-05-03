@@ -586,8 +586,8 @@ class RwLDAPConnection(
    */
   private val applyDeletes = applyMods[DeleteRequest](
     "delete",
-    { (req: DeleteRequest) => req.toLDIFChangeRecord },
-    { (req: DeleteRequest) => backed.delete(req) },
+    (req: DeleteRequest) => req.toLDIFChangeRecord,
+    (req: DeleteRequest) => backed.delete(req),
     res => NO_SUCH_OBJECT == res || onlyReportOnDelete(res) // no such object only says it's already deleted
   ) _
 
@@ -596,15 +596,15 @@ class RwLDAPConnection(
    */
   private val applyAdds = applyMods[AddRequest](
     "adds",
-    { (req: AddRequest) => req.toLDIFChangeRecord },
-    { (req: AddRequest) => backed.add(req) },
+    (req: AddRequest) => req.toLDIFChangeRecord,
+    (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
   ) _
 
   private val applyAdd = applyMod[AddRequest](
     "add",
-    { (req: AddRequest) => req.toLDIFChangeRecord },
-    { (req: AddRequest) => backed.add(req) },
+    (req: AddRequest) => req.toLDIFChangeRecord,
+    (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
   ) _
 
@@ -613,8 +613,8 @@ class RwLDAPConnection(
    */
   private val applyModify = applyMod[ModifyRequest](
     "modify",
-    { (req: ModifyRequest) => req.toLDIFChangeRecord },
-    { (req: ModifyRequest) => backed.modify(req) },
+    (req: ModifyRequest) => req.toLDIFChangeRecord,
+    (req: ModifyRequest) => backed.modify(req),
     onlyReportOnModify
   ) _
 
@@ -640,8 +640,8 @@ class RwLDAPConnection(
     } else {
       applyMod[ModifyDNRequest](
         "modify DN",
-        { (req: ModifyDNRequest) => req.toLDIFChangeRecord },
-        { (req: ModifyDNRequest) => backed.modifyDN(req) },
+        (req: ModifyDNRequest) => req.toLDIFChangeRecord,
+        (req: ModifyDNRequest) => backed.modifyDN(req),
         onlyReportOnModify
       )(new ModifyDNRequest(dn.toString, newRDN.getOrElse(dn.getRDN).toString, newRDN.isDefined, newParentDn.toString))
     }

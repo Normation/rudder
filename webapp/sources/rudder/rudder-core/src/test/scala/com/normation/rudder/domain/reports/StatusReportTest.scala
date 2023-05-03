@@ -324,8 +324,8 @@ class StatusReportTest extends Specification {
         for (i <- 1 to 100) {
           val t0_0 = System.nanoTime
           // use to warm up
-          val _ = ComplianceLevel.sum(source)
-          val t1_1   = System.nanoTime
+          val _    = ComplianceLevel.sum(source)
+          val t1_1 = System.nanoTime
           logger.trace(s"${i}th call to sum for ${nbSet} sets took ${(t1_1 - t0_0) / 1000} µs")
         }
         val t1 = System.nanoTime

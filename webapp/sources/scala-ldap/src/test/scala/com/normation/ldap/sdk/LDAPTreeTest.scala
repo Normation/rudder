@@ -20,7 +20,6 @@
 
 package com.normation.ldap.sdk
 
-import scala.annotation.nowarn
 import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.DN.NULL_DN
@@ -28,6 +27,7 @@ import com.unboundid.ldap.sdk.RDN
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])

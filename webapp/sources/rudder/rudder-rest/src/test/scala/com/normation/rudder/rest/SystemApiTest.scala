@@ -37,7 +37,6 @@
 
 package com.normation.rudder.rest
 
-import scala.annotation.nowarn
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
@@ -54,6 +53,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import scala.annotation.nowarn
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])

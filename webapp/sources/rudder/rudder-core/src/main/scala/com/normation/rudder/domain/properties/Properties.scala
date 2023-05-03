@@ -92,7 +92,7 @@ final case class InheritMode(
 ) {
   def value = s"${forObject.value}${forArray.value}${forString.value}"
 }
-final object InheritMode {
+object InheritMode {
   sealed trait ObjectMode      { def value: Char }
   final case object ObjectMode {
     final case object Override extends ObjectMode { override val value = 'o' }

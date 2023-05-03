@@ -99,7 +99,7 @@ object RunComplianceInfo {
     final case class AgentAbortMessage(cause: String, message: String) extends PolicyModeError
   }
 
-  object OK                                                           extends RunComplianceInfo
+  object OK                                                                 extends RunComplianceInfo
   final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
 }
 

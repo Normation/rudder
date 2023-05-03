@@ -473,7 +473,7 @@ sealed trait SoftwareUpdateKind {
   def name: String
 }
 
-final object SoftwareUpdateKind     {
+object SoftwareUpdateKind           {
   final case object None                extends SoftwareUpdateKind { val name = "none"        }
   final case object Defect              extends SoftwareUpdateKind { val name = "defect"      }
   final case object Security            extends SoftwareUpdateKind { val name = "security"    }
@@ -488,7 +488,7 @@ sealed trait SoftwareUpdateSeverity {
   def name: String
 }
 
-final object SoftwareUpdateSeverity {
+object SoftwareUpdateSeverity {
   case object Low                 extends SoftwareUpdateSeverity { val name = "low"      }
   case object Moderate            extends SoftwareUpdateSeverity { val name = "moderate" }
   case object High                extends SoftwareUpdateSeverity { val name = "high"     }

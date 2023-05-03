@@ -141,7 +141,7 @@ sealed trait TechniqueGenerationMode {
   def name: String
 }
 
-final object TechniqueGenerationMode {
+object TechniqueGenerationMode {
 
   /*
    * This technique does not support mutiple directives on the same node

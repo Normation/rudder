@@ -189,9 +189,9 @@ object errors {
     implicit val ord: Order[E] = new Order[E]() {
       override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
     }
-    def msg          = all.map(_.fullMsg).toList.mkString(" ; ")
+    def msg = all.map(_.fullMsg).toList.mkString(" ; ")
     // only unique error
-    def deduplicate  = {
+    def deduplicate = {
       Accumulated(all.distinct)
     }
   }

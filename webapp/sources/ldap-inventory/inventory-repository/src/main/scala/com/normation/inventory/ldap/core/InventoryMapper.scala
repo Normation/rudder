@@ -148,20 +148,20 @@ class InventoryMapper(
 
   def entryFromSoftware(soft: Software): LDAPEntry = {
     val e = acceptedDit.SOFTWARE.SOFT.model(soft.id)
-    e.setOpt(soft.name, A_NAME, { (x: String) => x })
-    e.setOpt(soft.description, A_DESCRIPTION, { (x: String) => x })
-    e.setOpt(soft.version, A_SOFT_VERSION, { (x: Version) => x.value })
-    e.setOpt(soft.editor, A_EDITOR, { (x: SoftwareEditor) => x.name })
-    e.setOpt(soft.releaseDate, A_RELEASE_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
-    e.setOpt(soft.sourceName, A_SOURCE_NAME, { (x: String) => x })
-    e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, { (x: Version) => x.value })
+    e.setOpt(soft.name, A_NAME, (x: String) => x)
+    e.setOpt(soft.description, A_DESCRIPTION, (x: String) => x)
+    e.setOpt(soft.version, A_SOFT_VERSION, (x: Version) => x.value)
+    e.setOpt(soft.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
+    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    e.setOpt(soft.sourceName, A_SOURCE_NAME, (x: String) => x)
+    e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, (x: Version) => x.value)
     soft.license.foreach { lic =>
       e.resetValuesTo(A_LICENSE_NAME, lic.name)
-      e.setOpt(lic.description, A_LICENSE_DESC, { (x: String) => x })
-      e.setOpt(lic.expirationDate, A_LICENSE_EXP, { (x: DateTime) => x.toString() })
-      e.setOpt(lic.productId, A_LICENSE_PRODUCT_ID, { (x: String) => x })
-      e.setOpt(lic.productKey, A_LICENSE_PRODUCT_KEY, { (x: String) => x })
-      e.setOpt(lic.oem, A_LICENSE_OEM, { (x: String) => x })
+      e.setOpt(lic.description, A_LICENSE_DESC, (x: String) => x)
+      e.setOpt(lic.expirationDate, A_LICENSE_EXP, (x: DateTime) => x.toString())
+      e.setOpt(lic.productId, A_LICENSE_PRODUCT_ID, (x: String) => x)
+      e.setOpt(lic.productKey, A_LICENSE_PRODUCT_KEY, (x: String) => x)
+      e.setOpt(lic.oem, A_LICENSE_OEM, (x: String) => x)
     }
     e
 
@@ -202,11 +202,11 @@ class InventoryMapper(
 
   def entryFromBios(elt: Bios, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.BIOS.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.editor, A_EDITOR, { (x: SoftwareEditor) => x.name })
-    e.setOpt(elt.releaseDate, A_RELEASE_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
-    e.setOpt(elt.version, A_SOFT_VERSION, { (x: Version) => x.value })
+    e.setOpt(elt.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
+    e.setOpt(elt.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    e.setOpt(elt.version, A_SOFT_VERSION, (x: Version) => x.value)
 
     e
   }
@@ -229,10 +229,10 @@ class InventoryMapper(
 
   def entryFromController(elt: Controller, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.CONTROLLER.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.manufacturer, A_MANUFACTURER, { (x: Manufacturer) => x.name })
-    e.setOpt(elt.cType, A_SME_TYPE, { (x: String) => x })
+    e.setOpt(elt.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
+    e.setOpt(elt.cType, A_SME_TYPE, (x: String) => x)
     e
   }
 
@@ -252,14 +252,14 @@ class InventoryMapper(
 
   def entryFromMemorySlot(elt: MemorySlot, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.MEMORY.model(machineId, elt.slotNumber)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.name, A_NAME, { (x: String) => x })
-    e.setOpt(elt.capacity, A_MEMORY_CAPACITY, { (x: MemorySize) => x.size.toString })
-    e.setOpt(elt.caption, A_MEMORY_CAPTION, { (x: String) => x })
-    e.setOpt(elt.speed, A_MEMORY_SPEED, { (x: String) => x })
-    e.setOpt(elt.memType, A_MEMORY_TYPE, { (x: String) => x })
-    e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, { (x: String) => x })
+    e.setOpt(elt.name, A_NAME, (x: String) => x)
+    e.setOpt(elt.capacity, A_MEMORY_CAPACITY, (x: MemorySize) => x.size.toString)
+    e.setOpt(elt.caption, A_MEMORY_CAPTION, (x: String) => x)
+    e.setOpt(elt.speed, A_MEMORY_SPEED, (x: String) => x)
+    e.setOpt(elt.memType, A_MEMORY_TYPE, (x: String) => x)
+    e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, (x: String) => x)
     e
   }
 
@@ -283,9 +283,9 @@ class InventoryMapper(
 
   def entryFromPort(elt: Port, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.pType, A_SME_TYPE, { (x: String) => x })
+    e.setOpt(elt.pType, A_SME_TYPE, (x: String) => x)
     e
   }
 
@@ -304,19 +304,19 @@ class InventoryMapper(
 
   def entryFromProcessor(elt: Processor, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.CPU.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.speed, A_PROCESSOR_SPEED, { (x: Int) => x.toString })
-    e.setOpt(elt.stepping, A_PROCESSOR_STEPPING, { (x: Int) => x.toString })
-    e.setOpt(elt.family, A_PROCESSOR_FAMILLY, { (x: Int) => x.toString() })
-    e.setOpt(elt.model, A_MODEL, { (x: Int) => x.toString() })
-    e.setOpt(elt.manufacturer, A_MANUFACTURER, { (x: Manufacturer) => x.name })
-    e.setOpt(elt.core, A_CORE, { (x: Int) => x.toString() })
-    e.setOpt(elt.thread, A_THREAD, { (x: Int) => x.toString() })
-    e.setOpt(elt.familyName, A_PROCESSOR_FAMILY_NAME, { (x: String) => x })
-    e.setOpt(elt.arch, A_PROCESSOR_ARCHITECTURE, { (x: String) => x })
-    e.setOpt(elt.cpuid, A_CPUID, { (x: String) => x })
-    e.setOpt(elt.externalClock, A_EXTERNAL_CLOCK, { (x: Float) => x.toString() })
+    e.setOpt(elt.speed, A_PROCESSOR_SPEED, (x: Int) => x.toString)
+    e.setOpt(elt.stepping, A_PROCESSOR_STEPPING, (x: Int) => x.toString)
+    e.setOpt(elt.family, A_PROCESSOR_FAMILLY, (x: Int) => x.toString())
+    e.setOpt(elt.model, A_MODEL, (x: Int) => x.toString())
+    e.setOpt(elt.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
+    e.setOpt(elt.core, A_CORE, (x: Int) => x.toString())
+    e.setOpt(elt.thread, A_THREAD, (x: Int) => x.toString())
+    e.setOpt(elt.familyName, A_PROCESSOR_FAMILY_NAME, (x: String) => x)
+    e.setOpt(elt.arch, A_PROCESSOR_ARCHITECTURE, (x: String) => x)
+    e.setOpt(elt.cpuid, A_CPUID, (x: String) => x)
+    e.setOpt(elt.externalClock, A_EXTERNAL_CLOCK, (x: Float) => x.toString())
     e
   }
 
@@ -360,9 +360,9 @@ class InventoryMapper(
 
   def entryFromSlot(elt: Slot, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.status, A_STATUS, { (x: String) => x })
+    e.setOpt(elt.status, A_STATUS, (x: String) => x)
     e
   }
 
@@ -381,7 +381,7 @@ class InventoryMapper(
 
   def entryFromSound(elt: Sound, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.SOUND.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e
   }
@@ -400,14 +400,14 @@ class InventoryMapper(
 
   def entryFromStorage(elt: Storage, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.STORAGE.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.size, A_STORAGE_SIZE, { (x: MemorySize) => x.size.toString })
-    e.setOpt(elt.firmware, A_STORAGE_FIRMWARE, { (x: String) => x })
-    e.setOpt(elt.manufacturer, A_MANUFACTURER, { (x: Manufacturer) => x.name })
-    e.setOpt(elt.model, A_MODEL, { (x: String) => x })
-    e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, { (x: String) => x })
-    e.setOpt(elt.sType, A_SME_TYPE, { (x: String) => x })
+    e.setOpt(elt.size, A_STORAGE_SIZE, (x: MemorySize) => x.size.toString)
+    e.setOpt(elt.firmware, A_STORAGE_FIRMWARE, (x: String) => x)
+    e.setOpt(elt.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
+    e.setOpt(elt.model, A_MODEL, (x: String) => x)
+    e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, (x: String) => x)
+    e.setOpt(elt.sType, A_SME_TYPE, (x: String) => x)
 
     e
   }
@@ -432,11 +432,11 @@ class InventoryMapper(
 
   def entryFromVideo(elt: Video, dit: InventoryDit, machineId: MachineUuid): LDAPEntry = {
     val e = dit.MACHINES.VIDEO.model(machineId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
-    e.setOpt(elt.chipset, A_VIDEO_CHIPSET, { (x: String) => x })
-    e.setOpt(elt.memory, A_MEMORY_CAPACITY, { (x: MemorySize) => x.size.toString })
-    e.setOpt(elt.resolution, A_VIDEO_RESOLUTION, { (x: String) => x })
+    e.setOpt(elt.chipset, A_VIDEO_CHIPSET, (x: String) => x)
+    e.setOpt(elt.memory, A_MEMORY_CAPACITY, (x: MemorySize) => x.size.toString)
+    e.setOpt(elt.resolution, A_VIDEO_RESOLUTION, (x: String) => x)
     e
   }
 
@@ -504,13 +504,13 @@ class InventoryMapper(
     // the root entry of the tree: the machine inventory
     val dit  = ditService.getDit(machine.status)
     val root = dit.MACHINES.MACHINE.model(machine.id)
-    root.setOpt(machine.mbUuid, A_MB_UUID, { (x: MotherBoardUuid) => x.value })
+    root.setOpt(machine.mbUuid, A_MB_UUID, (x: MotherBoardUuid) => x.value)
     root.addValues(A_OC, machineType2ObjectClass(machine.machineType).name)
-    root.setOpt(machine.inventoryDate, A_INVENTORY_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
-    root.setOpt(machine.receiveDate, A_RECEIVE_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
-    root.setOpt(machine.name, A_NAME, { (x: String) => x })
-    root.setOpt(machine.manufacturer, A_MANUFACTURER, { (x: Manufacturer) => x.name })
-    root.setOpt(machine.systemSerialNumber, A_SERIAL_NUMBER, { (x: String) => x })
+    root.setOpt(machine.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    root.setOpt(machine.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    root.setOpt(machine.name, A_NAME, (x: String) => x)
+    root.setOpt(machine.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
+    root.setOpt(machine.systemSerialNumber, A_SERIAL_NUMBER, (x: String) => x)
 
     val tree = LDAPTree(root)
     // now, add machine elements as children
@@ -618,11 +618,11 @@ class InventoryMapper(
 
   def entryFromFileSystem(elt: FileSystem, dit: InventoryDit, serverId: NodeId): LDAPEntry = {
     val e = dit.NODES.FILESYSTEM.model(serverId, elt.mountPoint)
-    e.setOpt(elt.name, A_NAME, { (x: String) => x })
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
-    e.setOpt(elt.fileCount, A_FILE_COUNT, { (x: Int) => x.toString })
-    e.setOpt(elt.freeSpace, A_FREE_SPACE, { (x: MemorySize) => x.size.toString })
-    e.setOpt(elt.totalSpace, A_TOTAL_SPACE, { (x: MemorySize) => x.size.toString })
+    e.setOpt(elt.name, A_NAME, (x: String) => x)
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
+    e.setOpt(elt.fileCount, A_FILE_COUNT, (x: Int) => x.toString)
+    e.setOpt(elt.freeSpace, A_FREE_SPACE, (x: MemorySize) => x.size.toString)
+    e.setOpt(elt.totalSpace, A_TOTAL_SPACE, (x: MemorySize) => x.size.toString)
     e
   }
 
@@ -652,18 +652,18 @@ class InventoryMapper(
     }
 
     val e = dit.NODES.NETWORK.model(serverId, elt.name)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     // addresses
     setSeqAddress(e, A_NETIF_ADDRESS, elt.ifAddresses)
     setSeqAddress(e, A_NETIF_GATEWAY, elt.ifGateway)
     setSeqAddress(e, A_NETIF_MASK, elt.ifMask)
     setSeqAddress(e, A_NETIF_SUBNET, elt.ifSubnet)
-    e.setOpt(elt.ifDhcp, A_NETIF_DHCP, { (x: InetAddress) => x.getHostAddress })
-    e.setOpt(elt.macAddress, A_NETIF_MAC, { (x: String) => x })
-    e.setOpt(elt.status, A_STATUS, { (x: String) => x })
-    e.setOpt(elt.ifType, A_NETIF_TYPE, { (x: String) => x })
-    e.setOpt(elt.speed, A_SPEED, { (x: String) => x })
-    e.setOpt(elt.typeMib, A_NETIF_TYPE_MIB, { (x: String) => x })
+    e.setOpt(elt.ifDhcp, A_NETIF_DHCP, (x: InetAddress) => x.getHostAddress)
+    e.setOpt(elt.macAddress, A_NETIF_MAC, (x: String) => x)
+    e.setOpt(elt.status, A_STATUS, (x: String) => x)
+    e.setOpt(elt.ifType, A_NETIF_TYPE, (x: String) => x)
+    e.setOpt(elt.speed, A_SPEED, (x: String) => x)
+    e.setOpt(elt.typeMib, A_NETIF_TYPE_MIB, (x: String) => x)
     e
   }
 
@@ -690,14 +690,14 @@ class InventoryMapper(
 
   def entryFromVMInfo(elt: VirtualMachine, dit: InventoryDit, serverId: NodeId): LDAPEntry = {
     val e = dit.NODES.VM.model(serverId, elt.uuid.value)
-    e.setOpt(elt.description, A_DESCRIPTION, { (x: String) => x })
-    e.setOpt(elt.memory, A_VM_MEMORY, { (x: String) => x })
-    e.setOpt(elt.name, A_VM_NAME, { (x: String) => x })
-    e.setOpt(elt.owner, A_VM_OWNER, { (x: String) => x })
-    e.setOpt(elt.status, A_VM_STATUS, { (x: String) => x })
-    e.setOpt(elt.subsystem, A_VM_SUBSYSTEM, { (x: String) => x })
-    e.setOpt(elt.vcpu, A_VM_CPU, { (x: Int) => x.toString() })
-    e.setOpt(elt.vmtype, A_VM_TYPE, { (x: String) => x })
+    e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
+    e.setOpt(elt.memory, A_VM_MEMORY, (x: String) => x)
+    e.setOpt(elt.name, A_VM_NAME, (x: String) => x)
+    e.setOpt(elt.owner, A_VM_OWNER, (x: String) => x)
+    e.setOpt(elt.status, A_VM_STATUS, (x: String) => x)
+    e.setOpt(elt.subsystem, A_VM_SUBSYSTEM, (x: String) => x)
+    e.setOpt(elt.vcpu, A_VM_CPU, (x: Int) => x.toString())
+    e.setOpt(elt.vmtype, A_VM_TYPE, (x: String) => x)
     e
   }
 
@@ -820,10 +820,10 @@ class InventoryMapper(
           case Windows2022   => win.addValues(A_OS_NAME, A_OS_WIN_2022)
           case _             => win.addValues(A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
         }
-        win.setOpt(userDomain, A_WIN_USER_DOMAIN, { (x: String) => x })
-        win.setOpt(registrationCompany, A_WIN_COMPANY, { (x: String) => x })
-        win.setOpt(productKey, A_WIN_KEY, { (x: String) => x })
-        win.setOpt(productId, A_WIN_ID, { (x: String) => x })
+        win.setOpt(userDomain, A_WIN_USER_DOMAIN, (x: String) => x)
+        win.setOpt(registrationCompany, A_WIN_COMPANY, (x: String) => x)
+        win.setOpt(productKey, A_WIN_KEY, (x: String) => x)
+        win.setOpt(productId, A_WIN_ID, (x: String) => x)
         win
     }
     root
@@ -840,19 +840,19 @@ class InventoryMapper(
 
     root.resetValuesTo(A_OS_FULL_NAME, server.main.osDetails.fullName)
     root.resetValuesTo(A_OS_VERSION, server.main.osDetails.version.value)
-    root.setOpt(server.main.osDetails.servicePack, A_OS_SERVICE_PACK, { (x: String) => x })
+    root.setOpt(server.main.osDetails.servicePack, A_OS_SERVICE_PACK, (x: String) => x)
     root.resetValuesTo(A_OS_KERNEL_VERSION, server.main.osDetails.kernelVersion.value)
     root.resetValuesTo(A_ROOT_USER, server.main.rootUser)
     root.resetValuesTo(A_HOSTNAME, server.main.hostname)
     root.resetValuesTo(A_KEY_STATUS, server.main.keyStatus.value)
     root.resetValuesTo(A_POLICY_SERVER_UUID, server.main.policyServerId.value)
-    root.setOpt(server.ram, A_OS_RAM, { (m: MemorySize) => m.size.toString })
-    root.setOpt(server.swap, A_OS_SWAP, { (m: MemorySize) => m.size.toString })
-    root.setOpt(server.archDescription, A_ARCH, { (x: String) => x })
-    root.setOpt(server.lastLoggedUser, A_LAST_LOGGED_USER, { (x: String) => x })
-    root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, { (x: DateTime) => GeneralizedTime(x).toString })
-    root.setOpt(server.inventoryDate, A_INVENTORY_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
-    root.setOpt(server.receiveDate, A_RECEIVE_DATE, { (x: DateTime) => GeneralizedTime(x).toString })
+    root.setOpt(server.ram, A_OS_RAM, (m: MemorySize) => m.size.toString)
+    root.setOpt(server.swap, A_OS_SWAP, (m: MemorySize) => m.size.toString)
+    root.setOpt(server.archDescription, A_ARCH, (x: String) => x)
+    root.setOpt(server.lastLoggedUser, A_LAST_LOGGED_USER, (x: String) => x)
+    root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: DateTime) => GeneralizedTime(x).toString)
+    root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJsonString):                        _*)
     root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString): _*)
     root.resetValuesTo(A_EV, server.environmentVariables.map(x => Serialization.write(x)):           _*)

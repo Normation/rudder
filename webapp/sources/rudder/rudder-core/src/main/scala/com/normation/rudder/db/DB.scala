@@ -150,8 +150,14 @@ object DB {
       insertionId:   Long,
       insertionDate: DateTime
   ) {
-    def toAgentRunWithoutCompliance =
-      AgentRunWithoutCompliance(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId.apply), insertionId, insertionDate)
+    def toAgentRunWithoutCompliance = {
+      AgentRunWithoutCompliance(
+        AgentRunId(NodeId(nodeId), date),
+        nodeConfigId.map(NodeConfigId.apply),
+        insertionId,
+        insertionDate
+      )
+    }
   }
 
   def insertUncomputedAgentRun(runs: List[UncomputedAgentRun]): ConnectionIO[Int] = {

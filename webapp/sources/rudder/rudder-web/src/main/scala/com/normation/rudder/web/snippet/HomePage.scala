@@ -173,8 +173,8 @@ class HomePage extends Loggable {
   def getAllCompliance: NodeSeq = {
 
     sealed trait ChartType
-    case object PendingChartType               extends ChartType
-    case object DisabledChartType              extends ChartType
+    case object PendingChartType                     extends ChartType
+    case object DisabledChartType                    extends ChartType
     final case class ColoredChartType(value: Double) extends ChartType
 
     (for {

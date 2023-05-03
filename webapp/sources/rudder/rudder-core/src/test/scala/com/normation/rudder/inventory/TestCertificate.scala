@@ -37,7 +37,6 @@
 package com.normation.rudder.inventory
 
 import better.files.Resource
-import scala.annotation.nowarn
 import com.normation.box.IOManaged
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -63,6 +62,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 

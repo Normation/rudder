@@ -37,7 +37,6 @@
 
 package bootstrap.liftweb
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.rudder.Role
 import com.normation.rudder.RoleToRights
@@ -84,6 +83,7 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import scala.annotation.nowarn
 
 /**
  * Spring configuration for user authentication.

@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.xml
 
-import scala.annotation.nowarn
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
@@ -65,6 +64,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import scala.annotation.nowarn
 import zio._
 import zio.duration._
 import zio.syntax._

@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import scala.annotation.nowarn
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers._
 import java.io.FileNotFoundException
@@ -45,6 +44,7 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
+import scala.annotation.nowarn
 import scala.xml._
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
