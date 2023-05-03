@@ -3,9 +3,9 @@ params:
   server: "rudder.io"
 # Prepare env
 setup:
-  - sh: "rm -f /tmp/plop"
+  - sh: "rm -f /tmp/rudderc_test_one"
 # Check after technique has run
 check:
   # Commands to run to check
-  - sh: "test -f /tmp/plop"
-  - sh: "diff ./reference.conf /tmp/plop"
+  - sh: "test -f /tmp/rudderc_test_one"
+  - sh: "diff ./reference.conf /tmp/rudderc_test_one"

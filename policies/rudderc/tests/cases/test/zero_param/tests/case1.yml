@@ -2,9 +2,9 @@
 # none here
 # Prepare env
 setup:
-  - sh: "rm -f /tmp/plop"
+  - sh: "rm -f /tmp/rudderc_test_zero"
 # Check after technique has run
 check:
   # Commands to run to check
-  - sh: "test -f /tmp/plop"
-  - sh: "diff ./reference.conf /tmp/plop"
+  - sh: "test -f /tmp/rudderc_test_zero"
+  - sh: "diff ./reference.conf /tmp/rudderc_test_zero"
