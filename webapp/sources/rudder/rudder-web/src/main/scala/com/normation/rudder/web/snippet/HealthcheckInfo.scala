@@ -37,11 +37,14 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.RoleToRights
 import com.normation.rudder.services.healthcheck.HealthcheckResult
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckUtils.compareCheck
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.NotificationLevel.Info
 import com.normation.zio._
 import net.liftweb.common.Loggable
@@ -75,7 +78,7 @@ class HealthcheckInfo(
     }
   }
 
-  def healthcheckInfo(html: NodeSeq) = {
+  def healthcheckInfo(html: NodeSeq): NodeSeq = {
     def notifHtml(notifClass: String, notifTitle: String, checksHtml: List[String]): NodeSeq = {
       val checksMenu = "<ul class='menu'>" + checksHtml.mkString("\n") + "</ul>"
 
@@ -91,38 +94,39 @@ class HealthcheckInfo(
       </li>
     }
 
-    (for {
-      checks <- RudderConfig.healthcheckNotificationService.healthcheckCache.get
-    } yield {
+    if (CurrentUser.checkRights(AuthorizationType.Administration.Read)) {
+      (for {
+        checks <- RudderConfig.healthcheckNotificationService.healthcheckCache.get
+      } yield {
 
-      val sorted = checks
-        .filter(_ match {
-          case _: Ok => false
-          case _ => true
-        })
-        .sortWith((c1, c2) => compareCheck(c1, c2))
+        val sorted = checks
+          .filter(_ match {
+            case _: Ok => false
+            case _ => true
+          })
+          .sortWith((c1, c2) => compareCheck(c1, c2))
 
-      val notifInfo = sorted match {
-        case Nil    => None
-        case h :: _ =>
-          // sorted only contains Warning and Critical
-          val transformed = sorted.map { c =>
-            val circle = "<div class='circle-notif " + c.getClass.getSimpleName.toLowerCase + "-light-notif'></span>"
-            "<li class='notif-msg-hc'><span>" + c.msg.replaceAll("(\r\n|\n)", "<br />") + circle + "</span></li>"
-          }
-          h match {
-            case Critical(_, _, _) => Some(("critical", "There is an anomaly that requires your attention", transformed))
-            case Warning(_, _, _)  => Some(("warning", "Something may cause an anomaly", transformed))
-            case _                 => None
-          }
-        case _      => None
-      }
-      notifInfo match {
-        case Some((notifiClass, msg, liHtml)) => notifHtml(notifiClass, msg, liHtml)
-        case None                             => NodeSeq.Empty
-      }
-    }).runNow
-
+        val notifInfo = sorted match {
+          case Nil    => None
+          case h :: _ =>
+            // sorted only contains Warning and Critical
+            val transformed = sorted.map { c =>
+              val circle = "<div class='circle-notif " + c.getClass.getSimpleName.toLowerCase + "-light-notif'></span>"
+              "<li class='notif-msg-hc'><span>" + c.msg.replaceAll("(\r\n|\n)", "<br />") + circle + "</span></li>"
+            }
+            h match {
+              case Critical(_, _, _) => Some(("critical", "There is an anomaly that requires your attention", transformed))
+              case Warning(_, _, _)  => Some(("warning", "Something may cause an anomaly", transformed))
+              case _                 => None
+            }
+          case _      => None
+        }
+        notifInfo match {
+          case Some((notifiClass, msg, liHtml)) => notifHtml(notifiClass, msg, liHtml)
+          case None                             => NodeSeq.Empty
+        }
+      }).runNow
+    } else NodeSeq.Empty
   }
 
   def healthcheckInfoIcon(html: NodeSeq) = {
