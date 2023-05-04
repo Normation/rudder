@@ -1,4 +1,5 @@
 <lift:surround with="common-layout" at="content">
+  <lift:Authz.testRight role="administration_read">
     <div id="healthcheck-main">
         <head_merge>
             <title>Health check</title>
@@ -39,5 +40,6 @@
     contextPath : contextPath
   };
   var app  = Elm.Healthcheck.init({node: main, flags: initValues});
-</script>
+    </script>
+  </lift:Authz.testRight>
 </lift:surround>
