@@ -1,14 +1,20 @@
-@Library('slack-notification')
-import org.gradiant.jenkins.slack.SlackNotifier
+
+
+
+def slackResponse = slackSend(channel: "ci-security", message: "7.3 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def job = ""
+def webapp = null
+def relay = null
+def policies = null
+def npm = null
+
+
+updateSlack(webapp, npm, relay, policies, slackResponse)
 
 // Check vulns in dependencies on repo branches
 def failedBuild = false
-def notifier = new SlackNotifier()
 
 pipeline {
-    environment {
-      SLACK_CHANNEL = 'ci-security'
-    }
     agent none
     triggers { cron('@daily') }
 
@@ -32,17 +38,29 @@ pipeline {
                 }
             }
             post {
+
+                success {
+                    script {
+                        webapp = true
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                    }
+                }
                 always {
                     archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
                 }
+
                 failure {
                     script {
+                        webapp = false
                         failedBuild = true
-                        notifier.notifyResult("scala-team")
+                        //notifier.notifyResult("scala-team")
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
             }
         }
+
         stage('deps-npm') {
             when { not { changeRequest() } }
             agent {
@@ -62,13 +80,20 @@ pipeline {
                 }
             }
             post {
-                always {
-                    echo 'test'
+
+                success {
+                    script {
+                        npm = true
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                    }
                 }
                 failure {
                     script {
+                        npm = false
                         failedBuild = true
-                        notifier.notifyResult("scala-team")
+                        //notifier.notifyResult("scala-team")
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
             }
@@ -93,14 +118,24 @@ pipeline {
                 }
             }
             post {
-                always {
-                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+
+                success {
+                    script {
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        relay = true
+                    }
                 }
                 failure {
                     script {
+                        relay = false
                         failedBuild = true
-                        notifier.notifyResult("rust-team")
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        //notifier.notifyResult("rust-team")
                     }
+                }
+                always {
+                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
                 }
             }
         }
@@ -124,14 +159,25 @@ pipeline {
                 }
             }
             post {
-                always {
-                    archiveArtifacts artifacts: 'policies/target/policies-dependencies.txt'
+                success {
+                    script {
+                        policies = true
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        //notifier.notifyResult("rust-team")
+                    }
                 }
                 failure {
                     script {
+                        policies = false
                         failedBuild = true
-                        notifier.notifyResult("rust-team")
+                        //notifier.notifyResult("rust-team")
+                    updateSlack(webapp, npm, relay, policies, slackResponse)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+
                     }
+                }
+                always {
+                    archiveArtifacts artifacts: 'policies/target/policies-dependencies.txt'
                 }
             }
         }
@@ -145,13 +191,79 @@ pipeline {
                     }
                 }
             }
-            post {
-                fixed {
-                    script {
-                        notifier.notifyResult("everyone")
-                    }
-                }
-            }
         }
     }
+}
+
+
+def updateSlack(webapp, npm, relay, policies, slackResponse) {
+
+
+def text = "7.3 - dependency check - <"+currentBuild.absoluteUrl+"|Link> \n"
+
+if (webapp == null) {
+    text += "• :felisk: "
+} else {
+    if (webapp) {
+      text += "• :yesyes: "
+    } else {
+      text += "• :nono: "
+
+    }
+}
+text += "webapp\n"
+
+
+if (npm == null) {
+    text += "• :felisk: "
+} else {
+    if (policies) {
+      text += "• :yesyes: "
+    } else {
+      text += "• :nono: "
+
+    }
+}
+text += "npm\n"
+
+if (relay == null) {
+    text += "• :felisk: "
+} else {
+    if (relay) {
+      text += "• :yesyes: "
+    } else {
+      text += "• :nono: "
+
+    }
+}
+text += "relay\n"
+
+
+if (policies == null) {
+    text += "• :felisk: "
+} else {
+    if (policies) {
+      text += "• :yesyes: "
+    } else {
+      text += "• :nono: "
+
+    }
+}
+text += "policies\n"
+
+
+
+def color = "#00A8E1"
+
+if (webapp && policies && relay && npm) {
+    color = "good"
+    text+= "All dependencies were Good ! :fiesta-parrot:"
+}
+if (webapp == false || policies == false || relay == false || npm == false) { color = "#CC3421"
+
+    text+= "Some dependencies were not ok :crying-cat-face: !"
+}
+
+
+  slackSend(channel: slackResponse.channelId, message: text, timestamp: slackResponse.ts, color: color)
 }
