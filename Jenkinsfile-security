@@ -8,6 +8,7 @@ def relay = null
 def policies = null
 
 
+updateSlack(webapp, relay, policies, slackResponse)
 
 // Check vulns in dependencies on repo branches
 def failedBuild = false
@@ -40,6 +41,7 @@ pipeline {
                 success {
                     script {
                         webapp = true
+                    updateSlack(webapp, relay, policies, slackResponse)
                     }
                 }
 
@@ -48,12 +50,12 @@ pipeline {
                         webapp = false
                         failedBuild = true
                         //notifier.notifyResult("scala-team")
+                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
 
                 always {
-                    updateSlack(webapp, relay, policies, slackResponse)
             		archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
                 }
             }
@@ -81,6 +83,7 @@ pipeline {
 
                 success {
                     script {
+                    updateSlack(webapp, relay, policies, slackResponse)
                         relay = true
                     }
                 }
@@ -88,12 +91,12 @@ pipeline {
                     script {
                         relay = false
                         failedBuild = true
+                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                         //notifier.notifyResult("rust-team")
                     }
                 }
                 always {
-                    updateSlack(webapp, relay, policies, slackResponse)
                     archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
                 }
             }
@@ -121,6 +124,7 @@ pipeline {
                 success {
                     script {
                         policies = true
+                    updateSlack(webapp, relay, policies, slackResponse)
                         //notifier.notifyResult("rust-team")
                     }
                 }
@@ -129,6 +133,7 @@ pipeline {
                         policies = false
                         failedBuild = true
                         //notifier.notifyResult("rust-team")
+                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
 
                     }
@@ -210,7 +215,7 @@ if (webapp && policies && relay) {
     color = "good"
     blocks.add(block)
 }
-if (!webapp || !policies || !relay) { color = "#CC3421"}
+if (webapp == false || policies == false || relay = false) { color = "#CC3421"}
 
 
   slackSend(channel: slackResponse.channelId, message: text, timestamp: slackResponse.ts, color: color)
