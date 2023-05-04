@@ -1,7 +1,7 @@
 
 
 
-def slackResponse = slackSend(channel: "ci-security", text: "7.2 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def slackResponse = slackSend(channel: "ci-security", message: "7.2 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 def job = ""
 def webapp = null
 def relay = null
@@ -213,5 +213,5 @@ if (webapp && policies && relay) {
 if (!webapp || !policies || !relay) { color = "#CC3421"}
 
 
-  slackSend(channel: slackResponse.channelId, text: text, timestamp: slackResponse.ts, color: color)
+  slackSend(channel: slackResponse.channelId, message: text, timestamp: slackResponse.ts, color: color)
 }
