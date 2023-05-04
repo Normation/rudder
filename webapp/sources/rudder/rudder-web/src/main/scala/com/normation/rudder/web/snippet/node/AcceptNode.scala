@@ -42,9 +42,6 @@ import com.normation.box._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
-import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.ChooseTemplate

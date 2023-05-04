@@ -641,7 +641,7 @@ class EventLogFactoryImpl(
         modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x)) ++
         modifyDiff.modProperties.map(x => {
           SimpleDiff.toXml[List[GroupProperty]](<properties/>, x)(props =>
-            props.flatMap(p => <property><name>{p.name}</name><value>{Unparsed(p.valueAsString)}</value></property>)
+            props.flatMap(p => <property><name>{p.name}</name><value>{xml.Utility.escape(p.valueAsString)}</value></property>)
           )
         })
       }

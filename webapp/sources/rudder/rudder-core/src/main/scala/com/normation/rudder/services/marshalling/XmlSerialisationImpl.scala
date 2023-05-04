@@ -262,7 +262,7 @@ class NodeGroupSerialisationImpl(xmlVersion: String) extends NodeGroupSerialisat
           // value parsing of properties is a bit messy and semantically linked
           // to json, since value part can be a string or json object.
           // Parsing that back from xml would be tedious.
-          <property><name>{p.name}</name><value>{Unparsed(p.valueAsString)}</value></property>
+          <property><name>{p.name}</name><value>{xml.Utility.escape(p.valueAsString)}</value></property>
         }
       }</properties>
     )
