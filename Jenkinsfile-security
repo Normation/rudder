@@ -1,7 +1,7 @@
 
 
 
-def slackResponse = slackSend(channel: "ci-security", message: "7.3 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def slackResponse = slackSend(channel: "ci-security", message: "8.0 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 def job = ""
 def webapp = null
 def relay = null
@@ -199,7 +199,7 @@ pipeline {
 def updateSlack(webapp, npm, relay, policies, slackResponse) {
 
 
-def text = "7.3 - dependency check - <"+currentBuild.absoluteUrl+"|Link> \n"
+def text = "8.0 - dependency check - <"+currentBuild.absoluteUrl+"|Link> \n"
 
 if (webapp == null) {
     text += "• :felisk: "
