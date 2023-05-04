@@ -183,7 +183,8 @@ function homePage (
     }());
     $("#gauge-value").text(globalGauge+"%");
 
-    doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors);
+    var complianceHColors = nodeCompliance.colors.map(x => complianceHoverColors[x]);
+    doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors, complianceHColors);
   }
 }
 
@@ -203,10 +204,33 @@ var inventoryColors =
   , "#e25c1a"
   ];
 
+var hoverColors =
+  [ "#15ccc5"
+  , "#ffaf27"
+  , "#ed1809"
+  , "#5de7b0"
+  , "#82f16c"
+  , "#fee856"
+  , "#eeff48"
+  , "#54ea7f"
+  , "#ff8311"
+  , "#c5fd74"
+  , "#5eecd2"
+  , "#ffbf19"
+  , "#ed4e00"
+  ];
+
+var complianceHoverColors =
+  { "#5bc0de" : "2ebee9ff"
+  , "#B1BBCB" : "9fb1cbff"
+  , "#13BEB7" : "15ccc5ff"
+  , "#B1EDA4" : "94f57fff"
+  , "#EF9600" : "ffaf27ff"
+  , "#DA291C" : "ed1809ff"
+  }
 
 
-
-function doughnutChart (id,data,count,colors) {
+function doughnutChart (id,data,count,colors,hoverColors) {
 
   var context = $("#"+id)
 
@@ -215,8 +239,9 @@ function doughnutChart (id,data,count,colors) {
     labels  :  data.labels,
     datasets:
       [ { data           : data.values
-        , backgroundColor: colors
         , borderWidth    : borderW
+        , backgroundColor: colors
+        , hoverBackgroundColor : hoverColors
       } ]
   };
 
@@ -391,15 +416,15 @@ function homePageInventory (
   , osNames
 ) {
   g_osNames = osNames
-  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors);
-  doughnutChart('nodeOs', nodeOses, count, inventoryColors);
+  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors, hoverColors);
+  doughnutChart('nodeOs', nodeOses, count, inventoryColors, hoverColors);
 }
 
 function homePageSoftware (
     nodeAgents
   , count
 ) {
-  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors);
+  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors, hoverColors);
 }
 
 function userAgentIsIE() {
