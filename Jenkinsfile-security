@@ -211,7 +211,7 @@ if (webapp && policies && relay) {
     blocks.add(block)
 }
 if (!webapp || !policies || !relay) { color = "#CC3421"}
-if
+
 
   slackSend(channel: slackResponse.channelId, text: text, timestamp: slackResponse.ts, color: color)
 }
