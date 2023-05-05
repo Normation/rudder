@@ -229,7 +229,6 @@ var complianceHoverColors =
   , "#DA291C" : "ed1809ff"
   }
 
-
 function doughnutChart (id,data,count,colors,hoverColors) {
 
   var context = $("#"+id)
