@@ -45,7 +45,6 @@ pipeline {
                         always {
                             script {
                               running.remove("Tests - relayd-man")
-
                             }
                         }
                         failure {
@@ -82,7 +81,9 @@ pipeline {
                     post {
                         always {
                             // linters results
-                            running.remove("Tests - shell")
+                            script {
+                                running.remove("Tests - shell")
+                            }
                             recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
                                          tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
                         }
@@ -117,7 +118,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - python")
+                            script {
+                                running.remove("Tests - python")
+                            }
                         }
                         failure {
                             script {
@@ -142,8 +145,6 @@ pipeline {
                     }
 
                     steps {
-
-
                         script {
                             running.add("Tests - typo")
                         }
@@ -161,7 +162,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - typo")
+                            script {
+                                running.remove("Tests - typo")
+                            }
                         }
                         failure {
                             script {
@@ -186,7 +189,6 @@ pipeline {
                     }
 
                     steps {
-
                         script {
                             running.add("Tests - api-doc")
                         }
@@ -198,7 +200,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - api-doc")
+                            script {
+                                running.remove("Tests - api-doc")
+                            }
                         }
                         failure {
                             script {
@@ -222,7 +226,6 @@ pipeline {
                         }
                     }
                     steps {
-
                         script {
                             running.add("Tests - rudder-pkg")
                         }
@@ -234,7 +237,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - rudder-pkg")
+                            script {
+                                running.remove("Tests - rudder-pkg")
+                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
                                          tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
@@ -275,7 +280,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - elm")
+                            script {
+                                running.remove("Tests - elm")
+                            }
                         }
                         failure {
                             script {
@@ -317,7 +324,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - webapp")
+                            script {
+                                running.remove("Tests - webapp")
+                            }
                             // collect test results
                             junit 'webapp/sources/**/target/surefire-reports/*.xml'
                         }
@@ -364,7 +373,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - relayd")
+                            script {
+                                running.remove("Tests - relayd")
+                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
@@ -415,7 +426,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Tests - policies")
+                            script {
+                                running.remove("Tests - policies")
+                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
@@ -478,7 +491,9 @@ pipeline {
                         }
                         post {
                             always {
-                                running.remove("Tests - compatibility JDK ${JDK_VERSION}")
+                                script {
+                                    running.remove("Tests - compatibility JDK ${JDK_VERSION}")
+                                }
                                 // collect test results
                                 junit 'webapp/sources/**/target/surefire-reports/*.xml'
                             }
@@ -523,7 +538,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Publish - relayd-man")
+                            script {
+                                running.remove("Publish - relayd-man")
+                            }
                         }
 
                         failure {
@@ -564,7 +581,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Publish - api-doc")
+                            script {
+                                running.remove("Publish - api-doc")
+                            }
                             archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
                         }
                         failure {
@@ -602,7 +621,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Publish - api-doc-redirect")
+                            script {
+                                running.remove("Publish - api-doc-redirect")
+                            }
                         }
                         failure {
                             script {
@@ -647,7 +668,9 @@ pipeline {
                     }
                     post {
                         always {
-                            running.remove("Publish - webapp")
+                            script {
+                                running.remove("Publish - webapp")
+                            }
                             archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                         }
                         failure {
