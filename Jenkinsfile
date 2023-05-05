@@ -36,6 +36,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - relayd-man")
+                            updateSlack(errors, running, slackResponse)
                         }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
@@ -72,6 +73,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - shell")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --shell', label: 'shell scripts lint'
@@ -111,6 +113,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - python")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --python', label: 'python scripts lint'
@@ -149,6 +152,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - typo")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
@@ -194,6 +198,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - api-doc")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
@@ -232,6 +237,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - rudder-pkg")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir ('relay/sources') {
@@ -273,6 +279,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - elm")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources/rudder/rudder-web/src/main/elm') {
@@ -319,6 +326,7 @@ pipeline {
 
                         script {
                             running.add("Tests - webapp")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
@@ -363,6 +371,7 @@ pipeline {
 
                         script {
                             running.add("Tests - relayd")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
@@ -415,6 +424,7 @@ pipeline {
 
                         script {
                             running.add("Tests - policies")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
@@ -491,6 +501,7 @@ pipeline {
                         steps {
                             script {
                                 running.add("Tests - compatibility JDK ${JDK_VERSION}")
+                                updateSlack(errors, running, slackResponse)
                             }
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 dir('webapp/sources') {
@@ -538,6 +549,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - relayd-man")
+                            updateSlack(errors, running, slackResponse)
                         }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
@@ -579,6 +591,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - api-doc")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
@@ -623,6 +636,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - api-doc-redirect")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -666,6 +680,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - webapp")
+                            updateSlack(errors, running, slackResponse)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources') {
