@@ -1,7 +1,7 @@
 
 def failedBuild = false
 
-def slackResponse = slackSend(channel: "ci", message: "7.3 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def slackResponse = slackSend(channel: "ci", message: "8.0 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 def job = ""
 def errors = []
 def running = []
@@ -777,7 +777,7 @@ def redirectApi() {
 def updateSlack(errors, running, slackResponse) {
 
 
-def msg ="*7.3 - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
+def msg ="*8.0 - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
 
 def color = "#00A8E1"
 
