@@ -1,7 +1,7 @@
 
 def failedBuild = false
 
-def slackResponse = slackSend(channel: "ci-security", message: "7.2 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def slackResponse = slackSend(channel: "ci", message: "7.2 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 def job = ""
 def errors = []
 def running = []
@@ -89,6 +89,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - shell")
                                 //notifier.notifyResult("shell-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during shell tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -124,6 +125,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - python")
                                 //notifier.notifyResult("shell-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during python tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -168,6 +170,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - typo")
                                 //notifier.notifyResult("shell-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while checking typos - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -206,6 +209,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - api-doc")
                                 //notifier.notifyResult("shell-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while buiding api doc - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -246,6 +250,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - rudder-pkg")
                                 //notifier.notifyResult("python-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during rudder-pkg tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -286,6 +291,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - elm")
                                 //notifier.notifyResult("elm-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during elm tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -332,6 +338,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - webapp")
                                 //notifier.notifyResult("scala-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during webapp tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -382,6 +389,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - relayd")
                                 //notifier.notifyResult("rust-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during relayd tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -435,6 +443,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Tests - policies")
                                 //notifier.notifyResult("rust-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -499,6 +508,7 @@ pipeline {
                             }
                             failure {
                                 script {
+                                    failedBuild = true
                                     errors.add("Tests - compatibility JDK ${JDK_VERSION}")
                                     //notifier.notifyResult("scala-team")
                                     slackSend(channel: slackResponse.threadId, message: "Error during compatibility JDK ${JDK_VERSION} tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -545,6 +555,7 @@ pipeline {
 
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Publish - relayd-man")
                                 //notifier.notifyResult("rust-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while publishing relayd man pages - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -588,6 +599,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Publish - api-doc")
                                 //notifier.notifyResult("rust-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while publishing api docs - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -627,6 +639,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Publish - api-doc-redirect")
                                 //notifier.notifyResult("shell-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while building api doc redirect - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
@@ -675,6 +688,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                failedBuild = true
                                 errors.add("Publish - webapp")
                                 //notifier.notifyResult("scala-team")
                                 slackSend(channel: slackResponse.threadId, message: "Error while publishing webapp - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
