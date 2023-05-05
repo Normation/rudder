@@ -1,8 +1,10 @@
-@Library('slack-notification')
-import org.gradiant.jenkins.slack.SlackNotifier
 
-def notifier = new SlackNotifier()
 def failedBuild = false
+
+def slackResponse = slackSend(channel: "ci-security", message: "7.2 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def job = ""
+def errors = []
+def running = []
 
 pipeline {
     agent none
@@ -32,8 +34,32 @@ pipeline {
                     }
                     when { not { branch 'master' } }
                     steps {
+                        script {
+                            running.add("Tests - relayd-man")
+                        }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                              running.remove("Tests - relayd-man")
+
+                            }
+                        }
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - relayd-man")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during relayd man build - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
+                            }
                         }
                     }
                 }
@@ -45,20 +71,31 @@ pipeline {
                     }
 
                     steps {
+                        script {
+                            running.add("Tests - shell")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --shell', label: 'shell scripts lint'
                         }
+
                     }
                     post {
                         always {
                             // linters results
+                            running.remove("Tests - shell")
                             recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
                                          tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Tests - shell")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during shell tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -70,15 +107,28 @@ pipeline {
                         }
                     }
                     steps {
+                        script {
+                            running.add("Tests - python")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --python', label: 'python scripts lint'
                         }
+
                     }
                     post {
+                        always {
+                            running.remove("Tests - python")
+                        }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Tests - python")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during python tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -92,6 +142,11 @@ pipeline {
                     }
 
                     steps {
+
+
+                        script {
+                            running.add("Tests - typo")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
                                 sh script: 'typos --exclude "*.svg" --exclude "tests/" --exclude "docs/DESIGN_DECISIONS"', label: 'check language typos'
@@ -105,10 +160,19 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            running.remove("Tests - typo")
+                        }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Tests - typo")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while checking typos - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -122,6 +186,10 @@ pipeline {
                     }
 
                     steps {
+
+                        script {
+                            running.add("Tests - api-doc")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
@@ -129,10 +197,19 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            running.remove("Tests - api-doc")
+                        }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Tests - api-doc")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while buiding api doc - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -145,6 +222,10 @@ pipeline {
                         }
                     }
                     steps {
+
+                        script {
+                            running.add("Tests - rudder-pkg")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir ('relay/sources') {
                                 sh script: 'make check', label: 'rudder-pkg tests'
@@ -153,14 +234,21 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Tests - rudder-pkg")
                             // linters results
                             recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
                                          tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("python-team")
+                                errors.add("Tests - rudder-pkg")
+                                //notifier.notifyResult("python-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during rudder-pkg tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -173,6 +261,9 @@ pipeline {
                         }
                     }
                     steps {
+                        script {
+                            running.add("Tests - elm")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources/rudder/rudder-web/src/main/elm') {
                                 sh script: './build.sh', label: 'build elm apps'
@@ -183,10 +274,19 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            running.remove("Tests - elm")
+                        }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("elm-team")
+                                errors.add("Tests - elm")
+                                //notifier.notifyResult("elm-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during elm tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -203,6 +303,10 @@ pipeline {
                         }
                     }
                     steps {
+
+                        script {
+                            running.add("Tests - webapp")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                             dir('webapp/sources') {
@@ -213,13 +317,20 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Tests - webapp")
                             // collect test results
                             junit 'webapp/sources/**/target/surefire-reports/*.xml'
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("scala-team")
+                                errors.add("Tests - webapp")
+                                //notifier.notifyResult("scala-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during webapp tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -233,6 +344,10 @@ pipeline {
                         POSTGRES_USER     = 'rudderreports'
                     }
                     steps {
+
+                        script {
+                            running.add("Tests - relayd")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
                                 docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
@@ -249,14 +364,21 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Tests - relayd")
                             // linters results
                             recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("rust-team")
+                                errors.add("Tests - relayd")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during relayd tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -271,6 +393,10 @@ pipeline {
                         }
                     }
                     steps {
+
+                        script {
+                            running.add("Tests - policies")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
                                 dir('rudderc/repos') {
@@ -289,14 +415,21 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Tests - policies")
                             // linters results
                             recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("rust-team")
+                                errors.add("Tests - policies")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -334,6 +467,9 @@ pipeline {
                             }
                         }
                         steps {
+                            script {
+                                running.add("Tests - compatibility JDK ${JDK_VERSION}")
+                            }
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 dir('webapp/sources') {
                                     sh script: 'mvn clean test --batch-mode', label: "webapp tests"
@@ -342,13 +478,20 @@ pipeline {
                         }
                         post {
                             always {
+                                running.remove("Tests - compatibility JDK ${JDK_VERSION}")
                                 // collect test results
                                 junit 'webapp/sources/**/target/surefire-reports/*.xml'
                             }
                             failure {
                                 script {
-                                    failedBuild = true
-                                    notifier.notifyResult("scala-team")
+                                    errors.add("Tests - compatibility JDK ${JDK_VERSION}")
+                                    //notifier.notifyResult("scala-team")
+                                    slackSend(channel: slackResponse.threadId, message: "Error during compatibility JDK ${JDK_VERSION} tests - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                                }
+                            }
+                            cleanup {
+                                script {
+                                    updateSlack(errors, running, slackResponse)
                                 }
                             }
                         }
@@ -368,10 +511,31 @@ pipeline {
                     }
                     when { not { branch 'master' } }
                     steps {
+                        script {
+                            running.add("Publish - relayd-man")
+                        }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                 sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/man-source/rudder-relayd.1 ${KEY_USER}@${HOST_DOCS}:/var/www-docs/man/${RUDDER_VERSION}/', label: 'man page publication'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            running.remove("Publish - relayd-man")
+                        }
+
+                        failure {
+                            script {
+                                errors.add("Publish - relayd-man")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing relayd man pages - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -385,6 +549,9 @@ pipeline {
                     }
 
                     steps {
+                        script {
+                            running.add("Publish - api-doc")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
                                 sh script: 'make', label: 'build API docs'
@@ -397,12 +564,19 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Publish - api-doc")
                             archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Publish - api-doc")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing api docs - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -416,6 +590,9 @@ pipeline {
                     }
                     when { branch 'master' }
                     steps {
+                        script {
+                            running.add("Publish - api-doc-redirect")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                 writeFile file: 'htaccess', text: redirectApi()
@@ -424,10 +601,19 @@ pipeline {
                         }
                     }
                     post {
+                        always {
+                            running.remove("Publish - api-doc-redirect")
+                        }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("shell-team")
+                                errors.add("Publish - api-doc-redirect")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while building api doc redirect - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -444,6 +630,9 @@ pipeline {
                         }
                     }
                     steps {
+                        script {
+                            running.add("Publish - webapp")
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources') {
                                 withMaven(globalMavenSettingsConfig: "1bfa2e1a-afda-4cb4-8568-236c44b94dbf",
@@ -458,12 +647,19 @@ pipeline {
                     }
                     post {
                         always {
+                            running.remove("Publish - webapp")
                             archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                notifier.notifyResult("scala-team")
+                                errors.add("Publish - webapp")
+                                //notifier.notifyResult("scala-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing webapp - <${job.getAbsoluteUrl()}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                updateSlack(errors, running, slackResponse)
                             }
                         }
                     }
@@ -530,3 +726,25 @@ def redirectApi() {
     """
 }
 
+
+def updateSlack(errors, running, slackResponse) {
+
+
+def msg ="*7.2 - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
+
+def color = "#00A8E1"
+
+if (! errors.isEmpty()) {
+    msg += "*Errors* :nono: ("+errors.size()+")\n• " + errors.join("\n• ")
+    color = "#CC3421"
+}
+if (! running.isEmpty()) {
+    msg += "*Running* :felisk: ("+running.size()+")\n• " + running.join("\n• ")
+}
+
+if (errors.isEmpty() && running.isEmpty()) {
+    msg +=  ":yesyes: All builds completed ! :fiesta-parrot:"
+	color = "good"
+}
+  slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
+}
