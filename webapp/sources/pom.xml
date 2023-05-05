@@ -163,7 +163,7 @@ limitations under the License.
             </compilerPlugin>
           </compilerPlugins>
           <args>
-            <arg>-target:11</arg>
+            <arg>-release:17</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
             <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
@@ -236,7 +236,7 @@ limitations under the License.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.10.1</version>
         <configuration>
-          <release>11</release>
+          <release>17</release>
         </configuration>
         <executions>
           <execution>
