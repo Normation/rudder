@@ -1,11 +1,5 @@
 <schedule-agentschedule>
-<style type="text/css">
-  select.twoCol {
-    width:auto;
-  }
-  select {
-    min-width:50px;
-  }
+  <style type="text/css">
   select.form-control.input-sm.schedule{
     display: inline-block !important;
     width: auto;
@@ -16,9 +10,6 @@
   .globalConf label{
     width: 100%;
     max-width: 140px;
-  }
-  #runInterval{
-    margin-left:-4px;
   }
   .inline-input-group > label{
     float:left;
@@ -31,89 +22,30 @@
     border-left:none;
     border-right:none;
     background-color: #F8F9FC;
+    min-width: 55px;
   }
   .inline-input-group > .input-group > .input-group-addon:last-child{
     border-right:1px solid #d6deef;
+    min-width: 65px;
   }
-</style>
-
-<div class="inner-portlet" id="cfagentSchedule">
-  <h3 class="page-title">Agent run schedule</h3>
-  <div class="portlet-content"  id="agentScheduleController" ng-controller="cfagentScheduleController">
-    <div class="explanation-text">
-      <div ng-if="globalRun === undefined">
-        <p>
-          This setting will not be applied to policy server.
-        </p>
-        <p>By default, the agent runs on all nodes every 5 minutes.</p>
-        <p>
-          This high frequency enables fast response times to apply changes and state
-          assessment for high-precision drift and compliance reports.
-        </p>
-        <p>
-          You can modify this run interval below, as well as the "splay time" across nodes (a random
-          delay that alters scheduled run time, in order to spread load across nodes).
-        </p>
+  #node_parameters {
+    padding-bottom: 40px;
+  }
+  </style>
+  <div id="cfagentSchedule" class="inner-portlet">
+    <h3 id="agentSchedule" class="page-title">Agent run schedule</h3>
+    <div id="agentschedule-app" class="portlet-content"></div>
+    <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-agentschedule.js"></script>
+    <script>
+      var hasWriteRights = false;
+    </script>
+    <lift:authz role="administration_write">
+      <script>
+        hasWriteRights = true;
+      </script>
+      <div id="scheduleMessage" class="pull-left">
+        <span class="lift:Msg?cfagentScheduleMessage">[messages]</span>
       </div>
-      <div ng-if="globalRun !== undefined">
-        <p>By default, agents on all nodes run following the same frequency defined in the global <a href="{{contextPath}}/secure/administration/policyServerManagement#cfagentSchedule">Settings</a>.</p>
-        <p>The current global setting is to run every <b>{{getIntervalValue(globalRun.interval)}}</b>, starting at <b>{{(format2Digits(globalRun.startHour))}}:{{(format2Digits(globalRun.startMinute))}}</b>, with a maximum delay after scheduled run time (random interval) of <b>{{(format2Digits(globalRun.splayHour))}}:{{(format2Digits(globalRun.splayMinute))}}</b>.</p>
-        <p>You may override this global setting just for this node below:</p>
-      </div>
-    </div>
-    <form role="form" class="form-horizontal"  ng-hide="agentRun === undefined">
-      <ul ng-hide="globalRun === undefined">
-        <li class="rudder-form">
-          <div class="input-group">
-            <label class="input-group-addon" for="override">
-              <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
-              <label for="override" class="label-radio">
-                <span class="ion ion-checkmark-round"></span>
-              </label>
-              <span class="ion ion-checkmark-round check-icon"></span>
-            </label>
-            <label class="form-control" for="override">
-              Override global value
-              <span id="denyBadClocksTooltip"></span>
-            </label>
-          </div>
-        </li>
-      </ul>
-      <div class="globalConf">
-        <div class="form-group">
-          <label for="runInterval" class="control-label">Run agent every </label>
-          <select class="form-control input-sm schedule" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
-        </div>
-        <div class="form-group inline-input-group">
-          <label class="control-label">First run time</label>
-          <div class="input-group input-group-sm">
-            <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
-            <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
-            <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
-            <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
-          </div>
-        </div>
-        <div class="form-group inline-input-group">
-          <label class="control-label">Maximum delay</label>
-          <div class="input-group input-group-sm">
-            <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
-            <span class="input-group-addon" id="sizing-addon3">Hour{{agentRun.startHour > 1 ? "s" : ""}}</span>
-            <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
-            <span class="input-group-addon" id="sizing-addon3">Minute{{agentRun.startMinute > 1 ? "s" : ""}}</span>
-          </div>
-        </div>
-        <lift:authz role="administration_write">
-          <div class="form-group">
-            <div class="pull-left control-label">
-              <button type="submit" class="btn btn-success" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save changes</button>
-            </div>
-          </div>
-          <div id="scheduleMessage" class="pull-left">
-            <span class="lift:Msg?cfagentScheduleMessage">[messages]</span>
-          </div>
-        </div>
-      </lift:authz>
-    </form>
+    </lift:authz>
   </div>
-</div>
 </schedule-agentschedule>

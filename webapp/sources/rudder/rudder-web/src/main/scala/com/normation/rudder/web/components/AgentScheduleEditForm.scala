@@ -132,18 +132,25 @@ class AgentScheduleEditForm(
     val transform = (for {
       schedule  <- getConfigureCallback().map(_.json)
       globalRun <- getGlobalConfiguration() match {
-                     case None    => Full("undefined")
+                     case None    => Full("null")
                      case Some(g) => g.map(_.json)
                    }
     } yield {
       val callback = AnonFunc("schedule", SHtml.ajaxCall(JsVar("schedule"), submit))
       s"""
-       angular.bootstrap("#cfagentSchedule", ['cfagentSchedule']);
-       var scope = angular.element($$("#agentScheduleController")).scope();
-          scope.$$apply(function(){
-            scope.init(${schedule}, ${globalRun}, ${callback.toJsCmd}, "${S.contextPath}");
-          } );
-      """
+      var main = document.getElementById("agentschedule-app")
+         |var initValues = {
+         |    contextPath    : "${S.contextPath}"
+         |  , hasWriteRights : hasWriteRights
+         |  , schedule       : ${schedule}
+         |  , globalRun      : ${globalRun}
+         |};
+         |var app = Elm.Agentschedule.init({node: main, flags: initValues});
+         |var saveAction = ${callback.toJsCmd};
+         |app.ports.saveSchedule.subscribe(function(schedule) {
+         |  saveAction(JSON.stringify(schedule));
+         |});
+         |""".stripMargin
     }) match {
       case eb: EmptyBox =>
         val e = eb ?~! "Error when retrieving agent schedule from the database"
@@ -154,7 +161,6 @@ class AgentScheduleEditForm(
       case Full(initScheduleParam) =>
         ("#cfagentSchedule *+" #> Script(OnLoad(JsRaw(initScheduleParam)) & Noop))
     }
-
     transform(agentScheduleTemplate);
   }
 }
