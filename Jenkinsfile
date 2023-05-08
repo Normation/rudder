@@ -43,11 +43,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            script {
-                              running.remove("Tests - relayd-man")
-                            }
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -58,6 +53,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                              running.remove("Tests - relayd-man")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -83,9 +79,6 @@ pipeline {
                     post {
                         always {
                             // linters results
-                            script {
-                                running.remove("Tests - shell")
-                            }
                             recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
                                          tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
                         }
@@ -99,6 +92,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - shell")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -121,11 +115,6 @@ pipeline {
 
                     }
                     post {
-                        always {
-                            script {
-                                running.remove("Tests - python")
-                            }
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -136,6 +125,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - python")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -167,11 +157,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            script {
-                                running.remove("Tests - typo")
-                            }
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -182,6 +167,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - typo")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -207,11 +193,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            script {
-                                running.remove("Tests - api-doc")
-                            }
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -222,6 +203,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - api-doc")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -247,9 +229,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Tests - rudder-pkg")
-                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
                                          tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
@@ -264,6 +243,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - rudder-pkg")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -296,9 +276,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Tests - webapp")
-                            }
                             // collect test results
                             junit 'webapp/sources/**/target/surefire-reports/*.xml'
                         }
@@ -312,6 +289,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - webapp")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -347,9 +325,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Tests - relayd")
-                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
@@ -364,6 +339,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - relayd")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -402,9 +378,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Tests - policies")
-                            }
                             // linters results
                             recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
@@ -419,6 +392,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Tests - policies")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -469,9 +443,6 @@ pipeline {
                         }
                         post {
                             always {
-                                script {
-                                    running.remove("Tests - compatibility JDK ${JDK_VERSION}")
-                                }
                                 // collect test results
                                 junit 'webapp/sources/**/target/surefire-reports/*.xml'
                             }
@@ -485,6 +456,7 @@ pipeline {
                             }
                             cleanup {
                                 script {
+                                    running.remove("Tests - compatibility JDK ${JDK_VERSION}")
                                     updateSlack(errors, running, slackResponse)
                                 }
                             }
@@ -517,12 +489,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            script {
-                                running.remove("Publish - relayd-man")
-                            }
-                        }
-
                         failure {
                             script {
                                 failedBuild = true
@@ -533,6 +499,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Publish - relayd-man")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -563,9 +530,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Publish - api-doc")
-                            }
                             archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
                         }
                         failure {
@@ -578,6 +542,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Publish - api-doc")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -604,11 +569,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            script {
-                                running.remove("Publish - api-doc-redirect")
-                            }
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -619,6 +579,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Publish - api-doc-redirect")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
@@ -654,9 +615,6 @@ pipeline {
                     }
                     post {
                         always {
-                            script {
-                                running.remove("Publish - webapp")
-                            }
                             archiveArtifacts artifacts: 'webapp/sources/rudder/rudder-web/target/*.war'
                         }
                         failure {
@@ -669,6 +627,7 @@ pipeline {
                         }
                         cleanup {
                             script {
+                                running.remove("Publish - webapp")
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
