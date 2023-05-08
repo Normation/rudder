@@ -177,5 +177,5 @@ if (errors.isEmpty() && running.isEmpty()) {
     msg +=  ":yesyes: All dependencies checked! :fiesta-parrot:"
 	color = "good"
 }
-  slackSend(channel: slackResponse.channelId, message: text, timestamp: slackResponse.ts, color: color)
+  slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
 }
