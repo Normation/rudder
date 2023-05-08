@@ -157,7 +157,6 @@ pipeline {
                         failedBuild = true
                         //notifier.notifyResult("rust-team")
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-
                     }
                 }
                 cleanup {
