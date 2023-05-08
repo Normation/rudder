@@ -47,7 +47,6 @@ pipeline {
                         webapp = false
                         failedBuild = true
                         //notifier.notifyResult("scala-team")
-                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
@@ -89,7 +88,6 @@ pipeline {
                     script {
                         errors.add("relay")
                         failedBuild = true
-                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                         //notifier.notifyResult("rust-team")
                     }
@@ -131,9 +129,7 @@ pipeline {
                         errors.add("policies")
                         failedBuild = true
                         //notifier.notifyResult("rust-team")
-                    updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-
                     }
                 }
                 cleanup {
