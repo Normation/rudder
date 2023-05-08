@@ -6,7 +6,7 @@ def job = ""
 def errors = []
 def running = []
 
-updateSlack(webapp, npm, relay, policies, slackResponse)
+updateSlack(errors, running, slackResponse)
 
 // Check vulns in dependencies on repo branches
 def failedBuild = false
