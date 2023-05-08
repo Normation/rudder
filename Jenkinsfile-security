@@ -3,10 +3,8 @@
 
 def slackResponse = slackSend(channel: "ci-security", message: "7.2 - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 def job = ""
-def webapp = null
-def relay = null
-def policies = null
-
+def errors = []
+def running = []
 
 updateSlack(webapp, relay, policies, slackResponse)
 
@@ -29,6 +27,10 @@ pipeline {
                 }
             }
             steps {
+                script {
+                    running.add("webapp")
+                    updateSlack(errors, running, slackResponse)
+                }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources') {
                         sh script: 'mvn --batch-mode -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
@@ -38,20 +40,22 @@ pipeline {
             }
             post {
 
-                success {
-                    script {
-                        webapp = true
-                    updateSlack(webapp, relay, policies, slackResponse)
-                    }
-                }
 
                 failure {
                     script {
+                        errors.add("webapp")
                         webapp = false
                         failedBuild = true
                         //notifier.notifyResult("scala-team")
                     updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+
+                cleanup {
+                    script {
+                        running.remove("webapp")
+                        updateSlack(errors, running, slackResponse)
                     }
                 }
 
@@ -81,19 +85,20 @@ pipeline {
             }
             post {
 
-                success {
-                    script {
-                    updateSlack(webapp, relay, policies, slackResponse)
-                        relay = true
-                    }
-                }
                 failure {
                     script {
-                        relay = false
+                        errors.add("relay")
                         failedBuild = true
                     updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                         //notifier.notifyResult("rust-team")
+                    }
+                }
+
+                cleanup {
+                    script {
+                        running.remove("relay")
+                        updateSlack(errors, running, slackResponse)
                     }
                 }
                 always {
@@ -121,21 +126,20 @@ pipeline {
                 }
             }
             post {
-                success {
-                    script {
-                        policies = true
-                    updateSlack(webapp, relay, policies, slackResponse)
-                        //notifier.notifyResult("rust-team")
-                    }
-                }
                 failure {
                     script {
-                        policies = false
+                        errors.add("policies")
                         failedBuild = true
                         //notifier.notifyResult("rust-team")
                     updateSlack(webapp, relay, policies, slackResponse)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
 
+                    }
+                }
+                cleanup {
+                    script {
+                        running.remove("policies")
+                        updateSlack(errors, running, slackResponse)
                     }
                 }
                 always {
@@ -158,60 +162,24 @@ pipeline {
 }
 
 
-def updateSlack(webapp, relay, policies, slackResponse) {
+def updateSlack(errors, running , slackResponse) {
 
 
-def text = "7.2 - dependency check - <"+currentBuild.absoluteUrl+"|Link> \n"
-
-if (webapp == null) {
-    text += "• :felisk: "
-} else {
-    if (webapp) {
-      text += "• :yesyes: "
-    } else {
-      text += "• :nono: "
-
-    }
-}
-text += "webapp\n"
-
-
-if (relay == null) {
-    text += "• :felisk: "
-} else {
-    if (relay) {
-      text += "• :yesyes: "
-    } else {
-      text += "• :nono: "
-
-    }
-}
-text += "relay\n"
-
-
-if (policies == null) {
-    text += "• :felisk: "
-} else {
-    if (policies) {
-      text += "• :yesyes: "
-    } else {
-      text += "• :nono: "
-
-    }
-}
-text += "policies\n"
+def msg ="*7.2 - dependency check* - <"+currentBuild.absoluteUrl+"|Link>\n"
 
 def color = "#00A8E1"
 
-if (webapp && policies && relay) {
-    color = "good"
-    text+= "All dependencies were Good ! :fiesta-parrot:"
+if (! errors.isEmpty()) {
+    msg += "*Errors* :nono: ("+errors.size()+")\n• " + errors.join("\n• ")
+    color = "#CC3421"
 }
-if (webapp == false || policies == false || relay == false) { color = "#CC3421"
-
-    text+= "Some dependencies were not ok :crying-cat-face: !"
+if (! running.isEmpty()) {
+    msg += "*Running* :felisk: ("+running.size()+")\n• " + running.join("\n• ")
 }
 
-
+if (errors.isEmpty() && running.isEmpty()) {
+    msg +=  ":yesyes: All dependencies checked! :fiesta-parrot:"
+	color = "good"
+}
   slackSend(channel: slackResponse.channelId, message: text, timestamp: slackResponse.ts, color: color)
 }
