@@ -74,7 +74,7 @@ bundle agent file_augeas_set(path, value, lens, file)
       "cpath" string => canonify("${path}");
 
     pass1.file_defined::
-      "command" string => "printf \"set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors\" | ${ncf_paths.path[augtool]} --noautoload --new";
+      "command" string => "printf 'set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors' | ${ncf_paths.path[augtool]} --noautoload --new";
       "cfile" string => canonify("${file}");
 
     pass1.!file_defined::
