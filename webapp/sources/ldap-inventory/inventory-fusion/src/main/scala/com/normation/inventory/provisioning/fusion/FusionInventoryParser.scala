@@ -858,7 +858,9 @@ class FusionInventoryParser(
    * We only keep name in local user account
    */
   def processLocalAccount(d: Node): Option[String] = {
-    optText(d \ "LOGIN")
+    // on linux, the interesting field is LOGIN, on Windows, it's NAME (and there is no Login)
+    // (on linux, NAME contains strange things like "Rudder,,,")
+    optText(d \ "LOGIN").orElse(optText(d \ "NAME"))
   }
 
   /**
