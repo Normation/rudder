@@ -680,6 +680,7 @@ pipeline {
                                 updateSlack(errors, running, slackResponse)
                             }
                         }
+                    }
                 }
             }
         }
