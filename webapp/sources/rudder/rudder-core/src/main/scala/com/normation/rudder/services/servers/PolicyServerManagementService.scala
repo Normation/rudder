@@ -77,6 +77,7 @@ import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -617,6 +618,7 @@ object PolicyServerConfigurationObjects {
         Query(
           NodeAndRootServerReturnType,
           And,
+          ResultTransformation.Identity,
           List(
             CriterionLine(objectType, Criterion("agentName", StringComparator), Equals, "cfengine"),
             CriterionLine(objectType, Criterion("policyServerId", StringComparator), Equals, nodeId.value)

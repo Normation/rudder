@@ -58,8 +58,8 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
-import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.hooks.Hooks
@@ -762,7 +762,7 @@ object JsonResponseObjects {
   )
 
   object JRQuery {
-    def fromQuery(query: QueryTrait) = {
+    def fromQuery(query: Query) = {
       JRQuery(
         query.returnType.value,
         query.composition.value,

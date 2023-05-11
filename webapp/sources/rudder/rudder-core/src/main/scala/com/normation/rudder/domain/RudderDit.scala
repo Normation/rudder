@@ -51,7 +51,7 @@ import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.archives._
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -388,7 +388,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         parentDN:    DN,
         name:        String,
         description: String,
-        query:       Option[QueryTrait],
+        query:       Option[Query],
         isDynamic:   Boolean,
         srvList:     Set[NodeId],
         isEnabled:   Boolean,

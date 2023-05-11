@@ -57,9 +57,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.unboundid.ldap.sdk.DereferencePolicy
 import com.unboundid.ldap.sdk.Filter
@@ -229,7 +227,7 @@ object CheckPendingNodeInDynGroups {
       id:           NodeGroupId,
       dependencies: Set[NodeGroupId],
       testNodes:    Set[NodeId],
-      query:        QueryTrait,
+      query:        Query,
       includeNodes: Set[NodeId]
   )
 
@@ -409,7 +407,7 @@ class CheckPendingNodeInDynGroups(
             g.id,
             dep,
             nodeIds,
-            query match { case q: Query => q.copy(criteria = criteria); case q: NewQuery => q.copy(criteria = criteria) },
+            query.copy(criteria = criteria),
             Set()
           )
         }

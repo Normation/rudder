@@ -2267,7 +2267,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }
 
-    override def process(query: QueryTrait): Box[Seq[NodeId]] = {
+    override def process(query: Query): Box[Seq[NodeId]] = {
       for {
         nodes    <- nodeInfoService.nodeBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
@@ -2276,7 +2276,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }
     }.toBox
 
-    override def processOnlyId(query: QueryTrait): Box[Seq[NodeId]] = process(query).map(_.toSeq)
+    override def processOnlyId(query: Query): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
   object newNodeManager extends NewNodeManager {
@@ -2913,7 +2913,7 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
   val groupRevisionRepo: GroupRevisionRepository = new GitParseGroupLibrary(
     new NodeGroupCategoryUnserialisationImpl(),
     new NodeGroupUnserialisationImpl(new CmdbQueryParser {
-      override def parse(query: StringQuery): Box[QueryTrait]  = ???
+      override def parse(query: StringQuery): Box[Query]       = ???
       override def lex(query: String):        Box[StringQuery] = ???
     }),
     mockGit.gitRepo,

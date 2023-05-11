@@ -46,8 +46,8 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.repository._
 import com.normation.rudder.web.ChooseTemplate
@@ -292,7 +292,7 @@ class CreateCategoryOrGroupPopup(
         val query       = Some(
           groupGenerator
             .flatMap(_.query)
-            .getOrElse(NewQuery(NodeReturnType, And, ResultTransformation.Identity, List(defaultLine)))
+            .getOrElse(Query(NodeReturnType, And, ResultTransformation.Identity, List(defaultLine)))
         )
         val isDynamic   = piStatic.get match { case "dynamic" => true; case _ => false }
         val srvList     = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())

@@ -53,7 +53,7 @@ import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling._
@@ -626,7 +626,7 @@ class EventLogFactoryImpl(
         modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x)) ++
         modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x)) ++
         modifyDiff.modQuery.map(x => {
-          SimpleDiff.toXml[Option[QueryTrait]](<query/>, x) { t =>
+          SimpleDiff.toXml[Option[Query]](<query/>, x) { t =>
             t match {
               case None    => <none/>
               case Some(y) => Text(y.toJSONString)

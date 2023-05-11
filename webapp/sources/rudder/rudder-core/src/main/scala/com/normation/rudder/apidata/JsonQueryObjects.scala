@@ -57,8 +57,8 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.PatchProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
-import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -281,7 +281,7 @@ object JsonQueryObjects {
       name:        Option[String],
       description: Option[String],
       properties:  Option[List[GroupProperty]],
-      query:       Option[Option[QueryTrait]],
+      query:       Option[Option[Query]],
       isDynamic:   Option[Boolean],
       _isEnabled:  Option[Boolean]
   )

@@ -127,7 +127,7 @@ class TestStringQueryParser {
 
     assertEquals(
       Full(
-        NewQuery(
+        Query(
           NodeReturnType,
           And,
           Identity,
@@ -142,28 +142,28 @@ class TestStringQueryParser {
     )
 
     assertEquals(
-      Full(NewQuery(NodeReturnType, And, Identity, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_1)
     )
     assertEquals(
-      Full(NewQuery(NodeReturnType, Or, Identity, List())),
+      Full(Query(NodeReturnType, Or, Identity, List())),
       parser.parse(valid1_2)
     )
     assertEquals(
-      Full(NewQuery(NodeReturnType, And, Identity, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid1_3)
     )
 
     assertEquals(
-      Full(NewQuery(NodeReturnType, And, Identity, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid2_1)
     )
     assertEquals(
-      Full(NewQuery(NodeReturnType, And, Identity, List())),
+      Full(Query(NodeReturnType, And, Identity, List())),
       parser.parse(valid2_2)
     )
     assertEquals(
-      Full(NewQuery(NodeReturnType, And, Invert, List())),
+      Full(Query(NodeReturnType, And, Invert, List())),
       parser.parse(valid2_3)
     )
 

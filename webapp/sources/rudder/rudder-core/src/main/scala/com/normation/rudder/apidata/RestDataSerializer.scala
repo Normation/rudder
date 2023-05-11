@@ -53,7 +53,7 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.properties._
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.repository.FullActiveTechnique
@@ -457,7 +457,7 @@ final case class RestDataSerializerImpl(
     def serializeNodeGroupDiff(diff: ModifyNodeGroupDiff, initialState: NodeGroup): JValue = {
       implicit def convert[T](value: GroupProperty): JValue = value.toJson
       def convertNodeList(nl: Set[NodeId]):          JValue = nl.map(_.value).toList
-      def convertQuery(q: Option[QueryTrait]):       JValue = q.map(_.toString)
+      def convertQuery(q: Option[Query]):            JValue = q.map(_.toString)
 
       val name:        JValue = diff.modName.map(displaySimpleDiff(_)).getOrElse(initialState.name)
       val description: JValue = diff.modDescription.map(displaySimpleDiff(_)).getOrElse(initialState.description)

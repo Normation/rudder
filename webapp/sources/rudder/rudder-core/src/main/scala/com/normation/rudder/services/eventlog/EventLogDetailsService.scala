@@ -64,7 +64,7 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.queries.QueryTrait
+import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.git.GitArchiveId
@@ -479,7 +479,7 @@ class EventLogDetailsServiceImpl(
                          ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry.toString())
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
-      query           <- getFromTo[Option[QueryTrait]](
+      query           <- getFromTo[Option[Query]](
                            (group \ "query").headOption,
                            { s =>
                              // check for <from><none></none></from> or the same with <to>, <none/>, etc
