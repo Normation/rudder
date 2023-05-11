@@ -643,6 +643,10 @@ pipeline {
                         }
                     }
                     steps {
+                        script {
+                            running.add("Publish - policies")
+                            updateSlack(errors, running, slackResponse)
+                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
                                 dir('target/repos') {
@@ -665,10 +669,17 @@ pipeline {
                         failure {
                             script {
                                 failedBuild = true
-                                notifier.notifyResult("rust-team")
+                                errors.add("Publish - policies")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing policies - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
                             }
                         }
-                    }
+                        cleanup {
+                            script {
+                                running.remove("Publish - policies")
+                                updateSlack(errors, running, slackResponse)
+                            }
+                        }
                 }
             }
         }
