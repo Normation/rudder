@@ -145,6 +145,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
       OC_MACHINE,
       Seq(
         Criterion("machineType", MachineComparator),
+        Criterion("provider", VmTypeComparator),
         Criterion(A_MACHINE_UUID, StringComparator),
         Criterion(A_NAME, StringComparator),
         Criterion(A_DESCRIPTION, StringComparator),
