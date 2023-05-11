@@ -201,6 +201,54 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "Local Accounts" should {
+    "be parsed on Linux" in {
+      val users = parseRun("fusion-inventories/7.1/node1-4d3a43bc-8508-46a2-92d7-cfe7320309a5.ocs").node.accounts
+      users must containTheSameElementsAs(
+        Seq(
+          "lxd",
+          "ubuntu",
+          "vagrant",
+          "landscape",
+          "pollinate",
+          "sshd",
+          "tcpdump",
+          "uuidd",
+          "tss",
+          "_apt",
+          "syslog",
+          "systemd-timesync",
+          "messagebus",
+          "systemd-resolve",
+          "systemd-network",
+          "nobody",
+          "gnats",
+          "irc",
+          "list",
+          "backup",
+          "www-data",
+          "proxy",
+          "uucp",
+          "news",
+          "mail",
+          "lp",
+          "man",
+          "games",
+          "sync",
+          "sys",
+          "bin",
+          "daemon",
+          "root"
+        )
+      )
+    }
+
+    "be parsed on Windows" in {
+      val users = parseRun("fusion-inventories/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.accounts
+      users must beEqualTo(Seq("Administrator"))
+    }
+  }
+
   "Rudder tag in inventory" should {
 
     "ok-ish when not present (have an error log)" in {
