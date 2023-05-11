@@ -698,6 +698,47 @@ final case object MachineComparator extends LDAPCriterionType {
   }
 }
 
+final case object VmTypeComparator extends LDAPCriterionType {
+  final case class vm(obj: VmType, ldapClass: String, displayName: String)
+  val vmTypes = List(
+    (OC_VM, "Any"), // we don't have a type for "unknown", only "it's a "    (LPAR, OC_VM_AIX_LPAR, "AIX LPAR"),
+    (OC_VM_BSDJAIL, "BSD Jail"),
+    (OC_VM_HYPERV, "HyperV"),
+    (OC_VM_LXC, "LXC"),
+    (OC_VM_OPENVZ, "OpenVZ"),
+    (OC_VM_QEMU, "QEmu"),
+    (OC_VM_SOLARIS_ZONE, "Solaris Zone"),
+    (OC_VM_VIRTUALBOX, "Virtual Box"),
+    (OC_VM_VIRTUOZZO, "Virtuozzo"),
+    (OC_VM_VMWARE, "VMWare"),
+    (OC_VM_XEN, "XEN")
+  )
+
+  override def comparators                                                           = Seq(Equals, NotEquals)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator) = {
+    if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
+  }
+
+  override def toLDAP(value: String) = Right(value)
+
+  override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
+    val v = vmTypes.collectFirst { case (ldap, text) if (ldap == value) => ldap }.getOrElse(OC_VM)
+    comparator match {
+      case Equals => IS(v)
+      case _      => NOT(IS(v))
+    }
+  }
+
+  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
+    SHtml.select(
+      (vmTypes map (e => (e._1, e._2))),
+      Box(vmTypes.find(_._1 == value).map(_._1)),
+      func,
+      attrs: _*
+    )
+  }
+}
+
 /*
  * Agent comparator is kind of scpecial, because it needs to accomodate to the following cases:
  * - historically, agent names were only "Nova" and "Community" (understood "cfengine", of course)
