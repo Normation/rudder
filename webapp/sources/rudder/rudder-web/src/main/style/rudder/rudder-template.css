@@ -173,7 +173,8 @@
   margin-left: 10px;
 }
 .rudder-template .header-buttons .btn .fa:last-child,
-.rudder-template .btn.btn-icon .fa:last-child{
+.rudder-template .btn.btn-icon .fa:last-child,
+.rudder-template .btn.btn-save .fa:last-child{
   margin-left: 6px;
 }
 .rudder-template .header-buttons .tooltip{
@@ -1590,6 +1591,9 @@ ul.applied-list > .add-target > .fa{
 }
 .btn.btn-save:before{
   content: "Save";
+}
+.btn.btn-save.btn-settings:before{
+  content: "Save changes";
 }
 .btn.btn-save.saving:before{
   content: "Saving";
