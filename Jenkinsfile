@@ -683,13 +683,6 @@ pipeline {
                     }
                 }
             }
-            post {
-                fixed {
-                    script {
-                        notifier.notifyResult("everyone")
-                    }
-                }
-            }
         }
     }
 }
