@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.marshalling
 
+import com.github.ghik.silencer.silent
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
 import com.normation.box._
@@ -86,6 +87,7 @@ import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
+import org.apache.commons.lang3.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.{Failure => Catch}
 import scala.util.Success
@@ -276,7 +278,7 @@ class NodeGroupUnserialisationImpl(
                               .parse(
                                 (p \\ "name").text.trim,
                                 ParseRev((p \\ "revision").text.trim),
-                                (p \\ "value").text.trim,
+                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim): @silent,
                                 (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
                                 (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
                               )

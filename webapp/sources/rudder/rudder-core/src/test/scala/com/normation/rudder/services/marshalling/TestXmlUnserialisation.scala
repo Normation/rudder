@@ -1,16 +1,24 @@
 package com.normation.rudder.services.marshalling
 
 import com.normation.BoxSpecMatcher
+import com.normation.GitVersion
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.ObjectCriterion
+import com.normation.rudder.domain.queries.ResultTransformation._
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
@@ -37,6 +45,8 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
   val ruleUnserialisation              = new RuleUnserialisationImpl
   val ruleCategoryUnserialisation      = new RuleCategoryUnserialisationImpl
   val globalParameterUnserialisation   = new GlobalParameterUnserialisationImpl
+
+  val nodeGroupSerialisation = new NodeGroupSerialisationImpl("6")
 
   val variableSpecParser = new VariableSpecParser
   val sectionSpecParser  = new SectionSpecParser(variableSpecParser)
@@ -126,6 +136,41 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         case Full(_) => ok("unserialization was a success")
       }
     }
+  }
+
+  "group property ser/unser should be identity" >> {
+    def toProps(map: Map[String, String]) = map.map {
+      case (k, v) =>
+        GroupProperty
+          .parse(k, GitVersion.DEFAULT_REV, v, None, None)
+          .fold(
+            err => throw new IllegalArgumentException("Error in test: " + err.fullMsg),
+            res => res
+          )
+    }.toList
+
+    val group = NodeGroup(
+      NodeGroupId(NodeGroupUid("group")),
+      "group",
+      "",
+      toProps(
+        Map(
+          "arr" -> "[1,2]",
+          "obj" -> """{"a":"b", "i":"j1", "x":{"y1":"z"}, "z":[2]}""",
+          "str" -> "some string",
+          "xml" -> "hack:<img src=\"https://hackme.net/h.jpg\"/>"
+        )
+      ),
+      Some(NewQuery(NodeReturnType, And, Identity, List())),
+      true,
+      Set(),
+      true
+    )
+
+    val xml    = nodeGroupSerialisation.serialise(group)
+    val group2 = nodeGroupUnserialisation.unserialise(xml)
+
+    group2 must beEqualTo(Full(group))
   }
 
 }
