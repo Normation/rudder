@@ -1,12 +1,15 @@
 
 
+def version = "7.3"
+def slackResponse = slackSend(channel: "ci-security", message: "${version} - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 
-def slackResponse = slackSend(channel: "ci-security", message: "*7.3 - dependency check* - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
-def job = ""
 def errors = []
 def running = []
 
-updateSlack(errors, running, slackResponse)
+def changeUrl = env.CHANGE_URL
+
+
+updateSlack(errors, running, slackResponse, version, changeUrl)
 
 // Check vulns in dependencies on repo branches
 def failedBuild = false
@@ -29,7 +32,7 @@ pipeline {
             steps {
                 script {
                     running.add("webapp")
-                    updateSlack(errors, running, slackResponse)
+                    updateSlack(errors, running, slackResponse, version, changeUrl)
                 }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources') {
@@ -56,7 +59,7 @@ pipeline {
                 cleanup {
                     script {
                         running.remove("webapp")
-                        updateSlack(errors, running, slackResponse)
+                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
             }
@@ -123,7 +126,7 @@ pipeline {
                 cleanup {
                     script {
                         running.remove("relay")
-                        updateSlack(errors, running, slackResponse)
+                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
                 always {
@@ -162,7 +165,7 @@ pipeline {
                 cleanup {
                     script {
                         running.remove("policies")
-                        updateSlack(errors, running, slackResponse)
+                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
                 always {
@@ -185,23 +188,28 @@ pipeline {
 }
 
 
-def updateSlack(errors, running , slackResponse) {
+def updateSlack(errors, running , slackResponse, version, changeUrl) {
 
+echo env.CHANGE_URL
 
-def msg ="*7.3 - dependency check* - <"+currentBuild.absoluteUrl+"|Link>\n"
+def msg ="*${version} - dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
+
+if (changeUrl != null) {
+  msg ="*${version} PR - dependency check* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request>"
+}
 
 def color = "#00A8E1"
 
 if (! errors.isEmpty()) {
-    msg += "*Errors* :nono: ("+errors.size()+")\n• " + errors.join("\n• ")
+    msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
     color = "#CC3421"
 }
 if (! running.isEmpty()) {
-    msg += "*Running* :felisk: ("+running.size()+")\n• " + running.join("\n• ")
+    msg += "\n*Running* :arrow_right: ("+running.size()+")\n  • " + running.join("\n  • ")
 }
 
 if (errors.isEmpty() && running.isEmpty()) {
-    msg +=  ":yesyes: All dependencies checked! :fiesta-parrot:"
+    msg +=  " => All dependencies checked! :white_check_mark:"
 	color = "good"
 }
   slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
