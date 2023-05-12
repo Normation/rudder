@@ -730,7 +730,7 @@ def updateSlack(errors, running, slackResponse, version, changeUrl) {
 
 echo env.CHANGE_URL
 
-def msg ="*${version} - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
+def msg ="*${version} - builds* - <"+currentBuild.absoluteUrl+"|Link>"
 
 if (changeUrl != null) {
   msg ="*${version} PR - builds* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request> \n"
@@ -739,15 +739,15 @@ if (changeUrl != null) {
 def color = "#00A8E1"
 
 if (! errors.isEmpty()) {
-    msg += "\n*Errors* :x: ("+errors.size()+")\n • " + errors.join("\n • ")
+    msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
     color = "#CC3421"
 }
 if (! running.isEmpty()) {
-    msg += "\n*Running* :arrow_right: ("+running.size()+")\n • " + running.join("\n • ")
+    msg += "\n*Running* :arrow_right: ("+running.size()+")\n  • " + running.join("\n  • ")
 }
 
 if (errors.isEmpty() && running.isEmpty()) {
-    msg +=  " => All builds completed ! :white_tick:"
+    msg +=  " => All builds completed ! :white_check_mark:"
 	color = "good"
 }
   slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)

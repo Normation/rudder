@@ -183,7 +183,7 @@ if (! running.isEmpty()) {
 }
 
 if (errors.isEmpty() && running.isEmpty()) {
-    msg +=  " => All dependencies checked! :white_tick:"
+    msg +=  " => All dependencies checked! :white_check_mark:"
 	color = "good"
 }
   slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
