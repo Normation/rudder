@@ -1,8 +1,12 @@
 
 def failedBuild = false
+def version = "7.2"
+def slackResponse = slackSend(channel: "ci", message: "${version} - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 
-def slackResponse = slackSend(channel: "ci", message: "7.2 - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
-def job = ""
+def changeUrl = env.CHANGE_URL
+
+echo changeUrl
+
 def errors = []
 def running = []
 
@@ -15,11 +19,6 @@ pipeline {
 
     options {
         buildDiscarder(logRotator(daysToKeepStr: '5', artifactDaysToKeepStr: '5'))
-    }
-
-    environment {
-        // TODO: automate
-        RUDDER_VERSION = "7.2"
     }
 
     stages {
@@ -36,7 +35,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - relayd-man")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
@@ -54,7 +53,7 @@ pipeline {
                         cleanup {
                             script {
                               running.remove("Tests - relayd-man")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -69,7 +68,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - shell")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --shell', label: 'shell scripts lint'
@@ -93,7 +92,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - shell")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -107,7 +106,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - python")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: './qa-test --python', label: 'python scripts lint'
@@ -126,7 +125,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - python")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -142,7 +141,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - typo")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('language') {
@@ -168,7 +167,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - typo")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -184,7 +183,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - api-doc")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
@@ -204,7 +203,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - api-doc")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -219,7 +218,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - rudder-pkg")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir ('relay/sources') {
@@ -244,7 +243,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - rudder-pkg")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -259,7 +258,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Tests - elm")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources/rudder/rudder-web/src/main/elm') {
@@ -282,7 +281,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - elm")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -302,7 +301,7 @@ pipeline {
 
                         script {
                             running.add("Tests - webapp")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
@@ -328,7 +327,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - webapp")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -345,7 +344,7 @@ pipeline {
 
                         script {
                             running.add("Tests - relayd")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
@@ -378,7 +377,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - relayd")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -396,7 +395,7 @@ pipeline {
 
                         script {
                             running.add("Tests - policies")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
@@ -431,7 +430,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - policies")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -471,7 +470,7 @@ pipeline {
                         steps {
                             script {
                                 running.add("Tests - compatibility JDK ${JDK_VERSION}")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 dir('webapp/sources') {
@@ -495,7 +494,7 @@ pipeline {
                             cleanup {
                                 script {
                                     running.remove("Tests - compatibility JDK ${JDK_VERSION}")
-                                    updateSlack(errors, running, slackResponse)
+                                    updateSlack(errors, running, slackResponse, version, changeUrl)
                                 }
                             }
                         }
@@ -517,7 +516,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - relayd-man")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         dir('relay/sources') {
                             sh script: 'make man-source', label: 'build man page'
@@ -538,7 +537,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Publish - relayd-man")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -554,7 +553,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - api-doc")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('api-doc') {
@@ -581,7 +580,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Publish - api-doc")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -597,7 +596,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - api-doc-redirect")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
@@ -618,7 +617,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Publish - api-doc-redirect")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -637,7 +636,7 @@ pipeline {
                     steps {
                         script {
                             running.add("Publish - webapp")
-                            updateSlack(errors, running, slackResponse)
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('webapp/sources') {
@@ -666,7 +665,7 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Publish - webapp")
-                                updateSlack(errors, running, slackResponse)
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }
                     }
@@ -727,23 +726,30 @@ def redirectApi() {
 }
 
 
-def updateSlack(errors, running, slackResponse) {
+def updateSlack(errors, running, slackResponse, version, changeUrl) {
 
+echo env
+echo env.CHANGE_URL
 
-def msg ="*7.2 - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
+def msg ="*${version} - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
+
+if (changeUrl != null) {
+
+  def msg ="*${version} PR - builds* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request> \n"
+}
 
 def color = "#00A8E1"
 
 if (! errors.isEmpty()) {
-    msg += "*Errors* :nono: ("+errors.size()+")\n• " + errors.join("\n• ")
+    msg += "\n*Errors* :x: ("+errors.size()+")\n • " + errors.join("\n • ")
     color = "#CC3421"
 }
 if (! running.isEmpty()) {
-    msg += "*Running* :felisk: ("+running.size()+")\n• " + running.join("\n• ")
+    msg += "\n*Running* :arrow_right: ("+running.size()+")\n • " + running.join("\n • ")
 }
 
 if (errors.isEmpty() && running.isEmpty()) {
-    msg +=  ":yesyes: All builds completed ! :fiesta-parrot:"
+    msg +=  " => All builds completed ! :white_tick:"
 	color = "good"
 }
   slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
