@@ -14,7 +14,7 @@ pipeline {
     agent none
 
     environment {
-        RUDDER_VERSION = version
+        RUDDER_VERSION = "${version}"
     }
     triggers {
         cron('@midnight')
