@@ -13,6 +13,9 @@ def running = []
 pipeline {
     agent none
 
+    environment {
+        RUDDER_VERSION = version
+    }
     triggers {
         cron('@midnight')
     }
@@ -386,7 +389,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${version}-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
