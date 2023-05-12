@@ -1,6 +1,6 @@
 
 def failedBuild = false
-def version = "7.2"
+def version = "7.3"
 def slackResponse = slackSend(channel: "ci", message: "${version} - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 
 def changeUrl = env.CHANGE_URL
