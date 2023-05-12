@@ -1,6 +1,6 @@
 
 
-def vesion = "7.2"
+def version = "7.2"
 def slackResponse = slackSend(channel: "ci-security", message: "${version} - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
 
 def errors = []
@@ -175,11 +175,11 @@ if (changeUrl != null) {
 def color = "#00A8E1"
 
 if (! errors.isEmpty()) {
-    msg += "\n*Errors* :x: ("+errors.size()+")\n • " + errors.join("\n • ")
+    msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
     color = "#CC3421"
 }
 if (! running.isEmpty()) {
-    msg += "\n*Running* :arrow_right: ("+running.size()+")\n • " + running.join("\n • ")
+    msg += "\n*Running* :arrow_right: ("+running.size()+")\n  • " + running.join("\n  • ")
 }
 
 if (errors.isEmpty() && running.isEmpty()) {
