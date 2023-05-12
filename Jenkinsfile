@@ -733,7 +733,7 @@ echo env.CHANGE_URL
 def msg ="*${version} - builds* - <"+currentBuild.absoluteUrl+"|Link>"
 
 if (changeUrl != null) {
-  msg ="*${version} PR - builds* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request> \n"
+  msg ="*${version} PR - builds* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request>"
 }
 
 def color = "#00A8E1"
