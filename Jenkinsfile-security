@@ -164,7 +164,6 @@ pipeline {
 
 def updateSlack(errors, running , slackResponse, version, changeUrl) {
 
-echo env
 echo env.CHANGE_URL
 
 def msg ="*${version} - dependency check* - <"+currentBuild.absoluteUrl+"|Link>\n"

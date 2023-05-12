@@ -728,7 +728,6 @@ def redirectApi() {
 
 def updateSlack(errors, running, slackResponse, version, changeUrl) {
 
-echo env
 echo env.CHANGE_URL
 
 def msg ="*${version} - builds* - <"+currentBuild.absoluteUrl+"|Link>\n"
