@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.github.ghik.silencer.silent
 import com.normation.cfclerk.domain._
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.DirectiveId
@@ -57,8 +56,9 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String)      = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))

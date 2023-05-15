@@ -138,7 +138,7 @@ object QSRegexQueryParser {
   // the user query string to look-up
   sealed trait QueryString            extends Token
   final case class CharSeq(s: String) extends QueryString
-  final case object EmptyQuery        extends QueryString
+  case object EmptyQuery              extends QueryString
 
   // filters like in:rule,directive,names,descriptions
   sealed trait Filter                            extends Token { def keys: Set[String] }

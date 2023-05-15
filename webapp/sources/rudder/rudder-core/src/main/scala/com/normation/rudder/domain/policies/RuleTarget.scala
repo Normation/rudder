@@ -77,17 +77,17 @@ final case class PolicyServerTarget(nodeId: NodeId) extends NonGroupRuleTarget {
   override def target = "policyServer:" + nodeId.value
 }
 
-final case object AllTarget extends NonGroupRuleTarget {
+case object AllTarget extends NonGroupRuleTarget {
   override def target = "special:all"
   def r               = "special:all".r
 }
 
-final case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
+case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_exceptPolicyServers"
   def r               = "special:all_exceptPolicyServers".r
 }
 
-final case object AllPolicyServers extends NonGroupRuleTarget {
+case object AllPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_policyServers"
   def r               = "special:all_policyServers".r
 }

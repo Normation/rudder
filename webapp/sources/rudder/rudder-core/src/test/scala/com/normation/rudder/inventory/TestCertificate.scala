@@ -37,7 +37,6 @@
 package com.normation.rudder.inventory
 
 import better.files.Resource
-import com.github.ghik.silencer.silent
 import com.normation.box.IOManaged
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -63,10 +62,11 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestCertificate extends Specification with Loggable {
   Security.addProvider(new BouncyCastleProvider())

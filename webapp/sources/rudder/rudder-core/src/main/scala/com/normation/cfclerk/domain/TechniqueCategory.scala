@@ -84,7 +84,7 @@ sealed abstract class TechniqueCategoryId(val name: TechniqueCategoryName) {
   }
 }
 
-final case object RootTechniqueCategoryId extends TechniqueCategoryId(TechniqueCategoryName("/"))
+case object RootTechniqueCategoryId extends TechniqueCategoryId(TechniqueCategoryName("/"))
 
 final case class SubTechniqueCategoryId(
     override val name: TechniqueCategoryName,

@@ -38,7 +38,6 @@
 package com.normation.cfclerk.services
 
 import better.files.File
-import com.github.ghik.silencer.silent
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -61,6 +60,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import scala.annotation.nowarn
 import scala.util.Random
 import zio._
 import zio.syntax._
@@ -71,7 +71,7 @@ import zio.syntax._
  * To see values for gitRoot, ptLib, etc, see at the end
  * of that file.
  */
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 

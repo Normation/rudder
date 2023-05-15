@@ -32,7 +32,7 @@ package com.normation
 
 import org.joda.time.DateTime
 
-final object GitVersion {
+object GitVersion {
 
   /**
    * The revision of the considered object. A revision is a git name that can be resolved

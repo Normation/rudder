@@ -172,7 +172,7 @@ class NodeChangesServiceImpl(
 
 sealed trait ChangesUpdate
 object ChangesUpdate {
-  final case object Init                                extends ChangesUpdate
+  case object Init                                      extends ChangesUpdate
   final case class For(lowestId: Long, highestId: Long) extends ChangesUpdate
 }
 

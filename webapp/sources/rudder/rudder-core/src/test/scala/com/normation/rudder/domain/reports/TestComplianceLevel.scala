@@ -37,17 +37,17 @@
 
 package com.normation.rudder.domain.reports
 
-import com.github.ghik.silencer.silent
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
 /**
  * Test properties about Compliance Level,
  * especially pourcent related (sum to 100, rounding error, etc)
  */
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestComplianceLevel extends Specification {
 

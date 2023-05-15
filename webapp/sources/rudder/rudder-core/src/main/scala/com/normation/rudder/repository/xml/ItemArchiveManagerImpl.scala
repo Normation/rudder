@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.xml
 
-import com.github.ghik.silencer.silent
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
@@ -65,6 +64,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 
@@ -101,7 +101,7 @@ class ItemArchiveManagerImpl(
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
   val importSemaphore = Semaphore.make(1).runNow
 
-  @silent("a type was inferred to be `Any`")
+  @nowarn("msg=a type was inferred to be `Any`")
   def useSemaphoreOrFail[A](effect: IOResult[A]) = {
     // we timeout the semaphore acquisition to fail if another op is already running
     ZIO.scoped(
@@ -659,11 +659,11 @@ object PartialArchive {
 
 import com.normation.rudder.repository.xml.PartialArchive._
 
-final case object TechniqueLibraryArchive extends ArchiveMode {
+case object TechniqueLibraryArchive extends ArchiveMode {
   def configureRm(rmCmd: RmCommand)             = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
   def configureCheckout(coCmd: CheckoutCommand) = directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }
-final case object FullArchive             extends ArchiveMode {
+case object FullArchive             extends ArchiveMode {
 
   def configureRm(rmCmd: RmCommand) = {
     TechniqueLibraryArchive.configureRm(

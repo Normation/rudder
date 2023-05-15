@@ -241,9 +241,9 @@ final case class RestNode(
 )
 
 sealed trait NodeStatusAction
-final case object AcceptNode extends NodeStatusAction
-final case object RefuseNode extends NodeStatusAction
-final case object DeleteNode extends NodeStatusAction
+case object AcceptNode extends NodeStatusAction
+case object RefuseNode extends NodeStatusAction
+case object DeleteNode extends NodeStatusAction
 
 final case class RestParameter(
     value:       Option[ConfigValue] = None,

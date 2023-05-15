@@ -1415,10 +1415,10 @@ final case class RestExtractorService(
       (AllowEmpty(allowEmpty) ::
       AllowWhiteSpace(allowWS) ::
       MaxLength(maxLength) ::
-      minLength.map(MinLength).toList :::
-      regex.map(MatchRegex).toList :::
-      notRegex.map(NotMatchRegex).toList :::
-      select.map(FromList).toList)
+      minLength.map(MinLength.apply).toList :::
+      regex.map(MatchRegex.apply).toList :::
+      notRegex.map(NotMatchRegex.apply).toList :::
+      select.map(FromList.apply).toList)
 
     }
   }

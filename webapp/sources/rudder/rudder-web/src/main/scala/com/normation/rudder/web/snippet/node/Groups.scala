@@ -71,7 +71,7 @@ object Groups {
   val htmlId_updateContainerForm = "updateContainerForm"
 
   sealed private trait RightPanel
-  final private case object NoPanel                                  extends RightPanel
+  private case object NoPanel                                        extends RightPanel
   final private case class GroupForm(group: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId)
       extends RightPanel
   final private case class CategoryForm(category: NodeGroupCategory) extends RightPanel
@@ -344,9 +344,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        JObject(child)                                  <- JsonParser.parse(arg)
-        JField("sourceGroupId", JString(sourceGroupId)) <- child
-        JField("destCatId", JString(destCatId))         <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceGroupId", JString(sourceGroupId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (sourceGroupId, destCatId)
       }) match {
@@ -396,9 +396,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        JObject(child)                              <- JsonParser.parse(arg)
-        JField("sourceCatId", JString(sourceCatId)) <- child
-        JField("destCatId", JString(destCatId))     <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceCatId", JString(sourceCatId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (sourceCatId, destCatId)
       }) match {

@@ -37,7 +37,6 @@
 
 package bootstrap.liftweb
 
-import com.github.ghik.silencer.silent
 import com.normation.errors._
 import com.normation.rudder.Role
 import com.normation.rudder.RudderAccount
@@ -83,6 +82,7 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import scala.annotation.nowarn
 
 /**
  * Spring configuration for user authentication.
@@ -152,7 +152,7 @@ class AppConfigAuth extends ApplicationContextAware {
 
     // load additional beans from authentication dedicated resource files
 
-    @silent("deprecated") // switching to new solution seems involving since we use systemPropertiesMode
+    @nowarn("msg=deprecated") // switching to new solution seems involving since we use systemPropertiesMode
     val propertyConfigurer = new PropertyPlaceholderConfigurer()
     propertyConfigurer.setIgnoreResourceNotFound(true)
     propertyConfigurer.setIgnoreUnresolvablePlaceholders(true)

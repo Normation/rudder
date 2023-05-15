@@ -395,9 +395,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        JObject(child)                                                      <- JsonParser.parse(arg)
-        JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
-        JField("destCatId", JString(destCatId))                             <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (sourceactiveTechniqueId, destCatId)
       }) match {
@@ -446,9 +446,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        JObject(child)                              <- JsonParser.parse(arg)
-        JField("sourceCatId", JString(sourceCatId)) <- child
-        JField("destCatId", JString(destCatId))     <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceCatId", JString(sourceCatId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (sourceCatId, destCatId)
       }) match {
@@ -498,9 +498,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     // parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        JObject(child)                                                      <- JsonParser.parse(arg)
-        JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
-        JField("destCatId", JString(destCatId))                             <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (sourceactiveTechniqueId, destCatId)
       }) match {

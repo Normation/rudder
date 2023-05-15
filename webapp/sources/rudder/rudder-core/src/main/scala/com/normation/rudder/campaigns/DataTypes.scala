@@ -214,11 +214,11 @@ sealed trait CampaignEventState {
   def value: String
 }
 @jsonHint(Scheduled.value)
-final case object Scheduled extends CampaignEventState { val value = "scheduled" }
+case object Scheduled extends CampaignEventState { val value = "scheduled" }
 @jsonHint(Running.value)
-final case object Running                extends CampaignEventState { val value = "running"  }
+case object Running                      extends CampaignEventState { val value = "running"  }
 @jsonHint(Finished.value)
-final case object Finished               extends CampaignEventState { val value = "finished" }
+case object Finished                     extends CampaignEventState { val value = "finished" }
 @jsonHint(Skipped("").value)
 final case class Skipped(reason: String) extends CampaignEventState { val value = "skipped"  }
 

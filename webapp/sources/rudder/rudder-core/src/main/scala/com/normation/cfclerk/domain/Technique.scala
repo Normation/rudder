@@ -106,9 +106,9 @@ object RunHook {
   final case class Parameter(name: String, value: String)
 
   sealed trait Kind
-  final object Kind {
-    final case object Pre  extends Kind
-    final case object Post extends Kind
+  object Kind {
+    case object Pre  extends Kind
+    case object Post extends Kind
   }
 
 }
@@ -141,7 +141,7 @@ sealed trait TechniqueGenerationMode {
   def name: String
 }
 
-final object TechniqueGenerationMode {
+object TechniqueGenerationMode {
 
   /*
    * This technique does not support mutiple directives on the same node

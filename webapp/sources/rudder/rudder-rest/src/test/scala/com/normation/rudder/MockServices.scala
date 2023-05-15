@@ -3000,7 +3000,7 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 
 // It would be much simpler if the root classes were concrete, parameterized with a A type:
 // case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
-final object DumbCampaignType extends CampaignType("dumb-campaign")
+object DumbCampaignType extends CampaignType("dumb-campaign")
 
 final case class DumbCampaignDetails(name: String) extends CampaignDetails
 

@@ -77,7 +77,7 @@ import com.normation.rudder.api.HttpAction
 //Api supported range version
 sealed trait ApiV extends Any
 object ApiV {
-  final case object OnlyLatest                extends ApiV
+  case object OnlyLatest                      extends ApiV
   final case class From(from: Int)            extends AnyVal with ApiV
   final case class FromTo(from: Int, to: Int) extends ApiV // from must be <= to
 }
@@ -93,9 +93,9 @@ object ApiV {
  */
 sealed trait ApiKind { def name: String }
 object ApiKind       {
-  final case object Internal extends ApiKind { val name = "internal" }
-  final case object Public   extends ApiKind { val name = "public"   }
-  final case object General  extends ApiKind { val name = "general"  }
+  case object Internal extends ApiKind { val name = "internal" }
+  case object Public   extends ApiKind { val name = "public"   }
+  case object General  extends ApiKind { val name = "general"  }
 }
 
 /*
@@ -279,7 +279,7 @@ trait PathMatcher[T] {
 }
 
 object PathMatcher {
-  final object Zero extends PathMatcher[Unit] {
+  object Zero extends PathMatcher[Unit] {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[Unit] = {
       (schema, path) match {
@@ -290,7 +290,7 @@ object PathMatcher {
     }
   }
 
-  final object One extends PathMatcher[String] {
+  object One extends PathMatcher[String] {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[String] = {
       (schema, path) match {
@@ -302,7 +302,7 @@ object PathMatcher {
     }
   }
 
-  final object Two extends PathMatcher[(String, String)] {
+  object Two extends PathMatcher[(String, String)] {
     @scala.annotation.tailrec
     def compare(schema: List[ApiPathSegment], path: List[ApiPathSegment]): Option[(String, String)] = {
       (schema, path) match {

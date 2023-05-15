@@ -107,10 +107,10 @@ sealed trait Technique      extends AuthorizationType { def authzKind = "techniq
 sealed trait UserAccount    extends AuthorizationType { def authzKind = "userAccount"    }
 sealed trait Validator      extends AuthorizationType { def authzKind = "validator"      }
 
-final object AuthorizationType {
+object AuthorizationType {
 
-  final case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
-  final case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
+  case object NoRights  extends AuthorizationType { val authzKind = "no"; val action = "rights"  }
+  case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
 
   // can't use sealerate here: "knownDirectSubclasses of observed before subclass ... registered"
   // I'm not sure exactly how/why it bugs. It's only for object where ".values" is used
@@ -339,26 +339,26 @@ object Role       {
   }
 
   // other standard predefined roles
-  final case object User          extends Role { val name = "user"; def rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
-  final case object AdminOnly     extends Role {
+  final case object User       extends Role { val name = "user"; def rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
+  final case object AdminOnly  extends Role {
     val name = "administration_only"; def rights = (ua ++ A.Administration.values.map(identity)).toRights
   }
-  final case object Workflow      extends Role {
+  final case object Workflow   extends Role {
     val name = "workflow"; def rights = (ua ++ A.workflowKind ++ A.complianceKind).toRights
   }
-  final case object Deployer      extends Role {
+  final case object Deployer   extends Role {
     val name = "deployer"; def rights = (ua ++ A.Deployer.values ++ A.complianceKind).toRights
   }
-  final case object Validator     extends Role {
+  final case object Validator  extends Role {
     val name = "validator"; def rights = (ua ++ A.Validator.values ++ A.complianceKind).toRights
   }
-  final case object Configuration extends Role {
+  case object Configuration    extends Role {
     val name = "configuration"; val rights = (ua ++ A.configurationKind.map(identity)).toRights
   }
-  final case object ReadOnly      extends Role { val name = "read_only"; def rights = (ua ++ allRead).toRights                      }
-  final case object Compliance    extends Role { val name = "compliance"; def rights = (ua ++ A.complianceKind).toRights            }
-  final case object Inventory     extends Role { val name = "inventory"; def rights = (ua ++ Set(A.Node.Read)).toRights             }
-  final case object RuleOnly      extends Role {
+  final case object ReadOnly   extends Role { val name = "read_only"; def rights = (ua ++ allRead).toRights                      }
+  final case object Compliance extends Role { val name = "compliance"; def rights = (ua ++ A.complianceKind).toRights            }
+  final case object Inventory  extends Role { val name = "inventory"; def rights = (ua ++ Set(A.Node.Read)).toRights             }
+  final case object RuleOnly   extends Role {
     val name = "rule_only"; def rights = (ua ++ Set(A.Configuration.Read, A.Rule.Read)).toRights
   }
 

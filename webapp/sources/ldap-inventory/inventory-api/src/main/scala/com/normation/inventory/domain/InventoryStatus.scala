@@ -56,8 +56,8 @@ object InventoryStatus {
   }
 }
 
-final case object AcceptedInventory extends InventoryStatus("accepted")
-final case object PendingInventory  extends InventoryStatus("pending")
-final case object RemovedInventory  extends InventoryStatus("removed")
+case object AcceptedInventory extends InventoryStatus("accepted")
+case object PendingInventory  extends InventoryStatus("pending")
+case object RemovedInventory  extends InventoryStatus("removed")
 
 //to be extended to "suspicious inventory" and other alike

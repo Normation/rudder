@@ -76,7 +76,7 @@ object NodeGroupForm {
   private val saveButtonId = "groupSaveButtonId"
 
   sealed private trait RightPanel
-  final private case object NoPanel                                  extends RightPanel
+  private case object NoPanel                                        extends RightPanel
   final private case class GroupForm(group: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId)
       extends RightPanel
   final private case class CategoryForm(category: NodeGroupCategory) extends RightPanel

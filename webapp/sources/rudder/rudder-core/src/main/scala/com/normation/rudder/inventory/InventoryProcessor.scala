@@ -38,7 +38,6 @@
 package com.normation.rudder.inventory
 
 import better.files.File
-import com.github.ghik.silencer.silent
 import com.normation.box.IOManaged
 import com.normation.errors._
 import com.normation.errors.Chained
@@ -67,6 +66,7 @@ import java.security.{PublicKey => JavaSecPubKey}
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
+import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 
@@ -128,7 +128,7 @@ sealed trait InventoryProcessStatus {
   def nodeId:        NodeId
 
 }
-final object InventoryProcessStatus {
+object InventoryProcessStatus {
   final case class Saved(inventoryName: String, nodeId: NodeId)                         extends InventoryProcessStatus
   final case class SignatureInvalid(inventoryName: String, nodeId: NodeId)              extends InventoryProcessStatus
   final case class SaveError(inventoryName: String, nodeId: NodeId, error: RudderError) extends InventoryProcessStatus
@@ -187,7 +187,7 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
-    @silent("a type was inferred to be `Any`")
+    @nowarn("msg=a type was inferred to be `Any`")
     def saveWithSignature(
         inventory:          Inventory,
         publicKey:          JavaSecPubKey,

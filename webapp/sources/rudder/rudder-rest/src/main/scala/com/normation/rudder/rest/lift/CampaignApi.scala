@@ -15,6 +15,7 @@ import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.{CampaignApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.implicits._
 import com.normation.utils.DateFormaterService
@@ -76,7 +77,7 @@ class CampaignApi(
     }
   }
   object GetCampaignDetails extends LiftApiModule {
-    val schema = API.GetCampaignDetails
+    val schema: OneParam = API.GetCampaignDetails
 
     def process(
         version:    ApiVersion,
@@ -101,7 +102,7 @@ class CampaignApi(
   }
 
   object DeleteCampaign extends LiftApiModule {
-    val schema = API.DeleteCampaign
+    val schema: OneParam = API.DeleteCampaign
 
     def process(
         version:    ApiVersion,
@@ -125,7 +126,7 @@ class CampaignApi(
   }
 
   object ScheduleCampaign extends LiftApiModule {
-    val schema = API.ScheduleCampaign
+    val schema: OneParam = API.ScheduleCampaign
 
     def process(
         version:    ApiVersion,
@@ -150,7 +151,7 @@ class CampaignApi(
   }
 
   object SaveCampaignEvent extends LiftApiModule {
-    val schema = API.SaveCampaignEvent
+    val schema: OneParam = API.SaveCampaignEvent
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -171,7 +172,7 @@ class CampaignApi(
   }
 
   object DeleteCampaignEvent extends LiftApiModule {
-    val schema = API.DeleteCampaignEvent
+    val schema: OneParam = API.DeleteCampaignEvent
 
     def process(
         version:    ApiVersion,
@@ -241,7 +242,7 @@ class CampaignApi(
   }
 
   object GetCampaignEventDetails extends LiftApiModule {
-    val schema = API.GetCampaignEventDetails
+    val schema: OneParam = API.GetCampaignEventDetails
 
     def process(
         version:    ApiVersion,
@@ -258,7 +259,7 @@ class CampaignApi(
   }
 
   object GetAllEventsForCampaign extends LiftApiModule {
-    val schema = API.GetCampaignEventsForModel
+    val schema: OneParam = API.GetCampaignEventsForModel
     def process(
         version:    ApiVersion,
         path:       ApiPath,

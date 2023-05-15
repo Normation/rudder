@@ -35,8 +35,8 @@
  */
 
 package com.normation.rudder.services.healthcheck
-import com.github.ghik.silencer.silent
 import com.normation.zio._
+import scala.annotation.nowarn
 import zio._
 import zio.Ref
 
@@ -72,5 +72,5 @@ class HealthcheckNotificationService(
   reloadCache(healthcheckCache)
     .repeat(Schedule.spaced(schedulerPeriod).forever)
     .forkDaemon
-    .runNow: @silent("a type was inferred to be `Any`")
+    .runNow: @nowarn("msg=a type was inferred to be `Any`")
 }
