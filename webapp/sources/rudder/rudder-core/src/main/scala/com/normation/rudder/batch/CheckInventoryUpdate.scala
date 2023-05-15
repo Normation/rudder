@@ -45,7 +45,6 @@ import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import org.joda.time.DateTime
-import scala.annotation.nowarn
 import zio._
 import zio.duration._
 
@@ -99,8 +98,6 @@ class CheckInventoryUpdate(
 
   ZioRuntime.unsafeRun(
     prog.repeat(Schedule.fixed(updateInterval)).delay(30.seconds).provide(ZioRuntime.environment).forkDaemon
-  ): @nowarn(
-    "msg=a type was inferred to be `\\w+`; this may indicate a programming error."
   )
 
 }

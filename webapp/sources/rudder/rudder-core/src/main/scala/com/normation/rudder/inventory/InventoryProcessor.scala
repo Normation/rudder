@@ -66,7 +66,6 @@ import java.security.{PublicKey => JavaSecPubKey}
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
-import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 
@@ -187,7 +186,6 @@ class InventoryProcessor(
    * When non blocking, the return value will tell is the value was accepted.
    */
   def saveInventoryInternal(info: SaveInventoryInfo): UIO[InventoryProcessStatus] = {
-    @nowarn("msg=a type was inferred to be `Any`")
     def saveWithSignature(
         inventory:          Inventory,
         publicKey:          JavaSecPubKey,
