@@ -87,6 +87,9 @@ bundle agent apply_gm(name, args, status, result_class, mode)
       "arg3" string => nth("args", "3");
       "arg4" string => nth("args", "4");
       "arg5" string => nth("args", "5");
+      "arg6" string => nth("args", "6");
+      "arg7" string => nth("args", "7");
+      "arg8" string => nth("args", "8");
 
       "old_class_prefix" string => "${${name}.old_class_prefix}";
 
@@ -129,21 +132,21 @@ bundle agent apply_gm(name, args, status, result_class, mode)
       "enable_${result_class}" usebundle => push_dry_run_mode("false");
 
     1_arg::
-      "execute_gm" usebundle => ${name}("${arg0}");
+      "${result_class}" usebundle => ${name}("${arg0}");
     2_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}");
     3_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
     4_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
     5_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
     6_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
     7_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
     8_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
 
     pass3::
       "disable_${result_class}" usebundle => pop_dry_run_mode();
@@ -188,6 +191,9 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
       "arg3" string => nth("args", "3");
       "arg4" string => nth("args", "4");
       "arg5" string => nth("args", "5");
+      "arg6" string => nth("args", "6");
+      "arg7" string => nth("args", "7");
+      "arg8" string => nth("args", "8");
 
       "class_prefix" string => "${${name}.class_prefix}";
 
@@ -245,21 +251,21 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
               comment => "${c_uuid}";
 
     1_arg::
-      "execute_gm" usebundle => ${name}("${arg0}");
+      "${result_class}" usebundle => ${name}("${arg0}");
     2_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}");
     3_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}");
     4_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}");
     5_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}");
     6_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}");
     7_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}");
     8_arg::
-      "execute_gm" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
+      "${result_class}" usebundle => ${name}("${arg0}", "${arg1}", "${arg2}", "${arg3}", "${arg4}", "${arg5}", "${arg6}", "${arg7}");
 
     pass3::
       "disable_${result_class}" usebundle => pop_dry_run_mode(),
