@@ -55,20 +55,20 @@ sealed trait ReportType {
 object ReportType {
   // report type are declared sorted in level to ease maintenance
 
-  final case object EnforceNotApplicable extends ReportType { val level = 0; val severity = "NotApplicable"      }
-  final case object AuditNotApplicable   extends ReportType { val level = 1; val severity = "AuditNotApplicable" }
-  final case object AuditCompliant       extends ReportType { val level = 2; val severity = "Compliant"          }
-  final case object EnforceSuccess       extends ReportType { val level = 3; val severity = "Success"            }
-  final case object Pending              extends ReportType { val level = 4; val severity = "Applying"           }
-  final case object Disabled             extends ReportType { val level = 5; val severity = "ReportsDisabled"    }
-  final case object NoAnswer             extends ReportType { val level = 6; val severity = "NoAnswer"           }
-  final case object Missing              extends ReportType { val level = 7; val severity = "Missing"            }
-  final case object EnforceRepaired      extends ReportType { val level = 8; val severity = "Repaired"           }
-  final case object AuditNonCompliant    extends ReportType { val level = 9; val severity = "NonCompliant"       }
-  final case object AuditError           extends ReportType { val level = 10; val severity = "AuditError"        }
-  final case object EnforceError         extends ReportType { val level = 11; val severity = "Error"             }
-  final case object Unexpected           extends ReportType { val level = 12; val severity = "Unexpected"        }
-  final case object BadPolicyMode        extends ReportType { val level = 13; val severity = "BadPolicyMode"     }
+  case object EnforceNotApplicable extends ReportType { val level = 0; val severity = "NotApplicable"      }
+  case object AuditNotApplicable   extends ReportType { val level = 1; val severity = "AuditNotApplicable" }
+  case object AuditCompliant       extends ReportType { val level = 2; val severity = "Compliant"          }
+  case object EnforceSuccess       extends ReportType { val level = 3; val severity = "Success"            }
+  case object Pending              extends ReportType { val level = 4; val severity = "Applying"           }
+  case object Disabled             extends ReportType { val level = 5; val severity = "ReportsDisabled"    }
+  case object NoAnswer             extends ReportType { val level = 6; val severity = "NoAnswer"           }
+  case object Missing              extends ReportType { val level = 7; val severity = "Missing"            }
+  case object EnforceRepaired      extends ReportType { val level = 8; val severity = "Repaired"           }
+  case object AuditNonCompliant    extends ReportType { val level = 9; val severity = "NonCompliant"       }
+  case object AuditError           extends ReportType { val level = 10; val severity = "AuditError"        }
+  case object EnforceError         extends ReportType { val level = 11; val severity = "Error"             }
+  case object Unexpected           extends ReportType { val level = 12; val severity = "Unexpected"        }
+  case object BadPolicyMode        extends ReportType { val level = 13; val severity = "BadPolicyMode"     }
 
   def getWorseType(reportTypes: Iterable[ReportType]): ReportType = {
     if (reportTypes.isEmpty) {

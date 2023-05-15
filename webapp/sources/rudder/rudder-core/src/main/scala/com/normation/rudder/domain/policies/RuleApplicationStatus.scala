@@ -47,11 +47,11 @@ sealed trait ApplicationStatus
 sealed trait NotAppliedStatus extends ApplicationStatus
 sealed trait AppliedStatus    extends ApplicationStatus
 
-final case object NotAppliedNoPI       extends NotAppliedStatus
-final case object NotAppliedNoTarget   extends NotAppliedStatus
-final case object NotAppliedCrDisabled extends NotAppliedStatus
+case object NotAppliedNoPI       extends NotAppliedStatus
+case object NotAppliedNoTarget   extends NotAppliedStatus
+case object NotAppliedCrDisabled extends NotAppliedStatus
 
-final case object FullyApplied                                                 extends AppliedStatus
+case object FullyApplied                                                       extends AppliedStatus
 final case class PartiallyApplied(disabled: Seq[(ActiveTechnique, Directive)]) extends AppliedStatus
 
 object ApplicationStatus {

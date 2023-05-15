@@ -99,7 +99,7 @@ import zio.syntax._
 
 // how to render parent properties in the returned json in node APIs
 sealed trait RenderInheritedProperties
-final object RenderInheritedProperties {
+object RenderInheritedProperties {
   case object HTML extends RenderInheritedProperties
   case object JSON extends RenderInheritedProperties
 }

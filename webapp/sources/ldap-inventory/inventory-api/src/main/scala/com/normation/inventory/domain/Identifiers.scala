@@ -46,6 +46,7 @@ trait Uuid extends Any {
   def value: String
 }
 
+// TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16467
 final case class NodeId(val value: String) extends AnyVal with Uuid
 
 final case class MachineUuid(val value: String) extends AnyVal with Uuid

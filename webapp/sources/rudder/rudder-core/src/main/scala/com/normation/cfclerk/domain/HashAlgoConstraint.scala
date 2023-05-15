@@ -187,9 +187,9 @@ object HashAlgoConstraint {
     def hash(h: HashAlgoConstraint): HashAlgoConstraint
   }
 
-  final object DerivedPasswordType {
+  object DerivedPasswordType {
 
-    final case object AIX extends DerivedPasswordType {
+    case object AIX extends DerivedPasswordType {
       final val name = "AIX"
 
       def hash(h: HashAlgoConstraint) = h match {
@@ -200,7 +200,7 @@ object HashAlgoConstraint {
       }
     }
 
-    final case object Linux extends DerivedPasswordType {
+    case object Linux extends DerivedPasswordType {
       final val name = "Unix"
 
       def hash(h: HashAlgoConstraint) = h match {

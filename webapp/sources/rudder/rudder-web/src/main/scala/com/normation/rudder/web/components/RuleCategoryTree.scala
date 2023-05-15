@@ -151,9 +151,9 @@ class RuleCategoryTree(
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        JObject(child)                              <- JsonParser.parse(arg)
-        JField("sourceCatId", JString(sourceCatId)) <- child
-        JField("destCatId", JString(destCatId))     <- child
+        case JObject(child) <- JsonParser.parse(arg)
+        case JField("sourceCatId", JString(sourceCatId)) <- child
+        case JField("destCatId", JString(destCatId)) <- child
       } yield {
         (RuleCategoryId(sourceCatId), RuleCategoryId(destCatId))
       }) match {

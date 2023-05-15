@@ -90,15 +90,15 @@ sealed trait NodeDetailLevel {
   final def needSoftware() = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
 }
 
-final case object MinimalDetailLevel extends NodeDetailLevel {
+case object MinimalDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.minimalFields.toSet
 }
 
-final case object DefaultDetailLevel extends NodeDetailLevel {
+case object DefaultDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.defaultFields.toSet
 }
 
-final case object FullDetailLevel extends NodeDetailLevel {
+case object FullDetailLevel extends NodeDetailLevel {
   val fields = NodeDetailLevel.allFields.toSet
 }
 
@@ -114,7 +114,7 @@ final case class CustomDetailLevel(
  */
 sealed trait NodeFileFormat
 object NodeFileFormat {
-  final case object V1 extends NodeFileFormat
+  case object V1 extends NodeFileFormat
 }
 
 // this is for NodeFileFormat.V1

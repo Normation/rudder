@@ -37,7 +37,6 @@
 
 package com.normation.rudder.hooks
 
-import com.github.ghik.silencer.silent
 import com.normation.errors._
 import com.normation.zio._
 import java.io.File
@@ -46,6 +45,7 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters._
 import zio.{System => _, _}
 
@@ -54,7 +54,7 @@ import zio.{System => _, _}
  * the process context (environment variable, file descriptors..)
  */
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class RunNuCommandTest() extends Specification {
 

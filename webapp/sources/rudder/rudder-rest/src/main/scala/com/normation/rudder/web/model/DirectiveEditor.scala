@@ -40,7 +40,6 @@ package com.normation.rudder.web.model
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.utils.Utils._
 import net.liftweb.common._
 import net.liftweb.common.Box
 import net.liftweb.http._
@@ -101,7 +100,8 @@ trait DirectiveField extends BaseField with SectionChildField {
    */
   def manifestOf[T](implicit m: Manifest[T]): Manifest[T] = m
 
-  require(!isEmpty(id), "A field ID can not be null nor empty")
+//  This check is always going to fail: at this point id is always null
+//  require(!isEmpty(id), s"A field ID can not be null nor empty")
 
   def manifest: Manifest[ValueType]
   override def required_? = true

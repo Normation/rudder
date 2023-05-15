@@ -120,7 +120,7 @@ object BuildBundleSequence {
     def name:  String
     def value: String
   }
-  final object BundleParam {
+  object BundleParam       {
     final case class SimpleQuote(value: String, name: String) extends BundleParam {
       def quote(agentEscape: String => String) = "'" + value + "'"
     }
@@ -619,13 +619,13 @@ object JsonRunHookSer {
   implicit class ToJson(private val h: NodeRunHook) extends AnyVal {
     import net.liftweb.json._
     def jsonParam: String = {
-      val jh               = JsonRunHook(
+      val jh = JsonRunHook(
         ListMap(h.parameters.map(p => (p.name, p.value)): _*),
         h.reports.map(r =>
           JsonRunHookReport(r.id.getReportId, r.mode.name, r.technique, r.report.name, r.report.value.getOrElse("None"))
         )
       )
-      implicit val formats = Serialization.formats(NoTypeHints)
+      implicit val formats: Formats = DefaultFormats
       Serialization.write(jh)
     }
   }

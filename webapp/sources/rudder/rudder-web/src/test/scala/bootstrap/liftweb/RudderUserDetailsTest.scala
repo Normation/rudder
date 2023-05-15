@@ -37,7 +37,6 @@
 
 package bootstrap.liftweb
 
-import com.github.ghik.silencer.silent
 import com.normation.errors.IOResult
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.CustomRoleResolverResult
@@ -53,13 +52,14 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
+import scala.annotation.nowarn
 import scala.xml.Elem
 
 /*
  * Test hash algo for user password.
  */
 
-@silent("a type was inferred to be `AnyVal`")
+@nowarn("msg=a type was inferred to be `AnyVal`")
 @RunWith(classOf[JUnitRunner])
 class RudderUserDetailsTest extends Specification {
 

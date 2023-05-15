@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.reports
 
-import com.github.ghik.silencer.silent
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -62,8 +61,9 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.annotation.nowarn
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
   implicit private def str2directiveId(s: String) = DirectiveId(DirectiveUid(s))
@@ -2827,11 +2827,11 @@ class ExecutionBatchTest extends Specification {
   "Compliance for cfengine vars and reports" should {
 
     sealed trait Kind { def tpe: ReportType }
-    final case object Success    extends Kind { val tpe = EnforceSuccess        }
-    final case object Repaired   extends Kind { val tpe = EnforceRepaired       }
-    final case object Error      extends Kind { val tpe = EnforceError          }
-    final case object Missing    extends Kind { val tpe = ReportType.Missing    }
-    final case object Unexpected extends Kind { val tpe = ReportType.Unexpected }
+    case object Success    extends Kind { val tpe = EnforceSuccess        }
+    case object Repaired   extends Kind { val tpe = EnforceRepaired       }
+    case object Error      extends Kind { val tpe = EnforceError          }
+    case object Missing    extends Kind { val tpe = ReportType.Missing    }
+    case object Unexpected extends Kind { val tpe = ReportType.Unexpected }
 
     /*
      * Values are expected values with the corresponding status list

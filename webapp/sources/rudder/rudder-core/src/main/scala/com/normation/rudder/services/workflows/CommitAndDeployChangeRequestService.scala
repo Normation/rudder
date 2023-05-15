@@ -242,7 +242,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       def xmlUnserialize(xml: Node)                             = xmlUnserializer.directive.unserialise(xml).map(_._2)
     }
 
-    final case object CheckGroup extends CheckChanges[NodeGroup] {
+    case object CheckGroup extends CheckChanges[NodeGroup] {
       def failureMessage(group: NodeGroup)                      = s"Group ${group.name} (id: ${group.id.serialize})"
       def getCurrentValue(group: NodeGroup)                     = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
@@ -250,7 +250,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       def xmlUnserialize(xml: Node)                             = xmlUnserializer.group.unserialise(xml)
     }
 
-    final case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
+    case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
       def failureMessage(param: GlobalParameter)                            = s"Parameter ${param.name}"
       def getCurrentValue(param: GlobalParameter)                           =
         roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox

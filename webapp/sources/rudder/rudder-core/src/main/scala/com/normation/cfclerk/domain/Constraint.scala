@@ -254,22 +254,22 @@ sealed trait DerivedPasswordVType extends AbstactPassword {
   override lazy val name = s"derivedPassword:${tpe.name}"
 }
 
-final case object AixDerivedPasswordVType   extends DerivedPasswordVType {
+case object AixDerivedPasswordVType   extends DerivedPasswordVType {
   override val tpe = HashAlgoConstraint.DerivedPasswordType.AIX
 }
-final case object LinuxDerivedPasswordVType extends DerivedPasswordVType {
+case object LinuxDerivedPasswordVType extends DerivedPasswordVType {
   override val tpe = HashAlgoConstraint.DerivedPasswordType.Linux
 }
 
-final case object BooleanVType extends VTypeConstraint with STBoolean {
+case object BooleanVType extends VTypeConstraint with STBoolean {
   override val name = "boolean"
 }
 
-final case object UploadedFileVType    extends VTypeConstraint with STString { override val name = "uploadedfile"        }
-final case object SharedFileVType      extends VTypeConstraint with STString { override val name = "sharedfile"          }
-final case object DestinationPathVType extends VTypeConstraint with STString { override val name = "destinationfullpath" }
-final case object PermVType            extends VTypeConstraint with STString { override val name = "perm"                }
-final case object RawVType             extends VTypeConstraint with STString {
+case object UploadedFileVType    extends VTypeConstraint with STString { override val name = "uploadedfile"        }
+case object SharedFileVType      extends VTypeConstraint with STString { override val name = "sharedfile"          }
+case object DestinationPathVType extends VTypeConstraint with STString { override val name = "destinationfullpath" }
+case object PermVType            extends VTypeConstraint with STString { override val name = "perm"                }
+case object RawVType             extends VTypeConstraint with STString {
   override val name = "raw"
   // no escaping for raw types
   override def getFormatedValidated(value: String, forField: String, escapeString: String => String): PureResult[String] = Right(

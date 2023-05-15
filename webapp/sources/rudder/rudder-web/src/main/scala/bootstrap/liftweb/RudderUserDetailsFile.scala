@@ -349,16 +349,16 @@ sealed trait RudderAuthType {
   def grantedAuthorities: Collection[GrantedAuthority]
 }
 
-final object RudderAuthType {
+object RudderAuthType {
   // build a GrantedAuthority from the string
   private def buildAuthority(s: String): Collection[GrantedAuthority] = {
     Seq(new GrantedAuthority { override def getAuthority: String = s }).asJavaCollection
   }
 
-  final case object User extends RudderAuthType {
+  case object User extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_USER")
   }
-  final case object Api  extends RudderAuthType {
+  case object Api  extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = new Rights(AuthorizationType.NoRights)

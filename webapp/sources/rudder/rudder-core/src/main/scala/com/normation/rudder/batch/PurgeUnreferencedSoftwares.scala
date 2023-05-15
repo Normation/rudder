@@ -37,10 +37,10 @@
 
 package com.normation.rudder.batch
 
-import com.github.ghik.silencer.silent
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.zio._
+import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import zio._
 
@@ -64,8 +64,10 @@ class PurgeUnreferencedSoftwares(
     )
     val prog = softwareService.deleteUnreferencedSoftware()
     import zio.Duration.{fromScala => zduration}
-    ZioRuntime.unsafeRun(prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon): @silent(
-      "a type was inferred to be `Any`"
+    ZioRuntime.unsafeRun(
+      prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon
+    ): @nowarn(
+      "msg=a type was inferred to be `Any`"
     )
   }
 }

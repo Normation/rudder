@@ -74,9 +74,9 @@ final case class ManualStartDeployment(modId: ModificationId, actor: EventActor,
 
 sealed trait PolicyGenerationTrigger
 object PolicyGenerationTrigger {
-  final case object AllGeneration        extends PolicyGenerationTrigger
-  final case object OnlyManualGeneration extends PolicyGenerationTrigger
-  final case object NoGeneration         extends PolicyGenerationTrigger
+  case object AllGeneration        extends PolicyGenerationTrigger
+  case object OnlyManualGeneration extends PolicyGenerationTrigger
+  case object NoGeneration         extends PolicyGenerationTrigger
 
   def apply(value: String): PureResult[PolicyGenerationTrigger] = {
 
@@ -103,7 +103,7 @@ object PolicyGenerationTrigger {
 
 sealed trait DeployerState
 //not currently doing anything
-final case object IdleDeployer                           extends DeployerState
+case object IdleDeployer                                 extends DeployerState
 //a deployment is currently running
 final case class Processing(id: Long, started: DateTime) extends DeployerState
 //a deployment is currently running and an other is queued
@@ -124,7 +124,7 @@ final case class ProcessingAndPendingManual(
 sealed trait CurrentDeploymentStatus
 
 //noting was done for now
-final case object NoStatus                                                                   extends CurrentDeploymentStatus
+case object NoStatus                                                                         extends CurrentDeploymentStatus
 //last status - success or error
 final case class SuccessStatus(id: Long, started: DateTime, ended: DateTime, configuration: Set[NodeId])
     extends CurrentDeploymentStatus

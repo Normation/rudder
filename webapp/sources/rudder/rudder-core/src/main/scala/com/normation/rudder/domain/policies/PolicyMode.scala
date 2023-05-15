@@ -40,7 +40,7 @@ import ca.mrvisser.sealerate.values
 import com.normation.errors._
 
 sealed trait PolicyMode { def name: String }
-final object PolicyMode {
+object PolicyMode       {
   final case object Audit   extends PolicyMode { val name = "audit"   }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 
@@ -158,11 +158,11 @@ final object PolicyMode {
  * What is allowed to override the global value for policy mode
  */
 sealed trait PolicyModeOverrides
-final object PolicyModeOverrides {
+object PolicyModeOverrides {
   // nothing can override. Global is the sole value
-  final case object Unoverridable extends PolicyModeOverrides
+  case object Unoverridable extends PolicyModeOverrides
   // anything can override. Combination rules applies.
-  final case object Always        extends PolicyModeOverrides
+  case object Always        extends PolicyModeOverrides
   // directives, groups, ...
 }
 

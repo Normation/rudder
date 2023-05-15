@@ -87,7 +87,7 @@ import scala.util.control.NonFatal
 import zio._
 import zio.syntax._
 
-final object NodeStateEncoder {
+object NodeStateEncoder {
   implicit def enc(state: NodeState): String                       = state.name
   implicit def dec(state: String):    Either[Throwable, NodeState] = {
     NodeState.values.find(state.toLowerCase() == _.name) match {
@@ -173,14 +173,14 @@ class LDAPEntityMapper(
 
   def unserializeAgentRunInterval(value: String): AgentRunInterval = {
     import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[AgentRunInterval]
   }
 
   def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
     import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+    implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[HeartbeatConfiguration]
   }
@@ -362,7 +362,7 @@ class LDAPEntityMapper(
       val machineInfo = machineEntry.flatMap { e =>
         for {
           machineType <- inventoryMapper.machineTypeFromObjectClasses(e.valuesFor("objectClass"))
-          machineUuid <- e(A_MACHINE_UUID).map(MachineUuid)
+          machineUuid <- e(A_MACHINE_UUID).map(MachineUuid.apply)
         } yield {
           MachineInfo(
             machineUuid,
@@ -1000,8 +1000,8 @@ class LDAPEntityMapper(
   def serApiAcl(authz: List[ApiAclElement]): String                              = {
     import net.liftweb.json.Serialization._
     import net.liftweb.json._
-    implicit val formats = Serialization.formats(NoTypeHints)
-    val toSerialize      = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
+    implicit val formats: Formats = DefaultFormats
+    val toSerialize = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
     write[JsonApiAcl](toSerialize)
   }
   def unserApiAcl(s: String):                Either[String, List[ApiAclElement]] = {

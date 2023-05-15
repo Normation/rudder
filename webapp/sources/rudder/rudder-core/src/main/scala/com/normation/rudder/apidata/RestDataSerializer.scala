@@ -75,10 +75,10 @@ sealed trait DetailLevel {
   def value: String
 }
 
-final case object FullDetails    extends DetailLevel {
+case object FullDetails    extends DetailLevel {
   val value = "full"
 }
-final case object MinimalDetails extends DetailLevel {
+case object MinimalDetails extends DetailLevel {
   val value = "minimal"
 }
 
@@ -662,7 +662,7 @@ final case class JsonApiAcl(path: String, verb: String)
 
 object ApiAccountSerialisation {
 
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats: Formats = DefaultFormats
 
   implicit class Json(val account: ApiAccount) extends AnyVal {
     def toJson: JObject = {

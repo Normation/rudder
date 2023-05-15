@@ -44,10 +44,10 @@ object LDAPBoolean {
   def apply(b: Boolean) = if (b) TRUE else FALSE
 }
 
-final case object TRUE extends LDAPBoolean {
+case object TRUE extends LDAPBoolean {
   override def toLDAPString = "TRUE"
 }
 
-final case object FALSE extends LDAPBoolean {
+case object FALSE extends LDAPBoolean {
   override def toLDAPString = "FALSE"
 }

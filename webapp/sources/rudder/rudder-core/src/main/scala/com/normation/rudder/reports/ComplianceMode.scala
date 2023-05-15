@@ -50,15 +50,15 @@ sealed trait ComplianceModeName {
   val name: String
 }
 
-final case object FullCompliance extends ComplianceModeName {
+case object FullCompliance extends ComplianceModeName {
   val name = "full-compliance"
 }
 
-final case object ChangesOnly extends ComplianceModeName {
+case object ChangesOnly extends ComplianceModeName {
   val name = "changes-only"
 }
 
-final case object ReportsDisabled extends ComplianceModeName {
+case object ReportsDisabled extends ComplianceModeName {
   val name = "reports-disabled"
 }
 

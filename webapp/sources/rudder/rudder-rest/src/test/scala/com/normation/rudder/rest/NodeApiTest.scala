@@ -1,6 +1,5 @@
 package com.normation.rudder.rest
 
-import com.github.ghik.silencer.silent
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
@@ -12,8 +11,9 @@ import net.liftweb.json.compactRender
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 
-@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
+@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class NodeApiTest extends Specification with Loggable {
   sequential

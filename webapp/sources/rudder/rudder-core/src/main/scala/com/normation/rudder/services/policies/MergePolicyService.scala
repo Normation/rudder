@@ -54,7 +54,7 @@ import net.liftweb.common._
  * This file contains all the logic that allows to build a List of policies, for a node,
  * given the list of all applicable "BoundPolicyDraft" to that node.
  */
-final object MergePolicyService {
+object MergePolicyService {
 
   import com.normation.rudder.utils.Utils.eitherToBox
   /*
@@ -254,8 +254,8 @@ final object MergePolicyService {
             s"at random for the policy generation."
           )
           import net.liftweb.json._
-          implicit val formats = Serialization.formats(NoTypeHints)
-          def r(j: JValue)     = if (j == JNothing) "{}" else prettyRender(j)
+          implicit val formats: Formats = DefaultFormats
+          def r(j: JValue) = if (j == JNothing) "{}" else prettyRender(j)
 
           val jmain = Extraction.decompose(main)
           PolicyGenerationLogger.error("First directivedraft: " + prettyRender(jmain))

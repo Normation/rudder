@@ -134,7 +134,7 @@ object MethodCall {
     val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil).toMap
     val newParams   = call.parameters.map {
       case (parameterId: ParameterId, value) =>
-        (renameParam.get(parameterId.value).map(ParameterId).getOrElse(parameterId), value)
+        (renameParam.get(parameterId.value).map(ParameterId.apply).getOrElse(parameterId), value)
     }
     call.copy(parameters = newParams)
 
