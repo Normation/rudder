@@ -188,11 +188,15 @@ pipeline {
 }
 
 
-def updateSlack(errors, running , slackResponse, version, changeUrl) {
+def updateSlack(errors, running, slackResponse, version, changeUrl) {
 
 echo env.CHANGE_URL
 
-def msg ="*8.0 - dependency check* - <"+currentBuild.absoluteUrl+"|Link>\n"
+def msg ="*${version} - dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
+
+if (changeUrl != null) {
+  msg ="*${version} PR - dependency check* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request>"
+}
 
 def color = "#00A8E1"
 
@@ -210,3 +214,4 @@ if (errors.isEmpty() && running.isEmpty()) {
 }
   slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
 }
+
