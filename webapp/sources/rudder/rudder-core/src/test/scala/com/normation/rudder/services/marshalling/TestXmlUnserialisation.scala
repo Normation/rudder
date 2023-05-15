@@ -16,7 +16,6 @@ import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries._
-import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.ResultTransformation._
 import com.normation.rudder.services.policies.TestNodeConfiguration
@@ -161,7 +160,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           "xml" -> "hack:<img src=\"https://hackme.net/h.jpg\"/>"
         )
       ),
-      Some(NewQuery(NodeReturnType, And, Identity, List())),
+      Some(Query(NodeReturnType, And, Identity, List())),
       true,
       Set(),
       true
