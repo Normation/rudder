@@ -1,0 +1,189 @@
+# @name Permissions POSIX ACLs entry parent
+# @description Ensure ACL on a file or folder and all its parent folders
+# @documentation Ensure ACL on a file or folder and all its parent folders.
+#
+#
+# Force the given ACL on the target `path` (supports globbing).
+#
+# * If `recursive` is set to `true`, the permissions will be applied to
+#   every files and folder under the resolved `path` input.
+# * If the `parent_permissions_*` inputs are not empty, they will be applied to every parent folders
+#   to the resolved `path` input, excepting the root folder `/`.
+# * ACL inputs are expected to be comma separated, and to follow this schema:
+#   * `myuser:wx` to force the ACL entry
+#   * `myuser:+wx` to edit the ACL without enforcing them all
+#
+# If the `path` input resolves to `/this/is/my/path/mylogfile`, parent folders permissions will be applied to:
+# ```
+# /this
+# /this/is
+# /this/is/my
+# /this/is/my/path/
+# ```
+#
+# #### Examples:
+#
+# ```yaml
+# -name: Allows bob to write in its logfile
+#  method: permissions_posix_acl_entry_parent
+#    path: /this/is/my/path/mylogfile
+#    recursive: false
+#    user: "bob:rwx"
+#    parent_permissions_user: "bob:rx"
+#
+# ```
+#
+# ```yaml
+# -name: Allows Bob and Alice to write in its logfile
+#  method: permissions_posix_acl_entry_parent
+#    path: /this/is/my/path/mylogfile
+#    recursive: false
+#    user: "bob:rwx,alice:+rwx"
+#    parent_permissions_user: "bob:rx,alice:rx"
+#
+# ```
+#
+#
+# @parameter path                  Path of the file or directory
+# @parameter recursive             Recursive Should ACLs cleanup be recursive, "true" or "false" (defaults to "false")
+# @parameter user                  User acls, comma separated, like: bob:+rwx, alice:-w
+# @parameter group                 Group acls, comma separated, like: wheel:+wx, anon:-rwx
+# @parameter other                 Other acls, like -x
+# @parameter parent_permissions_user    User acls, comma separated, like: bob:+rwx, alice:-w
+# @parameter parent_permissions_group   Group acls, comma separated, like: wheel:+wx, anon:-rwx
+# @parameter parent_permissions_other   Other acls, like -x
+#
+# @parameter_constraint recursive                     "select" : [ "", "true", "false" ]
+# @parameter_constraint recursive                     "allow_empty_string" : true
+# @parameter_constraint user                          "allow_empty_string" : true
+# @parameter_constraint group                         "allow_empty_string" : true
+# @parameter_constraint other                         "allow_empty_string" : true
+# @parameter_constraint parent_permissions_user       "allow_empty_string" : true
+# @parameter_constraint parent_permissions_group      "allow_empty_string" : true
+# @parameter_constraint parent_permissions_other      "allow_empty_string" : true
+#
+# @class_prefix permissions_posix_acl_entry_parent
+# @class_parameter path
+bundle agent permissions_posix_acl_entry_parent(path, recursive, user, group, other, parent_permissions_user, parent_permissions_group, parent_permissions_other)
+{
+  vars:
+    # Parsing parameters for the parents dirs
+    any::
+      "user_trimmed"             string => regex_replace("${parent_permissions_user}", " ", "", "g");
+      "group_trimmed"            string => regex_replace("${parent_permissions_group}", " ", "", "g");
+      "other_trimmed"            string => regex_replace("${parent_permissions_other}", " ", "", "g");
+
+      "user_acls"                 slist => maplist("user:${this}", splitstring("${user_trimmed}",",","99999999999"));
+      "group_acls"                slist => maplist("group:${this}", splitstring("${group_trimmed}",",","99999999999"));
+      "other_acls"               string => "all:${other_trimmed}";
+
+    pass1.empty_other::
+      "applied_aces" slist => { @{user_acls}, @{group_acls} };
+    pass1.!empty_other::
+      "applied_aces" slist => { @{user_acls}, @{group_acls}, "${other_acls}" };
+    pass1::
+      "print_aces"  string => join("|", "applied_aces");
+
+    # Rest of the variables
+      "parents"             slist => { @(getParent_py.parentDirectories) };
+      "old_class_prefix"   string => canonify("permissions_posix_acl_entry_parent_${path}");
+      "args"                slist => {
+                                       "${path}",
+                                       "${recursive}",
+                                       "${user}",
+                                       "${group}",
+                                       "${other}",
+                                       "${parent_permissions_user}",
+                                       "${parent_permissions_group}",
+                                       "${parent_permissions_other}"
+                                     };
+      "report_param"        string => join("_", args);
+      "full_class_prefix"   string => canonify("permissions_posix_acl_entry_parent_${report_param}");
+      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+      "prefixes"            slist  => { "${old_class_prefix}", "${class_prefix}", "${report_data.method_id}" };
+
+
+      # Sub methods calls data
+      "inner_base_prefix"          string => "permissions_acl_entry";
+      "parents_prefix[${parents}]" string => canonify("${report_data.method_id}_${parents}");
+
+      "path_args"                   slist => {
+                                               "${path}",
+                                               "${recursive}",
+                                               "${user}",
+                                               "${group}",
+                                               "${other}"
+                                             };
+
+      "path_param"                 string => join("_", path_args);
+      "path_class_prefix"          string => canonify("${inner_base_prefix}_${path_param}");
+
+
+  classes:
+      "pass3"                       expression => "pass2";
+      "pass2"                       expression => "pass1";
+      "pass1"                       expression => "any";
+      "should_report"               expression => "${report_data.should_report}";
+      "empty_user"                  expression => strcmp("", "${parent_permissions_user}");
+      "empty_group"                 expression => strcmp("", "${parent_permissions_group}");
+      "empty_other"                 expression => strcmp("", "${parent_permissions_other}");
+      "empty_acls"                  expression => and( "empty_user",
+                                                       "empty_group",
+                                                       "empty_other"
+                                                     );
+
+    pass3::
+      "error_parents"    expression => "${parents_prefix[${parents}]}_error";
+      "repaired_parents" expression => "${parents_prefix[${parents}]}_repaired";
+      "success_parents"  expression => "${parents_prefix[${parents}]}_kept";
+
+      "error_path"       expression => "${path_class_prefix}_error";
+      "repaired_path"    expression => "${path_class_prefix}_repaired";
+      "success_path"     expression => "${path_class_prefix}_kept";
+
+      "success"          expression => "success_path.success_parents.!(error_parents|error_path)";
+      "repaired"         expression => "(repaired_path|repaired_parents).!(error_parents|error_path)";
+      "error"            expression => "(error_path|error_parents)|!(success|repaired)";
+
+
+  files:
+    pass2::
+      "${parents}"
+         acl     => add_posix_acl(@{applied_aces}),
+         classes => classes_generic("${parents_prefix[${parents}]}"),
+         if      => "!empty_acls";
+
+  methods:
+    pass2::
+      "disable_reporting_${full_class_prefix}"
+                usebundle => disable_reporting;
+
+      "${path}" usebundle => permissions_acl_entry(
+                               "${path}",
+                               "${recursive}",
+                               "${user}",
+                               "${group}",
+                               "${other}"
+                             );
+
+      "reenable_reporting_${full_class_prefix}"
+                usebundle => enable_reporting,
+                       if => "should_report";
+
+    pass3::
+      "repaired" usebundle => _classes_repaired("${prefixes}"),
+                ifvarclass => "repaired";
+      "success"  usebundle => _classes_success("${prefixes}"),
+                ifvarclass => "success";
+      "failure"  usebundle => _classes_failure("${prefixes}"),
+                ifvarclass => "error";
+
+      "reports"  usebundle => log_rudder_v4("${path}", "Set acls on ${path}", "");
+
+  commands:
+    pass1::
+      "${sys.workdir}/modules/promises/getParent.py"
+        args => "\"${path}\"",
+        module => "true";
+}
+
