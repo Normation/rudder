@@ -33,7 +33,7 @@ target/man-source/%: man/%.adoc
 
 autocomplete/rudder-pkg.sh:
 	# docopt-completion needs python3
-	pip3 install infi.docopt-completion
+	pip3 install --break-system-packages infi.docopt-completion
 	# rudder-pkg may use dodopt python2
 	if head -n1 $(CURDIR)/rudder-pkg/rudder-pkg | grep python2 >/dev/null 2>&1; then pip install docopt; fi
 	mkdir -p autocomplete
