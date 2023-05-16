@@ -1,0 +1,98 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from string match
+# @description Test the content of a string variable
+# @documentation
+#
+# Test a string against a regex pattern and create conditions depending on the match result:
+#
+# * `${condition}_true` condition is defined if the regex matches
+# * `${condition}_false` condition is defined if the regex does not match the string
+#
+# The regex is singleline, case sensitive, culture invariant and implicitly enclosed by the start/end of string
+# delimiters `^` and `$`.
+# This method's reporting status will always be "success".
+#
+# ### Examples
+#
+# ```yaml
+# -name: Define is_matching_true
+#  method: condition_from_string_match
+#  params:
+#    condition: is_matching
+#    value: "Some\nmulti\nline\ntext"
+#    regex: "Some.*text"
+# ```
+
+# ```yaml
+# -name: Define is_matching_false
+#  method: condition_from_string_match
+#  params:
+#    condition: is_matching
+#    value: "foo"
+#    regex: "bar"
+# ```
+#
+# ```yaml
+# -name: Define is_matching_true
+#  method: condition_from_string_match
+#  params:
+#    condition: "is-matching"
+#    value: "foo"
+#    regex: "f.o"
+# ```
+#
+# @parameter condition Prefix of the class (condition) generated
+# @parameter value String typed value that will be tested against the regex
+# @parameter regex Pattern used to test if the value against
+#
+# @parameter_rename condition_prefix condition
+# @class_prefix condition_from_string_match
+# @class_parameter condition
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent condition_from_string_match(condition, value, regex)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_string_match_${condition}");
+      "c_condition"       string => canonify("${condition}");
+
+  classes:
+      "pass1" expression => "any";
+      "pass2" expression => "pass1";
+      "pass3" expression => "pass2";
+
+    pass2::
+      "${c_condition}_true" expression => regcmp("${regex}", "${value}"),
+                                 scope => "namespace";
+
+      "${c_condition}_false"       not => regcmp("${regex}", "${value}"),
+                                 scope => "namespace";
+
+  methods:
+    pass3::
+      "success" usebundle => _classes_success("${report_data.method_id}");
+      "success" usebundle => _classes_success("${old_class_prefix}");
+
+      "report"  usebundle => log_rudder_v4("${condition}", "The condition '${c_condition}_true' was created.'", "${condition}"),
+                       if => "${c_condition}_true";
+
+      "report"  usebundle => log_rudder_v4("${condition}", "The condition '${c_condition}_false' was created.'", "${condition}"),
+                       if => "${c_condition}_false";
+}
