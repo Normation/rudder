@@ -221,12 +221,12 @@ var hoverColors =
   ];
 
 var complianceHoverColors =
-  { "#5bc0de" : "2ebee9ff"
-  , "#B1BBCB" : "9fb1cbff"
-  , "#13BEB7" : "15ccc5ff"
-  , "#B1EDA4" : "94f57fff"
-  , "#EF9600" : "ffaf27ff"
-  , "#DA291C" : "ed1809ff"
+  { "#5bc0de" : "#2ebee9ff"
+  , "#B1BBCB" : "#9fb1cbff"
+  , "#13BEB7" : "#15ccc5ff"
+  , "#B1EDA4" : "#94f57fff"
+  , "#EF9600" : "#ffaf27ff"
+  , "#DA291C" : "#ed1809ff"
   }
 
 function doughnutChart (id,data,count,colors,hoverColors) {
