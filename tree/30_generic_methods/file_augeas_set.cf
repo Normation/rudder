@@ -75,7 +75,7 @@ bundle agent file_augeas_set(path, value, lens, file)
       "cpath" string => canonify("${path}");
 
     pass1.file_defined::
-      "command" string => "printf 'set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors' | ${ncf_paths.path[augtool]} --noautoload --new";
+      "command" string => "printf 'set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors' | ${ncf_paths.path[augtool]} --noautoload --new && { mv '${file}.augnew' '${file}.${cpath}.augnew' 2>/dev/null || true; }";
       "cfile" string => canonify("${file}");
 
     pass1.!file_defined::
@@ -113,18 +113,18 @@ bundle agent file_augeas_set(path, value, lens, file)
                          if => "file_defined";
 
   methods:
-    pass2::
+    pass2.!pass3::
       "disable_reporting_${class_prefix}" usebundle => disable_reporting;
-      # required to have unique local copy paths
-      "copy to unique name" usebundle => file_from_local_source("${file}.augnew", "${file}.${cpath}.augnew");
       # allows automatic backup in case file path was provided
       "copy file"           usebundle => file_from_local_source("${file}.${cpath}.augnew", "${file}"),
                             if => "file_defined.repaired";
-      "remove"       usebundle => file_absent("${file}.augnew"),
-                            if => fileexists("${file}.augnew");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                                  if => "should_report";
+    pass3::
+      "disable_remove_reporting_${class_prefix}_${cpath}" usebundle => disable_reporting;
       "remove"       usebundle => file_absent("${file}.${cpath}.augnew"),
                             if => fileexists("${file}.${cpath}.augnew");
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+      "reenable_remove_reporting_${class_prefix}_${cpath}" usebundle => enable_reporting,
                                                   if => "should_report";
 
     pass3.augeas_binaries.ok.kept::
