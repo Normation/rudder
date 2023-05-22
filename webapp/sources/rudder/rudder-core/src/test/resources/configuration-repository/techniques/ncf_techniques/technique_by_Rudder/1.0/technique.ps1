@@ -69,7 +69,7 @@
     DisableReporting = $false
     TechniqueName = $techniqueName
   }
-  $class = "package_install_version_" + ([Rudder.Condition]::canonify($componentKey)) + "_repaired"
+  $class = "package_install_version_" + ([Rudder.Condition]::canonify($($node.properties[apache_package_name]))) + "_repaired"
   if ($localContext.Evaluate($class)) {
     $call = Service-Start -ServiceName "$($node.properties[apache_package_name])" -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call

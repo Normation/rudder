@@ -901,7 +901,7 @@ class DSCTechniqueWriter(
   def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]) = {
     formatCondition(methodCall, parentBlocks).replaceAll(
       """(\$\{[^\}]*})""",
-      """" + ([Rudder.Condition]::canonify(\$componentKey)) + """"
+      """" + ([Rudder.Condition]::canonify($1)) + """"
     )
   }
 
