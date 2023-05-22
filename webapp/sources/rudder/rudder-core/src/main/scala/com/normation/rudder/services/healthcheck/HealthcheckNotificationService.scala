@@ -36,7 +36,6 @@
 
 package com.normation.rudder.services.healthcheck
 import com.normation.zio._
-import scala.annotation.nowarn
 import zio._
 import zio.Ref
 import zio.duration._
@@ -74,5 +73,5 @@ class HealthcheckNotificationService(
     .repeat(Schedule.spaced(schedulerPeriod).forever)
     .forkDaemon
     .provide(ZioRuntime.environment)
-    .runNow: @nowarn("msg=a type was inferred to be `Any`")
+    .runNow
 }

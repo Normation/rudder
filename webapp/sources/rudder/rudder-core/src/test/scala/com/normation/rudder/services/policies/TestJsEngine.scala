@@ -49,7 +49,6 @@ import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
-import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.util.matching.Regex
 import zio._
@@ -61,7 +60,6 @@ import zio.syntax._
  *
  */
 
-@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestJsEngine extends Specification {
 

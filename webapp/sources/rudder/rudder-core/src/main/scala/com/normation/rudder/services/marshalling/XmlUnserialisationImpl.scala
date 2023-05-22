@@ -88,6 +88,7 @@ import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
+import scala.annotation.nowarn
 import scala.util.{Failure => Catch}
 import scala.util.Success
 import scala.util.Try
@@ -277,7 +278,9 @@ class NodeGroupUnserialisationImpl(
                               .parse(
                                 (p \\ "name").text.trim,
                                 ParseRev((p \\ "revision").text.trim),
-                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim),
+                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim): @nowarn(
+                                  "msg=class StringEscapeUtils in package lang3 is deprecated"
+                                ),
                                 (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
                                 (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
                               )

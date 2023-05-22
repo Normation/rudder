@@ -40,7 +40,6 @@ package com.normation.rudder.batch
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.zio._
-import scala.annotation.nowarn
 import scala.concurrent.duration._
 import zio._
 
@@ -66,8 +65,6 @@ class PurgeUnreferencedSoftwares(
     import zio.duration.Duration.{fromScala => zduration}
     ZioRuntime.unsafeRun(
       prog.delay(zduration(1.hour)).repeat(Schedule.spaced(zduration(updateInterval))).provide(ZioRuntime.environment).forkDaemon
-    ): @nowarn(
-      "msg=a type was inferred to be `Any`"
     )
   }
 }

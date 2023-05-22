@@ -40,13 +40,11 @@ package bootstrap.liftweb
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import scala.annotation.nowarn
 
 /*
  * Test hash algo for user password.
  */
 
-@nowarn("msg=a type was inferred to be `AnyVal`")
 @RunWith(classOf[JUnitRunner])
 class RudderUserDetailsTest extends Specification {
 

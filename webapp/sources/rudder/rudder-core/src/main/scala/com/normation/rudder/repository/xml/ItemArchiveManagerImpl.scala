@@ -64,7 +64,6 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import scala.annotation.nowarn
 import zio._
 import zio.duration._
 import zio.syntax._
@@ -102,7 +101,6 @@ class ItemArchiveManagerImpl(
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
   val importSemaphore = Semaphore.make(1).runNow
 
-  @nowarn("msg=a type was inferred to be `Any`")
   def useSemaphoreOrFail[A](effect: IOResult[A]) = {
     // we timeout the semaphore aquisition to fail if another op is already running
     importSemaphore.withPermitManaged
