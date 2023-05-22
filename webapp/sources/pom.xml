@@ -158,7 +158,7 @@ limitations under the License.
             </compilerPlugin>
           </compilerPlugins>
           <args>
-            <arg>-target:11</arg>
+            <arg>-release:11</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
             <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
