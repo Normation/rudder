@@ -638,6 +638,87 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
   }
 
+  val technique_var_cond = {
+    EditorTechnique(
+      BundleName("testing_variables_in_conditions"),
+      "Testing variables in conditions",
+      "ncf_techniques",
+      MethodCall(
+        BundleName("command_execution"),
+        "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad",
+        List(
+          (ParameterId("command"), "{return 1}")
+        ),
+        "${my_custom_condition}",
+        "Command execution",
+        false
+      ) :: Nil,
+      new Version("1.0"),
+      "",
+      TechniqueParameter(
+        ParameterId("40e3a5ab-0812-4a60-96f3-251be8cedf43"),
+        ParameterId("my_custom_condition"),
+        "",
+        false
+      ) :: Nil,
+      Nil
+    )
+  }
+
+  val expectedMetadataPath_var_cond =
+    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/metadata.xml"
+  val dscTechniquePath_var_cond     =
+    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/technique.ps1"
+  val techniquePath_var_cond        =
+    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/technique.cf"
+  val reportingPath_var_cond        =
+    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/rudder_reporting.cf"
+  val expectedPathVarCond           = "src/test/resources/configuration-repository/expected-share"
+  val basePathVarCond               = s"${basePath}/techniques/ncf_techniques/"
+
+  s"Preparing files for technique ${technique.bundleName.value}" should {
+
+    "Should write metadata file without problem" in {
+      writer.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
+        s"techniques/ncf_techniques/${expectedMetadataPath_var_cond}"
+      )
+    }
+
+    "Should generate expected metadata content for our technique" in {
+      val expectedMetadataFile = new File(s"${expectedPathVarCond}/${expectedMetadataPath_var_cond}")
+      val resultMetadataFile   = new File(s"${basePathVarCond}/${expectedMetadataPath_var_cond}")
+      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
+    }
+
+    "Should write dsc technique file without problem" in {
+      dscWriter.writeAgentFiles(technique_var_cond, methods).either.runNow must beRight(
+        Seq(s"techniques/ncf_techniques/${dscTechniquePath_var_cond}")
+      )
+    }
+
+    "Should generate expected dsc technique content for our technique" in {
+      val expectedDscFile = new File(s"${expectedPathVarCond}/${dscTechniquePath_var_cond}")
+      val resultDscFile   = new File(s"${basePathVarCond}/${dscTechniquePath_var_cond}")
+      resultDscFile must haveSameLinesAs(expectedDscFile)
+    }
+
+    "Should write classic technique files without problem" in {
+      classicWriter.writeAgentFiles(technique_var_cond, methods).either.runNow must beRight(
+        Seq(
+          s"techniques/ncf_techniques/${techniquePath_var_cond}",
+          s"techniques/ncf_techniques/${reportingPath_var_cond}"
+        )
+      )
+    }
+
+    "Should generate expected classic technique content for our technique" in {
+      val expectedFile = new File(s"${expectedPathVarCond}/${techniquePath_var_cond}")
+      val resultFile   = new File(s"${basePathVarCond}/${techniquePath_var_cond}")
+      resultFile must haveSameLinesAs(expectedFile)
+    }
+
+  }
+
   // same than previous one but with direct call to techniqueWriter.writeTechnique
   "Calling compile with no target should correctly fallback without error" >> {
     val tech                     = technique_any.copy(version = new Version("2.0"))

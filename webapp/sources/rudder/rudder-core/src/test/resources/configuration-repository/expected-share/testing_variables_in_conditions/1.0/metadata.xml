@@ -1,0 +1,48 @@
+<TECHNIQUE name="Testing variables in conditions">
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <DESCRIPTION></DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>testing_variables_in_conditions</NAME>
+      <NAME>testing_variables_in_conditions_rudder_reporting</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/testing_variables_in_conditions/1.0/technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/testing_variables_in_conditions/1.0/rudder_reporting.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Testing-Variables-In-Conditions</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/testing_variables_in_conditions/1.0/technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" id="c0f1c227-0b8c-4219-ac3d-3c30fb4870ad" name="Command execution">
+      <REPORTKEYS>
+        <VALUE id="c0f1c227-0b8c-4219-ac3d-3c30fb4870ad">{return 1}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>40E3A5AB-0812-4A60-96F3-251BE8CEDF43</NAME>
+        <DESCRIPTION>my_custom_condition</DESCRIPTION>
+        <LONGDESCRIPTION></LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

@@ -1,0 +1,19 @@
+bundle agent testing_variables_in_conditions_rudder_reporting(my_custom_condition)
+{
+  vars:
+    "args"               slist => { ${my_custom_condition} };
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("testing_variables_in_conditions_rudder_reporting_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  methods:
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => testing_variables_in_conditions_gm_1("Command execution", "{return 1}", "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad", "Skipping method 'Command execution' with key parameter '{return 1}' since condition '${my_custom_condition}' is not reached", "{return 1}", "${class_prefix}_command_execution_{return 1}", @{args}),
+                                                                              unless => concat("",canonify("${my_custom_condition}"),"");
+
+}
+
+bundle agent testing_variables_in_conditions_gm_1(c_name, c_key, report_id, message, class_parameter, unique_prefix, args) {
+  methods:
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => log_na_rudder("${message}","${class_parameter}","${unique_prefix}",@{args});
+}
