@@ -1,0 +1,24 @@
+# @name Testing variables in conditions
+# @description 
+# @version 1.0
+# @parameter {"name":"my_custom_condition","id":"40e3a5ab-0812-4a60-96f3-251be8cedf43","description":""}
+
+bundle agent testing_variables_in_conditions(my_custom_condition)
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+  methods:
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => testing_variables_in_conditions_gm_0("Command execution", "{return 1}", "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad", "{return 1}"),
+                                                                              if => concat("",canonify("${my_custom_condition}"),"");
+
+}
+
+bundle agent testing_variables_in_conditions_gm_0(c_name, c_key, report_id, command) {
+  methods:
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => command_execution("${command}");
+}
