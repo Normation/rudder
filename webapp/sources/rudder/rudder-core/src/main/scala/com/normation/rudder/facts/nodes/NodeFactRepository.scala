@@ -283,7 +283,7 @@ class CoreNodeFactRepository(
   }
 
   private[nodes] def getAllOnRef(ref: Ref[Map[NodeId, NodeFact]]): IOStream[NodeFact] = {
-    ZStream.fromZIO(ref.get.map(m => m.values)).flatMap(x => ZStream.fromIterable(x))
+    ZStream.fromZIO(ref.get.map(m => m.valuesIterator)).flatMap(x => ZStream.fromIterator(x).mapError(ex => SystemError("Iterator error", ex)))
   }
 
   /*
