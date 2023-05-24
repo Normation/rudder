@@ -118,8 +118,8 @@ class NodeFactQueryProcessor(
     status:       InventoryStatus = AcceptedInventory
 ) extends QueryProcessor with QueryChecker {
 
-  def process(query: Query):       Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
-  def processOnlyId(query: Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
+  def process(query: Query):       Box[Seq[NodeId]] = processPure(query).toBox
+  def processOnlyId(query: Query): Box[Seq[NodeId]] = processPure(query).toBox
 
   def check(query: Query, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]] = {
     nodeIds match {
@@ -131,25 +131,28 @@ class NodeFactQueryProcessor(
                    m0
                  )
           res <- processNodeFactMatcher(m1)
-        } yield res.map(_.id).toSet
+        } yield res.toSet
 
       case None => Set().succeed
     }
 
   }
 
-  def processPure(query: Query): IOResult[Chunk[NodeFact]] = {
+  def processPure(query: Query): IOResult[Chunk[NodeId]] = {
     for {
       m   <- analyzeQuery(query)
       res <- processNodeFactMatcher(m)
     } yield res
   }
 
-  def processNodeFactMatcher(m: NodeFactMatcher): IOResult[Chunk[NodeFact]] = {
+  def processNodeFactMatcher(m: NodeFactMatcher): IOResult[Chunk[NodeId]] = {
     nodeFactRepo
       .getAllOn(status)
-      .filterZIO(node => FactQueryProcessorPure.debug(m.debugString) *> processOne(m, node))
-      .run(ZSink.collectAll)
+      .mapConcatChunkZIO { case node =>
+        for {
+          b   <- FactQueryProcessorPure.debug(m.debugString) *> processOne(m, node)
+        } yield if(b) Chunk(node.id) else Chunk.empty
+      }.run(ZSink.collectAll)
   }
 
   /*
