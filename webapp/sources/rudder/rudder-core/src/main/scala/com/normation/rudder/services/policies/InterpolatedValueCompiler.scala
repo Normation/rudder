@@ -492,7 +492,7 @@ object PropertyParser {
       case Parsed.Failure(label, i, extra) =>
         Left(
           Unexpected(
-            s"""Error when parsing value (without ''): '${value}'. Error message is: ${extra.trace().aggregateMsg}""".stripMargin
+            s"""Error when parsing value (without ''): '${value}'. Error message is: ${extra.trace().msg}""".stripMargin
           )
         )
     }
