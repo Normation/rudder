@@ -196,6 +196,7 @@ object DisplayNode extends Loggable {
     val eltIdswidth    =
       List(("process", List("50", "50", "70", "85", "120", "50", "100", "850"), 1), ("var", List("200", "800"), 0))
     val eltIds         = List(
+      "os",
       "vm",
       "fs",
       "net",
@@ -291,6 +292,7 @@ object DisplayNode extends Loggable {
   def showInventoryVerticalMenu(sm: FullInventory, salt: String = ""): NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
+      <li><a href={htmlId_#(jsId, "sd_os_")}>Operating System</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_fs_")}>File systems</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_net_")}>Network interfaces</a></li> ::
       <li id="soft_tab"><a href={htmlId_#(jsId, "sd_soft_")}>Software</a></li> ::
@@ -313,6 +315,7 @@ object DisplayNode extends Loggable {
     }
 
     val tabContent = {
+      displayTabOS(jsId, sm) ::
       displayTabBios(jsId, sm) ::
       displayTabControllers(jsId, sm) ::
       displayTabMemories(jsId, sm) ::
@@ -745,6 +748,50 @@ object DisplayNode extends Loggable {
       }
     }<div id={htmlId(jsId, eltName + "_grid_") + "_paginate_area"} class="paginate"/>
     </div>
+  }
+
+  private def displayTabOS(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
+    displayTabGrid(jsId)(
+      "os",
+      // special: add name -> value to be displayed as a table
+      Full(
+        Seq(
+          ("Node ID", escape(sm.node.main.id.value)),
+          ("Hostname", escape(sm.node.main.hostname)),
+          ("Policy Server ID", escape(sm.node.main.policyServerId.value)),
+          ("OS Full name", escape(sm.node.main.osDetails.fullName)),
+          ("OS Type", escape(sm.node.main.osDetails.os.kernelName)),
+          ("OS Name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
+          ("OS Version", escape(sm.node.main.osDetails.version.value)),
+          ("OS Service Pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+          ("Architecture", escape(sm.node.archDescription.getOrElse("None"))),
+          ("Kernel version", escape(sm.node.main.osDetails.kernelVersion.value)),
+          ("Total physical memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
+          ("Manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))),
+          ("Machine Type", displayMachineType(sm.machine).text),
+          ("Total swap space", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
+          ("System Serial Number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
+          (
+            "Time Zone",
+            escape(
+              sm.node.timezone
+                .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
+                .getOrElse("unknown")
+            )
+          ),
+          (
+            "Machine ID",
+            sm.machine
+              .map(x => escape(x.id.value))
+              .getOrElse("Machine Information are missing for that node")
+          )
+        )
+      )
+    ) {
+      ("Name", { x: (String, String) => Text(x._1) }) ::
+      ("Value", { x: (String, String) => Text(x._2) }) ::
+      Nil
+    }
   }
 
   private def displayTabSoftware(jsId: JsNodeId): NodeSeq = {
