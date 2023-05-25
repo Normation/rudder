@@ -139,7 +139,7 @@ object TemplateCli {
 
     // in case of error with args, stop and display usage
     val config = parser.parse(args, Config()).getOrElse {
-      parser.showUsage()
+      parser.displayToOut(parser.usage)
       System.exit(1)
       // just for type inference, never reached
       Config()

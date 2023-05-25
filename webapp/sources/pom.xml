@@ -439,10 +439,10 @@ limitations under the License.
     <jgrapht-version>1.5.2</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
     <graalvm-version>22.3.2</graalvm-version>
-    <chimney-version>0.7.4</chimney-version>
+    <chimney-version>0.7.5</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.4.0</ipaddress-version>
-    <snakeyaml-version>1.33</snakeyaml-version>
+    <snakeyaml-version>2.0</snakeyaml-version>
 
     <zio-http-version>2.0.0-RC11</zio-http-version> <!-- used in datasources -->
 
