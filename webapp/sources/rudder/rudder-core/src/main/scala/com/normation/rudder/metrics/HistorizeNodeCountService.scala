@@ -48,6 +48,8 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.zio._
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.QuoteMode
 import org.eclipse.jgit.revwalk.RevCommit
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -172,7 +174,7 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
 object WriteNodeCSV {
   def make(
       directoryPath:  String,
-      csvSeparator:   String,
+      csvSeparator:   Char,
       fileDateFormat: String = "yyyy-MM"
   ) = {
     val base = File(directoryPath)
@@ -206,9 +208,12 @@ object WriteNodeCSV {
  */
 class WriteNodeCSV(
     baseDdirectory: File,
-    csvSeparator:   String,
+    csvSeparator:   Char,
     fileDateFormat: DateTimeFormatter
 ) extends WriteLogService {
+
+  val csvFormat =
+    CSVFormat.DEFAULT.builder().setDelimiter(csvSeparator).setQuoteMode(QuoteMode.ALL).setRecordSeparator("").build()
 
   /**
    * We want to write to file node-YYYY-MM with local
@@ -217,14 +222,11 @@ class WriteNodeCSV(
   def filename(date: DateTime) = "nodes-" + date.toString(fileDateFormat)
 
   /**
-   * Format data in CSV according to parameters
+   * Format data in one line of CSV according to parameters.
    */
-  def csv(date: DateTime, metrics: FrequentNodeMetrics): String = (
-    '"'.toString + date.toString(ISODateTimeFormat.dateTimeNoMillis()) + '"'.toString
-      + csvSeparator
-      + metrics.csv(csvSeparator)
-      + "\n"
-  )
+  def csv(date: DateTime, metrics: FrequentNodeMetrics): String = {
+    csvFormat.format((date.toString(ISODateTimeFormat.dateTimeNoMillis()) :: metrics.asList): _*) + "\n"
+  }
 
   /**
    *  Write a log for given metric corresponding to given date
@@ -244,7 +246,7 @@ class WriteNodeCSV(
 }
 
 /**
- *  Default implementation for commiting information in a git repo passed as argument.
+ *  Default implementation for committing information in a git repo passed as argument.
  *  The commit can be asked to be signed by setting `signCommit` to true.
  */
 class CommitLogServiceImpl(val gitRepo: GitRepositoryProvider, val commitInfo: Ref[CommitInformation]) extends CommitLogService {

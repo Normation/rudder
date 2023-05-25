@@ -143,6 +143,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+    </dependency>
+
+    <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-${bouncycastle-compat}</artifactId>
     </dependency>

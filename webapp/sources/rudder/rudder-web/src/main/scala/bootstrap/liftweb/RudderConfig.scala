@@ -3389,7 +3389,7 @@ object RudderConfigInit {
     // don't forget to start-it once out of the zone which lead to dead-lock (ie: in Lift boot)
     lazy val historizeNodeCountBatch = for {
       gitLogger <- CommitLogServiceImpl.make(METRICS_NODES_DIRECTORY_GIT_ROOT)
-      writer    <- WriteNodeCSV.make(METRICS_NODES_DIRECTORY_GIT_ROOT, ";", "yyyy-MM")
+      writer    <- WriteNodeCSV.make(METRICS_NODES_DIRECTORY_GIT_ROOT, ';', "yyyy-MM")
       service    = new HistorizeNodeCountService(
                      new FetchDataServiceImpl(RudderConfig.nodeInfoService, RudderConfig.reportingService),
                      writer,

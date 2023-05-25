@@ -223,7 +223,7 @@ class ComplianceApi(
       } yield {
         format match {
           case ComplianceFormat.CSV  =>
-            PlainTextResponse(directive.toCsv.mkString("\n"))
+            PlainTextResponse(directive.toCsv) // CSVFormat take cares of line separator
           case ComplianceFormat.JSON =>
             val json = directive.toJson(
               level.getOrElse(10),

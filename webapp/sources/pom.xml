@@ -415,6 +415,7 @@ limitations under the License.
     <commons-lang-version>3.12.0</commons-lang-version>
     <commons-codec-version>1.15</commons-codec-version>
     <commons-fileupload>1.5</commons-fileupload>
+    <commons-csv-version>1.10.0</commons-csv-version>
     <spring-version>5.3.27</spring-version>
     <spring-security-version>5.7.8</spring-security-version>
     <jgit-version>6.3.0.202209071007-r</jgit-version>
@@ -667,7 +668,11 @@ limitations under the License.
         <artifactId>commons-codec</artifactId>
         <version>${commons-codec-version}</version>
       </dependency>
-
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>${commons-csv-version}</version>
+      </dependency>
       <!-- spring -->
       <dependency>
         <groupId>org.ow2.asm</groupId>

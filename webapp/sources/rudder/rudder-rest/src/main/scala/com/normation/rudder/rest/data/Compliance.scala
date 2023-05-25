@@ -44,9 +44,12 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.reports.ComplianceModeName
+import java.lang
 import net.liftweb.json._
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonDSL._
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.QuoteMode
 
 /**
  * Here, we want to present two views of compliance:
@@ -347,6 +350,9 @@ object ByNodeDirectiveCompliance {
 
 object CsvCompliance {
 
+  // use "," , quote everything with ", line separator is \n
+  val csvFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").build()
+
   def recurseComponent(
       component: ByRuleComponentCompliance,
       block:     List[String]
@@ -373,16 +379,20 @@ object CsvCompliance {
   }
 
   implicit class CsvDirectiveCompliance(val directive: ByDirectiveCompliance) extends AnyVal {
-    def toCsv = {
+    def toCsv: String = {
       val csvLines = directive.rules.flatMap { r =>
         for {
           c                                            <- r.components
           (block, component, node, value, status, msg) <- recurseComponent(c, Nil)
         } yield {
-          s""""${r.name}", "${block.mkString(",")}", "$component", "$node", "$value", "$status", "$msg""""
+          List(r.name, block.mkString(","), component, node, value, status, msg)
         }
       }
-      "Rule, Block, Component, Node, Value, Status, Message" :: csvLines.toList
+      // csvFormat take care of the line separator
+      val out      = new lang.StringBuilder()
+      csvFormat.printRecord(out, "Rule", "Block", "Component", "Node", "Value", "Status", "Message")
+      csvLines.foreach(l => csvFormat.printRecord(out, l: _*))
+      out.toString
     }
   }
 }
