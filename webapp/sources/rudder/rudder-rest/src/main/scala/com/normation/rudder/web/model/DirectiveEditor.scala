@@ -471,16 +471,10 @@ final case class MultivaluedSectionField(
           <div  id={sectionId} class={classes}>
               <div class="section-title" onClick={methodName}>{"%s #%s".format(name, i + 1)}</div>
               {showFormEntry(section, i)}
-              { // showAddAnother under the last element
-            if ((i + 1) == size) {
-              showAddAnother()
-            } else {
-              NodeSeq.Empty
-            }
-          }
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
       }
     }</div>
+      <div> {showAddAnother()} </div>
     </td> ++ Script(OnLoad(JsVar("""
           $("input").not("#treeSearch").keydown( function(event) {
             processKey(event , 'policyConfigurationSave')
