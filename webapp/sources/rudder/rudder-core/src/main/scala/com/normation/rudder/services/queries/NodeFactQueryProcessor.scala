@@ -148,11 +148,12 @@ class NodeFactQueryProcessor(
   def processNodeFactMatcher(m: NodeFactMatcher): IOResult[Chunk[NodeId]] = {
     nodeFactRepo
       .getAllOn(status)
-      .mapConcatChunkZIO { case node =>
-        for {
-          b   <- FactQueryProcessorPure.debug(m.debugString) *> processOne(m, node)
-        } yield if(b) Chunk(node.id) else Chunk.empty
-      }.run(ZSink.collectAll)
+      .rechunk(100) // one node fact = 700kB, so 70Mo alloc
+      .mapChunksZIO {
+        case nodes =>
+          nodes.filterZIO(node => FactQueryProcessorPure.debug(m.debugString) *> processOne(m, node)).map(_.map(_.id))
+      }
+      .run(ZSink.collectAll)
   }
 
   /*
