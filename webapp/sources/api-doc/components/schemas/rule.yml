@@ -25,6 +25,7 @@ properties:
     items:
       type: string
       description: "Directive id"
+      example: ff3bf651-3fce-49bc-8bf3-85132fa9b875
   targets:
     $ref: ../../components/schemas/rule-targets.yml
   enabled:
@@ -46,3 +47,15 @@ properties:
           example: value
       example:
         customer: MyCompany
+  policyMode:
+    type: string
+    example: "mixed"
+  status:
+    type: object
+    properties:
+      value:
+        type: string
+        example: "Partially applied"
+      details:
+        type: string
+        example: "Directive 'test parameter name' disabled"
