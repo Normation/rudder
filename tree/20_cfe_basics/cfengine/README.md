@@ -3,9 +3,6 @@ referred to as the Common Open Promise Body Library.
 
 Layout of this `lib` directory:
 
-* `3.6/*.cf`: Modularized version of the CFEngine Standard Library for
-  3.6.x.
-
 * `lib/*.cf`: Re-unified library compatible with 3.7+
   - *autorun.cf*: This file contains bundles that support automatic activation
     of bundles based on tags as well as automatically adding policy files found
