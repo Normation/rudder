@@ -30,6 +30,24 @@ fn it_renders_mini_jinja_inlined() {
 }
 
 #[test]
+fn it_fails_on_undefined_values() {
+    let root_dir = tempdir().unwrap();
+    let test_path = root_dir.path().join("output");
+
+    unix::test(
+        Path::new(BIN),
+        &format!(
+            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            test_path.display(),
+            "mini_jinja"
+        ),
+        PolicyMode::Enforce,
+        Err(anyhow!("")),
+    );
+    assert!(!test_path.exists());
+}
+
+#[test]
 fn it_renders_mini_jinja_from_file() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -67,7 +85,7 @@ fn it_checks_mini_jinja() {
 }
 
 #[test]
-fn it_check_correct_mini_jinja() {
+fn it_checks_correct_mini_jinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
     fs::write(&test_path, "Hello World!").unwrap();

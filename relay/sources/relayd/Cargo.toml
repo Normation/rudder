@@ -56,7 +56,7 @@ warp = { version = "0.3", default-features = false }
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-criterion = "0.4"
+criterion = "0.5"
 filetime = "0.2"
 proptest = "1"
 tempfile = "3"

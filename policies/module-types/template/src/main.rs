@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
+use minijinja::UndefinedBehavior;
 use rudder_module_type::{
     backup::Backup, parameters::Parameters, rudder_debug, run, CheckApplyResult, ModuleType0,
     ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
@@ -57,6 +58,8 @@ impl Engine {
 
         // We need to create the Environment even for one template
         let mut env = minijinja::Environment::new();
+        // Fail on non-defined values, even in iteration
+        env.set_undefined_behavior(UndefinedBehavior::Strict);
         env.add_template("rudder", &template)?;
         let tmpl = env.get_template("rudder").unwrap();
         Ok(tmpl.render(data)?)

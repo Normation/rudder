@@ -17,3 +17,6 @@ DENY_VER=0.10.1
 wget --quiet https://github.com/EmbarkStudios/cargo-deny/releases/download/$DENY_VER/cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 tar -xf cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
+
+# cargo-vet
+cargo install --locked cargo-vet@0.6.1
