@@ -196,6 +196,9 @@ runtest() {
   elif [ "x$UNSAFE_TESTS" != "x1" ] && echo "$TEST" | grep -q -e '/unsafe/'; then
     SKIP=1
     SKIPREASON="Unsafe tests are disabled"
+  elif [ "x$NON_CONTAINER_TESTS" != "x1" ] && echo "$TEST" | grep -q -e '/non_container/'; then
+    SKIP=1
+    SKIPREASON="Tests using systemd units are disabled"
   elif [ "x$NETWORK_TESTS" = "x0" ] && echo "$TEST" | grep -q -e '/network/'; then
     SKIP=1
     SKIPREASON="Network-dependent tests are disabled"
@@ -389,6 +392,8 @@ while true; do
       STAGING_TESTS=1;;
     --unsafe)
       UNSAFE_TESTS=1;;
+    --non_container)
+      NON_CONTAINER_TESTS=1;;
     --no-network)
       NETWORK_TESTS=0;;
     --agent=*)

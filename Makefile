@@ -34,10 +34,10 @@ install:
 	$(INSTALL) -m 755 ncf $(DESTDIR)/share/ncf/
 
 test:
-	cd tests/acceptance/ && ./testall --info
+	cd tests/acceptance/ && ./testall --printlog --info
 
 test-unsafe:
-	cd tests/acceptance/ && ./testall --info --unsafe
+	cd tests/acceptance/ && ./testall --printlog --info --unsafe
 
 clean:
 	rm -rf tests/style/.succeeded

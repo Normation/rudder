@@ -1,0 +1,160 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User secondary groups
+# @description Define secondary groups for a user
+# @documentation Make sure that a user belong to the listed groups
+#
+# #### Behavior
+#
+# Ensure that the user belongs in the given secondary group, if `force` is set,
+# the user will be force to only be part of the listed `groups`.
+#
+# #### Examples
+#
+# ```yaml
+# -name: bob must be in the printers group
+#  method: user_secondary_groups
+#  params:
+#    login: bob
+#    groups: printers
+#    force: false
+# ```
+#
+# ```yaml
+# -name: jenkins must only be part of jenkins and docker
+#  method: user_secondary_groups
+#  params:
+#    login: jenkins
+#    groups: jenkins,docker
+#    force: true
+# ```
+#
+# @parameter login      User login
+# @parameter groups     Comma separated secondary groups name
+# @parameter force      Remove user from non-listed groups, "true" or "false" (defaults to "false")
+#
+# @parameter_constraint force "select" : [ "", "true", "false" ]
+# @parameter_constraint force "allow_empty_string" : true
+#
+# @class_prefix user_secondary_groups
+# @class_parameter login
+# @agent_support = ["cfengine-community"]
+
+bundle agent user_secondary_groups(login, groups, force) {
+  vars:
+      "class_prefix"              string => canonify("user_secondary_groups_${login}");
+      "group_list"                     slist => string_split("${groups}", ",", "999999");
+      "subcall_prefix[${group_list}]" string => canonify("user_group_${login}_${group_list}");
+      "prefixes"                       slist => { "${class_prefix}",
+                                                  "${report_data.method_id}"
+                                                };
+      "c_id"                          string => canonify("${report_data.method_id}");
+
+
+  defaults:
+      "force" string => "false", if_match_regex => "";
+
+  classes:
+      "user_exists"         expression => userexists("${login}");
+      "group_not_found"            not => groupexists("${group_list}");
+      "purge_other_groups"  expression => strcmp("${force}", "true");
+
+      "should_report"       expression => "${report_data.should_report}";
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+
+    pass3::
+      "error_subcall"    expression => "${subcall_prefix[${group_list}]}_error";
+      "repaired_subcall" expression => "${subcall_prefix[${group_list}]}_repaired";
+      "success_subcall"  expression => and( "${subcall_prefix[${group_list}]}_kept",
+                                            not("error_subcall|repaired_subcall")
+                                          );
+
+      # ${c_id}_{error|repaired|success} are already defined if in enforce
+      # There are redefined here for clarity
+      "${c_id}_error"    expression => or( "!user_exists",
+                                           "group_not_found",
+                                           "error_subcall",
+                                           "${c_id}_error"
+                                         );
+
+      "${c_id}_repaired" expression => and( "user_exists",
+                                            "!group_not_found",
+                                            or( "repaired_subcall",
+                                                "${c_id}_repaired"
+                                              )
+                                          );
+
+      "${c_id}_success"  expression => and( "user_exists",
+                                            "!group_not_found",
+                                            or( "success_subcall",
+                                                "${c_id}_success"
+                                              )
+                                          );
+
+  users:
+    pass2::
+      "${login}"
+        policy => "present",
+        groups_secondary => { @{group_list} },
+        classes => classes_generic_two("${class_prefix}", "${report_data.method_id}"),
+        if => and( "user_exists",
+                   "!group_not_found",
+                   "purge_other_groups"
+                 );
+
+  methods:
+    # Without enforce, fallback to user_group
+    pass2.!pass3.!purge_other_groups.user_exists.!group_not_found::
+     "disable_reporting"       usebundle => disable_reporting;
+     "subcall_${group_list}"   usebundle =>  user_group(
+                                               "${login}",
+                                               "${group_list}"
+                                             );
+     "reenable_reporting"      usebundle => enable_reporting,
+                                      if => "should_report";
+
+    # Result class definition
+    pass3::
+      "error"    usebundle => _classes_failure("${prefixes}"),
+                        if => "${c_id}_error";
+      "repaired" usebundle => _classes_repaired("${prefixes}"),
+                        if => "${c_id}_repaired";
+      "success"  usebundle => _classes_success("${prefixes}"),
+                        if => "${c_id}_success";
+    # Reporting
+    pass3::
+     "group_checked"
+        usebundle => log_rudder_v4("${login}", "Secondary groups for user", "${login}"),
+               if => and( "user_exists",
+                          "!group_not_found"
+                        );
+
+     "user_missing"
+        usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Setting up secondary groups", "${login}"),
+               if => "!user_exists";
+
+     "group_missing"
+        usebundle => log_rudder_v4("${login}", "One or more groups where not found. Setting up secondary groups", "${login}"),
+               if => "user_exists.group_not_found";
+}
