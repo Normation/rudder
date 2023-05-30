@@ -61,7 +61,7 @@ pipeline {
             }
             steps {
                 catchError {
-                    sh script: 'PATH="/opt/rudder/bin:$PATH" make test', label: 'test methods'
+                    sh script: 'PATH="/opt/rudder/bin:$PATH" make test-unsafe', label: 'test methods'
                 }
                 // clean leftover files owned by root anyway
                 sh script: 'rm -rf tests/acceptance/.succeeded', label: 'cleanup'

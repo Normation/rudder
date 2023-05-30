@@ -277,8 +277,8 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
 
   reports:
     pass2.!pass3::
-      "Missing method_id class ${define_expected_classes.report_string_method_id_${result_class}}"
-        ifvarclass => "!${define_expected_classes.report_string_method_id_${result_class}}",
+      "Missing method_id class ${define_expected_classes.expected_classes_method_id_${result_class}}"
+        ifvarclass => "!${define_expected_classes.expected_classes_method_id_${result_class}}",
                 comment => "${c_uuid}";
 
       "Missing expected class ${define_expected_classes.expected_classes_class_prefix_${result_class}}"
