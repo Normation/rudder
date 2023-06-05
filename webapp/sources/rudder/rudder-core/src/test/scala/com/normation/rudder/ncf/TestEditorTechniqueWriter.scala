@@ -69,6 +69,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -89,7 +90,6 @@ import java.io.InputStream
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
@@ -99,6 +99,7 @@ import org.specs2.specification.BeforeAfterAll
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import zio._
+import zio.syntax._
 
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
@@ -111,7 +112,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   override def afterAll(): Unit = {
     if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
-      FileUtils.deleteDirectory(new File(basePath))
+      // FileUtils.deleteDirectory(new File(basePath))
     }
   }
 
@@ -333,7 +334,17 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     new RudderPrettyPrinter(Int.MaxValue, 2),
     basePath,
     parameterTypeService,
-    new TechniqueSerializer(parameterTypeService)
+    new YamlTechniqueSerializer(
+      parameterTypeService,
+      new ResourceFileService() {
+        override def getResources(technique: EditorTechnique): IOResult[List[ResourceFile]] = Nil.succeed
+        override def getResourcesFromDir(
+            resourcesPath:    String,
+            techniqueName:    String,
+            techniqueVersion: String
+        ): IOResult[List[ResourceFile]] = Nil.succeed
+      }
+    )
   )
   val dscWriter     = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
@@ -439,6 +450,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val technique = {
     EditorTechnique(
       BundleName("technique_by_Rudder"),
+      new Version("1.0"),
       "Test Technique created through Rudder API",
       "ncf_techniques",
       MethodBlock(
@@ -449,7 +461,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         MethodCall(
           BundleName("package_install_version"),
           "id1",
-          List(
+          Map(
             (ParameterId("package_name"), "${node.properties[apache_package_name]}"),
             (ParameterId("package_version"), "2.2.11")
           ),
@@ -460,7 +472,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         MethodCall(
           BundleName("command_execution"),
           "id2",
-          List((ParameterId("command"), "Write-Host \"testing special characters ` è &é 'à é \"")),
+          Map((ParameterId("command"), "Write-Host \"testing special characters ` è &é 'à é \"")),
           "windows",
           "Command execution",
           true
@@ -469,7 +481,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodCall(
         BundleName("service_start"),
         "id3",
-        List((ParameterId("service_name"), "${node.properties[apache_package_name]}")),
+        Map((ParameterId("service_name"), "${node.properties[apache_package_name]}")),
         "package_install_version_${node.properties[apache_package_name]}_repaired",
         "Customized component",
         false
@@ -477,7 +489,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodCall(
         BundleName("package_install"),
         "id4",
-        List((ParameterId("package_name"), "openssh-server")),
+        Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
         false
@@ -485,7 +497,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodCall(
         BundleName("command_execution"),
         "id5",
-        List((ParameterId("command"), "/bin/echo \"testing special characters ` è &é 'à é \"\\")),
+        Map((ParameterId("command"), "/bin/echo \"testing special characters ` è &é 'à é \"\\")),
         "cfengine-community",
         "Command execution",
         false
@@ -493,7 +505,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodCall(
         BundleName("package_state_windows"),
         "id6",
-        List((ParameterId("package_name"), "vim")),
+        Map((ParameterId("package_name"), "vim")),
         "dsc",
         "Package state windows",
         false
@@ -501,13 +513,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodCall(
         BundleName("_logger"),
         "id7",
-        List((ParameterId("message"), "NA"), (ParameterId("old_class_prefix"), "NA")),
+        Map((ParameterId("message"), "NA"), (ParameterId("old_class_prefix"), "NA")),
         "any",
         "Not sure we should test it ...",
         false
       ) :: Nil,
-      new Version("1.0"),
       "This Technique exists only to see if Rudder creates Technique correctly.",
+      "",
       TechniqueParameter(
         ParameterId("1aaacd71-c2d5-482c-bcff-5eee6f8da9c2"),
         ParameterId("technique_parameter"),
@@ -515,14 +527,17 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         // we must ensure that it will lead to: [parameter(Mandatory=$false)]
         true
       ) :: Nil,
-      Nil
+      Nil,
+      Nil,
+      None
     )
   }
 
-  val expectedMetadataPath = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
-  val dscTechniquePath     = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
-  val techniquePath        = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/technique.cf"
-  val reportingPath        = s"techniques/ncf_techniques/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"
+  val expectedMetadataPath = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/metadata.xml"
+  val dscTechniquePath     = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.ps1"
+  val techniquePath        = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.cf"
+  val yamlPath             = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.yml"
+  val reportingPath        = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/rudder_reporting.cf"
 
   s"Preparing files for technique ${technique.name}" should {
 
@@ -533,6 +548,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     "Should generate expected metadata content for our technique" in {
       val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath}")
       val resultMetadataFile   = new File(s"${basePath}/${expectedMetadataPath}")
+      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
+    }
+
+    "Should write yaml file without problem" in {
+      writer.writeJson(technique, methods).either.runNow must beRight(yamlPath)
+    }
+
+    "Should generate expected yaml content for our technique" in {
+      val expectedMetadataFile = new File(s"${expectedPath}/${yamlPath}")
+      val resultMetadataFile   = new File(s"${basePath}/${yamlPath}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
@@ -571,12 +596,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val technique_any = {
     EditorTechnique(
       BundleName("technique_any"),
+      new Version("1.0"),
       "Test Technique created through Rudder API",
       "ncf_techniques",
       MethodCall(
         BundleName("package_install_version"),
         "id",
-        List(
+        Map(
           (ParameterId("package_name"), "${node.properties[apache_package_name]}"),
           (ParameterId("package_version"), "2.2.11")
         ),
@@ -584,23 +610,27 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "Test component$&é)à\\'\"",
         false
       ) :: Nil,
-      new Version("1.0"),
       "This Technique exists only to see if Rudder creates Technique correctly.",
+      "",
       TechniqueParameter(ParameterId("package_version"), ParameterId("version"), "Package version to install", false) :: Nil,
-      Nil
+      Nil,
+      Nil,
+      None
     )
   }
 
   val expectedMetadataPath_any =
-    s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/metadata.xml"
+    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/metadata.xml"
   val dscTechniquePath_any     =
-    s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/technique.ps1"
+    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.ps1"
   val techniquePath_any        =
-    s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/technique.cf"
+    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.cf"
+  val techniquePath_yaml       =
+    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.yml"
   val reportingPath_any        =
-    s"techniques/ncf_techniques/${technique_any.bundleName.value}/${technique_any.version.value}/rudder_reporting.cf"
+    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/rudder_reporting.cf"
 
-  s"Preparing files for technique ${technique.bundleName.value}" should {
+  s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
       writer.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
@@ -609,6 +639,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     "Should generate expected metadata content for our technique" in {
       val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath_any}")
       val resultMetadataFile   = new File(s"${basePath}/${expectedMetadataPath_any}")
+      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
+    }
+
+    "Should write yaml file without problem" in {
+      writer.writeJson(technique_any, methods).either.runNow must beRight(techniquePath_yaml)
+    }
+
+    "Should generate expected yaml content for our technique" in {
+      val expectedMetadataFile = new File(s"${expectedPath}/${techniquePath_yaml}")
+      val resultMetadataFile   = new File(s"${basePath}/${techniquePath_yaml}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
@@ -641,19 +681,20 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val technique_var_cond = {
     EditorTechnique(
       BundleName("testing_variables_in_conditions"),
+      new Version("1.0"),
       "Testing variables in conditions",
       "ncf_techniques",
       MethodCall(
         BundleName("command_execution"),
         "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad",
-        List(
+        Map(
           (ParameterId("command"), "{return 1}")
         ),
         "${my_custom_condition}",
         "Command execution",
         false
       ) :: Nil,
-      new Version("1.0"),
+      "",
       "",
       TechniqueParameter(
         ParameterId("40e3a5ab-0812-4a60-96f3-251be8cedf43"),
@@ -661,22 +702,26 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "",
         false
       ) :: Nil,
-      Nil
+      Nil,
+      Nil,
+      None
     )
   }
 
   val expectedMetadataPath_var_cond =
-    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/metadata.xml"
+    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/metadata.xml"
   val dscTechniquePath_var_cond     =
-    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/technique.ps1"
+    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.ps1"
   val techniquePath_var_cond        =
-    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/technique.cf"
+    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.cf"
+  val techniquePath_var_cond_yaml   =
+    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.yml"
   val reportingPath_var_cond        =
-    s"${technique_var_cond.bundleName.value}/${technique_var_cond.version.value}/rudder_reporting.cf"
+    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/rudder_reporting.cf"
   val expectedPathVarCond           = "src/test/resources/configuration-repository/expected-share"
   val basePathVarCond               = s"${basePath}/techniques/ncf_techniques/"
 
-  s"Preparing files for technique ${technique.bundleName.value}" should {
+  s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
       writer.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
@@ -684,6 +729,11 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       )
     }
 
+    "Should write metadata file without problem" in {
+      writer.writeJson(technique_var_cond, methods).either.runNow must beRight(
+        s"techniques/ncf_techniques/${techniquePath_var_cond_yaml}"
+      )
+    }
     "Should generate expected metadata content for our technique" in {
       val expectedMetadataFile = new File(s"${expectedPathVarCond}/${expectedMetadataPath_var_cond}")
       val resultMetadataFile   = new File(s"${basePathVarCond}/${expectedMetadataPath_var_cond}")
@@ -711,6 +761,11 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       )
     }
 
+    "Should generate expected yaml technique content for our technique" in {
+      val expectedFile = new File(s"${expectedPathVarCond}/${techniquePath_var_cond_yaml}")
+      val resultFile   = new File(s"${basePathVarCond}/${techniquePath_var_cond_yaml}")
+      resultFile must haveSameLinesAs(expectedFile)
+    }
     "Should generate expected classic technique content for our technique" in {
       val expectedFile = new File(s"${expectedPathVarCond}/${techniquePath_var_cond}")
       val resultFile   = new File(s"${basePathVarCond}/${techniquePath_var_cond}")
@@ -722,9 +777,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   // same than previous one but with direct call to techniqueWriter.writeTechnique
   "Calling compile with no target should correctly fallback without error" >> {
     val tech                     = technique_any.copy(version = new Version("2.0"))
-    val expectedMetadataPath_any = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/metadata.xml"
-    val dscTechniquePath_any     = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.ps1"
-    val techniquePath_any        = s"techniques/ncf_techniques/${tech.bundleName.value}/${tech.version.value}/technique.cf"
+    val expectedMetadataPath_any = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/metadata.xml"
+    val dscTechniquePath_any     = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/technique.ps1"
+    val techniquePath_any        = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/technique.cf"
 
     "Should write everything without error" in {
       (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight(tech))

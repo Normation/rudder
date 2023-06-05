@@ -1,0 +1,75 @@
+id: technique_by_Rudder
+name: Test Technique created through Rudder API
+version: '1.0'
+description: This Technique exists only to see if Rudder creates Technique correctly.
+items:
+  - id: id_method
+    name: block component
+    reporting:
+      mode: worst-case-weighted-sum
+    condition: debian
+    items:
+      - id: id1
+        name: Customized component
+        reporting:
+          mode: enabled
+        condition: any
+        method: package_install_version
+        params:
+          package_name: ${node.properties[apache_package_name]}
+          package_version: 2.2.11
+      - id: id2
+        name: Command execution
+        reporting:
+          mode: disabled
+        condition: windows
+        method: command_execution
+        params:
+          command: Write-Host "testing special characters ` è &é 'à é "
+  - id: id3
+    name: Customized component
+    reporting:
+      mode: enabled
+    condition: package_install_version_${node.properties[apache_package_name]}_repaired
+    method: service_start
+    params:
+      service_name: ${node.properties[apache_package_name]}
+  - id: id4
+    name: Package install
+    reporting:
+      mode: enabled
+    condition: redhat
+    method: package_install
+    params:
+      package_name: openssh-server
+  - id: id5
+    name: Command execution
+    reporting:
+      mode: enabled
+    condition: cfengine-community
+    method: command_execution
+    params:
+      command: /bin/echo "testing special characters ` è &é 'à é "\
+  - id: id6
+    name: Package state windows
+    reporting:
+      mode: enabled
+    condition: dsc
+    method: package_state_windows
+    params:
+      package_name: vim
+  - id: id7
+    name: Not sure we should test it ...
+    reporting:
+      mode: enabled
+    condition: any
+    method: _logger
+    params:
+      message: NA
+      old_class_prefix: NA
+category: ncf_techniques
+params:
+  - id: 1aaacd71-c2d5-482c-bcff-5eee6f8da9c2
+    name: technique_parameter
+    description: " a long description, with line \n break within"
+    may_be_empty: true

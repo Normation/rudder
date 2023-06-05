@@ -1,0 +1,17 @@
+id: testing_variables_in_conditions
+name: Testing variables in conditions
+version: '1.0'
+items:
+  - id: c0f1c227-0b8c-4219-ac3d-3c30fb4870ad
+    name: Command execution
+    reporting:
+      mode: enabled
+    condition: ${my_custom_condition}
+    method: command_execution
+    params:
+      command: '{return 1}'
+category: ncf_techniques
+params:
+  - id: 40e3a5ab-0812-4a60-96f3-251be8cedf43
+    name: my_custom_condition
+    may_be_empty: false

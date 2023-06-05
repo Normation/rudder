@@ -42,6 +42,7 @@ import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
 import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
 import bootstrap.liftweb.checks.action.CreateSystemToken
 import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
+import bootstrap.liftweb.checks.action.MigrateOldTechniques
 import bootstrap.liftweb.checks.action.RemoveFaultyLdapEntries
 import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
@@ -130,11 +131,12 @@ import com.normation.rudder.inventory.ProcessFile
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
+import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
@@ -1443,10 +1445,14 @@ object RudderConfigInit {
       prettyPrinter,
       gitModificationRepository,
       RUDDER_CHARSET.name,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
+      RUDDER_GROUP_OWNER_CONFIG_REPO,
+      techniqueSerializer,
+      yamlTechniqueSerializer
     )
 
     lazy val techniqueSerializer = new TechniqueSerializer(typeParameterService)
+
+    lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(typeParameterService, resourceFileService)
 
     lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoServiceImpl)
     // REST API
@@ -1743,7 +1749,7 @@ object RudderConfigInit {
       prettyPrinter,
       RUDDER_GIT_ROOT_CONFIG_REPO,
       typeParameterService,
-      techniqueSerializer
+      yamlTechniqueSerializer
     )
 
     lazy val pipelinedInventoryParser: InventoryParser = {
@@ -1959,7 +1965,7 @@ object RudderConfigInit {
 
     lazy val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
 
-    lazy val resourceFileService = new ResourceFileService(gitConfigRepo)
+    lazy val resourceFileService = new GitResourceFileService(gitConfigRepo)
     lazy val apiDispatcher       = new RudderEndpointDispatcher(LiftApiProcessingLogger)
     lazy val rudderApi           = {
       import com.normation.rudder.rest.lift._
@@ -3211,8 +3217,14 @@ object RudderConfigInit {
 
       new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen),
+      new MigrateOldTechniques(
+        ncfTechniqueWriter,
+        roLDAPApiAccountRepository.systemAPIAccount,
+        uuidGen,
+        updateTechniqueLibrary,
+        ncfTechniqueReader
+      ),
       new CheckNcfTechniqueUpdate(
-        restExtractorService,
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
         uuidGen,

@@ -166,7 +166,15 @@ techniqueTab model technique creation ui =
                              _ -> text ""
                          ]
                        , div [ class "row form-group" ] [
-                           label [ for "techniqueDescription", class "col-xs-12 control-label" ] [
+                             label [ for "techniqueDescription", class "col-xs-12 control-label" ] [ text "Description"  ]
+                           , div  [ class "col-sm-8" ] [
+                               input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueDescription",  name "description",  class ("form-control") , placeholder "Technique description", value technique.description
+                                 , onInput (\newDesc -> UpdateTechnique {technique | description = newDesc })
+                               ] []
+                             ]
+                         ]
+                       , div [ class "row form-group" ] [
+                           label [ for "techniqueDocumentation", class "col-xs-12 control-label" ] [
                              span [ class "text-fit" ] [ text "Documentation" ]
                            , img  [ class "markdown-icon tooltip-icon popover-bs",  src ( model.contextPath ++ "/images/markdown-mark-solid.svg" ) ] []
                                      --data-toggle="popover"
@@ -177,8 +185,8 @@ techniqueTab model technique creation ui =
                                    --  data-html="true"
                            ]
                          , div [ class "col-sm-8" ] [
-                             textarea [  readonly (not model.hasWriteRights), name "description",  class "form-control technique-description", id "techniqueDescription", rows  4, value technique.description, placeholder "documentation"
-                             , onInput (\desc -> UpdateTechnique {technique | description = desc })
+                             textarea [  readonly (not model.hasWriteRights), name "documentation",  class "form-control technique-description", id "techniqueDocumentation", rows  4, value technique.documentation, placeholder "documentation"
+                             , onInput (\desc -> UpdateTechnique {technique | documentation = desc })
                              ] []--msd-elastic
                            ]
                          ]

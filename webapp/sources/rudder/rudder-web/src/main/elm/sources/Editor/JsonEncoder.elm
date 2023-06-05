@@ -30,9 +30,10 @@ techniqueValues technique =
   , ("name"        , string technique.name )
   , ("description" , string technique.description )
   , ("category"    , string technique.category )
-  , ("parameter"   , list encodeTechniqueParameters technique.parameters )
+  , ("parameters"  , list encodeTechniqueParameters technique.parameters )
   , ("calls"       , list encodeMethodElem technique.elems )
   , ("resources"   , list encodeResource technique.resources )
+  , ("documentation", string technique.documentation)
   ]
 
 encodeNewTechnique: Technique -> TechniqueId -> Value
@@ -74,26 +75,28 @@ encodeMethodElem call =
 encodeMethodCall: MethodCall -> Value
 encodeMethodCall call =
 
-  object (
-    (if ( String.isEmpty call.component) then identity else  (::) ("component"    , string call.component))[
+  object [
+
     ("id"           , string call.id.value)
+  , ("component"    , string call.component)
   , ("method"  , string call.methodName.value)
   , ("condition",  string <| conditionStr call.condition)
-  , ("parameters"   , list encodeCallParameters call.parameters)
-  , ("disableReporting"   , bool call.disableReporting)
-  ] )
+  , ("parameters"   , object (List.map encodeCallParameters call.parameters))
+  , ("disabledReporting"   , bool call.disableReporting)
+  , ("type", string "call")
+  ]
 
 encodeCompositionRule: ReportingLogic -> Value
 encodeCompositionRule composition =
   case composition of
     (WorstReport WorstReportWeightedSum) ->
-      object [ ("type", string "worst-case-weighted-sum")]
+       string "worst-case-weighted-sum"
     (WorstReport WorstReportWeightedOne) ->
-      object [ ("type", string "worst-case-weighted-one")]
+       string "worst-case-weighted-one"
     WeightedReport ->
-      object [ ("type", string "weighted")]
+      string "weighted"
     FocusReport value ->
-      object [ ("type", string "focus"), ("value", string value)]
+      string ("focus:"++value)
 
 encodeMethodBlock: MethodBlock -> Value
 encodeMethodBlock call =
@@ -103,19 +106,19 @@ encodeMethodBlock call =
   , ("component"    , string call.component)
   , ("calls"   , list encodeMethodElem call.calls)
   , ("id"   , string call.id.value)
+  , ("type", string "block")
   ]
 
-encodeCallParameters: CallParameter -> Value
+encodeCallParameters: CallParameter -> (String, Value)
 encodeCallParameters param =
-  object [
-    ("name" , string param.id.value)
-  , ("value", string (displayValue param.value))
-  ]
+
+   ( param.id.value , string (displayValue param.value))
+
 
 encodeExportTechnique: Technique -> Value
 encodeExportTechnique technique =
   object [
     ("type"    , string "ncf_technique")
-  , ("version" , string "3.0")
+  , ("version" , string "4.0")
   , ("data"    , encodeTechnique technique)
   ]

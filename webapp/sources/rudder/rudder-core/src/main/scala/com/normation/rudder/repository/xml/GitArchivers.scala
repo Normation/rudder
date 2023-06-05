@@ -267,7 +267,7 @@ class TechniqueArchiverImpl(
     val filesToAdd = (Chunk(
       "metadata.xml", // standard technique API, used for policy generation pipeline
 
-      "technique.json", // high-level API between technique editor and rudder. Will evolve to .yml
+      "technique.yml", // high-level API between technique editor and rudderc.
 
       "technique.rd"
     ) ++ // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
@@ -289,6 +289,7 @@ class TechniqueArchiverImpl(
     val filesToDelete = (
       s"ncf/50_techniques/${technique.id.name.value}" +:       // added in 5.1 for migration to 6.0
         s"dsc/ncf/50_techniques/${technique.id.name.value}" +: // added in 6.1
+        (gitTechniquePath + "/technique.json") +:
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 

@@ -855,6 +855,11 @@ limitations under the License.
       <version>${zio-json-version}</version>
     </dependency>
     <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-json-yaml_${scala-binary-version}</artifactId>
+      <version>${zio-json-version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.scalaland</groupId>
       <artifactId>chimney_${scala-binary-version}</artifactId>
       <version>${chimney-version}</version>

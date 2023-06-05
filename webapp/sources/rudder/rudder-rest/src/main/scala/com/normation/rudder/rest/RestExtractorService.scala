@@ -1294,91 +1294,12 @@ final case class RestExtractorService(
 
   def extractId[T](req: Req)(fun: String => Box[T]) = extractString("id")(req)(fun)
 
-  def extractEditorTechnique(
-      json:             JValue,
-      methods:          Map[BundleName, GenericMethod],
-      creation:         Boolean,
-      supportMissingId: Boolean
-  ): Box[EditorTechnique] = {
-    for {
-      id          <- CompleteJson.extractJsonStringMultipleKeys(json, "id" :: "bundle_name" :: Nil, s => Full(BundleName(s)))
-      version     <- CompleteJson.extractJsonString(json, "version")
-      category    <- OptionnalJson.extractJsonString(json, "category").map(_.filter(_.nonEmpty).getOrElse("ncf_techniques"))
-      description <- CompleteJson.extractJsonString(json, "description")
-      name        <- CompleteJson.extractJsonString(json, "name")
-      calls       <-
-        CompleteJson.extractJsonArray(json, "calls" :: "method_calls" :: Nil)(extractMethodElem(_, methods, supportMissingId))
-
-      parameters <- CompleteJson.extractJsonArray(json, "parameter")(extractTechniqueParameter(creation))
-      files      <- OptionnalJson.extractJsonArray(json, "resources")(extractResourceFile).map(_.getOrElse(Nil))
-    } yield {
-      EditorTechnique(id, name, category, calls, new Version(version), description, parameters, files)
-    }
-  }
-
   def extractMethodCallParameter(json: JValue): Box[(ParameterId, String)] = {
     for {
       parameterId <- CompleteJson.extractJsonString(json, "name", s => Full(ParameterId(s)))
       value       <- CompleteJson.extractJsonString(json, "value")
     } yield {
       (parameterId, value)
-    }
-  }
-
-  def extractMethodElem(json: JValue, methods: Map[BundleName, GenericMethod], supportMissingId: Boolean): Box[MethodElem] = {
-    (json \ "method_name", json \ "method") match {
-      case (JString(_), JNothing) | (JNothing, JString(_)) => extractMethodCall(json, methods, supportMissingId)
-      case _                                               => extractMethodBlock(json, methods, supportMissingId)
-    }
-  }
-
-  def extractMethodBlock(json: JValue, methods: Map[BundleName, GenericMethod], supportMissingId: Boolean): Box[MethodBlock] = {
-
-    for {
-      id             <- CompleteJson.extractJsonString(json, "id")
-      condition      <- CompleteJson.extractJsonString(json, "condition")
-      component      <- CompleteJson.extractJsonString(json, "component")
-      reportingLogic <- CompleteJson.extractJsonObj(json, "reportingLogic", extractCompositionRule)
-      calls          <- CompleteJson.extractJsonArray(json, "calls")(extractMethodElem(_, methods, supportMissingId))
-    } yield {
-      MethodBlock(id, component, reportingLogic, condition, calls)
-    }
-  }
-
-  def extractMethodCall(json: JValue, methods: Map[BundleName, GenericMethod], supportMissingId: Boolean): Box[MethodCall] = {
-
-    for {
-      methodId <- CompleteJson.extractJsonStringMultipleKeys(json, "method" :: "method_name" :: Nil, s => Full(BundleName(s)))
-
-      id               <- if (supportMissingId) { OptionnalJson.extractJsonString(json, "id").map(_.getOrElse(uuidGenerator.newUuid)) }
-                          else { CompleteJson.extractJsonString(json, "id") }
-      disableReporting <- OptionnalJson.extractJsonBoolean(json, "disableReporting").map(_.getOrElse(false))
-      condition        <- CompleteJson.extractJsonStringMultipleKeys(json, "condition" :: "class_context" :: Nil)
-      component        <- OptionnalJson
-                            .extractJsonString(json, "component")
-                            .map(_.getOrElse(methods.get(methodId).map(_.name).getOrElse(methodId.value)))
-      // Args was removed in 6.1.0 and replaced by parameters. kept it when we are reading old format techniques, ie when migrating from 6.1
-      optArgs          <- OptionnalJson.extractJsonArray(json, "args") {
-                            case JString(value) => Full(value)
-                            case s              =>
-                              Failure(s"Invalid format of method call when extracting from json, expecting and array but got : ${s}")
-                          }
-      // Parameters is the new correct starting from 6.1, it already contains all data we need
-      optParameters    <- OptionnalJson.extractJsonArray(json, "parameters")(extractMethodCallParameter)
-
-      // For our parameters we take the new "parameters" and if empty, try parsing the "args"
-      parameters <- optParameters match {
-                      case Some(params) => Full(params)
-                      case None         =>
-                        optArgs match {
-                          case Some(parameterValues) =>
-                            Full(methods.get(methodId).toList.flatMap(_.parameters.map(_.id)).zip(parameterValues))
-                          case None                  => Failure("Neither 'args' or 'parameters' defined for a method call")
-                        }
-                    }
-    } yield {
-      val call = MethodCall(methodId, id, parameters, condition, component, disableReporting)
-      MethodCall.renameParams(call, methods)
     }
   }
 

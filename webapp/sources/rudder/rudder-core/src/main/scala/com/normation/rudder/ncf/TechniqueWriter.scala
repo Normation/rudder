@@ -60,6 +60,7 @@ import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -133,7 +134,7 @@ class TechniqueWriterImpl(
     baseConfigRepoPath:   String, // root of config repos
 
     parameterTypeService: ParameterTypeService,
-    techniqueSerializer:  TechniqueSerializer
+    techniqueSerializer:  YamlTechniqueSerializer
 ) extends TechniqueWriter {
 
   private[this] val cfengineTechniqueWriter = new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService)
@@ -303,11 +304,11 @@ class TechniqueWriterImpl(
 
     def reportingValuePerMethod(call: MethodCall): PureResult[Seq[XmlNode]] = {
       for {
-        method      <- methods.get(call.methodId) match {
+        method      <- methods.get(call.method) match {
                          case None    =>
                            Left(
                              MethodNotFound(
-                               s"Cannot find method ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'",
+                               s"Cannot find method ${call.method.value} when writing a method call of Technique '${technique.id.value}'",
                                None
                              )
                            )
@@ -317,7 +318,7 @@ class TechniqueWriterImpl(
                          case None    =>
                            Left(
                              MethodNotFound(
-                               s"Cannot find call parameter of ${call.methodId.value} when writing a method call of Technique '${technique.bundleName.value}'",
+                               s"Cannot find call parameter of ${call.method.value} when writing a method call of Technique '${technique.id.value}'",
                                None
                              )
                            )
@@ -325,8 +326,9 @@ class TechniqueWriterImpl(
                        }
 
       } yield {
-
-        <SECTION component="true" multivalued="true" id={call.id} name={call.component}>
+        val name = if (call.component.isEmpty) { method.name }
+        else { call.component }
+        <SECTION component="true" multivalued="true" id={call.id} name={name}>
           <REPORTKEYS>
             <VALUE id={call.id}>{class_param}</VALUE>
           </REPORTKEYS>
@@ -337,7 +339,7 @@ class TechniqueWriterImpl(
 
     def reportingSections(sections: List[MethodElem]) = {
       val expectedReportingMethodsWithValues      =
-        sections.collect { case m: MethodCall => m }.filterNot(m => m.disabledReporting || m.methodId.value.startsWith("_"))
+        sections.collect { case m: MethodCall => m }.filterNot(m => m.disabledReporting || m.method.value.startsWith("_"))
       val expectedGroupReportingMethodsWithValues = sections.collect { case m: MethodBlock => m }
 
       for {
@@ -368,7 +370,7 @@ class TechniqueWriterImpl(
     // We filter those starting by _, which are internal methods
 
     for {
-      reportingSection     <- reportingSections(technique.methodCalls.toList)
+      reportingSection     <- reportingSections(technique.calls.toList)
       agentSpecificSection <- agentSpecific.traverse(_.agentMetadata(technique, methods))
     } yield {
       <TECHNIQUE name={technique.name}>
@@ -425,10 +427,10 @@ class TechniqueWriterImpl(
       time_0                      <- currentTimeMillis
       _                           <- TechniqueWriterLoggerPure.debug(s"Writing technique ${technique.name}")
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
-      updateResources              = technique.ressources.collect {
+      updateResources              = technique.resources.collect {
                                        case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched)
                                      }
-      techniqueWithResourceUpdated = technique.copy(ressources = updateResources)
+      techniqueWithResourceUpdated = technique.copy(resources = updateResources)
 
       json   <- writeJson(techniqueWithResourceUpdated, methods)
       time_1 <- currentTimeMillis
@@ -446,9 +448,9 @@ class TechniqueWriterImpl(
                     s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_3 - time_2}ms"
                   )
       id       <-
-        TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.bundleName.value), v))
+        TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the the "resources/" prefix
-      resources = technique.ressources.map(r => ResourceFile("resources/" + r.path, r.state))
+      resources = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
       commit   <- archiver.saveTechnique(
                     id,
                     technique.category.split('/').toIndexedSeq,
@@ -485,7 +487,7 @@ class TechniqueWriterImpl(
 
   def writeMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
 
-    val metadataPath = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/metadata.xml"
+    val metadataPath = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/metadata.xml"
 
     val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
@@ -501,17 +503,15 @@ class TechniqueWriterImpl(
   }
 
   def writeJson(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
-    val metadataPath = s"${technique.path}/technique.json"
-
-    val path = s"${baseConfigRepoPath}/${metadataPath}"
-
-    val content = techniqueSerializer.serializeTechniqueMetadata(technique, methods)
+    val metadataPath = s"${technique.path}/technique.yml"
+    val path         = s"${baseConfigRepoPath}/${metadataPath}"
     for {
-      _ <- IOResult.attempt(s"An error occurred while creating json file for Technique '${technique.name}'") {
-             implicit val charSet = StandardCharsets.UTF_8
-             val file             = File(path).createFileIfNotExists(true)
-             file.write(net.liftweb.json.prettyRender(content))
-           }
+      content <- techniqueSerializer.toYml(technique).toIO
+      _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
+                   implicit val charSet = StandardCharsets.UTF_8
+                   val file             = File(path).createFileIfNotExists(true)
+                   file.write(content)
+                 }
     } yield {
       metadataPath
     }
@@ -534,7 +534,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
   ): Boolean = {
     val condition = formatCondition(call, parentBlock)
     methods
-      .get(call.methodId)
+      .get(call.method)
       .map(m => !m.agentSupport.contains(AgentType.CfeCommunity) || !truthyCondition(condition))
       .getOrElse(true)
   }
@@ -558,19 +558,14 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
   }
 
   def needReportingBundle(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) =
-    technique.methodCalls.exists(elemNeedReportingBundle(methods, Nil))
+    technique.calls.exists(elemNeedReportingBundle(methods, Nil))
 
   def canonifyCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
     formatCondition(methodCall, parentBlock).replaceAll("""(\$\{[^\}]*})""", """",canonify("$1"),"""")
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
-  def escapeCFEngineString(value: String)                                   = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
-  def reportingContext(methodCall: MethodCall, classParameterValue: String) = {
-    val component = escapeCFEngineString(methodCall.component)
-    val value     = escapeCFEngineString(classParameterValue)
-    s"""_method_reporting_context_v4("${component}", "${value}","${methodCall.id}")"""
-  }
+  def escapeCFEngineString(value: String) = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
 
   def reportingContextInBundle(args: Seq[String]) = {
     s"_method_reporting_context_v4(${convertArgsToBundleCall(args)})"
@@ -611,8 +606,12 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
         case true  => "unless"
       }
 
+      val method = methods.get(call.method)
+
+      val name = if (call.component.isEmpty) method.map(_.name).getOrElse(call.method.value) else call.component
+
       // Reporting argument
-      val reportingValues = escapeCFEngineString(call.component) ::
+      val reportingValues = escapeCFEngineString(name) ::
         escapeCFEngineString(classParameterValue) ::
         call.id :: Nil
       // create the bundle arguments:
@@ -620,10 +619,8 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
       // the rest is for the methodArgs.
       val allValues       = reportingValues.map(x => s""""${x}"""") ::: params.toList
 
-      val method = methods.get(call.methodId)
-
       // Get all bundle argument names
-      val bundleName = (technique.bundleName.value + "_gm_" + bundleIncrement).replaceAll("-", "_")
+      val bundleName = (technique.id.value + "_gm_" + bundleIncrement).replaceAll("-", "_")
       bundleIncrement = bundleIncrement + 1
 
       val reportingArgs = "c_name" :: "c_key" :: "report_id" :: Nil
@@ -634,7 +631,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
             case (_, id) =>
               method.flatMap(_.parameters.get(id.toLong).map(_.id.value)).getOrElse("arg_" + id)
           }
-          (args, s"""${call.methodId.value}(${convertArgsToBundleCall(args)});""")
+          (args, s"""${call.method.value}(${convertArgsToBundleCall(args)});""")
 
         case true =>
           // special case for log_na_rudder; args muse be called with @
@@ -683,7 +680,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
       method match {
         case call:  MethodCall  =>
           (for {
-            method_info              <- methods.get(call.methodId)
+            method_info              <- methods.get(call.method)
             (_, classParameterValue) <- call.parameters.find(_._1 == method_info.classParameter)
 
             params <- Control.sequence(method_info.parameters) { p =>
@@ -702,7 +699,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
           block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
       }
     }
-    val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+    val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
     val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
     val methodsCalls  = bundleAndMethodCallsList.map(_._2).mkString("")
@@ -720,7 +717,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
           s"""# @parameter ${compactRender(param).replaceAll("£#", "\n#")}"""
         }.mkString("\n")}
          |
-         |bundle agent ${technique.bundleName.value}${bundleParams}
+         |bundle agent ${technique.id.value}${bundleParams}
          |{
          |  vars:
          |    "resources_dir" string => "$${this.promise_dirname}/resources";
@@ -737,7 +734,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
 
     implicit val charset = StandardCharsets.UTF_8
     val techFile         =
-      File(basePath) / "techniques" / technique.category / technique.bundleName.value / technique.version.value / "technique.cf"
+      File(basePath) / "techniques" / technique.category / technique.id.value / technique.version.value / "technique.cf"
     val t                = {
       IOResult.attempt(s"Could not write na reporting Technique file '${technique.name}' in path ${techFile.path.toString}") {
         techFile.createFileIfNotExists(true).write(content.stripMargin('|'))
@@ -756,11 +753,11 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
       def bundleMethodCall(parentBlocks: List[MethodBlock])(method: MethodElem): List[(String, String)] = {
         method match {
           case c:     MethodCall  =>
-            val call = MethodCall.renameParams(c, methods).copy(methodId = BundleName("log_na_rudder"))
+            val call = MethodCall.renameParams(c, methods).copy(method = BundleName("log_na_rudder"))
             (for {
-              method_info              <- methods.get(c.methodId)
+              method_info              <- methods.get(c.method)
               // Skip that method if name starts with _
-              if !c.methodId.value.startsWith("_")
+              if !c.method.value.startsWith("_")
               (_, classParameterValue) <- call.parameters.find(_._1 == method_info.classParameter)
 
               escapedClassParameterValue = escapeCFEngineString(classParameterValue)
@@ -796,18 +793,18 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
             block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
         }
       }
-      val bundleAndMethodCallsList = technique.methodCalls.flatMap(bundleMethodCall(Nil))
+      val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
       val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
       val methodsCalls  = bundleAndMethodCallsList.map(_._2).mkString("")
 
       val content = {
-        s"""bundle agent ${technique.bundleName.value}_rudder_reporting${bundleParams}
+        s"""bundle agent ${technique.id.value}_rudder_reporting${bundleParams}
            |{
            |  vars:
            |    "args"               slist => { ${args} };
            |    "report_param"      string => join("_", args);
-           |    "full_class_prefix" string => canonify("${technique.bundleName.value}_rudder_reporting_$${report_param}");
+           |    "full_class_prefix" string => canonify("${technique.id.value}_rudder_reporting_$${report_param}");
            |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
            |
            |  methods:
@@ -819,7 +816,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
 
       val reportingFile = File(
         basePath
-      ) / "techniques" / technique.category / technique.bundleName.value / technique.version.value / "rudder_reporting.cf"
+      ) / "techniques" / technique.category / technique.id.value / technique.version.value / "rudder_reporting.cf"
       IOResult.attempt(
         s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}"
       ) {
@@ -841,19 +838,19 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
     val needReporting = needReportingBundle(technique, methods)
     val xml           = <AGENT type="cfengine-community,cfengine-nova">
       <BUNDLES>
-        <NAME>{technique.bundleName.value}</NAME>
-        {if (needReporting) <NAME>{technique.bundleName.value}_rudder_reporting</NAME> else NodeSeq.Empty}
+        <NAME>{technique.id.value}</NAME>
+        {if (needReporting) <NAME>{technique.id.value}_rudder_reporting</NAME> else NodeSeq.Empty}
       </BUNDLES>
       <FILES>
         <FILE name={
-      s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.cf"
+      s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.id.value}/${technique.version.value}/technique.cf"
     }>
           <INCLUDED>true</INCLUDED>
         </FILE>
         {
       if (needReporting) {
         <FILE name={
-          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/rudder_reporting.cf"
+          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.id.value}/${technique.version.value}/rudder_reporting.cf"
         }>
             <INCLUDED>true</INCLUDED>
           </FILE>
@@ -861,14 +858,14 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
     }
         {
       for {
-        resource <- technique.ressources
+        resource <- technique.resources
         if resource.state != ResourceFileState.Deleted
       } yield {
         <FILE name={
-          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"
+          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources/${resource.path}"
         }>
               <INCLUDED>false</INCLUDED>
-              <OUTPATH>{technique.bundleName.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
+              <OUTPATH>{technique.id.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
             </FILE>
       }
     }
@@ -917,7 +914,7 @@ class DSCTechniqueWriter(
   }
 
   def computeTechniqueFilePath(technique: EditorTechnique) =
-    s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
+    s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/technique.ps1"
 
   def formatDscMethodBlock(techniqueName: String, methods: Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(
       method:                             MethodElem
@@ -925,12 +922,9 @@ class DSCTechniqueWriter(
     method match {
       case c: MethodCall =>
         val call = MethodCall.renameParams(c, methods)
-        if (call.methodId.value.startsWith("_")) {
+        if (call.method.value.startsWith("_")) {
           Right(Nil)
         } else {
-          val componentName    = call.component.replaceAll("\"", "`\"")
-          val disableReporting = if (call.disabledReporting) { "true" }
-          else { "false" }
 
           (for {
 
@@ -944,7 +938,7 @@ class DSCTechniqueWriter(
                         .translate(
                           dscValue,
                           methods
-                            .get(call.methodId)
+                            .get(call.method)
                             .flatMap(_.parameters.find(_.id == id))
                             .map(_.parameterType)
                             .getOrElse(ParameterType.StringParameter),
@@ -954,7 +948,7 @@ class DSCTechniqueWriter(
 
                     case eb: EmptyBox =>
                       val fail =
-                        eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                        eb ?~! s"Error when translating parameter '${arg}' of technique of method ${call.method} of technique ${techniqueName}"
                       Left(IOError(fail.messageChain, None))
                   }
               }).map(_.toMap)
@@ -964,18 +958,18 @@ class DSCTechniqueWriter(
                                 case Full(c) => Right(c)
                                 case eb: EmptyBox =>
                                   val fail =
-                                    eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.methodId} of technique ${techniqueName}"
+                                    eb ?~! s"Error when translating condition '${call.condition}' of technique of method ${call.method} of technique ${techniqueName}"
                                   Left(IOError(fail.messageChain, None))
                               }
 
             // Check if method exists
-            method         <- methods.get(call.methodId) match {
+            method         <- methods.get(call.method) match {
                                 case Some(method) =>
                                   Right(method)
                                 case None         =>
                                   Left(
                                     MethodNotFound(
-                                      s"Method '${call.methodId.value}' not found when writing dsc Technique '${techniqueName}' methods calls",
+                                      s"Method '${call.method.value}' not found when writing dsc Technique '${techniqueName}' methods calls",
                                       None
                                     )
                                   )
@@ -995,14 +989,26 @@ class DSCTechniqueWriter(
 
             methodParams  = params.map { case (id, arg) => s"""-${id.validDscName} ${arg}""" }.mkString(" ")
             effectiveCall =
-              s"""$$call = ${call.methodId.validDscName} ${methodParams} -PolicyMode $$policyMode""" // methodParams can be multiline text
+              s"""$$call = ${call.method.validDscName} ${methodParams} -PolicyMode $$policyMode""" // methodParams can be multiline text
             // so we should never indent it
             methodContext = s"""$$methodContext = Compute-Method-Call @reportParams -MethodCall $$call
                                |$$localContext.merge($$methodContext)
                                |""".stripMargin
 
           } yield {
-            val methodCall = if (method.agentSupport.contains(AgentType.Dsc)) {
+
+            val name             = if (call.component.isEmpty) {
+              method.name
+            } else {
+              call.component
+            }
+            val componentName    = name.replaceAll("\"", "`\"")
+            val disableReporting = if (call.disabledReporting) {
+              "true"
+            } else {
+              "false"
+            }
+            val methodCall       = if (method.agentSupport.contains(AgentType.Dsc)) {
               if (condition == "any") {
                 s"""  ${effectiveCall}
                    |  ${methodContext.indentNextLines(2)}""".stripMargin
@@ -1053,10 +1059,10 @@ class DSCTechniqueWriter(
 
     for {
 
-      calls <- technique.methodCalls.toList.flatTraverse(formatDscMethodBlock(technique.name, methods, Nil)).toIO
+      calls <- technique.calls.toList.flatTraverse(formatDscMethodBlock(technique.name, methods, Nil)).toIO
 
       content = {
-        s"""|function ${technique.bundleName.validDscName} {
+        s"""|function ${technique.id.validDscName} {
             |  [CmdletBinding()]
             |  param (
             |      [parameter(Mandatory=$$true)]
@@ -1100,21 +1106,21 @@ class DSCTechniqueWriter(
   def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
-        <NAME>{technique.bundleName.validDscName}</NAME>
+        <NAME>{technique.id.validDscName}</NAME>
       </BUNDLES>
       <FILES>
         <FILE name={s"RUDDER_CONFIGURATION_REPOSITORY/${computeTechniqueFilePath(technique)}"}>
           <INCLUDED>true</INCLUDED>
         </FILE> {
       for {
-        resource <- technique.ressources
+        resource <- technique.resources
         if resource.state != ResourceFileState.Deleted
       } yield {
         <FILE name={
-          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources/${resource.path}"
+          s"RUDDER_CONFIGURATION_REPOSITORY/techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources/${resource.path}"
         }>
               <INCLUDED>false</INCLUDED>
-              <OUTPATH>{technique.bundleName.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
+              <OUTPATH>{technique.id.value}/{technique.version.value}/resources/{resource.path}</OUTPATH>
             </FILE>
       }
     }
