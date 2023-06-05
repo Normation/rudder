@@ -85,8 +85,51 @@ for template in templates:
         print('Could not build %s' % (html_file))
         exit(1)
 
+    # Now let's change what we could not configure before...
+
+    # Rudder 7 theme
     if subprocess.call(['sed', '-i', '/<style>/ r custom.css', html_file]):
         print('Could not insert custom CSS rules into %s' % (html_file))
+        exit(1)
+
+    # Extract URL to redoc JS
+    # Allows getting the current version
+    url = subprocess.check_output(
+        [
+            'grep',
+            '-Eo',
+            'https://cdn.redoc.ly/redoc/.+/bundles/redoc.standalone.js',
+            html_file,
+        ],
+        text=True,
+    )
+    url = url.strip()
+
+    redoc_js = 'redoc.js'
+    redoc_js_file = f'{target}/{redoc_js}'
+    # Download JS file
+    if subprocess.call(
+        ['curl', '--silent', '--fail', url, '--output', redoc_js_file]
+    ):
+        print(
+            'Could not download redoc lib from %s into %s'
+            % (url, redoc_js_file)
+        )
+        exit(1)
+    # Remove external image from minified JS
+    if subprocess.call(
+        [
+            'sed',
+            '-i',
+            f's@https://cdn.redoc.ly/redoc/logo-mini.svg@@',
+            redoc_js_file,
+        ]
+    ):
+        print('Could not insert redoc JS path into %s' % (redoc_js_file))
+        exit(1)
+    # Replace link to lib by local version
+    if subprocess.call(['sed', '-i', f's@{url}@{redoc_js}@', html_file]):
+        print('Could not insert redoc JS path into %s' % (html_file))
         exit(1)
 
     shutil.copytree('%s/assets' % source, '%s/assets' % target)
