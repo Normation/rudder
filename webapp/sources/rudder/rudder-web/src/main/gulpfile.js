@@ -8,6 +8,7 @@ const terser = require('gulp-terser');
 const elm_p = require('gulp-elm');
 const merge = require('merge-stream');
 const del = require('del');
+const through = require('through2');
 
 const paths = {
     'css': {
@@ -37,10 +38,24 @@ const paths = {
     },
     'elm': {
         'src': 'elm',
-        'watch': 'elm/**/*.elm',
+        'watch': 'elm/sources/*.elm',
         'dest': 'webapp/javascript/rudder/elm',
     },
 };
+
+// Derived from https://github.com/mixmaxhq/gulp-grep-contents (under MIT License)
+var grep = function(regex) {
+    var restoreStream = through.obj();
+    return through.obj(function(file, encoding, callback) {
+        var match = regex.test(String(file.contents))
+        if (match) {
+            callback(null, file);
+            return;
+        }
+        restoreStream.write(file);
+        callback();
+    });
+}
 
 function clean(cb) {
     del.sync([paths.js.dest, paths.css.dest]);
@@ -56,34 +71,37 @@ function getElmApps(dir) {
 }
 
 function elm(cb) {
-    var apps = getElmApps(paths.elm.src);
-    var tasks = apps.map(function(app) {
-        // Filename
-        file = app[0].toUpperCase() + app.substring(1) + '.elm'
-        return src(path.join(paths.elm.src, app, 'sources', file))
-            .pipe(elm_p({
-                optimize: profile.production(),
-                cwd: path.join(paths.elm.src, app),
-            }))
-            .pipe(rename('rudder-' + app + '.js'))
-            // elm minification options from https://guide.elm-lang.org/optimization/asset_size.html#instructions
-            .pipe(profile.production(terser({
-                compress: {
-                    pure_funcs: ['F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'A2', 'A3', 'A4',
-                        'A5', 'A6', 'A7', 'A8', 'A9'
-                    ],
-                    pure_getters: true,
-                    keep_fargs: false,
-                    unsafe_comps: true,
-                    unsafe: true,
-                },
-            })))
-            .pipe(profile.production(terser({
-                mangle: true,
-            })))
-            .pipe(dest(paths.elm.dest));
-    });
-    return merge(tasks);
+    src(paths.elm.watch)
+        // Detect entry points
+        .pipe(grep(/Browser.element/))
+        .pipe(elm_p({
+            optimize: profile.production(),
+            cwd: path.join(paths.elm.src),
+        }))
+        .pipe(rename(function (path) {
+            return {
+                dirname: '',
+                basename: 'rudder-' + path.basename.toLowerCase(),
+                extname: '.js'
+            };
+        }))
+        // elm minification options from https://guide.elm-lang.org/optimization/asset_size.html#instructions
+        .pipe(profile.production(terser({
+            compress: {
+                pure_funcs: ['F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'A2', 'A3', 'A4',
+                    'A5', 'A6', 'A7', 'A8', 'A9'
+                ],
+                pure_getters: true,
+                keep_fargs: false,
+                unsafe_comps: true,
+                unsafe: true,
+            },
+        })))
+        .pipe(profile.production(terser({
+            mangle: true,
+        })))
+        .pipe(dest(paths.elm.dest));
+    cb();
 };
 
 function js(cb) {

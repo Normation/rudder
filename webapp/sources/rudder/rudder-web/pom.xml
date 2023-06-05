@@ -168,8 +168,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
             </goals>
             <configuration>
               <executable>npx</executable>
-              <workingDirectory>src/main/elm/editor</workingDirectory>
-              <commandlineArgs>elm-test</commandlineArgs>
+	      <workingDirectory>src/main/elm</workingDirectory>
+	      <commandlineArgs>elm-test "sources/**/tests"</commandlineArgs>
             </configuration>
           </execution>
         </executions>
