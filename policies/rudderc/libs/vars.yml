@@ -1,0 +1,101 @@
+---
+# This file holds Rudder special variables.
+
+# TODO types + target platform + agent versions
+
+# We don't list all variables but only the ones
+# that make sense in a technique.
+# In particular, we don't support variables evaluated at policy generation (e.g. inventory variables).
+
+# Latest variable list update: CFEngine 3.21
+sys:
+  - arch
+  - bindir
+  - cdate
+  - class
+  - cpus
+  - crontab
+  - date
+  - doc_root
+  - domain
+  - exports
+  - failsafe_policy_path
+  - flavor
+  - flavour
+  - fqhost
+  - fstab
+  - hardware_addresses
+  - hardware_mac
+  - host
+  - inet
+  - inet6
+  - inputdir
+  - interface
+  - interfaces
+  - interfaces_data
+  - interface_flags
+  - ip_addresses
+  - ip2iface
+  - ipv4
+  - ipv4_1
+  - ipv4_2
+  - ipv4_3
+  - key_digest
+  - last_policy_update
+  - libdir
+  - local_libdir
+  - logdir
+  - long_arch
+  - maildir
+  - masterdir
+  - os
+  - os_name_human
+  - os_release
+  - os_version_major
+  - ostype
+  - piddir
+  - policy_entry_basename
+  - policy_hub
+  - policy_entry_dirname
+  - policy_entry_filename
+  - policy_hub_port
+  - release
+  - resolv
+  - statedir
+  - sysday
+  - systime
+  - update_policy_path
+  - uptime
+  - user_data
+  - uqhost
+  - version
+  - workdir
+
+# `const` global variables
+const:
+  - dollar
+  - dirsep
+  - endl
+  - n
+  - r
+  - t
+
+ncf_const:
+  - s
+
+inventory:
+  - hostname
+  - localAdministratorAccountName
+  - archDescription
+  - ram
+  - timezone
+  - os:
+      - name
+      - fullName
+      - version
+      - kernelVersion
+      - servicePack
+  - machine:
+      - machineType
+      - manufacturer
+  - policyServerId

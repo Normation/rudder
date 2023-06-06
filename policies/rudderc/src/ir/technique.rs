@@ -268,7 +268,13 @@ impl fmt::Display for BlockReportingMode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum LeafReporting {
+pub struct LeafReporting {
+    #[serde(default)]
+    pub mode: LeafReportingMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum LeafReportingMode {
     #[serde(rename = "enabled")]
     #[default]
     Enabled,

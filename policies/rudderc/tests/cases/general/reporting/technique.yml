@@ -73,6 +73,7 @@ items:
           - name: "Disabled reporting"
             id: c76686bb-79ab-4ae5-b45f-108492ab4101
             method: package_present
-            reporting: disabled
+            reporting:
+              mode: disabled
             params:
               name: ntp

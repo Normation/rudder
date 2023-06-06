@@ -1,6 +1,5 @@
 {#- Syntax: https://djc.github.io/askama/template_syntax.html -#}
-function {{ id }}
-{
+function {{ id|dsc_case }} {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
@@ -8,12 +7,17 @@ function {{ id }}
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 {% for p in parameters %}
-        [parameter(Mandatory = $true)]
-        [{{ p._type }}]${{ p.name }},
+        [parameter(Mandatory = ${{ !p.may_be_empty }})]
+        [string]${{ p.name }},
 {%- endfor %}
         [Rudder.PolicyMode]$policyMode
     )
-    BeginTechniqueCall -Name $techniqueName
+    $techniqueParams = @{
+{% for p in parameters %}
+        "{{ p.name }}" = ${{- p.name -}}
+{%- endfor %}
+    }
+    BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
     $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
     $localContext.Merge($system_classes)
@@ -25,24 +29,24 @@ function {{ id }}
     $reportId=$reportIdBase + "{{ m.id }}"
     $componentKey = "{{ m.component_key }}"
     $reportParams = @{
-    ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
-    ComponentKey = $componentKey
-    ComponentName = "{{ m.component_name }}"
-    PolicyMode = $policyMode
-    ReportId = $reportId
-    DisableReporting = {{ m.disable_reporting }}
-    TechniqueName = $techniqueName
+        ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
+        ComponentKey = $componentKey
+        ComponentName = "{{ m.component_name|escape_double_quotes }}"
+        PolicyMode = $policyMode
+        ReportId = $reportId
+        DisableReporting = {{ m.disable_reporting }}
+        TechniqueName = $techniqueName
     }
     {% match m.condition %}
     {%- when Some with (cond) %}
-    $class = "{{ cond }}"
+    $class = "{{ cond|canonify_condition }}"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             {% for arg in m.args %}
-                {{- arg.0 }} = "{{ arg.1 }}"
+                {{- arg.0|dsc_case }} = "{{ arg|parameter_fmt }}"
             {% endfor %}
         }
-        $call = {{ m.name }} @methodParams
+        $call = {{ m.name|dsc_case }} $methodParams -PolicyMode $policyMode
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -51,10 +55,10 @@ function {{ id }}
     {%- when None %}
     $methodParams = @{
         {% for arg in m.args %}
-            {{- arg.0 }} = "{{ arg.1 }}"
+            {{- arg.0|dsc_case }} = "{{ arg.1 }}"
         {% endfor %}
     }
-    $call = {{ m.name }} @methodParams
+    $call = {{ m.name }} $methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     {% endmatch %}

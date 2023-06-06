@@ -21,12 +21,9 @@ pub mod logs;
 pub mod test;
 
 /// We want to only compile the regex once
-///
-/// Use once_cell as showed in its documentation
-/// https://docs.rs/once_cell/1.2.0/once_cell/index.html#building-block
 macro_rules! regex {
     ($re:literal $(,)?) => {{
-        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
         RE.get_or_init(|| regex::Regex::new($re).unwrap())
     }};
 }

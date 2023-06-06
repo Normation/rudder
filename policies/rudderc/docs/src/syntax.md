@@ -18,7 +18,7 @@ A technique is made of:
 * `documentation` (optional): Documentation in Markdown format.
 * `tags` (optional): Optional key-value tags.
 * `category` (optional): Rudder category to put the technique in.
-* `parameters` (optional): A list of parameters. See below for details.
+* `params` (optional): A list of parameters. See below for details.
 * `items`: A list of items (block or method call). Cannot be empty. See below for details.
 
 Example:
@@ -65,11 +65,13 @@ Blocks contains:
 * `items`
 * `condition` (optional)
 * `reporting` (optional)
-  * `worst-case-weighted-sum`
-  * `worst-case-weighted-one`
-  * `weighted`
-  * `focus` + `id`
-  * `disabled`
+  * `mode`
+    * `worst-case-weighted-sum` (default)
+    * `worst-case-weighted-one`
+    * `weighted`
+    * `focus`
+    * `disabled`
+  * `id` (required with `focus` mode)
 
 ## Methods
 
@@ -82,8 +84,9 @@ Methods contains:
 * `params`: Key-Value dictionary of parameters for the method.
 * `condition` (optional)
 * `reporting` (optional)
-  * `enabled` (default)
-  * `disabled`
+  * `mode` 
+    * `enabled` (default)
+    * `disabled`
 
 Example:
 
@@ -97,4 +100,6 @@ items:
     method: package_absent
     params:
       name: "telnet-server"
+    reporting:
+      mode: disabled
 ```

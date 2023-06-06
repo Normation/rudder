@@ -105,7 +105,9 @@ impl FromStr for Condition {
             // * boolean operators: |.&!()
             // * variable expansion syntax: ${}
             // * spaces
-            let valid_chars = ['_', '$', '{', '}', '|', '&', '.', '!', '(', ')', ' '];
+            let valid_chars = [
+                '_', '$', '{', '}', '[', ']', '|', '&', '.', '!', '(', ')', ' ',
+            ];
             c.is_ascii_alphanumeric() || valid_chars.contains(&c)
         }
 

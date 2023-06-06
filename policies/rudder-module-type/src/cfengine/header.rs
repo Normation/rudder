@@ -27,8 +27,6 @@ impl FromStr for Version {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        dbg!(s);
-
         let parts: Vec<&str> = s.splitn(3, '.').collect();
 
         // Only take numbers in patch version to remove pre-version prefixes

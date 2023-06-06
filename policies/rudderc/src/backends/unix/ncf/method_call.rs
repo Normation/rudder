@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-//! Difference with `Method` is that this one represents the call in the
+//! The difference with `Method` is that this one represents the call in the
 //! "ncf/cfengine" model, different on Windows.
 //!
 //! It trusts its input (which should have already validated the method
-//! signature, types and constraints).
+//! signature, type, and constraints).
 
 use std::convert::TryFrom;
 
@@ -19,7 +19,7 @@ use crate::{
     frontends::methods::method::Agent,
     ir::{
         condition::Condition,
-        technique::{LeafReporting, Method},
+        technique::{LeafReportingMode, Method},
     },
 };
 
@@ -142,14 +142,14 @@ impl TryFrom<Method> for (Promise, Bundle) {
                 )
             ],
         };
-        let bundle_content = match m.reporting {
-            LeafReporting::Disabled => {
+        let bundle_content = match m.reporting.mode {
+            LeafReportingMode::Disabled => {
                 let mut res = vec![disable_report];
                 res.append(&mut promises);
                 res.push(enable_report);
                 res
             }
-            LeafReporting::Enabled => promises,
+            LeafReportingMode::Enabled => promises,
         };
 
         // Calling bundle

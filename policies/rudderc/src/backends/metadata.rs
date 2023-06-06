@@ -18,7 +18,7 @@ use serde::Serialize;
 use crate::{
     backends::{Backend, Windows},
     ir,
-    ir::technique::{Id, ItemKind, LeafReporting},
+    ir::technique::{Id, ItemKind, LeafReportingMode},
     RESOURCES_DIR,
 };
 
@@ -288,7 +288,8 @@ impl SectionType {
                     reporting: b.reporting.to_string(),
                 })),
                 ItemKind::Method(m) => {
-                    if m.reporting == LeafReporting::Disabled || m.method.starts_with('_') {
+                    if m.reporting.mode == LeafReportingMode::Disabled || m.method.starts_with('_')
+                    {
                         None
                     } else {
                         Some(SectionType::Section(Section {

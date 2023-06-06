@@ -5,6 +5,7 @@ pub use technique::Technique;
 
 pub mod condition;
 pub mod technique;
+pub mod value;
 
 // we probably need a CFEngine ${} parser
 // it would be good to be able to warn on undefined variables

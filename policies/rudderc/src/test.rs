@@ -12,8 +12,7 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
-use std::path::Path;
-use std::{collections::HashMap, process::Command};
+use std::{collections::HashMap, path::Path, process::Command};
 
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};

@@ -5,11 +5,12 @@ use std::path::Path;
 
 use anyhow::{bail, Error, Result};
 use askama::Template;
+use rudder_commons::ParameterType;
 
 use super::Backend;
 use crate::ir::{
     condition::Condition,
-    technique::{ItemKind, LeafReporting, Method, Parameter},
+    technique::{ItemKind, LeafReportingMode, Method, Parameter},
     Technique,
 };
 
@@ -28,7 +29,13 @@ impl Backend for Windows {
         resources: &Path,
         _standalone: bool,
     ) -> Result<String> {
-        Self::technique(technique, resources)
+        // Powershell requires a BOM added at the beginning of all files when using UTF8 encoding
+        // See https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks
+        // Bom for UTF-8 content, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
+        const UTF8_BOM: &[u8; 3] = &[0xef, 0xbb, 0xbf];
+        let mut with_bom = String::from_utf8(UTF8_BOM.to_vec()).unwrap();
+        with_bom.push_str(&Self::technique(technique, resources)?);
+        Ok(with_bom)
     }
 }
 
@@ -41,6 +48,80 @@ struct TechniqueTemplate<'a> {
     methods: Vec<WindowsMethod>,
 }
 
+/// Filters for the technique template
+mod filters {
+    use std::fmt::Display;
+
+    use anyhow::Error;
+    use rudder_commons::{ParameterType, Target};
+
+    use crate::{ir::value::Expression, regex};
+
+    fn uppercase_first_letter(s: &str) -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        }
+    }
+
+    /// Format an expression to be evaluated by the agent
+    pub fn value_fmt<T: Display>(s: T) -> askama::Result<String> {
+        let expr: Expression = s
+            .to_string()
+            .parse()
+            .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+        Ok(expr.fmt(Target::Windows))
+    }
+
+    /// `my_method` -> `My-Method`
+    pub fn dsc_case<T: Display>(s: T) -> askama::Result<String> {
+        Ok(s.to_string()
+            .split('_')
+            .map(uppercase_first_letter)
+            .collect::<Vec<String>>()
+            .join("-"))
+    }
+
+    /// `my_method` -> `MyMethod`
+    pub fn _camel_case<T: Display>(s: T) -> askama::Result<String> {
+        Ok(s.to_string()
+            .split('_')
+            .map(uppercase_first_letter)
+            .collect::<Vec<String>>()
+            .join(""))
+    }
+
+    pub fn escape_double_quotes<T: Display>(s: T) -> askama::Result<String> {
+        Ok(s.to_string().replace('\"', "`\""))
+    }
+
+    pub fn canonify_condition<T: Display>(s: T) -> askama::Result<String> {
+        let s = s.to_string();
+        if !s.contains("${") {
+            Ok(format!("\"{s}\""))
+        } else {
+            // TODO: does not handle nested vars, we need a parser for this.
+            let var = regex!(r"(\$\{[^\}]*})");
+            // Format expression for Windows too
+            value_fmt(format!(
+                "\"{}\"",
+                var.replace_all(&s, r##"" + ([Rudder.Condition]::canonify($1)) + ""##)
+            ))
+        }
+    }
+
+    pub fn parameter_fmt(p: &&(String, String, ParameterType)) -> askama::Result<String> {
+        // Format expression for Windows
+        let value = value_fmt(&p.1)?;
+        // Then display depending on type
+        match p.2 {
+            ParameterType::String => escape_double_quotes(value),
+            ParameterType::HereString => Ok(format!("@'\n{value}\n'@")),
+        }
+    }
+}
+
 struct WindowsMethod {
     id: String,
     class_prefix: String,
@@ -48,7 +129,7 @@ struct WindowsMethod {
     component_key: String,
     disable_reporting: bool,
     condition: Option<String>,
-    args: Vec<(String, String)>,
+    args: Vec<(String, String, ParameterType)>,
     name: String,
 }
 
@@ -62,7 +143,26 @@ impl TryFrom<Method> for WindowsMethod {
             bail!("Missing parameter {}", m.info.unwrap().class_parameter)
         };
 
-        let mut args: Vec<(String, String)> = m.params.clone().into_iter().collect();
+        // Let's build a (Name, Value, Type) tuple required for proper rendering.
+        let mut args: Vec<(String, String, ParameterType)> = m
+            .params
+            .clone()
+            .into_iter()
+            .map(|(n, v)| {
+                // Extract parameter type
+                // The technique has been linted, the parameter name is correct.
+                let p_type = m
+                    .info
+                    .unwrap()
+                    .parameter
+                    .iter()
+                    .find(|p| p.name == n)
+                    .unwrap()
+                    .p_type;
+                (n, v, p_type)
+            })
+            .collect();
+
         // We want a stable output
         args.sort();
 
@@ -71,7 +171,7 @@ impl TryFrom<Method> for WindowsMethod {
             class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
             component_name: m.name,
             component_key: report_parameter.to_string(),
-            disable_reporting: m.reporting == LeafReporting::Disabled,
+            disable_reporting: m.reporting.mode == LeafReportingMode::Disabled,
             // FIXME: None
             condition: Some(m.condition.to_string()),
             args,

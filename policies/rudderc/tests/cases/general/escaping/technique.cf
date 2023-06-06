@@ -1,10 +1,10 @@
 # @name Test various escaping cases ${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ " "" \ \\😋aà3
 # @version 0.1
 
-bundle agent escaping(server) {
+bundle agent escaping {
 
   vars:
-    "args"              slist => {"${server}"};
+    "args"              slist => {};
     "report_param"      string => join("_", args);
     "full_class_prefix" string => canonify("escaping_${report_param}");
     "class_prefix"      string => string_head("${full_class_prefix}", "1000");

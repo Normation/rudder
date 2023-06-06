@@ -2,7 +2,7 @@
 id: ntp
 name: NTP
 version: "0.1"
-parameters:
+params:
   - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
     name: server
     description: "The server hostname"

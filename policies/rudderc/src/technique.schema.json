@@ -16,13 +16,16 @@
     "description": {
       "type": "string"
     },
-    "parameters": {
+    "params": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/techniqueParameter"
       }
     },
     "name": {
+      "type": "string"
+    },
+    "category": {
       "type": "string"
     },
     "version": {
@@ -68,11 +71,10 @@
     },
     "reportingMode" :{
       "oneOf": [
-        { "const": "disabled" },
         {
           "type": "object",
           "properties": {
-            "mode": { "enum": [ "worst-case-weighted-one", "worst-case-weighted-sum" ]  }
+            "mode": { "enum": [ "worst-case-weighted-one", "worst-case-weighted-sum", "disabled", "enabled", "weighted" ]  }
           },
           "required": [ "mode" ],
           "additionalProperties": false
@@ -80,8 +82,8 @@
         {
           "type": "object",
           "properties": {
-             "id": { "$ref": "#/$defs/uuid" },
-             "mode": { "const": "focus" }
+            "id": { "$ref": "#/$defs/uuid" },
+            "mode": { "const": "focus" }
           },
           "required": [ "mode", "id" ],
           "additionalProperties": false
