@@ -1,7 +1,7 @@
-module Init exposing (..)
+module Agentpolicymode.Init exposing (..)
 
-import ApiCalls exposing (..)
-import DataTypes exposing (..)
+import Agentpolicymode.ApiCalls exposing (..)
+import Agentpolicymode.DataTypes exposing (..)
 
 init : { contextPath : String, hasWriteRights : Bool, nodeId : String } -> ( Model, Cmd Msg )
 init flags =

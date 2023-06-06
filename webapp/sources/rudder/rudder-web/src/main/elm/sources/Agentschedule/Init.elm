@@ -1,6 +1,7 @@
-module Init exposing (..)
+module Agentschedule.Init exposing (..)
 
-import DataTypes exposing (..)
+import Agentschedule.DataTypes exposing (..)
+
 
 init : { contextPath : String, hasWriteRights : Bool, schedule : Maybe Schedule, globalRun : Maybe Schedule } -> ( Model, Cmd Msg )
 init flags =

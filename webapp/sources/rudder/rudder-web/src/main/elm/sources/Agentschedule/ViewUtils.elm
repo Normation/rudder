@@ -1,11 +1,13 @@
-module ViewUtils exposing (..)
+module Agentschedule.ViewUtils exposing (..)
 
-import DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe.Extra exposing (isJust)
 import Dict exposing (Dict)
+
+import Agentschedule.DataTypes exposing (..)
+
 
 intervals : Dict Int String
 intervals = Dict.fromList

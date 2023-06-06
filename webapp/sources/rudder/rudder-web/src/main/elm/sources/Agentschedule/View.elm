@@ -1,12 +1,14 @@
-module View exposing (..)
+module Agentschedule.View exposing (..)
 
-import DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (id, class, href, type_, disabled, for, checked, selected, value)
 import Html.Events exposing (onClick, onInput)
 import Maybe.Extra exposing (isJust)
 import Dict
-import ViewUtils exposing (..)
+
+import Agentschedule.DataTypes exposing (..)
+import Agentschedule.ViewUtils exposing (..)
+
 
 view : Model -> Html Msg
 view model =

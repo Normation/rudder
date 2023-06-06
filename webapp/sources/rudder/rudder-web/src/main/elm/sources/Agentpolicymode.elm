@@ -1,12 +1,13 @@
 port module Agentpolicymode exposing (..)
 
 import Browser
-import DataTypes exposing (..)
 import Http exposing (..)
 import Result
-import Init exposing (init)
-import View exposing (view)
-import ApiCalls exposing (saveChanges)
+
+import Agentpolicymode.DataTypes exposing (..)
+import Agentpolicymode.Init exposing (init)
+import Agentpolicymode.View exposing (view)
+import Agentpolicymode.ApiCalls exposing (saveChanges)
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg

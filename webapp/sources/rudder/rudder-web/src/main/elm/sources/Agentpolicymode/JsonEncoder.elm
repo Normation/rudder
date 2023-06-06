@@ -1,7 +1,9 @@
-module  JsonEncoder exposing (..)
+module Agentpolicymode.JsonEncoder exposing (..)
 
-import DataTypes exposing (..)
 import Json.Encode exposing (..)
+
+import Agentpolicymode.DataTypes exposing (..)
+
 
 policyModeToString : PolicyMode -> String
 policyModeToString policyMode =

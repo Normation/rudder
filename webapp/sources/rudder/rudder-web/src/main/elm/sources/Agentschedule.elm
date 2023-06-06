@@ -1,14 +1,16 @@
 port module Agentschedule exposing (..)
 
 import Browser
-import DataTypes exposing (..)
 import Http exposing (..)
 import Result
-import Init exposing (init)
-import View exposing (view)
-import JsonEncoder exposing (encodeSchedule)
 import Json.Decode exposing (Value)
-import ViewUtils exposing (hours, minutes)
+
+import Agentschedule.DataTypes exposing (..)
+import Agentschedule.Init exposing (init)
+import Agentschedule.JsonEncoder exposing (encodeSchedule)
+import Agentschedule.View exposing (view)
+import Agentschedule.ViewUtils exposing (hours, minutes)
+
 
 -- PORTS / SUBSCRIPTIONS
 port saveSchedule : Value  -> Cmd msg

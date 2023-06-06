@@ -1,7 +1,9 @@
-module  JsonEncoder exposing (..)
+module Agentschedule.JsonEncoder exposing (..)
 
-import DataTypes exposing (..)
 import Json.Encode exposing (..)
+
+import Agentschedule.DataTypes exposing (..)
+
 
 encodeSchedule : Schedule -> Value
 encodeSchedule schedule =

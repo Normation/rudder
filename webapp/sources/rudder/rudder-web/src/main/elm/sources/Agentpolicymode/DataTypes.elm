@@ -1,4 +1,4 @@
-module DataTypes exposing (..)
+module Agentpolicymode.DataTypes exposing (..)
 
 import Http exposing (Error)
 

@@ -1,9 +1,10 @@
-module JsonDecoder exposing (..)
+module Agentpolicymode.JsonDecoder exposing (..)
 
-import DataTypes exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Decode.Field exposing (..)
+
+import Agentpolicymode.DataTypes exposing (..)
 
 
 toPolicyMode : String -> Decoder PolicyMode

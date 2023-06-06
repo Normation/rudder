@@ -1,4 +1,4 @@
-module DataTypes exposing (..)
+module Agentschedule.DataTypes exposing (..)
 
 import Http exposing (Error)
 

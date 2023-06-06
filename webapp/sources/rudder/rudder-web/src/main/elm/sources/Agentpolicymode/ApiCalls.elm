@@ -1,17 +1,18 @@
-module ApiCalls exposing (..)
+module Agentpolicymode.ApiCalls exposing (..)
 
-import DataTypes exposing (..)
 import Http exposing (..)
-import JsonDecoder exposing (..)
-import JsonEncoder exposing (..)
 import Url.Builder exposing (QueryParameter)
+
+import Agentpolicymode.DataTypes exposing (..)
+import Agentpolicymode.JsonDecoder exposing (..)
+import Agentpolicymode.JsonEncoder exposing (..)
 
 
 --
 -- This files contains all API calls for the Directive compliance UI
 --
 
-getUrl: DataTypes.Model -> List String -> List QueryParameter -> String
+getUrl: Model -> List String -> List QueryParameter -> String
 getUrl m url p=
   Url.Builder.relative (m.contextPath :: "secure" :: "api"  :: url) p
 

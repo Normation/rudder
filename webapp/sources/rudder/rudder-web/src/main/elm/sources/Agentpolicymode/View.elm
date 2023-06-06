@@ -1,9 +1,10 @@
-module View exposing (..)
+module Agentpolicymode.View exposing (..)
 
-import DataTypes exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (id, class, href, type_, attribute, disabled)
 import Html.Events exposing (onClick)
+
+import Agentpolicymode.DataTypes exposing (..)
 
 
 view : Model -> Html Msg
