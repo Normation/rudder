@@ -58,14 +58,22 @@
 
 bundle agent user_secondary_groups(login, groups, force) {
   vars:
-      "class_prefix"              string => canonify("user_secondary_groups_${login}");
+      "old_class_prefix"              string => canonify("user_secondary_groups_${login}");
       "group_list"                     slist => string_split("${groups}", ",", "999999");
       "subcall_prefix[${group_list}]" string => canonify("user_group_${login}_${group_list}");
-      "prefixes"                       slist => { "${class_prefix}",
-                                                  "${report_data.method_id}"
-                                                };
+
+      "args"                           slist => { "${login}", "${groups}", "${force}" };
+      "report_param"                  string => join("_", args);
+      "full_class_prefix"             string => canonify("user_secondary_groups_${report_param}");
+      "class_prefix"                  string => string_head("${full_class_prefix}", "1000");
+
       "c_id"                          string => canonify("${report_data.method_id}");
 
+      "prefixes"                       slist => {
+                                                  "${old_class_prefix}",
+                                                  "${class_prefix}",
+                                                  "${c_id}"
+                                                };
 
   defaults:
       "force" string => "false", if_match_regex => "";
@@ -117,7 +125,7 @@ bundle agent user_secondary_groups(login, groups, force) {
       "${login}"
         policy => "present",
         groups_secondary => { @{group_list} },
-        classes => classes_generic_two("${class_prefix}", "${report_data.method_id}"),
+        classes => classes_generic_two("${class_prefix}", "${c_id}"),
         if => and( "user_exists",
                    "!group_not_found",
                    "purge_other_groups"
