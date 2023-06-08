@@ -856,14 +856,16 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def displayTabProperties(jsId: JsNodeId, node: NodeInfo): NodeSeq = {
+  def displayTabProperties(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
     import com.normation.rudder.AuthorizationType
 
     val nodeId        = node.id.value
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
     val tabId         = htmlId(jsId, "sd_props_")
-    val css: CssSel = "#tabPropsId [id]" #> tabId
+    val css: CssSel = "#tabPropsId [id]" #> tabId &
+      "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node, sm)
+
     css(tabProperties) ++ Script(OnLoad(JsRaw(s"""
         angular.bootstrap('#nodeProp', ['nodeProperties']);
         var scope  = angular.element($$("#nodeProp")).scope();
@@ -871,6 +873,61 @@ object DisplayNode extends Loggable {
           scope.init("${nodeId}",${userHasRights},'node');
         });
       """)))
+  }
+
+  def displayTabInventoryVariable(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
+    def displayLine(name: String, value: String): NodeSeq = {
+      <tr>
+        <td>{name}<button class="btn btn-default clipboard" data-clipboard-text={s"""$${node.inventory[${name}]"""}><i class="ion ion-clipboard"></i></button></td>
+        {
+           if(value.strip().isEmpty) {
+             <td></td>
+           } else {
+            <td>{value}<button class="btn btn-default clipboard" data-clipboard-text={value}><i class="ion ion-clipboard"></i></button></td>
+           }
+        }
+     </tr>
+    }
+
+    val values = Seq[(String, String)](
+      ("localAdministratorAccountName", escape(sm.node.main.rootUser)),
+      ("hostname", escape(sm.node.main.hostname)),
+      ("policyServerId", escape(sm.node.main.policyServerId.value)),
+      ("os.fullName", escape(sm.node.main.osDetails.fullName)),
+      ("os.name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
+      ("os.version", escape(sm.node.main.osDetails.version.value)),
+      ("os.servicePack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+      ("archDescription", escape(sm.node.archDescription.getOrElse("None"))),
+      ("os.kernelVersion", escape(sm.node.main.osDetails.kernelVersion.value)),
+      ("ram", escape(sm.node.ram.map(_.size.toString).getOrElse(""))),
+      ("machine.manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse(""))),
+      ("machine.machineType", displayMachineType(sm.machine).text.toString),
+      (
+        "timezone",
+        escape(
+          sm.node.timezone
+            .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
+            .getOrElse("unknown")
+        )
+      )
+    )
+
+    <div>
+      <h3>Inventory variables</h3>
+      <div>
+        <div>
+          this is the node inventory variable that can be used in directive inputs.
+        </div>
+        <table class="no-footer dataTable">
+          <thead>
+            <tr class="head"><th>Name</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            {values.map { case (n, v) => displayLine(n, v) }}
+          </tbody>
+        </table>
+      </div>
+    </div>
   }
 
   private def displayTabProcess(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
