@@ -1,4 +1,6 @@
 {
-  "GHSA-ww39-953v-wcq6": "Only a DoS, let's ignore it", 
-  "GHSA-w573-4hg7-7wgq": "Only a DoS, let's ignore it" 
+  "GHSA-ww39-953v-wcq6": "A DoS", 
+  "GHSA-f8q6-p94x-37v3": "A DoS",
+  "GHSA-w5p7-h5w8-2hfq": "A DoS",
+  "GHSA-xvch-5gv4-984h": "Not used"
 }
