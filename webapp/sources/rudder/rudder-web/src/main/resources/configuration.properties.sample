@@ -576,9 +576,9 @@ rudder.auth.idle-timeout=30 minutes
 
 # This property contains the comma separated list of suffixes that will be checked
 # before running a hook under /opt/rudder/etc/hooks.d.
-# If an executable file has one of the following suffixes, it
-# will be IGNORED and the corresponding hook skipped. Non executable files are
-# always ignored, with or without any of these suffixes.
+# If an executable (+x) file has one of the following suffixes, it
+# will be IGNORED and the corresponding hook skipped. 
+# Non executable (-x) files are ALWAYS ignored, with or without any of these suffixes.
 #
 # Spaces are trimmed. Case is not relevant (both .disabled and .DISABLED will be ignored)
 
@@ -586,6 +586,7 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
  .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,\
  .dpkg-old, .dpkg-dist, .dpkg-new, .dpkg-tmp,\
  .disable , .disabled , _disable , _disabled,\
+ .sample  , .example  , .demo,\
  .ucf-old , .ucf-dist , .ucf-new ,\
  .rpmnew  , .rpmsave  , .rpmorig
 
