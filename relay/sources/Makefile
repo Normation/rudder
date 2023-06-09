@@ -37,7 +37,7 @@ autocomplete/rudder-pkg.sh:
 	# rudder-pkg may use dodopt python2
 	if head -n1 $(CURDIR)/rudder-pkg/rudder-pkg | grep python2 >/dev/null 2>&1; then pip install docopt; fi
 	mkdir -p autocomplete
-	export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
+	export PATH=$$PATH:/usr/local/bin; export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
 
 man: target/man/rudder-relayd.1.gz;
 
