@@ -2,7 +2,7 @@
 # cargo-vet config file
 
 [cargo-vet]
-version = "0.6"
+version = "0.7"
 
 [imports.bytecode-alliance]
 url = "https://raw.githubusercontent.com/bytecodealliance/wasmtime/main/supply-chain/audits.toml"
@@ -70,10 +70,6 @@ criteria = "safe-to-deploy"
 version = "2.0.11"
 criteria = "safe-to-deploy"
 
-[[exemptions.base64]]
-version = "0.21.2"
-criteria = "safe-to-deploy"
-
 [[exemptions.basic-toml]]
 version = "0.1.2"
 criteria = "safe-to-deploy"
@@ -96,10 +92,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.cc]]
 version = "1.0.79"
-criteria = "safe-to-deploy"
-
-[[exemptions.chrono]]
-version = "0.4.25"
 criteria = "safe-to-deploy"
 
 [[exemptions.clap]]
@@ -152,10 +144,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.env_logger]]
 version = "0.10.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.errno-dragonfly]]
-version = "0.1.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.fancy-regex]]
@@ -278,10 +266,6 @@ criteria = "safe-to-deploy"
 version = "0.3.9"
 criteria = "safe-to-deploy"
 
-[[exemptions.log]]
-version = "0.4.18"
-criteria = "safe-to-deploy"
-
 [[exemptions.mac]]
 version = "0.1.1"
 criteria = "safe-to-deploy"
@@ -312,10 +296,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.mime_guess]]
 version = "2.0.4"
-criteria = "safe-to-deploy"
-
-[[exemptions.minijinja]]
-version = "0.33.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.minimal-lexical]]
@@ -414,10 +394,6 @@ criteria = "safe-to-run"
 version = "0.4.30"
 criteria = "safe-to-run"
 
-[[exemptions.proc-macro2]]
-version = "1.0.59"
-criteria = "safe-to-deploy"
-
 [[exemptions.pulldown-cmark]]
 version = "0.9.3"
 criteria = "safe-to-deploy"
@@ -429,10 +405,6 @@ criteria = "safe-to-deploy"
 [[exemptions.quote]]
 version = "0.6.13"
 criteria = "safe-to-run"
-
-[[exemptions.quote]]
-version = "1.0.28"
-criteria = "safe-to-deploy"
 
 [[exemptions.rand]]
 version = "0.8.5"
@@ -592,10 +564,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.unicode-bidi]]
 version = "0.3.13"
-criteria = "safe-to-deploy"
-
-[[exemptions.unicode-ident]]
-version = "1.0.9"
 criteria = "safe-to-deploy"
 
 [[exemptions.unicode-xid]]
