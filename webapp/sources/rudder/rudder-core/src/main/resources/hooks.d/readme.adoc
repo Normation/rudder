@@ -10,7 +10,7 @@ explaining the generalities about hooks and the specificities of that hook (para
 *Hooks must be executable*. All executable files will be used as hooks EXCEPT if
 they end with one of the extensions listed in */opt/rudder/etc/rudder-web.properties
 for property *rudder.hooks.ignore-suffixes*. A common convention is to use the *.disabled*
-suffixe to do so.
+suffix to do so.
 
 Non executable files will be ignored (which allows to put other files in these
 directories, like a readme, for example).
@@ -25,7 +25,7 @@ you to use the patter "NN-hookname", with NN a number like
 
 *Hooks have normalized returned code*. Return codes on hooks are interpreted as follow:
 
-- 0      : success, no log (appart if debug one)          , continue to next hook
+- 0      : success, no log (apart if debug one)          , continue to next hook
 - 1-31   : error  , error   log in /var/log/rudder/webapp/, stop processing
 - 32-63  : warning, warning log in /var/log/rudder/webapp/, continue to next hook
 - 64-255 : reserved for future use case. Behavior may change without notice.
