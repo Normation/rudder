@@ -13,15 +13,15 @@
 
 
 # Errors code on hooks are interpreted as follow:
-# - 0     : success, no log (appart if debug one)          , continue to next hook
+# - 0     : success, no log (apart if debug one)          , continue to next hook
 # - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
 # - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
-# - 64-255: reserved for futur use case. Behavior may change without notice.
+# - 64-255: reserved for future use case. Behavior may change without notice.
 
-# We want to delete node policies (ie /var/rudder/share/path/to/node/policy/even/with relays
+# We want to delete node policies (i.e. /var/rudder/share/path/to/node/policy/even/with relays
 # and /var/rudder/backup/node-id
 
-# we delete the parent of current (ie parent of(/.../node-id/rules)
+# we delete the parent of current (i.e. parent of(/.../node-id/rules)
 NODE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_CURRENT})"
 ARCHIVE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_ARCHIVE})"
 

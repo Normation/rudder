@@ -13,10 +13,10 @@
 # - RUDDER_AGENT_TYPE: agent type ("cfengine-community" or "dsc")
 
 # Errors code on hooks are interpreted as follow:
-# - 0     : success, no log (appart if debug one)          , continue to next hook
+# - 0     : success, no log (apart if debug one)          , continue to next hook
 # - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
 # - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
-# - 64-255: reserved for futur use case. Behavior may change without notice.
+# - 64-255: reserved for future use case. Behavior may change without notice.
 
 #
 # This file is an example of a simple auto acceptation script. You can copy in current
@@ -44,8 +44,8 @@ echo "[$(date --iso-8601=s)] received inventory for pending node '${RUDDER_NODE_
 # https://docs.rudder.io/reference/current/usage/advanced_node_management.html#_creating_a_node_inventory_hook ).
 # We will use `jq` to extract the relevant information from the API call response.
 
-MODE=$(curl -k -X GET -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" -H "Content-Type: application/json" \
-  "https://localhost/rudder/api/latest/nodes/${RUDDER_NODE_ID}?include=minimal,properties" | \
+MODE=$(curl -X GET -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" -H "Content-Type: application/json" \
+  "http://localhost:8080/rudder/api/latest/nodes/${RUDDER_NODE_ID}?include=minimal,properties" | \
   jq -r '.data.nodes[0].properties | map(select(.name = "accept"))[0].value')
 
 #
@@ -53,8 +53,8 @@ MODE=$(curl -k -X GET -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" -H "Con
 #
 if [ "${MODE}" == "auto-accept" ]; then
   # accept node
-  curl -f -k -X POST -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" \
-    "https://localhost/rudder/api/latest/nodes/pending/${RUDDER_NODE_ID}" -d 'status=accepted'
+  curl -f -X POST -H "X-API-TOKEN: $(cat /var/rudder/run/api-token)" \
+    "http://localhost:8080/rudder/api/latest/nodes/pending/${RUDDER_NODE_ID}" -d 'status=accepted'
 
   if [ "$?" -eq 0 ]; then
     echo "[$(date --iso-8601=s)] node '${RUDDER_NODE_HOSTNAME}' (${RUDDER_NODE_ID}) auto-accepted" >> ${LOG}

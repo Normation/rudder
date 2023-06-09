@@ -19,10 +19,6 @@ else
       exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
     ;;
 
-    "cfengine-nova")
-      exec /var/cfengine/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
-    ;;
-
     "dsc")
       # Not checking dsc agent policies for now
       exit 0

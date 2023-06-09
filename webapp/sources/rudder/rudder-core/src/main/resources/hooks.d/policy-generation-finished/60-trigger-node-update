@@ -4,7 +4,7 @@
 #
 # - RUDDER_GENERATION_DATETIME       : generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.
 # - RUDDER_END_GENERATION_DATETIME   : generation end time: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time when the generation ended (minus these hooks)
-# - RUDDER_NODE_IDS_PATH             : path to a sourcable file with variable RUDDER_NODE_IDS containing a bash array of node id updated
+# - RUDDER_NODE_IDS_PATH             : path to a sourceable file with variable RUDDER_NODE_IDS containing a bash array of node id updated
 #                                      during the process, or the empty array if no nodes were updated.
 # - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
 # - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
@@ -18,7 +18,7 @@
 # This feature can generate a more run than expected and some load on the network. In big
 # Rudder installation (thousands of nodes), we advice to measure these metrics and disable
 # the hook if necessary.
-# Other specifities:
+# Other specificities:
 # - obviously, node agent will run more frequently than its configured period since a run
 #   will be triggered at each generation;
 # - splay time is not honored (all agent runs are triggered simultaneously).
@@ -30,10 +30,10 @@ set -e
 ACL_BACK="/var/rudder/tmp/cf-serverd.sha256"
 WAIT_TIMER=5
 
-source ${RUDDER_NODE_IDS_PATH}
+source "${RUDDER_NODE_IDS_PATH}"
 
 if [ -z "${TEST}" ]; then
-  source /opt/rudder/etc/hooks.d/policy-generation-finished/$(basename $0).properties
+  source "/opt/rudder/etc/hooks.d/policy-generation-finished/$(basename $0).properties"
 fi
 
 MAX_NODES=${MAX_NODES:=100}
@@ -88,7 +88,7 @@ if [ -n "${RUDDER_NODE_IDS[0]}" ] && (( ${TO_UPDATE} > 0 )) ; then
   if [ -n "${TEST}" ]; then
     echo "${NODES}"
   else
-    curl -X POST 'http://localhost/rudder/relay-api/remote-run/nodes' -d "asynchronous=true" -d "keep_output=false" -d @- <<CURL_DATA
+    curl -X POST 'http://localhost:3030/rudder/relay-api/remote-run/nodes' -d "asynchronous=true" -d "keep_output=false" -d @- <<CURL_DATA
 nodes=${NODES}
 CURL_DATA
   fi
