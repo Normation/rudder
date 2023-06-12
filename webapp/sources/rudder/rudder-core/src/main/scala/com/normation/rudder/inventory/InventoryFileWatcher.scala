@@ -667,7 +667,7 @@ class ProcessFile(
                  Chained(s"gz archive '${file.pathAsString}' is corrupted: deleting it.", err).fullMsg
                )
              } *>
-             IOResult.effect {
+             IOResult.attempt {
                file.delete()
              }.unit
            } else if (file.name.endsWith(sign)) { // a signature
