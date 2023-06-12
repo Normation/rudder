@@ -2,3 +2,15 @@
 # cargo-vet audits file
 
 [audits]
+
+[[trusted.chrono]]
+criteria = "safe-to-deploy"
+user-id = 4556 # Dirkjan Ochtman (djc)
+start = "2022-07-25"
+end = "2024-06-09"
+
+[[trusted.minijinja]]
+criteria = "safe-to-deploy"
+user-id = 39 # Armin Ronacher (mitsuhiko)
+start = "2021-09-23"
+end = "2024-06-09"

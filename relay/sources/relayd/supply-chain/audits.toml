@@ -2,3 +2,45 @@
 # cargo-vet audits file
 
 [audits]
+
+[[trusted.chrono]]
+criteria = "safe-to-deploy"
+user-id = 4556 # Dirkjan Ochtman (djc)
+start = "2022-07-25"
+end = "2024-06-09"
+
+[[trusted.mio]]
+criteria = "safe-to-deploy"
+user-id = 6025 # Thomas de Zeeuw (Thomasdezeeuw)
+start = "2019-12-17"
+end = "2024-06-09"
+
+[[trusted.openssl]]
+criteria = "safe-to-deploy"
+user-id = 5
+start = "2019-02-22"
+end = "2024-06-09"
+
+[[trusted.openssl]]
+criteria = "safe-to-deploy"
+user-id = 163 # Alex Gaynor (alex)
+start = "2023-03-24"
+end = "2024-06-09"
+
+[[trusted.openssl-src]]
+criteria = "safe-to-deploy"
+user-id = 1 # Alex Crichton (alexcrichton)
+start = "2019-02-25"
+end = "2024-06-09"
+
+[[trusted.openssl-sys]]
+criteria = "safe-to-deploy"
+user-id = 163 # Alex Gaynor (alex)
+start = "2023-03-24"
+end = "2024-06-09"
+
+[[trusted.openssl-sys]]
+criteria = "safe-to-deploy"
+user-id = 5
+start = "2019-03-01"
+end = "2024-06-09"

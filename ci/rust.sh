@@ -19,4 +19,4 @@ tar -xf cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
 
 # cargo-vet
-cargo install --locked cargo-vet@0.6.1
+cargo install --locked cargo-vet@0.7.0
