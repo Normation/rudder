@@ -39,8 +39,7 @@ package com.normation.rudder.inventory
 
 import better.files._
 import com.normation.box.IOManaged
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
+import com.normation.errors._
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
@@ -663,6 +662,12 @@ class ProcessFile(
              InventoryProcessingLogger.debug(s"Dealing with zip file '${file.name}'") *>
              IOResult.attempt {
                file.unGzipTo(dest)
+             }.catchAll { err => // if the gz file is corrupted, we still want to delete it in the next instruction, but log
+               InventoryProcessingLogger.error(
+                 Chained(s"gz archive '${file.pathAsString}' is corrupted: deleting it.", err).fullMsg
+               )
+             } *>
+             IOResult.effect {
                file.delete()
              }.unit
            } else if (file.name.endsWith(sign)) { // a signature
