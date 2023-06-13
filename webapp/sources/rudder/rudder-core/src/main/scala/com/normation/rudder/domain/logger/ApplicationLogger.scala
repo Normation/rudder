@@ -71,7 +71,7 @@ object ApplicationLoggerPure extends NamedZioLogger {
 }
 
 object ApiLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("api")
+  override protected def _logger = LoggerFactory.getLogger("api-processing")
 }
 
 object ApiLoggerPure extends NamedZioLogger {
