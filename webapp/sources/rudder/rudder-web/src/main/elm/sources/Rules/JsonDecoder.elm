@@ -3,7 +3,7 @@ module Rules.JsonDecoder exposing (..)
 import Dict exposing (Dict)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Decode.Field exposing (..)
+import Json.Decode.Field exposing (require)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
 import Time.TimeZones exposing (utc)
