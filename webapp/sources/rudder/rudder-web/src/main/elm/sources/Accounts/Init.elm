@@ -27,7 +27,7 @@ port getCheckedAcl       : (Json.Decode.Value -> msg) -> Sub msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-  [ SingleDatePicker.subscriptions (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime model.ui.datePickerInfo.currentTime) UpdatePicker model.ui.datePickerInfo.picker
+  [ SingleDatePicker.subscriptions (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime model.ui.datePickerInfo.currentTime) model.ui.datePickerInfo.picker
   , Time.every 1000 Tick -- Update of the current time every second
   , getCheckedAcl (GetCheckedAcl << decodeValue (Json.Decode.list decodeAcl))
   ]
@@ -35,7 +35,7 @@ subscriptions model =
 init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
-    initDatePicker = DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing SingleDatePicker.init
+    initDatePicker = DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
     initFilters    = TableFilters Name Asc "" ""
     initUi         = UI initFilters NoModal False True initDatePicker False
     initModel      = Model flags.contextPath initUi [] False Nothing

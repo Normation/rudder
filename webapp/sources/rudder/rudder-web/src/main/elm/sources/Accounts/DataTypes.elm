@@ -34,7 +34,7 @@ type alias DatePickerInfo =
   { currentTime : Posix
   , zone        : Zone
   , pickedTime  : Maybe Posix
-  , picker      : DatePicker
+  , picker      : DatePicker Msg
   }
 
 type alias UI =
@@ -93,6 +93,6 @@ type Msg
   | ConfirmActionAccount ConfirmModalType (Result (Http.Detailed.Error String) ( Http.Metadata, Account))
   -- DATEPICKER
   | OpenPicker Posix
-  | UpdatePicker ( DatePicker, Maybe Posix )
+  | UpdatePicker SingleDatePicker.Msg
   | AdjustTimeZone Zone
   | Tick Posix

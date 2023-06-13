@@ -1,7 +1,6 @@
 module Accounts.DatePickerUtils exposing (..)
 
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
-import Task
 import Time exposing (Month(..), Posix, Zone)
 import Time.Extra as Time exposing (Interval(..), Parts, partsToPosix)
 import List.Extra exposing (getAt)
@@ -14,10 +13,10 @@ isDateBeforeToday : Posix -> Posix -> Bool
 isDateBeforeToday today datetime =
   Time.posixToMillis today > Time.posixToMillis datetime
 
-userDefinedDatePickerSettings : Zone -> Posix -> Posix -> Settings Msg
+userDefinedDatePickerSettings : Zone -> Posix -> Posix -> Settings
 userDefinedDatePickerSettings zone today focusDate =
   let
-    defaults = defaultSettings zone UpdatePicker
+    defaults = defaultSettings zone
   in
     { defaults
     | isDayDisabled = \clientZone datetime -> isDateBeforeToday (Time.floor Day clientZone today) datetime

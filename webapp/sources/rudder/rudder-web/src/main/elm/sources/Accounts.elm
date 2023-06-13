@@ -144,14 +144,20 @@ update msg model =
       in
       ( { model | ui = { ui | datePickerInfo = { datePicker | picker = SingleDatePicker.openPicker (userDefinedDatePickerSettings datePicker.zone datePicker.currentTime posix) posix (Just posix) datePicker.picker }}}, Cmd.none )
 
-    UpdatePicker ( newPicker, maybeNewTime ) ->
+    UpdatePicker subMsg ->
       let
+        
+        
+        ui = model.ui
+        datePicker = ui.datePickerInfo
+        selectedDate = case datePicker.pickedTime of
+          Nothing -> datePicker.currentTime
+          Just d -> d
+        ( newPicker, maybeNewTime ) =  SingleDatePicker.update (userDefinedDatePickerSettings datePicker.zone datePicker.currentTime selectedDate) subMsg datePicker.picker
         newModel = case model.editAccount of
           Nothing -> model
           Just a  ->
             let
-              ui = model.ui
-              datePicker = ui.datePickerInfo
               newTime    = case maybeNewTime of
                 Just t  -> Just t
                 Nothing -> a.expirationDate
