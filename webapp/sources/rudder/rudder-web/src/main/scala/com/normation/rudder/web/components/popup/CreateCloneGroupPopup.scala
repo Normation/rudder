@@ -13,6 +13,7 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.services.CurrentUser
+import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -94,77 +95,96 @@ class CreateCloneGroupPopup(
   private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def onSubmit(): JsCmd = {
-    if (formTracker.hasErrors) {
-      onFailure()
-    } else {
-      // get the type of query :
-      if (createContainer) {
-        woNodeGroupRepository
-          .addGroupCategorytoCategory(
-            new NodeGroupCategory(
-              NodeGroupCategoryId(uuidGen.newUuid),
+    nodeGroup match {
+      case None     => Noop
+      case Some(ng) =>
+        // properties can have been modifier since the page was displayed, but we don't know it.
+        // so we look back for them. We also check that other props weren't modified in parallel
+        // this check is similar to group creation, we introduce for cloning because for
+        // https://issues.rudder.io/issues/22702
+        val savedGroup = roNodeGroupRepository.getNodeGroup(ng.id).either.runNow match {
+          case Right(g)  => g._1
+          case Left(err) =>
+            formTracker.addFormError(Text("Error when cloning group"))
+            logger.error(s"Error when looking for group with id when trying to clone group'${ng.id.serialize}': ${err.fullMsg}")
+            ng
+        }
+        if (ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
+          formTracker.addFormError(Text("Error: group was updated while you were modifying it. Please reload the page. "))
+        }
+
+        if (formTracker.hasErrors) {
+          onFailure()
+        } else {
+          // get the type of query :
+          if (createContainer) {
+            woNodeGroupRepository
+              .addGroupCategorytoCategory(
+                new NodeGroupCategory(
+                  NodeGroupCategoryId(uuidGen.newUuid),
+                  savedGroup.name,
+                  savedGroup.description,
+                  Nil,
+                  Nil
+                ),
+                NodeGroupCategoryId(groupContainer.get),
+                ModificationId(uuidGen.newUuid),
+                CurrentUser.actor,
+                Some("Node Group category created by user from UI")
+              )
+              .toBox match {
+              case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
+              case Empty            =>
+                logger.error("An error occurred while saving the category")
+                formTracker.addFormError(error("An error occurred while saving the category"))
+                onFailure()
+              case Failure(m, _, _) =>
+                logger.error("An error occurred while saving the category:" + m)
+                formTracker.addFormError(error(m))
+                onFailure()
+            }
+          } else {
+            // we are creating a group
+            val query            = nodeGroup.map(x => x.query).getOrElse(groupGenerator.flatMap(_.query))
+            val parentCategoryId = NodeGroupCategoryId(groupContainer.get)
+            val isDynamic        = isStatic.get match { case "dynamic" => true; case _ => false }
+            val srvList          = nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
+            val nodeId           = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
+            val clone            = NodeGroup(
+              nodeId,
               groupName.get,
               groupDescription.get,
-              Nil,
-              Nil
-            ),
-            NodeGroupCategoryId(groupContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            Some("Node Group category created by user from UI")
-          )
-          .toBox match {
-          case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
-          case Empty            =>
-            logger.error("An error occurred while saving the category")
-            formTracker.addFormError(error("An error occurred while saving the category"))
-            onFailure()
-          case Failure(m, _, _) =>
-            logger.error("An error occurred while saving the category:" + m)
-            formTracker.addFormError(error(m))
-            onFailure()
-        }
-      } else {
-        // we are creating a group
-        val query            = nodeGroup.map(x => x.query).getOrElse(groupGenerator.flatMap(_.query))
-        val parentCategoryId = NodeGroupCategoryId(groupContainer.get)
-        val isDynamic        = isStatic.get match { case "dynamic" => true; case _ => false }
-        val srvList          = nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]())
-        val nodeId           = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
-        val clone            = NodeGroup(
-          nodeId,
-          groupName.get,
-          groupDescription.get,
-          nodeGroup.map(_.properties).getOrElse(Nil),
-          query,
-          isDynamic,
-          srvList,
-          true
-        )
+              savedGroup.properties,
+              query,
+              isDynamic,
+              srvList,
+              true
+            )
 
-        woNodeGroupRepository
-          .create(
-            clone,
-            parentCategoryId,
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            groupReasons.map(_.get)
-          )
-          .toBox match {
-          case Full(x)          =>
-            closePopup() &
-            onSuccessCallback(x.group.id.serialize) &
-            onSuccessGroup(Right(x.group), parentCategoryId)
-          case Empty            =>
-            logger.error("An error occurred while saving the group")
-            formTracker.addFormError(error("An error occurred while saving the group"))
-            onFailure()
-          case Failure(m, _, _) =>
-            logger.error("An error occurred while saving the group:" + m)
-            formTracker.addFormError(error(m))
-            onFailure()
+            woNodeGroupRepository
+              .create(
+                clone,
+                parentCategoryId,
+                ModificationId(uuidGen.newUuid),
+                CurrentUser.actor,
+                groupReasons.map(_.get)
+              )
+              .toBox match {
+              case Full(x)          =>
+                closePopup() &
+                onSuccessCallback(x.group.id.serialize) &
+                onSuccessGroup(Right(x.group), parentCategoryId)
+              case Empty            =>
+                logger.error("An error occurred while saving the group")
+                formTracker.addFormError(error("An error occurred while saving the group"))
+                onFailure()
+              case Failure(m, _, _) =>
+                logger.error("An error occurred while saving the group:" + m)
+                formTracker.addFormError(error(m))
+                onFailure()
+            }
+          }
         }
-      }
     }
   }
 
