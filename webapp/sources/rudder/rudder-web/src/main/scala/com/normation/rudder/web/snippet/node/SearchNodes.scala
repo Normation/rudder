@@ -65,7 +65,7 @@ import scala.xml.NodeSeq.seqToNodeSeq
  * Snippet that handle the "searchNodes" page.
  *
  * Two main feature:
- * - diplay details of a node
+ * - display details of a node
  * - search for nodes based on a query
  *
  * Node details are ALWAYS load via Ajax (see parseHashtag method).
@@ -92,17 +92,15 @@ class SearchNodes extends StatefulSnippet with Loggable {
       throw new Exception(e.messageChain)
   }
 
-  val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
+  val searchNodeComponent = new LocalSnippet[SearchNodeComponent] // init will be done in parseHash
 
   var srvList: Box[Seq[NodeInfo]] = Empty
-
-  setSearchComponent(None)
 
   var dispatch: DispatchIt = {
     case "showQuery"   =>
       searchNodeComponent.get match {
         case Full(component) => { _ => queryForm(component) }
-        case _               => { _ => <div>The component is not set</div><div></div> }
+        case _               => { _ => <div>loading...</div><div></div> }
       }
     case "head"        => head _
     case "createGroup" => createGroup _
@@ -190,21 +188,31 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * way - just don't take of errors.
    *
    * We want to look for #{ "nodeId":"XXXXXXXXXXXX" }
+   *
+   * The contract for the JS function `parseSearchHash` is:
+   * - pass an empty string if hash is undefined or empty
+   * - pass a json-serialised structure in other cases
    */
   private[this] def parseHashtag(): JsCmd = {
     def executeQuery(query: String): JsCmd = {
-      val q  = queryParser(query)
-      val sc = setSearchComponent(q)
+      val sc = if (query.nonEmpty) {
+        val parsed = queryParser(query)
 
-      q match {
-        case e: EmptyBox =>
-          val fail = e ?~! s"Could not parse ${query} as a valid query"
-          logger.error(fail.messageChain)
-          Noop
-        case Full(q) =>
-          Replace("SearchNodes", queryForm(sc)) &
-          JsRaw("$('#SubmitSearch').click();")
+        parsed match {
+          case e: EmptyBox =>
+            val fail = e ?~! s"Could not parse ${query} as a valid query"
+            logger.error(fail.messageChain)
+            setSearchComponent(None)
+          case Full(q) =>
+            setSearchComponent(Some(q))
+        }
+      } else {
+        setSearchComponent(None)
       }
+      Replace(
+        "SearchNodes",
+        queryForm(sc)
+      ) & JsRaw("$('#SubmitSearch').click();")
     }
 
     JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x"), executeQuery _)._2.toJsCmd} })""")

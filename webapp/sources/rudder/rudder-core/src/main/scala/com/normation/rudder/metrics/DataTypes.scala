@@ -74,10 +74,10 @@ object FrequentNodeMetrics {
   // add double quotes to a string
   private def q(s: String) = '"'.toString + s + '"'.toString
 
-  def csvHeaders(sep: String = ",") = csvHeaderNames.map(q).mkString(sep)
+  def csvHeaders(sep: Char = ',') = csvHeaderNames.map(q).mkString(sep.toString)
 
   implicit class FormatFrequentNodeMetrics(m: FrequentNodeMetrics) {
-    def csv(sep: String = ",") = m.productIterator.map(x => q(x.toString)).mkString(sep)
+    def asList = m.productIterator.toList
   }
 
 }
