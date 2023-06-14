@@ -538,6 +538,8 @@ function parseSearchHash(queryCallback) {
   var hash = parseURLHash();
   if( hash.query != null && JSON.stringify(hash.query).length > 0) {
     queryCallback(JSON.stringify(hash.query));
+  } else {
+    queryCallback("");
   }
 }
 
