@@ -93,16 +93,11 @@ impl fmt::Display for Hash {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HashType {
     Sha256,
+    #[default]
     Sha512,
-}
-
-impl Default for HashType {
-    fn default() -> Self {
-        HashType::Sha512
-    }
 }
 
 impl FromStr for HashType {
