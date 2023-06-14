@@ -43,8 +43,8 @@ impl fmt::Debug for Secret {
 type Warnings = Vec<Error>;
 
 pub fn check_configuration(cfg_dir: &Path) -> Result<Warnings, Error> {
-    let cfg = Configuration::new(&cfg_dir)?;
+    let cfg = Configuration::new(cfg_dir)?;
     let warns = cfg.warnings();
-    LogConfig::new(&cfg_dir)?;
+    LogConfig::new(cfg_dir)?;
     Ok(warns)
 }
