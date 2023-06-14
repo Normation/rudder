@@ -25,7 +25,7 @@ impl fmt::Debug for Hash {
 impl Hash {
     pub fn new(hash_type: &str, hex_value: &str) -> Result<Hash, Error> {
         let hash_type = HashType::from_str(hash_type)?;
-        let value = hex::decode(&hex_value)?;
+        let value = hex::decode(hex_value)?;
 
         if hash_type.is_valid_hash(&value) {
             Ok(Hash { hash_type, value })
@@ -87,16 +87,11 @@ impl fmt::Display for Hash {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HashType {
     Sha256,
+    #[default]
     Sha512,
-}
-
-impl Default for HashType {
-    fn default() -> Self {
-        HashType::Sha512
-    }
 }
 
 impl FromStr for HashType {
