@@ -923,7 +923,9 @@ form .tooltip-content p {
   background-color: #999;
   padding:0 5px !important;
   margin-top:4px;
+  margin-left: 6px;
 }
+
 .label-provider + .tooltip .tooltip-inner {
   padding: 10px 12px !important;
   min-width: 160px;
