@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{os::unix::ffi::OsStrExt, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Error;
-use md5::{Digest, Md5};
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, instrument, span, Instrument, Level};
 
@@ -13,7 +12,7 @@ use crate::{
     input::watch::*,
     metrics::INVENTORIES,
     output::upstream::send_inventory,
-    processing::{failure, success, OutputError, ReceivedFile},
+    processing::{failure, queue_id_from_file, success, OutputError, ReceivedFile},
     JobConfig,
 };
 
@@ -84,12 +83,8 @@ async fn serve(
             continue;
         }
 
-        let queue_id = format!(
-            "{:X}",
-            Md5::digest(file.file_name().unwrap_or(file.as_os_str()).as_bytes())
-        );
+        let queue_id = queue_id_from_file(&file);
         debug!("received: {:?}", file);
-
         let span = span!(
             Level::INFO,
             "inventory",

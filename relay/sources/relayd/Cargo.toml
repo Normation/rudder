@@ -32,7 +32,6 @@ hyper = { version = "0.14", default-features = false }
 inotify = "0.10"
 lazy_static = "1"
 log = "0.4"
-md-5 = "0.10"
 nom = "7"
 openssl = "0.10"
 prometheus = { version = "0.13", default-features = false, features = ["process"] }

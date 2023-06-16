@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{convert::TryFrom, os::unix::ffi::OsStrExt, sync::Arc};
+use std::{convert::TryFrom, sync::Arc};
 
 use anyhow::Error;
-use md5::{Digest, Md5};
 use tokio::{sync::mpsc, task::spawn_blocking};
 use tracing::{debug, error, info, instrument, span, warn, Instrument, Level};
 
@@ -17,7 +16,7 @@ use crate::{
         database::{insert_runlog, RunlogInsertion},
         upstream::send_report,
     },
-    processing::{failure, success, OutputError, ReceivedFile},
+    processing::{failure, queue_id_from_file, success, OutputError, ReceivedFile},
     JobConfig,
 };
 
@@ -66,10 +65,7 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
             continue;
         }
 
-        let queue_id = format!(
-            "{:X}",
-            Md5::digest(file.file_name().unwrap_or(file.as_os_str()).as_bytes())
-        );
+        let queue_id = queue_id_from_file(&file);
         let span = span!(
             Level::INFO,
             "report",
