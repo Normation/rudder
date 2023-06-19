@@ -393,7 +393,7 @@ function makeDiff(beforeId,afterId,resultId) {
   var before = $('#'+beforeId);
   var after  = $('#'+afterId);
   var result = $('#'+resultId);
-  var diff = JsDiff.diffLines(before.text(), after.text());
+  var diff = Diff.diffLines(before.text(), after.text());
   var fragment = document.createDocumentFragment();
   for (var i=0; i < diff.length; i++) {
     if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
