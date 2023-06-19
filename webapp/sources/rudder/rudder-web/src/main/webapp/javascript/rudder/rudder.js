@@ -417,7 +417,11 @@ function makeDiff(beforeId,afterId,resultId) {
 
     fragment.appendChild(node);
   }
-
+  result.css({
+    "white-space": "pre-line",
+    "word-break": "break-word",
+    "overflow": "auto"
+  });
   result.text('');
   result.append(fragment);
 }
