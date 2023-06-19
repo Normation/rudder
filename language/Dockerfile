@@ -1,4 +1,5 @@
 FROM rust:1.61.0-bullseye
+LABEL ci=rudder/language/Dockerfile
 
 ARG USER_ID=1000
 COPY ci/user.sh .
