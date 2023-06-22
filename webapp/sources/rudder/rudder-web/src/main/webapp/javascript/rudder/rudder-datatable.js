@@ -1791,7 +1791,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 success: function (response, status, jqXHR) {
                   var id = response["data"]["id"]
                   var rollback = setupRollbackBlock(id)
-                  var html = $.parseHTML( response["data"]["content"] );
+                  var html = $.parseHTML( response["data"]["content"], true );
                   if(response["data"]["canRollback"]){
                     table.row(row).child($(rollback).append(html)).show();
                     $("#restoreBtn" + id).click(function(event){
