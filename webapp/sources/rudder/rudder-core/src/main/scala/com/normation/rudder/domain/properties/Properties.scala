@@ -607,9 +607,12 @@ object GenericProperty {
   }
 
   implicit class RenderProperty(val p: GenericProperty[_]) extends AnyVal {
-    def valueAsString: String = GenericProperty.serializeToHocon(p.value)
+    // get the json string for the property, what you likely want
+    def valueAsString:      String = GenericProperty.serializeToJson(p.value)
+    // get the Hocon string, with comments if any
+    def valueAsDebugString: String = GenericProperty.serializeToHocon(p.value)
     // get value as a JValue
-    def jsonValue:     JValue = toJsonValue(p.value)
+    def jsonValue:          JValue = toJsonValue(p.value)
   }
 
   /*

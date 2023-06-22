@@ -320,7 +320,7 @@ private object EventLogReportsMapper extends NamedZioLogger {
       case Some(value) =>
         Right(value)
       case None        =>
-        Left(Inconsistency(s"Unknow Event type: '${eventType.serialize}'"))
+        Left(Inconsistency(s"Unknown Event type: '${eventType.serialize}'"))
     }
   }
 }
