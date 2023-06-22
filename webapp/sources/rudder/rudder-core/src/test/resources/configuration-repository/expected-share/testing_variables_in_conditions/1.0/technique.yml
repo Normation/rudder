@@ -4,8 +4,6 @@ version: '1.0'
 items:
   - id: c0f1c227-0b8c-4219-ac3d-3c30fb4870ad
     name: Command execution
-    reporting:
-      mode: enabled
     condition: ${my_custom_condition}
     method: command_execution
     params:

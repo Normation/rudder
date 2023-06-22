@@ -63,12 +63,6 @@ import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.hooks.Hooks
-import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.EditorTechnique
-import com.normation.rudder.ncf.GenericMethod
-import com.normation.rudder.ncf.MethodBlock
-import com.normation.rudder.ncf.MethodCall
-import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.repository.FullActiveTechnique

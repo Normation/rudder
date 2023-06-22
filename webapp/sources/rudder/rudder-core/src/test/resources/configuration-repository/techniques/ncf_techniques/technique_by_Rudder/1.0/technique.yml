@@ -11,8 +11,6 @@ items:
     items:
       - id: id1
         name: Customized component
-        reporting:
-          mode: enabled
         condition: any
         method: package_install_version
         params:
@@ -28,40 +26,30 @@ items:
           command: Write-Host "testing special characters ` è &é 'à é "
   - id: id3
     name: Customized component
-    reporting:
-      mode: enabled
     condition: package_install_version_${node.properties[apache_package_name]}_repaired
     method: service_start
     params:
       service_name: ${node.properties[apache_package_name]}
   - id: id4
     name: Package install
-    reporting:
-      mode: enabled
     condition: redhat
     method: package_install
     params:
       package_name: openssh-server
   - id: id5
     name: Command execution
-    reporting:
-      mode: enabled
     condition: cfengine-community
     method: command_execution
     params:
       command: /bin/echo "testing special characters ` è &é 'à é "\
   - id: id6
     name: Package state windows
-    reporting:
-      mode: enabled
     condition: dsc
     method: package_state_windows
     params:
       package_name: vim
   - id: id7
     name: Not sure we should test it ...
-    reporting:
-      mode: enabled
     condition: any
     method: _logger
     params:

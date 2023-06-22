@@ -66,6 +66,7 @@ type alias Technique =
   , elems         : List MethodElem
   , parameters    : List TechniqueParameter
   , resources     : List Resource
+  , tags          : List (String,String)
   }
 
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock

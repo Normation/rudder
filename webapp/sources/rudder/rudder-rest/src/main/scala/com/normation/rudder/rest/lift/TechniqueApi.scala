@@ -39,11 +39,7 @@ package com.normation.rudder.rest.lift
 
 import better.files.File
 import com.normation.box._
-import com.normation.cfclerk.domain.RootTechniqueCategory
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueCategory
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
 import com.normation.eventlog.EventActor
@@ -53,15 +49,9 @@ import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.ncf._
 import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.EditorTechnique
-import com.normation.rudder.ncf.ResourceFile
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.ActionType
@@ -71,18 +61,10 @@ import com.normation.rudder.rest.implicits._
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST._
 import scala.collection.SortedMap
 import zio._
 import zio.json.ast.Json
@@ -253,7 +235,6 @@ class TechniqueApi(
         }
       }
       response.toLiftResponseOne(params, schema, _ => None)
-      // actionResp(Full(wrapper), req, "Could not update ncf technique", authzToken.actor)("UpdateTechnique")
     }
   }
 
@@ -261,9 +242,7 @@ class TechniqueApi(
     val schema            = API.GetTechniques
     implicit val dataName = "techniques"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-
       serviceV14.getTechniquesWithData().toLiftResponseList(params, schema)
-      // resp(, req, "Could not fetch techniques")("getTechniques")
     }
 
   }

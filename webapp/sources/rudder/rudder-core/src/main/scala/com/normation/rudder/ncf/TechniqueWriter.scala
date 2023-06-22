@@ -598,7 +598,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
         classParameterValue: String,
         params:              Seq[String],
         forNaReport:         Boolean
-    ) = {
+    ): (String, String) = {
       val promiser = call.id + "_${report_data.directive_id}"
 
       val filterOnMethod = forNaReport match {
@@ -627,9 +627,11 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
 
       val (bundleArgs, bundleNameAndArg) = forNaReport match {
         case false =>
-          val args = params.toList.zipWithIndex.map {
-            case (_, id) =>
-              method.flatMap(_.parameters.get(id.toLong).map(_.id.value)).getOrElse("arg_" + id)
+          val args = method match {
+            case None         =>
+              call.parameters.keys.map(_.value).toList
+            case Some(method) =>
+              method.parameters.map(_.id.value).toList
           }
           (args, s"""${call.method.value}(${convertArgsToBundleCall(args)});""")
 

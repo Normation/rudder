@@ -232,7 +232,7 @@ update msg model =
     NewTechnique internalId ->
       let
         ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
-        t = Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] []
+        t = Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] []
         newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui}
       in
         updatedStoreTechnique newModel

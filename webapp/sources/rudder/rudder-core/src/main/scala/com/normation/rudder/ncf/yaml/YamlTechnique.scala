@@ -39,13 +39,22 @@ package com.normation.rudder.ncf.yaml
 
 import com.normation.cfclerk.domain.LoadTechniqueError.Consistancy
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.errors.{AccumulateErrors, IOResult, PureResult}
+import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
+import com.normation.errors.AccumulateErrors
+import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.ncf._
 import com.normation.zio._
 import zio.json._
 import zio.json.yaml.DecoderYamlOps
 import zio.yaml.YamlOps._
+
+/*
+ * Here we provide the datatype used to communicate with rudderc
+ * Any changes here will have some impact on rudderc usage
+ * and vice versa, any change in rudderc format should also be done here
+ */
 
 case class Technique(
     id:            BundleName,
@@ -56,29 +65,27 @@ case class Technique(
     documentation: Option[String],
     category:      Option[String],
     tags:          Option[List[(String, String)]],
-    params:    Option[List[TechniqueParameter]]
+    params:        Option[List[TechniqueParameter]]
 )
 
 case class MethodItem(
     // Common fields
-    id:             String,
-    name:           String,
-    reporting: Reporting,
+    id:        String,
+    name:      String,
+    reporting: Option[Reporting],
     condition: Option[String],
-    tags: Option[List[(String, String)]],
+    tags:      Option[List[(String, String)]],
     // Call specific fields
-    method: Option[String],
-    params: Option[Map[ParameterId, String]],
+    method:    Option[String],
+    params:    Option[Map[ParameterId, String]],
     // Block specific fields
-    items:          Option[List[MethodItem]]
-
+    items:     Option[List[MethodItem]]
 )
 
-case class Reporting (
-  mode : String,
-  id : Option[String]
+case class Reporting(
+    mode: String,
+    id:   Option[String]
 )
-
 
 import ParameterType._
 
@@ -95,8 +102,8 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
   implicit val encoderFieldParameterId:       JsonFieldEncoder[ParameterId]   = JsonFieldEncoder[String].contramap(_.value)
   implicit val encoderBundleName:             JsonEncoder[BundleName]         = JsonEncoder[String].contramap(_.value)
   implicit val encoderVersion:                JsonEncoder[Version]            = JsonEncoder[String].contramap(_.value)
-  implicit val encoderReporting:        JsonEncoder[Reporting]    = DeriveJsonEncoder.gen
-  implicit lazy val encoderMethodElem:             JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
+  implicit val encoderReporting:              JsonEncoder[Reporting]          = DeriveJsonEncoder.gen
+  implicit lazy val encoderMethodElem:        JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
   implicit val encoderTechniqueParameterType: JsonEncoder[ParameterType]      =
     JsonEncoder[String].contramap(s => parameterTypeService.value(s).getOrElse(s.toString))
   implicit val encoderTechniqueParameter:     JsonEncoder[TechniqueParameter] = DeriveJsonEncoder.gen
@@ -105,11 +112,11 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
   implicit val decoderParameterId:            JsonDecoder[ParameterId]        = JsonDecoder[String].map(ParameterId.apply)
   implicit val decoderFieldParameterId:       JsonFieldDecoder[ParameterId]   = JsonFieldDecoder[String].map(ParameterId.apply)
   implicit val decoderVersion:                JsonDecoder[Version]            = JsonDecoder[String].map(s => new Version(s))
-  implicit val decoderReporting:        JsonDecoder[Reporting]    = DeriveJsonDecoder.gen
+  implicit val decoderReporting:              JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
   implicit val decoderParameterType:          JsonDecoder[ParameterType]      =
     JsonDecoder[String].mapOrFail(parameterTypeService.create(_).left.map(_.msg))
   implicit val decoderTechniqueParameter:     JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
-  implicit lazy val decoderMethodElem:             JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
+  implicit lazy val decoderMethodElem:        JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
   implicit val decoderTechnique:              JsonDecoder[Technique]          = DeriveJsonDecoder.gen
   implicit val decoder:                       JsonDecoder[EditorTechnique]    =
     JsonDecoder[Technique].mapOrFail(toJsonTechnique(_).either.runNow.left.map(_.msg))
@@ -122,20 +129,20 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
 
   private def toJsonTechnique(technique: Technique): IOResult[EditorTechnique] = {
     for {
-      items <- technique.items.accumulatePure(toMethodElem).toIO
-      t = EditorTechnique(
-        technique.id,
-        technique.version,
-        technique.name,
-        technique.category.getOrElse("ncf_techniques"),
-        items,
-        technique.description.getOrElse(""),
-        technique.documentation.getOrElse(""),
-        technique.params.getOrElse(Nil).map(toTechniqueParameter),
-        Seq(),
-        technique.tags.getOrElse(Nil),
-        None
-      )
+      items     <- technique.items.accumulatePure(toMethodElem).toIO
+      t          = EditorTechnique(
+                     technique.id,
+                     technique.version,
+                     technique.name,
+                     technique.category.getOrElse("ncf_techniques"),
+                     items,
+                     technique.description.getOrElse(""),
+                     technique.documentation.getOrElse(""),
+                     technique.params.getOrElse(Nil).map(toTechniqueParameter),
+                     Seq(),
+                     technique.tags.getOrElse(Nil),
+                     None
+                   )
       resources <- resourceFileService.getResources(t)
     } yield {
       t.copy(resources = resources)
@@ -155,7 +162,7 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
       technique.calls.map(fromJson).toList,
       if (technique.documentation.isEmpty) None else Some(technique.documentation),
       Some(technique.category),
-      if (technique.tags.isEmpty) None else Some(technique.tags.toList),
+      if (technique.tags.isEmpty) None else Some(technique.tags),
       if (technique.parameters.isEmpty) {
         None
       } else {
@@ -183,20 +190,20 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
     )
   }
 
-  def toReporting(logic: ReportingLogic) : Reporting = {
+  def toReporting(logic: ReportingLogic): Reporting  = {
     import ReportingLogic._
     logic match {
-      case FocusReport(component) => Reporting(FocusReport.key,Some(component))
-      case WeightedReport | WorstReportWeightedOne | WorstReportWeightedSum => Reporting(logic.value,None)
+      case FocusReport(component)                                           => Reporting(FocusReport.key, Some(component))
+      case WeightedReport | WorstReportWeightedOne | WorstReportWeightedSum => Reporting(logic.value, None)
     }
   }
-  def fromJson(methodElem: MethodElem): MethodItem = {
+  def fromJson(methodElem: MethodElem):   MethodItem = {
     methodElem match {
       case MethodBlock(id, name, reportingLogic, condition, items)               =>
         MethodItem(
           id,
           name,
-          toReporting(reportingLogic),
+          Some(toReporting(reportingLogic)),
           if (condition.isEmpty) None else Some(condition),
           None,
           None,
@@ -207,7 +214,7 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
         MethodItem(
           id,
           name,
-          Reporting(if (disableReporting) "disabled" else "enabled", None),
+          if (disableReporting) Some(Reporting("disabled", None)) else None,
           if (condition.isEmpty) None else Some(condition),
           None,
           Some(method.value),
@@ -217,15 +224,15 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
     }
   }
 
-  def toReportingLogic(reporting: Reporting) : PureResult[ReportingLogic] = {
-    ReportingLogic.parse(reporting.mode++(reporting.id.map(":" ++ _ ).getOrElse("")))
+  def toReportingLogic(reporting: Reporting): PureResult[ReportingLogic] = {
+    ReportingLogic.parse(reporting.mode ++ (reporting.id.map(":" ++ _).getOrElse("")))
   }
-  private def toMethodElem(item: MethodItem): PureResult[MethodElem] = {
+  private def toMethodElem(item: MethodItem): PureResult[MethodElem]     = {
     item.items match {
-      case Some(items)     =>
+      case Some(items) =>
         for {
-          reporting <- toReportingLogic(item.reporting)
-          items <- items.accumulatePure(toMethodElem)
+          reporting <- item.reporting.map(toReportingLogic).getOrElse(Right(WeightedReport))
+          items     <- items.accumulatePure(toMethodElem)
         } yield {
           MethodBlock(
             item.id,
@@ -235,18 +242,20 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
             items
           )
         }
-      case None =>
+      case None        =>
         item.method match {
           case Some(method) =>
-            Right(MethodCall(
-              BundleName(method),
-              item.id,
-              item.params.getOrElse(Map()),
-              item.condition.getOrElse(""),
-              item.name,
-              item.reporting.mode == "disabledReporting"
-            ))
-          case None => Left(Consistancy("error"))
+            Right(
+              MethodCall(
+                BundleName(method),
+                item.id,
+                item.params.getOrElse(Map()),
+                item.condition.getOrElse(""),
+                item.name,
+                item.reporting == Some("disabled")
+              )
+            )
+          case None         => Left(Consistancy("error"))
 
         }
 

@@ -90,6 +90,7 @@ import java.io.InputStream
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
@@ -112,7 +113,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   override def afterAll(): Unit = {
     if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
-      // FileUtils.deleteDirectory(new File(basePath))
+      FileUtils.deleteDirectory(new File(basePath))
     }
   }
 

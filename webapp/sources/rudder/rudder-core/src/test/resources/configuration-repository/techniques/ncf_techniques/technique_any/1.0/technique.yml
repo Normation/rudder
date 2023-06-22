@@ -5,8 +5,6 @@ description: This Technique exists only to see if Rudder creates Technique corre
 items:
   - id: id
     name: Test component$&é)à\'"
-    reporting:
-      mode: enabled
     condition: any
     method: package_install_version
     params:

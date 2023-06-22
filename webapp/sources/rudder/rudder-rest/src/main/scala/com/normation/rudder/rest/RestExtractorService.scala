@@ -53,7 +53,6 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
-import com.normation.inventory.domain.Version
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccountId
@@ -81,11 +80,7 @@ import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.Constraint._
-import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.GenericMethod
-import com.normation.rudder.ncf.MethodBlock
-import com.normation.rudder.ncf.MethodCall
-import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService

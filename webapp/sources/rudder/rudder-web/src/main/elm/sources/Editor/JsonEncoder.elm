@@ -34,6 +34,7 @@ techniqueValues technique =
   , ("calls"       , list encodeMethodElem technique.elems )
   , ("resources"   , list encodeResource technique.resources )
   , ("documentation", string technique.documentation)
+  , ("tags", object (List.map (Tuple.mapSecond string) technique.tags))
   ]
 
 encodeNewTechnique: Technique -> TechniqueId -> Value

@@ -110,6 +110,7 @@ decodeTechnique =
     |> required "calls" (list (lazy (\_ -> decodeMethodElem Nothing)))
     |> required "parameters" (list decodeTechniqueParameter)
     |> required "resources" (list decodeResource)
+    |> required "tags" (keyValuePairs string)
 
 decodeAgent : Decoder Agent
 decodeAgent =

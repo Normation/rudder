@@ -42,6 +42,10 @@ import com.normation.errors.IOResult
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 
+/* Provide a Service to handle resource files of a Technique
+ * And implementation based on file system and git is provided here
+ */
+
 trait ResourceFileService {
   def getResources(technique:            EditorTechnique): IOResult[List[ResourceFile]]
   def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String): IOResult[List[ResourceFile]]

@@ -47,12 +47,15 @@ import net.liftweb.json.JObject
 import net.liftweb.json.JString
 import net.liftweb.json.JValue
 
+/*
+ * Provides json serializer/deserializer for techniques
+ */
+
 class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
   import zio.json._
 
-  implicit val encoderParameterId: JsonEncoder[ParameterId] = JsonEncoder[String].contramap(_.value)
-
+  implicit val encoderParameterId:            JsonEncoder[ParameterId]                 = JsonEncoder[String].contramap(_.value)
   implicit val encoderFieldParameterId:       JsonFieldEncoder[ParameterId]            = JsonFieldEncoder[String].contramap(_.value)
   implicit val encoderBundleName:             JsonEncoder[BundleName]                  = JsonEncoder[String].contramap(_.value)
   implicit val encoderVersion:                JsonEncoder[Version]                     = JsonEncoder[String].contramap(_.value)
@@ -64,20 +67,21 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
   implicit val encoderResourceFileState:      JsonEncoder[ResourceFileState]           = JsonEncoder[String].contramap(_.value)
   implicit val encoderResourceFile:           JsonEncoder[ResourceFile]                = DeriveJsonEncoder.gen
   implicit val encoderTechnique:              JsonEncoder[EditorTechnique]             = DeriveJsonEncoder.gen
-  implicit val decoderBundleName:             JsonDecoder[BundleName]                  = JsonDecoder[String].map(BundleName.apply)
-  implicit val decoderParameterId:            JsonDecoder[ParameterId]                 = JsonDecoder[String].map(ParameterId.apply)
-  implicit val decoderFieldParameterId:       JsonFieldDecoder[ParameterId]            = JsonFieldDecoder[String].map(ParameterId.apply)
-  implicit val decoderVersion:                JsonDecoder[Version]                     = JsonDecoder[String].map(s => new Version(s))
-  implicit val decoderReportingLogic:         JsonDecoder[ReportingLogic]              =
+
+  implicit val decoderBundleName:         JsonDecoder[BundleName]                  = JsonDecoder[String].map(BundleName.apply)
+  implicit val decoderParameterId:        JsonDecoder[ParameterId]                 = JsonDecoder[String].map(ParameterId.apply)
+  implicit val decoderFieldParameterId:   JsonFieldDecoder[ParameterId]            = JsonFieldDecoder[String].map(ParameterId.apply)
+  implicit val decoderVersion:            JsonDecoder[Version]                     = JsonDecoder[String].map(s => new Version(s))
+  implicit val decoderReportingLogic:     JsonDecoder[ReportingLogic]              =
     JsonDecoder[String].mapOrFail(ReportingLogic.parse(_).left.map(_.msg))
-  implicit val decoderParameterType:          JsonDecoder[ParameterType.ParameterType] =
+  implicit val decoderParameterType:      JsonDecoder[ParameterType.ParameterType] =
     JsonDecoder[String].mapOrFail(parameterTypeService.create(_).left.map(_.msg))
-  implicit val decoderTechniqueParameter:     JsonDecoder[TechniqueParameter]          = DeriveJsonDecoder.gen
-  implicit val decoderMethodElem:             JsonDecoder[MethodElem]                  = DeriveJsonDecoder.gen
-  implicit val decoderResourceFileState:      JsonDecoder[ResourceFileState]           =
+  implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter]          = DeriveJsonDecoder.gen
+  implicit val decoderMethodElem:         JsonDecoder[MethodElem]                  = DeriveJsonDecoder.gen
+  implicit val decoderResourceFileState:  JsonDecoder[ResourceFileState]           =
     JsonDecoder[String].mapOrFail(ResourceFileState.parse(_).left.map(_.msg))
-  implicit val decoderResourceFile:           JsonDecoder[ResourceFile]                = DeriveJsonDecoder.gen
-  implicit val decoderTechnique:              JsonDecoder[EditorTechnique]             = DeriveJsonDecoder.gen
+  implicit val decoderResourceFile:       JsonDecoder[ResourceFile]                = DeriveJsonDecoder.gen
+  implicit val decoderTechnique:          JsonDecoder[EditorTechnique]             = DeriveJsonDecoder.gen
 
   def serializeTechniqueMetadata(technique: ncf.EditorTechnique) = {
     technique.toJson
