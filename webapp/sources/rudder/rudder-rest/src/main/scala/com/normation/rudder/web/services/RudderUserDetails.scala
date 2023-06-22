@@ -91,7 +91,9 @@ case class RudderUserDetail(
     apiAuthz: ApiAuthorization
 ) extends UserDetails {
   // merge roles rights
-  val authz                                               = new Rights(roles.flatMap(_.rights.authorizationTypes).toSeq: _*)
+  val authz                                               = new Rights(
+    (if (roles.nonEmpty) roles.flatMap(_.rights.authorizationTypes).toSeq else Seq(AuthorizationType.NoRights)): _*
+  )
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
     case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
