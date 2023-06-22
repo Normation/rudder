@@ -37,8 +37,6 @@
 
 package com.normation.rudder.domain.properties
 
-import com.normation.rudder.domain.policies.PolicyMode.Audit
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import net.liftweb.common._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
