@@ -77,6 +77,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.{Failure => Catch}
+import scala.util.Random
 import scala.util.Success
 import scala.util.Try
 import scala.xml._
@@ -1009,7 +1010,7 @@ class EventLogDetailsGenerator(
                   }
                 }
                 {
-                  mapComplexDiff(modDiff.modProperties)((props: Seq[NodeProperty]) => nodePropertiesDetails(props))
+                  nodePropertiesDiff(modDiff.modProperties)
                 }
                 {
                   mapComplexDiff(modDiff.modPolicyMode) { (optMode: Option[PolicyMode]) =>
@@ -1134,7 +1135,7 @@ class EventLogDetailsGenerator(
     )
   }
 
-  private[this] def heartbeatDetails(hb: HeartbeatConfiguration): NodeSeq = {
+  private[this] def heartbeatDetails(hb: HeartbeatConfiguration):                                      NodeSeq = {
     (
       "#override" #> hb.overrides
       & "#interval" #> hb.heartbeatPeriod
@@ -1142,16 +1143,6 @@ class EventLogDetailsGenerator(
       <ul class="evlogviewpad">
         <li><b>Override global value: </b><value id="override"/></li>
         <li><b>Period: </b><value id="interval"/></li>
-      </ul>
-    )
-  }
-
-  private[this] def nodePropertiesDetails(props: Seq[NodeProperty]):                                   NodeSeq = {
-    (
-      "#kv *" #> props.map(p => s"${p.name}: ${p.value}")
-    ).apply(
-      <ul class="evlogviewpad">
-        <li id="kv"></li>
       </ul>
     )
   }
@@ -1338,7 +1329,38 @@ class EventLogDetailsGenerator(
         )
     }
   }
-  private[this] def promotedNodeDetails(id: NodeId, name: String)                        = (
+
+  /*
+   * Special diff for node properties: use a json js tool.
+   */
+  private[this] def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
+    def toJson(props: List[NodeProperty]): String = {
+      net.liftweb.json.compactRender(props.toDataJson)
+    }
+
+    opt match {
+      case None       => NodeSeq.Empty
+      case Some(diff) =>
+        val s = Random.nextInt(100000)
+        <div>
+          <div id={s"nodediff-${s}"}>shouldBeReplacedByDiff</div>
+        </div> ++ Script(
+          OnLoad(
+            // See JsonDiffPatch doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md
+            // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
+            JsRaw(
+              s"""
+                 |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
+                 |  jsondiffpatch.diff( ${toJson(diff.oldValue)}, ${toJson(diff.newValue)} )
+                 |);
+                 |""".stripMargin
+            )
+          )
+        )
+    }
+  }
+
+  private[this] def promotedNodeDetails(id: NodeId, name: String) = (
     "#nodeID" #> id.value &
       "#nodeName" #> name
   )(
@@ -1347,7 +1369,7 @@ class EventLogDetailsGenerator(
       <li><b>Hostname: </b><value id="nodeName"/></li>
     </ul>
   )
-  private[this] def nodeDetails(details: InventoryLogDetails)                            = (
+  private[this] def nodeDetails(details: InventoryLogDetails)     = (
     "#nodeID" #> details.nodeId.value &
       "#nodeName" #> details.hostname &
       "#os" #> details.fullOsName &
