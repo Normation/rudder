@@ -16,7 +16,8 @@
     "jstree": "^3.3.12",
     "showdown": "^2.1.0",
     "showdown-xss-filter": "^0.2.0",
-    "xss": "^1.0.14"
+    "xss": "^1.0.14",
+    "jsondiffpatch": "0.4.1"
   },
   "devDependencies": {
     "better-npm-audit": "^3.7.3",

@@ -26,12 +26,14 @@ const paths = {
             'node_modules/*/*.min.js*',
             'node_modules/datatables.net-plugins/sorting/natural.js',
             'node_modules/showdown-xss-filter/showdown-xss-filter.js',
+            'node_modules/jsondiffpatch/dist/jsondiffpatch.umd.slim.js',
         ],
         'dest': 'webapp/javascript/libs',
     },
     'vendor_css': {
         'src': [
             'node_modules/*/dist/**/*.min.css*',
+            'node_modules/jsondiffpatch/dist/formatters-styles/html.css',
         ],
         'dest': 'webapp/style/libs',
     },
