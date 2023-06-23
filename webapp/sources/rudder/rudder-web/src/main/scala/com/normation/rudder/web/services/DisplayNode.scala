@@ -292,7 +292,7 @@ object DisplayNode extends Loggable {
   def showInventoryVerticalMenu(sm: FullInventory, salt: String = ""): NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
-      <li><a href={htmlId_#(jsId, "sd_os_")}>Operating System</a></li> ::
+      <li><a href={htmlId_#(jsId, "sd_os_")}>System Information</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_fs_")}>File systems</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_net_")}>Network interfaces</a></li> ::
       <li id="soft_tab"><a href={htmlId_#(jsId, "sd_soft_")}>Software</a></li> ::
@@ -619,13 +619,6 @@ object DisplayNode extends Loggable {
             <label>Software updates available:</label> {sm.node.softwareUpdates.size}
           </div>
         </div>
-
-        <div class="accounts-info col-xs-12">
-          <h3>Accounts</h3>
-          <div>
-            <label>Local account(s):</label> {displayAccounts(sm.node)}
-          </div>
-        </div>
         {deleteButton}
       </div>
     </div> ++ Script(OnLoad(JsRaw(s"""
@@ -702,8 +695,8 @@ object DisplayNode extends Loggable {
 
   // show a comma separated list with description in tooltip
 
-  private def displayAccounts(node: NodeInventory): NodeSeq = {
-    escapeHTML {
+  private def displayAccounts(node: NodeInventory): String = {
+    escape {
       if (node.accounts.isEmpty) {
         "None"
       } else {
@@ -771,6 +764,7 @@ object DisplayNode extends Loggable {
           ("Machine Type", displayMachineType(sm.machine).text),
           ("Total swap space", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
           ("System Serial Number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
+          ("Local account(s)", displayAccounts(sm.node)),
           (
             "Time Zone",
             escape(
@@ -856,14 +850,16 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def displayTabProperties(jsId: JsNodeId, node: NodeInfo): NodeSeq = {
+  def displayTabProperties(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
     import com.normation.rudder.AuthorizationType
 
     val nodeId        = node.id.value
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
     val tabId         = htmlId(jsId, "sd_props_")
-    val css: CssSel = "#tabPropsId [id]" #> tabId
+    val css: CssSel = "#tabPropsId [id]" #> tabId &
+      "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node, sm)
+
     css(tabProperties) ++ Script(OnLoad(JsRaw(s"""
         angular.bootstrap('#nodeProp', ['nodeProperties']);
         var scope  = angular.element($$("#nodeProp")).scope();
@@ -871,6 +867,68 @@ object DisplayNode extends Loggable {
           scope.init("${nodeId}",${userHasRights},'node');
         });
       """)))
+  }
+
+  def displayTabInventoryVariable(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
+    def displayLine(name: String, value: String): NodeSeq = {
+      <tr>
+        <td>{name}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
+        s"""$${node.inventory[${name}]"""
+      }><i class="ion ion-clipboard"></i></button></td>
+        {
+        if (value.strip().isEmpty) {
+          <td></td>
+        } else {
+          <td>{value}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
+            value
+          }><i class="ion ion-clipboard"></i></button></td>
+        }
+      }
+     </tr>
+    }
+
+    val values = Seq[(String, String)](
+      ("localAdministratorAccountName", escape(sm.node.main.rootUser)),
+      ("hostname", escape(sm.node.main.hostname)),
+      ("policyServerId", escape(sm.node.main.policyServerId.value)),
+      ("os.fullName", escape(sm.node.main.osDetails.fullName)),
+      ("os.name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
+      ("os.version", escape(sm.node.main.osDetails.version.value)),
+      ("os.servicePack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+      ("archDescription", escape(sm.node.archDescription.getOrElse("None"))),
+      ("os.kernelVersion", escape(sm.node.main.osDetails.kernelVersion.value)),
+      ("ram", escape(sm.node.ram.map(_.size.toString).getOrElse(""))),
+      ("machine.manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse(""))),
+      ("machine.machineType", displayMachineType(sm.machine).text.toString),
+      (
+        "timezone",
+        escape(
+          sm.node.timezone
+            .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
+            .getOrElse("unknown")
+        )
+      )
+    )
+
+    <div>
+      <h3 class="page-title foldable" onclick="$('.variables-table-container').toggle(); $(this).toggleClass('folded');">Inventory variables <i class="fa fa-chevron-down"></i></h3>
+      <div class="variables-table-container">
+        <div class="alert alert-info">
+          These are the node inventory variables that can be used in directive inputs with the <b class="variable-syntax">${{node.inventory[NAME]}}</b> syntax.
+        </div>
+        <table class="no-footer dataTable">
+          <thead>
+            <tr class="head">
+              <th class="sorting sorting_desc">Name</th>
+              <th class="sorting">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {values.map { case (n, v) => displayLine(n, v) }}
+          </tbody>
+        </table>
+      </div>
+    </div>
   }
 
   private def displayTabProcess(jsId: JsNodeId, sm: FullInventory): NodeSeq = {

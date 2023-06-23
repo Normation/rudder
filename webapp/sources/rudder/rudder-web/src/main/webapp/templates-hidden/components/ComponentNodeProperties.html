@@ -1,5 +1,6 @@
 <nodeproperties-tab>
   <div id="tabPropsId">
+    <h3 class="page-title foldable" onclick="$('#nodeProp').toggle(); $(this).toggleClass('folded');">Node properties <i class="fa fa-chevron-down"></i></h3>
      <div id="nodeProp" ng-controller="nodePropertiesCtrl">
        <div class="row">
          <lift:authz role="node_write">
@@ -51,7 +52,7 @@
              <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
              An error occured while deleting property '{{deletedProperty.name}}'</i>: <b>{{errorDeleting}}</b>
            </div>
-           <table datatable="ng" dt-options="options" dt-column-defs="columns" class="table-striped table-hover table-bordered table" id="nodePropertiesTab">
+           <table datatable="ng" dt-options="options" dt-column-defs="columns" id="nodePropertiesTab">
              <thead>
                <tr class="head tablewidth">
                  <th> Name    </th>
@@ -150,5 +151,11 @@
          </div>
        </div>
      </div>
+
+    <div id="inventoryVariables">
+
+
+    </div>
+
   </div>
 </nodeproperties-tab>

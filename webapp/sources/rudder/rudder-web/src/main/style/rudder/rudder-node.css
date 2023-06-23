@@ -406,7 +406,25 @@ pre.display-keys > label{
 .info-card.critical .card-info h4{
   color: #C80004;
 }
-
+/* PROPERIES TAB */
+#inventoryVariables .dataTable .btn-clipboard{
+  margin-left: 4px;
+  visibility: hidden;
+}
+#inventoryVariables .dataTable tr.head th.sorting{
+  cursor: default !important;
+  color: #041922;
+}
+#inventoryVariables .dataTable tr:hover .btn-clipboard{
+  visibility: visible;
+}
+#nodeProperties > div > h3.page-title:first-child{
+  margin-top: 0;
+}
+.variable-syntax:before,
+.variable-syntax:after{
+  content:"`";
+}
 /* SETTINGS TAB */
 #nodeState > h3.page-title:first-child,
 #logsDetails h3.page-title{
