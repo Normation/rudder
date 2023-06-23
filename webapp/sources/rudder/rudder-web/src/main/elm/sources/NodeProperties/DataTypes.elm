@@ -36,10 +36,11 @@ type JsonValue
   | JsonNull
 
 type alias UI =
-  { hasWriteRights : Bool
-  , hasReadRights  : Bool
-  , loading        : Bool
-  , modalState     : ModalState
+  { hasWriteRights   : Bool
+  , hasReadRights    : Bool
+  , loading          : Bool
+  , modalState       : ModalState
+  , editedProperties : Dict String EditProperty
   }
 
 type alias Model =
@@ -58,6 +59,8 @@ type Msg
   | GetNodeProperties (Result Error (List Property))
   | SaveChanges
   | UpdateNewProperty EditProperty
+  | UpdateProperty String EditProperty
   | AddProperty
   | DeleteProperty String
   | ToggleEditPopup ModalState
+  | ToggleEditProperty String EditProperty Bool

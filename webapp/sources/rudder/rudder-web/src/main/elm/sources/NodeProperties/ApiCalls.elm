@@ -29,15 +29,15 @@ getNodeProperties model =
   in
     req
 
-saveProperty : EditProperty -> Model -> Cmd Msg
-saveProperty property model =
+saveProperty : List EditProperty -> Model -> Cmd Msg
+saveProperty properties model =
   let
     req =
       request
         { method  = "POST"
         , headers = []
         , url     = getUrl model [] []
-        , body    = encodeProperty model property "Add" |> jsonBody
+        , body    = encodeProperty model properties "Add" |> jsonBody
         , expect  = expectJson SaveProperty decodeSaveProperties
         , timeout = Nothing
         , tracker = Nothing
@@ -53,7 +53,7 @@ deleteProperty property model =
         { method  = "POST"
         , headers = []
         , url     = getUrl model [] []
-        , body    = encodeProperty model property "Delete" |> jsonBody
+        , body    = encodeProperty model [property] "Delete" |> jsonBody
         , expect  = expectJson SaveProperty decodeSaveProperties
         , timeout = Nothing
         , tracker = Nothing

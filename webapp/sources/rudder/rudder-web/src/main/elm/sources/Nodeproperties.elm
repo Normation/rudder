@@ -5,6 +5,7 @@ import Http exposing (..)
 import Result
 import Json.Encode exposing (encode, string, object)
 import Json.Decode exposing (decodeValue, value)
+import Dict exposing (..)
 
 import NodeProperties.ApiCalls exposing (..)
 import NodeProperties.DataTypes exposing (..)
@@ -49,6 +50,13 @@ update msg model =
     UpdateNewProperty newProperty ->
       ({model | newProperty = newProperty}, Cmd.none)
 
+    UpdateProperty key newProperty ->
+      let
+        ui = model.ui
+        newProperties = Dict.update key (always (Just newProperty)) ui.editedProperties
+      in
+        ( { model | ui = {ui | editedProperties = newProperties} }, Cmd.none )
+
     SaveProperty res ->
       case  res of
         Ok p ->
@@ -81,14 +89,14 @@ update msg model =
     AddProperty ->
       let
         cmd = case model.newProperty.format of
-          StringFormat -> saveProperty model.newProperty model
+          StringFormat -> saveProperty [model.newProperty] model
           JsonFormat   ->
             let
               --checkJsonFormat = (Json.Decode.dict (Json.Decode.lazy (\_ -> decodePropertyValue)) |> Json.Decode.map JsonObject) encodedValue
               checkJsonFormat = decodeValue decodePropertyValueTest (string model.newProperty.value) -- NOT WORKING
             in
               case checkJsonFormat of
-                Ok s  -> saveProperty model.newProperty model
+                Ok s  -> saveProperty [model.newProperty] model
                 Err _ -> errorNotification "JSON check is enabled, but the value format is invalid."
       in
         (model, cmd)
@@ -101,6 +109,27 @@ update msg model =
         ui = model.ui
       in
         ( { model | ui = {ui | modalState = modalState} }, Cmd.none )
+
+    ToggleEditProperty key property save ->
+      if Dict.member key model.ui.editedProperties then -- If the property is being edited
+        let
+          ui = model.ui
+          editedProperties = ui.editedProperties
+            |> Dict.remove key
+          cmd = if save then -- If we want to save changes
+            saveProperty [property] model
+            else
+            Cmd.none
+          in
+            ( { model | ui = {ui | editedProperties = editedProperties} }, cmd )
+      else
+        let
+          ui = model.ui
+          editedProperties = ui.editedProperties
+            |> Dict.insert key property
+        in
+          ( { model | ui = {ui | editedProperties = editedProperties} }, Cmd.none )
+
 
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
