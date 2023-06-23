@@ -36,10 +36,6 @@
 */
 
 /* =====  GENERAL  ===== */
-#details{
-  padding-bottom: 100px;
-}
-
 .fade.modal-backdrop.in {
   opacity: .3;
 }
@@ -366,7 +362,16 @@ body > .ng-toast {
   font-size: 1.1em;
   margin-bottom: 10px;
 }
-
+.main-details > .editForm{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.main-details > .editForm > .tab-general + .row{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .content-wrapper textarea.form-control.technique-description{
   max-height: 200px;
   overflow: auto;
@@ -421,11 +426,12 @@ ul.tabs-list > li > .badge.empty{
 
 #technique-editor .main-details h5{
   border-bottom: 1px solid #d6deef;
-  padding-bottom: 4px;
+  padding: 0 15px 4px 15px;
   text-transform: uppercase;
   font-size: 1.2em;
   color: #6f6f85;
   margin-top: 20px;
+  margin-bottom: 0;
 }
 #technique-editor .main-details h5 .badge{
   position: relative;
@@ -442,7 +448,9 @@ ul.tabs-list > li > .badge.empty{
   margin-left: 10px;
 }
 #technique-editor .main-details #methods{
-  padding: 15px 15px 30px 15px;
+  padding: 20px 15px 100px 15px;
+  background-color: #F8F9FC;
+  flex: 1;
 }
 #no-methods{
   padding: 15px;
@@ -860,21 +868,20 @@ button.btn.clipboard:hover {
 
 
 .block-child{
-  border-top: none;
-  border-bottom-left-radius : 4px;
-  border-bottom-right-radius: 4px;
-  background-color: #fff;
-  padding: 10px 10px 0 20px;
-  font-size: 14px;
-  position: relative;
   opacity: 1;
   transition:opacity 0.5s ease-in;
   transition-property: opacity, height, padding;
+  position: relative;
+}
+.method-info:not(.closed) .tabs > .block-child{
+  margin: -15px -15px -10px -15px;
+  padding: 15px 15px 10px 35px;
+  background-color: #F8F9FC;
 }
 
 /* METHOD DETAILS */
 .method-details{
-  padding: 0;
+  padding-bottom: 10px;
   font-size: 14px;
   user-select: text;
 }
@@ -898,7 +905,7 @@ button.btn.clipboard:hover {
 }
 
 .method-details .tabs{
-  padding-left: 10px;
+  padding: 0 15px;
 }
 
 .method-details .form-group{
@@ -993,9 +1000,35 @@ button.btn.clipboard:hover {
 .generic-methods-container .empty ~ ul{
   display: none !important;
 }
+/* =====  BLOCK  ===== */
+.method-info .block-name-container{
+  padding: 15px 100px 0 15px;
+}
+.method-info.closed .block-name-container{
+  padding-left: 0;
+  padding-top: 0;
+}
 /* =====  METHOD  ===== */
 ul.list-unstyled > li{
   margin-bottom: 10px;
+}
+#methods li.card-method{
+  margin-bottom: 20px;
+  border: 1px solid #d6deef87;
+  border-bottom-color: #D6DEEF;
+}
+#methods li.card-method:last-child{
+  margin-bottom: 0;
+}
+.block-child .methods {
+  padding-bottom: 15px;
+}
+.card-method:not(.active) .block-child .methods {
+  padding-left: 15px;
+}
+
+#methods li.card-method:nth-child(2) {
+  margin-top: 10px;
 }
 .method {
   border-radius: 4px;
@@ -1029,7 +1062,6 @@ ul li.hide-method {
   padding-bottom : 10px;
 }
 #methods .method .method-info{
-  padding: 2px 5px;
   position: relative;
   flex: 1;
 }
@@ -1049,7 +1081,7 @@ ul li.hide-method {
   transition-property: opacity;
   transition-duration: .2s;
   opacity: 0;
-  margin-right: 5px;
+  margin-right: 8px;
   outline: none !important;
 }
 #methods .method:hover > .method-info > .btn-holder > .method-action {
@@ -1066,7 +1098,7 @@ ul li.hide-method {
   word-break: keep-all;
 }
 .method .cursorMove {
-  background-color: #ededed;
+  background-color: #e1e5eb;
   padding: 0 10px;
   color: #04192299;
   display: flex;
@@ -1086,41 +1118,49 @@ ul li.hide-method {
 }
 .name-content {
   cursor: text;
+  padding-top: 6px;
+  display: inline-block;
+}
+.method-condition + .method-name .name-content {
+  padding-top: 0;
+}
+  cursor: text;
+  padding-top: 6px;
+  display: inline-block;
 }
 .method .method-param{
   align-items: baseline;
+  padding-bottom: 10px;
 }
 .cursorMove p {
   margin : 0;
 }
 
-
 .block-child:before{
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  top: 10px;
+  bottom: 10px;
+  left: 15px;
   width: 3px;
-  background-color: #337ab7;
-
+  background-color: #a9d6dd;
 }
-
-
+.method-info.closed .block-child:before{
+  content: initial;
+}
 .block-child .block-child:before{
-
-  background-color: #222b32;
+  background-color: #a9b9dd;
 }
-
-
 .block-child .block-child .block-child:before{
-
-  background-color: #8fb92a;
+  background-color: #d1a9dd;
 }
 
-.method .method-info.closed .method-condition:not(.hidden) ~ div:before,
-.method .method-info .method-condition:not(.hidden) ~ div:not(.method-name):before,
-.method .method-condition:not(.hidden) ~ label:before {
+.method .method-info .method-condition:not(.hidden) ~ div:before,
+.card-method.active > .method > .method-info.condition > .block-name-container:before,
+.card-method.active > .method > .method-info.condition > .method-details:before,
+.card-method:not(.active) > .method > .method-info.condition .method-condition:before,
+.method-info.condition > .block-child:after,
+.card-method:not(.active) .method .method-condition:before {
   content: "";
   position: absolute;
   top: 0;
@@ -1128,12 +1168,23 @@ ul li.hide-method {
   left: 0;
   width: 3px;
   background-color: #337ab7;
+  z-index: 100;
 }
-.method .method-info.closed .method-condition ~ div{
+.card-method.showMethodBlock:not(.active) .method .method-info .method-condition,
+.card-method.showMethodCall .method .method-info .method-condition{
   padding-left: 10px;
+}
+.method .method-info .method-condition:not(.hidden),
+.method .method-info .method-condition.hidden ~ .method-name{
+  padding-top: 6px;
+}
+.method .method-info.closed .method-param{
+  padding-left: 15px;
+  padding-bottom: 10px;
 }
 .method .method-name {
   font-size: 16px;
+  padding: 0 15px;
 }
 .method .method-name .dsc-icon {
   margin-left: 6px;
@@ -1167,7 +1218,7 @@ ul li.hide-method {
 .method-condition > label{
   display: inline-block;
   color: #337ab7;
-  margin: 0 4px 0 10px;
+  margin: 0 4px 0 0;
 }
 .method-info.closed .method-condition > label{
   margin-left: 0;
@@ -1537,7 +1588,6 @@ ul li.hide-method {
 }
 .component-name-wrapper {
   position: relative;
-  margin-left:10px;
 }
 .title-input-name {
   font-size: 14px;
@@ -1551,7 +1601,7 @@ ul li.hide-method {
   padding-left: 10px;
   padding-right: 10px;
   height: 25px;
-  background-color:#d3d5d9;
+  background-color:#e1e5eb;
   text-align: center;
   vertical-align: middle;
   line-height: 25px;
@@ -1559,18 +1609,21 @@ ul li.hide-method {
   z-index:10;
   margin: 0;
   position: absolute;
-  top: -16px;
-  right: 80px;
+  top: -20px;
+  right: 135px;
+}
+.card-method.active .gm-label-name{
+  right: 120px;
 }
 .gm-label-unknown-name {
   background-color:#da291c;
   color: #ffffff;
 }
 .method-info .method-condition:not(.hidden) + .method-name .gm-label-name{
-  top: -24px;
+  top: -26px;
 }
 .method-info:not(.closed) .method-condition:not(.hidden) + .method-name .gm-label-name{
-  top: -36px;
+  top: -40px;
 }
 .method-info.closed .method-condition.hidden + .method-name .gm-label-name{
   top: -2px;
@@ -1581,6 +1634,9 @@ ul li.hide-method {
 .card-method {
   box-shadow: rgba(50, 50, 105, 0.15) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
   transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+  background-color: #fff;
+  border-radius: 6px;
+  overflow: hidden;
 }
 .card-method.hovered {
   box-shadow: 0 14px 28px rgba(0,0,100,0.07), 0 3px 3px rgba(0,0,0,0.05);

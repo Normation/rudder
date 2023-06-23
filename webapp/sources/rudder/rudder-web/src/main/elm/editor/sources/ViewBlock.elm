@@ -69,15 +69,6 @@ blockDetail block parentId ui techniqueUi model =
     |> appendChildList
        [ tabsList
        , element "div" |> addClass "tabs" |> appendChild (showBlockTab model parentId block ui techniqueUi)
-       , element "div"
-         |> addClass "method-details-footer"
-         |> appendChild
-            ( element "button"
-              |> addClass "btn btn-outline-secondary btn-sm"
-              |> appendText "Reset "
-              |> appendChild (element "i" |> addClass "fa fa-undo-all" )
-              |> addActionStopAndPrevent ("click", ResetMethodCall (Block parentId block))
-            )
        ]
 
 
@@ -378,6 +369,16 @@ blockBody model parentId block ui techniqueUi =
                      , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild cloneIcon
+    resetIcon = element "i" |> addClass "fa fa-rotate-right"
+    resetButton = element "button"
+                  |> addClass "method-action tooltip-bs"
+                  |> addActionStopPropagation ("click", ResetMethodCall (Block parentId block))
+                  |> addAttributeList
+                     [ type_ "button", title "Reset this block", attribute "data-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
+                  |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
     removeButton = element "button"
                   |> addClass "text-danger method-action tooltip-bs"
@@ -400,7 +401,7 @@ blockBody model parentId block ui techniqueUi =
     methodName = case ui.mode of
                    Opened -> element "input"
                              |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
-                                                 , name "component", style "width" "calc(100% - 50px)", class "form-control"
+                                                 , name "component", class "form-control"
                                                  , value block.component,  placeholder "Enter a component name" ]
                              |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
@@ -432,7 +433,7 @@ blockBody model parentId block ui techniqueUi =
   |> Dom.appendChildList
      [ dragElem
      , element "div"
-       |> addClass "method-info"
+       |> addClass ("method-info" ++ if (block.condition.os /= Nothing || block.condition.advanced /= "") then " condition" else "")
        |> addClassConditional ("closed") (ui.mode == Closed)
        |> addAction ("click", UIBlockAction block.id {ui | mode = Opened})
        |> appendChildList
@@ -440,13 +441,12 @@ blockBody model parentId block ui techniqueUi =
             |> addClass "btn-holder"
             |> addAttribute (hidden (not model.hasWriteRights))
             |> appendChildList
-               [ cloneButton
-               , element "span" |> appendText " "
-               , removeButton
-               , element "span" |> appendText " "
+               [ removeButton
+               , resetButton
+               , cloneButton
                ]
           , element "div"
-            |> addClass "flex-column"
+            |> addClass "flex-column block-name-container"
             |> appendChildConditional condition  (block.condition.os /= Nothing || block.condition.advanced /= "")
             |> appendChild methodName
          ]
@@ -468,6 +468,7 @@ showChildren model block ui techniqueUi parentId =
      |> addClass "methods list-unstyled"
      |> appendChildConditional
         ( element "li"
+          |> addStyle ("margin-bottom", "0")
           |> appendChild
             ( element "button"
               |> addClass "btn btn-default"

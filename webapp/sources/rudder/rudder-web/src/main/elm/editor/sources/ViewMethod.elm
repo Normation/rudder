@@ -379,23 +379,6 @@ methodDetail method call parentId ui model =
       , li [class (activeClass CallReporting), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
       ]
     , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
-    , div [ class "method-details-footer"] [
-          button [ class "btn btn-outline-secondary btn-sm" , type_ "button", onClick (ResetMethodCall (Call parentId call))] [ -- ng-disabled="!canResetMethod(method_call)" ng-click="resetMethod(method_call)"
-            text "Reset "
-          , i [ class "fa fa-undo-all"] []
-          ]
-        , case method.documentation of
-            Just _ ->
-              let
-                classes = "btn btn-sm btn-primary " ++
-                          if List.member method.id model.methodsUI.docsOpen then "doc-opened" else ""
-              in
-                button [ class classes, type_ "button", onClick (ShowDoc call.methodName) ] [
-                  text "Show docs "
-                , i [ class "fa fa-book"] []
-                ]
-            Nothing -> text ""
-        ]
     ]
   ]
 
@@ -475,6 +458,41 @@ callBody model ui techniqueUi call pid =
                      , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild removeIcon
+    resetIcon = element "i" |> addClass "fa fa-rotate-right"
+    resetButton = element "button"
+                  |> addClass "method-action popover-bs"
+                  |> addActionStopAndPrevent ("click", ResetMethodCall (Call pid call))
+                  |> addAttributeList
+                     [ type_ "button", attribute "data-content" "Reset this method", attribute "data-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
+                  |> appendChild resetIcon
+    docIcon = element "i" |> addClass "fa fa-book"
+    docButton = element "button"
+                  |> addClass "text-info method-action popover-bs"
+                  |> addActionStopAndPrevent ("click", ShowDoc call.methodName)
+                  |> addAttributeList
+                     [ type_ "button", attribute "data-content" "Show documentation", attribute "data-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
+                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     ]
+                  |> appendChild docIcon
+{--
+, div [ class "method-details-footer"] [
+          case method.documentation of
+            Just _ ->
+              let
+                classes = "btn btn-sm btn-primary " ++
+                          if List.member method.id model.methodsUI.docsOpen then "doc-opened" else ""
+              in
+                button [ class classes, type_ "button", onClick (ShowDoc call.methodName) ] [
+                  text "Show docs "
+                , i [ class "fa fa-book"] []
+                ]
+            Nothing -> text ""
+        ]
+--}
     condition = element "div"
                 |> addClass "method-condition flex-form"
                 |> addClassConditional "hidden" (call.condition.os == Nothing && call.condition.advanced == "")
@@ -575,17 +593,19 @@ callBody model ui techniqueUi call pid =
             |> addClass "btn-holder"
             |> addAttribute (hidden (not model.hasWriteRights))
             |> appendChildList
-               [ cloneButton
-               , element "span" |> appendText " "
-               , removeButton
-               , element "span" |> appendText " "
+               [ removeButton
+               , resetButton
+               , cloneButton
+               , ( case method.documentation of
+                 Just _ -> docButton
+                 Nothing -> element "span"
+               )
                , element "span" |> addAttributeList
                                    [ class deprecatedClass
                                    , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
                                    , attribute "data-placement" "auto", attribute "data-content" (getTooltipContent method)
                                    , attribute "data-html" "true"
                                    ]
-               , element "span" |> appendText " "
                ]
 
           , element "div"
