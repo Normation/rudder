@@ -598,7 +598,7 @@ update msg model =
             TechniqueDetails t o ui ->
               let
                 technique =  { t | elems = t.elems ++ [Call Nothing newCall] }
-                newUi = { ui | callsUI = Dict.update newId.value (always (Just (defaultMethodUiInfo ))) ui.callsUI }
+                newUi = { ui | callsUI = Dict.update newId.value (always (Just ({defaultMethodUiInfo | mode = Opened} ))) ui.callsUI }
               in
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model
@@ -616,7 +616,7 @@ update msg model =
             TechniqueDetails t o ui ->
               let
                 technique =  { t | elems =  t.elems ++ [Block Nothing newCall]  }
-                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Closed Children (InvalidState [EmptyComponent]) False)) ) ui.blockUI }
+                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) False)) ) ui.blockUI }
               in
               { model | mode = TechniqueDetails technique o newUi }
             _ -> model

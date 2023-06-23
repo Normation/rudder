@@ -722,12 +722,10 @@
 .rudder-template .template-main .dataTable tr.details td.details{
   padding-left: 0;
 }
-.rudder-template .tab-table-content .dataTable > tbody > tr:nth-child(even),
-.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even){
+.rudder-template .dataTable > tbody > tr:nth-child(even){
   background-color: #F8F9FC;
 }
-.rudder-template .tab-table-content .dataTable > tbody > tr:nth-child(even):hover,
-.rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr:nth-child(even):hover{
+.rudder-template .dataTable > tbody > tr:nth-child(even):hover{
   background-color: #eef1f9;
 }
 .rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr.is-expired {
@@ -855,6 +853,14 @@
   color: #041922 !important;
   border-bottom: 2px solid #d6deef;
   margin-top: 20px;
+}
+.rudder-template h3.page-title.foldable .fa {
+  font-size: .8em;
+  color: #738195;
+  margin-left: 10px;
+}
+.rudder-template h3.page-title.foldable.folded .fa-chevron-down {
+  transform: rotate(-90deg);
 }
 .rudder-template .main-details h3.page-subtitle {
   margin-top: 20px;

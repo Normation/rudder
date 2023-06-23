@@ -329,7 +329,7 @@ class ShowNodeDetailsFromNode(
       RudderConfig.reportingService.findSystemNodeStatusReport,
       false
     ) &
-    "#nodeProperties *" #> DisplayNode.displayTabProperties(id, node) &
+    "#nodeProperties *" #> DisplayNode.displayTabProperties(id, node, inventory: FullInventory) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
                               else nodeStateEditForm(node).nodeStateConfiguration) &
