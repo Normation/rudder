@@ -1097,7 +1097,7 @@ class EventLogFactoryImpl(
           case None    => NodeSeq.Empty
           case Some(x) =>
             SimpleDiff.toXml(<properties/>, x) { props =>
-              props.flatMap(p => <property><name>{p.name}</name><value>{p.value}</value></property>)
+              props.flatMap(p => <property><name>{p.name}</name><value>{p.valueAsString}</value></property>)
             }
         }
       }{
