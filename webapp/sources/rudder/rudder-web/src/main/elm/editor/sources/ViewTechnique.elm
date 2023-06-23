@@ -324,22 +324,22 @@ showTechnique model technique origin ui =
           ]
         ]
       ]
-    , div [ class "main-details", id "details"] [
-        div [ class "editForm",  name "ui.editForm" ] [
-          techniqueTab model technique creation ui
-        , h5 [] [
-            text "Methods"
-          , span [ class "badge badge-secondary" ] [
-              span [] [ text (String.fromInt (List.length technique.elems ) ) ]
+    , div [ class "main-details", id "details"]
+      [ div [ class "editForm",  name "ui.editForm" ]
+        [ techniqueTab model technique creation ui
+        , div [ class "row"]
+          [ h5 []
+            [ text "Methods"
+            , span [ class "badge badge-secondary" ]
+              [ span [] [ text (String.fromInt (List.length technique.elems ) ) ]
+              ]
+            , if (model.genericMethodsOpen || (not model.hasWriteRights) ) then text "" else
+              button [class "btn-sm btn btn-success", type_ "button", onClick OpenMethods]
+              [ text "Add "
+              , i [ class "fa fa-plus-circle" ] []
+              ]
             ]
-          , if (model.genericMethodsOpen || (not model.hasWriteRights) ) then text "" else
-                button [class "btn-sm btn btn-success", type_ "button", onClick OpenMethods] [
-                  text "Add "
-                , i [ class "fa fa-plus-circle" ] []
-                ]
-          ]
-       ,  div [ class "row"] [
-            render methodsList
+          , render methodsList
           ]
         ]
       ]
