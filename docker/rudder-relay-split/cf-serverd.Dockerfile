@@ -1,4 +1,5 @@
 FROM centos:8
+LABEL ci=rudder/docker/rudder-relay-split/cf-serverd.Dockerfile
 
 RUN \
         ln -sf /bin/true /usr/sbin/service && \
