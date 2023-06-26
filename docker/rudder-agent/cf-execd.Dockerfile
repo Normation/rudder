@@ -1,4 +1,5 @@
 FROM centos:8
+LABEL ci=rudder/docker/rudder-agent/cf-execd.Dockerfile
 
 RUN \
         ln -sf /bin/true /usr/sbin/service && \

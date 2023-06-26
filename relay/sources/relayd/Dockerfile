@@ -1,4 +1,5 @@
 FROM rust:1.70.0-bullseye
+LABEL ci=rudder/relay/sources/relayd/Dockerfile
 
 ARG USER_ID=1000
 COPY ci/user.sh .

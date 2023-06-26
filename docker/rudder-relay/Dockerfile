@@ -1,4 +1,5 @@
 FROM centos:8
+LABEL ci=rudder/docker/rudder-relay/Dockerfile
 ARG VERSION=latest
 EXPOSE 443 5309
 
@@ -19,11 +20,8 @@ COPY rudder-relay.sh .
 COPY systemctl3.py /usr/bin/systemctl
 
 # Ensure scripts are executable
-RUN chmod +x rudder-relay.sh /usr/bin/systemctl
-
-RUN systemctl enable rudder-cf-execd rudder-cf-serverd httpd rudder-relayd
-
-RUN \
+RUN chmod +x rudder-relay.sh /usr/bin/systemctl ;\
+    systemctl enable rudder-cf-execd rudder-cf-serverd httpd rudder-relayd ;\
     yum clean all && \
     rm -rf /var/rudder/cfengine-community/state/* && \
     # remove keys/id from image
