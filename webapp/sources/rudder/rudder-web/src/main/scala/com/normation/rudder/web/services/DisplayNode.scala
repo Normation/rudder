@@ -860,31 +860,35 @@ object DisplayNode extends Loggable {
     val css: CssSel = "#tabPropsId [id]" #> tabId &
       "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node, sm)
 
-    css(tabProperties) ++ Script(OnLoad(JsRaw(
-      s"""
+    css(tabProperties) ++ Script(
+      OnLoad(
+        JsRaw(
+          s"""
       var main = document.getElementById("nodeproperties-app")
-         |var initValues = {
-         |    contextPath    : "${S.contextPath}"
-         |  , hasWriteRights : hasWriteRights
-         |  , hasReadRights  : hasReadRights
-         |  , nodeId         : "${nodeId}"
-         |  , objectType     : 'node'
-         |};
-         |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
-         |app.ports.successNotification.subscribe(function(str) {
-         |  createSuccessNotification(str)
-         |});
-         |app.ports.errorNotification.subscribe(function(str) {
-         |  createErrorNotification(str)
-         |});
-         |// Initialize tooltips
-         |app.ports.initTooltips.subscribe(function(msg) {
-         |  setTimeout(function(){
-         |    $$('.bs-tooltip').bsTooltip();
-         |  }, 400);
-         |});
-         |""".stripMargin
-      )))
+             |var initValues = {
+             |    contextPath    : "${S.contextPath}"
+             |  , hasWriteRights : hasWriteRights
+             |  , hasReadRights  : hasReadRights
+             |  , nodeId         : "${nodeId}"
+             |  , objectType     : 'node'
+             |};
+             |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
+             |app.ports.successNotification.subscribe(function(str) {
+             |  createSuccessNotification(str)
+             |});
+             |app.ports.errorNotification.subscribe(function(str) {
+             |  createErrorNotification(str)
+             |});
+             |// Initialize tooltips
+             |app.ports.initTooltips.subscribe(function(msg) {
+             |  setTimeout(function(){
+             |    $$('.bs-tooltip').bsTooltip();
+             |  }, 400);
+             |});
+             |""".stripMargin
+        )
+      )
+    )
   }
 
   def displayTabInventoryVariable(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
