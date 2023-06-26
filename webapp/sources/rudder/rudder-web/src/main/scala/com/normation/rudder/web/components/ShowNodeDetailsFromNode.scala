@@ -312,7 +312,7 @@ class ShowNodeDetailsFromNode(
       AcceptedInventory,
       isDisplayingInPopup = withinPopup
     ) &
-    "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(inventory) &
+    "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(inventory, Some(node)) &
     "#reportsDetails *" #> reportDisplayer.asyncDisplay(
       node,
       "node_reports",

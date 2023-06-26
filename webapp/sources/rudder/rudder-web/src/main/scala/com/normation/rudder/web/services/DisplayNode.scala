@@ -289,10 +289,10 @@ object DisplayNode extends Loggable {
     )
   }
 
-  def showInventoryVerticalMenu(sm: FullInventory, salt: String = ""): NodeSeq = {
+  def showInventoryVerticalMenu(sm: FullInventory, optNode: Option[NodeInfo], salt: String = ""): NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
-      <li><a href={htmlId_#(jsId, "sd_os_")}>System Information</a></li> ::
+      <li><a href={htmlId_#(jsId, "sd_os_")}>Operating System</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_fs_")}>File systems</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_net_")}>Network interfaces</a></li> ::
       <li id="soft_tab"><a href={htmlId_#(jsId, "sd_soft_")}>Software</a></li> ::
@@ -315,7 +315,7 @@ object DisplayNode extends Loggable {
     }
 
     val tabContent = {
-      displayTabOS(jsId, sm) ::
+      displayTabOS(jsId, sm, optNode) ::
       displayTabBios(jsId, sm) ::
       displayTabControllers(jsId, sm) ::
       displayTabMemories(jsId, sm) ::
@@ -364,7 +364,7 @@ object DisplayNode extends Loggable {
         {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
       </div>
       <div id={htmlId(jsId, "node_inventory_")}>
-        {showInventoryVerticalMenu(sm)}
+        {showInventoryVerticalMenu(sm, nodeAndGlobalMode.map(_._1))}
       </div>
     </div>
   }
@@ -743,7 +743,7 @@ object DisplayNode extends Loggable {
     </div>
   }
 
-  private def displayTabOS(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
+  private def displayTabOS(jsId: JsNodeId, sm: FullInventory, optNode: Option[NodeInfo]): NodeSeq = {
     displayTabGrid(jsId)(
       "os",
       // special: add name -> value to be displayed as a table
@@ -752,19 +752,25 @@ object DisplayNode extends Loggable {
           ("Node ID", escape(sm.node.main.id.value)),
           ("Hostname", escape(sm.node.main.hostname)),
           ("Policy Server ID", escape(sm.node.main.policyServerId.value)),
-          ("OS Full name", escape(sm.node.main.osDetails.fullName)),
-          ("OS Type", escape(sm.node.main.osDetails.os.kernelName)),
-          ("OS Name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
-          ("OS Version", escape(sm.node.main.osDetails.version.value)),
-          ("OS Service Pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
-          ("Architecture", escape(sm.node.archDescription.getOrElse("None"))),
-          ("Kernel version", escape(sm.node.main.osDetails.kernelVersion.value)),
-          ("Total physical memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
+          ("Operating System Detailed name", escape(sm.node.main.osDetails.fullName)),
+          ("Operating System Type", escape(sm.node.main.osDetails.os.kernelName)),
+          ("Operating System Name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
+          ("Operating System Version", escape(sm.node.main.osDetails.version.value)),
+          ("Operating System Service Pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+          ("Operating System Architecture Description", escape(sm.node.archDescription.getOrElse("None"))),
+          ("Kernel Version", escape(sm.node.main.osDetails.kernelVersion.value)),
+          ("Total Physical Memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
           ("Manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))),
           ("Machine Type", displayMachineType(sm.machine).text),
-          ("Total swap space", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
+          ("Total Swap Space (Swap)", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
           ("System Serial Number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
-          ("Local account(s)", displayAccounts(sm.node)),
+          ("Agent type", escape(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
+          ("Node State", escape(optNode.map(n => getNodeState(n.state)).getOrElse("-"))),
+          ("Account(s)", displayAccounts(sm.node)),
+          ("Administrator Account", escape(sm.node.main.rootUser)),
+          ("IP Addresses", escape(sm.node.serverIps.mkString(", "))),
+          ("Last Inventory Date", escape(optNode.map(n => DateFormaterService.getDisplayDate(n.inventoryDate)).getOrElse("-"))),
+          ("Policy Server ID", escape(sm.node.main.policyServerId.value)),
           (
             "Time Zone",
             escape(
