@@ -1,1 +1,1 @@
-See SECURITY.md[SECURITY.md]
+See https://github.com/Normation/rudder/blob/master/SECURITY.md[SECURITY.md]
