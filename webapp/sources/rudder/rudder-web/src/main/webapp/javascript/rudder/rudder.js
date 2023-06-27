@@ -591,7 +591,7 @@ function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation, conta
   if(container && $(container).length){
     dataContainer = "data-container='" + container + "'";
   }else{
-    dataContainer = "";
+    dataContainer = "data-container='body'";
   }
   var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' "+ dataContainer +" title=''></span>";
   var badge = $(span).get(0);
