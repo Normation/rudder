@@ -452,7 +452,7 @@ td.listclose:after {
 #nodePropertiesTab th:last-child{
   width: 85px !important;
 }
-#nodePropertiesTab > tbody > tr > td{
+#nodePropertiesTab > tbody > tr > td:not(:first-child){
   padding: 8px 4px;
 }
 #nodePropertiesTab > tbody > tr > td.property-value{

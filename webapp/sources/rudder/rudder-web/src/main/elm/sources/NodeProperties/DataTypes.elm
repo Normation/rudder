@@ -11,12 +11,12 @@ type ModalState = NoModal | Deletion String
 type alias EditProperty =
   { name      : String
   , value     : String
-  , format    : Format
+  , format    : ValueFormat
   , pristineName  : Bool
   , pristineValue : Bool
   }
 
-type Format = JsonFormat | StringFormat
+type ValueFormat = JsonFormat | StringFormat
 
 type alias Property =
   { name      : String
@@ -35,12 +35,27 @@ type JsonValue
   | JsonObject (Dict String JsonValue)
   | JsonNull
 
+type SortOrder = Asc | Desc
+
+type SortBy
+  = Name
+  | Format
+  | Value
+
+type alias TableFilters =
+  { sortBy    : SortBy
+  , sortOrder : SortOrder
+  , filter    : String
+  }
+
 type alias UI =
   { hasWriteRights   : Bool
   , hasReadRights    : Bool
   , loading          : Bool
   , modalState       : ModalState
   , editedProperties : Dict String EditProperty
+  , showMore         : List String
+  , filters          : TableFilters
   }
 
 type alias Model =
@@ -54,13 +69,16 @@ type alias Model =
 
 type Msg
   = Ignore
+  | Copy String
   | CallApi (Model -> Cmd Msg)
   | SaveProperty (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
-  | SaveChanges
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty
   | AddProperty
   | DeleteProperty String
   | ToggleEditPopup ModalState
+  | ClosePopup Msg
   | ToggleEditProperty String EditProperty Bool
+  | UpdateTableFilters TableFilters
+  | ShowMore String

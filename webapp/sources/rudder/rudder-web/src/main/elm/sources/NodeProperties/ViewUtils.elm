@@ -1,14 +1,83 @@
 module NodeProperties.ViewUtils exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value, title, placeholder)
+import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value, title, placeholder, style, tabindex    )
 import Html.Events exposing (onClick, onInput)
 import Maybe.Extra exposing (isJust)
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
+import NaturalOrdering as N exposing (compare)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty)
+
+
+searchString : String -> String
+searchString str = str
+  |> String.toLower
+  |> String.trim
+
+filterSearch : String -> List String -> Bool
+filterSearch filterString searchFields =
+  let
+    -- Join all the fields into one string to simplify the search
+    stringToCheck = searchFields
+      |> String.join "|"
+      |> String.toLower
+  in
+    String.contains (searchString filterString) stringToCheck
+
+thClass : TableFilters -> SortBy -> String
+thClass tableFilters sortBy =
+  if sortBy == tableFilters.sortBy then
+    case  tableFilters.sortOrder of
+      Asc  -> "sorting_asc"
+      Desc -> "sorting_desc"
+  else
+    "sorting"
+
+sortTable : TableFilters -> SortBy -> TableFilters
+sortTable tableFilters sortBy =
+  let
+    order =
+      case tableFilters.sortOrder of
+        Asc -> Desc
+        Desc -> Asc
+  in
+    if sortBy == tableFilters.sortBy then
+      { tableFilters | sortOrder = order}
+    else
+      { tableFilters | sortBy = sortBy, sortOrder = Asc}
+
+getSortFunction : Model -> Property -> Property -> Order
+getSortFunction model p1 p2 =
+  let
+    order = case model.ui.filters.sortBy of
+      Name    -> N.compare p1.name p2.name
+      Format  ->
+        let
+          getFormat pr = case pr.value of
+              JsonString s  ->  "String"
+              _ -> "JSON"
+          formatP1 = getFormat p1
+          formatP2 = getFormat p2
+        in
+          N.compare formatP1 formatP2
+      Value   -> N.compare p1.name p2.name
+  in
+    if model.ui.filters.sortOrder == Asc then
+      order
+    else
+      case order of
+        LT -> GT
+        EQ -> EQ
+        GT -> LT
+
+searchField : Property -> List String
+searchField property =
+  [ property.name
+  , (displayJsonValue property.value)
+  ]
 
 displayJsonValue : JsonValue -> String
 displayJsonValue value  =
@@ -32,6 +101,10 @@ displayNodePropertyRow model =
   let
     properties = model.properties
 
+    filteredProperties = properties
+      |> List.filter (\pp -> filterSearch model.ui.filters.filter (searchField pp))
+      |> List.sortWith (getSortFunction model)
+
     propertyRow : Property -> Html Msg
     propertyRow p =
       let
@@ -51,7 +124,7 @@ displayNodePropertyRow model =
                 _ -> "This property is managed by its provider <b>‘" ++ pr ++ "</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration."
             in
               span
-              [ class "rudder-label label-provider label-sm"
+              [ class "rudder-label label-provider label-sm bs-tooltip"
               , attribute "data-toggle" "tooltip"
               , attribute "data-placement" "right"
               , attribute "data-html" "true"
@@ -59,6 +132,14 @@ displayNodePropertyRow model =
               , title pTitle
               ] [ text pr ]
           Nothing -> text ""
+
+        isTooLong : JsonValue -> Bool
+        isTooLong value =
+          let
+            str = displayJsonValue value
+            nbLines = List.length (String.lines str)
+          in
+            nbLines > 3
       in
         case editedProperty of
           Nothing ->
@@ -75,19 +156,19 @@ displayNodePropertyRow model =
               ]
             , td [class "property-value"]
               [ div []
-                [ div [class "{{'value-container container-' + $index}}"] --  onclick="$(this).toggleClass('toggle')" ng-class "{'show-more':isTooLong(property)}">
+                [ div [class ("value-container" ++ (if List.member p.name model.ui.showMore then " toggle" else "") ++ (if isTooLong p.value then " show-more" else "") ), onClick (ShowMore p.name) ]
                   [ pre [class "json-beautify"][ text (displayJsonValue p.value) ]
                   ]
                 , span [class "toggle-icon"][]
-                , button [class "btn btn-xs btn-default btn-clipboard", attribute "data-clipboard-text" "{{formatContent(property)}}", attribute "data-toggle" "tooltip", attribute "data-placement" "left", attribute "data-container" "html" , title "Copy to clipboard"]
+                , button [class "btn btn-xs btn-default btn-clipboard", title "Copy to clipboard", onClick (Copy (displayJsonValue p.value))]
                   [ i [class "ion ion-clipboard"][]
                   ]
                 ]
               ]
-            , td [class "text-center default-actions"] -- ng-if="$parent.hasEditRight"
+            , td [class "text-center default-actions"]
               [ div [] -- ng-if="!isEdited(property.name) && property.rights !== 'read-only' && (property.provider === undefined || property.provider === 'overridden')">
                 [ span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][] -- ng-click="editProperty(property)"
-                , span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (CallApi (deleteProperty (EditProperty p.name "" StringFormat True True)))][] -- ng-click="popupDeletion(property.name, $index)"
+                , span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (ToggleEditPopup (Deletion p.name))][]
                 ]
               ]
             ]
@@ -106,8 +187,8 @@ displayNodePropertyRow model =
                   , span [ class "caret"][]
                   ]
                 , ul [class "dropdown-menu"]
-                  [ li[][ a[ onClick (UpdateProperty p.name {eP | format = StringFormat}) ][ text "String" ]] -- ng-click="changeFormat(property.name, false)"
-                  , li[][ a[ onClick (UpdateProperty p.name {eP | format = JsonFormat  }) ][ text "JSON"   ]] -- ng-click="changeFormat(property.name, true)"
+                  [ li[][ a[ onClick (UpdateProperty p.name {eP | format = StringFormat}) ][ text "String" ]]
+                  , li[][ a[ onClick (UpdateProperty p.name {eP | format = JsonFormat  }) ][ text "JSON"   ]]
                   ]
                 ]
               ]
@@ -125,5 +206,30 @@ displayNodePropertyRow model =
               ]
             ]
   in
-    properties
+    filteredProperties
     |> List.map (\p -> propertyRow p)
+
+modalDelete : Model -> Html Msg
+modalDelete model =
+  case model.ui.modalState of
+    NoModal -> text ""
+    Deletion name ->
+      div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+      [ div [class "modal-backdrop fade in"][]
+      , div [ class "modal-dialog" ]
+        [ div [ class "modal-content" ]
+          [ div [ class "modal-header ng-scope" ]
+            [ h3 [ class "modal-title" ] [ text "Delete property"] ]
+          , div [ class "modal-body" ]
+            [ text ("Are you sure you want to delete property '"++ name ++"'?") ]
+          , div [ class "modal-footer" ]
+            [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+              [ text "Cancel " ]
+            , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteProperty (EditProperty name "" StringFormat True True)))) ]
+              [ text "Delete "
+              , i [ class "fa fa-times-circle" ] []
+              ]
+            ]
+          ]
+        ]
+      ]

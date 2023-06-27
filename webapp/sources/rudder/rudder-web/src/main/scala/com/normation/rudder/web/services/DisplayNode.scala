@@ -885,6 +885,9 @@ object DisplayNode extends Loggable {
              |    $$('.bs-tooltip').bsTooltip();
              |  }, 400);
              |});
+             |app.ports.copy.subscribe(function(str) {
+             |  navigator.clipboard.writeText(str);
+             |});
              |""".stripMargin
         )
       )

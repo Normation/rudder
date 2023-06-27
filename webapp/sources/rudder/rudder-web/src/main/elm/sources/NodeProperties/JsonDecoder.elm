@@ -28,18 +28,6 @@ decodePropertyValue =
   , null JsonNull
   ]
 
-decodePropertyValueTest : Decoder JsonValue
-decodePropertyValueTest =
-  oneOf
-  [ map JsonString string
-  , map JsonInt int
-  , map JsonFloat float
-  , map JsonBoolean bool
-  , list (lazy (\_ -> decodePropertyValue)) |> map JsonArray
-  , dict (lazy (\_ -> decodePropertyValue)) |> map JsonObject
-  , null JsonNull
-  ]
-
 decodeProperty : Decoder Property
 decodeProperty =
   succeed Property

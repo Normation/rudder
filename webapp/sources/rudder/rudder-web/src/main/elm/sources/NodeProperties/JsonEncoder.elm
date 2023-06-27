@@ -15,8 +15,13 @@ encodeProperty model properties action =
         [ ( "name"  , string p.name  )
         , ( "value" , string (if action == "Delete" then "" else p.value) )
         ] )
-    -- reason  = action ++ " property '" ++ property.name ++ "' to " ++ model.objectType ++ " '" ++ model.nodeId ++ "'"
-    reason = "test"
+
+    propertyTxt = if List.length properties > 1 then " properties" else
+      case List.head properties of
+        Just p  -> " property '" ++ p.name ++ "'"
+        Nothing -> " property"
+
+    reason  = action ++ propertyTxt ++ " to " ++ model.objectType ++ " '" ++ model.nodeId ++ "'"
   in
     object (
       [ ( "properties" , list encodeProp properties )

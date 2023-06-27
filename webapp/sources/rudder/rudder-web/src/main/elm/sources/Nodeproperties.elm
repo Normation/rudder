@@ -6,6 +6,7 @@ import Result
 import Json.Encode exposing (encode, string, object)
 import Json.Decode exposing (decodeValue, value)
 import Dict exposing (..)
+import List.Extra exposing (remove)
 
 import NodeProperties.ApiCalls exposing (..)
 import NodeProperties.DataTypes exposing (..)
@@ -19,6 +20,7 @@ import Debug
 port errorNotification   : String -> Cmd msg
 port successNotification : String -> Cmd msg
 port initTooltips        : String -> Cmd msg
+port copy                : String -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -39,13 +41,13 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     Ignore ->
-      ( model , Cmd.none )
+      (model, Cmd.none)
+
+    Copy value ->
+      (model, copy value)
 
     CallApi apiCall ->
       ( model , apiCall model)
-
-    SaveChanges ->
-      ( model , successNotification "" )
 
     UpdateNewProperty newProperty ->
       ({model | newProperty = newProperty}, Cmd.none)
@@ -93,10 +95,12 @@ update msg model =
           JsonFormat   ->
             let
               --checkJsonFormat = (Json.Decode.dict (Json.Decode.lazy (\_ -> decodePropertyValue)) |> Json.Decode.map JsonObject) encodedValue
-              checkJsonFormat = decodeValue decodePropertyValueTest (string model.newProperty.value) -- NOT WORKING
+              checkJsonFormat = decodeValue decodePropertyValue (string model.newProperty.value) -- NOT WORKING
             in
               case checkJsonFormat of
-                Ok s  -> saveProperty [model.newProperty] model
+                Ok s  ->
+                  Debug.log (Debug.toString checkJsonFormat)
+                  saveProperty [model.newProperty] model
                 Err _ -> errorNotification "JSON check is enabled, but the value format is invalid."
       in
         (model, cmd)
@@ -130,7 +134,25 @@ update msg model =
         in
           ( { model | ui = {ui | editedProperties = editedProperties} }, Cmd.none )
 
+    UpdateTableFilters tableFilters ->
+      let
+        ui = model.ui
+      in
+        ({model | ui = { ui | filters = tableFilters}}, Cmd.none)
 
+    ShowMore id ->
+      let
+        ui = model.ui
+        showMore = if List.member id ui.showMore then List.Extra.remove id ui.showMore else id :: ui.showMore
+      in
+        ({model | ui = { ui | showMore = showMore}}, Cmd.none)
+
+    ClosePopup callback ->
+      let
+        ui = model.ui
+        (nm,cmd) = update callback { model | ui = { ui | modalState = NoModal } }
+      in
+        (nm , cmd)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
