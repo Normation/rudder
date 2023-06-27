@@ -179,6 +179,11 @@ object TechniqueReaderLoggerPure extends NamedZioLogger {
  */
 object TechniqueWriterLoggerPure extends NamedZioLogger {
   def loggerName = "techniques.writer"
+
+}
+
+object RuddercLogger extends NamedZioLogger {
+  override def loggerName: String = "techniques.writer.rudderc" // since it's not rudderc logs, but webapp logs about rudderc
 }
 
 /**

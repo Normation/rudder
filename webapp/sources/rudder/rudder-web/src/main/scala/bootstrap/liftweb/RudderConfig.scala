@@ -131,8 +131,13 @@ import com.normation.rudder.inventory.ProcessFile
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
+import com.normation.rudder.ncf.DeleteEditorTechniqueImpl
 import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
+import com.normation.rudder.ncf.RuddercServiceImpl
+import com.normation.rudder.ncf.TechniqueCompiler
+import com.normation.rudder.ncf.TechniqueCompilerApp
+import com.normation.rudder.ncf.TechniqueCompilerWithFallback
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
@@ -970,6 +975,31 @@ object RudderParsedProperties {
     }
   }
 
+  val TECHNIQUE_COMPILER_APP = {
+    val default = TechniqueCompilerApp.Rudderc
+    (try {
+      TechniqueCompilerApp.parse(config.getString("rudder.technique.compiler.app"))
+    } catch {
+      case ex: ConfigException => Some(default)
+    }).getOrElse(default)
+  }
+
+  val RUDDERC_CMD = {
+    try {
+      config.getString("rudder.technique.compiler.rudder.cmd")
+    } catch {
+      case ex: ConfigException => "/opt/rudder/bin/rudderc"
+    }
+  }
+
+  /*
+   * the return code used by rudderc to notify the webapp that it didn't successfully terminated
+   * and that the webapp should generate the technique.
+   */
+  val RUDDERC_FALLBACK_RETURN_CODE = {
+    42
+  }
+
 }
 
 /**
@@ -1738,18 +1768,30 @@ object RudderConfigInit {
       techniqueParser,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
-    lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
+    lazy val techniqueCompiler:  TechniqueCompiler = new TechniqueCompilerWithFallback(
+      interpolationCompiler,
+      prettyPrinter,
+      typeParameterService,
+      new RuddercServiceImpl(RUDDERC_CMD, RUDDERC_FALLBACK_RETURN_CODE, 5.seconds),
+      TECHNIQUE_COMPILER_APP,
+      _.path,
+      RUDDER_GIT_ROOT_CONFIG_REPO
+    )
+    lazy val ncfTechniqueWriter: TechniqueWriter   = new TechniqueWriterImpl(
       techniqueArchiver,
       updateTechniqueLibrary,
-      interpolationCompiler,
-      roDirectiveRepository,
-      woDirectiveRepository,
-      techniqueRepository,
-      workflowLevelService,
-      prettyPrinter,
-      RUDDER_GIT_ROOT_CONFIG_REPO,
-      typeParameterService,
-      yamlTechniqueSerializer
+      new DeleteEditorTechniqueImpl(
+        techniqueArchiver,
+        updateTechniqueLibrary,
+        roDirectiveRepository,
+        woDirectiveRepository,
+        techniqueRepository,
+        workflowLevelService,
+        RUDDER_GIT_ROOT_CONFIG_REPO
+      ),
+      yamlTechniqueSerializer,
+      techniqueCompiler,
+      RUDDER_GIT_ROOT_CONFIG_REPO
     )
 
     lazy val pipelinedInventoryParser: InventoryParser = {

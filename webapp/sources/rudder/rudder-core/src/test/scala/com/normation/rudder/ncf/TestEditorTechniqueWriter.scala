@@ -37,6 +37,7 @@
 
 package com.normation.rudder.ncf
 
+import better.files.File
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
@@ -85,7 +86,7 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio._
-import java.io.File
+import java.io.{File => JFile}
 import java.io.InputStream
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -108,12 +109,12 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   lazy val basePath = "/tmp/test-technique-writer-" + DateTime.now.toString()
 
   override def beforeAll(): Unit = {
-    new File(basePath).mkdirs()
+    new JFile(basePath).mkdirs()
   }
 
   override def afterAll(): Unit = {
     if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
-      FileUtils.deleteDirectory(new File(basePath))
+      FileUtils.deleteDirectory(new JFile(basePath))
     }
   }
 
@@ -324,17 +325,33 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService
+  val compiler      = new TechniqueCompilerWithFallback(
+    valueCompiler,
+    new RudderPrettyPrinter(Int.MaxValue, 2),
+    parameterTypeService,
+    new RuddercService {
+      override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
+        RuddercResult.Ok("", "", "").succeed
+      }
+    },
+    TechniqueCompilerApp.Webapp,
+    _.path,
+    basePath
+  )
   val writer        = new TechniqueWriterImpl(
     TestTechniqueArchiver,
     TestLibUpdater,
-    valueCompiler,
-    readDirectives,
-    writeDirectives,
-    techRepo,
-    workflowLevelService,
-    new RudderPrettyPrinter(Int.MaxValue, 2),
-    basePath,
-    parameterTypeService,
+    new DeleteEditorTechnique {
+      override def deleteTechnique(
+          techniqueName:    String,
+          techniqueVersion: String,
+          deleteDirective:  Boolean,
+          modId:            ModificationId,
+          committer:        EventActor
+      ): IOResult[Unit] = {
+        ZIO.unit
+      }
+    },
     new YamlTechniqueSerializer(
       parameterTypeService,
       new ResourceFileService() {
@@ -345,10 +362,12 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
             techniqueVersion: String
         ): IOResult[List[ResourceFile]] = Nil.succeed
       }
-    )
+    ),
+    compiler,
+    basePath
   )
-  val dscWriter     = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService)
-  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService)
+  val dscWriter     = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService, _.path)
+  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
 
   import ParameterType._
   val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
@@ -543,22 +562,22 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
+      compiler.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
     }
 
     "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath}")
-      val resultMetadataFile   = new File(s"${basePath}/${expectedMetadataPath}")
+      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath}")
+      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
     "Should write yaml file without problem" in {
-      writer.writeJson(technique, methods).either.runNow must beRight(yamlPath)
+      writer.writeYaml(technique, methods).either.runNow must beRight(yamlPath)
     }
 
     "Should generate expected yaml content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPath}/${yamlPath}")
-      val resultMetadataFile   = new File(s"${basePath}/${yamlPath}")
+      val expectedMetadataFile = new JFile(s"${expectedPath}/${yamlPath}")
+      val resultMetadataFile   = new JFile(s"${basePath}/${yamlPath}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
@@ -567,8 +586,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile        = new File(s"${expectedPath}/${dscTechniquePath}")
-      val resultDscFile          = new File(s"${basePath}/${dscTechniquePath}")
+      val expectedDscFile        = new JFile(s"${expectedPath}/${dscTechniquePath}")
+      val resultDscFile          = new JFile(s"${basePath}/${dscTechniquePath}")
       val mandatoryFalseRegex    = """.*\Q[parameter(Mandatory=$false)]\E.*""".r
       val containsMandatoryFalse =
         better.files.File(resultDscFile.getAbsolutePath).lines.collectFirst(l => mandatoryFalseRegex.matches(l))
@@ -581,14 +600,14 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new File(s"${expectedPath}/${techniquePath}")
-      val resultFile   = new File(s"${basePath}/${techniquePath}")
+      val expectedFile = new JFile(s"${expectedPath}/${techniquePath}")
+      val resultFile   = new JFile(s"${basePath}/${techniquePath}")
       resultFile must haveSameLinesAs(expectedFile)
     }
 
     "Should generate expected additional rudder reporting content for our technique" in {
-      val expectedFile = new File(s"${expectedPath}/${reportingPath}")
-      val resultFile   = new File(s"${basePath}/${reportingPath}")
+      val expectedFile = new JFile(s"${expectedPath}/${reportingPath}")
+      val resultFile   = new JFile(s"${basePath}/${reportingPath}")
       resultFile must haveSameLinesAs(expectedFile)
     }
 
@@ -634,22 +653,22 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
+      compiler.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
     }
 
     "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath_any}")
-      val resultMetadataFile   = new File(s"${basePath}/${expectedMetadataPath_any}")
+      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath_any}")
+      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath_any}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
     "Should write yaml file without problem" in {
-      writer.writeJson(technique_any, methods).either.runNow must beRight(techniquePath_yaml)
+      writer.writeYaml(technique_any, methods).either.runNow must beRight(techniquePath_yaml)
     }
 
     "Should generate expected yaml content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPath}/${techniquePath_yaml}")
-      val resultMetadataFile   = new File(s"${basePath}/${techniquePath_yaml}")
+      val expectedMetadataFile = new JFile(s"${expectedPath}/${techniquePath_yaml}")
+      val resultMetadataFile   = new JFile(s"${basePath}/${techniquePath_yaml}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
@@ -658,8 +677,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath_any}")
-      val resultDscFile   = new File(s"${basePath}/${dscTechniquePath_any}")
+      val expectedDscFile = new JFile(s"${expectedPath}/${dscTechniquePath_any}")
+      val resultDscFile   = new JFile(s"${basePath}/${dscTechniquePath_any}")
       resultDscFile must haveSameLinesAs(expectedDscFile)
     }
 
@@ -668,13 +687,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new File(s"${expectedPath}/${techniquePath_any}")
-      val resultFile   = new File(s"${basePath}/${techniquePath_any}")
+      val expectedFile = new JFile(s"${expectedPath}/${techniquePath_any}")
+      val resultFile   = new JFile(s"${basePath}/${techniquePath_any}")
       resultFile must haveSameLinesAs(expectedFile)
     }
 
     "Should not generate expected additional rudder reporting content for our technique" in {
-      val resultFile = new File(s"${basePath}/${reportingPath_any}")
+      val resultFile = new JFile(s"${basePath}/${reportingPath_any}")
       resultFile must not exist
     }
   }
@@ -725,19 +744,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
-      writer.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
+      compiler.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
         s"techniques/ncf_techniques/${expectedMetadataPath_var_cond}"
       )
     }
 
     "Should write metadata file without problem" in {
-      writer.writeJson(technique_var_cond, methods).either.runNow must beRight(
+      writer.writeYaml(technique_var_cond, methods).either.runNow must beRight(
         s"techniques/ncf_techniques/${techniquePath_var_cond_yaml}"
       )
     }
     "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPathVarCond}/${expectedMetadataPath_var_cond}")
-      val resultMetadataFile   = new File(s"${basePathVarCond}/${expectedMetadataPath_var_cond}")
+      val expectedMetadataFile = new JFile(s"${expectedPathVarCond}/${expectedMetadataPath_var_cond}")
+      val resultMetadataFile   = new JFile(s"${basePathVarCond}/${expectedMetadataPath_var_cond}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
@@ -748,8 +767,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new File(s"${expectedPathVarCond}/${dscTechniquePath_var_cond}")
-      val resultDscFile   = new File(s"${basePathVarCond}/${dscTechniquePath_var_cond}")
+      val expectedDscFile = new JFile(s"${expectedPathVarCond}/${dscTechniquePath_var_cond}")
+      val resultDscFile   = new JFile(s"${basePathVarCond}/${dscTechniquePath_var_cond}")
       resultDscFile must haveSameLinesAs(expectedDscFile)
     }
 
@@ -763,13 +782,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected yaml technique content for our technique" in {
-      val expectedFile = new File(s"${expectedPathVarCond}/${techniquePath_var_cond_yaml}")
-      val resultFile   = new File(s"${basePathVarCond}/${techniquePath_var_cond_yaml}")
+      val expectedFile = new JFile(s"${expectedPathVarCond}/${techniquePath_var_cond_yaml}")
+      val resultFile   = new JFile(s"${basePathVarCond}/${techniquePath_var_cond_yaml}")
       resultFile must haveSameLinesAs(expectedFile)
     }
     "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new File(s"${expectedPathVarCond}/${techniquePath_var_cond}")
-      val resultFile   = new File(s"${basePathVarCond}/${techniquePath_var_cond}")
+      val expectedFile = new JFile(s"${expectedPathVarCond}/${techniquePath_var_cond}")
+      val resultFile   = new JFile(s"${basePathVarCond}/${techniquePath_var_cond}")
       resultFile must haveSameLinesAs(expectedFile)
     }
 
@@ -787,20 +806,20 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new File(s"${expectedPath}/${expectedMetadataPath_any}")
-      val resultMetadataFile   = new File(s"${basePath}/${expectedMetadataPath_any}")
+      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath_any}")
+      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath_any}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
     }
 
     "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new File(s"${expectedPath}/${techniquePath_any}")
-      val resultFile   = new File(s"${basePath}/${techniquePath_any}")
+      val expectedFile = new JFile(s"${expectedPath}/${techniquePath_any}")
+      val resultFile   = new JFile(s"${basePath}/${techniquePath_any}")
       resultFile must haveSameLinesAs(expectedFile)
     }
 
     "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new File(s"${expectedPath}/${dscTechniquePath_any}")
-      val resultDscFile   = new File(s"${basePath}/${dscTechniquePath_any}")
+      val expectedDscFile = new JFile(s"${expectedPath}/${dscTechniquePath_any}")
+      val resultDscFile   = new JFile(s"${basePath}/${dscTechniquePath_any}")
       resultDscFile must haveSameLinesAs(expectedDscFile)
     }
   }
