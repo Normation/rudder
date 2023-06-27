@@ -283,16 +283,16 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    * Get the targeted accessed node information, checking that it exists.
    */
   def getNodeAccessorTarget(context: I, path: List[String]): PureResult[String] = {
-    val error = Left(Unexpected(s"Unknow interpolated variable $${node.${path.mkString(".")}}"))
+    val error = Left(Unexpected(s"Unknown interpolated variable $${node.${path.mkString(".")}}"))
     path match {
       case Nil            => Left(Unexpected("In node interpolated variable, at least one accessor must be provided"))
       case access :: tail =>
         access.toLowerCase :: tail match {
-          case "id" :: Nil              => Right(context.nodeInfo.id.value)
-          case "hostname" :: Nil        => Right(context.nodeInfo.hostname)
-          case "admin" :: Nil           => Right(context.nodeInfo.localAdministratorAccountName)
-          case "state" :: Nil           => Right(context.nodeInfo.state.name)
-          case "policymodeLeft(" :: Nil =>
+          case "id" :: Nil             => Right(context.nodeInfo.id.value)
+          case "hostname" :: Nil       => Right(context.nodeInfo.hostname)
+          case "admin" :: Nil          => Right(context.nodeInfo.localAdministratorAccountName)
+          case "state" :: Nil          => Right(context.nodeInfo.state.name)
+          case "policymode" :: Nil     =>
             val effectivePolicyMode = context.globalPolicyMode.overridable match {
               case PolicyModeOverrides.Unoverridable =>
                 context.globalPolicyMode.mode.name
@@ -300,14 +300,14 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
                 context.nodeInfo.policyMode.getOrElse(context.globalPolicyMode.mode).name
             }
             Right(effectivePolicyMode)
-          case "policyserver" :: tail2  =>
+          case "policyserver" :: tail2 =>
             tail2 match {
               case "id" :: Nil       => Right(context.policyServerInfo.id.value)
               case "hostname" :: Nil => Right(context.policyServerInfo.hostname)
               case "admin" :: Nil    => Right(context.policyServerInfo.localAdministratorAccountName)
               case _                 => error
             }
-          case seq                      => error
+          case seq                     => error
         }
     }
   }
