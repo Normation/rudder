@@ -36,9 +36,9 @@
             Architecture = ""
             Name = "${sys.host} . | / ${sys.${host}} ' '' ''' "
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode

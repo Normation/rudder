@@ -43,7 +43,7 @@ function {{ id|dsc_case }} {
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             {% for arg in m.args %}
-                {{- arg.0|dsc_case }} = "{{ arg|parameter_fmt }}"
+                {{- arg.0|dsc_case }} = {{ arg|parameter_fmt }}
             {% endfor %}
         }
         $call = {{ m.name|dsc_case }} $methodParams -PolicyMode $policyMode
