@@ -90,9 +90,18 @@ object PasswordEncoder {
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
   def randomHexa32: String = {
-    val token = new Array[Byte](16)
-    random.nextBytes(token)
-    new java.math.BigInteger(1, token).toString(16)
+    // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
+    // In that case, just complete the string
+    def randInternal: String = {
+      val token = new Array[Byte](16)
+      random.nextBytes(token)
+      new java.math.BigInteger(1, token).toString(16)
+    }
+    var s = randInternal
+    while (s.size < 32) { // we can be very unlucky and keep drawing 000s
+      s + randInternal.substring(0, 32 - s.size)
+    }
+    s
   }
 
   class DigestEncoder(digestName: String) extends PasswordEncoder {
