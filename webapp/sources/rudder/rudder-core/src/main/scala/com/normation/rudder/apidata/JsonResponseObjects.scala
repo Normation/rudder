@@ -77,7 +77,8 @@ import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
 import io.scalaland.chimney.dsl._
-import zio.{Tag => _, _}
+import zio._
+import zio.{Tag => _}
 import zio.json._
 import zio.json.DeriveJsonEncoder
 import zio.json.internal.Write
@@ -85,7 +86,7 @@ import zio.syntax._
 
 /*
  * This class deals with everything serialisation related for API.
- * Change things with care! Everything must be versionned!
+ * Change things with care! Everything must be versioned!
  * Even changing a field name can lead to an API incompatible change and
  * so will need a new API version number (and be sure that old behavior is kept
  * for previous versions).
@@ -155,7 +156,8 @@ object JsonResponseObjects {
 
     // toMapVariable is just accumulating var by name in seq, see SectionVal.toMapVariables
     def toMapVariables: Map[String, Seq[String]] = {
-      import scala.collection.mutable.{Map, Buffer}
+      import scala.collection.mutable.Buffer
+      import scala.collection.mutable.Map
       val res = Map[String, Buffer[String]]()
 
       def recToMap(sec: JRDirectiveSection): Unit = {

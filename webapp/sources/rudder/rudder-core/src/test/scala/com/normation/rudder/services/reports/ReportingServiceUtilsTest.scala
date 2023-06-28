@@ -132,7 +132,7 @@ class ReportingServiceUtilsTest extends Specification {
   /*
    * rule1/dir1 on node1 is overriden (and node has nothing) => skipped
    */
-  "only overriden leads to skip" in {
+  "only overridden leads to skip" in {
     val reports = List(
       NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(thisOverrideThatOn(rule2, rule1, dir1)), Set())
     ).map(r => (r.nodeId, r)).toMap
@@ -162,7 +162,7 @@ class ReportingServiceUtilsTest extends Specification {
    *
    * => neither rule1 nor rule2 have skipped
    */
-  "a rule not overriden on all nodes is not written overriden" in {
+  "a rule not overridden on all nodes is not written overridden" in {
     val reports = List(
       NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
       NodeStatusReport(
@@ -186,12 +186,12 @@ class ReportingServiceUtilsTest extends Specification {
   }
 
   /*
-   * More complexe for one node:
+   * More complex for one node:
    * - 3 directives: dir1 (most prioritary), dir2 and dir3 (less)
    * - 3 rules: rule1 has dir2, dir3 (skipped),  rule2 has all 3 (so dir1 ok, other skipped), rule3 has all 3 (skipped)
-   * There is no ducplication of reports.
+   * There is no duplication of reports.
    */
-  "a rule not overriden on all nodes is not written overriden" in {
+  "a rule not overridden on all nodes is not written overriden" in {
     val reports = List(
       NodeStatusReport(
         node1,
