@@ -94,11 +94,16 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques = {
       for {
-        _                       <- BootstrapLogger.info("started")
-        _                       <- BootstrapLogger.info("techniques - update")
-        res                     <- techniqueReader.readTechniquesMetadataFile
-        (techniques, methods, errors)    = res
-        _ <- if (errors.isEmpty) ().succeed else BootstrapLogger.error(s"An error occurred while reading techniques during update bootstrap: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}")
+        _                            <- BootstrapLogger.info("started")
+        _                            <- BootstrapLogger.info("techniques - update")
+        res                          <- techniqueReader.readTechniquesMetadataFile
+        (techniques, methods, errors) = res
+        _                            <- if (errors.isEmpty) ().succeed
+                                        else {
+                                          BootstrapLogger.error(
+                                            s"An error occurred while reading techniques during update bootstrap: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                          )
+                                        }
 
         _                       <- BootstrapLogger.info("techniques - read")
         techniquesWithResources <-

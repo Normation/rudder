@@ -1,7 +1,10 @@
 package com.normation.rudder.ncf
 
 import better.files._
-import com.normation.errors.{IOResult, Inconsistency, PureChainError, _}
+import com.normation.errors._
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
+import com.normation.errors.PureChainError
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.git.GitConfigItemRepository
@@ -17,7 +20,6 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
-
 import java.time.Instant
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JObject
@@ -44,7 +46,7 @@ class TechniqueReader(
   val ncfRootDir               = configuration_repository / relativePath
   val methodsFile              = ncfRootDir / "generic_methods.json"
 
-  def getAllTechniqueFiles(currentPath: File): IOResult[List[File]]                                              = {
+  def getAllTechniqueFiles(currentPath: File): IOResult[List[File]]                                                                 = {
     import com.normation.errors._
     for {
       subdirs      <- IOResult.attempt(s"error when getting subdirectories of ${currentPath.pathAsString}")(
@@ -69,18 +71,19 @@ class TechniqueReader(
     for {
       methods        <- getMethodsMetadata
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
-      techniqueRes   = techniqueFiles.map(file => {
+      techniqueRes    = techniqueFiles.map(file => {
 
                           file.contentAsString
                             .fromYaml[EditorTechnique]
-                            .left.map(Inconsistency(_))
+                            .left
+                            .map(Inconsistency(_))
                             .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
 
                         })
-      (techniques, errors)  = techniqueRes.foldRight((List.empty[EditorTechnique],List.empty[RudderError]))  {
-        case (Right(t), (accT, accE)) => (t :: accT, accE)
-        case (Left(e), (accT, accE)) => (accT,  e :: accE)
-      }
+      (techniques, errors) = techniqueRes.foldRight((List.empty[EditorTechnique], List.empty[RudderError])) {
+                               case (Right(t), (accT, accE)) => (t :: accT, accE)
+                               case (Left(e), (accT, accE))  => (accT, e :: accE)
+                             }
     } yield {
 
       (techniques, methods, errors)

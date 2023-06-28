@@ -66,7 +66,6 @@ import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST._
-
 import scala.collection.SortedMap
 import zio._
 import zio.json.ast.Json
@@ -294,11 +293,16 @@ class TechniqueApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId    = ModificationId(uuidGen.newUuid)
       val response = for {
-        res                  <- techniqueReader.readTechniquesMetadataFile
+        res                          <- techniqueReader.readTechniquesMetadataFile
         (techniques, methods, errors) = res
-        _ <- if (errors.isEmpty) ().succeed else ApiLoggerPure.error(s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}")
-        _                    <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
-        json                 <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
+        _                            <- if (errors.isEmpty) ().succeed
+                                        else {
+                                          ApiLoggerPure.error(
+                                            s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                          )
+                                        }
+        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
+        json                         <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
       } yield {
         json
       }
@@ -757,33 +761,38 @@ class TechniqueAPIService14(
 
   def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion]) = {
     for {
-      lib            <- readDirective.getFullDirectiveLibrary()
-      activeTechnique = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
-      methods        <- techniqueReader.getMethodsMetadata
-      x  <- techniqueReader.readTechniquesMetadataFile
+      lib                          <- readDirective.getFullDirectiveLibrary()
+      activeTechnique               = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
+      methods                      <- techniqueReader.getMethodsMetadata
+      x                            <- techniqueReader.readTechniquesMetadataFile
       (techniques, methods, errors) = x
-      _ <- if (errors.isEmpty) ().succeed else ApiLoggerPure.error(s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}")
+      _                            <- if (errors.isEmpty) ().succeed
+                                      else {
+                                        ApiLoggerPure.error(
+                                          s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                        )
+                                      }
 
-      json           <- ZIO.foreach(
-                          activeTechnique.flatMap(at => {
-                            version match {
-                              case None    => at.techniques
-                              case Some(v) => at.techniques.get(v).toSeq.map((v, _))
-                            }
-                          })
-                        ) {
-                          case (version, technique) =>
-                            techniques.find(t =>
-                              t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
-                            ) match {
-                              case Some(editorTechnique) =>
-                                import techniqueSerializer._
-                                import zio.json._
-                                editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
-                              case None                  =>
-                                restDataSerializer.serializeTechnique(technique).succeed
-                            }
-                        }
+      json <- ZIO.foreach(
+                activeTechnique.flatMap(at => {
+                  version match {
+                    case None    => at.techniques
+                    case Some(v) => at.techniques.get(v).toSeq.map((v, _))
+                  }
+                })
+              ) {
+                case (version, technique) =>
+                  techniques.find(t =>
+                    t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
+                  ) match {
+                    case Some(editorTechnique) =>
+                      import techniqueSerializer._
+                      import zio.json._
+                      editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                    case None                  =>
+                      restDataSerializer.serializeTechnique(technique).succeed
+                  }
+              }
     } yield {
       json
     }
@@ -791,12 +800,17 @@ class TechniqueAPIService14(
 
   def getTechniquesWithData(): IOResult[Seq[Json]] = {
     for {
-      lib                  <- readDirective.getFullDirectiveLibrary()
-      activeTechniques      = lib.allActiveTechniques.values.toSeq
-      res                  <- techniqueReader.readTechniquesMetadataFile
+      lib                         <- readDirective.getFullDirectiveLibrary()
+      activeTechniques             = lib.allActiveTechniques.values.toSeq
+      res                         <- techniqueReader.readTechniquesMetadataFile
       (techniques, method, errors) = res
-      _ <- if (errors.isEmpty) ().succeed else ApiLoggerPure.error(s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}")
-      json                 <- {
+      _                           <- if (errors.isEmpty) ().succeed
+                                     else {
+                                       ApiLoggerPure.error(
+                                         s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                       )
+                                     }
+      json                        <- {
         ZIO.foreach(activeTechniques.flatMap(_.techniques)) {
           case (version, technique) =>
             techniques.find(t =>
