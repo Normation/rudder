@@ -99,7 +99,7 @@ object PasswordEncoder {
     }
     var s = randInternal
     while (s.size < 32) { // we can be very unlucky and keep drawing 000s
-      s + randInternal.substring(0, 32 - s.size)
+      s = s + randInternal.substring(0, 32 - s.size)
     }
     s
   }
