@@ -18,12 +18,12 @@
  *************************************************************************************
  */
 
-package com.normation.history
-package impl
+package com.normation.rudder.services.nodes.history.impl
 
+import FileHistoryLogRepository._
 import com.normation.errors._
-import com.normation.history.impl.FileHistoryLogRepository._
 import com.normation.inventory.domain.InventoryError
+import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import java.io.File
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -94,7 +94,6 @@ class FileHistoryLogRepository[ID: ClassTag, T](
     }
   }
 
-  // we don't want to catch exception here
   private def idDir(id: ID) = {
     for {
       r         <- root
@@ -110,6 +109,10 @@ class FileHistoryLogRepository[ID: ClassTag, T](
     } yield {
       dir
     }
+  }
+
+  def getFile(id: ID): IOResult[File] = {
+    idDir(id)
   }
 
   /**
@@ -145,30 +148,6 @@ class FileHistoryLogRepository[ID: ClassTag, T](
     } yield {
       res.toSeq
     }
-  }
-
-  /**
-   * Get the list of all history logs for the given id.
-   * If reading any logs  throws an error, the full result is a
-   * Failure
-   */
-  def getAll(id: ID): IOResult[Seq[HLog]] = {
-    for {
-      versions <- this.versions(id)
-      hlogs    <- ZIO.foldLeft(versions)(Seq[HLog]())((current, v) => this.get(id, v).map(hlog => current :+ hlog))
-    } yield hlogs
-  }
-
-  /**
-   * Get the list of record for the given UUID and version.
-   * If no version is specified, get the last.
-   */
-  def getLast(id: ID): IOResult[HLog] = {
-    for {
-      versions <- this.versions(id)
-      version  <- versions.headOption.notOptional(s"No version available for ${id}")
-      hlog     <- this.get(id, version)
-    } yield hlog
   }
 
   /**

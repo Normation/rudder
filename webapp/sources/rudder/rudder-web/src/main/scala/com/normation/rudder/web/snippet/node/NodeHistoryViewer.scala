@@ -57,7 +57,7 @@ import scala.xml._
  * a list of LDIF entries
  */
 class NodeHistoryViewer extends StatefulSnippet {
-  lazy val diffRepos = RudderConfig.inventoryHistoryLogRepository
+  lazy val historyRepos = RudderConfig.inventoryHistoryJdbcRepository
 
   var uuid:         NodeId                  = NodeId("temporary")
   var selectedDate: DateTime                = null
@@ -75,13 +75,13 @@ class NodeHistoryViewer extends StatefulSnippet {
         <div>
           <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect _)}</p>
           {
-          diffRepos.get(uuid, selectedDate).toBox match {
+          historyRepos.get(uuid, selectedDate).toBox match {
             case Failure(m, _, _) => <div class="error">Error while trying to display node history. Error message: {m}</div>
             case Empty            => <div class="error">No history was retrieved for the chosen date</div>
             case Full(sm)         =>
               <div id={hid}>{
-                DisplayNode.showPannedContent(None, sm.data, AcceptedInventory, "hist") ++
-                Script(DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds, "hist"))
+                DisplayNode.showPannedContent(None, sm.data.toFullInventory, AcceptedInventory, "hist") ++
+                Script(DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist"))
               }</div>
           }
         }
@@ -96,7 +96,7 @@ class NodeHistoryViewer extends StatefulSnippet {
     if (newUuid != this.uuid) {
       this.uuid = newUuid
       this.hid = JsNodeId(uuid, "hist_").toString
-      this.dates = diffRepos
+      this.dates = historyRepos
         .versions(uuid)
         .toBox
         .getOrElse(
@@ -117,12 +117,12 @@ class NodeHistoryViewer extends StatefulSnippet {
   }
 
   private def onSelect(date: DateTime): JsCmd = {
-    diffRepos.get(uuid, date).toBox match {
+    historyRepos.get(uuid, date).toBox match {
       case Failure(m, _, _) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty            => Alert("No history was retrieved for the chosen date")
       case Full(sm)         =>
-        SetHtml(hid, DisplayNode.showPannedContent(None, sm.data, AcceptedInventory, "hist")) &
-        DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds, "hist")
+        SetHtml(hid, DisplayNode.showPannedContent(None, sm.data.toFullInventory, AcceptedInventory, "hist")) &
+        DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist")
     }
   }
 

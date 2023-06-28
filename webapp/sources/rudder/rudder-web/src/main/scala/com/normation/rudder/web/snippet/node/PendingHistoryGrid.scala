@@ -59,7 +59,7 @@ import scala.xml._
 
 object PendingHistoryGrid extends Loggable {
 
-  val history           = RudderConfig.inventoryHistoryLogRepository
+  val history           = RudderConfig.inventoryHistoryJdbcRepository
   val logService        = RudderConfig.inventoryEventLogService
   val logDetailsService = RudderConfig.eventLogDetailsService
 
@@ -230,9 +230,9 @@ object PendingHistoryGrid extends Loggable {
                displayIfDeleted(id, version, deletedNodes)
              else
                NodeSeq.Empty) ++
-            DisplayNode.showPannedContent(None, sm.data, RemovedInventory, "hist")
+            DisplayNode.showPannedContent(None, sm.data.toFullInventory, RemovedInventory, "hist")
           ) &
-          DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds, "hist")
+          DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist")
       }
     }
   }

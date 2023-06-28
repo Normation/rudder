@@ -18,48 +18,27 @@
  *************************************************************************************
  */
 
-package com.normation.history
+package com.normation.rudder.services.nodes.history.impl
 
+import com.normation.rudder.services.nodes.history.HistoryLog
 import org.joda.time.DateTime
 
 /**
- * Represent history data.
- * The actual data type is let to be defined.
+ * A version of history log which uses DateTime as
+ * version number.
+ *
  */
-trait HistoryLog[ID, V, T] {
+trait DatedHistoryLog[ID, T] extends HistoryLog[ID, DateTime, T] {
 
-  /**
-   * Id of the history log.
-   * One log has seceral version for
-   * only one ID (the couple (ID,version) is unique)
-   */
-  def id: ID
+  def datetime = version
 
-  /**
-   * Date and Time for which the data are saved
-   * @return
-   */
-  def datetime: DateTime
+}
 
-  /**
-   * History type, should be linked to T
-   */
-  def historyType: String
-
-  /**
-   * Version of the history
-   * Version must be comparable, but du to
-   * Inconsistencies between libraries and APIs,
-   * we are not able to provide a type constrain.
-   * bigger are newer
-   * @return
-   */
-  def version: V
-
-  /**
-   * Actual data saved in the history
-   * @return
-   */
-  def data: T
-
+final case class DefaultHLog[ID, T](
+    id:      ID,
+    version: DateTime,
+    data:    T
+) extends DatedHistoryLog[ID, T] {
+  override val datetime    = version
+  override val historyType = "default"
 }

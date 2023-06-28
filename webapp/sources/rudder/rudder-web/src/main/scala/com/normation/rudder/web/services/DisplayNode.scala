@@ -688,6 +688,7 @@ object DisplayNode extends Loggable {
         machine.machineType match {
           case PhysicalMachineType        => Text("Physical machine")
           case VirtualMachineType(vmType) => Text("Virtual machine (%s)".format(S.?("vm.type." + vmType.name)))
+          case UnknownMachineType         => Text("Unknown machine type")
         }
       )
     }

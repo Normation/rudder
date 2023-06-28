@@ -40,7 +40,6 @@ package com.normation.rudder.services.servers
 import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain.servers.Srv
@@ -52,7 +51,7 @@ trait NodeSummaryService {
   /**
    * Retrieve minimal information about the server
    */
-  def find(dit: InventoryDit, id: NodeId*): Box[Seq[Srv]]
+  def find(status: InventoryStatus, id: NodeId*): Box[Seq[Srv]]
 }
 
 import com.normation.inventory.ldap.core._
@@ -100,9 +99,10 @@ class NodeSummaryServiceImpl(
     }
   }
 
-  override def find(dit: InventoryDit, ids: NodeId*): Box[Seq[Srv]] = {
+  override def find(status: InventoryStatus, ids: NodeId*): Box[Seq[Srv]] = {
     for {
       con        <- ldap
+      dit         = inventoryDitService.getDit(status)
       optEntries <- ZIO.foreach(ids)(id => con.get(dit.NODES.NODE.dn(id), Srv.ldapAttributes.toSeq: _*))
       srvs       <- ZIO.foreach(optEntries.flatten)(e => makeSrv(e))
     } yield {

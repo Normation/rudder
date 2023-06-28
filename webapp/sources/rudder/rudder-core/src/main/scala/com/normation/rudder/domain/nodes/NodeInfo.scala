@@ -61,8 +61,8 @@ import zio.syntax._
 final case class MachineInfo(
     id:           MachineUuid,
     machineType:  MachineType,
-    systemSerial: Option[String],
-    manufacturer: Option[Manufacturer]
+    systemSerial: Option[String] = None,
+    manufacturer: Option[Manufacturer] = None
 )
 
 sealed trait NodeKind { def name: String }

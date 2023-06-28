@@ -40,6 +40,7 @@ package com.normation.rudder.domain.properties
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.errors._
+import com.normation.inventory.domain.CustomProperty
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -668,7 +669,7 @@ object GenericProperty {
 
 /**
  * A node property is a key/value pair + metadata.
- * For now, only metadata availables is:
+ * For now, only metadata available is:
  * - the provider of the property. By default Rudder.
  *
  * Only the provider of a property can modify it.
@@ -705,6 +706,9 @@ object NodeProperty {
   def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {
     GenericProperty.parseConfig(json).map(new NodeProperty(_))
   }
+
+  def fromInventory(prop: CustomProperty) =
+    apply(prop.name, GenericProperty.fromJsonValue(prop.value), None, Some(NodeProperty.customPropertyProvider))
 }
 
 final case class GroupProperty(config: Config) extends GenericProperty[GroupProperty] {

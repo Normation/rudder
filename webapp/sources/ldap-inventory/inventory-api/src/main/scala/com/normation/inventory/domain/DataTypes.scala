@@ -70,11 +70,22 @@ sealed trait SecurityToken {
   def key: String
 }
 
-case object SecurityToken {
+object SecurityToken {
   def kind(token: SecurityToken) = {
     token match {
       case _: PublicKey   => PublicKey.kind
       case _: Certificate => Certificate.kind
+    }
+  }
+
+  def token(kind: String, value: String): Either[String, SecurityToken] = {
+    kind match {
+      case PublicKey.kind   => Right(PublicKey(value))
+      case Certificate.kind => Right(Certificate(value))
+      case _                =>
+        Left(
+          s"Value '${kind}' is not recognized as a valid security token, expecting '${PublicKey.kind}' or '${Certificate.kind}'"
+        )
     }
   }
 

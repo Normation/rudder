@@ -48,13 +48,11 @@ import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.SecurityToken.kind
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
-import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldif.LDIFChangeRecord
 import java.security.Security
 import net.liftweb.common._
@@ -137,10 +135,8 @@ class TestCertificate extends Specification with Loggable {
     parser,
     reportSaver,
     2,
-    fullInventoryRepo,
-    new InventoryDigestServiceV1(fullInventoryRepo),
-    () => ZIO.unit,
-    new InventoryDit(new DN("cn=test"), new DN("cn=soft"), "Pending Servers")
+    new InventoryDigestServiceV1(fullInventoryRepo.get(_)),
+    () => ZIO.unit
   )
 
   sequential

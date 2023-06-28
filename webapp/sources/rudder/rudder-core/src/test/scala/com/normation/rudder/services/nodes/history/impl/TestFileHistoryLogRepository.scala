@@ -18,7 +18,7 @@
  *************************************************************************************
  */
 
-package com.normation.history.impl
+package com.normation.rudder.services.nodes.history.impl
 
 import com.normation.errors._
 import com.normation.errors.RudderError
@@ -50,7 +50,7 @@ object StringId extends IdToFilenameConverter[String] {
   override def filenameToId(name: String): String = name
 }
 
-import com.normation.history.impl.TestFileHistoryLogRepository._
+import TestFileHistoryLogRepository._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {

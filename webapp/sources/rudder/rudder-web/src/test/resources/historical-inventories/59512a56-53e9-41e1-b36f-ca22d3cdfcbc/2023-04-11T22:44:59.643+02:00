@@ -1,0 +1,253 @@
+dn: nodeId=59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+nodeId: 59512a56-53e9-41e1-b36f-ca22d3cdfcbc
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixnode
+osName: Debian
+osFullName: Debian GNU/Linux 8.11 (jessie)
+osVersion: 8.11
+osKernelVersion: 3.16.0-4-amd64
+localAdministratorAccountName: root
+nodeHostname: www.tec6.pl
+keyStatus: certified
+policyServerId: root
+ram: 2107637760
+swap: 1441792000
+osArchitectureType: x86_64
+inventoryDate: 20210111154631.000Z
+receiveDate: 20230411204037.122Z
+agentName: {"agentType":"cfengine-community","version":"6.2.0-debian8","securityToken":{"value":"-----BEGIN CERTIFICATE-----\nMIIFqDCCA5CgAwIBAgIUFKaSnZN/LYRXXbI+Pz1d2Z384ikwDQYJKoZIhvcNAQEL\nBQAwNjE0MDIGCgmSJomT8ixkAQEMJDU5NTEyYTU2LTUzZTktNDFlMS1iMzZmLWNh\nMjJkM2NkZmNiYzAeFw0yMDAyMjgxMDAzMjhaFw0zMDAyMjUxMDAzMjhaMDYxNDAy\nBgoJkiaJk/IsZAEBDCQ1OTUxMmE1Ni01M2U5LTQxZTEtYjM2Zi1jYTIyZDNjZGZj\nYmMwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDqwTjPASvhpk52b+0o\nI5GpoWtAtRVac3WmG3fEXvKNmhU03S52HG9HL8QcJeluZsCFkxKNl+1VrpMmIDmt\n2GsnZmBvWwQGUdoLUpxSNHBSD03x0iK5+qs4COnklxXfuJxk/JoOEBHRBKebbxXs\nVLyW4R05CWamrQKzCviGoaK3/4qb2lKY8mC+tT23np62FKtY7gN9uqEVk21SZE83\n1W2mXsETNaXKBR0xR5vbqKgSo1eQmDkauwxN1QoFjX2J7+8UOSSUQE4bsaC41Z6y\n4HdW4pqLdC4K//OsGS4NtVpMEInlI5WWnBk+pV09cHivZWr6yHcqOgMPGMWglNUu\nWL8bZCIo4EbRIKHydR41vZBIg7D25IJIcsx+4bg3T+ZQEzZjBg0CEWE32yAmHB2G\n8JJjyyMSMnfaenfSOG51UhlZfIWiyZsHLp5tB1xMq79B7jT3GtYskA55kPm7xe6l\nGNevsl1MGu126kOvUjoLRGZfj86urbToysho862a1NAZ6QGmfkG3FHMrZAVOMhfb\nRPbGWH1Mut2eWxVyeDYLNjIlRUc/RPvp8VUpe06unOpVrSqMcwRkBGZlbDZWSWG4\nS/VK8KwjeyYDtzGoj4yQbtmR2EXVEHJvFnVq63265lyRYulTSXmx01Uco9K+8g/i\n7SpTn6wEYHdm8nmNPRt0ZInaBQIDAQABo4GtMIGqMAkGA1UdEwQCMAAwHQYDVR0O\nBBYEFF90PBSY3aV97ewxT9iNSr/p16bGMHEGA1UdIwRqMGiAFF90PBSY3aV97ewx\nT9iNSr/p16bGoTqkODA2MTQwMgYKCZImiZPyLGQBAQwkNTk1MTJhNTYtNTNlOS00\nMWUxLWIzNmYtY2EyMmQzY2RmY2JjghQUppKdk38thFddsj4/PV3ZnfziKTALBgNV\nHQ8EBAMCA7gwDQYJKoZIhvcNAQELBQADggIBAJ/xpoJ1Y4EtUKY9dRzNtRpaCzMc\nfeO/s44IuHcylOvSgfAoLOmY7W87JTiiK1khVAmShbQfXXEJBv4K+MKVkjZl93BW\nGcNmeTMCGZyFzYjxC34WU9Ik6lHBjd9kOnOACK5QWYD6oC4Z1KP0bpbrA+o51B0C\n8QurqUQgIaN6FfmET8xbAV/9T+WvydFQepBsIb/g7rW2gWhicajrRZwv/dXt0WYG\nNzFuSt8NBWxwK+11UxB53EoZloJanaWKl/qZfNgCIlu/BbpMyVAj94khXG9Do0Ck\nButatB6HR7WxLP9m82mHiHbDnefzrTXxDiHvdYut5KuauaMzP2uufTT+F2Mnff3P\nlwrLrIT8O8odiMS/oqzY9U3Br4CQXosSo9Ia6QqVuGVTbngklP+sa67XqYBKaFrK\ncVAJBKcmhaehIvMUrlyeDt2pM0VmbfSE+Poncx3TL9Yg6L/otvMnW9LultrjumOn\nzgahsDi7l1ZQnTMI2sZNuyUK9pBfZtO/1N+QLA1bphOXyim5bAsZ4O+0oXeFScTA\nmoDd8+/+Bmp1sjsrtgUchXipnX/O8+J0oQYfX+mqHLAII4ypJ128eGs2jrEdjowG\noVMureSwzxWAC4QPBMUAqe2Avnc3DFuMAMFq6njK7Z39Eb0+FGdPQhp87w1CNjq9\nwRHToEDvajGEHbAz\n-----END CERTIFICATE-----","type":"certificate"},"capabilities":["acl","cfengine","curl","http_reporting","jq","xml","yaml"]}
+environmentVariable: {"name":"RUDDER_BIN","value":"/opt/rudder/bin/rudder"}
+environmentVariable: {"name":"BASEDIR","value":"/opt/rudder/share/commands"}
+environmentVariable: {"name":"PWD","value":"/var/rudder"}
+environmentVariable: {"name":"PATH","value":"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
+environmentVariable: {"name":"VERBOSITY_OPTION","value":""}
+environmentVariable: {"name":"DEBIAN_FRONTEND","value":"noninteractive"}
+environmentVariable: {"name":"MANPATH","value":"/usr/local/man:/usr/local/share/man:/usr/share/man:/opt/rudder/share/man"}
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+ipHostNumber: fe80:0:0:0:0:ff:feb1:861a
+ipHostNumber: 10.0.240.22
+container: machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+localAccountName: glances
+localAccountName: td-agent
+localAccountName: ntp
+localAccountName: uuidd
+localAccountName: zabbix
+localAccountName: mysql
+localAccountName: sshd
+localAccountName: statd
+localAccountName: messagebus
+localAccountName: Debian-exim
+localAccountName: systemd-bus-proxy
+localAccountName: systemd-resolve
+localAccountName: systemd-network
+localAccountName: systemd-timesync
+localAccountName: nobody
+localAccountName: gnats
+localAccountName: irc
+localAccountName: list
+localAccountName: backup
+localAccountName: www-data
+localAccountName: proxy
+localAccountName: uucp
+localAccountName: news
+localAccountName: mail
+localAccountName: lp
+localAccountName: man
+localAccountName: games
+localAccountName: sync
+localAccountName: sys
+localAccountName: bin
+localAccountName: daemon
+localAccountName: root
+timezoneName: Europe/Paris
+timezoneOffset: +0100
+customProperty: {"name":"apache2","value":true}
+customProperty: {"name":"md","value":false}
+customProperty: {"name":"mysql","value":true}
+customProperty: {"name":"proftpd-installed","value":false}
+customProperty: {"name":"proxmox-widget-toolkit","value":{"installed":false}}
+customProperty: {"name":"smarthd","value":false}
+customProperty: {"name":"unifi-video-installed","value":false}
+customProperty: {"name":"uuid","value":"80FCB0E2-9ABD-4470-BC1B-EBF6172CFCF6"}
+
+dn: networkInterface=lo,nodeId=59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: lo
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+networkInterfaceMask: fff0:0:0:0:0:0:0:0
+networkInterfaceMask: 255.0.0.0
+networkSubnet: 0:0:0:0:0:0:0:0
+networkSubnet: 127.0.0.0
+networkInterfaceMacAddress: 00:00:00:00:00:00
+status: Up
+networkInterfaceType: loopback
+
+dn: mountPoint=/,nodeId=59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+mountPoint: /
+objectClass: fileSystemLogicalElement
+objectClass: top
+cn: ext4
+fileSystemFreeSpace: 27045920768
+fileSystemTotalSpace: 32261537792
+
+dn: networkInterface=eth0,nodeId=59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: eth0
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: fe80:0:0:0:0:ff:feb1:861a
+ipHostNumber: 10.0.240.22
+networkInterfaceGateway: 10.0.240.254
+networkInterfaceMask: ffff:ffff:ffff:ffff:0:0:0:0
+networkInterfaceMask: 255.255.252.0
+networkSubnet: fe80:0:0:0:0:0:0:0
+networkSubnet: 10.0.240.0
+networkInterfaceMacAddress: 02:00:00:b1:86:1a
+status: Up
+networkInterfaceType: ethernet
+speed: 1000
+
+dn: machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+machineId: machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc
+objectClass: machine
+objectClass: device
+objectClass: top
+objectClass: qemu
+inventoryDate: 20210111154631.000Z
+receiveDate: 20230411204037.122Z
+manufacturer: QEMU
+
+dn: storageName=sr0,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+storageName: sr0
+objectClass: storagePhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: SCSI
+quantity: 1
+storageSize: 1125122048
+firmware: 25+
+manufacturer: QEMU
+model: QEMU DVD-ROM
+componentSerialNumber: QM00003
+smeType: removable
+
+dn: controllerName=82371SB PIIX3 ISA [Natoma/Triton II],machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 ISA [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: ISA bridge
+
+dn: storageName=sda,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+storageName: sda
+objectClass: storagePhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: SATA
+quantity: 1
+storageSize: 36028022784
+firmware: 25+
+manufacturer: QEMU HARDDISK
+model: QEMU HARDDISK
+componentSerialNumber: QM00001
+smeType: disk
+
+dn: biosName=Standard PC (i440FX \+ PIIX\, 1996),machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+biosName: Standard PC (i440FX + PIIX, 1996)
+objectClass: biosPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+editor: SeaBIOS
+releaseDate: 20140331220000.000Z
+softwareVersion: rel-1.11.0-0-g63451fca13-prebuilt.qemu-project.org
+
+dn: controllerName=82540EM Gigabit Ethernet Controller,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82540EM Gigabit Ethernet Controller
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Ethernet controller
+
+dn: controllerName=82371SB PIIX3 IDE [Natoma/Triton II],machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 IDE [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: IDE interface
+
+dn: controllerName=VGA compatible controller,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: VGA compatible controller
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Device
+smeType: VGA compatible controller
+
+dn: controllerName=440FX - 82441FX PMC [Natoma],machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 440FX - 82441FX PMC [Natoma]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Host bridge
+
+dn: controllerName=82371SB PIIX3 USB [Natoma/Triton II],machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 USB [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: USB controller
+
+dn: controllerName=82371AB/EB/MB PIIX4 ACPI,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371AB/EB/MB PIIX4 ACPI
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Bridge
+
+dn: controllerName=Virtio memory balloon,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: Virtio memory balloon
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Red Hat, Inc.
+smeType: Unclassified device
+
+dn: memorySlotNumber=1,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+memorySlotNumber: 1
+objectClass: memoryPhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: DIMM
+quantity: 1
+memoryCapacity: 2107637760
+memoryCaption: DIMM 0
+memoryType: RAM
+
+dn: controllerName=QEMU PCI-PCI bridge,machineId=machine-59512a56-53e9-41e1-b36f-ca22d3cdfcbc,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: QEMU PCI-PCI bridge
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 2
+manufacturer: Red Hat, Inc.
+smeType: PCI bridge
+

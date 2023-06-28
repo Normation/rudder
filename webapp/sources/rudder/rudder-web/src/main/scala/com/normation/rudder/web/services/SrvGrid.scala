@@ -40,6 +40,7 @@ package com.normation.rudder.web.services
 import com.normation.appconfig.ReadConfigService
 import com.normation.box._
 import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.UnknownMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -266,6 +267,7 @@ final case class NodeLine(
         _.machineType match {
           case _: VirtualMachineType => "Virtual"
           case PhysicalMachineType => "Physical"
+          case UnknownMachineType  => "Unknown"
         }
       }.getOrElse("No Machine Inventory"): String)),
       ("os"              -> escapeHTML(

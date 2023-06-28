@@ -18,7 +18,7 @@
  *************************************************************************************
  */
 
-package com.normation.history
+package com.normation.rudder.services.nodes.history
 
 import com.normation.errors._
 import org.joda.time.DateTime
@@ -41,25 +41,6 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
    * Retrieve all ids known by the repository
    */
   def getIds: IOResult[Seq[ID]]
-
-  /**
-   * Get the list of record for the given ID
-   * @return
-   *   Failure(message) if an error happened
-   *   Empty if a not specified error happened
-   *   Full(seq) if that id exists. Seq may be empty
-   *     if no version are available.
-   */
-  def getAll(id: ID): IOResult[Seq[HLog]]
-
-  /**
-   * Get the last record for the given ID.
-   * @return
-   *   Failure(message) or Empty if an error happened, or
-   *     if the id does not exists or has no recorded history
-   *   Full(hlog) the last recorded version of hlog
-   */
-  def getLast(id: ID): IOResult[HLog]
 
   /**
    * Get the last record for the given ID and version.

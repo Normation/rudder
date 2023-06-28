@@ -1,0 +1,670 @@
+dn: nodeId=fb0096f3-a928-454d-9776-e8079d48cdd8,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+nodeId: fb0096f3-a928-454d-9776-e8079d48cdd8
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixnode
+osName: Ubuntu
+osFullName: Ubuntu 10.04.3 LTS
+osVersion: 10.04
+osKernelVersion: 2.6.32-33-server
+localAdministratorAccountName: root
+nodeHostname: ubuntu-10-04-64.labo.normation.com
+keyStatus: certified
+policyServerId: root
+ram: 252706816
+swap: 416284672
+osArchitectureType: x86_64
+inventoryDate: 20190912231642.000Z
+receiveDate: 20201115124940.616Z
+agentName: {"agentType":"cfengine-community","version":"4.3.10-lucid0","securityToken":{"value":"-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAxV6J9wZyte9pcrAKF7+I66kz7K/Qr6EmGrQz7uWgnDd5RpybhhZa\ncldhl7GywwRne21eTkSYfYJZgkN9CivtdS7YffX6J7G82B60EcjcDeLvmCYWPo8B\nzNO+ewCoA8XMRZakBB3OdZV6JeXpfbEdwYr8GIyVrg2RKodexUDbVOY8H9pGp1GG\nshGY9qmVY1zyEIQbFCn5dCtvpWS8CjVYu8B8NOdfAk6wGywpuKiwgyV625HKvPyu\noa6WCr3gJ37JUMtgFPNu3JwCFHnDVouG51RsqbbZzyuiWaJ0uGHVgXurZZ1qWdgE\nQmltnCYkXUMnN2W4e4VTbXLJ5ecDIdXnGwIDAQAB\n-----END RSA PUBLIC KEY-----","type":"publicKey"},"capabilities":["acl","bodydefault","cfengine","curl","dumpdatastate","xml","yaml"]}
+software: softwareId=a8c43188-be44-4526-821d-fc62761573a5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4f70b599-479a-4c0c-96a2-2ac9efce50ff,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=33353d7c-a83c-4eba-a63d-efb2ac888b58,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2ae23cc1-e168-4529-88b9-b64bfa4665be,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a50c9450-b807-44e2-9362-611c76e94ec4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a319005d-81e3-4209-8b0a-19f070060ca4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2608a102-acb6-4755-8f84-3010a7ae0377,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=20d0ff25-83ea-4a7a-a0aa-0967c44e7e52,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=59705487-4db7-44cd-8f1b-ff6a451ba522,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8fc9b76b-3029-47f0-8ca1-bd63e6306dca,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=edb6b80c-4119-4fce-96d9-78daf2947fd9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f063ea49-1b37-4836-a48d-370c0d6e74c6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f3d2eb26-7223-4e5e-9aaf-e8f9541b9e41,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b7e624a2-995c-42ce-bfca-9af4e3bb189f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4255e220-c6dc-4015-99eb-bc51e82f3b3e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=76e0ad51-d171-42b6-b32e-58f6eb005b49,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=508c4a41-7030-4f61-8f05-256e99fedb6e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9110f039-f5d6-4125-9653-a9d48e912c54,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bb01c610-fa1d-4404-aa48-f7e969355d00,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ef819e24-42bf-4eb1-b436-5200d058d258,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=47e02c6c-a059-4bb3-909e-4dac1e1f264e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=28859e73-6b2e-4ae2-99c8-7fdcdfdfaa4c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=55b2431c-f0fe-4a89-b642-20f7ecebe1e6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=24b61651-0706-4436-99da-72b07f5b6524,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c2706432-859b-4a3b-b52a-83cbec444135,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0498d3e0-bb21-4b42-a6f9-ead1441f315b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8528e177-ac87-48d2-856e-cab714884e1c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5e0d3f4f-3703-42f4-9b16-f7fc7e8aee14,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c0ed4106-d6f5-472b-9f20-c5196feb8655,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ef6a5c2d-704b-4c09-b2a2-c7082c2c274f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=321a322d-a968-4806-b631-7941aa03c90e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=efa48ae0-f6bf-4993-bed3-bbfb9c3be44f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bfbf608e-7db0-48d5-a631-233490258f06,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8a66cd28-a478-45b8-9be7-b40232adcb96,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=16bd06e9-0150-464c-9128-69f14086231c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1583eee9-620d-4d29-8be7-0b4b6db74294,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fa0889f5-f4ec-4c99-98a8-66df161dd6aa,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f9875ce6-aba5-497f-b269-76f41c51a7c4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8016b513-e349-4e09-9847-a277a265da76,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=366778bf-88a2-4f6d-a77b-d73ff1609e23,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a557ee4d-a7ee-4679-bc51-ed5ac699d8d6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b7aee27e-4e20-428b-a0f8-d53bb0721459,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0823b3f1-2cea-4481-9c79-2538defaf89f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a0c4a312-d2d7-4901-b9f9-3e68a6288e7f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9d96b089-1ed0-4ef5-b42b-9a5c2c358bb2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c35e6d2d-4ec1-479c-ac98-5e6ac55ac22e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=21e37dc4-fd5b-465f-8ca5-41705019263f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=54681a51-73ab-47e8-a4f0-3607bd304207,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2c60e12e-f882-49ea-8ab9-1bd17557502b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=036a5aaf-b971-4524-8370-50576f8dfe78,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f9d102bf-b782-43fb-b69e-21e04089d956,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1af863d5-cb33-4806-806f-615f858fbfec,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=79c0c040-fa83-4ee6-9ba1-f7a80c847c1c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2b5744f8-a6b6-40d2-b357-d68a07d8a88e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7a4e9c44-1a11-4126-9051-ba3f141b29e2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2d3811f5-f71f-4fa9-88c7-bc31b730aab5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=82d30394-acc4-4f72-bc24-d5976c1d7480,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=01d7f175-06e6-4881-8cd0-05d035caf564,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=eafb9ea9-38f7-4abf-9088-d3e2f0e34488,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=312ce95f-71c4-405d-be5c-4f73147d09c2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a9d03da7-71f5-4a52-bdfc-ea5e757bfe6e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=80f9d512-bb60-499d-acac-5db445cbf3c8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=43e6e125-20ea-450f-b188-d9c757eb881a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=987fe3dd-b4b7-4fed-b105-97973a1a50b0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2b0f7bea-aa99-44de-bdfa-cb4351e07181,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f089ec34-058d-43e4-b65c-d8b2c050d57e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a2a77831-1d4d-4fd8-b2ea-9c5e8a0ae5cd,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f6b500b9-8785-4a2a-b0bc-5fe6c300d488,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=995c797a-3058-4a7a-9be7-8069934866e1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=26ca1c14-4c0f-4557-b6c6-8fda7cab185c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=84b80b38-6cb3-434d-9095-be99abd460e9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fb4a0ecc-1284-48f1-abb8-477c9a29f7c1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=aab1dc0b-b377-4383-85f5-15b2af3843b3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f8c9f2f9-107f-4fac-afd7-64ee1cf08c0e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2e013258-d5c5-4c1e-90a3-4b879110350f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d2f03bdb-3910-4d54-a835-96d1b8d661b6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5f990151-ff27-48e9-9afb-01bc24207d7e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8336c4a9-c9ed-4a5c-b2d6-099d12f7a89c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=08dd744f-e407-4791-816d-31dd31963d9f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=e80d4d58-5b24-484a-8ffa-88d514ea447f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=156da977-8c33-4acd-910e-00a1c9ff2804,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ed78e914-ff02-4b25-bea9-4ba47e76bd8a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ce9d44e1-819b-4254-9a91-bfd2aa3407f9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1d2439c1-6eb9-450a-acae-8e1ffcc9084a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2fd200bb-2e1c-47f0-9c9a-14c2b2859129,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3e91743a-4cf6-4a27-b2dd-225a09e390f6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0410e116-2fd3-4fd4-9f5c-973d27cf130b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2ec96580-a943-42b1-bf7b-b2cea1f917d2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cdc7d5eb-3457-4fa5-a4b9-def9a98202cb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2aa2ceeb-920c-4166-9b74-dc2b1f9e0150,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0dc77813-e0b7-44c4-bee7-9017f75c2e6f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bc737d88-b238-4d86-83b4-deb5ec57303c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=22218b95-ad03-4672-a4bf-22b08a5f15cc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cf561def-be34-491b-8501-0e78dcc7b651,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=732d42e5-4d8d-4e45-bad0-14b6f06b36e4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8185aa44-34b1-42ad-a3a2-cb4f5ed01b87,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cd017615-4bfb-4c5f-a8bf-b16e6f31ed20,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=754c8e9e-5b67-4ca9-ac79-ca4ffff2d792,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2628d9bd-f499-4fb2-87d0-2760f4e68399,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=99b8a1d9-aec0-4cc7-9976-c2f1fe11cc75,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2c73113d-6010-4982-a4ff-d39a8637b25d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=33d44f4a-d127-45d0-bce9-c2bf46287107,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ca3aab37-63f6-45bc-99ca-58718f5f6f63,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fcf973e1-57ea-4293-ba72-31851cc5a15f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=50ed6914-9952-4d7b-8ad9-dc7210e422cf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=15960ec8-e320-4151-b6ea-f39c16af3ec5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=242768b0-43d1-4136-a7de-0c557a590f66,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=de9ea33c-7a77-4bbd-8245-0b85f5d49456,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ea670c79-f0ac-43b5-9a89-02b6eb0f293d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f0e3dbfe-6ff4-4213-b07a-e4203342e931,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=44dc4272-6028-4aa1-a023-0dd090071253,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=25d084ea-63ef-4d66-b072-77269c9a629b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1703fd29-a5a9-4c6b-994c-8ab7230d2f85,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5d567516-75b6-4b5f-b3df-c53e93c33e64,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4642cec5-9776-4056-bbe8-a9341f408f6c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ee5dd03f-8238-4d02-81b6-8e733abe1fc0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=18f5d877-a96d-465c-8492-4ec16fad9468,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=16e99daf-5408-4a90-84f9-4b809e47e30b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=61d645d7-c48e-4750-9ec9-af9424e83151,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bd3b3f1d-2af4-4e3b-8624-831e7b1ab118,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f11e5592-2c71-4ba5-98ec-c91a8db59bfd,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2eeb83be-b28a-4b24-809e-fbf517bea703,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=23c73ec3-92c1-4e98-8c93-24d78e0251c6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b846c110-452b-4daa-8991-6bb20bf094f2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2f01af7b-4d85-47ff-958f-24cc921ccff4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=401c3736-b1de-40c6-aca8-e5c0dd492686,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f5f06c33-d59b-41e2-a1bf-a5bd57b774fb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0c3ebc2b-c1bc-4d9c-84fd-dde84e824f54,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=561e353b-cc2c-4834-9c12-c4c01a059c97,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3d170332-5914-447a-8050-6d65320def56,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=497c12a8-24b1-4536-bf69-f5b91d887d53,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ecfd15f5-d94d-465c-a4fb-b6585de95ddf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0e4729ca-aa9f-4d07-b190-e5529a0ac49f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=69781762-f5f3-451d-9e0e-d88103fb6fd7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=afd54cbb-c265-4f1a-bddb-5dc4855b6a9c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=df0f5e58-397d-4473-896b-fab3a56730c1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=92d89288-a28a-4295-87cb-8dc5e7315cdd,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c022ee2b-1d36-402f-b40c-41b09c416ca7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b0d422cf-36e8-4bcd-bd11-07056b4434a2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=520c1123-ecc6-4048-b489-ef7d98d14899,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=66ed6865-8788-4189-9a4d-ecc216a8d238,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=994c1c8d-f2aa-453f-bf2b-f9a37d479ebf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9ca13f5d-9e98-4bf5-93a3-00686608a2e7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b3f2eed7-8c60-4403-b72d-c659e058b659,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=314b33b8-8de1-4776-a408-062cd4c2d4e0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ebd052ac-2be3-4106-b28f-dfc2bd5595d1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2023bac6-323d-46dd-bf8b-46175902fa17,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=35492971-2ee1-42a2-aa09-2f44f5bfac26,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6db5069b-4575-46fe-855d-9b1b855ed51a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=dc520fa3-f5d0-4898-a561-13a61e74fec1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2b80add1-a876-4395-b9c1-41fcaca1b9d3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7c4e7cf1-0207-46ff-99e0-eec646744bf2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1f36b81e-65be-49ee-9a97-d34a5e7babb9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3f3f0dd7-d6ba-4be2-af3c-7535f44b4102,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ce332f26-2d31-4c18-993b-918d72efb7e8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c967e351-97e8-4093-bb1d-a99d7945cc4c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3c14ae04-48fb-41f0-a964-2a9c2f835aed,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=aba4f1b9-04da-4dcc-a3e4-5d1cad3f0f20,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7d54ddd5-d0a5-4d4c-81cc-2f57e9c438c5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=e9b83ad8-32b3-4025-a901-cee6feeea587,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=586adf76-bd06-4271-9a2c-be5e6f9330fb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b840bc50-90ba-47ab-b34a-96c1910fbd81,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ed09ce98-ac3e-41cf-92dd-231c7846c06c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cadd5a66-ea2e-40cd-b4b2-c249cec6d23b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9761de9e-78bf-449c-b515-8af7bb1f5ed5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ae652045-3dc3-40d0-9b94-a36b435e64b1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=15cf4166-bc9c-4fe3-86c2-68cb496eff93,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=56e61562-76d5-418d-a07c-9da7904e8e3a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9d64fa47-3c51-4901-8e74-0253044840e0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0db95d3c-9f22-4d9f-be3e-d43a50ed4ecd,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c6486a76-1e78-4726-9c8b-9370ffbd7df5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=03049a68-5fef-443e-bfb4-de73582eebb5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=79494368-7109-4730-8047-e9fd2413c24f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=26a9b980-c7fb-46b7-ab53-1e14662db4e8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=e5ff081a-5190-432f-95ed-1a5616ce96f0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=91e8c5bc-801f-4b7a-a395-4a96a4c40256,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3190c29b-c1e1-405d-b832-8ce75947d6f9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a8b80917-50ff-4f05-9dee-e01708dea0a2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=331a9edf-83e8-475b-90af-849b8d07743d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=09dfa78a-b43e-4cd3-a58a-0a9ef3ed258d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3cf64bc7-a657-4912-b889-7f8a0e7934f5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8a04457b-33bc-4f2e-8e66-150a8b364fdc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5c711c20-a51f-4998-8020-973dadc72786,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d678d86f-457b-4572-bf43-067c55800d2f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2a0ebdb9-f4df-49c0-a8d6-c989a7468bde,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6a33a017-632a-49d4-8664-55ca2b0d68ec,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=61c0d581-6926-479d-b0e1-e94e3f44d540,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ad54cea4-6a3f-4342-9262-a320fdc90eb1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1e6709e0-c931-4bd9-a28c-e4c1cdf7db9a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3b5b9247-bf3b-4fb0-b5ac-d1cb24a8a053,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=af3c65b3-fc80-42cf-960c-bba944fe9c60,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f29c0909-3c0e-479a-9e8b-bff065edbb78,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3a742e8e-74ad-42cc-8c25-861d941e47f3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7c910831-0801-4d95-9d9c-499a8e460c7d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=eefa85c1-4dee-41d7-a854-9fec603ed3c2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c890e863-1918-45c8-8b1b-4f96df49c0de,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ed269c9f-3af2-4128-b397-3be5729e58bb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=154b0a48-5992-4e96-8a92-ee85d184ac35,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ba2b0708-3851-457e-bcfd-b6040ee35860,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ab0fa9f7-9680-4d44-8c08-2ac05e2db191,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2be2a9a4-44e0-498b-ba7b-ed7b3c017db0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2ee82b7e-033b-4d1a-80bf-52bfd111bc8d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cd327785-ba7e-4956-af30-3fee6738fea4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=615b4918-aea9-48f1-af4a-24f9ce6f1eb3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=297bc30b-e9d8-4427-a22a-3e520bc63c65,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=98145fc6-2248-4a4d-a24c-3686ee2be3e8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=50c83d66-e73d-4218-95aa-14cda3c1bd0e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0c21a772-d82d-4bbc-854e-5c323f5e7176,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=78bbd35b-3f6d-45b1-bed7-fc1441a6faa1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=05b5f6fc-e6e1-4542-b8e8-f357dcf3bd6e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b23b58b3-898b-4b71-a206-db5e48196314,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=348535c9-5320-4e42-bd18-cbd118c2d82e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4818a475-d4f5-4a1b-807c-e4a04cf26c02,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3a5856b8-b923-4bc3-bddb-572de53f2d94,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fdc8105d-c2a9-433e-8f15-41b336fcd35c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3621201e-4247-4f83-b274-a6b60e7f66f4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f3dff060-7309-44f6-ac2c-cca1fa39bf5c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a9c8bdb9-b627-4038-a102-8b573a4b7225,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=609e1234-0de2-4e0f-ae83-247bc4fd2287,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c66fa9a3-89c5-41e5-b3b7-19ebf75f4cb8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=30688386-b673-4775-a7c7-110fb7aaee62,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a98d25a0-3a12-4d7a-b343-cd67e2558fe7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4e35d726-b08e-4c4c-87f1-cfce0339a515,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c008171c-c09e-4163-b262-fc50bf70bae8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a53756d9-8733-4c5b-8f61-5fbcc69ce775,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=37f5744e-50f9-4524-8464-6be6ca669bd6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1e970290-fc1d-4d74-8773-6e96e76c509c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d1927083-c3b8-4218-8297-ec1f0d1b80ea,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6e9b93af-16a8-42fc-8c86-4a7bf2aa3a66,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=800d10f9-b142-447f-93b0-5d6868065a08,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ce321cf4-96a7-406a-9150-1b454ebf41a4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cf01e723-d29c-45f2-ab3e-f422ffdd0a5a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=457041d9-bf15-4bb4-a5cf-70f0a0709edc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5b9838e3-d461-4cb7-8806-00a9b5f46cc5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6381ae52-be7e-406a-b864-65290a645eb9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=82c376ba-52c1-448d-aacc-773aa9092815,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=adef8fb3-2197-40ba-8557-341b9485583d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a0f3fe59-368c-4195-95d7-3ec734e4e612,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d1c90aeb-7bcf-4163-8597-57e561f5a4df,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b365463f-c294-42a3-b599-f0bd1ff08f3a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4f38d400-2008-418e-8156-1b1de4d717b7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9372bf36-7960-47d6-8c8d-7806730ff665,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9ab6c9aa-06d1-4cd0-9acc-7a01166c0a16,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9085af9b-d3bc-486e-a772-541b1f7b0a41,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d49a0a55-f0ba-4fac-bcab-0ba963144aa3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1df6fb20-adcb-4de8-9623-681aede1c96c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=055c8372-759a-448e-85ba-32bdad3636f0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fa169175-138a-4b9e-9be9-9dce71000685,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6d0f932b-c7ec-4b0f-b09b-04359b0a1377,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=70d26c55-f691-4e97-b57d-a5eb4bd317e0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bbd1f3ad-a0eb-4350-8431-8b84afc7cf5e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8ced67cd-94bc-42f2-868b-e160ca790767,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=44ed2ec8-b441-4e0a-ae9e-952f5f3cc53d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=123995da-fb78-4865-ba74-09ccd84cf37f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=29d1f734-8bf0-4382-ae76-65eb525cf10c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=69e280e7-08fb-45fa-81fd-85942bd549b0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=48a664df-9a91-4fa5-bec8-35fa07b96b2d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b28c9b12-7cbe-41e3-934a-2e6abc318d07,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b0df0aa9-8232-4a0b-908e-f63a7d8ed70c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2202e771-73f5-4ce0-9add-b19a1b224e1a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=49b79dfc-023b-4bbb-9389-d76809b3bcb0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8eefc131-93bd-4ecf-89be-6df538fed87e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9e773e01-a4af-44a7-b231-832d3b762230,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=33ae0dcf-adee-4b17-be15-861aef2859e6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=497e7cce-3566-4a62-8b12-a4861cb51119,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d431dc1a-62f5-4845-a443-875a3db0bedf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8a44fda3-9fe6-4efb-8987-ec9e350ab26f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6446003c-c084-4a7e-be08-178e79b8cfed,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3b33a74b-7297-43b7-873f-3c1ce976b41a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=e21a3c6b-b6e1-41f5-8a7c-a69994029c7e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=aa4e0908-b4d6-4dd4-8b8a-30e0d7e54766,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8f292580-b112-4910-8655-f522c2dad071,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=76c37bd8-f1c3-4237-bb84-33f7181e2443,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3d753971-2f07-4ebe-b3d8-78781881c8fc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0eded0ff-3478-4170-aff5-72fef0e6ea10,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b19c3d25-7793-4b25-9e68-6f2bd9af56db,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=52241869-96c0-4f70-92cb-d3a5f103154b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6b585653-d4f1-4f89-909f-4891d2765f57,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b52676db-1ab1-472f-97bf-fd2b7d29a194,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c685f44c-0ba2-4d80-b03a-454d9aa1dd11,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0d29984a-30de-404e-98c0-ad48def94919,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ae683624-c27d-45b4-a26a-aa2fcb3cfaf6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b7556ee3-e3c9-4210-92b8-e461979251ee,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=397ec16c-3786-472c-8112-b9cb957b92a4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7738d8be-3ebd-4d83-a5fe-f1ab539dea71,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=05fa04ae-aa7b-4273-bdcc-289ede01dd29,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d56d18c2-c6fc-40ac-bd37-73eb08480225,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b8f11b3d-451b-430a-aa1e-84e1b63f67df,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=17a5fa05-965e-4f55-92c2-69a0906c8972,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6f7e1f02-9823-4580-835a-336a43d289c8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9aaac756-30a8-46b8-9031-06e519c35565,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2e81d415-f1e0-4c58-bd28-f4c2f49e53b9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=28d29994-6bc2-45ec-acf2-2a2abb8bc108,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6b3bbb2c-92b3-42e0-b1f0-28af2db53c7b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=706c6429-6605-4dc3-8d8b-e8149630d42f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f2c1d957-6a0b-4bcd-9bb7-db9a4ab4fa24,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5227915f-0132-442d-8c74-13ed8737b876,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=eb05c211-2aa2-4e91-85be-8d804d214434,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b91737b6-2fed-41aa-9638-a9d0a2c2d58a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ccea2407-b451-4a4f-9ceb-f58aee604feb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=62faf81f-205d-4b63-8d10-ffbef9705b84,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0589acf6-4ae6-44ff-8cf5-08eb154dbbc9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=148aaf7f-fa84-409e-82ee-a9a1bfa7c55c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=fe3d89d5-9140-4caa-b1d5-de6bd8454b37,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f06656f9-8c6f-4617-a8bf-62f846744938,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6f33b18c-49f9-467f-8577-59da895d2e85,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6e96d9da-9a7c-4acf-9106-3cedf2567c92,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c4c70a18-4e80-4c65-a9cf-4ed4bfc9f7c7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bc3c78f1-c9d9-4f17-82cc-941b8b18bddf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=81b710f3-8a4c-48cc-8431-edd724950ee8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c108a6ed-65f8-4121-a1d0-151b38b8c76d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9f61d15d-cf7b-438e-80cd-cc9a7c3a45aa,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=23b0c82c-3883-4c9c-8fe3-2ad87bdb2725,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7c6b84eb-adda-4740-8677-b61cce8b385b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ccbb7f94-cdc7-4f5f-937e-dac368e89c3d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7bf4395b-41dd-46c0-8782-57adc41ef6e0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a1d5f3ab-0585-49fa-80ae-441a6d680c3f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=48b0b3a7-dc9f-4876-b136-b8508f21e4b0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4067a652-e6f2-4fa4-a599-3f4a09ce4ef3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7c693976-bf9b-413f-8172-fe3cdc23362b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9ce2417c-0191-44f4-93cb-fb72376c0572,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6c4c9590-a53d-4838-9702-61ca1240ff4e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8c9a47a8-3738-4fc7-b7e6-2cd28ebd0e30,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6f2c7c22-e5e4-451a-be97-5604702397cb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=cb52722d-996b-4b9a-a1dc-62cc360084ad,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=24310d3a-b802-44e4-9f43-d7505c148160,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2a8a3127-244f-4444-988a-1dc8407cbf44,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1bca9c93-6132-4599-8422-3d08d2bd75fb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=62213e15-0112-447b-97c9-2e81398aa7e1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=939bd9f4-0aa0-4b66-a29f-1b5ae5f0dca4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=056efdc2-e060-4a56-ae9c-32f4fdb9927f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f7954dd1-e9e5-4871-b40f-d97eb850c6c8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ed12d2de-f918-476b-bf05-de209cb9f993,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=afded08e-1c79-482e-a629-6c2c5774b4ce,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=11d699d6-08c2-410f-a157-0ec218df9e58,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=20e07321-a873-4329-bee2-b2ffa01250d9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=59ea7915-ca84-40e5-ba22-4ad5e465e69c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6e548534-cbfa-48b4-b1da-8d13533ed0af,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=854392c0-a436-4a57-93c4-56e9c49526e1,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9ace2d59-7878-4059-a4cb-0d16e943145d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f1832ca1-2d5f-4812-b2fd-bfb92d8dbbc0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9f0ab26e-4951-4885-90a0-5f1cace72751,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5146b6e9-1542-4e13-867d-3138af36bed4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=78025c51-e512-41a6-a2e1-e20f697c7b52,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=62f690bb-94d9-4bef-bf8d-b5eee01ca5ba,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=71327b9c-7bce-4e3a-be00-31775009d966,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a765ca05-2925-4f92-8849-f8b795aaa776,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=16ca8a6d-cdb8-4274-b933-a17f0731bb40,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0274d2b4-32ea-4383-b47d-775f0623840f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ea90de80-acae-41f3-8452-a8a79420ee7b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=979b6514-d216-494e-bca0-5eabac368c91,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2c5db351-4bc0-424f-862e-870cc758b42c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5925acdb-7be9-4152-b9b4-66fdda042149,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=027fea4b-bcc2-4ea7-b5ce-328ae967efd5,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9f143638-0d83-46ff-85b3-91990d070610,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9cd10488-5534-4773-b27b-ec2f06a0e39c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=244c0504-8d4b-4172-8386-21440d7f66a4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4e1dac87-b450-49fc-af96-bc9ec983fe26,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1222a0ee-c7d1-4715-b38b-a48161673d38,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=61f56665-6493-4285-a896-ba9876d6bb18,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=63e7ffef-4f37-47a8-9027-603593fd0e9d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=b0163149-460b-4fdd-8a61-6f0233b0e18c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2cfbc2ad-ac48-49dd-9ffc-4242e35fdccc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9cebf9b3-9314-4f31-98c5-7120a45b7ba8,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=1790c830-5179-43af-973f-aa0115064f98,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=849c9861-65b4-47c5-8f61-a93ce5b1c416,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a8f7605f-c4ba-4771-ab7d-d4ebf8234a35,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=5bdc926a-5df2-490f-88eb-cbb71e136768,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=43ebc576-86ee-4c26-b5f3-02f0de0ae90d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7ebe6a50-45a5-440c-b6d0-0b52ca2fadde,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=35f5f002-9282-4a7a-be35-f9e4da84c8f7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d2237633-c1d7-4db2-8f48-17bacbf5b2e2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=dfb9a67f-c84c-43e1-a965-d6f54034cf8e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bf40c133-65f8-4a45-9d35-581374840ea2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=217681a0-50a4-41d1-bd8c-9e5a327a3b53,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=8f7c1cc2-cf9d-42d4-a448-b7439d91eeff,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=241bf83a-28a4-49f5-83d1-d5e5f2bc454d,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=55cb9319-a9a9-438d-9863-1153177f99bf,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f25f46c8-5b0a-41fb-968c-690f7ed6df67,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4b77bea7-52a1-49d5-a04c-8c174047ef72,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=388398c5-fe21-4950-9c5f-b2b044383f32,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c950be5b-cba2-4219-a0d0-be8001e970de,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a8924529-b994-4155-a0fb-b0998ab30107,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c6fda320-508b-464e-a4ec-6c6b9a08133c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f4c4cbad-a018-4d43-8344-fe9c4349f78f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=6e6b7238-b4b0-4139-a748-8ca85855637c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=718fa3f3-51b3-4cac-8fe0-11ac55318386,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=dabf7867-1b87-456d-bea4-b8cd8802935a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=19798219-c5c3-4452-a904-b0d9b7b7b8fb,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a6aac861-ffb0-4797-bdfe-652762ede475,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a71ffe87-dfcc-4d16-a767-e625e4bbf0b6,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=425bc81f-c079-4d8a-9a25-d0f411dbf59a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f42daace-d182-44c2-a228-8f1cbc451449,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=47acfee2-b489-43f3-9612-234ce6f2016b,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=9f49fcfc-f853-4d6e-b723-73ecb43b8b30,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d5efbddd-6533-4e43-ae0b-f92bf99f6fce,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=da9f3adc-88e4-4a9c-98e0-402f00c6c31c,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=01d345e2-b94c-400a-879e-15c11d0078a2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=4c9e7fdf-d960-49db-8f3b-8f52b2eeb9a0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=2149b08d-7506-4af5-a7ff-56cf63d86969,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0ba63dab-2bb3-4959-b71a-218070938924,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=95caa752-6327-437b-a669-72241a6daba4,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a159ad2d-a4fb-4b1b-b3d8-61073fac2087,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c0f0520e-365c-4010-bdd2-65d856c29b2a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ef588594-1139-4e85-a3f7-0cd9a1a54472,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d851f955-ec18-4e03-b7d1-c994eabe4dd7,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=bcf80d12-f5ee-423c-984f-b1ac9ad9e4a2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=27b3b304-b367-4ea0-9dd2-bf8abb7ae281,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=252c7c57-a43b-42f7-8afa-27e1939473d9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=874782a6-b156-4523-a135-0d6d30841433,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=95d7fce5-bed4-4b6d-b5f4-b0648eb84cb3,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f9b10a6f-0c47-4fe9-a3f5-4de5055a8322,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=71a762e0-f43e-4b13-9505-363a07f84e6f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=dcb2acfb-de62-4342-b90e-c02f036fe36f,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=54ec2bfd-820b-448f-82fe-29fee54bbddc,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=d169efb1-6ab4-44fe-a384-998602bbb9e9,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=a6d85036-64cf-486b-95a5-217b6169586a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=f4eb8ca3-b2d2-46e1-bc8b-10425fc54435,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=c6a9b5f6-50f4-40ba-b7d4-251d9a9fe5e2,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=87f921bb-52d1-4be4-80f2-30087a916bfe,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=3df1aa77-c440-4087-bd6c-0424bf026e2a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=ad8ce9bc-bc57-472e-8afe-144b0215851a,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=0edb0b7b-56a4-4180-b751-2a889412bcfa,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=7ca1faad-e146-4a8b-ba83-0cf07a65619e,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=51db056e-5434-4dea-98f9-f3dfa98987a5,ou=Software,ou=Inventories,cn=rudder-configuration
+environmentVariable: {"name":"MANPATH","value":"/usr/share/man:/usr/local/share/man:/opt/rudder/share/man:/opt/rudder/share/man"}
+environmentVariable: {"name":"DEBIAN_FRONTEND","value":"noninteractive"}
+environmentVariable: {"name":"UPSTART_JOB","value":"rc"}
+environmentVariable: {"name":"TERM","value":"linux"}
+environmentVariable: {"name":"UPSTART_INSTANCE"}
+environmentVariable: {"name":"PATH","value":"/sbin:/usr/sbin:/bin:/usr/bin:/var/rudder/cfengine-community/bin:/var/rudder/cfengine-community/bin"}
+environmentVariable: {"name":"VERBOSE","value":"no"}
+environmentVariable: {"name":"RUNLEVEL","value":"2"}
+environmentVariable: {"name":"PREVLEVEL","value":"N"}
+environmentVariable: {"name":"runlevel","value":"2"}
+environmentVariable: {"name":"UPSTART_EVENTS","value":"runlevel"}
+environmentVariable: {"name":"previous","value":"N"}
+environmentVariable: {"name":"PWD","value":"/var/rudder"}
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+ipHostNumber: fe80:0:0:0:5054:ff:feaf:197a
+ipHostNumber: 192.168.180.88
+container: machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+localAccountName: postfix
+localAccountName: lp
+localAccountName: backup
+localAccountName: nobody
+localAccountName: libuuid
+localAccountName: daemon
+localAccountName: man
+localAccountName: sys
+localAccountName: gnats
+localAccountName: www-data
+localAccountName: sync
+localAccountName: uucp
+localAccountName: list
+localAccountName: root
+localAccountName: syslog
+localAccountName: sshd
+localAccountName: landscape
+localAccountName: mail
+localAccountName: proxy
+localAccountName: mcerda
+localAccountName: news
+localAccountName: irc
+localAccountName: bin
+localAccountName: munin
+localAccountName: games
+timezoneName: Europe/Paris
+timezoneOffset: +0200
+
+dn: networkInterface=lo,nodeId=fb0096f3-a928-454d-9776-e8079d48cdd8,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: lo
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+networkInterfaceMask: fff0:0:0:0:0:0:0:0
+networkInterfaceMask: 255.0.0.0
+networkSubnet: 0:0:0:0:0:0:0:0
+networkSubnet: 127.0.0.0
+networkInterfaceMacAddress: 00:00:00:00:00:00
+status: Up
+networkInterfaceType: loopback
+
+dn: mountPoint=/,nodeId=fb0096f3-a928-454d-9776-e8079d48cdd8,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+mountPoint: /
+objectClass: fileSystemLogicalElement
+objectClass: top
+cn: ext4
+fileSystemFreeSpace: 5943328768
+fileSystemTotalSpace: 8040480768
+
+dn: networkInterface=eth0,nodeId=fb0096f3-a928-454d-9776-e8079d48cdd8,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: eth0
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: fe80:0:0:0:5054:ff:feaf:197a
+ipHostNumber: 192.168.180.88
+networkInterfaceGateway: 192.168.180.1
+networkInterfaceMask: ffff:ffff:ffff:ffff:0:0:0:0
+networkInterfaceMask: 255.255.255.128
+networkSubnet: fe80:0:0:0:0:0:0:0
+networkSubnet: 192.168.180.0
+networkInterfaceMacAddress: 52:54:00:af:19:7a
+status: Up
+networkInterfaceType: ethernet
+speed: 1000
+
+dn: machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+machineId: b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8
+objectClass: machine
+objectClass: device
+objectClass: top
+objectClass: qemu
+motherBoardUuid: 6D43E201-171A-F227-DC9A-F48179591DD9
+inventoryDate: 20190912231642.000Z
+receiveDate: 20201115124940.616Z
+cn: b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8
+manufacturer: Bochs
+
+dn: controllerName=82371SB PIIX3 ISA [Natoma/Triton II],machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 ISA [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: ISA bridge
+
+dn: storageName=vda,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+storageName: vda
+objectClass: storagePhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: Virtual
+quantity: 1
+storageSize: 8795455488
+manufacturer: 6900
+smeType: disk
+
+dn: controllerName=82540EM Gigabit Ethernet Controller,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82540EM Gigabit Ethernet Controller
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Ethernet controller
+
+dn: controllerName=82371SB PIIX3 IDE [Natoma/Triton II],machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 IDE [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: IDE interface
+
+dn: controllerName=GD 5446,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: GD 5446
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Cirrus Logic
+smeType: VGA compatible controller
+
+dn: controllerName=440FX - 82441FX PMC [Natoma],machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 440FX - 82441FX PMC [Natoma]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Host bridge
+
+dn: controllerName=82371SB PIIX3 USB [Natoma/Triton II],machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 USB [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: USB controller
+
+dn: biosName=Bochs,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+biosName: Bochs
+objectClass: biosPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+editor: Bochs
+releaseDate: 20101231230000.000Z
+softwareVersion: Bochs
+
+dn: controllerName=82371AB/EB/MB PIIX4 ACPI,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371AB/EB/MB PIIX4 ACPI
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Bridge
+
+dn: controllerName=Virtio memory balloon,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: Virtio memory balloon
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Red Hat, Inc
+smeType: RAM memory
+
+dn: memorySlotNumber=1,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+memorySlotNumber: 1
+objectClass: memoryPhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: DIMM
+quantity: 1
+memoryCapacity: 268435456
+memoryCaption: DIMM 0
+memoryType: RAM
+
+dn: cpuName=QEMU Virtual CPU version 0.12,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+cpuName: QEMU Virtual CPU version 0.12
+objectClass: processorPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+cpuStepping: 3
+cpuFamily: 6
+model: 2
+manufacturer: Intel
+cpuCore: 1
+cpuThread: 1
+cpuFamilyName: Other
+cpuArchitecture: i386
+cpuID: 23 06 00 00 FD FB 8B 07
+
+dn: controllerName=Virtio block device,machineId=b2f8dd0d-ec22-aaaf-2c77-dff82580d6b8,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: Virtio block device
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Red Hat, Inc
+smeType: SCSI storage controller
+

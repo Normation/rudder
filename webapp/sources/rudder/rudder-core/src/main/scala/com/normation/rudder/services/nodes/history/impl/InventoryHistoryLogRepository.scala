@@ -35,11 +35,12 @@
  *************************************************************************************
  */
 
-package com.normation.inventory.ldap.core
+package com.normation.rudder.services.nodes.history.impl
 
 import com.normation.errors._
-import com.normation.history.impl._
 import com.normation.inventory.domain._
+import com.normation.inventory.ldap.core.FullInventoryFromLdapEntries
+import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._

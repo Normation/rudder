@@ -25,6 +25,7 @@
 package com.normation
 
 import _root_.zio._
+import _root_.zio.stream._
 import _root_.zio.syntax._
 import cats.data._
 import cats.implicits._
@@ -77,6 +78,7 @@ object errors {
    */
   type PureResult[A] = Either[RudderError, A]
   type IOResult[A]   = ZIO[Any, RudderError, A]
+  type IOStream[A]   = ZStream[Any, RudderError, A]
 
   /*
    * An object that provides utility methods to import effectfull
@@ -418,9 +420,7 @@ object zio {
      * a hierarchy of calls.
      */
     val internal = Runtime.default
-
-    def installSignalHandlers(): Unit = {}
-
+//    def platform: RuntimeConfig = internal.runtimeConfig
     def layers:      ZLayer[Any, Nothing, Any] = ZLayer.fromZIOEnvironment(internal.environment.succeed)
     def environment: ZEnvironment[Any]         = internal.environment
 

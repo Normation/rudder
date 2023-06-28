@@ -151,9 +151,9 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
       properties.getProperty("jdbc.driverClassName"),
       properties.getProperty("jdbc.url"),
       properties.getProperty("jdbc.username"),
-      properties.getProperty("jdbc.password"), // MUST BE '1', else temp table disappear between the two connections in
+      properties.getProperty("jdbc.password"),
+      // maxPoolSize MUST BE '1', else temp table disappear between the two connections in
       // really funny ways
-
       1
     )
     config.datasource

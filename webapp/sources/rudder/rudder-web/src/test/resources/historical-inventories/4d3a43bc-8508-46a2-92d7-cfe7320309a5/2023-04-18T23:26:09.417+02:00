@@ -1,0 +1,311 @@
+dn: nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+nodeId: 4d3a43bc-8508-46a2-92d7-cfe7320309a5
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixnode
+osName: Ubuntu
+osFullName: Ubuntu 22.04 LTS
+osVersion: 22.04
+osKernelVersion: 5.15.0-41-generic
+localAdministratorAccountName: root
+nodeHostname: node1-overridden.rudder.local.override
+keyStatus: certified
+policyServerId: root
+ram: 489684992
+osArchitectureType: x86_64
+inventoryDate: 20220907175655.000Z
+receiveDate: 20230418212454.636Z
+agentName: {"agentType":"cfengine-community","version":"7.2.0~rc1-ubuntu22.04","securityToken":{"value":"-----BEGIN CERTIFICATE-----\nMIIFqzCCA5OgAwIBAgIULhYaqmQZGDMab0FnySgkA3tCWpgwDQYJKoZIhvcNAQEL\nBQAwNjE0MDIGCgmSJomT8ixkAQEMJDRkM2E0M2JjLTg1MDgtNDZhMi05MmQ3LWNm\nZTczMjAzMDlhNTAeFw0yMjA5MDcwODUyNDdaFw0zMjA5MDQwODUyNDdaMDYxNDAy\nBgoJkiaJk/IsZAEBDCQ0ZDNhNDNiYy04NTA4LTQ2YTItOTJkNy1jZmU3MzIwMzA5\nYTUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDD7/K+BfMAT4pwJf03\nHH9nTBXdDyibg4wbSy0zjiUrQ2Ri5tiwCsfUQtpkeHl3a643FBmHKE2oDvKOvFFV\nrBJWqtJBydVMwhBlDuDXR0WV9fPyIizIcAX/LBt1yPRSrtBkWQZ2IAN/lCADmtEe\ngkVyLiVcp/msMAdwm0QkDvB1o+g3USq0DFbwkQyopvTsYfGgcW/Rn9ifCyxq2rKe\nF+zbUIF7AK5dPjXyDFEEo80WUAZEkn3hQrEKYOCXkEiRLI6+KCArnv9jRop92dCg\nTjGIoMLtAQYb+txytf8/4oQDpCdEENvRJqQ2SVB1K1dtvLPXe7jQ2vK9/chtmFut\ndirZCOBRtbRV0eAZ7te4K0RC5L0R2EI7uowmhE5a8xwmWGH1U7BMVKR9B76iPdR3\nK9fXiPRUEBvs2N/06OBviY18VSR5k4sp9sEifAq3kgP/kvVKTA1dNavoB1gDH8KS\n+0Nnp9nA+AxMLyU5PFFvwSfgYZjp+sbDlFPrOgryVK0BLfGNdm27xftKW8yyzNPM\nbRirrnIngvh8wPHjDxC02/SJ7Pikx0ffOV09ee+Ik4dTbqj+bHy/z8rp0aAtLbZV\nNIGqvzCaByWWJhmYZ3FFwHo3LXUeonljQOYVl8kSEQkcE8b5X657fG3RTrLUE6DK\nobsJcr7JUwijGcB+tADQ+gngtQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD\nVR0OBBYEFChVcwIhgIr5vgRy8T8ol3MktitiMHEGA1UdIwRqMGiAFChVcwIhgIr5\nvgRy8T8ol3MktitioTqkODA2MTQwMgYKCZImiZPyLGQBAQwkNGQzYTQzYmMtODUw\nOC00NmEyLTkyZDctY2ZlNzMyMDMwOWE1ghQuFhqqZBkYMxpvQWfJKCQDe0JamDAL\nBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAEzLJFdRib1gHQ3ZFU6YCeEX\nUYd8DBRAnPUdjSi/6+Qz9KhQdo5F+vngAdqWFggL2lv1yaahLKTYSdxibBpzX9ee\nH8mP+Gxt0su0xoAtuwkzvfg3G6BTtAXorVgsEfya3re3eShOuvXprzqi7Xsnbv9a\nUzJX4FCJJAXA+Qd/frzpw33cSa8M4SHn7xTo3c9ZgOs1zJ4BepFz/2MpKYY9RSfU\nDpeksnS+ij1BUcrScitwCVvmh0nFXIMWcnUREqxkRAPY1ln1ExAaSmYA0SKsUhoJ\nGx08WfzprwunlzZCA91gmNW+1WjMFr9Nonp6SlMXH0ZrBm+K+zNm6+aAnZdN2ttG\nPmmqotUbbCG737HY8VxE27rgZ8SYidprqvuPtz4WaQPg+4JPeCzOqLWfcX3nfmJM\nkO7nfL0DCqDaZgW+O3FCSFfXnb8TQnMgJZlnakI/w+mzx26YkxtZ2xgWi7yLyBk6\nJDeC5KwgyP+nJpgSOIwGNf4ZaOEYtg3DeFjXmFi5N4Vtq98819cTp3QL+RZG4cVs\nDwFR0T3KjB6QWcvSB2QpQUvdOITtUsACP/zk73y7RwZVQT0DHVWVw6eHhGH6LpKI\nY8skyhHnHUjG1A9eOvk4ZQGPedL9cG0af7TzmaUwFg5fGN594lv79o7iGT1srNBp\n2A/Eff5z/oWypwrLbjiI\n-----END CERTIFICATE-----","type":"certificate"},"capabilities":["acl","cfengine","curl","http_reporting","jq","xml","yaml"]}
+environmentVariable: {"name":"BASEDIR","value":"/opt/rudder/share/commands"}
+environmentVariable: {"name":"SUDO_GID","value":"1000"}
+environmentVariable: {"name":"TERM","value":"xterm"}
+environmentVariable: {"name":"SUDO_USER","value":"vagrant"}
+environmentVariable: {"name":"RUDDER_BIN","value":"/usr/bin/rudder"}
+environmentVariable: {"name":"SHLVL","value":"1"}
+environmentVariable: {"name":"DEBIAN_FRONTEND","value":"noninteractive"}
+environmentVariable: {"name":"LESSOPEN","value":"| /usr/bin/lesspipe %s"}
+environmentVariable: {"name":"LESSCLOSE","value":"/usr/bin/lesspipe %s %s"}
+environmentVariable: {"name":"MAIL","value":"/var/mail/root"}
+environmentVariable: {"name":"SHELL","value":"/bin/bash"}
+environmentVariable: {"name":"_","value":"/usr/bin/rudder"}
+environmentVariable: {"name":"SUDO_UID","value":"1000"}
+environmentVariable: {"name":"LS_COLORS","value":"rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:"}
+environmentVariable: {"name":"LOGNAME","value":"root"}
+environmentVariable: {"name":"SUDO_COMMAND","value":"/usr/bin/su"}
+environmentVariable: {"name":"PATH","value":"/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/sbin:/usr/sbin:/sbin:/usr/sbin"}
+environmentVariable: {"name":"HOME","value":"/root"}
+environmentVariable: {"name":"PWD","value":"/var/rudder"}
+environmentVariable: {"name":"USER","value":"root"}
+ipHostNumber: fe80:0:0:0:e5:1bff:fe70:f463
+ipHostNumber: 10.0.2.15
+ipHostNumber: fe80:0:0:0:a00:27ff:fe94:72e8
+ipHostNumber: 192.168.32.4
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+container: machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+localAccountName: lxd
+localAccountName: ubuntu
+localAccountName: vagrant
+localAccountName: landscape
+localAccountName: pollinate
+localAccountName: sshd
+localAccountName: tcpdump
+localAccountName: uuidd
+localAccountName: tss
+localAccountName: _apt
+localAccountName: syslog
+localAccountName: systemd-timesync
+localAccountName: messagebus
+localAccountName: systemd-resolve
+localAccountName: systemd-network
+localAccountName: nobody
+localAccountName: gnats
+localAccountName: irc
+localAccountName: list
+localAccountName: backup
+localAccountName: www-data
+localAccountName: proxy
+localAccountName: uucp
+localAccountName: news
+localAccountName: mail
+localAccountName: lp
+localAccountName: man
+localAccountName: games
+localAccountName: sync
+localAccountName: sys
+localAccountName: bin
+localAccountName: daemon
+localAccountName: root
+timezoneName: UTC
+timezoneOffset: +0000
+customProperty: {"name":"rudder_original_hostname","value":"node1.rudder.local"}
+customProperty: {"name":"rudder_override_hostname","value":"node1-overridden.rudder.local.override"}
+softwareUpdate: {"name":"snapd","version":"2.56.2+22.04ubuntu1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"python3-software-properties","version":"0.99.22.3","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"software-properties-common","version":"0.99.22.3","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libldap-common","version":"2.5.13+dfsg-0ubuntu0.22.04.1","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libgstreamer1.0-0","version":"1.20.3-0ubuntu1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"cryptsetup","version":"2:2.4.3-1ubuntu1.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"cryptsetup-bin","version":"2:2.4.3-1ubuntu1.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"cryptsetup-initramfs","version":"2:2.4.3-1ubuntu1.1","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"python3-distupgrade","version":"1:22.04.13","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"ubuntu-release-upgrader-core","version":"1:22.04.13","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libnftables1","version":"1.0.2-1ubuntu3","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"nftables","version":"1.0.2-1ubuntu3","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"ubuntu-advantage-tools","version":"27.10.1~22.04.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"python3-gi","version":"3.42.1-0ubuntu1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"python3-apt","version":"2.3.0ubuntu2.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"python-apt-common","version":"2.3.0ubuntu2.1","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"locales","version":"2.35-0ubuntu3.1","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libnetplan0","version":"0.104-0ubuntu2.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"netplan.io","version":"0.104-0ubuntu2.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libcryptsetup12","version":"2:2.4.3-1ubuntu1.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"isc-dhcp-common","version":"4.4.1-2.3ubuntu2.2","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"isc-dhcp-client","version":"4.4.1-2.3ubuntu2.2","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"apt-utils","version":"2.4.7","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"apt","version":"2.4.7","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libapt-pkg6.0","version":"2.4.7","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libc-bin","version":"2.35-0ubuntu3.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"base-files","version":"12ubuntu4.2","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"libc6","version":"2.35-0ubuntu3.1","arch":"amd64","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+softwareUpdate: {"name":"motd-news-config","version":"12ubuntu4.2","arch":"all","from":"apt-get","kind":"none","source":"Ubuntu:22.04/jammy-updates"}
+
+dn: networkInterface=lo,nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: lo
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: 0:0:0:0:0:0:0:1
+ipHostNumber: 127.0.0.1
+networkInterfaceMask: fff0:0:0:0:0:0:0:0
+networkInterfaceMask: 255.0.0.0
+networkSubnet: 0:0:0:0:0:0:0:0
+networkSubnet: 127.0.0.0
+networkInterfaceMacAddress: 00:00:00:00:00:00
+status: Up
+networkInterfaceType: loopback
+
+dn: networkInterface=enp0s8,nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: enp0s8
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: fe80:0:0:0:a00:27ff:fe94:72e8
+ipHostNumber: 192.168.32.4
+networkInterfaceMask: ffff:ffff:ffff:ffff:0:0:0:0
+networkInterfaceMask: 255.255.255.0
+networkSubnet: fe80:0:0:0:0:0:0:0
+networkSubnet: 192.168.32.0
+networkInterfaceMacAddress: 08:00:27:94:72:e8
+status: Up
+networkInterfaceType: ethernet
+speed: 1000
+
+dn: mountPoint=/,nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+mountPoint: /
+objectClass: fileSystemLogicalElement
+objectClass: top
+cn: ext4
+fileSystemFreeSpace: 39669727232
+fileSystemTotalSpace: 41555066880
+
+dn: networkInterface=enp0s3,nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+networkInterface: enp0s3
+objectClass: networkInterfaceLogicalElement
+objectClass: top
+ipHostNumber: fe80:0:0:0:e5:1bff:fe70:f463
+ipHostNumber: 10.0.2.15
+networkInterfaceGateway: 10.0.2.2
+networkInterfaceMask: ffff:ffff:ffff:ffff:0:0:0:0
+networkInterfaceMask: 255.255.255.0
+networkSubnet: fe80:0:0:0:0:0:0:0
+networkSubnet: 10.0.2.0
+networkInterfaceMacAddress: 02:e5:1b:70:f4:63
+status: Up
+networkInterfaceType: ethernet
+speed: 1000
+
+dn: mountPoint=/vagrant,nodeId=4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+mountPoint: /vagrant
+objectClass: fileSystemLogicalElement
+objectClass: top
+cn: vboxsf
+fileSystemFreeSpace: 91722088448
+fileSystemTotalSpace: 397236240384
+
+dn: machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+machineId: machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5
+objectClass: machine
+objectClass: device
+objectClass: top
+objectClass: virtualBox
+inventoryDate: 20220907175655.000Z
+receiveDate: 20230418212454.636Z
+manufacturer: innotek GmbH
+componentSerialNumber: 28eba2ed-b589-ec45-bae4-d33155c8288d
+
+dn: storageName=sdb,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+storageName: sdb
+objectClass: storagePhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: SCSI
+quantity: 1
+storageSize: 10485760
+firmware: 10
+manufacturer: VBOX
+model: HARDDISK
+smeType: disk
+
+dn: controllerName=82371SB PIIX3 ISA [Natoma/Triton II],machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371SB PIIX3 ISA [Natoma/Triton II]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: ISA bridge
+
+dn: storageName=sda,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+storageName: sda
+objectClass: storagePhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: SCSI
+quantity: 1
+storageSize: 45035290624
+firmware: 10
+manufacturer: VBOX
+model: HARDDISK
+componentSerialNumber: a23d4170
+smeType: disk
+
+dn: controllerName=82801AA AC'97 Audio Controller,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82801AA AC'97 Audio Controller
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Multimedia audio controller
+
+dn: biosName=VirtualBox,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+biosName: VirtualBox
+objectClass: biosPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+editor: innotek GmbH
+releaseDate: 20061130230000.000Z
+softwareVersion: VirtualBox
+
+dn: controllerName=82540EM Gigabit Ethernet Controller,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82540EM Gigabit Ethernet Controller
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 2
+manufacturer: Intel Corporation
+smeType: Ethernet controller
+
+dn: controllerName=53c1030 PCI-X Fusion-MPT Dual Ultra320 SCSI,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 53c1030 PCI-X Fusion-MPT Dual Ultra320 SCSI
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: LSI Logic / Symbios Logic
+smeType: SCSI storage controller
+
+dn: controllerName=VirtualBox Guest Service,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: VirtualBox Guest Service
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: InnoTek Systemberatung GmbH
+smeType: System peripheral
+
+dn: controllerName=440FX - 82441FX PMC [Natoma],machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 440FX - 82441FX PMC [Natoma]
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Host bridge
+
+dn: controllerName=82371AB/EB/MB PIIX4 IDE,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371AB/EB/MB PIIX4 IDE
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: IDE interface
+
+dn: soundCardName=Multimedia audio controller - Intel Corporation 82801AA AC'97 Audio Controller,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+soundCardName: Multimedia audio controller - Intel Corporation 82801AA AC'97 Audio Controller
+objectClass: soundCardPhysicalElement
+objectClass: physicalelement
+objectClass: top
+description: rev 01
+quantity: 1
+
+dn: controllerName=VirtualBox Graphics Adapter,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: VirtualBox Graphics Adapter
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: InnoTek Systemberatung GmbH
+smeType: VGA compatible controller
+
+dn: controllerName=82371AB/EB/MB PIIX4 ACPI,machineId=machine-4d3a43bc-8508-46a2-92d7-cfe7320309a5,ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+controllerName: 82371AB/EB/MB PIIX4 ACPI
+objectClass: controllerPhysicalElement
+objectClass: physicalelement
+objectClass: top
+quantity: 1
+manufacturer: Intel Corporation
+smeType: Bridge
+
