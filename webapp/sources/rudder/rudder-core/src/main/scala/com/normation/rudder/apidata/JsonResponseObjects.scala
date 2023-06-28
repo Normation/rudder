@@ -63,12 +63,6 @@ import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.hooks.Hooks
-import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.EditorTechnique
-import com.normation.rudder.ncf.GenericMethod
-import com.normation.rudder.ncf.MethodBlock
-import com.normation.rudder.ncf.MethodCall
-import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.repository.FullActiveTechnique
@@ -224,17 +218,6 @@ object JsonResponseObjects {
       version: String
   ) extends JRTechnique { val source = "builtin" }
 
-  final case class JREditorTechnique(
-      name:        String,
-      version:     String,
-      id:          String,
-      category:    String,
-      methodCalls: List[JRTechniqueElem],
-      description: String,
-      parameters:  Seq[JRTechniqueParameter],
-      resources:   Seq[JRTechniqueResource]
-  ) extends JRTechnique { val source = "editor" }
-
   final case class JRTechniqueParameter(
       id:          String,
       name:        String,
@@ -264,55 +247,6 @@ object JsonResponseObjects {
       )
     }
   }
-
-  sealed trait JRTechniqueElem
-  object JRTechniqueElem {
-    def from(elem: MethodElem, methods: Map[BundleName, GenericMethod]): JRTechniqueElem = {
-      elem match {
-        case c: MethodCall  =>
-          val params: List[JRMethodCallValue] = c.parameters.map {
-            case (parameterName, value) =>
-              JRMethodCallValue(
-                parameterName.value,
-                value
-              )
-          }
-          JRMethodCall(
-            c.methodId.value,
-            c.id,
-            params,
-            c.condition,
-            c.component,
-            c.disabledReporting
-          )
-        case b: MethodBlock =>
-          JRBlock(
-            b.id,
-            b.component,
-            null,
-            b.condition,
-            b.calls.map(JRTechniqueElem.from(_, methods))
-          )
-      }
-    }
-  }
-
-  final case class JRBlock(
-      id:             String,
-      component:      String,
-      reportingLogic: JRReportingLogic,
-      condition:      String,
-      calls:          List[JRTechniqueElem]
-  ) extends JRTechniqueElem
-
-  final case class JRMethodCall(
-      methodId:          String,
-      id:                String,
-      parameters:        List[JRMethodCallValue],
-      condition:         String,
-      component:         String,
-      disabledReporting: Boolean
-  ) extends JRTechniqueElem
 
   final case class JRMethodCallValue(
       name:  String,
@@ -366,40 +300,7 @@ object JsonResponseObjects {
       }
     }
   }
-
-  object JRTechnique {
-    def fromTechnique(
-        technique:     Technique,
-        optEditorInfo: Option[EditorTechnique],
-        methods:       Map[BundleName, GenericMethod]
-    ): JRTechnique = (
-      optEditorInfo match {
-        case None                  =>
-          technique
-            .into[JRBuiltInTechnique]
-            .enableBeanGetters
-            .withFieldComputed(_.id, _.id.name.value)
-            .withFieldComputed(_.version, _.id.version.serialize)
-            .withFieldComputed(_.name, _.name)
-            .transform
-        case Some(editorTechnique) =>
-          editorTechnique
-            .into[JREditorTechnique]
-            .enableBeanGetters
-            .withFieldComputed(_.id, _.bundleName.value)
-            .withFieldComputed(_.version, _.version.value)
-            .withFieldComputed(_.name, _.name)
-            .withFieldComputed(_.description, _.description)
-            .withFieldComputed(_.category, _.category)
-            .withFieldComputed(_.resources, _.ressources.map(JRTechniqueResource.from))
-            .withFieldComputed(_.parameters, _.parameters.map(JRTechniqueParameter.from))
-            .withFieldComputed(_.methodCalls, _.methodCalls.toList.map(JRTechniqueElem.from(_, methods)))
-            .transform
-      }
-    )
-  }
-
-  object JRDirective {
+  object JRDirective          {
     def empty(id: String) = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
@@ -921,15 +822,6 @@ trait RudderJsonEncoders {
   implicit val directiveTreeEncoder:               JsonEncoder[JRDirectiveTreeCategory]  = DeriveJsonEncoder.gen
 
   implicit val activeTechniqueEncoder: JsonEncoder[JRActiveTechnique] = DeriveJsonEncoder.gen
-
-  implicit val techniqueResourceEncoder:  JsonEncoder[JRTechniqueResource]  = DeriveJsonEncoder.gen
-  implicit val techniqueParameterEncoder: JsonEncoder[JRTechniqueParameter] = DeriveJsonEncoder.gen
-  implicit val reportingLogicEncoder:     JsonEncoder[JRReportingLogic]     = DeriveJsonEncoder.gen
-  implicit val methodCallValueEncoder:    JsonEncoder[JRMethodCallValue]    = DeriveJsonEncoder.gen
-  implicit val techniqueElemEncoder:      JsonEncoder[JRTechniqueElem]      = DeriveJsonEncoder.gen
-  implicit val methodCallEncoder:         JsonEncoder[JRMethodCall]         = DeriveJsonEncoder.gen
-  implicit val editorTechniqueEncoder:    JsonEncoder[JREditorTechnique]    = DeriveJsonEncoder.gen
-  implicit val techniqueEncoder:          JsonEncoder[JRTechnique]          = DeriveJsonEncoder.gen
 
   implicit val configValueEncoder:      JsonEncoder[ConfigValue]              = new JsonEncoder[ConfigValue] {
     override def unsafeEncode(a: ConfigValue, indent: Option[Int], out: Write): Unit = {

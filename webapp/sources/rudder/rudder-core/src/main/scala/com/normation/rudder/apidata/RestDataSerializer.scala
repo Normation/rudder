@@ -70,6 +70,8 @@ import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
+import zio.json.ast.Json
+import zio.json.ast.Json.Str
 
 sealed trait DetailLevel {
   def value: String
@@ -127,7 +129,7 @@ trait RestDataSerializer {
 
   def serializeTechnique(technique: FullActiveTechnique): JValue
 
-  def serializeTechnique(technique: Technique): JObject
+  def serializeTechnique(technique: Technique): Json
 
   def serializeHealthcheckResult(check: HealthcheckResult): JValue
 
@@ -636,9 +638,12 @@ final case class RestDataSerializerImpl(
     ~ ("versions" -> technique.techniques.map(_._1.serialize)))
   }
   def serializeTechnique(technique: Technique) = {
-    (("name"     -> technique.name)
-    ~ ("id"      -> technique.id.name.value)
-    ~ ("version" -> technique.id.version.serialize))
+    zio.json.ast.Json(
+      ("name"    -> Str(technique.name)),
+      ("id"      -> Str(technique.id.name.value)),
+      ("version" -> Str(technique.id.version.serialize)),
+      ("source"  -> Str("built-in"))
+    )
   }
 
   def serializeHealthcheckResult(check: HealthcheckResult): JValue = {

@@ -11,6 +11,7 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.XmlArchiverUtils
@@ -35,7 +36,9 @@ class TechniqueReader(
     override val xmlPrettyPrinter:          RudderPrettyPrinter,
     override val gitModificationRepository: GitModificationRepository,
     override val encoding:                  String,
-    override val groupOwner:                String
+    override val groupOwner:                String,
+    techniqueSerializer:                    TechniqueSerializer,
+    yamlTechniqueSerializer:                YamlTechniqueSerializer
 ) extends GitConfigItemRepository with XmlArchiverUtils {
   override val relativePath: String = "ncf"
   val configuration_repository = gitRepo.rootDirectory
@@ -49,7 +52,7 @@ class TechniqueReader(
                         currentPath.children.partition(_.isDirectory)._1.toList
                       )
       checkSubdirs <- foreach(subdirs)(getAllTechniqueFiles).map(_.flatten)
-      techniqueFilePath: File = currentPath / "technique.json"
+      techniqueFilePath: File = currentPath / "technique.yml"
       result <- IOResult.attempt(
                   if (techniqueFilePath.exists) {
                     techniqueFilePath :: checkSubdirs
@@ -62,12 +65,15 @@ class TechniqueReader(
     }
   }
   def readTechniquesMetadataFile:              IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod])] = {
+    import zio.json.yaml._
+    import yamlTechniqueSerializer._
     for {
       methods        <- getMethodsMetadata
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
       techniques     <- foreach(techniqueFiles)(file => {
-                          restExtractor
-                            .extractEditorTechnique(parse(file.contentAsString), methods, false, true)
+
+                          file.contentAsString
+                            .fromYaml[EditorTechnique]
                             .toIO
                             .chainError("An Error occurred while extracting data from techniques ncf API")
                         })

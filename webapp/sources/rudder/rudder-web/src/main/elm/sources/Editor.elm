@@ -203,12 +203,12 @@ update msg model =
 
 -- UI high level stuff: list/filter techniques, create/import/select technique
 
-    GetCategories (Ok (metadata, categories)) ->
+    GetCategories (Ok (_, categories)) ->
       ({ model | categories = categories}, Cmd.none )
     GetCategories (Err _) ->
       ( model , Cmd.none )
 
-    GetTechniques (Ok  (metadata, techniques)) ->
+    GetTechniques (Ok  (_, techniques)) ->
       ({ model | techniques = techniques, loadingTechniques = False},  getUrl () )
     GetTechniques (Err err) ->
       ({ model | loadingTechniques = False} , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
@@ -232,7 +232,7 @@ update msg model =
     NewTechnique internalId ->
       let
         ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
-        t = Technique (TechniqueId "") "1.0" "" "" "ncf_techniques" [] [] []
+        t = Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] []
         newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui}
       in
         updatedStoreTechnique newModel

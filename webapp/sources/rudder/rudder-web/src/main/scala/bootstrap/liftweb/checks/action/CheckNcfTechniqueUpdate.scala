@@ -50,7 +50,6 @@ import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import zio._
@@ -76,7 +75,6 @@ object NcfTechniqueUpgradeError {
  * Controlled by presence of flag file /opt/rudder/etc/force_ncf_technique_update
  */
 class CheckNcfTechniqueUpdate(
-    restExtractor:       RestExtractorService,
     techniqueWrite:      TechniqueWriter,
     systemApiToken:      ApiAccount,
     uuidGen:             StringUuidGenerator,
@@ -105,13 +103,13 @@ class CheckNcfTechniqueUpdate(
             // Keep only non New Resources
             resourceFileService
               .getResources(technique)
-              .map(r => technique.copy(ressources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched))))
+              .map(r => technique.copy(resources = r.filterNot(_.state == ResourceFileState.New).map(_.copy(state = Untouched))))
           }
         // Actually write techniques
         written                 <- ZIO.foreach(techniquesWithResources) { t =>
                                      techniqueWrite
                                        .writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
-                                       .chainError(s"An error occured while writing technique ${t.bundleName.value}")
+                                       .chainError(s"An error occured while writing technique ${t.id.value}")
                                    }
         // Update technique library once all technique are updated
         libUpdate               <- techLibUpdate

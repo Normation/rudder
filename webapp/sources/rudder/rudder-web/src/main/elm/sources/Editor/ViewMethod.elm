@@ -64,9 +64,10 @@ checkMandatoryParameter methodParam =
              _ -> True
            ) methodParam.constraints
 
-showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> MethodParameter -> CallParameter -> Html Msg
-showParam model call state methodParam param =
+showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> MethodParameter -> List CallParameter -> Html Msg
+showParam model call state methodParam params =
   let
+    displayedValue = List.Extra.find (.id >> (==) methodParam.name ) params |> Maybe.map (.value >> displayValue) |> Maybe.withDefault ""
     isMandatory =
       if (checkMandatoryParameter methodParam) then
         span [class "mandatory-param"] [text " *"]
@@ -75,7 +76,7 @@ showParam model call state methodParam param =
     errors = case state of
       InvalidState constraintErrors -> List.filterMap (\c -> case c of
                                                          ConstraintError err ->
-                                                           if (err.id == param.id) then
+                                                           if (err.id == methodParam.name) then
                                                              Just err.message
                                                            else
                                                              Nothing
@@ -85,7 +86,7 @@ showParam model call state methodParam param =
   div [class "form-group method-parameter"] [
     label [ for "param-index" ] [
       span [] [
-        text (String.Extra.toTitleCase param.id.value)
+        text (String.Extra.toTitleCase methodParam.name.value)
       , isMandatory
       , text (" -")
       , span [ class "badge badge-secondary ng-binding" ] [ text methodParam.type_ ]
@@ -99,8 +100,8 @@ showParam model call state methodParam param =
       , name "param"
       , class "form-control"
       , rows  1
-      , value (displayValue param.value)
-      , onInput  (MethodCallParameterModified call param.id)
+      , value displayedValue
+      , onInput  (MethodCallParameterModified call methodParam.name)
       -- to deactivate plugin "Grammarly" or "Language Tool" from
       -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
       , attribute "data-gramm" "false"
@@ -172,7 +173,7 @@ showMethodTab model method parentId call uiInfo=
         ]
       ]
     CallParameters ->
-      div [ class "tab-parameters"] (List.map2 (\m c -> showParam model call uiInfo.validation m c )  method.parameters call.parameters)
+      div [ class "tab-parameters"] (List.map (\m  -> showParam model call uiInfo.validation m call.parameters )  method.parameters )
     CallConditions ->
       let
         condition = call.condition

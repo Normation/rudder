@@ -57,14 +57,16 @@ type alias Method =
   }
 
 type alias Technique =
-  { id          : TechniqueId
-  , version     : String
-  , name        : String
-  , description : String
-  , category    : String
-  , elems       : List MethodElem
-  , parameters  : List TechniqueParameter
-  , resources   : List Resource
+  { id            : TechniqueId
+  , version       : String
+  , name          : String
+  , description   : String
+  , documentation : String
+  , category      : String
+  , elems         : List MethodElem
+  , parameters    : List TechniqueParameter
+  , resources     : List Resource
+  , tags          : List (String,String)
   }
 
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock

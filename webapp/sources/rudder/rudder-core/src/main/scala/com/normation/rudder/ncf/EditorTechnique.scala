@@ -37,25 +37,17 @@
 
 package com.normation.rudder.ncf
 
-import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
-import com.normation.rudder.git.GitFindUtils
-import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.ncf
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
-import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import java.util.regex.Pattern
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JString
-import net.liftweb.json.JValue
+import zio.json.jsonDiscriminator
+import zio.json.jsonHint
 
 sealed trait NcfId {
   def value:        String
@@ -73,7 +65,8 @@ final case class ParameterId(value: String) extends NcfId {
 sealed trait ResourceFileState {
   def value: String
 }
-object ResourceFileState       {
+
+object ResourceFileState {
   case object New       extends ResourceFileState { val value = "new"       }
   case object Deleted   extends ResourceFileState { val value = "deleted"   }
   case object Modified  extends ResourceFileState { val value = "modified"  }
@@ -97,20 +90,25 @@ case class ResourceFile(
 )
 
 final case class EditorTechnique(
-    bundleName:  BundleName,
-    name:        String,
-    category:    String,
-    methodCalls: Seq[MethodElem],
-    version:     Version,
-    description: String,
-    parameters:  Seq[TechniqueParameter],
-    ressources:  Seq[ResourceFile]
+    id:            BundleName,
+    version:       Version,
+    name:          String,
+    category:      String,
+    calls:         Seq[MethodElem],
+    description:   String,
+    documentation: String,
+    parameters:    Seq[TechniqueParameter],
+    resources:     Seq[ResourceFile],
+    tags:          List[(String, String)],
+    internalId:    Option[String]
 ) {
-  val path = s"techniques/${category}/${bundleName.value}/${version.value}"
+  val path = s"techniques/${category}/${id.value}/${version.value}"
 }
 
+@jsonDiscriminator("type")
 sealed trait MethodElem
 
+@jsonHint("block")
 final case class MethodBlock(
     id:             String,
     component:      String,
@@ -119,10 +117,11 @@ final case class MethodBlock(
     calls:          List[MethodElem]
 ) extends MethodElem
 
+@jsonHint("call")
 final case class MethodCall(
-    methodId:          BundleName,
+    method:            BundleName,
     id:                String,
-    parameters:        List[(ParameterId, String)],
+    parameters:        Map[ParameterId, String],
     condition:         String,
     component:         String,
     disabledReporting: Boolean
@@ -131,13 +130,12 @@ final case class MethodCall(
 object MethodCall {
   def renameParams(call: MethodCall, methods: Map[BundleName, GenericMethod]): MethodCall = {
 
-    val renameParam = methods.get(call.methodId).map(_.renameParam).getOrElse(Nil).toMap
+    val renameParam = methods.get(call.method).map(_.renameParam).getOrElse(Nil).toMap
     val newParams   = call.parameters.map {
       case (parameterId: ParameterId, value) =>
         (renameParam.get(parameterId.value).map(ParameterId.apply).getOrElse(parameterId), value)
     }
     call.copy(parameters = newParams)
-
   }
 }
 
@@ -337,197 +335,6 @@ object CheckConstraint {
       case (NOK(m1), NOK(m2)) => NOK(m1 ::: m2)
       case (res: NOK, _)      => res
       case (_, res: NOK)      => res
-    }
-  }
-}
-
-class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
-
-  import net.liftweb.json.JsonDSL._
-
-  def serializeTechniqueMetadata(technique: ncf.EditorTechnique, methods: Map[BundleName, GenericMethod]): JValue = {
-
-    def serializeTechniqueParameter(parameter: TechniqueParameter): JValue = {
-      (("id"           -> parameter.id.value)
-      ~ ("name"        -> parameter.name.value)
-      ~ ("description" -> parameter.description)
-      ~ ("mayBeEmpty"  -> parameter.mayBeEmpty))
-    }
-
-    def serializeMethod(method: MethodElem): JValue = {
-      method match {
-        case c: MethodCall  => serializeMethodCall(c)
-        case b: MethodBlock => serializeMethodBlock(b)
-      }
-    }
-
-    def serializeCompositionRule(reportingLogic: ReportingLogic): JValue = {
-      import ReportingLogic._
-
-      reportingLogic match {
-        case FocusReport(component) => ("type" -> FocusReport.key) ~ ("value" -> component)
-        case _                      => ("type" -> reportingLogic.value)
-      }
-    }
-    def serializeMethodBlock(block: MethodBlock):                 JValue = {
-      (("condition"       -> block.condition)
-      ~ ("component"      -> block.component)
-      ~ ("reportingLogic" -> serializeCompositionRule(block.reportingLogic))
-      ~ ("calls"          -> block.calls.map(serializeMethod))
-      ~ ("id"             -> block.id))
-    }
-
-    def serializeMethodCall(call: MethodCall): JValue = {
-      val newCall = MethodCall.renameParams(call, methods)
-      val params: JValue = newCall.parameters.map {
-        case (parameterName, value) =>
-          (("name"   -> parameterName.value)
-          ~ ("value" -> value))
-      }
-
-      (("method"            -> call.methodId.value)
-      ~ ("condition"        -> call.condition)
-      ~ ("disableReporting" -> call.disabledReporting)
-      ~ ("component"        -> call.component)
-      ~ ("parameters"       -> params)
-      ~ ("id"               -> call.id))
-    }
-
-    def serializeResource(resourceFile: ResourceFile) = {
-      (("name"   -> resourceFile.path)
-      ~ ("state" -> resourceFile.state.value))
-    }
-
-    val resource   = technique.ressources.map(serializeResource)
-    val parameters = technique.parameters.map(serializeTechniqueParameter).toList
-    val calls      = technique.methodCalls.map(serializeMethod).toList
-    (("id"           -> technique.bundleName.value)
-    ~ ("version"     -> technique.version.value)
-    ~ ("category"    -> technique.category)
-    ~ ("description" -> technique.description)
-    ~ ("name"        -> technique.name)
-    ~ ("calls"       -> calls)
-    ~ ("parameter"   -> parameters)
-    ~ ("resources"   -> resource)
-    ~ ("source"      -> "editor"))
-  }
-
-  def serializeMethodMetadata(method: GenericMethod): JValue = {
-    def serializeMethodParameter(param: MethodParameter): JValue = {
-
-      def serializeMethodConstraint(constraint: ncf.Constraint.Constraint): JField = {
-        constraint match {
-          case ncf.Constraint.AllowEmpty(allow)      => JField("allow_empty_string", allow)
-          case ncf.Constraint.AllowWhiteSpace(allow) => JField("allow_whitespace_string", allow)
-          case ncf.Constraint.MaxLength(max)         => JField("max_length", max)
-          case ncf.Constraint.MinLength(min)         => JField("min_length", min)
-          case ncf.Constraint.MatchRegex(re)         => JField("regex", re)
-          case ncf.Constraint.NotMatchRegex(re)      => JField("not_regex", re)
-          case ncf.Constraint.FromList(list)         => JField("select", list)
-        }
-      }
-
-      val constraints = JObject(param.constraint.map(serializeMethodConstraint))
-      val paramType   = JString(parameterTypeService.value(param.parameterType).getOrElse("Unknown"))
-      (("name"         -> param.id.value)
-      ~ ("description" -> param.description)
-      ~ ("constraints" -> constraints)
-      ~ ("type"        -> paramType))
-    }
-
-    def serializeAgentSupport(agent: AgentType) = {
-      agent match {
-        case AgentType.Dsc                                    => JString("dsc")
-        case AgentType.CfeCommunity | AgentType.CfeEnterprise => JString("cfengine-community")
-      }
-    }
-
-    val parameters   = method.parameters.map(serializeMethodParameter)
-    val agentSupport = method.agentSupport.map(serializeAgentSupport)
-    (("id"             -> method.id.value)
-    ~ ("name"          -> method.name)
-    ~ ("description"   -> method.description)
-    ~ ("condition"     -> (("prefix" -> method.classPrefix)
-    ~ ("parameter"     -> method.classParameter.value)))
-    ~ ("agents"        -> agentSupport)
-    ~ ("parameters"    -> parameters)
-    ~ ("documentation" -> method.documentation)
-    ~ ("deprecated"    -> (method.deprecated match {
-      case None       => None
-      case Some(info) =>
-        Some(
-          (("info"        -> info)
-          ~ ("replacedBy" -> method.renameTo))
-        )
-    })))
-  }
-}
-
-class ResourceFileService(gitReposProvider: GitRepositoryProvider) {
-  def getResources(technique: EditorTechnique) = {
-    getResourcesFromDir(
-      s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources",
-      technique.bundleName.value,
-      technique.version.value
-    )
-
-  }
-
-  def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String) = {
-
-    val resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
-
-    def getAllFiles(file: File): List[String] = {
-      if (file.exists) {
-        if (file.isRegularFile) {
-          resourceDir.relativize(file).toString :: Nil
-        } else {
-          file.children.toList.flatMap(getAllFiles)
-        }
-      } else {
-        Nil
-      }
-    }
-
-    import scala.jdk.CollectionConverters._
-    import ResourceFileState._
-
-    def toResource(resourcesPath: String)(fullPath: String, state: ResourceFileState): Option[ResourceFile] = {
-      // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,
-      // it's a bug from jgit filtering: ignore that file
-      val relativePath = fullPath.stripPrefix(s"${resourcesPath}/")
-      if (relativePath == fullPath) None
-      else Some(ResourceFile(relativePath, state))
-    }
-    for {
-
-      status     <- GitFindUtils
-                      .getStatus(gitReposProvider.git, List(resourcesPath))
-                      .chainError(
-                        s"Error when getting status of resource files of technique ${techniqueName}/${techniqueVersion}"
-                      )
-      resourceDir = File(gitReposProvider.db.getDirectory.getParent, resourcesPath)
-      allFiles   <- IOResult.attempt(s"Error when getting all resource files of technique ${techniqueName}/${techniqueVersion} ") {
-                      getAllFiles(resourceDir)
-                    }
-    } yield {
-
-      val toResourceFixed = toResource(resourcesPath) _
-
-      // New files not added
-      val added    = status.getUntracked.asScala.toList.flatMap(toResourceFixed(_, New))
-      // Files modified and not added
-      val modified = status.getModified.asScala.toList.flatMap(toResourceFixed(_, Modified))
-      // Files deleted but not removed from git
-      val removed  = status.getMissing.asScala.toList.flatMap(toResourceFixed(_, Deleted))
-
-      val filesNotCommitted = modified ::: added ::: removed
-
-      // We want to get all files from the resource directory and remove all added/modified/deleted files so we can have the list of all files not modified
-      val untouched = allFiles.filterNot(f => filesNotCommitted.exists(_.path == f)).map(ResourceFile(_, Untouched))
-
-      // Create a new list with all a
-      filesNotCommitted ::: untouched
     }
   }
 }

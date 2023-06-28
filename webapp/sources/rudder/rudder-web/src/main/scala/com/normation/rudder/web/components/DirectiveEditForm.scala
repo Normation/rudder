@@ -140,7 +140,7 @@ class DirectiveEditForm(
     val test = for {
       res                        <- ncfTechniqueService.readTechniquesMetadataFile
       (techniquesEditor, methods) = res
-      ids                         = techniquesEditor.map(_.bundleName.value)
+      ids                         = techniquesEditor.map(_.id.value)
     } yield {
       ids.contains(id.name.value)
     }

@@ -38,7 +38,7 @@ getTechniques  model =
         , headers = []
         , url     = getUrl model "techniques"
         , body    = emptyBody
-        , expect  = Detailed.expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.concatMap Maybe.Extra.toList) ( Json.Decode.list (Json.Decode.maybe decodeTechnique))))
+        , expect  = Detailed.expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.filterMap identity) (Json.Decode.list (decodeTechniqueMaybe))))
         , timeout = Nothing
         , tracker = Nothing
         }

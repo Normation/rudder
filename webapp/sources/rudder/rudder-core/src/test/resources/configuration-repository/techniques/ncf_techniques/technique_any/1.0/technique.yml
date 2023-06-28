@@ -1,0 +1,18 @@
+id: technique_any
+name: Test Technique created through Rudder API
+version: '1.0'
+description: This Technique exists only to see if Rudder creates Technique correctly.
+items:
+  - id: id
+    name: Test component$&é)à\'"
+    condition: any
+    method: package_install_version
+    params:
+      package_name: ${node.properties[apache_package_name]}
+      package_version: 2.2.11
+category: ncf_techniques
+params:
+  - id: package_version
+    name: version
+    description: Package version to install
+    may_be_empty: false

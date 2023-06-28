@@ -39,11 +39,7 @@ package com.normation.rudder.rest.lift
 
 import better.files.File
 import com.normation.box._
-import com.normation.cfclerk.domain.RootTechniqueCategory
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueCategory
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
 import com.normation.eventlog.EventActor
@@ -53,15 +49,9 @@ import com.normation.rudder.apidata.JsonResponseObjects._
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.ncf._
 import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.EditorTechnique
-import com.normation.rudder.ncf.ResourceFile
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.ActionType
@@ -71,19 +61,14 @@ import com.normation.rudder.rest.implicits._
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST._
 import scala.collection.SortedMap
 import zio._
+import zio.json.ast.Json
+import zio.json.ast.Json.Str
 import zio.syntax._
 
 class TechniqueApi(
@@ -98,6 +83,8 @@ class TechniqueApi(
     resourceFileService:  ResourceFileService
 ) extends LiftApiModuleProvider[API] {
 
+  import techniqueSerializer._
+  import zio.json._
   def schemas = API
 
   val dataName = "techniques"
@@ -168,7 +155,7 @@ class TechniqueApi(
            )
          } else {
            for {
-             optTechnique <- techniqueReader.readTechniquesMetadataFile.map(_._1.find(_.bundleName.value == techniqueInfo._1))
+             optTechnique <- techniqueReader.readTechniquesMetadataFile.map(_._1.find(_.id.value == techniqueInfo._1))
              resources    <-
                optTechnique
                  .map(resourceFileService.getResources)
@@ -225,19 +212,29 @@ class TechniqueApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val modId    = ModificationId(uuidGen.newUuid)
+      val modId = ModificationId(uuidGen.newUuid)
+
+      // copied from `Req.forcedBodyAsJson`
+      def r  = """; *charset=(.*)""".r
+      def r2 = """[^=]*$""".r
+      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
+
+      // end copy
       val response = {
         for {
-          json             <- req.json ?~! "No JSON data sent"
-          methodMap        <- techniqueReader.getMethodsMetadata.toBox
-          technique        <- restExtractor.extractEditorTechnique(json, methodMap, false, false)
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
+          technique        <-
+            req.body match {
+              case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
+              case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
+            }
+          methodMap        <- techniqueReader.getMethodsMetadata
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor)
+          json             <- updatedTechnique.toJsonAST.toIO
         } yield {
-          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTechnique, methodMap)))
+          json
         }
       }
-      val wrapper: ActionType = { case _ => response }
-      actionResp(Full(wrapper), req, "Could not update ncf technique", authzToken.actor)("UpdateTechnique")
+      response.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -245,8 +242,7 @@ class TechniqueApi(
     val schema            = API.GetTechniques
     implicit val dataName = "techniques"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-
-      resp(serviceV14.getTechniquesWithData().toBox, req, "Could not fetch techniques")("getTechniques")
+      serviceV14.getTechniquesWithData().toLiftResponseList(params, schema)
     }
 
   }
@@ -299,10 +295,11 @@ class TechniqueApi(
         res                  <- techniqueReader.readTechniquesMetadataFile
         (techniques, methods) = res
         _                    <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
+        json                 <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
       } yield {
-        JArray(techniques.map(techniqueSerializer.serializeTechniqueMetadata(_, methods)))
+        json
       }
-      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
+      response.toLiftResponseList(params, schema)
 
     }
 
@@ -343,7 +340,7 @@ class TechniqueApi(
 
     def moveRessources(technique: EditorTechnique, internalId: String) = {
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
-      val finalPath     = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources"
+      val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
 
       val workspaceDir = File(s"/var/rudder/configuration-repository/${workspacePath}")
       val finalDir     = File(s"/var/rudder/configuration-repository/${finalPath}")
@@ -371,39 +368,50 @@ class TechniqueApi(
     val schema        = API.CreateTechnique
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val modId    = ModificationId(uuidGen.newUuid)
+      val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
+
+      def r = """; *charset=(.*)""".r
+
+      def r2 = """[^=]*$""".r
+
+      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
+
+      // end copy
       val response = {
         for {
-          json          <- req.json ?~! "No JSON data sent"
-          methodMap     <- techniqueReader.getMethodsMetadata.toBox
-          technique     <- restExtractor.extractEditorTechnique(json, methodMap, true, false)
-          internalId    <- OptionnalJson.extractJsonString(json, "internalId")
+          technique     <-
+            req.body match {
+              case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
+              case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
+            }
+          methodMap     <- techniqueReader.getMethodsMetadata
           isNameTaken    = isTechniqueNameExist(technique.name)
-          isIdTaken      = isTechniqueIdExist(technique.bundleName)
+          isIdTaken      = isTechniqueIdExist(technique.id)
           _             <- (isNameTaken, isIdTaken) match {
                              case (true, true)   =>
-                               Failure(
-                                 s"Technique name and ID must be unique. Name '${technique.name}' and ID '${technique.bundleName.value}' already used, they are case insensitive"
-                               )
+                               Inconsistency(
+                                 s"Technique name and ID must be unique. Name '${technique.name}' and ID '${technique.id.value}' already used, they are case insensitive"
+                               ).fail
                              case (true, false)  =>
-                               Failure(s"Technique name must be unique. Name '${technique.name}' already used, it is case insensitive ")
+                               Inconsistency(
+                                 s"Technique name must be unique. Name '${technique.name}' already used, it is case insensitive "
+                               ).fail
                              case (false, true)  =>
-                               Failure(
-                                 s"Technique ID must be unique. ID '${technique.bundleName.value}' already used, it is case insensitive"
-                               )
-                             case (false, false) => Full(())
+                               Inconsistency(
+                                 s"Technique ID must be unique. ID '${technique.id.value}' already used, it is case insensitive"
+                               ).fail
+                             case (false, false) => ().succeed
                            }
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
-          resoucesMoved <- internalId.map(internalId => moveRessources(technique, internalId).toBox).getOrElse(Full("Ok"))
-          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor).toBox
+          resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
+          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor)
+          json          <- updatedTech.toJsonAST.toIO
         } yield {
-          JObject(JField("technique", techniqueSerializer.serializeTechniqueMetadata(updatedTech, methodMap)))
+          json
         }
       }
-
-      val wrapper: ActionType = { case _ => response }
-      actionResp(Full(wrapper), req, "Could not create ncf technique", authzToken.actor)("CreateTechnique")
+      response.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -750,48 +758,56 @@ class TechniqueAPIService14(
       activeTechnique = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
       methods        <- techniqueReader.getMethodsMetadata
       techniques     <- techniqueReader.readTechniquesMetadataFile
+      json           <- ZIO.foreach(
+                          activeTechnique.flatMap(at => {
+                            version match {
+                              case None    => at.techniques
+                              case Some(v) => at.techniques.get(v).toSeq.map((v, _))
+                            }
+                          })
+                        ) {
+                          case (version, technique) =>
+                            techniques._1.find(t =>
+                              t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
+                            ) match {
+                              case Some(editorTechnique) =>
+                                import techniqueSerializer._
+                                import zio.json._
+                                editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                              case None                  =>
+                                restDataSerializer.serializeTechnique(technique).succeed
+                            }
+                        }
     } yield {
-      for {
-        at                   <- activeTechnique
-        (version, technique) <- version match {
-                                  case None    => at.techniques
-                                  case Some(v) => at.techniques.get(v).toSeq.map((v, _))
-                                }
-      } yield {
-        val optEditor = techniques._1.find(t =>
-          t.bundleName.value == technique.id.name.value && t.version.value == version.version.toVersionString
-        )
-        JRTechnique.fromTechnique(technique, optEditor, methods)
-
-      }
+      json
     }
   }
-  def getTechniquesWithData(): IOResult[JValue] = {
+
+  def getTechniquesWithData(): IOResult[Seq[Json]] = {
     for {
       lib                  <- readDirective.getFullDirectiveLibrary()
       activeTechniques      = lib.allActiveTechniques.values.toSeq
       res                  <- techniqueReader.readTechniquesMetadataFile
       (techniques, methods) = res
-    } yield {
-      val json = {
-        for {
-          at                   <- activeTechniques
-          (version, technique) <- at.techniques
-        } yield {
-          import net.liftweb.json.JsonDSL._
-          techniques.find(t =>
-            t.bundleName.value == technique.id.name.value && t.version.value == version.version.toVersionString
-          ) match {
-            case Some(editorTechnique) =>
-              techniqueSerializer.serializeTechniqueMetadata(editorTechnique, methods)
-            case None                  =>
-              restDataSerializer.serializeTechnique(technique) ~ ("source" -> "built-in")
-          }
+      json                 <- {
+        ZIO.foreach(activeTechniques.flatMap(_.techniques)) {
+          case (version, technique) =>
+            techniques.find(t =>
+              t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
+            ) match {
+              case Some(editorTechnique) =>
+                import techniqueSerializer._
+                import zio.json._
+                editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+              case None                  =>
+                restDataSerializer.serializeTechnique(technique).succeed
+            }
         }
       }
-      JArray(json.toList)
-
+    } yield {
+      json
     }
+
   }
 
 }

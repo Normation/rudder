@@ -19,11 +19,9 @@ decodeTechniqueParameter =
     |> required "description" string
     |> optional "mayBeEmpty" bool False
 
-decodeCallParameter : Decoder CallParameter
-decodeCallParameter =
-  succeed CallParameter
-    |> required "name" (map ParameterId string)
-    |> required "value" (map getAgentValue string)
+decodeCallParameter : List (String, List AgentValue) -> List CallParameter
+decodeCallParameter params =
+  List.map (\ (k,v) -> CallParameter (ParameterId k) v) params
 
 parseCondition : String -> Condition
 parseCondition class_context =
@@ -85,10 +83,20 @@ decodeMethodCall =
   succeed MethodCall
     |> required "id" (map CallId string)
     |> required "method" (map MethodId string)
-    |> required "parameters"  (list decodeCallParameter )
+    |> required "parameters"  (map decodeCallParameter ( keyValuePairs (map getAgentValue string) ))
     |> required "condition"  (map parseCondition string)
     |> optional "component"  string ""
-    |> optional "disableReporting" bool False
+    |> optional "disabledReporting" bool False
+
+decodeTechniqueMaybe : Decoder (Maybe Technique)
+decodeTechniqueMaybe =
+   field "source" string |>
+     andThen (\v ->
+       case v of
+         "editor" ->  map Just decodeTechnique
+         _ -> succeed Nothing
+     )
+
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
@@ -97,10 +105,12 @@ decodeTechnique =
     |> required "version"  string
     |> required "name"  string
     |> required "description"  string
+    |> required "documentation"  string
     |> required "category"  string
     |> required "calls" (list (lazy (\_ -> decodeMethodElem Nothing)))
-    |> required "parameter" (list decodeTechniqueParameter)
+    |> required "parameters" (list decodeTechniqueParameter)
     |> required "resources" (list decodeResource)
+    |> required "tags" (keyValuePairs string)
 
 decodeAgent : Decoder Agent
 decodeAgent =
@@ -188,7 +198,7 @@ decodeCategory =
 decodeResource : Decoder Resource
 decodeResource =
   succeed Resource
-    |> required "name" string
+    |> required "path" string
     |> required "state" (andThen (\s -> case s of
                                           "new" -> succeed New
                                           "untouched" -> succeed Untouched
