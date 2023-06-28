@@ -29,8 +29,8 @@ getNodeProperties model =
   in
     req
 
-saveProperty : List EditProperty -> Model -> Cmd Msg
-saveProperty properties model =
+saveProperty : List EditProperty -> Model -> String -> Cmd Msg
+saveProperty properties model successMsg =
   let
     req =
       request
@@ -38,7 +38,7 @@ saveProperty properties model =
         , headers = []
         , url     = getUrl model [] []
         , body    = encodeProperty model properties "Add" |> jsonBody
-        , expect  = expectJson SaveProperty decodeSaveProperties
+        , expect  = expectJson (SaveProperty successMsg) decodeSaveProperties
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -48,13 +48,14 @@ saveProperty properties model =
 deleteProperty : EditProperty -> Model -> Cmd Msg
 deleteProperty property model =
   let
+    successMsg = "property '" ++ property.name ++ "' has been removed"
     req =
       request
         { method  = "POST"
         , headers = []
         , url     = getUrl model [] []
         , body    = encodeProperty model [property] "Delete" |> jsonBody
-        , expect  = expectJson SaveProperty decodeSaveProperties
+        , expect  = expectJson (SaveProperty successMsg) decodeSaveProperties
         , timeout = Nothing
         , tracker = Nothing
         }

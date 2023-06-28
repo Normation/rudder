@@ -3,7 +3,6 @@ port module Nodeproperties exposing (..)
 import Browser
 import Http exposing (..)
 import Result
-import Json.Encode exposing (encode, string, object)
 import Json.Decode exposing (decodeValue, value)
 import Dict exposing (..)
 import List.Extra exposing (remove)
@@ -11,10 +10,8 @@ import List.Extra exposing (remove)
 import NodeProperties.ApiCalls exposing (..)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.Init exposing (init)
-import NodeProperties.JsonDecoder exposing (..)
 import NodeProperties.View exposing (view)
 
-import Debug
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg
@@ -59,18 +56,18 @@ update msg model =
       in
         ( { model | ui = {ui | editedProperties = newProperties} }, Cmd.none )
 
-    SaveProperty res ->
+    SaveProperty successMsg res ->
       case  res of
         Ok p ->
           let
             ui  = model.ui
             newModel = { model
-              | newProperty = (EditProperty "" "" model.newProperty.format True True)
+              | newProperty = (EditProperty "" "" model.newProperty.format True True False)
               , ui = { ui | loading = False }
               }
           in
             ( newModel
-            , Cmd.batch [ initTooltips "" , successNotification "", getNodeProperties newModel]
+            , Cmd.batch [ initTooltips "" , successNotification successMsg, getNodeProperties newModel]
             )
         Err err ->
           processApiError "saving node properties" err model
@@ -90,20 +87,23 @@ update msg model =
 
     AddProperty ->
       let
-        cmd = case model.newProperty.format of
-          StringFormat -> saveProperty [model.newProperty] model
+        successMsg = ("property '" ++ model.newProperty.name ++ "' has been added")
+        ( newModel , cmd ) = case model.newProperty.format of
+          StringFormat -> (model, saveProperty [model.newProperty] model successMsg)
           JsonFormat   ->
             let
-              --checkJsonFormat = (Json.Decode.dict (Json.Decode.lazy (\_ -> decodePropertyValue)) |> Json.Decode.map JsonObject) encodedValue
-              checkJsonFormat = decodeValue decodePropertyValue (string model.newProperty.value) -- NOT WORKING
+              checkJsonFormat = Json.Decode.decodeString Json.Decode.value model.newProperty.value
             in
               case checkJsonFormat of
                 Ok s  ->
-                  Debug.log (Debug.toString checkJsonFormat)
-                  saveProperty [model.newProperty] model
-                Err _ -> errorNotification "JSON check is enabled, but the value format is invalid."
+                  (model, saveProperty [model.newProperty] model successMsg)
+                Err _ ->
+                  let
+                    newProperty = model.newProperty
+                  in
+                    ({model | newProperty = {newProperty | errorFormat = True}}, errorNotification "JSON check is enabled, but the value format is invalid.")
       in
-        (model, cmd)
+        (newModel, cmd)
 
     DeleteProperty key ->
           (model, Cmd.none)
@@ -120,12 +120,24 @@ update msg model =
           ui = model.ui
           editedProperties = ui.editedProperties
             |> Dict.remove key
-          cmd = if save then -- If we want to save changes
-            saveProperty [property] model
+          successMsg = ("property '" ++ property.name ++ "' has been updated")
+          updatedModel = { model | ui = {ui | editedProperties = editedProperties} }
+          (newModel, cmd) = if save then -- If we want to save changes
+            case property.format of
+              StringFormat -> (updatedModel, saveProperty [property] model successMsg)
+              JsonFormat   ->
+                let
+                  checkJsonFormat = Json.Decode.decodeString Json.Decode.value property.value
+                in
+                  case checkJsonFormat of
+                    Ok s  ->
+                      (updatedModel, saveProperty [property] model successMsg)
+                    Err _ -> (model, errorNotification "JSON check is enabled, but the value format is invalid.")
+
             else
-            Cmd.none
+              (updatedModel, Cmd.none)
           in
-            ( { model | ui = {ui | editedProperties = editedProperties} }, cmd )
+            (newModel, cmd)
       else
         let
           ui = model.ui

@@ -14,6 +14,7 @@ type alias EditProperty =
   , format    : ValueFormat
   , pristineName  : Bool
   , pristineValue : Bool
+  , errorFormat : Bool
   }
 
 type ValueFormat = JsonFormat | StringFormat
@@ -71,7 +72,7 @@ type Msg
   = Ignore
   | Copy String
   | CallApi (Model -> Cmd Msg)
-  | SaveProperty (Result Error (List Property))
+  | SaveProperty String (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty

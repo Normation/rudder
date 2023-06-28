@@ -10,7 +10,7 @@ init : { contextPath : String, hasWriteRights : Bool, hasReadRights : Bool, node
 init flags =
   let
     initUi = UI flags.hasWriteRights flags.hasReadRights True NoModal Dict.empty [] (TableFilters Name Asc "")
-    initModel = Model flags.contextPath flags.nodeId flags.objectType [] (EditProperty "" "" StringFormat True True) initUi
+    initModel = Model flags.contextPath flags.nodeId flags.objectType [] (EditProperty "" "" StringFormat True True False) initUi
   in
     ( initModel
     , getNodeProperties initModel

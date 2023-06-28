@@ -112,18 +112,18 @@ displayNodePropertyRow model =
             JsonString s  -> (StringFormat, "String")
             _ -> (JsonFormat, "JSON")
 
-        defaultEditProperty = EditProperty p.name (displayJsonValue p.value) format True True
+        defaultEditProperty = EditProperty p.name (displayJsonValue p.value) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
-        providerBadge = case p.provider of
+        (providerBadge, editRight) = case p.provider of
           Just pr ->
             let
               pTitle = case pr of
                 "inherited" -> "This property is inherited from these group(s) or global parameter: <div>" ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
-                "overriden" -> "This property is overridden on this object and was inherited from these group(s) or global parameter: <div>" ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
+                "overridden" -> "This property is overridden on this object and was inherited from these group(s) or global parameter: <div>" ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
                 _ -> "This property is managed by its provider <b>‘" ++ pr ++ "</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration."
             in
-              span
+              (span
               [ class "rudder-label label-provider label-sm bs-tooltip"
               , attribute "data-toggle" "tooltip"
               , attribute "data-placement" "right"
@@ -131,7 +131,9 @@ displayNodePropertyRow model =
               , attribute "data-container" "body"
               , title pTitle
               ] [ text pr ]
-          Nothing -> text ""
+              , (pr == "overridden")
+              )
+          Nothing -> (text "", True)
 
         isTooLong : JsonValue -> Bool
         isTooLong value =
@@ -166,18 +168,30 @@ displayNodePropertyRow model =
                 ]
               ]
             , td [class "text-center default-actions"]
-              [ div [] -- ng-if="!isEdited(property.name) && property.rights !== 'read-only' && (property.provider === undefined || property.provider === 'overridden')">
+              [ (if (editRight) then
+                div [] -- ng-if="!isEdited(property.name) && property.rights !== 'read-only' && (property.provider === undefined || property.provider === 'overridden')">
                 [ span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][] -- ng-click="editProperty(property)"
                 , span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (ToggleEditPopup (Deletion p.name))][]
                 ]
+                else
+                text ""
+                )
               ]
             ]
           Just eP ->
+            let
+              checkPristineName = not eP.pristineName
+              checkEmptyName    = String.isEmpty eP.name
+              checkUsedName     = eP.name /= p.name && List.member eP.name (List.map .name model.properties)
+              checkEmptyVal     = String.isEmpty eP.value
+              checkPristineVal  = not eP.pristineValue
+            in
             tr []
             [ td [class "is-edited"]
               [ div []
-                [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s}) ][]
-                -- , small [class "text-danger"][ text "This name is already used by another property" ] -- ng-if="editedProperties[property.name].new.alreadyUsed">
+                [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False}) ][]
+                , ( if checkUsedName then small [class "text-danger"][ text "This name is already used by another property" ] else text "" )
+                , ( if (checkEmptyName && checkPristineName) then small [class "text-danger"][text "Name is required"] else text "" )
                 ]
               ]
             , td [class "is-edited"]
@@ -194,11 +208,11 @@ displayNodePropertyRow model =
               ]
             , td [class "is-edited"]
               [ div []
-                [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s}) ][]
-                -- , small [class "text-danger"] [ text "JSON check is enabled, but the value format is invalid" ] -- ng-if="!editedProperties[property.name].new.isValid"
+                [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
+                , (if (checkEmptyVal && checkPristineVal)  then small [class "text-danger"][text "Value is required"] else text "")
                 ]
               ]
-            , td [class "text-center edit-actions is-edited" ] -- ng-if="$parent.hasEditRight"
+            , td [class "text-center edit-actions is-edited" ]
               [ div [] -- ng-if="isEdited(property.name) && property.rights !== 'read-only'">
                 [ span [ class "action-icon glyphicon glyphicon-share-alt cancel-icon", title "Cancel", onClick (ToggleEditProperty p.name eP False)][]
                 , span [ class "action-icon fa fa-check text-success", title "Save", onClick (ToggleEditProperty p.name eP True)][]
@@ -225,7 +239,7 @@ modalDelete model =
           , div [ class "modal-footer" ]
             [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
               [ text "Cancel " ]
-            , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteProperty (EditProperty name "" StringFormat True True)))) ]
+            , button [ class "btn btn-danger", onClick (ClosePopup (CallApi (deleteProperty (EditProperty name "" StringFormat True True False)))) ]
               [ text "Delete "
               , i [ class "fa fa-times-circle" ] []
               ]

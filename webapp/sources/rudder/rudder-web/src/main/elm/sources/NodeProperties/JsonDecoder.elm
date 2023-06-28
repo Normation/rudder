@@ -36,3 +36,15 @@ decodeProperty =
     |> optional "provider"  (map Just string) Nothing
     |> optional "hierarchy" (map Just string) Nothing
     |> optional "origval"   (map Just decodePropertyValue) Nothing
+
+decodeValue : Decoder JsonValue
+decodeValue =
+  oneOf
+  [ map JsonString string
+  , map JsonInt int
+  , map JsonFloat float
+  , map JsonBoolean bool
+  , list (lazy (\_ -> decodePropertyValue)) |> map JsonArray
+  , dict (lazy (\_ -> decodePropertyValue)) |> map JsonObject
+  , null JsonNull
+  ]
