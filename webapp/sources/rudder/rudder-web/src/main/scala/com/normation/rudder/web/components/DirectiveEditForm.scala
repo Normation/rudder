@@ -139,7 +139,7 @@ class DirectiveEditForm(
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
       res                        <- ncfTechniqueService.readTechniquesMetadataFile
-      (techniquesEditor, methods) = res
+      (techniquesEditor, methods, _) = res
       ids                         = techniquesEditor.map(_.id.value)
     } yield {
       ids.contains(id.name.value)
