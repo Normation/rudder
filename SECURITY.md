@@ -9,7 +9,7 @@ https://docs.rudder.io/versions[in the documentation].
 
 You can report any security vulnerability affecting Rudder sources, packages, or infrastructure
 (repositories, websites, etc.) you have found by contacting the Rudder security team at:
-mailto:security@rudder.io[security@rudder.io].
+[security@rudder.io](mailto:security@rudder.io).
 
 If you have not received a reply to your email within 48 hours, you can ask on
 our [chat room](https://chat.rudder.io). As it is a public channel, please don't discuss
