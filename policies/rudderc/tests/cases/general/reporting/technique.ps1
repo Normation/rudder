@@ -36,9 +36,9 @@
             Architecture = ""
             Name = "htop"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -66,9 +66,9 @@
             Architecture = ""
             Name = "htop"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -96,9 +96,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -126,9 +126,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -156,9 +156,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -186,9 +186,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -216,9 +216,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode
@@ -246,9 +246,9 @@
             Architecture = ""
             Name = "ntp"
             Provider = ""
-            Version = "@'
+            Version = @'
 
-'@"
+'@
             
         }
         $call = PackagePresent $methodParams -PolicyMode $policyMode

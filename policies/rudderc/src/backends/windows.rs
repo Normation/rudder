@@ -115,10 +115,10 @@ mod filters {
         // Format expression for Windows
         let value = value_fmt(&p.1)?;
         // Then display depending on type
-        match p.2 {
-            ParameterType::String => escape_double_quotes(value),
-            ParameterType::HereString => Ok(format!("@'\n{value}\n'@")),
-        }
+        Ok(match p.2 {
+            ParameterType::String => format!("\"{}\"", escape_double_quotes(value)?),
+            ParameterType::HereString => format!("@'\n{value}\n'@"),
+        })
     }
 }
 
