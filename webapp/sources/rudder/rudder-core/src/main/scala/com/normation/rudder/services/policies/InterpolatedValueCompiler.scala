@@ -142,7 +142,7 @@ trait InterpolatedValueCompiler {
    * Return a Box, where Full denotes a successful
    * parsing of all values, and EmptyBox. an error.
    */
-  def <translateToAgent>(value: String, agentType: AgentType): Box[String]
+  def translateToAgent(value: String, agentType: AgentType): Box[String]
 
 }
 
