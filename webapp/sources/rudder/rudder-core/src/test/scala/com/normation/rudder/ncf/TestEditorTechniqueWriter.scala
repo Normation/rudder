@@ -529,7 +529,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         true
       ) :: Nil,
       Nil,
-      Nil,
+      Map(),
       None
     )
   }
@@ -615,7 +615,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       "",
       TechniqueParameter(ParameterId("package_version"), ParameterId("version"), "Package version to install", false) :: Nil,
       Nil,
-      Nil,
+      Map(),
       None
     )
   }
@@ -704,7 +704,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         false
       ) :: Nil,
       Nil,
-      Nil,
+      Map(),
       None
     )
   }

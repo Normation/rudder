@@ -99,7 +99,7 @@ final case class EditorTechnique(
     documentation: String,
     parameters:    Seq[TechniqueParameter],
     resources:     Seq[ResourceFile],
-    tags:          List[(String, String)],
+    tags:          Map[String, String],
     internalId:    Option[String]
 ) {
   val path = s"techniques/${category}/${id.value}/${version.value}"

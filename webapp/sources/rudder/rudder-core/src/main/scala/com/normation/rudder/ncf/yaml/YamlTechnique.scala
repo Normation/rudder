@@ -64,7 +64,7 @@ case class Technique(
     items:         List[MethodItem],
     documentation: Option[String],
     category:      Option[String],
-    tags:          Option[List[(String, String)]],
+    tags:          Option[Map[String, String]],
     params:        Option[List[TechniqueParameter]]
 )
 
@@ -74,7 +74,7 @@ case class MethodItem(
     name:      String,
     reporting: Option[Reporting],
     condition: Option[String],
-    tags:      Option[List[(String, String)]],
+    tags:      Option[Map[String, String]],
     // Call specific fields
     method:    Option[String],
     params:    Option[Map[ParameterId, String]],
@@ -108,17 +108,18 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
     JsonEncoder[String].contramap(s => parameterTypeService.value(s).getOrElse(s.toString))
   implicit val encoderTechniqueParameter:     JsonEncoder[TechniqueParameter] = DeriveJsonEncoder.gen
   implicit val encoderTechnique:              JsonEncoder[Technique]          = DeriveJsonEncoder.gen
-  implicit val decoderBundleName:             JsonDecoder[BundleName]         = JsonDecoder[String].map(BundleName.apply)
-  implicit val decoderParameterId:            JsonDecoder[ParameterId]        = JsonDecoder[String].map(ParameterId.apply)
-  implicit val decoderFieldParameterId:       JsonFieldDecoder[ParameterId]   = JsonFieldDecoder[String].map(ParameterId.apply)
-  implicit val decoderVersion:                JsonDecoder[Version]            = JsonDecoder[String].map(s => new Version(s))
-  implicit val decoderReporting:              JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
-  implicit val decoderParameterType:          JsonDecoder[ParameterType]      =
+
+  implicit val decoderBundleName:         JsonDecoder[BundleName]         = JsonDecoder[String].map(BundleName.apply)
+  implicit val decoderParameterId:        JsonDecoder[ParameterId]        = JsonDecoder[String].map(ParameterId.apply)
+  implicit val decoderFieldParameterId:   JsonFieldDecoder[ParameterId]   = JsonFieldDecoder[String].map(ParameterId.apply)
+  implicit val decoderVersion:            JsonDecoder[Version]            = JsonDecoder[String].map(s => new Version(s))
+  implicit val decoderReporting:          JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
+  implicit val decoderParameterType:      JsonDecoder[ParameterType]      =
     JsonDecoder[String].mapOrFail(parameterTypeService.create(_).left.map(_.msg))
-  implicit val decoderTechniqueParameter:     JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
-  implicit lazy val decoderMethodElem:        JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
-  implicit val decoderTechnique:              JsonDecoder[Technique]          = DeriveJsonDecoder.gen
-  implicit val decoder:                       JsonDecoder[EditorTechnique]    =
+  implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
+  implicit lazy val decoderMethodElem:    JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
+  implicit val decoderTechnique:          JsonDecoder[Technique]          = DeriveJsonDecoder.gen
+  implicit val decoder:                   JsonDecoder[EditorTechnique]    =
     JsonDecoder[Technique].mapOrFail(toJsonTechnique(_).either.runNow.left.map(_.msg))
 
   def toYml(technique: Technique): Either[String, String] = technique.toYaml()
@@ -140,7 +141,7 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
                      technique.documentation.getOrElse(""),
                      technique.params.getOrElse(Nil).map(toTechniqueParameter),
                      Seq(),
-                     technique.tags.getOrElse(Nil),
+                     technique.tags.getOrElse(Map()),
                      None
                    )
       resources <- resourceFileService.getResources(t)
