@@ -3,7 +3,7 @@
 ## Supported Versions
 
 The list of currently supported versions receiving security updates is available
-https://docs.rudder.io/versions[in the documentation].
+[in the documentation](https://docs.rudder.io/versions).
 
 ## Reporting a vulnerability
 
