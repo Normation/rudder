@@ -512,6 +512,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   -->
   <logger name="api-processing" level="info" additivity="false">
     <appender-ref ref="APILOG" />
+    <appender-ref ref="STDOUT" />
   </logger>
 
 

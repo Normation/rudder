@@ -981,8 +981,10 @@ class FileField(
       SHtml.text(toClient, s => parseClient(s), ("class", "form-control input-sm col-xs-12"), ("id", formId + "-fileInput"))
     val initScript = {
       Script(OnLoad(JsRaw(s"""
-        fileManager.constant('contextPath', '${S.contextPath}');
-        angular.bootstrap("#${formId}", ['fileManager']);
+
+
+        //fileManager.constant('contextPath', '${S.contextPath}');
+        //angular.bootstrap("#${formId}", ['fileManager']);
       """)))
     }
 

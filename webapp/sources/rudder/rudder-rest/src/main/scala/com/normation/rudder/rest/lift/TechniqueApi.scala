@@ -141,7 +141,7 @@ class TechniqueApi(
       import zio.syntax._
 
       def serializeResourceWithState(resource: ResourceFile) = {
-        (("name" -> resource.path) ~ ("state" -> resource.state.value))
+        (("path" -> resource.path) ~ ("state" -> resource.state.value))
       }
 
       val action = if (newTechnique) { "newTechniqueResources" }
