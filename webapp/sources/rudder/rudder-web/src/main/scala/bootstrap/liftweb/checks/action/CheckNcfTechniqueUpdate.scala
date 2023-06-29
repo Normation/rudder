@@ -53,6 +53,7 @@ import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import zio._
+import zio.syntax.ToZio
 
 sealed trait NcfTechniqueUpgradeError extends RudderError {
   def msg:       String
@@ -96,7 +97,9 @@ class CheckNcfTechniqueUpdate(
         _                       <- BootstrapLogger.info("started")
         _                       <- BootstrapLogger.info("techniques - update")
         res                     <- techniqueReader.readTechniquesMetadataFile
-        (techniques, methods)    = res
+        (techniques, methods, errors)    = res
+        _ <- if (errors.isEmpty) ().succeed else BootstrapLogger.error(s"An error occurred while reading techniques during update bootstrap: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}")
+
         _                       <- BootstrapLogger.info("techniques - read")
         techniquesWithResources <-
           ZIO.foreach(techniques) { technique =>
