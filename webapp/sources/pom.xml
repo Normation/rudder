@@ -193,6 +193,10 @@ limitations under the License.
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
+
+<!--        this nowarn is needed because in fastparse 3.0.0 there is useless warning, see: https://github.com/com-lihaoyi/fastparse/pull/281-->
+<!--        but in 3.0.1, there is new useless warning that are not actionable at all: https://github.com/com-lihaoyi/fastparse/issues/285-->
+            <arg>-Wconf:cat=unused-nowarn:s</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -443,7 +447,7 @@ limitations under the License.
     <chimney-version>0.7.5</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.4.0</ipaddress-version>
-    <snakeyaml-version>2.0</snakeyaml-version>
+    <snakeyaml-version>1.33</snakeyaml-version>
 
     <zio-http-version>2.0.0-RC11</zio-http-version> <!-- used in datasources -->
 

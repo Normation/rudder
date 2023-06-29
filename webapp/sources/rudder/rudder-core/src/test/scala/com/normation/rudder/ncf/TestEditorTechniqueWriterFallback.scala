@@ -214,7 +214,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       "",
       Nil,
       Nil,
-      Nil,
+      Map(),
       None
     )
   }
