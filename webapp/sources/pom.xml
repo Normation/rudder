@@ -549,7 +549,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.postgresql</groupId>
-	<artifactId>postgresql</artifactId>
+	      <artifactId>postgresql</artifactId>
         <version>${postgresql-version}</version>
       </dependency>
       <dependency>
@@ -858,6 +858,12 @@ limitations under the License.
       <groupId>dev.zio</groupId>
       <artifactId>zio-json-yaml_${scala-binary-version}</artifactId>
       <version>${zio-json-version}</version>
+    </dependency>
+    <!-- explicit snakeyaml dependency to override default zio-json-version -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml-version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalaland</groupId>
