@@ -447,7 +447,7 @@ limitations under the License.
     <chimney-version>0.7.5</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.4.0</ipaddress-version>
-    <snakeyaml-version>2.0</snakeyaml-version>
+    <snakeyaml-version>1.33</snakeyaml-version>
 
     <zio-http-version>2.0.0-RC11</zio-http-version> <!-- used in datasources -->
 
