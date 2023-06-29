@@ -155,13 +155,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-    <!-- YAML parser, for REST API test -->
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>${snakeyaml-version}</version>
-      <scope>test</scope>
-    </dependency>
 
     <!-- the slf4j commons-logging replacement -->
     <dependency>
