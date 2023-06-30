@@ -194,9 +194,8 @@ limitations under the License.
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
 
-<!--        this nowarn is needed because in fastparse 3.0.0 there is useless warning, see: https://github.com/com-lihaoyi/fastparse/pull/281-->
-<!--        but in 3.0.1, there is new useless warning that are not actionable at all: https://github.com/com-lihaoyi/fastparse/issues/285-->
-            <arg>-Wconf:cat=unused-nowarn:s</arg>
+<!--        fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
+            <arg>-Wconf:cat=unused-nowarn&amp;src=com/normation/utils/Version.scala:s,cat=unused-nowarn&amp;src=com/normation/rudder/services/policies/InterpolatedValueCompiler.scala:s</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
