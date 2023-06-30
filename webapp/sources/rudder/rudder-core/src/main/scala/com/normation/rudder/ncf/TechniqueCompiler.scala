@@ -228,11 +228,9 @@ class RuddercServiceImpl(
   }
 
   def buildCmdLine(techniquePath: File, options: RuddercOptions): Cmd = {
-    // todo: real param list here
     val params = {
-      (if (options.generatePS1) Nil else List("-noPS1")) :::
-      (if (options.verbose) List("-v") else Nil) :::
-      (techniquePath.pathAsString :: Nil)
+      ("--directory" :: techniquePath.pathAsString :: "build" :: Nil) :::
+      (if (options.verbose) List("-v") else Nil)
     }
 
     Cmd(ruddercCmd, params, Map())
