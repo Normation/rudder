@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+use std::env::set_current_dir;
 use std::{
     fs::create_dir_all,
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
 
 use crate::cli::{Command, MainArgs};
@@ -70,6 +71,19 @@ pub fn run(args: MainArgs) -> Result<()> {
         } else {
             parameters
         })
+    }
+
+    if let Some(cwd) = args.directory {
+        // Also support being passed the technique.yml file
+        if cwd.ends_with(TECHNIQUE_SRC) {
+            if cwd.ends_with(TECHNIQUE_SRC) {
+                set_current_dir(cwd.parent().ok_or_else(|| {
+                    anyhow!("Could not open {} technique directory", cwd.display())
+                })?)?;
+            } else {
+                set_current_dir(&cwd)?;
+            }
+        }
     }
 
     match args.command {

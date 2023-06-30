@@ -19,6 +19,10 @@ pub struct MainArgs {
     #[arg(short, long)]
     pub quiet: bool,
 
+    /// Directory to work in, default is current directory
+    #[arg(short, long)]
+    pub directory: Option<PathBuf>,
+
     #[command(subcommand)]
     pub command: Command,
 }

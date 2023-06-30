@@ -986,7 +986,7 @@ object RudderParsedProperties {
 
   val RUDDERC_CMD = {
     try {
-      config.getString("rudder.technique.compiler.rudder.cmd")
+      config.getString("rudder.technique.compiler.rudderc.cmd")
     } catch {
       case ex: ConfigException => "/opt/rudder/bin/rudderc"
     }
