@@ -76,13 +76,13 @@ pub fn run(args: MainArgs) -> Result<()> {
     if let Some(cwd) = args.directory {
         // Also support being passed the technique.yml file
         if cwd.ends_with(TECHNIQUE_SRC) {
-            if cwd.ends_with(TECHNIQUE_SRC) {
-                set_current_dir(cwd.parent().ok_or_else(|| {
+            set_current_dir(
+                cwd.parent().ok_or_else(|| {
                     anyhow!("Could not open {} technique directory", cwd.display())
-                })?)?;
-            } else {
-                set_current_dir(&cwd)?;
-            }
+                })?,
+            )?;
+        } else {
+            set_current_dir(&cwd)?;
         }
     }
 
