@@ -203,17 +203,20 @@ class ComplianceModeEditForm[T <: ComplianceMode](
       globalMode     <- getGlobalConfiguration
     } yield {
       val callback = AnonFunc("complianceMode", SHtml.ajaxCall(JsVar("complianceMode"), submit))
-
-      val allModes = ComplianceModeName.allModes.mkString("['", "' , '", "']")
       s"""
-       angular.bootstrap("#complianceMode", ['complianceMode']);
-       var scope = angular.element($$("#complianceModeController")).scope();
-       scope.$$apply(function(){
-         scope.init(${toJs(complianceMode)}, ${toJs(
-          globalMode
-        )}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes});
-       });
-      """
+      var main = document.getElementById("compliancemode-app")
+         |var initValues = {
+         |    contextPath    : "${S.contextPath}"
+         |  , hasWriteRights : hasWriteRights
+         |  , complianceMode : ${toJs(complianceMode)}
+         |  , globalMode     : ${toJs(globalMode)}
+         |};
+         |var app = Elm.Compliancemode.init({node: main, flags: initValues});
+         |var saveAction = ${callback.toJsCmd};
+         |app.ports.saveMode.subscribe(function(mode) {
+         |  saveAction(JSON.stringify(mode));
+         |});
+         |""".stripMargin
     }) match {
       case eb: EmptyBox =>
         val e = eb ?~! "Error when retrieving compliance mode from the database"

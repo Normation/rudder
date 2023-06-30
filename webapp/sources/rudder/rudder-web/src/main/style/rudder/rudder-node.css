@@ -437,3 +437,6 @@ pre.display-keys > label{
 .currentNodeState {
   font-size: 14px;
 }
+#reporting-mode-title{
+  display: none;
+}
