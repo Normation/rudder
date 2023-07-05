@@ -147,6 +147,7 @@ bundle common paths
       "path[pgrep]"         string => "/usr/bin/pgrep";
       "path[getent]"        string => "/usr/bin/getent";
       "path[mailx]"         string => "/usr/bin/mailx";
+      "path[prelink]"       string => "/usr/sbin/prelink";
       "path[ssh]"           string => "/usr/bin/ssh";
 
     aix::
