@@ -426,7 +426,7 @@ limitations under the License.
     <asm-version>9.5</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
     <bouncycastle-compat>jdk18on</bouncycastle-compat>
-    <bouncycastle-version>1.73</bouncycastle-version>
+    <bouncycastle-version>1.74</bouncycastle-version>
     <better-files-version>3.9.2</better-files-version>
     <sourcecode-version>0.3.0</sourcecode-version>
     <quicklens-version>1.9.4</quicklens-version>
