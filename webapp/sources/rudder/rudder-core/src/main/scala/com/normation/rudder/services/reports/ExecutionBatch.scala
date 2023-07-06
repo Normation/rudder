@@ -937,7 +937,7 @@ object ExecutionBatch extends Loggable {
             case (_, d) if (d.compliance.badPolicyMode > 0) =>
               RunComplianceInfo.PolicyModeError.TechniqueMixedMode(
                 s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
-                " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
+                " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - is the directive's Technique is up-to-date?)" +
                 " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode"
               )
           }.toSet
