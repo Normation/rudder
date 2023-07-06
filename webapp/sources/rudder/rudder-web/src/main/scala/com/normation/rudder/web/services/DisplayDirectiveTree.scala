@@ -274,7 +274,9 @@ object DisplayDirectiveTree extends Loggable {
             }
             val disabledBadge = if (!activeTechnique.isEnabled) { <span class="badge-disabled"></span> }
             else { NodeSeq.Empty }
-            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" title={tooltipContent}>{
+            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" data-container="body" title={
+              tooltipContent
+            }>{
               agentCompat.icon
             }{technique.name}</span> ++ disabledBadge ++ btnCreateDirective
           case None            =>
