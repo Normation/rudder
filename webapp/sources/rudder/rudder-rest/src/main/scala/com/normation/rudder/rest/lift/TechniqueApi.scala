@@ -81,7 +81,8 @@ class TechniqueApi(
     techniqueRepository:  TechniqueRepository,
     techniqueSerializer:  TechniqueSerializer,
     uuidGen:              StringUuidGenerator,
-    resourceFileService:  ResourceFileService
+    resourceFileService:  ResourceFileService,
+    configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
 
   import techniqueSerializer._
@@ -349,8 +350,8 @@ class TechniqueApi(
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
 
-      val workspaceDir = File(s"/var/rudder/configuration-repository/${workspacePath}")
-      val finalDir     = File(s"/var/rudder/configuration-repository/${finalPath}")
+      val workspaceDir = File(s"${configRepoPath}/${workspacePath}")
+      val finalDir     = File(s"${configRepoPath}/${finalPath}")
 
       IOResult.attempt("Error when moving resource file from workspace to final destination")(if (workspaceDir.exists) {
         finalDir.createDirectoryIfNotExists(true)

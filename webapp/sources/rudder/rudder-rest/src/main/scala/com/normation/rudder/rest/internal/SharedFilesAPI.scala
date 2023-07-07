@@ -70,7 +70,8 @@ import zio.syntax._
 
 class SharedFilesAPI(
     restExtractor:    RestExtractorService,
-    sharedFolderPath: String
+    sharedFolderPath: String,
+    configRepoPath:   String
 ) extends RestHelper with Loggable {
 
   def checkPathAndContinue(path: String, baseFolder: File)(fun: File => IOResult[LiftResponse]): IOResult[LiftResponse] = {
@@ -421,12 +422,12 @@ class SharedFilesAPI(
       def isDefinedAt(req: Req): Boolean                 = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf   = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
             val path = File(
-              s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
+              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
             )
             val pf   = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(req.path.partPath.size)))
@@ -437,13 +438,13 @@ class SharedFilesAPI(
       def apply(req: Req):       () => Box[LiftResponse] = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
             val path = File(
-              s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
+              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
             )
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
