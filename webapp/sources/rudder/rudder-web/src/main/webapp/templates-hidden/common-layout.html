@@ -425,23 +425,27 @@
     <img alt="" id="ajax-loader" class="ajaxloader svg-loader" data-lift="with-cached-resource" src="/images/ajax-loader.svg"/>
 
     <div class="content-wrapper">
-      <div class="rudder_col">
-        <lift:Authz.whenhasrights>
-          <rudder-notifications></rudder-notifications>
-          <div id="content">
-          <!-- Here come the content bound by <lift:surround at="content"> -->
-          </div>
-        </lift:Authz.whenhasrights>
+      <lift:Authz.whenhasrights>
+        <rudder-notifications></rudder-notifications>
+        <div id="content">
+        <!-- Here come the content bound by <lift:surround at="content"> -->
+        </div>
+      </lift:Authz.whenhasrights>
 
-        <lift:Authz.whennorights>
-          <div class="portlet"><div class="portlet-content"><div class="callout-fade callout-error" style="padding: 30px; text-align:center">
-            <div class="marker">
-              <span class="glyphicon glyphicon-info-sign"></span>
+      <lift:Authz.whennorights>
+        <div class="rudder-template one-col">
+          <div class="template-main">
+            <div class="jumbotron text-center">
+              <h2 style="color: #041922;margin-bottom: 30px;">
+                You don't have sufficient authorization rights to access this content.
+              </h2>
+              <h4>
+                Please contact your administrator to have more information.
+              </h4>
             </div>
-            You don't have sufficient authorization rights to access this content. Please contact your administrator to have more information.
-          </div></div></div>
-        </lift:Authz.whennorights>
-      </div>
+          </div>
+        </div>
+      </lift:Authz.whennorights>
     </div>
   </body>
 </html>
