@@ -21,9 +21,6 @@ encodeProperty model properties action =
                 |> Result.withDefault (Json.Encode.string p.value)
             StringFormat -> string p.value
       in
-      D.log ("=================")
-      D.log (D.toString p.format)
-      D.log (D.toString p.value)
       object (
         [ ( "name"  , string p.name  )
         , ( "value" , value )
