@@ -904,7 +904,8 @@ class RestTestSetUp {
       techniqueRepository,
       techniqueSerializer,
       uuidGen,
-      resourceFileService
+      resourceFileService,
+      mockGitRepo.configurationRepositoryRoot.pathAsString
     ),
     new DirectiveApi(
       mockDirectives.directiveRepo,

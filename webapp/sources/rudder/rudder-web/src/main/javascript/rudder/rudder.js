@@ -636,26 +636,19 @@ function createBadgeAgentPolicyModeMixed(data){
 }
 
 function showFileManager(idField){
-  var filemanager = $("<angular-filemanager></angular-filemanager>");
-  // The parent of the new element
-  var fileManagerApp = $("#"+idField);
-  angular.element(fileManagerApp).injector().invoke(function($compile) {
-    var $scope = angular.element(fileManagerApp).scope();
-    fileManagerApp.append($compile(filemanager)($scope));
-    $scope.directiveId = idField;
-    // Finally, refresh the watch expressions in the new element
-    $scope.$apply();
+
+  console.log(idField)
+  fm.ports.onOpen.send(null);
+
+  fm.ports.close.subscribe(function(files) {
+    console.log(files)
+
+    if(files.length > 0){
+      var inputField = $("#" + idField + "-fileInput")
+      inputField.val(files[0].substring(1));
+      }
+
   });
-  //allow user to close the window pressing Escape
-  $(document).on('keydown.closeWindow',function(e){
-    if (e.which == 27) {
-      hideFileManager();
-    }
-  });
-}
-function hideFileManager(){
-  $(document).off('keydown.closeWindow');
-  $("angular-filemanager").remove();
 }
 
 //Adjust tree height

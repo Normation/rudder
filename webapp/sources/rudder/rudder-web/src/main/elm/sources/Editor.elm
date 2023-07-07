@@ -540,8 +540,8 @@ update msg model =
                  _ -> model.mode
       in
         ({ model | mode = mode },  Cmd.none )
-    GetTechniqueResources (Err _) ->
-      ( model , Cmd.none )
+    GetTechniqueResources (Err e) ->
+      ( model , errorNotification("An error occurred while getting resources: " ++ (debugHttpErr e) ))
 
 -- Edit a technique: generic method high level action (list/etc)
 

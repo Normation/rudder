@@ -1,288 +1,298 @@
-/*
-*************************************************************************************
-* Copyright 2016 Normation SAS
-*************************************************************************************
-*
-* This file is part of Rudder.
-* 
-* Rudder is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-* 
-* In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU General Public License version 3, the copyright holders add
-* the following Additional permissions:
-* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
-* Public License version 3, when you create a Related Module, this
-* Related Module is not considered as a part of the work and may be
-* distributed under the license agreement of your choice.
-* A "Related Module" means a set of sources files including their
-* documentation that, without modification of the Source Code, enables
-* supplementary functions or services in addition to those offered by
-* the Software.
-* 
-* Rudder is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* You should have received a copy of the GNU General Public License
-* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
-*
-*************************************************************************************
-*/
-.btn:focus{
- outline : none !important; 
-}
-angular-filemanager .background-fade{
-  background-color: rgba(20,20,20,.7);
+.filemanager-container{
   position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  background: rgba(85, 95, 110, 0.4);
+}
+
+.fm-button {
+  padding: 5px 10px;
+  margin-right: 7px;
+  border: none;
+  border-radius: 5px;
+  color: #FFFFFF;
+  background-color: #0078D4;
+  cursor: pointer;
+}
+
+.fm-simple-screen {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.fm-main {
+  display: grid;
+  grid-template-rows: 50px 1fr 50px;
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  bottom: 100px;
+  right: 100px;
+  z-index: 1;
+  font-family: sans-serif;
+}
+
+.fm-bar {
+  display: flex;
+  align-items: center;
+  background-color: #0078D4;
+  padding: 0 12px;
+}
+
+.fm-arrow {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.fm-arrow:focus {
+  outline: none;
+}
+
+.fm-text {
+  flex-grow: 1;
+  margin-left: 10px;
+  color: #FFFFFF;
+}
+
+.fm-bar circle {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 3px;
+  animation: dash 1.5s infinite;
+}
+
+@keyframes dash {
+  0% { stroke-dasharray: 0% 0% 40% 210%; }
+  50% { stroke-dasharray: 0% 0% 210% 40%; }
+  100% { stroke-dasharray: 0% 210% 40% 0%; stroke-dashoffset: -40%; }
+}
+
+.fm-loader {
+  animation: rotation 3s linear infinite;
+}
+
+@keyframes rotation { 
+  100% { transform: rotate(360deg); }
+}
+
+.fm-files {
+  position: relative;
+  padding: 11px 12px;
+  border-top: 1px solid #FFFFFF;
+  border-bottom: 1px solid #FFFFFF;
+  background-color: #FFFFFF;
+  overflow: hidden;
+}
+
+.fm-wrap {
+  height: 100%;
+  overflow: auto;
+}
+
+.fm-fluid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.fm-drop {
+  box-sizing: border-box;
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
-  z-index: 9999;
-  animation: fade-anim .2s linear forwards;
+  height: 100%;
+  border: 15px solid #0078D4;
+  background-color: rgba(0, 120, 212, 0.5);
 }
 
-angular-filemanager .filemanager-window{
-	margin-top: 80px;
-  background: #fff;
-  padding-left:0 !important;
-  padding-right:0 !important;
-  -webkit-box-shadow: 0 3px 15px rgba(0,0,0,0.5);
-  box-shadow: 0 3px 15px rgba(0,0,0,0.5);
-}
-angular-filemanager .filemanager-window #bg-fade{
-  background-color: #fff;
-}
-angular-filemanager .filemanager-window #bg-fade > .main{
-  padding-top: 15px;
-  background-color: #fff;
+.fm-file {
+  padding: 4px;
+  margin: 2px;
+  cursor: default;
+  user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
 }
 
-angular-filemanager .filemanager-window #bg-fade > div{
-  height: 65vh;
-  overflow: auto;
-}
-angular-filemanager .filemanager-window .item-list{
-  padding-bottom:30px; 
-}
-angular-filemanager .filemanager-window .navbar{
-  border-radius: 0;
-  border: none;
-  background-color: #041922;
-  margin-bottom: 0;
-}
-angular-filemanager .btn.btn-flat>i.glyphicon-remove{
-  color: #ccd1d2;
-  font-size: 14px;
-}
-angular-filemanager .filemanager-window .file-tree-root li{
-	padding: 8px 0 0 0;
-}
-angular-filemanager .filemanager-window .navbar ol.breadcrumb{
-  margin: 0;
-  padding: 0;
-  background-color: transparent;
-  color: #fff;
-  height: 50px;
-  line-height: 50px;
-  max-height: 50px !important;
-}
-angular-filemanager .filemanager-window .breadcrumb > .active {
-    color: #fff;
-    font-weight: 600;
-}
-angular-filemanager .filemanager-window .navbar ol.breadcrumb a, angular-filemanager .filemanager-window .navbar-form .btn{
-  color: #fff;
-  opacity: .8;
-  transition-duration:.1s;
-  text-decoration: none !important;
-}
-angular-filemanager .filemanager-window .navbar ol.breadcrumb a:hover,angular-filemanager .filemanager-window .navbar-form .btn:hover{
-  opacity: 1;
-}
-angular-filemanager .iconset .thumbnail, .table-files{
-  color:#929292;
-  transition:initial;
-  transition-duration:.2s;
-  border-radius: 0px;
-  border:1px solid transparent;
-}
-angular-filemanager .iconset .thumbnail:hover, .table-files:hover{
-  color:#797979;
-  box-shadow: none;
-  border-color: #e2e2e2;
-  text-decoration:none;
-  border-color:transparent;
-}
-angular-filemanager .iconset .thumbnail.selected, .table-files.selected{
-  color:#797979;
-  background-color:#f2f2f2;
-  border-color:#c8c8c8;
-  text-decoration:none;
-}
-.content-wrapper .filemanager-window .table-files a{
-	color:#555;
-}
-.content-wrapper .filemanager-window .table-files .sortorder:after{
-	color: #738195;
-}
-.table-files .selected, angular-filemanager .iconset .thumbnail.selected{
-	background-color:#ececec;
-}
-.table-files tbody > tr:hover{
-  background-color:#f5f5f5;
-}
-.table-files .selected td, .table-files .selected td a, angular-filemanager .iconset .thumbnail.selected {
-  color: #738195;
-}
-angular-filemanager .selected .item-extension::after {
-  color: #ffffff;
+.fm-file:hover {
+  background-color: #DEECF9;
 }
 
-angular-filemanager .modal .modal-header .modal-title,angular-filemanager .modal .modal-header .close{
-	color:#fff;
-}
-angular-filemanager .modal .modal-header .close{
-  text-shadow: none;
-  opacity: .75;
-  transition-duration:.2s;
-}
-angular-filemanager .modal .modal-header .close:hover{
-  opacity: 1
-}
-/* Searchbar */
-.content-wrapper .filemanager-window .navbar-form input.form-control {
-  border-right-color: #d6deef;
-  margin: 0px 4px;
-}
-/* dropdown menu item icon */ 
-.content-wrapper .filemanager-window .dropdown-menu>li>a>.glyphicon {
-  top: 2px;
-  color: #555;
-}
-/* file tree */
-.content-wrapper a .sidebar.file-tree{
-  padding: 10px 15px 10px 0px;
-  margin-top: 0;
-  background-color: #f5f5f5;
-  border:none;
-  border-right: 1px solid #dddddd;
-}
-.content-wrapper .filemanager-window .nav-sidebar>li.active>a,.content-wrapper .filemanager-window .nav-sidebar>li.active>a > .glyphicon,.content-wrapper .filemanager-window .nav > li > a:focus .glyphicon {
-  color: #041922;
-}
-.content-wrapper .filemanager-window .nav-sidebar>li>a, .content-wrapper .filemanager-window .nav-sidebar>li.active>a > .glyphicon {
-    color: #555;
-    transition-duration: .2s;
-}
-.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover,.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover .glyphicon {
-  color: #041922;
-}
-.content-wrapper .filemanager-window .nav-sidebar>li.active>a:hover > .glyphicon:nth-child(2) {
-  top : -2px;
-}
-.content-wrapper .filemanager-window .modal .modal-body{
-  background-color: #f5f5f5;
-}
-.content-wrapper .filemanager-window .modal .modal-footer{
-  background-color: #fff;
-}
-/* table */
-.content-wrapper .filemanager-window table a{
-  text-decoration:none;
+.fm-selected {
+  background-color: #C7E0F4;
 }
 
-/* toolbar */
-.fileManager-actions {
-  border-top: 1px solid #dddddd;
-  padding: 7px;
-  text-align: right;
+.fm-drag .fm-selected, .fm-cut {
+  opacity: 0.25;
+}
+
+.fm-thumb {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  height: 100px;
+}
+
+.fm-upload .fm-thumb {
+  justify-content: flex-start;
+  background-color: #D0D0D0;
+}
+
+.fm-thumb img {
   width: 100%;
-  bottom: 0;
-  background-color:#fafafa;
-}
-.content-wrapper .filemanager-window .fileManager-actions > .btn{
-    margin-left: 20px;
-}
-.content-wrapper .filemanager-window .fileManager-actions .currentPath{
-  color:#555;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
-/* DIRECTIVE PAGE */
-.content-wrapper .input-group-btn:last-child > .btn.browserFile{
-	margin-left: -3px;
-	transition-duration : .2s;
-  background-color: #f0f0f0;
+.fm-progress {
+  height: 9px;
+  margin-bottom: 3px;
+  background-color: #0078D4;
 }
 
-.content-wrapper .input-group-btn:last-child > .btn.browserFile > .glyphicon{
-  color : #555;
-  top: -1px;
-  transition-duration : .2s;
-}
-.content-wrapper .input-group-btn:last-child > .btn.browserFile:hover > .glyphicon{
-  color : #041922;
-}
-/* FILE TREE */
-.content-wrapper .filemanager-window .nav-sidebar>li>div>a {
-  color: #7a7a7a;
-  padding: 7px 0 7px 16px;
-  text-decoration : none;
-}
-.content-wrapper .filemanager-window .nav-sidebar>li.active>div>a {
-  color: #13beb7;
+.fm-name {
+  width: 100px;
+  margin-top: 10px;
+  overflow: hidden;
+  font-size: 0.8em;
+  text-align: center;
 }
 
-.content-wrapper .filemanager-window .navbar-inverse .navbar-collapse, .content-wrapper .filemanager-window .navbar-inverse .navbar-form{
+.fm-control {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 12px;
+  background-color: #0078D4;
+}
+
+.fm-control button {
+    margin-left: 7px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    color: #0078D4;
+    background-color: #FFFFFF;
+    cursor: pointer;    
+}
+
+.fm-helper {
+  position: fixed;
+  border: 1px solid #0078D4;
+  background-color: rgba(0, 120, 212, 0.5);
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
+}
+
+.fm-count {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background-color: #F44336;
+  color: #FFFFFF;
+}
+
+.fm-context-menu {
+  position: fixed;
+  width: 150px;
+  padding: 5px 0;
+  border: 1px solid #D0D0D0;
+  background-color: #FFFFFF;
+}
+
+.fm-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
   border: none;
-  box-shadow: none;
+  text-align: left;
+  background: none;
+  cursor: pointer;
 }
-/* FIX BOOTSTRAP AFTER-BEFORE ELEMENTS */
-.content-wrapper .filemanager-window .clearfix:before,
-.content-wrapper .filemanager-window .clearfix:after,
-.content-wrapper .filemanager-window .dl-horizontal dd:before,
-.content-wrapper .filemanager-window .dl-horizontal dd:after,
-.content-wrapper .filemanager-window .container:before,
-.content-wrapper .filemanager-window .container:after,
-.content-wrapper .filemanager-window .container-fluid:before,
-.content-wrapper .filemanager-window .container-fluid:after,
-.content-wrapper .filemanager-window .row:before,
-.content-wrapper .filemanager-window .row:after,
-.content-wrapper .filemanager-window .form-horizontal .form-group:before,
-.content-wrapper .filemanager-window .form-horizontal .form-group:after,
-.content-wrapper .filemanager-window .btn-toolbar:before,
-.content-wrapper .filemanager-window .btn-toolbar:after,
-.content-wrapper .filemanager-window .btn-group-vertical > .btn-group:before,
-.content-wrapper .filemanager-window .btn-group-vertical > .btn-group:after,
-.content-wrapper .filemanager-window .nav:before, .content-wrapper .nav:after,
-.content-wrapper .filemanager-window .navbar:before,
-.content-wrapper .filemanager-window .navbar:after,
-.content-wrapper .filemanager-window .navbar-header:before,
-.content-wrapper .filemanager-window .navbar-header:after,
-.content-wrapper .filemanager-window .navbar-collapse:before,
-.content-wrapper .filemanager-window .navbar-collapse:after,
-.content-wrapper .filemanager-window .pager:before,
-.content-wrapper .filemanager-window .pager:after,
-.content-wrapper .filemanager-window .panel-body:before,
-.content-wrapper .filemanager-window .panel-body:after,
-.content-wrapper .filemanager-window .modal-header:before,
-.content-wrapper .filemanager-window .modal-header:after,
-.content-wrapper .filemanager-window .modal-footer:before,
-.content-wrapper .filemanager-window .modal-footer:after {
-    display: block;
+
+.fm-context-menu button:hover {
+  background-color: #D0D0D0;
 }
-/* ANIMATIONS */
-@-webkit-keyframes fade-anim {
-    0%   {opacity: 0;}
-    100% {opacity: 1;}
+
+.fm-context-menu .disabled {
+  color: #A6A6A6;
 }
-@keyframes fade-anim {
-    0%   {opacity: 0;}
-    100% {opacity: 1;}
+
+.fm-context-menu .disabled:hover {
+  background-color: #FFFFFF;
+}
+
+.fm-context-menu label {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  margin-bottom: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.fm-context-menu label:hover {
+  background-color: #D0D0D0;
+}
+
+.fm-context-menu input[type="file"] {
+  display: none;
+}
+
+/* Modal */
+
+.fm-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.fm-modal {
+  padding: 20px;
+  background-color: #FFFFFF;
+}
+
+.fm-modal label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.fm-modal > h1 {
+  margin: 0;
+}
+
+.fm-wrap {
+  max-height: 400px;
+  padding-right: 5px;
+  overflow-y: auto;
+}
+
+.fm-content {
+  padding: 20px 0;
 }

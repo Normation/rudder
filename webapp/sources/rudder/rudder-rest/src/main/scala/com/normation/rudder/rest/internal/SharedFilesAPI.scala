@@ -70,7 +70,8 @@ import zio.syntax._
 
 class SharedFilesAPI(
     restExtractor:    RestExtractorService,
-    sharedFolderPath: String
+    sharedFolderPath: String,
+    configRepoPath:   String
 ) extends RestHelper with Loggable {
 
   def checkPathAndContinue(path: String, baseFolder: File)(fun: File => IOResult[LiftResponse]): IOResult[LiftResponse] = {
@@ -223,6 +224,14 @@ class SharedFilesAPI(
       }
     }
   }
+
+  def createFile(newFile: File): IOResult[LiftResponse] = {
+    IOResult.attempt {
+      newFile.createFileIfNotExists(false)
+      basicSuccessResponse
+    }
+  }
+
   def createFolder(newdirectory: File): IOResult[LiftResponse] = {
     IOResult.attempt {
       newdirectory.createDirectoryIfNotExists(false)
@@ -278,7 +287,7 @@ class SharedFilesAPI(
                 json \ itemName match {
                   case JString(path) =>
                     checkPathAndContinue(path, basePath)(f => {
-                      (IOResult.attemptZIO(s"An error occured while running action '${actionName}' ") {
+                      (IOResult.attemptZIO(s"An error occurred while running action '${actionName}' ") {
                         action(f)
                       })
                     }).toBox
@@ -342,12 +351,15 @@ class SharedFilesAPI(
                 case JString("createFolder") =>
                   simpleAction("createFolder", "newPath", createFolder)
 
+                case JString("createFile") =>
+                  simpleAction("createFolder", "newPath", createFile)
+
                 case JString("edit") =>
                   actionWithParam("edit", "item", "content", editFile)
 
                 case JString("rename") =>
                   actionWithParam(
-                    "renmae",
+                    "rename",
                     "item",
                     "newItemPath",
                     (newItem => oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile)))
@@ -410,12 +422,12 @@ class SharedFilesAPI(
       def isDefinedAt(req: Req): Boolean                 = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
             val pf   = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
             val path = File(
-              s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
+              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
             )
             val pf   = requestDispatch(path)
             pf.isDefinedAt(req.withNewPath(req.path.drop(req.path.partPath.size)))
@@ -426,13 +438,13 @@ class SharedFilesAPI(
       def apply(req: Req):       () => Box[LiftResponse] = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"/var/rudder/configuration-repository/workspace/${techniqueId}/${techniqueVersion}/resources")
+            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
             val path = File(
-              s"/var/rudder/configuration-repository/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
+              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
             )
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
