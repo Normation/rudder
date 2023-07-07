@@ -43,4 +43,15 @@ update msg model =
       ({model | newMode = mode}, Cmd.none)
 
     SaveChanges ->
-      ( {model | complianceMode = model.newMode} , (saveMode (encodeMode model.newMode)))
+      let
+        complianceMode = case model.newMode of
+          FullCompliance  -> "full-compliance"
+          ChangesOnly     -> "changes-only"
+          ReportsDisabled -> "reports-disabled"
+          ErrorMode m     -> ""
+
+        cmd = case model.newMode of
+          ErrorMode m -> (errorNotification ("Error while saving reporting mode. Reason : Unknown mode '" ++ m ++ "'"))
+          _ -> (saveMode (encodeMode complianceMode))
+      in
+      ( {model | complianceMode = model.newMode} , cmd)

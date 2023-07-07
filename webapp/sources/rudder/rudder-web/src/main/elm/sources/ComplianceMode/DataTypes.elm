@@ -7,7 +7,7 @@ import Http.Detailed
 -- All our data types
 --
 
-type ComplianceMode = FullCompliance | ChangesOnly | ReportsDisabled | UnknownMode
+type ComplianceMode = FullCompliance | ChangesOnly | ReportsDisabled | ErrorMode String
 
 type alias UI =
   { hasWriteRights  : Bool
@@ -17,8 +17,8 @@ type alias Model =
   { contextPath    : String
   , ui             : UI
   , complianceMode : ComplianceMode
-  , globalMode     : ComplianceMode
   , newMode        : ComplianceMode
+  , globalMode     : ComplianceMode
   }
 
 type Msg

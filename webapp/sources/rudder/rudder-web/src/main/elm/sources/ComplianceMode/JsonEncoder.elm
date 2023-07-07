@@ -4,17 +4,10 @@ import Json.Encode exposing (..)
 
 import ComplianceMode.DataTypes exposing (..)
 
-encodeMode : ComplianceMode -> Value
+encodeMode : String -> Value
 encodeMode mode =
-  let
-    complianceMode = case mode of
-       FullCompliance  -> "full-compliance"
-       ChangesOnly     -> "changes-only"
-       ReportsDisabled -> "reports-disabled"
-       UnknownMode     -> ""
-  in
-    object (
-      [ ( "name"          , string complianceMode )
-      , ("heartbeatPeriod", int 1                 )
-      ]
-    )
+  object (
+    [ ( "name"            , string mode )
+    , ( "heartbeatPeriod" , int 1       )
+    ]
+  )

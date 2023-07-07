@@ -216,6 +216,9 @@ class ComplianceModeEditForm[T <: ComplianceMode](
          |app.ports.saveMode.subscribe(function(mode) {
          |  saveAction(JSON.stringify(mode));
          |});
+         |app.ports.errorNotification.subscribe(function(msg) {
+         |  createErrorNotification(msg);
+         |});
          |""".stripMargin
     }) match {
       case eb: EmptyBox =>

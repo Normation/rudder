@@ -10,6 +10,7 @@ import ComplianceMode.DataTypes exposing (..)
 
 -- PORTS / SUBSCRIPTIONS
 port saveMode            : Value  -> Cmd msg
+port errorNotification   : String -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -24,7 +25,7 @@ init flags =
         "full-compliance"  -> FullCompliance
         "changes-only"     -> ChangesOnly
         "reports-disabled" -> ReportsDisabled
-        _                  -> UnknownMode
+        _                  -> ErrorMode mode
 
     initUi      = UI flags.hasWriteRights
     currentMode = getComplianceMode flags.complianceMode.name
