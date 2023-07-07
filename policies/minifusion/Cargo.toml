@@ -1,0 +1,23 @@
+[package]
+name = "minifusion"
+version = "0.0.0-dev"
+description = "Minimal inventory agent generating Fusion Inventory compatible output"
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+quick-xml = { version = "0.29.0", features = ["serialize"] }
+sysinfo = "0.29.4"
+serde = { version = "1", features = ["derive"] }
+hostname = "0.3"
+uname-rs = "0.1"
+anyhow = "1"
+clap = { version = "4.3.11", features = ["derive"] }
+chrono = "0.4"
+regex = "1"
+
+[dev-dependencies]
+pretty_assertions = "1"

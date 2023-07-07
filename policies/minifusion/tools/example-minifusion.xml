@@ -1,0 +1,1478 @@
+<REQUEST>
+  <CONTENT>
+    <ENVS>
+      <KEY>BASH_FUNC_which%%</KEY>
+      <VAL>() {  ( alias;
+ eval ${which_declare} ) | /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot $@
+}</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO</KEY>
+      <VAL>/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_HOME</KEY>
+      <VAL>/root/.cargo</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_MANIFEST_DIR</KEY>
+      <VAL>/vagrant/minifusion</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_AUTHORS</KEY>
+      <VAL>Rudder developers &lt;dev@rudder.io&gt;</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_DESCRIPTION</KEY>
+      <VAL>Minimal inventory agent generating Fusion Inventory compatible output</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_HOMEPAGE</KEY>
+      <VAL>https://www.rudder.io</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_LICENSE</KEY>
+      <VAL>GPL-3.0-or-later</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_LICENSE_FILE</KEY>
+      <VAL/>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_NAME</KEY>
+      <VAL>minifusion</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_README</KEY>
+      <VAL>README.md</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_REPOSITORY</KEY>
+      <VAL>https://github.com/Normation/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_RUST_VERSION</KEY>
+      <VAL/>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_VERSION</KEY>
+      <VAL>0.0.0-dev</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_VERSION_MAJOR</KEY>
+      <VAL>0</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_VERSION_MINOR</KEY>
+      <VAL>0</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_VERSION_PATCH</KEY>
+      <VAL>0</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CARGO_PKG_VERSION_PRE</KEY>
+      <VAL>dev</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HISTCONTROL</KEY>
+      <VAL>ignoredups</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HISTSIZE</KEY>
+      <VAL>100000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOSTNAME</KEY>
+      <VAL>server</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LANG</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LD_LIBRARY_PATH</KEY>
+      <VAL>/vagrant/minifusion/target/debug/deps:/vagrant/minifusion/target/debug:/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib:/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LESSOPEN</KEY>
+      <VAL>||/usr/bin/lesspipe.sh %s</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LOGNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LS_COLORS</KEY>
+      <VAL>rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MAIL</KEY>
+      <VAL>/var/spool/mail/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MANPATH</KEY>
+      <VAL>/usr/local/share/man:/usr/share/man:/opt/rudder/share/man</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OLDPWD</KEY>
+      <VAL>/var/rudder/inventories</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATH</KEY>
+      <VAL>/root/.cargo/bin:/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/var/cfengine/bin:/root/bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/vagrant/minifusion</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>RUSTUP_HOME</KEY>
+      <VAL>/root/.rustup</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>RUSTUP_TOOLCHAIN</KEY>
+      <VAL>stable-x86_64-unknown-linux-gnu</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>RUST_RECURSION_COUNT</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHELL</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHLVL</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSL_CERT_DIR</KEY>
+      <VAL>/etc/pki/tls/certs</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSL_CERT_FILE</KEY>
+      <VAL>/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_COMMAND</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_GID</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_UID</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_USER</KEY>
+      <VAL>vagrant</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>xterm-256color</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USER</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>_</KEY>
+      <VAL>/root/.cargo/bin/cargo</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>which_declare</KEY>
+      <VAL>declare -f</VAL>
+    </ENVS>
+    <VERSIONCLIENT>minifusion_v0.0.0-dev</VERSIONCLIENT>
+    <OPERATINGSYSTEM>
+      <ARCH>x86_64</ARCH>
+      <BOOT_TIME/>
+      <DNS_DOMAIN>(none)</DNS_DOMAIN>
+      <FQDN>server</FQDN>
+      <FULL_NAME>CentOS Stream 8</FULL_NAME>
+      <HOSTID/>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>4.18.0-365.el8.x86_64</KERNEL_VERSION>
+      <NAME>CentOS Stream</NAME>
+      <VERSION>8</VERSION>
+    </OPERATINGSYSTEM>
+    <LOCAL_USERS>
+      <ID>0</ID>
+      <LOGIN>root</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>1</ID>
+      <LOGIN>bin</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>2</ID>
+      <LOGIN>daemon</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>3</ID>
+      <LOGIN>adm</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>4</ID>
+      <LOGIN>lp</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>5</ID>
+      <LOGIN>sync</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>6</ID>
+      <LOGIN>shutdown</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>7</ID>
+      <LOGIN>halt</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>8</ID>
+      <LOGIN>mail</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>11</ID>
+      <LOGIN>operator</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>12</ID>
+      <LOGIN>games</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>14</ID>
+      <LOGIN>ftp</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>65534</ID>
+      <LOGIN>nobody</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>81</ID>
+      <LOGIN>dbus</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>999</ID>
+      <LOGIN>systemd-coredump</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>193</ID>
+      <LOGIN>systemd-resolve</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>59</ID>
+      <LOGIN>tss</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>998</ID>
+      <LOGIN>polkitd</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>997</ID>
+      <LOGIN>unbound</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>996</ID>
+      <LOGIN>libstoragemgmt</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>995</ID>
+      <LOGIN>setroubleshoot</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>994</ID>
+      <LOGIN>cockpit-ws</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>993</ID>
+      <LOGIN>cockpit-wsinstance</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>992</ID>
+      <LOGIN>sssd</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>991</ID>
+      <LOGIN>pesign</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>990</ID>
+      <LOGIN>chrony</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>74</ID>
+      <LOGIN>sshd</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>72</ID>
+      <LOGIN>tcpdump</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>1000</ID>
+      <LOGIN>vagrant</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>989</ID>
+      <LOGIN>vboxadd</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>48</ID>
+      <LOGIN>apache</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>26</ID>
+      <LOGIN>postgres</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>988</ID>
+      <LOGIN>rudder-relayd</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>987</ID>
+      <LOGIN>rudder</LOGIN>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <ID>986</ID>
+      <LOGIN>rudder-slapd</LOGIN>
+    </LOCAL_USERS>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>-----BEGIN CERTIFICATE-----
+MIIFSzCCAzOgAwIBAgIUVOQUNPClDCoZAupnRhYHJ8N3OPQwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGCgmSJomT8ixkAQEMBHJvb3QwHhcNMjMwNjI5MTMwNTQ0WhcNMzMw
+NjI2MTMwNTQ0WjAWMRQwEgYKCZImiZPyLGQBAQwEcm9vdDCCAiIwDQYJKoZIhvcN
+AQEBBQADggIPADCCAgoCggIBAK7mdqwJsIWPYBBsp67yiJN795v4k2GO4pxupt7S
+fdnNnFwu5dIx4tqD4Y1HVErvYa8QG7gRAUQOeHs6hD65V7g6v9MtYmJWkbw/HyUH
+Pchk6436kSMgPlYWxO9se94rjV1TVJzgimv/Jqh+I0Zo5yZnrueYlY2f8smi8A90
+u8MdHonA+9Gs9Z8GvXqXg11tFozBIH/cM5D1Zi1zCq6aBjTjbwMLf+hkGaem3KOj
+sYPcOEmV8aLHJnDJyml+znOeRvs1cuTVydY7lGPty4KBtMhZSJKrrJ2/I8vAymom
+6L9KRk6URpPNdwsnQzplXq351sdH+tezUlYmT24u/U/uIAftSXK3fI4UsbJAR8mT
+6Aou6I94m7bRDqyRvntZ9z/NN7aPppzY+Z4pmxF4f77gqg8IT7wO/hhHWIapaumt
+272dFxbJIpzCxEoqjXb+NOUYrxyJjY3HGGfVgZOCGb30l9lnsJHF21m5ZFMFOd7/
+USUtFPHinkhr8EZjmdW3wqKx1IjZsaX06R9/D6ZhhNxbHeOcZs8U6nG2MeSpYBFn
+donE3if5ooNXtoEJS11DxZmwVoqPFBoCubuicP0p6tmr8OUt9OsbPIxW9R/um/zX
+pUFvVH8Ei//hAJNrg4kt4Dw1xhsUGTw0nWfE0iYDaEPxr2bpTvWUT7MgRLCPCLQw
+fpQ1AgMBAAGjgZAwgY0wDAYDVR0TBAUwAwEB/zAdBgNVHQ4EFgQUVLViei5XzzdP
+NtLaSWdQocS8PjswUQYDVR0jBEowSIAUVLViei5XzzdPNtLaSWdQocS8PjuhGqQY
+MBYxFDASBgoJkiaJk/IsZAEBDARyb290ghRU5BQ08KUMKhkC6mdGFgcnw3c49DAL
+BgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAFU1llojpIxrlpT1XwPutext
+k6KdG6X5HvRhYUsibLszTDlP1Bg70XIkvECVRfl1TcqKOjhtOkuuYbFlh+7M2GTc
+EjVVn23fVIuGIHNrrUzwgAm2jDnctEXo/UG2Ia3IXHpYPk5/T3uQTxcW/Z4lQcJs
+AWVp7MiODwmeTleEwmlpdwkwWiDhQxvqd8gNkMVsXzdyoAoDfVyZJJYKConSWX7R
+s6NPgDJ0X68DMdw52M6FwFpSzc+t++8ZDZOe6YUSv8GsVSmw26ABMuXk91JdukO2
++AX0c5BF8EHWqqBrQZQoTho7T6yPv5HKjcPqIj0YQozg8t7WdOwjHChZKN3YyCXG
+ut8J4Ukdtq0aScts1b529ALALAinA/fZ9NI5TzO0enn34l9e5MPko/Q+dT+IfysA
+8brKCbM9757ckdu355scJP4MmTS9T4nvq0mGqFxAeQ1YD4chPChNoJpN54bYbS2E
+ShRgsC/GN4OauXuFOGX4Q807fXmumb4XhDw+4w1xozSodYJz1QYjs3ssHm/VI1Ps
+6FKBjl+5LEaFwRsY8A4y89OFzWNP295gtNH3wKfvV/fzS7kDAs03UrZ2POQIRJJq
+r0hbeeTIpQwVQcunjASR18o3X1LCLZ1B55rzfXdC0j60QYK7OdL7D40k0lccmP0w
+iL9wmdwlMb0iXm7l06yZ
+-----END CERTIFICATE-----</AGENT_CERT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <HOSTNAME>server.rudder.local</HOSTNAME>
+      <UUID>root</UUID>
+    </RUDDER>
+    <CPUS>
+      <NAME>AMD Ryzen 7 PRO 5850U with Radeon Graphics</NAME>
+      <MANUFACTURER>AuthenticAMD</MANUFACTURER>
+    </CPUS>
+    <HARDWARE>
+      <VMSYSTEM>virtualbox</VMSYSTEM>
+    </HARDWARE>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>9</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45730) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117997</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: bgworker: logical replication launcher</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>947</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>21</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4285</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>10</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>25</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51498) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119178</PID>
+      <STARTED>2023-07-07 07:27</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd --switched-root --system --deserialize 18</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>1</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>834</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>dbus</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45752) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118016</PID>
+      <STARTED>2023-07-07 07:18</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45750) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118015</PID>
+      <STARTED>2023-07-07 07:18</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/atd -f</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>1019</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51506) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119184</PID>
+      <STARTED>2023-07-07 07:28</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45692) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117861</PID>
+      <STARTED>2023-07-07 07:15</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119195</PID>
+      <STARTED>2023-07-07 07:29</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45756) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118022</PID>
+      <STARTED>2023-07-07 07:18</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>35</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51496) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119176</PID>
+      <STARTED>2023-07-07 07:26</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45708) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117875</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>717</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-serverd --graceful-detach=600 --no-fork --inform</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>21638</PID>
+      <STARTED>2023-07-06 18:45</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45718) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117985</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>87072</PID>
+      <STARTED>2023-07-07 02:57</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>553</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>22</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: checkpointer process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>942</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/rsyslogd -n</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>980</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45694) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117862</PID>
+      <STARTED>2023-07-07 07:15</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sssd -i --logger=files</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>826</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>716</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/rudder-relayd</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>976</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>rudder-relayd</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51554) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>120120</PID>
+      <STARTED>2023-07-07 07:35</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sudo -i</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4283</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>74362</PID>
+      <STARTED>2023-07-07 01:15</STARTED>
+      <USER>apache</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-logind</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>936</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>31</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45720) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117986</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>462</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>target/debug/minifusion --local /tmp/plop</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119935</PID>
+      <STARTED>2023-07-07 07:35</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51508) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119188</PID>
+      <STARTED>2023-07-07 07:28</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45734) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118002</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45700) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117869</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>715</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45758) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118025</PID>
+      <STARTED>2023-07-07 07:19</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>76957</PID>
+      <STARTED>2023-07-07 01:35</STARTED>
+      <USER>apache</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>24</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>465</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>74360</PID>
+      <STARTED>2023-07-07 01:15</STARTED>
+      <USER>apache</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant@pts/0</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4246</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>vagrant</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/libexec/slapd -n rudder-slapd -u rudder-slapd -f /opt/rudder/etc/openldap/slapd.conf -h ldap://127.0.0.1:389/</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>25234</PID>
+      <STARTED>2023-07-06 18:56</STARTED>
+      <USER>rudder-slapd</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/jvm/java-11-openjdk-11.0.15.0.10-3.el8.x86_64/bin/java -Djetty.home=/opt/rudder/jetty -Djava.io.tmpdir=/tmp -Djetty.home=/opt/rudder/jetty -Djetty.base=/opt/rudder/etc/rudder-jetty-base -server -Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch -Xlog:gc=info,gc+cpu=info,gc+stringdedup=info:file=/var/log/rudder/webapp/jvm-gc.log:utctime,pid,level,tags:filecount=5,filesize=50M -XX:+CrashOnOutOfMemoryError -Dfile.encoding=UTF-8 -Drun.mode=production -Drudder.configFile=/opt/rudder/etc/rudder-web.properties -Drudder.authFile=/opt/rudder/etc/rudder-users.xml -Dlogback.configurationFile=/opt/rudder/etc/logback.xml --class-path /opt/rudder/etc/rudder-jetty-base/resources:/opt/rudder/jetty/lib/logging/slf4j-api-2.0.0.jar:/opt/rudder/jetty/lib/logging/jetty-slf4j-impl-10.0.12.jar:/opt/rudder/jetty/lib/jetty-servlet-api-4.0.6.jar:/opt/rudder/jetty/lib/jetty-http-10.0.12.jar:/opt/rudder/jetty/lib/jetty-server-10.0.12.jar:/opt/rudder/jetty/lib/jetty-xml-10.0.12.jar:/opt/rudder/jetty/lib/jetty-util-10.0.12.jar:/opt/rudder/jetty/lib/jetty-io-10.0.12.jar:/opt/rudder/jetty/lib/jetty-security-10.0.12.jar:/opt/rudder/jetty/lib/jetty-servlet-10.0.12.jar:/opt/rudder/jetty/lib/jetty-webapp-10.0.12.jar:/opt/rudder/jetty/lib/jetty-deploy-10.0.12.jar:/opt/rudder/jetty/lib/setuid/jetty-setuid-java-1.0.4.jar org.eclipse.jetty.xml.XmlConfiguration file.encoding=UTF-8 java.version=11.0.15 java.version.major=11 java.version.micro=15 java.version.minor=0 java.version.platform=11 jetty.base=/opt/rudder/etc/rudder-jetty-base jetty.base.uri=file:///opt/rudder/etc/rudder-jetty-base jetty.deploy.monitoredDir=/opt/rudder/share/webapps jetty.deploy.scanInterval=0 jetty.home=/opt/rudder/jetty jetty.home.uri=file:///opt/rudder/jetty jetty.http.host=127.0.0.1 jetty.http.port=8080 jetty.httpConfig.requestHeaderSize=8192 jetty.httpConfig.sendDateHeader=false jetty.httpConfig.sendServerVersion=false jetty.setuid.groupName=root jetty.setuid.startServerAsPrivileged=true jetty.setuid.umask=0007 jetty.setuid.userName=root jetty.state=/opt/rudder/etc/rudder-jetty-base/rudder-jetty.state jetty.webapp.addServerClasses=org.eclipse.jetty.logging.,${jetty.home.uri}/lib/logging/,org.slf4j. logback.configurationFile=/opt/rudder/etc/logback.xml OPTIONS=Server rudder.authFile=/opt/rudder/etc/rudder-users.xml rudder.configFile=/opt/rudder/etc/rudder-web.properties run.mode=production runtime.feature.alpn=true slf4j.version=2.0.0 /opt/rudder/jetty/etc/jetty-bytebufferpool.xml /opt/rudder/etc/rudder-jetty-base/etc/console-capture.xml /opt/rudder/jetty/etc/jetty-threadpool.xml /opt/rudder/jetty/etc/jetty.xml /opt/rudder/jetty/etc/jetty-webapp.xml /opt/rudder/jetty/etc/jetty-deploy.xml /opt/rudder/jetty/etc/jetty-http.xml /opt/rudder/jetty/etc/jetty-setuid.xml /opt/rudder/jetty/etc/jetty-started.xml</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>25329</PID>
+      <STARTED>2023-07-06 18:56</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: logger process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>914</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>26</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>13</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45706) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117873</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45728) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117996</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>719</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>33</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant [priv]</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4232</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>176</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>2</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sedispatch</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>796</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45726) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117991</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>174</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51528) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119755</PID>
+      <STARTED>2023-07-07 07:31</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>585</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45732) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117998</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>27</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51500) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119182</PID>
+      <STARTED>2023-07-07 07:27</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>30</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>74361</PID>
+      <STARTED>2023-07-07 01:15</STARTED>
+      <USER>apache</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/sssd/sssd_nss --uid 0 --gid 0 --logger=files</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>884</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>171</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd --user</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4236</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>vagrant</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>28</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>577</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>74359</PID>
+      <STARTED>2023-07-07 01:15</STARTED>
+      <USER>apache</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>583</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>14</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>15</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/postmaster -D /var/lib/pgsql/data</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>878</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>721</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/sssd/sssd_kcm --uid 0 --gid 0 --logger=files</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>5274</PID>
+      <STARTED>2023-07-06 17:55</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51490) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119172</PID>
+      <STARTED>2023-07-07 07:26</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>23</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>584</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>29</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119933</PID>
+      <STARTED>2023-07-07 07:35</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>460</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>718</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45724) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117988</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: stats collector process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>946</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-journald</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>678</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>16</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-udevd</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>713</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51534) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119760</PID>
+      <STARTED>2023-07-07 07:31</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>579</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45702) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117871</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(39250) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>25399</PID>
+      <STARTED>2023-07-06 18:56</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>544</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45740) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118005</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/crond -n</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>1021</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>6</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>19</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/VBoxService --pidfile /var/run/vboxadd-service.sh</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>3089</PID>
+      <STARTED>2023-07-06 17:45</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>720</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/auditd</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>794</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45746) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118008</PID>
+      <STARTED>2023-07-07 07:18</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>32</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>448</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: wal writer process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>944</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>175</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>18</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>580</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>578</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45738) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>118004</PID>
+      <STARTED>2023-07-07 07:17</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/sssd/sssd_be --domain implicit_files --uid 0 --gid 0 --logger=files</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>849</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/platform-python -Es /usr/sbin/tuned -l -P</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>861</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>581</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/agetty -o -p -- \u --noclear tty1 linux</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>1038</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>85833</PID>
+      <STARTED>2023-07-07 02:46</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sshd -D -oCiphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc -oMACs=hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512 -oGSSAPIKexAlgorithms=gss-curve25519-sha256-,gss-nistp256-sha256-,gss-group14-sha256-,gss-group16-sha512-,gss-gex-sha1-,gss-group14-sha1- -oKexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -oHostKeyAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oPubkeyAcceptedKeyTypes=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oCASignatureAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-ed25519,rsa-sha2-256,rsa-sha2-512,ssh-rsa</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>859</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4247</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>vagrant</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/smartd -n -q never</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>828</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: autovacuum launcher process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>945</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>173</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>172</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/httpd -DFOREGROUND</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>1001</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>3</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-execd --no-fork</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>825</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>69</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>463</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/chronyd</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>840</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>chrony</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>34</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>20</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>(sd-pam)</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>4240</PID>
+      <STARTED>2023-07-06 17:46</STARTED>
+      <USER>vagrant</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119944</PID>
+      <STARTED>2023-07-07 07:35</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>98961</PID>
+      <STARTED>2023-07-07 04:38</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>12</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: writer process</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>943</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45716) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117982</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>11</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>468</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/lsmd -d</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>819</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>libstoragemgmt</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>466</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/polkit-1/polkitd --no-debug</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>831</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>polkitd</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>457</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/NetworkManager --no-daemon</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>2956</PID>
+      <STARTED>2023-07-06 17:45</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder ::1(51514) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>119191</PID>
+      <STARTED>2023-07-07 07:29</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45696) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117863</PID>
+      <STARTED>2023-07-07 07:15</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>postgres: rudder rudder 127.0.0.1(45704) idle</CMD>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>117872</PID>
+      <STARTED>2023-07-07 07:16</STARTED>
+      <USER>postgres</USER>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD/>
+      <CPUUSAGE>0</CPUUSAGE>
+      <PID>582</PID>
+      <STARTED>2023-07-06 17:44</STARTED>
+      <USER>root</USER>
+    </PROCESSES>
+    <ACCESSLOG>
+      <LOGDATE>2023-07-07 09:36:05</LOGDATE>
+    </ACCESSLOG>
+  </CONTENT>
+  <DEVICEID>placeholder</DEVICEID>
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>

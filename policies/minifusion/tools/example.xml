@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+    <CONTENT>
+        <ACCESSLOG>
+            <LOGDATE>2023-06-29 15:10:44</LOGDATE>
+        </ACCESSLOG>
+        <ENVS>
+            <KEY>SHLVL</KEY>
+            <VAL>4</VAL>
+        </ENVS>
+        <HARDWARE>
+            <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+            <CHECKSUM>131071</CHECKSUM>
+            <DATELASTLOGGEDUSER>Thu Jun 29 15:04</DATELASTLOGGEDUSER>
+            <DNS>10.0.2.3</DNS>
+            <ETIME>9</ETIME>
+            <LASTLOGGEDUSER>reboot</LASTLOGGEDUSER>
+            <MEMORY>1812</MEMORY>
+            <NAME>server</NAME>
+            <OSCOMMENTS>#1 SMP Thu Feb 10 16:11:23 UTC 2022</OSCOMMENTS>
+            <OSNAME>CentOS Stream release 8</OSNAME>
+            <OSVERSION>4.18.0-365.el8.x86_64</OSVERSION>
+            <SWAP>1639</SWAP>
+            <UUID>2bd7169a-7eb3-ea4a-93f5-88aca14285c6</UUID>
+            <VMSYSTEM>VirtualBox</VMSYSTEM>
+        </HARDWARE>
+        <LOCAL_GROUPS>
+            <ID>10</ID>
+            <MEMBER>vagrant</MEMBER>
+            <NAME>wheel</NAME>
+        </LOCAL_GROUPS>
+        <LOCAL_USERS>
+            <HOME>/bin</HOME>
+            <ID>1</ID>
+            <LOGIN>bin</LOGIN>
+            <NAME>bin</NAME>
+            <SHELL>/sbin/nologin</SHELL>
+        </LOCAL_USERS>
+        <OPERATINGSYSTEM>
+            <ARCH>x86_64</ARCH>
+            <BOOT_TIME>2023-06-29 15:04:23</BOOT_TIME>
+            <DNS_DOMAIN>rudder.local</DNS_DOMAIN>
+            <FQDN>server.rudder.local</FQDN>
+            <FULL_NAME>CentOS Stream release 8</FULL_NAME>
+            <HOSTID>a8c0022c</HOSTID>
+            <KERNEL_NAME>linux</KERNEL_NAME>
+            <KERNEL_VERSION>4.18.0-365.el8.x86_64</KERNEL_VERSION>
+            <NAME>CentOS</NAME>
+            <SSH_KEY>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCsEozMxF/6zSxuAHnp+PXxPQKMxLsOpCb908Hr35gKGQbFs1uUfHBEBF8CYsWJ7hbGVKMIOY8O39hYoBKp2FZikBUJ0UM0fssMhH5Vl7nt58SnaBpLFXALisFICvhyIjjYgq/6q4QsiAPqQ101Z8nhDfpPa69io3mi5RhszfoIgxU6MK2CbH8wr4AgSLqTabu0oKjFTbiUxU6AQyXByx+XT9NUyNjA99gQ0T9hwogvQZ/g1FvP/9tH+5Kr62G8OXUWuPZPW2XJQWUVKFbTOqcThdFlONSaIxO6ZnsludlUgL3XQcYpzRlArkViKuM20LRKjjbUhnFCcjjfCQGAEilj+gED0QOd+MDPL7infFAo7yfgtYdo/0vfgKWJAdDUvHU9jx1fqR8+luUD2uCrSEVhSR+u5xOz0aXBKTh42///9SSIULBXfHdXWClMOZFkiHLDORFUw/37hZIXz8J14Zi7KE3VH73+ydSgiJxsINIFhgiFEREA6FlTJSKZ8xUyA4c=</SSH_KEY>
+            <VERSION>8</VERSION>
+        </OPERATINGSYSTEM>
+        <PHYSICAL_VOLUMES>
+            <ATTR>a--</ATTR>
+            <DEVICE>/dev/sda2</DEVICE>
+            <FORMAT>lvm2</FORMAT>
+            <FREE>0</FREE>
+            <PE_SIZE>4</PE_SIZE>
+            <PV_PE_COUNT>3839</PV_PE_COUNT>
+            <PV_UUID>qHFcDf-TWpT-OBAu-fA5E-1Qgf-L8lG-w6jRmi</PV_UUID>
+            <SIZE>16101</SIZE>
+            <VG_UUID>JNwDNv-difv-LKif-DQEx-ZUOo-NY7s-62zNvV</VG_UUID>
+        </PHYSICAL_VOLUMES>
+        <RUDDER>
+            <AGENT>
+                <AGENT_CERT>-----BEGIN CERTIFICATE-----
+                    MIIFSzCCAzOgAwIBAgIUVOQUNPClDCoZAupnRhYHJ8N3OPQwDQYJKoZIhvcNAQEL
+                    iL9wmdwlMb0iXm7l06yZ
+                    -----END CERTIFICATE-----
+                </AGENT_CERT>
+                <AGENT_NAME>cfengine-community</AGENT_NAME>
+                <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
+                    MIICCgKCAgEAruZ2rAmwhY9gEGynrvKIk3v3m/iTYY7inG6m3tJ92c2cXC7l0jHi
+                    k2uDiS3gPDXGGxQZPDSdZ8TSJgNoQ/GvZulO9ZRPsyBEsI8ItDB+lDUCAwEAAQ==
+                    -----END RSA PUBLIC KEY-----
+                </CFENGINE_KEY>
+                <OWNER>root</OWNER>
+                <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
+                <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+            </AGENT>
+            <HOSTNAME>server.rudder.local</HOSTNAME>
+            <SERVER_ROLES></SERVER_ROLES>
+            <UUID>root</UUID>
+        </RUDDER>
+        <SOFTWARES>
+            <ARCH>noarch</ARCH>
+            <COMMENTS>Java packages filesystem layout</COMMENTS>
+            <FILESIZE>1935</FILESIZE>
+            <FROM>rpm</FROM>
+            <INSTALLDATE>08/03/2022</INSTALLDATE>
+            <NAME>javapackages-filesystem</NAME>
+            <PUBLISHER>CentOS</PUBLISHER>
+            <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
+            <VERSION>5.3.0-1.module_el8.0.0+11+5b8c10bd</VERSION>
+        </SOFTWARES>
+        <SOFTWAREUPDATES>
+            <ARCH>x86_64</ARCH>
+            <FROM>yum</FROM>
+            <ID></ID>
+            <NAME>NetworkManager</NAME>
+            <SOURCE>baseos</SOURCE>
+            <VERSION>1:1.40.16-7.el8</VERSION>
+        </SOFTWAREUPDATES>
+        <VERSIONCLIENT>FusionInventory-Agent_v2.4.3</VERSIONCLIENT>
+        <VOLUME_GROUPS>
+            <ATTR>wz--n-</ATTR>
+            <FREE>0</FREE>
+            <LV_COUNT>2</LV_COUNT>
+            <PV_COUNT>1</PV_COUNT>
+            <SIZE>16101</SIZE>
+            <VG_EXTENT_SIZE>4.19</VG_EXTENT_SIZE>
+            <VG_NAME>cs</VG_NAME>
+            <VG_UUID>JNwDNv-difv-LKif-DQEx-ZUOo-NY7s-62zNvV</VG_UUID>
+        </VOLUME_GROUPS>
+    </CONTENT>
+    <DEVICEID>server-2023-06-29-15-10-44</DEVICEID>
+    <QUERY>INVENTORY</QUERY>
+</REQUEST>
