@@ -336,7 +336,6 @@ class ShowNodeDetailsFromNode(
     "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &
     "#node_parameters -*" #> (if (node.isPolicyServer) NodeSeq.Empty
                               else agentScheduleEditForm(node).cfagentScheduleConfiguration) &
-    "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
     "#node_tabs [id]" #> s"details_${id}").apply(serverDetailsTemplate)
   }
 
