@@ -61,8 +61,8 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
   lazy val repos = new GitModificationRepositoryImpl(doobie)
 
-  implicit def toCommitId(s: String) = GitCommitId(s)
-  implicit def toModId(s: String)    = ModificationId(s)
+  implicit def toCommitId(s: String): GitCommitId    = GitCommitId(s)
+  implicit def toModId(s: String):    ModificationId = ModificationId(s)
 
   sequential
 

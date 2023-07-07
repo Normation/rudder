@@ -754,11 +754,13 @@ object ExpectedReportsSerialisation {
 
       JsonDecoder[List[String]].map(toLeft).orElse(decodeJsonExpectedValueId7_1.map(toRight))
     }
-    implicit lazy val encodeJsonEitherValue = new JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] {
-      override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
-        a match {
-          case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
-          case Right(x) => encodeJsonExpectedValueId7_1.unsafeEncode(x, indent, out)
+    implicit lazy val encodeJsonEitherValue: JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] = {
+      new JsonEncoder[Either[List[String], JsonExpectedValueId7_1]] {
+        override def unsafeEncode(a: Either[List[String], JsonExpectedValueId7_1], indent: Option[Int], out: Write): Unit = {
+          a match {
+            case Left(x)  => JsonEncoder[List[String]].unsafeEncode(x, indent, out)
+            case Right(x) => encodeJsonExpectedValueId7_1.unsafeEncode(x, indent, out)
+          }
         }
       }
     }

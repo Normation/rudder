@@ -59,6 +59,7 @@ import javax.script.ScriptException
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.graalvm.polyglot.HostAccess
+import org.graalvm.polyglot.io.IOAccess
 import org.graalvm.polyglot.proxy.ProxyObject
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
@@ -498,7 +499,7 @@ object JsEngine {
           .newBuilder("js")
           .engine(engine)
           .allowHostAccess(HostAccess.EXPLICIT)
-          .allowIO(false)
+          .allowIO(IOAccess.NONE)
           .allowCreateProcess(false)
           .allowCreateThread(false)
           .allowNativeAccess(false)

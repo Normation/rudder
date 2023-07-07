@@ -396,9 +396,9 @@ object RudderRoles {
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
 
   // role names are case insensitive
-  implicit val roleOrdering = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
-  val builtInRoles          = SortedMap[String, Role](Role.values.toList.map(r => (r.name, r)): _*)
-  private val customRoles   = Ref.make(SortedMap.empty[String, Role]).runNow
+  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  val builtInRoles        = SortedMap[String, Role](Role.values.toList.map(r => (r.name, r)): _*)
+  private val customRoles = Ref.make(SortedMap.empty[String, Role]).runNow
   private val allRoles: Ref[SortedMap[String, Role]] = ZioRuntime.unsafeRun(for {
     all <- computeAllRoles
     ref <- Ref.make(all)

@@ -1174,7 +1174,7 @@ class MockRules() {
 
   object rules {
 
-    implicit def str2ruleId(s: String) = RuleId(RuleUid(s))
+    implicit def str2ruleId(s: String): RuleId = RuleId(RuleUid(s))
 
     val commmonRule = Rule(
       "hasPolicyServer-root",
@@ -2331,7 +2331,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
   object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
 
-    implicit val ordering = com.normation.rudder.repository.NodeGroupCategoryOrdering
+    implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
     val categories = Ref.Synchronized
       .make(FullNodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "root of group categories", Nil, Nil, true))
