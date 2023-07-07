@@ -1,161 +1,23 @@
 <nodeproperties-tab>
   <div id="tabPropsId">
     <h3 class="page-title foldable" onclick="$('#nodeProp').toggle(); $(this).toggleClass('folded');">Node properties <i class="fa fa-chevron-down"></i></h3>
-     <div id="nodeProp" ng-controller="nodePropertiesCtrl">
-       <div class="row">
-         <lift:authz role="node_write">
-           <div class="col-lg-7 col-md-8 col-xs-12 add-prop-form">
-             <label for="newPropName">Add a new property:</label>
-             <ng-form name="newPropForm">
-               <table id="addPropTable">
-                 <tbody>
-                 <tr>
-                   <td class="form-group" ng-class="{'has-error': alreadyUsed || newPropForm.newPropName.$error.mandatory && newPropForm.newPropName.$dirty}">
-                     <input placeholder="Name" class="form-control input-sm input-key ng-pristine ng-untouched ng-valid ng-empty" id="newPropName" name="newPropName" ng-model="newProperty.name" mandatory>
-                   </td>
-                   <td>
-                     <span class="input-group-addon addon-json">=</span>
-                   </td>
-                   <td class="form-group" ng-class="{'has-error': (newPropForm.newPropValue.$error.mandatory && newPropForm.newPropValue.$dirty) || !isValid}">
-                     <textarea placeholder="Value" msd-elastic name="newPropValue" class="form-control input-sm input-value" mandatory ng-model="newProperty.value"></textarea>
-                   </td>
-                   <td class="json-check-col">
-                     <div>
-                       <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{checkJson ? "JSON" : "String"}} <span class="caret"></span></button>
-                       <ul class="dropdown-menu">
-                         <li><a ng-click="checkJson = false">String</a></li>
-                         <li><a ng-click="checkJson = true" > JSON </a></li>
-                       </ul>
-                     </div>
-                   </td>
-                   <td>
-                     <button type="button" ng-click="addProperty()" class="btn btn-success btn-sm" ng-disabled="newPropForm.$invalid">
-                       <span class="fa fa-plus"></span>
-                     </button>
-                   </td>
-                 </tr>
-                 </tbody>
-               </table>
-             </ng-form>
-             <div class="text-danger" ng-show="newPropForm.newPropName.$error.mandatory && newPropForm.newPropName.$dirty">Name is required</div>
-             <div class="text-danger" ng-show="alreadyUsed">This name is already used by another property</div>
-             <div class="text-danger" ng-show="!isValid">JSON check is enabled, but the value format is invalid.</div>
-             <div class="alert alert-danger errorSaving" ng-show="errorSaving">
-               <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
-               An error occured while saving this new property : <b>{{errorSaving}}</b>
-             </div>
-             <div class="text-danger" ng-show="newPropForm.newPropValue.$error.mandatory && newPropForm.newPropValue.$dirty">Value is required</div>
-           </div>
-         </lift:authz>
-         <div class="col-xs-12" ng-if="properties">
-           <div class="alert alert-danger errorSaving" id="errorDeleting" ng-show="errorDeleting">
-             <i class="fa fa-exclamation-triangle" style="margin-right:6px"></i>
-             An error occured while deleting property '{{deletedProperty.name}}'</i>: <b>{{errorDeleting}}</b>
-           </div>
-           <table datatable="ng" dt-options="options" dt-column-defs="columns" id="nodePropertiesTab">
-             <thead>
-               <tr class="head tablewidth">
-                 <th> Name    </th>
-                 <th> Format  </th>
-                 <th> Value   </th>
-                 <th ng-if="$parent.hasEditRight"> Actions </th>
-               </tr>
-             </thead>
-             <tbody>
-               <tr ng-repeat="property in properties track by $index">
-                 <td ng-class="{'is-edited':isEdited(property.name)}">
-                   <div ng-if="!isEdited(property.name)">
-                     {{ property.name }}
-                     <span ng-if="property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is managed by its provider <b>‘{{ property.provider }}</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration." data-container="body" bs-tooltip>
-                       {{ property.provider }}
-                     </span>
-                     <span ng-if="property.provider === 'inherited'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
-                       inherited
-                     </span>
-                     <span ng-if="property.provider === 'overridden'" class='rudder-label label-provider label-sm' data-toggle='tooltip' data-placement='right' data-html='true' title="This property is overridden on this object and was inherited from these group(s) or global parameter: <div>{{ property.hierarchy }}</div>." data-container="body" bs-tooltip>
-                       overridden
-                     </span>
-                   </div>
-                   <div ng-if="isEdited(property.name)">
-                     <input type="text" class="form-control input-sm" ng-model="editedProperties[property.name].new.name">
-                     <small class="text-danger" ng-if="editedProperties[property.name].new.alreadyUsed">This name is already used by another property</small>
-                   </div>
-                 </td>
-                 <td ng-class="{'is-edited':isEdited(property.name)}">
-                   <div ng-if="!isEdited(property.name)">
-                     {{getFormat(property.value)}}
-                   </div>
-                   <div ng-if="isEdited(property.name)" class="format-container">
-                     <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">{{editedProperties[property.name].new.checkJson ? "JSON" : "String"}} <span class="caret"></span></button>
-                     <ul class="dropdown-menu">
-                       <li><a ng-click="changeFormat(property.name, false)" > String </a></li>
-                       <li><a ng-click="changeFormat(property.name, true)"  > JSON   </a></li>
-                     </ul>
-                   </div>
-                 </td>
-                 <td ng-class="{'property-value':!isEdited(property.name), 'is-edited':isEdited(property.name)}">
-                   <div ng-if="!isEdited(property.name)">
-                     <div class="{{'value-container container-' + $index}}" onclick="$(this).toggleClass('toggle')" ng-class="{'show-more':isTooLong(property)}">
-                       <pre class="json-beautify">{{formatContent(property)}}</pre>
-                     </div>
-                     <span class="toggle-icon"></span>
-                     <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text="{{formatContent(property)}}" data-toggle='tooltip' data-placement='left' data-container="html" title="Copy to clipboard"><i class="ion ion-clipboard"></i></button>
-                   </div>
-                   <div ng-if="isEdited(property.name)">
-                     <textarea placeholder="Value" msd-elastic rows="1" class="form-control input-sm input-value" ng-model="editedProperties[property.name].new.value"></textarea>
-                     <small class="text-danger" ng-if="!editedProperties[property.name].new.isValid">JSON check is enabled, but the value format is invalid</small>
-                   </div>
-                 </td>
-                 <td ng-if="$parent.hasEditRight" class="text-center" ng-class="{'default-actions':!isEdited(property.name), 'edit-actions is-edited':isEdited(property.name)}">
-                   <div ng-if="!isEdited(property.name) && property.rights !== 'read-only' && (property.provider === undefined || property.provider === 'overridden')">
-                     <span class="action-icon fa fa-pencil" ng-click="editProperty(property)" title="Edit"></span>
-                     <span class="action-icon fa fa-times text-danger" ng-click="popupDeletion(property.name, $index)" title="Delete"></span>
-                   </div>
-                   <div ng-if="isEdited(property.name) && property.rights !== 'read-only'">
-                     <span class="action-icon glyphicon glyphicon-share-alt cancel-icon" ng-click="cancelEdit(property.name)" title="Cancel"></span>
-                     <span class="action-icon fa fa-check text-success" ng-click="saveEdit(property.name, $index)" title="Save"></span>
-                   </div>
-                 </td>
-               </tr>
+    <div id="nodeproperties-app" class="portlet-content"></div>
+    <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-nodeproperties.js"></script>
+    <script>
+      var hasWriteRights = false;
+      var hasReadRights  = false;
+    </script>
+    <lift:authz role="node_write">
+      <script>
+        hasWriteRights = true;
+      </script>
+    </lift:authz>
+    <lift:authz role="node_read">
+      <script>
+        hasReadRights = true;
+      </script>
+    </lift:authz>
 
-             </tbody>
-           </table>
-           <div class="accountGrid_pagination, paginatescala" >
-             <div id="accountGrid_paginate_area"></div>
-           </div>
-         </div>
-       </div>
-
-
-       <div role="dialog" tabindex="-1" id="deletePropPopup" class="modal fade" style="display:none;">
-         <div style="height: 100%;" class="modal-backdrop fade"></div>
-         <div role="document" class="modal-dialog">
-           <div class="modal-content">
-             <div class="modal-header">
-               <div data-dismiss="modal" class="close">
-               <span aria-hidden="true">×</span>
-               <span class="sr-only">Close</span>
-               </div>
-               <h4 class="modal-title ng-binding">
-                 Delete node property '{{deletedProperty.name}}'
-               </h4>
-             </div>
-             <div class="modal-body">
-               <h4 class="text-center">Are you sure that you want to delete this node property ?</h4>
-             </div>
-             <div class="modal-footer">
-               <button data-dismiss="modal" class="btn btn-default" type="button">Cancel</button>
-               <button ng-click="deleteProperty()" class="btn btn-danger">Delete</button>
-             </div>
-           </div>
-         </div>
-       </div>
-     </div>
-
-    <div id="inventoryVariables">
-
-
-    </div>
-
+    <div id="inventoryVariables"></div>
   </div>
 </nodeproperties-tab>

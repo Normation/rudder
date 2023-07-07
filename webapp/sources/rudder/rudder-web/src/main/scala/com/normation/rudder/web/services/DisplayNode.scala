@@ -867,13 +867,38 @@ object DisplayNode extends Loggable {
     val css: CssSel = "#tabPropsId [id]" #> tabId &
       "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node, sm)
 
-    css(tabProperties) ++ Script(OnLoad(JsRaw(s"""
-        angular.bootstrap('#nodeProp', ['nodeProperties']);
-        var scope  = angular.element($$("#nodeProp")).scope();
-        scope.$$apply(function(){
-          scope.init("${nodeId}",${userHasRights},'node');
-        });
-      """)))
+    css(tabProperties) ++ Script(
+      OnLoad(
+        JsRaw(
+          s"""
+      var main = document.getElementById("nodeproperties-app")
+             |var initValues = {
+             |    contextPath    : "${S.contextPath}"
+             |  , hasWriteRights : hasWriteRights
+             |  , hasReadRights  : hasReadRights
+             |  , nodeId         : "${nodeId}"
+             |  , objectType     : 'node'
+             |};
+             |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
+             |app.ports.successNotification.subscribe(function(str) {
+             |  createSuccessNotification(str)
+             |});
+             |app.ports.errorNotification.subscribe(function(str) {
+             |  createErrorNotification(str)
+             |});
+             |// Initialize tooltips
+             |app.ports.initTooltips.subscribe(function(msg) {
+             |  setTimeout(function(){
+             |    $$('.bs-tooltip').bsTooltip();
+             |  }, 400);
+             |});
+             |app.ports.copy.subscribe(function(str) {
+             |  navigator.clipboard.writeText(str);
+             |});
+             |""".stripMargin
+        )
+      )
+    )
   }
 
   def displayTabInventoryVariable(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
