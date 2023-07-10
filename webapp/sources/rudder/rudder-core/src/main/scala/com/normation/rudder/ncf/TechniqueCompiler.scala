@@ -171,8 +171,7 @@ object RuddercResult       {
  * Option for rudder, like verbosity, etc
  */
 final case class RuddercOptions(
-    generatePS1: Boolean,
-    verbose:     Boolean
+    verbose: Boolean
 )
 
 sealed trait NcfError extends RudderError {
@@ -229,8 +228,8 @@ class RuddercServiceImpl(
 
   def buildCmdLine(techniquePath: File, options: RuddercOptions): Cmd = {
     val params = {
-      ("--directory" :: techniquePath.pathAsString :: "build" :: Nil) :::
-      (if (options.verbose) List("-v") else Nil)
+      (if (options.verbose) List("-v") else Nil) :::
+      ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
     Cmd(ruddercCmd, params, Map())
@@ -330,9 +329,8 @@ class TechniqueCompilerWithFallback(
       app:       TechniqueCompilerApp
   ): IOResult[TechniqueCompilationOutput] = {
 
-    val verbose            = true
-    val ruddercOptionsUnix = RuddercOptions(false, verbose)
-    val ruddercOptionsAll  = RuddercOptions(true, verbose)
+    val verbose        = true
+    val ruddercOptions = RuddercOptions(verbose)
 
     val webApp = {
       for {
@@ -355,7 +353,7 @@ class TechniqueCompilerWithFallback(
       }
     }
 
-    val ruddercAll  = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptionsAll)
+    val ruddercAll  = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
     val ruddercUnix = {
       for {
         time_1 <- currentTimeMillis
@@ -364,7 +362,7 @@ class TechniqueCompilerWithFallback(
         _      <- TimingDebugLoggerPure.trace(
                     s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms"
                   )
-        r      <- ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptionsUnix)
+        r      <- ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
       } yield r
     }
 
