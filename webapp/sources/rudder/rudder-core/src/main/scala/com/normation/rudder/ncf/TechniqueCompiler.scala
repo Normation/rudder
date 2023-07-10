@@ -443,7 +443,7 @@ class TechniqueCompilerWithFallback(
 
   def writeMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
 
-    val metadataPath = s"${getTechniqueRelativePath(technique)}/target/metadata.xml"
+    val metadataPath = s"${getTechniqueRelativePath(technique)}/metadata.xml"
 
     val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
