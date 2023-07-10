@@ -354,8 +354,8 @@
 .wrapper .panel-default > .panel-heading.heading-search .badge > .loading {
   font-size: 11px;
   position: absolute;
-  left: 7px;
-  top: 8px;
+  left: 0px;
+  top: 4px;
   -webkit-animation: loading 1.5s infinite linear;
   -moz-animation: loading 1.5s infinite linear;
   -o-animation: loading 1.5s infinite linear;
@@ -416,6 +416,15 @@
   font-size:13px;
   cursor:pointer;
 }
+
+.wrapper .dropdown-search .list-group-item a:link,
+.wrapper .dropdown-search .list-group-item a:visited,
+.wrapper .dropdown-search .list-group-item a:hover,
+.wrapper .dropdown-search .list-group-item a:active {
+  text-decoration: none;
+  color: inherit;
+}
+
 .wrapper .dropdown-search .list-group-item:nth-child(odd):hover,.wrapper .dropdown-search .list-group-item:nth-child(even):hover{
   background-color:#f0f3f5;
   color:#1f1f1f;

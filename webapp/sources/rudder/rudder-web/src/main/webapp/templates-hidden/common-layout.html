@@ -70,7 +70,6 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angular-bootstrap-toggle.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angular-datatables.min.js" ></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angular-touch.min.js"></script>
-    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angucomplete-alt.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angular-translate.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/ng-file-upload.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/angular/angular-filemanager.min.js"></script>
@@ -80,7 +79,8 @@
 
     <!-- ELM -->
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-notifications.css" />
-    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
+      <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
+      <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-quicksearch.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/rudder-elm.js"></script>
     <script>
     (function($) {
@@ -129,186 +129,9 @@
             <span class="sr-only">Toggle navigation</span>
           </a>
           <!-- Quick Search-->
-         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" >
 
-            <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="input-group">
-            <script type="text/ng-template" id="quicksearch.html">
-              <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown};">
-                <div class="input-group group-search" ng-class="{'open':searchStr.length>0}">
-                  <label class="input-group-addon" for="searchInput">
-                    <span class="glyphicon glyphicon-search"></span>
-                  </label>
-                  <input ng-model="searchStr"
-                    ng-disabled="disableInput"
-                    type="text"
-                    value=""
-                    placeholder="{{placeholder}}"
-                    ng-focus="resetHideResults(); onFocusHandler()"
-                    id="searchInput"
-                    class="{{inputClass}}"
-                    autocapitalize="off"
-                    autocorrect="off"
-                    autocomplete="off"
-                    ng-change="inputChangeHandler(searchStr);$parent.refreshFilterSearch(searchStr)"/>
-
-                  <label ng-class="{noRemove:!searchStr}" class="input-group-addon" id="clear-search" for="searchInput">
-                    <span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span>
-                  </label>
-
-                  <a class="input-group-addon" id="help-search" href="/rudder-doc/reference/current/usage/node_management.html#search-nodes" target="_blank">
-                    <span class="glyphicon glyphicon-question-sign"></span>
-                  </a>
-                <div id="background-fade-quicksearch"></div>
-                <ul class="dropdown-menu dropdown-search dropdown-menu-right">
-                  <li class="dropdown-header">
-                    <div class="row no-margin">
-                      <div class="row" id="search-tab">
-                        <div class="filter-search col-xs-12">
-                          <div class="panel panel-default panel-help">
-                            <div class="panel-heading heading-search">
-                              <div class="btn-toolbar" role="toolbar">
-                                <div class="btn-group group-all" data-toggle="buttons">
-                                  <label for="filter-all" class="btn btn-default" ng-click="$parent.checkFilter($event, true,$parent.filter.all.activated,'all');" ng-class="{active : $parent.noFilterActivated()};">
-                                    <input type="radio" id="filter-all" checked="true" ng-checked="$parent.noFilterActivated();"/>All
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkSearch(searching) && $parent.noFilterActivated();">
-                                        {{$parent.getNumResults("all",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.noFilterActivated();">
-                                        -
-                                      </span>
-                                      <span ng-show="searching && searchStr.length > 2 && $parent.noFilterActivated();" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                </div>
-                                <div class="btn-group group-filters" data-toggle="buttons">
-                                  <label for="filter-node" class="btn btn-default" ng-click="$parent.checkFilter($event, false,$parent.filter.node.activated,'node');">
-                                    <input id="filter-node" type="checkbox" autocomplete="off" ng-model="$parent.filter.node.activated"/> Nodes
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkActivatedFilter(searching,'node');">
-                                        {{$parent.getNumResults("node",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.checkParentFilter('node');">
-                                        -
-                                      </span>
-                                      <span ng-show="$parent.checkRefresh(searching,'node');" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                  <label for="filter-group" class="btn btn-default" ng-click="$parent.checkFilter($event, false,$parent.filter.group.activated,'group');">
-                                    <input id="filter-group" type="checkbox" autocomplete="off" ng-model="$parent.filter.group.activated"/> Groups
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkActivatedFilter(searching,'group');">
-                                        {{$parent.getNumResults("group",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.checkParentFilter('group');">
-                                        -
-                                      </span>
-                                      <span ng-show="$parent.checkRefresh(searching,'group');" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                  <label for="filter-parameter" class="btn btn-default" ng-click="$parent.checkFilter($event, false,$parent.filter.parameter.activated,'parameter');">
-                                    <input id="filter-parameter" type="checkbox" autocomplete="off" ng-model="$parent.filter.parameter.activated"/> Parameters
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkActivatedFilter(searching,'parameter');">
-                                        {{$parent.getNumResults("parameter",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.checkParentFilter('parameter');">
-                                        -
-                                      </span>
-                                      <span ng-show="$parent.checkRefresh(searching,'parameter');" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                  <label for="filter-directive" class="btn btn-default" ng-click="$parent.checkFilter($event, false,$parent.filter.directive.activated,'directive');">
-                                    <input id="filter-directive" type="checkbox" ng-model="$parent.filter.directive.activated"/> Directives
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkActivatedFilter(searching,'directive');">
-                                        {{$parent.getNumResults("directive",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.checkParentFilter('directive');">
-                                        -
-                                      </span>
-                                      <span ng-show="$parent.checkRefresh(searching,'directive');" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                  <label for="filter-rule" class="btn btn-default" ng-click="$parent.checkFilter($event, false,$parent.filter.rule.activated,'rule');">
-                                    <input id="filter-rule" type="checkbox" autocomplete="off" ng-model="$parent.filter.rule.activated"/> Rules
-                                    <span class="badge pull-right">
-                                      <span ng-show="$parent.checkActivatedFilter(searching,'rule');">
-                                        {{$parent.getNumResults("rule",results)}}
-                                      </span>
-                                      <span ng-hide="$parent.checkParentFilter('rule');">
-                                        -
-                                      </span>
-                                      <span ng-show="$parent.checkRefresh(searching,'rule');" class="loading glyphicon glyphicon-refresh"></span>
-                                    </span>
-                                  </label>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="panel-body results-content">
-                              <div class="info-messages">
-                                <div class="angucomplete-searching" ng-show="((3 > searchStr.length)&&(results.length == 0)) || !searchStr;">
-                                  <span class="glyphicon glyphicon-exclamation-sign"></span>The field size must be greater than 2 characters
-                                </div>
-                                <div ng-if="searching || (!searching && (!results || results.length == 0));">
-                                  <div class="angucomplete-searching" ng-show="searching && searchStr.length > 2; " ng-bind="textSearching"></div>
-                                  <div class="angucomplete-searching text-danger" ng-show="!searching && (!results || results.length == 0) && (searchStr.length > 2);"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span>{{textNoResults}}</div>
-                                </div>
-                              </div>
-                              <div class="panel-group" ng-hide="!searching && (!results || results.length == 0) && (searchStr.length > 2);">
-                                <div class="angucomplete-dropdown dropdown-search " role="tablist">
-                                  <div class="panel panel-default" ng-repeat="result in results | orderBy:'result' track by $index">
-                                    <div>
-                                      <div class="panel-heading" role="tab" id="{{'resultGroup'+$index}}">
-                                        <h4 class="panel-title">
-                                          <a class="" role="button" data-toggle="collapse" href="#{{'result'+$index}}" aria-expanded="true" aria-controls="{{'resultGroup'+$index}}">
-                                            <span class="glyphicon glyphicon-chevron-right"></span>
-                                              {{result.originalObject.header.type+"s"}}
-                                            <span class="angucomplete-description">{{result.originalObject.header.summary}}</span>
-                                          </a>
-                                        </h4>
-                                      </div>
-                                      <div id="{{'result'+$index}}" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="{{'result'+$index}}" aria-expanded="true">
-                                        <ul class="list-group">
-                                          <li class="list-group-item" ng-repeat="obj in result.originalObject.items"  ng-click="selectedObject(obj)">
-                                            <span>
-                                              {{obj.name}}
-                                            </span>
-                                            <!-- <div ng-if="matchClass && obj.desc && obj.desc != '';" class="angucomplete-description" ng-bind-html="obj.desc"></div> -->
-                                            <div class="angucomplete-description">{{obj.desc}}</div>
-                                          </li>
-                                        </ul>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                </ul>
-          </script>
-
-              <div id="angucomplete-ie8-quicksearch"
-                   angucomplete-alt=""
-                   placeholder="Search anything"
-                   maxlength="100"
-                   pause="500"
-                   selected-object="selectedObject"
-                   remote-url="api-url-to-change"
-                   remote-url-data-field="data"
-                   title-field="name"
-                   description-field="desc"
-                   minlength="3"
-                   input-class="form-control input"
-                   match-class="highlight"
-                   template-url="quicksearch.html">
-              </div>
-            </div>
-          </div>
+            <rudder-quicksearch>
+            </rudder-quicksearch>
           <div class="navbar-custom-menu">
             <ul class="nav navbar-nav" id="rudder-navbar">
               <!-- Plugin license warning -->
