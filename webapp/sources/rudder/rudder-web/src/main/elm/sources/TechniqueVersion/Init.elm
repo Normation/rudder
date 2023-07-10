@@ -1,10 +1,5 @@
 port module TechniqueVersion.Init exposing (..)
 
-import Http exposing (Error)
-import Task
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline as D exposing (..)
-
 import TechniqueVersion.DataTypes exposing (..)
 
 

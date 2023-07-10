@@ -2,7 +2,7 @@ module TechniqueVersion.ViewUtils exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom, onCheck)
+import Html.Events exposing (onClick)
 import List
 
 import TechniqueVersion.DataTypes exposing (..)

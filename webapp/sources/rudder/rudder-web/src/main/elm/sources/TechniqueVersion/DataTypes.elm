@@ -1,8 +1,5 @@
 module TechniqueVersion.DataTypes exposing (..)
 
-import Http exposing (Error)
-import Http.Detailed
-
 --
 -- All our data types
 --
