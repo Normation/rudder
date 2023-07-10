@@ -171,7 +171,6 @@ object RuddercResult       {
  * Option for rudder, like verbosity, etc
  */
 final case class RuddercOptions(
-    generatePS1: Boolean,
     verbose:     Boolean
 )
 
@@ -331,8 +330,7 @@ class TechniqueCompilerWithFallback(
   ): IOResult[TechniqueCompilationOutput] = {
 
     val verbose            = true
-    val ruddercOptionsUnix = RuddercOptions(false, verbose)
-    val ruddercOptionsAll  = RuddercOptions(true, verbose)
+    val ruddercOptions  = RuddercOptions(verbose)
 
     val webApp = {
       for {
@@ -355,7 +353,7 @@ class TechniqueCompilerWithFallback(
       }
     }
 
-    val ruddercAll  = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptionsAll)
+    val ruddercAll  = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
     val ruddercUnix = {
       for {
         time_1 <- currentTimeMillis
@@ -364,7 +362,7 @@ class TechniqueCompilerWithFallback(
         _      <- TimingDebugLoggerPure.trace(
                     s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms"
                   )
-        r      <- ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptionsUnix)
+        r      <- ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
       } yield r
     }
 
@@ -445,7 +443,7 @@ class TechniqueCompilerWithFallback(
 
   def writeMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
 
-    val metadataPath = s"${getTechniqueRelativePath(technique)}/metadata.xml"
+    val metadataPath = s"${getTechniqueRelativePath(technique)}/target/metadata.xml"
 
     val path = s"${baseConfigRepoPath}/${metadataPath}"
     for {
