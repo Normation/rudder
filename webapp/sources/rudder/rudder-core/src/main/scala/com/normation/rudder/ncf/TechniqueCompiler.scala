@@ -229,8 +229,8 @@ class RuddercServiceImpl(
 
   def buildCmdLine(techniquePath: File, options: RuddercOptions): Cmd = {
     val params = {
-      ("--directory" :: techniquePath.pathAsString :: "build" :: Nil) :::
-      (if (options.verbose) List("-v") else Nil)
+      (if (options.verbose) List("-v") else Nil) :::
+      ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
     Cmd(ruddercCmd, params, Map())
