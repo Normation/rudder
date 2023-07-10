@@ -171,7 +171,7 @@ object RuddercResult       {
  * Option for rudder, like verbosity, etc
  */
 final case class RuddercOptions(
-    verbose:     Boolean
+    verbose: Boolean
 )
 
 sealed trait NcfError extends RudderError {
@@ -329,8 +329,8 @@ class TechniqueCompilerWithFallback(
       app:       TechniqueCompilerApp
   ): IOResult[TechniqueCompilationOutput] = {
 
-    val verbose            = true
-    val ruddercOptions  = RuddercOptions(verbose)
+    val verbose        = true
+    val ruddercOptions = RuddercOptions(verbose)
 
     val webApp = {
       for {
