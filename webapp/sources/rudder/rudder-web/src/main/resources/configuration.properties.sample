@@ -394,9 +394,9 @@ rudder.dir.dependencies=/var/rudder/tools
 #
 rudder.batch.techniqueLibrary.updateInterval=5
 
-##########################################################
-# Configuration repository, its update and Git properties ###########################
-##########################################################
+######################################################################
+# Configuration and fact repositories, its update and Git properties ###########################
+#####################################################################
 
 #
 # Configuration repository is the place where all Group/Directive/Rules
@@ -429,6 +429,21 @@ rudder.config.repo.new.file.group.owner=rudder
 # Default run at 3:42 every morning.
 #
 rudder.git.gc=0 42 3 * * ?
+
+
+#
+# The full path to the directory containing the
+# .git for facts: nodes
+#
+rudder.dir.gitRootFactRepo=/var/rudder/fact-repository
+
+#
+# By default, Rudder won"t make a commit for each inventory and
+# changes in node and it will only keep a non historized JSON
+# serialisation of the current state of the node. You can make
+# Rudder historize node changes with that option (boolean).
+#
+rudder.facts.repo.historizeNodeChange=false
 
 ###############################
 # Dynamic group configuration  ######################################################
@@ -577,7 +592,7 @@ rudder.auth.idle-timeout=30 minutes
 # This property contains the comma separated list of suffixes that will be checked
 # before running a hook under /opt/rudder/etc/hooks.d.
 # If an executable (+x) file has one of the following suffixes, it
-# will be IGNORED and the corresponding hook skipped. 
+# will be IGNORED and the corresponding hook skipped.
 # Non executable (-x) files are ALWAYS ignored, with or without any of these suffixes.
 #
 # Spaces are trimmed. Case is not relevant (both .disabled and .DISABLED will be ignored)
