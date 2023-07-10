@@ -31,20 +31,19 @@
   <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-filemanager.css" />
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filemanager.js"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/passwordForm.js" id="angular-passwordForm"></script>
-  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/textForm.js" id="angular-textForm"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/tags.js"></script>
 
   <script>
-        var hasWriteRights = false;
-      </script>
+    var hasWriteRights = false;
+  </script>
 
   <lift:authz role="directive_write">
     <script>
-        var hasWriteRights = true;
-      </script>
+      var hasWriteRights = true;
+    </script>
   </lift:authz>
   <script>
-      var baseUrl = contextPath ? contextPath : "/rudder";
+  var baseUrl = contextPath ? contextPath : "/rudder";
   var apiPath = baseUrl + '/secure/api/sharedfile';
 
   var container = document.getElementById("filemanager-editor")

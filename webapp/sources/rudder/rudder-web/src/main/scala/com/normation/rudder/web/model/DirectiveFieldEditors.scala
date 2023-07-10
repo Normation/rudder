@@ -95,7 +95,7 @@ class TextField(
 
   def display(xml: String => NodeSeq): Box[NodeSeq] = {
     val formId                                       = Helpers.nextFuncName
-    val valueInput                                   = SHtml.textarea("", s => parseClient(s), ("ng-model", "result"), ("ng-hide", "true"))
+    val valueInput                                   = SHtml.textarea("", s => parseClient(s), ("id", (formId ++ "-value")), ("style", "display:none;"))
     val (scriptEnabled, currentPrefix, currentValue) = scriptSwitch().getOrElse(Disabled) match {
       case Disabled => (JsFalse, "", toClient)
       case Enabled  =>
@@ -110,15 +110,8 @@ class TextField(
     }
     val initScript                                   = {
       Script(OnLoad(JsRaw(s"""
-       angular.bootstrap("#${formId}", ['text']);
-       var scope = angular.element($$("#${formId}-controller")).scope();
-       scope.$$apply(function(){
-         scope.init(
-             ${Str(currentValue).toJsCmd}
-           , ${Str(currentPrefix).toJsCmd}
-           , ${scriptEnabled.toJsCmd}
-         );
-       });""")))
+       newInputText("${formId}", ${Str(currentValue).toJsCmd}, ${Str(currentPrefix).toJsCmd}, ${scriptEnabled.toJsCmd});
+       """)))
     }
 
     val form = (".text-section *+" #> valueInput).apply(xml(formId)) ++ initScript
