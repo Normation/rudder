@@ -5,6 +5,11 @@
 The list of currently supported versions receiving security updates is available
 [in the documentation](https://docs.rudder.io/versions).
 
+## Vulnerability advisories
+
+Our [advisories are published on GitHub](https://github.com/Normation/rudder/security/advisories),
+linked to the `rudder` repository.
+
 ## Reporting a vulnerability
 
 You can report any security vulnerability affecting Rudder sources, packages, or infrastructure
