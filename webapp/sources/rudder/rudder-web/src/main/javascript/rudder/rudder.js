@@ -244,9 +244,6 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
   $('#'+containerDivId+' > form').change(function() { $('#'+buttonId).removeProp("disabled")});
   // This one is for all input (text, textarea, password... and yes, button)
   $('#'+containerDivId+' :input').change(function() { $('#'+buttonId).removeProp("disabled")});
-  // this one is for the checkbox when using IE
-  //if ($.browser.msie)
-  //  $('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
   // all change on not the form
   $('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).removeProp("disabled")});
@@ -306,54 +303,6 @@ function scrollToElementPopup(elementSelector, popupId){
     //goto that anchor by setting the body scroll top to anchor top
     container.animate({scrollTop:target_top}, 500, 'easeInSine');
 };
-/*
-
-Correctly handle PNG transparency in Win IE 5.5 & 6.
-http://homepage.ntlworld.com/bobosola. Updated 18-Jan-2006.
-
-Use in <HEAD> with DEFER keyword wrapped in conditional comments:
-<!--[if lt IE 7]>
-<script defer type="text/javascript" src="rudder.js"></script>
-<![endif]-->
-
-*/
-
-var arVersion = navigator.appVersion.split("MSIE")
-var version = parseFloat(arVersion[1])
-/*
- * Sometimes body is not initiated on IE when javascript is launched
- * default value should be true/false ?
- */
-var filters= true ;
-if (document.body != null)
-  {
-    filters = document.body.filters;
-  }
-
-if ((version >= 5.5) && (filters))
-{
-   for(var i=0; i<document.images.length; i++)
-   {
-      var img = document.images[i]
-      var imgName = img.src.toUpperCase()
-      if (imgName.substring(imgName.length-3, imgName.length) == "PNG")
-      {
-         var imgID = (img.id) ? "id='" + img.id + "' " : ""
-         var imgClass = (img.className) ? "class='" + img.className + "' " : ""
-         var imgTitle = (img.title) ? "title='" + img.title + "' " : "title='" + img.alt + "' "
-         var imgStyle = "display:inline-block;" + img.style.cssText
-         if (img.align == "left") imgStyle = "float:left;" + imgStyle
-         if (img.align == "right") imgStyle = "float:right;" + imgStyle
-         if (img.parentElement.href) imgStyle = "cursor:hand;" + imgStyle
-         var strNewHTML = "<span " + imgID + imgClass + imgTitle
-         + " style=\"" + "width:" + img.width + "px; height:" + img.height + "px;" + imgStyle + ";"
-         + "filter:progid:DXImageTransform.Microsoft.AlphaImageLoader"
-         + "(src=\'" + img.src + "\', sizingMethod='scale');\"></span>"
-         img.outerHTML = strNewHTML
-         i = i-1
-      }
-   }
-}
 
 function showParameters(e, s){
   var btn = $(e.target)
