@@ -57,8 +57,10 @@ import com.normation.utils.Control
 import com.normation.zio.currentTimeMillis
 import com.normation.zio.currentTimeNanos
 import java.nio.charset.StandardCharsets
+import java.nio.file.CopyOption
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -194,33 +196,46 @@ trait RuddercService {
   def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult]
 }
 
+/*
+ * notice: https://issues.rudder.io/issues/23053 => mv from target to parent at the end of compilation
+ */
 class RuddercServiceImpl(
     val ruddercCmd:      String,
     ruddercFallbackCode: Int,
     killTimeout:         Duration
 ) extends RuddercService {
 
+  def compilationOutputDir(techniqueDir: File): File = techniqueDir / "target"
+
   override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
     val cmd = buildCmdLine(techniqueDir, options)
 
     for {
-      _       <- RuddercLogger.debug(s"Run rudderc: ${cmd.display}")
-      time_0  <- currentTimeNanos
-      p       <- RunNuCommand.run(cmd) // this can't fail, errors are captured in return code
-      r       <- p.await.timeout(killTimeout).flatMap {
-                   case Some(ok) =>
-                     ok.succeed
-                   case None     =>
-                     val error = s"Rudderc ${cmd.display} timed out after ${killTimeout.render}"
-                     RuddercLogger.error(error) *> CmdResult(ruddercFallbackCode, "", error).succeed
-                 }
-      c        = translateReturnCode(techniqueDir.pathAsString, r)
-      _       <- logReturnCode(c)
-      time_1  <- currentTimeNanos
-      duration = time_1 - time_0
-      _       <- RuddercLogger.debug(
-                   s"Done in ${duration / 1000} us: ${cmd.display}"
-                 )
+      _        <- RuddercLogger.debug(s"Run rudderc: ${cmd.display}")
+      time_0   <- currentTimeNanos
+      p        <- RunNuCommand.run(cmd) // this can't fail, errors are captured in return code
+      r        <- p.await.timeout(killTimeout).flatMap {
+                    case Some(ok) =>
+                      ok.succeed
+                    case None     =>
+                      val error = s"Rudderc ${cmd.display} timed out after ${killTimeout.render}"
+                      RuddercLogger.error(error) *> CmdResult(ruddercFallbackCode, "", error).succeed
+                  }
+      c         = translateReturnCode(techniqueDir.pathAsString, r)
+      _        <- logReturnCode(c)
+      // in all case, whatever the return code, move everything from target subdir if it exists to parent and delete it
+      outputDir = compilationOutputDir(techniqueDir)
+      _        <- ZIO.whenZIO(IOResult.attempt(outputDir.exists)) {
+                    ZIO.foreach(outputDir.children.toList)(f =>
+                      IOResult.attempt(f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING)))
+                    ) *>
+                    IOResult.attempt(outputDir.delete())
+                  }
+      time_1   <- currentTimeNanos
+      duration  = time_1 - time_0
+      _        <- RuddercLogger.debug(
+                    s"Done in ${duration / 1000} us: ${cmd.display}"
+                  )
     } yield {
       c
     }
@@ -309,8 +324,12 @@ class TechniqueCompilerWithFallback(
   ): IOResult[TechniqueCompilationOutput] = {
     for {
       config <- readCompilationConfigFile(technique)
+      _      <- ZIO.whenZIO(IOResult.attempt(getCompilationOutputFile(technique).exists)) {
+                  IOResult.attempt(getCompilationOutputFile(technique).delete()) // clean-up previous output
+                }
       app     = config.compiler.getOrElse(defaultCompiler)
       res    <- compileTechniqueInternal(technique, methods, app)
+      _      <- effectUioUnit(println(s"***** + $res}"))
       _      <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
                   writeCompilationOutputFile(technique, res)
                 }
