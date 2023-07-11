@@ -1,0 +1,74 @@
+---
+id: form
+name: Forms
+description: Test various form types in metadata.xml
+version: "0.1"
+params:
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27a
+    name: server_a
+    description: "description"
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27b
+    name: server_b
+    description: "The server hostname"
+    documentation: "This is markdown"
+    constraints:
+      allow_empty: true
+      regex:
+        value: "\\d*"
+        error: "this is not good"
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27c
+    name: server_c
+    description: "The package name"
+    constraints:
+      select:
+        - value: htop
+        - value: atop
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27d
+    name: server_d
+    type: mail
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
+    name: server_e
+    type: boolean
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27f
+    name: server_f
+    type: password
+    constraints:
+      password_hashes:
+        - pre-hashed
+        - unix-crypt-des
+        - sha512-crypt
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27g
+    name: server_g
+    type: password
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27h
+    name: server_h
+    type: permissions
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27i
+    name: server_i
+    type: size-gb
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27j
+    name: server_j
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27k
+    name: server_k
+    type: ipv6
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27l
+    name: server_l
+    type: multiline-string
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27m
+    name: server_m
+    type: integer
+    default: 42
+  - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27n
+    name: server_n
+    type: json
+    default: "{}"
+items:
+  - name: "Ensure correct ntp configuration"
+    id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+    tags:
+      cve: CVE-2022-3456
+    condition: "debian"
+    method: package_present
+    params:
+      name: "htop"
+      version: "2.3.4"

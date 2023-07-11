@@ -61,6 +61,10 @@ impl Condition {
             (Condition::NotDefined, Condition::Expression(e)) => Condition::Expression(e.clone()),
         }
     }
+
+    pub fn is_defined(&self) -> bool {
+        matches!(self, Condition::Defined)
+    }
 }
 
 impl Default for Condition {

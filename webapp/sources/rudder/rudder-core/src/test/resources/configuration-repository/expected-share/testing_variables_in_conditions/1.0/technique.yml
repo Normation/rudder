@@ -12,4 +12,5 @@ category: ncf_techniques
 params:
   - id: 40e3a5ab-0812-4a60-96f3-251be8cedf43
     name: my_custom_condition
-    may_be_empty: false
+    constraints:
+      allow_empty: false

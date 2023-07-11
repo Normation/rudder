@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::env::set_current_dir;
 use std::{
+    env::set_current_dir,
     fs::create_dir_all,
     path::{Path, PathBuf},
 };
@@ -102,6 +102,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             library,
             output,
             standalone,
+            store_ids,
         } => {
             let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
@@ -110,11 +111,12 @@ pub fn run(args: MainArgs) -> Result<()> {
                 input,
                 actual_output.as_path(),
                 standalone,
+                store_ids,
             )
         }
         Command::Test { library, filter } => {
             let library = check_libraries(library)?;
-            action::build(library.as_slice(), input, target.as_path(), true)?;
+            action::build(library.as_slice(), input, target.as_path(), true, false)?;
             action::test(
                 target.join("technique.cf").as_path(),
                 Path::new(TESTS_DIR),
@@ -157,6 +159,7 @@ pub mod action {
     use serde_json::Value;
 
     pub use crate::compiler::compile;
+    use crate::compiler::read_technique;
     use crate::{
         backends::unix::cfengine::cf_agent,
         compiler::metadata,
@@ -268,8 +271,11 @@ pub mod action {
         }
         // Compilation test
         let methods = read_methods(libraries)?;
+        let policy_str = read_to_string(input)
+            .with_context(|| format!("Failed to read input from {}", input.display()))?;
+        let policy = read_technique(methods, &policy_str)?;
         for target in ALL_TARGETS {
-            compile(methods, &policy, *target, input, false)?;
+            compile(policy.clone(), *target, input, false)?;
         }
         //
         ok_output("Checked", input.display());
@@ -308,7 +314,6 @@ pub mod action {
             // Run test setup
             case.setup(test_dir)?;
             // Run the technique
-            // TODO: support several lib dirs
             ok_output(
                 "Running",
                 format!(
@@ -316,6 +321,10 @@ pub mod action {
                     case_path.display()
                 ),
             );
+            // TODO: support several lib dirs
+            if libraries.len() > 1 {
+                bail!("Tests only support one library path containing a full 'ncf' library");
+            }
             cf_agent(technique_file, case_path.as_path(), libraries[0].as_path())?;
             // Run test checks
             case.check(test_dir)?;
@@ -329,14 +338,26 @@ pub mod action {
         input: &Path,
         output_dir: &Path,
         standalone: bool,
+        store_ids: bool,
     ) -> Result<()> {
         create_dir_all(output_dir).with_context(|| {
             format!("Failed to create target directory {}", output_dir.display())
         })?;
-        let policy = read_to_string(input)
+        let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let methods = read_methods(libraries)?;
         create_dir_all(output_dir)?;
+
+        // Read technique, only do it once
+        let policy = read_technique(methods, &policy_str)?;
+
+        if store_ids {
+            let src_file = input.with_extension("ids.yml");
+            let mut file = File::create(&src_file)
+                .with_context(|| format!("Failed to create output file {}", src_file.display()))?;
+            file.write_all(serde_yaml::to_string(&policy)?.as_bytes())?;
+            ok_output("Wrote", src_file.display());
+        }
 
         // Technique implementation
         for target in ALL_TARGETS {
@@ -345,7 +366,7 @@ pub mod action {
             let mut file = File::create(&policy_file).with_context(|| {
                 format!("Failed to create output file {}", policy_file.display())
             })?;
-            file.write_all(compile(methods, &policy, *target, input, standalone)?.as_bytes())?;
+            file.write_all(compile(policy.clone(), *target, input, standalone)?.as_bytes())?;
             ok_output("Wrote", policy_file.display());
         }
 
@@ -357,7 +378,7 @@ pub mod action {
                 metadata_file.display()
             )
         })?;
-        file.write_all(metadata(methods, &policy, input)?.as_bytes())?;
+        file.write_all(metadata(policy, input)?.as_bytes())?;
         ok_output("Wrote", metadata_file.display());
 
         // Resources folder

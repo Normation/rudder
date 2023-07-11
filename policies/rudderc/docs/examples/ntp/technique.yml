@@ -13,5 +13,3 @@ items:
       path: "/etc/ntp.conf"
       lines: "server ntp.org"
       enforce: "true"
-files:
-  - ntp.conf.tpl

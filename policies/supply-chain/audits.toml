@@ -424,6 +424,12 @@ user-id = 72883 # Valentin Gosu (valenting)
 start = "2020-01-09"
 end = "2024-06-27"
 
+[[trusted.uuid]]
+criteria = "safe-to-deploy"
+user-id = 3204 # Ashley Mannix (KodrAus)
+start = "2019-10-18"
+end = "2024-07-19"
+
 [[trusted.walkdir]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)

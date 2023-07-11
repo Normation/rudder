@@ -1508,7 +1508,7 @@ object RudderConfigInit {
 
     lazy val techniqueSerializer = new TechniqueSerializer(typeParameterService)
 
-    lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(typeParameterService, resourceFileService)
+    lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService)
 
     lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeInfoServiceImpl)
     // REST API

@@ -55,6 +55,10 @@ pub enum Command {
         /// Generate a file that can run by itself
         #[arg(long)]
         standalone: bool,
+
+        /// Add ids to the source technique. This will also reformat the file.
+        #[arg(long)]
+        store_ids: bool,
     },
 
     /// Run the provided technique with the provided tests cases

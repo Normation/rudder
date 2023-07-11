@@ -32,7 +32,7 @@ impl Target {
     }
 }
 
-/// Detect target from file extension
+/// Detect target from a file extension
 impl TryFrom<&Path> for Target {
     type Error = Error;
 
@@ -83,82 +83,81 @@ impl<'de> Deserialize<'de> for Target {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ParameterType {
-    String,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default, PartialOrd, Ord)]
+#[serde(rename_all = "lowercase")]
+pub enum Escaping {
+    Raw,
+    #[serde(rename = "here-string")]
     HereString,
+    #[default]
+    String,
 }
 
-impl fmt::Display for ParameterType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::String => "string",
-                Self::HereString => "here-string",
-            }
-        )
-    }
-}
-
-impl Default for ParameterType {
-    fn default() -> Self {
-        Self::String
-    }
-}
-
-impl FromStr for ParameterType {
+impl FromStr for Escaping {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "String" => ParameterType::String,
-            "HereString" => ParameterType::HereString,
-            t => bail!("Unknown parameter type {}", t),
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            "string" => Self::String,
+            "herestring" | "here-string" => Self::HereString,
+            "raw" | "none" => Self::Raw,
+            _ => bail!("Unrecognized escaping value: {}", s),
         })
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub struct Constraints {
-    pub allow_empty_string: bool,
-    pub allow_whitespace_string: bool,
+pub struct MethodConstraints {
+    #[serde(rename = "allow_empty_string")]
+    pub allow_empty: bool,
+    #[serde(rename = "allow_whitespace_string")]
+    pub allow_whitespace: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub select: Option<Vec<String>>,
+    pub select: Option<Vec<Select>>,
     // Storing as string to be able to ser/de easily
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub regex: Option<String>,
+    pub regex: Option<RegexConstraint>,
     pub max_length: usize,
 }
 
-impl Constraints {
+impl MethodConstraints {
     /// Update the set of constraints from given constraint
-    pub fn update(&mut self, constraint: Constraint) -> Result<()> {
+    pub fn update(&mut self, constraint: MethodConstraint) -> Result<()> {
         match constraint {
-            Constraint::AllowEmptyString(v) => self.allow_empty_string = v,
-            Constraint::AllowWhitespaceString(v) => self.allow_whitespace_string = v,
-            Constraint::Select(v) => self.select = Some(v),
-            Constraint::Regex(v) => {
+            MethodConstraint::AllowEmpty(v) => self.allow_empty = v,
+            MethodConstraint::AllowWhitespace(v) => self.allow_whitespace = v,
+            MethodConstraint::Select(v) => {
+                self.select = Some(
+                    v.into_iter()
+                        .map(|s| Select {
+                            name: None,
+                            value: s,
+                        })
+                        .collect(),
+                )
+            }
+            MethodConstraint::Regex(v) => {
                 // Ensure valid regex
                 //
                 // We use look-around so the regex crate is not enough
                 let _regex = fancy_regex::Regex::new(&v)?;
-                self.regex = Some(v);
+                self.regex = Some(RegexConstraint {
+                    value: v,
+                    error_message: None,
+                });
             }
-            Constraint::MaxLength(v) => self.max_length = v,
+            MethodConstraint::MaxLength(v) => self.max_length = v,
         }
         Ok(())
     }
 
     /// Validate if the given values matches the constraints set
     pub fn is_valid(&self, value: &str) -> Result<()> {
-        if !self.allow_empty_string && value.is_empty() {
+        if !self.allow_empty && value.is_empty() {
             bail!("value must not be empty");
         }
-        // allow_whitespace_string allows empty string
-        if !value.is_empty() && !self.allow_whitespace_string && value.trim().is_empty() {
+        // allow_whitespace allows empty string
+        if !value.is_empty() && !self.allow_whitespace && value.trim().is_empty() {
             bail!("value must not be only whitespaces");
         }
         if value.len() > self.max_length {
@@ -169,14 +168,18 @@ impl Constraints {
             )
         }
         if let Some(r) = &self.regex {
-            let regex = fancy_regex::Regex::new(r)?;
+            let regex = fancy_regex::Regex::new(&r.value)?;
             if !regex.is_match(value)? {
-                bail!("value '{}' does not match regex '{}'", value, r)
+                bail!("value '{}' does not match regex '{}'", value, r.value)
             }
         }
         if let Some(s) = &self.select {
-            if !s.iter().any(|x| x == value) {
-                bail!("value '{}' not included in allowed set {:?}", value, s)
+            if !s.iter().any(|x| x.value == value) {
+                bail!(
+                    "value '{}' not included in allowed set {:?}",
+                    value,
+                    s.iter().map(|s| s.value.clone()).collect::<Vec<String>>()
+                )
             }
         }
         Ok(())
@@ -185,20 +188,37 @@ impl Constraints {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Constraint {
-    AllowEmptyString(bool),
-    AllowWhitespaceString(bool),
+pub enum MethodConstraint {
+    #[serde(rename = "allow_empty_string")]
+    AllowEmpty(bool),
+    #[serde(rename = "allow_whitespace_string")]
+    AllowWhitespace(bool),
     Select(Vec<String>),
     Regex(String),
     MaxLength(usize),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "snake_case")]
+pub struct Select {
+    /// Human-readable name. If `None`, use the value.
+    pub name: Option<String>,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "snake_case")]
+pub struct RegexConstraint {
+    pub value: String,
+    pub error_message: Option<String>,
+}
+
 /// Default constraints
-impl Default for Constraints {
+impl Default for MethodConstraints {
     fn default() -> Self {
         Self {
-            allow_empty_string: false,
-            allow_whitespace_string: false,
+            allow_empty: false,
+            allow_whitespace: false,
             select: None,
             regex: None,
             max_length: DEFAULT_MAX_PARAM_LENGTH,
@@ -244,20 +264,20 @@ mod tests {
 
     #[test]
     fn it_checks_constraints() {
-        let constraints = Constraints::default();
+        let constraints = MethodConstraints::default();
         assert!(constraints.is_valid("").is_err());
         assert!(constraints.is_valid("    ").is_err());
         assert!(constraints.is_valid("42").is_ok());
 
-        let constraints = Constraints {
-            allow_empty_string: true,
+        let constraints = MethodConstraints {
+            allow_empty: true,
             ..Default::default()
         };
         assert!(constraints.is_valid("").is_ok());
         assert!(constraints.is_valid("42").is_ok());
         assert!(constraints.is_valid(" ").is_err());
 
-        let constraints = Constraints {
+        let constraints = MethodConstraints {
             max_length: 2,
             ..Default::default()
         };
@@ -265,8 +285,17 @@ mod tests {
         assert!(constraints.is_valid("42").is_ok());
         assert!(constraints.is_valid("424").is_err());
 
-        let constraints = Constraints {
-            select: Some(vec!["true".to_string(), "false".to_string()]),
+        let constraints = MethodConstraints {
+            select: Some(vec![
+                Select {
+                    value: "true".to_string(),
+                    name: None,
+                },
+                Select {
+                    value: "false".to_string(),
+                    name: None,
+                },
+            ]),
             ..Default::default()
         };
         assert!(constraints.is_valid("true").is_ok());
@@ -274,8 +303,11 @@ mod tests {
         assert!(constraints.is_valid("").is_err());
         assert!(constraints.is_valid("fal").is_err());
 
-        let constraints = Constraints {
-            regex: Some("^[a-z]+$".to_string()),
+        let constraints = MethodConstraints {
+            regex: Some(RegexConstraint {
+                value: "^[a-z]+$".to_string(),
+                error_message: None,
+            }),
             ..Default::default()
         };
         assert!(constraints.is_valid("a").is_ok());

@@ -20,7 +20,7 @@ use crate::{
 };
 
 // TODO support macros at the policy or bundle level
-// this will allow conditionals on agent version
+// this will allow conditionals on the agent version
 // and using more recent features while keeping compatibility
 
 pub mod cfengine;
@@ -41,7 +41,7 @@ impl Unix {
 
     /// To call the technique in standalone policies
     fn prelude(technique_id: Id, params: Vec<String>) -> String {
-        // Static content including parts of the system tehcniques required to run most techniques,
+        // Static content including parts of the system techniques required to run most techniques,
         // i.e. lib loading and global vars (`g.X`).
         let static_prelude = include_str!("unix/prelude.cf");
         let init = Promise::usebundle("rudder_test_init", None, None, vec![]);
@@ -84,13 +84,8 @@ impl Backend for Unix {
         }
 
         // main bundle containing the methods
-        let mut main_bundle = Bundle::agent(technique.id.clone()).parameters(
-            technique
-                .parameters
-                .iter()
-                .map(|p| p.name.clone())
-                .collect(),
-        );
+        let mut main_bundle = Bundle::agent(technique.id.clone())
+            .parameters(technique.params.iter().map(|p| p.name.clone()).collect());
         // separate bundles for each method call
         let mut call_bundles = vec![];
         if !Unix::list_resources(resources)?.is_empty() {
@@ -103,7 +98,7 @@ impl Backend for Unix {
             Promise::slist(
                 "args",
                 technique
-                    .parameters
+                    .params
                     .iter()
                     .map(|p| format!("${{{}}}", &p.name))
                     .collect(),
@@ -137,7 +132,7 @@ impl Backend for Unix {
                 Unix::prelude(
                     technique.id,
                     technique
-                        .parameters
+                        .params
                         .iter()
                         .map(|p| p.name.to_string())
                         .collect()

@@ -60,4 +60,5 @@ params:
   - id: 1aaacd71-c2d5-482c-bcff-5eee6f8da9c2
     name: technique_parameter
     description: " a long description, with line \n break within"
-    may_be_empty: true
+    constraints:
+      allow_empty: true

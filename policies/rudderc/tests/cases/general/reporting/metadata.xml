@@ -1,9 +1,9 @@
 <TECHNIQUE name="Test various reporting options">
-  <DESCRIPTION/>
+  <DESCRIPTION>Test various reporting options</DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <MULTIINSTANCE>false</MULTIINSTANCE>
   <POLICYGENERATION>separated</POLICYGENERATION>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>reporting</NAME>
     </BUNDLES>

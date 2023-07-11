@@ -23,6 +23,7 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 strsim = "0.10"
 serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
 log = "0.4"
 include_dir = "0.7.3"
 env_logger = "0.10"

@@ -6,10 +6,13 @@
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 
+        [parameter(Mandatory = $true)]
+        [string]$server,
         [Rudder.PolicyMode]$policyMode
     )
     $techniqueParams = @{
 
+        "server" = $server
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)

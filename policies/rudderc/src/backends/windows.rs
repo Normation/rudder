@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::{bail, Error, Result};
 use askama::Template;
-use rudder_commons::ParameterType;
+use rudder_commons::Escaping;
 
 use super::Backend;
 use crate::ir::{
@@ -53,7 +53,7 @@ mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
-    use rudder_commons::{ParameterType, Target};
+    use rudder_commons::{Escaping, Target};
 
     use crate::{ir::value::Expression, regex};
 
@@ -111,13 +111,14 @@ mod filters {
         }
     }
 
-    pub fn parameter_fmt(p: &&(String, String, ParameterType)) -> askama::Result<String> {
+    pub fn parameter_fmt(p: &&(String, String, Escaping)) -> askama::Result<String> {
         // Format expression for Windows
         let value = value_fmt(&p.1)?;
-        // Then display depending on type
+        // Then display depending on the type
         Ok(match p.2 {
-            ParameterType::String => format!("\"{}\"", escape_double_quotes(value)?),
-            ParameterType::HereString => format!("@'\n{value}\n'@"),
+            Escaping::String => format!("\"{}\"", escape_double_quotes(value)?),
+            Escaping::HereString => format!("@'\n{value}\n'@"),
+            Escaping::Raw => value,
         })
     }
 }
@@ -129,7 +130,7 @@ struct WindowsMethod {
     component_key: String,
     disable_reporting: bool,
     condition: Option<String>,
-    args: Vec<(String, String, ParameterType)>,
+    args: Vec<(String, String, Escaping)>,
     name: String,
 }
 
@@ -137,14 +138,12 @@ impl TryFrom<Method> for WindowsMethod {
     type Error = Error;
 
     fn try_from(m: Method) -> Result<Self, Self::Error> {
-        let Some(report_parameter) = m
-            .params
-            .get(&m.info.unwrap().class_parameter) else {
+        let Some(report_parameter) = m.params.get(&m.info.unwrap().class_parameter) else {
             bail!("Missing parameter {}", m.info.unwrap().class_parameter)
         };
 
         // Let's build a (Name, Value, Type) tuple required for proper rendering.
-        let mut args: Vec<(String, String, ParameterType)> = m
+        let mut args: Vec<(String, String, Escaping)> = m
             .params
             .clone()
             .into_iter()
@@ -158,7 +157,7 @@ impl TryFrom<Method> for WindowsMethod {
                     .iter()
                     .find(|p| p.name == n)
                     .unwrap()
-                    .p_type;
+                    .escaping;
                 (n, v, p_type)
             })
             .collect();
@@ -243,7 +242,7 @@ impl Windows {
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
             has_modules: !Windows::list_resources(resources)?.is_empty(),
-            parameters: src.parameters,
+            parameters: src.params,
             methods,
         };
         technique.render().map_err(|e| e.into())

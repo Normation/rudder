@@ -47,9 +47,7 @@ impl TryFrom<Method> for (Promise, Bundle) {
         let is_supported = info.agent_support.contains(&Agent::CfengineCommunity);
         let method_name = &m.info.unwrap().name;
 
-        let Some(report_parameter) = m
-            .params
-            .get(&info.class_parameter) else {
+        let Some(report_parameter) = m.params.get(&info.class_parameter) else {
             bail!("Missing parameter {}", info.class_parameter)
         };
 

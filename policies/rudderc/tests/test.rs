@@ -28,6 +28,7 @@ fn test(filename: &str) {
         technique_dir.join("technique.yml").as_path(),
         technique_dir.join("target").as_path(),
         true,
+        false,
     )
     .unwrap();
     action::test(
