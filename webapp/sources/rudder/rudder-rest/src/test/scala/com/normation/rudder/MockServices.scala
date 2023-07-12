@@ -132,7 +132,6 @@ import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.NewNodeManagerHooks
 import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers

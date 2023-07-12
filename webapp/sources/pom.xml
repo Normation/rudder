@@ -436,7 +436,7 @@ limitations under the License.
     <json-path-version>2.8.0</json-path-version>
     <json-smart-version>2.4.10</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
-    <unboundid-version>6.0.8</unboundid-version>
+    <unboundid-version>6.0.9</unboundid-version>
     <fastparse-version>3.0.1</fastparse-version>
     <config-version>1.4.2</config-version>
     <caffeine-version>3.1.6</caffeine-version>

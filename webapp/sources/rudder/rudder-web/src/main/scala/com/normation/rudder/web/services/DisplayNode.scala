@@ -858,10 +858,8 @@ object DisplayNode extends Loggable {
   }
 
   def displayTabProperties(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
-    import com.normation.rudder.AuthorizationType
 
     val nodeId        = node.id.value
-    val userHasRights = CurrentUser.checkRights(AuthorizationType.Node.Edit)
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
     val tabId         = htmlId(jsId, "sd_props_")
     val css: CssSel = "#tabPropsId [id]" #> tabId &
