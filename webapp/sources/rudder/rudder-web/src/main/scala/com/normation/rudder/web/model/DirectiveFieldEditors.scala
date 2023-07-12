@@ -808,7 +808,7 @@ class PasswordField(
   def toForm = {
     val hashes                                  = JsObj(algos.filterNot(x => x == PLAIN || x == PreHashed).map(a => (a.prefix, Str(a.name))): _*)
     val formId                                  = Helpers.nextFuncName
-    val valueInput                              = SHtml.text("", s => parseClient(s), ("ng-model", "result"), ("ng-hide", "true"))
+    val valueInput                              = SHtml.text("", s => parseClient(s), ("class", "input-result"))
     val otherPasswords                          =
       if (slavesValues().size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq: _*).toJsCmd
     val (scriptEnabled, isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
@@ -846,23 +846,25 @@ class PasswordField(
 
     val initScript = {
       Script(OnLoad(JsRaw(s"""
-       angular.bootstrap("#${formId}", ['password']);
-       var scope = angular.element($$("#${formId}-controller")).scope();
-       scope.$$apply(function(){
-         scope.init(
-             ${currentValue.map(Str(_).toJsCmd).getOrElse("undefined")}
-           , ${currentAlgo.map(x => Str(x.prefix).toJsCmd).getOrElse("undefined")}
-           , ${isScript}
-           , ${Str(currentAction).toJsCmd}
-           , ${hashes.toJsCmd}
-           , ${otherPasswords}
-           , ${canBeDeleted}
-           , ${scriptEnabled}
-           , ${prevHash.map(Str(_).toJsCmd).getOrElse("undefined")}
-           , ${prevAlgo.map(x => Str(x.prefix).toJsCmd).getOrElse("undefined")}
-           , ${previousScript}
-         );
-       });""")))
+       var passwordForm = new PasswordForm(
+         ${currentValue.map(Str(_).toJsCmd).getOrElse("undefined")}
+         , ${currentAlgo.map(x => Str(x.prefix).toJsCmd).getOrElse("undefined")}
+         , ${isScript}
+         , ${Str(currentAction).toJsCmd}
+         , ${hashes.toJsCmd}
+         , ${otherPasswords}
+         , ${canBeDeleted}
+         , ${scriptEnabled}
+         , ${prevHash.map(Str(_).toJsCmd).getOrElse("undefined")}
+         , ${prevAlgo.map(x => Str(x.prefix).toJsCmd).getOrElse("undefined")}
+         , ${previousScript}
+         , "${formId}"
+       );
+       passwordForms["${formId}"] = passwordForm;
+       console.log(passwordForms);
+       initPasswordFormEvents("${formId}");
+       updatePasswordFormView("${formId}");
+       """)))
     }
 
     val form = (".password-section *+" #> valueInput).apply(PasswordField.xml(formId)) ++ initScript
