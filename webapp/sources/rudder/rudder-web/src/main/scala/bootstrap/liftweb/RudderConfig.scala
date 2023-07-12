@@ -1110,6 +1110,7 @@ object RudderConfig extends Loggable {
   val mainCampaignService:                 MainCampaignService                        = rci.mainCampaignService
   val ncfTechniqueReader:                  ncf.TechniqueReader                        = rci.ncfTechniqueReader
   val newNodeManager:                      NewNodeManager                             = rci.newNodeManager
+  val newNodeManagerHooks:                 NewNodeManagerHooks                        = rci.newNodeManagerHooks
   val nodeDit:                             NodeDit                                    = rci.nodeDit
   val nodeGrid:                            NodeGrid                                   = rci.nodeGrid
   val nodeInfoService:                     NodeInfoService                            = rci.nodeInfoService
@@ -1235,6 +1236,7 @@ case class RudderServiceApi(
     ruleApplicationStatus:               RuleApplicationStatusService,
     propertyEngineService:               PropertyEngineService,
     newNodeManager:                      NewNodeManager,
+    newNodeManagerHooks:                 NewNodeManagerHooks,
     nodeGrid:                            NodeGrid,
     nodeSummaryService:                  NodeSummaryService,
     jsTreeUtilService:                   JsTreeUtilService,
@@ -2952,6 +2954,12 @@ object RudderConfigInit {
     }
     lazy val asyncDeploymentAgent = asyncDeploymentAgentImpl
 
+    lazy val newNodeHookRunner = new NewNodeManagerHooksImpl(
+      nodeInfoServiceImpl,
+      HOOKS_D,
+      HOOKS_IGNORE_SUFFIXES
+    )
+
     lazy val newNodeManagerImpl = {
       // the sequence of unit process to accept a new inventory
       val unitAcceptors = {
@@ -2972,12 +2980,6 @@ object RudderConfigInit {
         Nil
       }
 
-      val hookRunner = new NewNodeManagerHooksImpl(
-        nodeInfoServiceImpl,
-        HOOKS_D,
-        HOOKS_IGNORE_SUFFIXES
-      )
-
       val composed = new ComposedNewNodeManager[Seq[LDIFChangeRecord]](
         ldapFullInventoryRepository,
         nodeSummaryServiceImpl,
@@ -2989,7 +2991,7 @@ object RudderConfigInit {
         cachedNodeConfigurationService,
         reportingServiceImpl,
         List(nodeInfoServiceImpl),
-        hookRunner
+        newNodeHookRunner
       )
 
       val listNodes = new LdapListNewNode(
@@ -3549,6 +3551,7 @@ object RudderConfigInit {
       ruleApplicationStatusImpl,
       propertyEngineService,
       newNodeManagerImpl,
+      newNodeHookRunner,
       nodeGridImpl,
       nodeSummaryServiceImpl,
       jsTreeUtilServiceImpl,
