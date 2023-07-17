@@ -1577,7 +1577,10 @@ class ExecutionBatchTest extends Specification {
   }
 
   // see above test for the case without reportid which is wrongly reported
-  // we also test that when keyvalues are identical, then messages are merged and status is the worst
+  // we also test that when keyvalues are identical:
+  // - we correctly split appart things with same component name and keyvalue
+  // - for a given component name, different key values are splitted appart,
+  // - for same component name, key value, then messages are merged and status is the worst
   "Sub block with looping component and same component names are correctly reported with reportid, see https://issues.rudder.io/issues/20071" should {
     val reportsWithLoop = Seq[ResultReports](
       new ResultRepairedReport(
@@ -1586,8 +1589,8 @@ class ExecutionBatchTest extends Specification {
         "policy",
         "nodeId",
         "report_id_b1c1",
-        "component1",
-        "b1c1",
+        "component",
+        "keyvalue",
         executionTimestamp,
         "message"
       ),
@@ -1597,8 +1600,8 @@ class ExecutionBatchTest extends Specification {
         "policy",
         "nodeId",
         "report_id_b1c2",
-        "component2",
-        "b1c2",
+        "component",
+        "keyvalue",
         executionTimestamp,
         "message"
       ),
@@ -1608,19 +1611,19 @@ class ExecutionBatchTest extends Specification {
         "policy",
         "nodeId",
         "report_id_b2c1",
-        "component1",
-        "b2c1",
+        "component",
+        "keyvalue",
         executionTimestamp,
         "message"
-      ),
+      ), // following are 3 iterations for b2c2
       new ResultSuccessReport(
         executionTimestamp,
         "cr",
         "policy",
         "nodeId",
         "report_id_b2c2",
-        "component2",
-        "loop1",
+        "component",
+        "keyvalue",
         executionTimestamp,
         "message_1"
       ),
@@ -1630,7 +1633,7 @@ class ExecutionBatchTest extends Specification {
         "policy",
         "nodeId",
         "report_id_b2c2",
-        "component2",
+        "component",
         "loop2",
         executionTimestamp,
         "message_2 loop2"
@@ -1641,7 +1644,7 @@ class ExecutionBatchTest extends Specification {
         "policy",
         "nodeId",
         "report_id_b2c2",
-        "component2",
+        "component",
         "loop2",
         executionTimestamp,
         "message_3 loop3"
@@ -1655,20 +1658,20 @@ class ExecutionBatchTest extends Specification {
         "block1",
         ReportingLogic.WeightedReport,
         new ValueExpectedReport(
-          "component1",
-          ExpectedValueId("b1c1", "report_id_b1c1") :: Nil
+          "component",
+          ExpectedValueId("keyvalue", "report_id_b1c1") :: Nil
         ) :: new ValueExpectedReport(
-          "component2",
-          ExpectedValueId("b1c2", "report_id_b1c2") :: Nil
+          "component",
+          ExpectedValueId("keyvalue", "report_id_b1c2") :: Nil
         ) :: Nil
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.WeightedReport,
         new ValueExpectedReport(
-          "component1",
-          ExpectedValueId("b2c1", "report_id_b2c1") :: Nil
+          "component",
+          ExpectedValueId("keyvalue", "report_id_b2c1") :: Nil
         ) :: new ValueExpectedReport(
-          "component2",
+          "component",
           ExpectedValueId("${loop}", "report_id_b2c2") :: Nil
         ) :: Nil
       ) :: Nil
@@ -1692,32 +1695,36 @@ class ExecutionBatchTest extends Specification {
     "return the correct number of repaired" in {
       withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
     }
-    "return one root component with 5 key values (because loop 2 and 3 are same key value)" in {
-      withLoop.components.filter(_.componentName == "blockRoot").head.componentValues.size === 5
-    }
-    "return 1 loop component and one value for each message (no merge for reportid)" in {
-      val block2 = withLoop.components
+
+    "return one root component with 3 key values (because 'keyvalue' and '${loop}' apart, and in ${loop} replaced keyvalues apart (two cases))" in {
+      // ie we have:
+      // keyvalue(<-> keyvalue):[Success:"message";Repaired:"message";Repaired:"message"] (for block 1 sub-block 1 and 2, block 2 sub-block 1)
+      // keyvalue(<-> ${loop}):[Success:"message_1"] (for block 2, sub component 2, loop iter 1)
+      // loop2(<-> ${loop}):[Repaired:"message_3 loop3";Success:"message_2 loop2"] (for component 2, sub component 2, loop iter 2 and 3)
+      val root = withLoop.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
-        .subComponents
-        .find(_.componentName == "block2")
-        .get
+
+      val keyvalues = root.componentValues.filter(v => v.expectedComponentValue == "keyvalue" && v.componentValue == "keyvalue")
+
+      (root.componentValues.size === 3) and
+      (keyvalues.size === 1) and
+      (keyvalues.head.messages.size === 3) and
+      (root.componentValues.filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "keyvalue").size === 1) and
+      (root.componentValues.filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "loop2").size === 1)
+    }
+
+    "the loop2 component has two merged message" in {
+      val loop2 = withLoop.components
+        .filter(_.componentName == "blockRoot")
+        .head
         .asInstanceOf[BlockStatusReport]
+        .componentValues
+        .filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "loop2")
+        .head
 
-      val comp1 = block2.subComponents
-        .find(_.componentName == "component1")
-        .get
-
-      val comp2 = block2.subComponents
-        .find(_.componentName == "component2")
-        .get
-
-      val loop2 = comp2.componentValues("loop2").head.messages
-
-      (comp1.componentValues.size === 1) and
-      (comp2.componentValues.size === 2) and
-      (loop2.size == 2)
+      loop2.messages.size === 2
     }
 
   }
