@@ -1444,6 +1444,7 @@ class ExecutionBatchTest extends Specification {
 
   }
 
+  // see correction with report id in next test
   "Sub block with looping component and same component names are not correctly reported, see https://issues.rudder.io/issues/20071" should {
     val reportsWithLoop = Seq[ResultReports](
       new ResultRepairedReport(
@@ -1451,7 +1452,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b1c1",
         "component1",
         "b1c1",
         executionTimestamp,
@@ -1462,7 +1463,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b1c2",
         "component2",
         "b1c2",
         executionTimestamp,
@@ -1473,7 +1474,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c1",
         "component1",
         "b2c1",
         executionTimestamp,
@@ -1484,7 +1485,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop1",
         executionTimestamp,
@@ -1495,7 +1496,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop2",
         executionTimestamp,
@@ -1506,7 +1507,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop3",
         executionTimestamp,
@@ -1571,6 +1572,166 @@ class ExecutionBatchTest extends Specification {
         .get
 
       (block2.componentValues("${loop}").head.messages.size === 4)
+    }
+
+  }
+
+  // see above test for the case without reportid which is wrongly reported
+  // we also test that when keyvalues are identical:
+  // - we correctly split appart things with same component name and keyvalue
+  // - for a given component name, different key values are splitted appart,
+  // - for same component name, key value, then messages are merged and status is the worst
+  "Sub block with looping component and same component names are correctly reported with reportid, see https://issues.rudder.io/issues/20071" should {
+    val reportsWithLoop = Seq[ResultReports](
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b1c1",
+        "component",
+        "keyvalue",
+        executionTimestamp,
+        "message c1"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b1c2",
+        "component",
+        "keyvalue",
+        executionTimestamp,
+        "message c2"
+      ), // following are 3 iterations for b2c1
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c1",
+        "component",
+        "keyvalue",
+        executionTimestamp,
+        "message_1 loop1"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c1",
+        "component",
+        "keyvalue",
+        executionTimestamp,
+        "message_2 loop1"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c1",
+        "component",
+        "loop",
+        executionTimestamp,
+        "message_3 loop1"
+      ), // following is 1 iterations for b2c2
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c2",
+        "component",
+        "loop",
+        executionTimestamp,
+        "message_1 loop2"
+      )
+    )
+
+    val expectedComponent        = BlockExpectedReport(
+      "blockRoot",
+      ReportingLogic.WeightedReport,
+      BlockExpectedReport(
+        "block1",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component",
+          ExpectedValueId("keyvalue", "report_id_b1c1") :: Nil
+        ) :: new ValueExpectedReport(
+          "component",
+          ExpectedValueId("keyvalue", "report_id_b1c2") :: Nil
+        ) :: Nil
+      ) :: BlockExpectedReport(
+        "block2",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component",
+          ExpectedValueId("${loop1}", "report_id_b2c1") :: Nil
+        ) :: new ValueExpectedReport(
+          "component",
+          ExpectedValueId("${loop2}", "report_id_b2c2") :: Nil
+        ) :: Nil
+      ) :: Nil
+    )
+    val directiveExpectedReports =
+      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+    val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+
+    val withLoop = ExecutionBatch
+      .getComplianceForRule(
+        mergeInfo,
+        reportsWithLoop,
+        mode,
+        ruleExpectedReports,
+        UnexpectedReportInterpretation(Set(UnboundVarValues)),
+        new ComputeComplianceTimer()
+      )
+      .directives("policy")
+
+    "return the correct number of repaired" in {
+      withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
+    }
+
+    "correctly split apart/merge report with component with variables expanded to same name" in {
+      // note that in 7.X branches, we don't use reportId yet - see https://issues.rudder.io/issues/23084
+
+      val root = withLoop.components
+        .filter(_.componentName == "blockRoot")
+        .head
+        .asInstanceOf[BlockStatusReport]
+
+      val expectedRoot = {
+        ComponentValueStatusReport(
+          "keyvalue",
+          "keyvalue",
+          List(MessageStatusReport(EnforceRepaired, Some("message c1")), MessageStatusReport(EnforceSuccess, Some("message c2")))
+        ) ::
+        ComponentValueStatusReport(
+          "keyvalue",
+          "${loop1}",
+          List(
+            MessageStatusReport(EnforceRepaired, Some("message_2 loop1")),
+            MessageStatusReport(EnforceSuccess, Some("message_1 loop1"))
+          )
+        ) ::
+        ComponentValueStatusReport(
+          "loop",
+          "${loop1}",
+          List(MessageStatusReport(EnforceSuccess, Some("message_3 loop1")))
+        ) ::
+        ComponentValueStatusReport(
+          "loop",
+          "${loop2}",
+          List(MessageStatusReport(EnforceRepaired, Some("message_1 loop2")))
+        ) ::
+        Nil
+      }
+
+      root.componentValues must containTheSameElementsAs(expectedRoot)
     }
 
   }
@@ -2359,7 +2520,8 @@ class ExecutionBatchTest extends Specification {
    *   - gm1: "Chech user ${user} created": /bin/createUserScript ${user}
    *   - gm2: "Check right OK for ${user}: /bin/checkRightsOK ${user}
    *
-   * Is possible
+   * Is possible.
+   * And we accept both *anything* after $
    */
 
   "A component with reportId, with variable in its name" should {
@@ -2371,7 +2533,7 @@ class ExecutionBatchTest extends Specification {
         "Check user ${user} created",
         ExpectedValueId("/bin/createUserScript ${user}", "report_0") :: Nil
       ) :: new ValueExpectedReport(
-        "Check right OK for ${user}",
+        "Check right OK for ${user} and what follows '$' does not matter in pattern matching",
         ExpectedValueId("/bin/checkRightsOK ${user}", "report_1") :: Nil
       ) :: Nil
     )
@@ -2395,7 +2557,7 @@ class ExecutionBatchTest extends Specification {
         "dir",
         "nodeId",
         "report_1",
-        "Check right OK for alice",
+        "Check right OK for alice and that part is whatever we want",
         "/bin/checkRightsOK alice",
         executionTimestamp,
         "alice rights are correct"
@@ -2426,7 +2588,7 @@ class ExecutionBatchTest extends Specification {
     )
 
     /*
-     * we see that for now, we are quite lenient on the check: we don't check for the shape of returned component messages and names
+     * we check the pattern of returned component name
      */
     val badReports = Seq[ResultReports](
       // user mallory
@@ -2436,7 +2598,7 @@ class ExecutionBatchTest extends Specification {
         "dir",
         "nodeId",
         "report_0",
-        "I'm doing whatever",
+        "I'm doing whatever", // does not match pattern beginning: `Check user $...`
         "/bin/badScript",
         executionTimestamp,
         "mallory is correctly created"
@@ -2447,7 +2609,7 @@ class ExecutionBatchTest extends Specification {
         "dir",
         "nodeId",
         "report_1",
-        "Really, nobody looks to green compliance",
+        "Really, nobody looks to green compliance", // does not match pattern beginning: `Check right OK for $...`
         "/bin/moreBadThings",
         executionTimestamp,
         "mallory rights are correct"
@@ -2491,7 +2653,7 @@ class ExecutionBatchTest extends Specification {
         List("""Success:"alice rights are correct"""", """Repaired:"bob rights are correct"""")
       ))
     }
-    "mallory can get green compliance with other things executed that what we though" in {
+    "we check that component name matches the variable regex from expected" in {
       (withBad.compliance === ComplianceLevel(unexpected = 2, missing = 2)) and
       (withBad.componentValues
         .filter(_.expectedComponentValue == "/bin/createUserScript ${user}")
