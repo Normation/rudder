@@ -1444,6 +1444,7 @@ class ExecutionBatchTest extends Specification {
 
   }
 
+  // see correction with report id in next test
   "Sub block with looping component and same component names are not correctly reported, see https://issues.rudder.io/issues/20071" should {
     val reportsWithLoop = Seq[ResultReports](
       new ResultRepairedReport(
@@ -1451,7 +1452,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b1c1",
         "component1",
         "b1c1",
         executionTimestamp,
@@ -1462,7 +1463,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b1c2",
         "component2",
         "b1c2",
         executionTimestamp,
@@ -1473,7 +1474,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c1",
         "component1",
         "b2c1",
         executionTimestamp,
@@ -1484,7 +1485,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop1",
         executionTimestamp,
@@ -1495,7 +1496,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop2",
         executionTimestamp,
@@ -1506,7 +1507,7 @@ class ExecutionBatchTest extends Specification {
         "cr",
         "policy",
         "nodeId",
-        "report_id12",
+        "report_id_b2c2",
         "component2",
         "loop3",
         executionTimestamp,
@@ -1571,6 +1572,152 @@ class ExecutionBatchTest extends Specification {
         .get
 
       (block2.componentValues("${loop}").head.messages.size === 4)
+    }
+
+  }
+
+  // see above test for the case without reportid which is wrongly reported
+  // we also test that when keyvalues are identical, then messages are merged and status is the worst
+  "Sub block with looping component and same component names are correctly reported with reportid, see https://issues.rudder.io/issues/20071" should {
+    val reportsWithLoop = Seq[ResultReports](
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b1c1",
+        "component1",
+        "b1c1",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b1c2",
+        "component2",
+        "b1c2",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c1",
+        "component1",
+        "b2c1",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c2",
+        "component2",
+        "loop1",
+        executionTimestamp,
+        "message_1"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c2",
+        "component2",
+        "loop2",
+        executionTimestamp,
+        "message_2 loop2"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id_b2c2",
+        "component2",
+        "loop2",
+        executionTimestamp,
+        "message_3 loop3"
+      )
+    )
+
+    val expectedComponent        = BlockExpectedReport(
+      "blockRoot",
+      ReportingLogic.WeightedReport,
+      BlockExpectedReport(
+        "block1",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component1",
+          ExpectedValueId("b1c1", "report_id_b1c1") :: Nil
+        ) :: new ValueExpectedReport(
+          "component2",
+          ExpectedValueId("b1c2", "report_id_b1c2") :: Nil
+        ) :: Nil
+      ) :: BlockExpectedReport(
+        "block2",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component1",
+          ExpectedValueId("b2c1", "report_id_b2c1") :: Nil
+        ) :: new ValueExpectedReport(
+          "component2",
+          ExpectedValueId("${loop}", "report_id_b2c2") :: Nil
+        ) :: Nil
+      ) :: Nil
+    )
+    val directiveExpectedReports =
+      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+    val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+
+    val withLoop = ExecutionBatch
+      .getComplianceForRule(
+        mergeInfo,
+        reportsWithLoop,
+        mode,
+        ruleExpectedReports,
+        UnexpectedReportInterpretation(Set(UnboundVarValues)),
+        new ComputeComplianceTimer()
+      )
+      .directives("policy")
+
+    "return the correct number of repaired" in {
+      withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
+    }
+    "return one root component with 5 key values (because loop 2 and 3 are same key value)" in {
+      withLoop.components.filter(_.componentName == "blockRoot").head.componentValues.size === 5
+    }
+    "return 1 loop component and one value for each message (no merge for reportid)" in {
+      val block2 = withLoop.components
+        .filter(_.componentName == "blockRoot")
+        .head
+        .asInstanceOf[BlockStatusReport]
+        .subComponents
+        .find(_.componentName == "block2")
+        .get
+        .asInstanceOf[BlockStatusReport]
+
+      val comp1 = block2.subComponents
+        .find(_.componentName == "component1")
+        .get
+
+      val comp2 = block2.subComponents
+        .find(_.componentName == "component2")
+        .get
+
+      val loop2 = comp2.componentValues("loop2").head.messages
+
+      (comp1.componentValues.size === 1) and
+      (comp2.componentValues.size === 2) and
+      (loop2.size == 2)
     }
 
   }
