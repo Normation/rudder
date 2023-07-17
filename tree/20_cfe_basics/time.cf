@@ -65,7 +65,7 @@ bundle agent ncf_splay(test_splay)
       # maximum value of splay integer = 7 nibbles (2^28-1)
       "splay_max" string => "268435455";
       # pseudorandon deterministic hex number of 7 nibbles
-      "splay_hex" string => string_head(hash("${sys.host}", "md5"), "7");
+      "splay_hex" string => string_head(hash("${sys.host}", "sha256"), "7");
 
       # decimal version of the splay integer
     !windows::
