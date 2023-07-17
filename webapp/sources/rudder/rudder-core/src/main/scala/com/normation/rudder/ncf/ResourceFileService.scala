@@ -62,12 +62,10 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
 
   def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String) = {
 
-    val resourceDir = File(s"/var/rudder/configuration-repository/${resourcesPath}")
-
     def getAllFiles(file: File): List[String] = {
       if (file.exists) {
         if (file.isRegularFile) {
-          resourceDir.relativize(file).toString :: Nil
+          (gitReposProvider.rootDirectory / resourcesPath).relativize(file).toString :: Nil
         } else {
           file.children.toList.flatMap(getAllFiles)
         }

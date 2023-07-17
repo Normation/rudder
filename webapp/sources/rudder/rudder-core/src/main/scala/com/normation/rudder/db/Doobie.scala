@@ -39,6 +39,7 @@ package com.normation.rudder.db
 
 import cats.Show
 import cats.data._
+import com.normation.NamedZioLogger
 import com.normation.box._
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
@@ -51,18 +52,17 @@ import doobie._
 import doobie.implicits.javasql._
 import doobie.postgres.implicits._
 import doobie.util.log.ExecFailure
+import doobie.util.log.LogEvent
 import doobie.util.log.ProcessingFailure
 import java.sql.SQLXML
 import javax.sql.DataSource
 import net.liftweb.common._
 import org.joda.time.DateTime
 import org.postgresql.util.PGobject
-import org.slf4j.LoggerFactory
 import scala.xml.Elem
 import scala.xml.XML
 import zio._
 import zio.interop.catz._
-import zio.interop.catz.implicits.rts
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 import zio.json.ast.Json
@@ -102,40 +102,47 @@ class Doobie(datasource: DataSource) {
 
 object Doobie {
 
-  implicit val slf4jDoobieLogger: LogHandler = {
-    object DoobieLogger extends Logger {
-      override protected def _logger = LoggerFactory.getLogger("sql")
+  implicit val slf4jDoobieLogger: LogHandler[IOResult] = {
+    object DoobieLogger extends NamedZioLogger {
+      val loggerName = "sql"
     }
 
-    LogHandler {
-      // we could log only if exec duration is more than X ms, etc.
-      case doobie.util.log.Success(s, a, e1, e2) =>
-        val total = (e1 + e2).toMillis
-        val msg   = s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-                     |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                     | arguments = [${a.mkString(", ")}]
-        """.stripMargin
-        if (total > 100) { // more than that => debug level, not trace
-          DoobieLogger.debug(msg)
-        } else {
-          DoobieLogger.trace(msg)
-        }
+    new LogHandler[IOResult] {
+      def run(logEvent: LogEvent): IOResult[Unit] = {
+        logEvent match {
 
-      case ProcessingFailure(s, a, e1, e2, t) =>
-        DoobieLogger.debug(
-          s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
-             |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-             | arguments = [${a.mkString(", ")}]
-             |   failure = ${t.getMessage}
+          // we could log only if exec duration is more than X ms, etc.
+          case doobie.util.log.Success(s, a, l, e1, e2) =>
+            val total = (e1 + e2).toMillis
+            val msg   = {
+              s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+                 |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+                 | arguments = [${a.mkString(", ")}]
         """.stripMargin
-        )
+            }
+            if (total > 100) { // more than that => debug level, not trace
+              DoobieLogger.debug(msg)
+            } else {
+              DoobieLogger.trace(msg)
+            }
 
-      case ExecFailure(s, a, e1, t) =>
-        DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
-                              |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                              | arguments = [${a.mkString(", ")}]
-                              |   failure = ${t.getMessage}
+          case ProcessingFailure(s, a, l, e1, e2, t) =>
+            DoobieLogger.debug(
+              s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
+                 |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+                 | arguments = [${a.mkString(", ")}]
+                 |   failure = ${t.getMessage}
+        """.stripMargin
+            )
+
+          case ExecFailure(s, a, l, e1, t) =>
+            DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
+                                  |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
+                                  | arguments = [${a.mkString(", ")}]
+                                  |   failure = ${t.getMessage}
         """.stripMargin)
+        }
+      }
     }
   }
 

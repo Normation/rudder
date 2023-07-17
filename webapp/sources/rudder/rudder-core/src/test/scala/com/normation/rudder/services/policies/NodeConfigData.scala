@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
@@ -76,9 +77,8 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.domain.Version
-import com.normation.inventory.domain.VirtualBox
 import com.normation.inventory.domain.VirtualMachineType
-import com.normation.inventory.domain.VMWare
+import com.normation.inventory.domain.VmType._
 import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.rudder.domain.Constants
@@ -562,18 +562,18 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
    *                         Some directives
    *   ************************************************************************
    */
-  implicit def toATID(s: String)           = ActiveTechniqueId(s)
-  implicit def toTV(s: String)             = TechniqueVersionHelper(s)
-  implicit def toTN(s: String)             = TechniqueName(s)
-  implicit def toTID(id: (String, String)) = TechniqueId(id._1, id._2)
-  implicit def toDID(id: String)           = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
-  implicit def toRID(id: String)           = RuleId(RuleUid(id))
-  implicit def toRCID(id: String)          = RuleCategoryId(id)
-  val t1                                   = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
-  val d1                                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-  val d2                                   = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
-  val d3                                   = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
-  val fat1                                 = FullActiveTechnique(
+  implicit def toATID(s: String):           ActiveTechniqueId = ActiveTechniqueId(s)
+  implicit def toTV(s: String):             TechniqueVersion  = TechniqueVersionHelper(s)
+  implicit def toTN(s: String):             TechniqueName     = TechniqueName(s)
+  implicit def toTID(id: (String, String)): TechniqueId       = TechniqueId(id._1, id._2)
+  implicit def toDID(id: String):           DirectiveId       = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
+  implicit def toRID(id: String):           RuleId            = RuleId(RuleUid(id))
+  implicit def toRCID(id: String):          RuleCategoryId    = RuleCategoryId(id)
+  val t1   = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
+  val d1   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
+  val d2   = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
+  val d3   = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
+  val fat1 = FullActiveTechnique(
     "d1",
     "t1",
     SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00")),
@@ -614,7 +614,7 @@ class TestTechniqueRepo(
     def /(child: String) = new File(root, child)
   }
 
-  implicit def stringToRuleUid(s: String) = RuleUid(s)
+  implicit def stringToRuleUid(s: String): RuleUid = RuleUid(s)
 
   val t0 = System.currentTimeMillis()
 
@@ -689,7 +689,7 @@ class TestNodeConfiguration(
   implicit class PathString2(root: File)  {
     def /(child: String) = new File(root, child)
   }
-  implicit def stringToRuleUid(s: String) = RuleUid(s)
+  implicit def stringToRuleUid(s: String): RuleUid = RuleUid(s)
 
   // technique repository + expose services & vars
 

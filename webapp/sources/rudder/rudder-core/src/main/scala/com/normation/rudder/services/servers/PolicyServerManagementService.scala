@@ -607,7 +607,14 @@ object PolicyServerConfigurationObjects {
   def groupHasPolicyServer(nodeId: NodeId) = {
     val objectType = ObjectCriterion(
       "node",
-      Seq(Criterion("policyServerId", StringComparator, None), Criterion("agentName", AgentComparator, None))
+      Seq(
+        Criterion(
+          "policyServerId",
+          StringComparator,
+          None
+        ),
+        Criterion("agentName", AgentComparator, None)
+      )
     )
     NodeGroup(
       NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}")),
@@ -620,8 +627,18 @@ object PolicyServerConfigurationObjects {
           And,
           ResultTransformation.Identity,
           List(
-            CriterionLine(objectType, Criterion("agentName", StringComparator), Equals, "cfengine"),
-            CriterionLine(objectType, Criterion("policyServerId", StringComparator), Equals, nodeId.value)
+            CriterionLine(
+              objectType,
+              Criterion("agentName", StringComparator),
+              Equals,
+              "cfengine"
+            ),
+            CriterionLine(
+              objectType,
+              Criterion("policyServerId", StringComparator),
+              Equals,
+              nodeId.value
+            )
           )
         )
       ),

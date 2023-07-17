@@ -132,7 +132,6 @@ import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.NewNodeManagerHooks
 import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
@@ -1174,7 +1173,7 @@ class MockRules() {
 
   object rules {
 
-    implicit def str2ruleId(s: String) = RuleId(RuleUid(s))
+    implicit def str2ruleId(s: String): RuleId = RuleId(RuleUid(s))
 
     val commmonRule = Rule(
       "hasPolicyServer-root",
@@ -1741,7 +1740,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val root     = NodeInfo(
     rootNode,
     rootHostname,
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
+    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Stretch", new Version("9.4"), None, new Version("4.5")),
     List("127.0.0.1", "192.168.0.100"),
     DateTime.parse("2021-01-30T01:20+01:00"),
@@ -1806,7 +1805,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node1 = NodeInfo(
     node1Node,
     hostname1,
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
+    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Buster", new Version("10.6"), None, new Version("4.19")),
     List("192.168.0.10"),
     DateTime.parse("2021-01-30T01:20+01:00"),
@@ -1895,7 +1894,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val dscNode1 = NodeInfo(
     dscNode1Node,
     "node-dsc.localhost",
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
+    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
     List("192.168.0.5"),
     DateTime.parse("2021-01-30T01:20+01:00"),
@@ -2321,9 +2320,6 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
     override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = ???
 
-    override def appendPostAcceptCodeHook(hook: NewNodeManagerHooks): Unit = ???
-
-    override def afterNodeAcceptedAsync(nodeId: NodeId): Unit = ???
   }
 }
 
@@ -2331,7 +2327,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
   object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
 
-    implicit val ordering = com.normation.rudder.repository.NodeGroupCategoryOrdering
+    implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
     val categories = Ref.Synchronized
       .make(FullNodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "root of group categories", Nil, Nil, true))

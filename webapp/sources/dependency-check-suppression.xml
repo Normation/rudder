@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 <!-- wrong version detection, only version before 08-12-2014 are vulnerable -->
-<suppress>
-   <notes><![CDATA[
-   file name: org.eclipse.jgit-5.9.0.202009080501-r.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
-   <cve>CVE-2014-9390</cve>
-</suppress>
 <!-- YUI embeded in liftweb is not used -->
 <suppress>
    <notes><![CDATA[
@@ -31,40 +24,16 @@
    <cve>CVE-2012-6708</cve>
    <cve>CVE-2015-9251</cve>
    <cve>CVE-2019-11358</cve>
-   <cve>CVE-2020-11022</cve>
-   <cve>CVE-2020-11023</cve>
-</suppress>
-<!-- jquery embeded in scala-compiler is not used -->
-<suppress>
-   <notes><![CDATA[
-   file name: scala-compiler-2.13.x.jar: jquery.min.js
-   ]]></notes>
-   <packageUrl regex="true">^pkg:javascript/jquery@3\.4\.1$</packageUrl>
+   <cve>CVE-2020-7656</cve>
    <cve>CVE-2020-11022</cve>
    <cve>CVE-2020-11023</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: json-path-2.7.0.jar
-   file name: json-smart-2.4.7.jar
+   file name: spring-core-5.3.28.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/(com.jayway.jsonpath|net.minidev)/json\-.*$</packageUrl>
-   <cve>CVE-2022-45688</cve>
-</suppress>
-<suppress>
-   <notes><![CDATA[
-   file name: spring-core-5.3.27.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.3.27$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@5.3.28$</packageUrl>
    <cve>CVE-2016-1000027</cve>
-</suppress>
-<suppress>
-   <notes><![CDATA[
-   file name: spring-security-core-5.7.5.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-.*@5.7.5$</packageUrl>
-   <cve>CVE-2016-1000027</cve>
-   <cve>CVE-2020-5408</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
@@ -72,12 +41,5 @@
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
    <cpe>cpe:/a:pivotal_software:spring-ldap</cpe>
-</suppress>
-<suppress>
-   <notes><![CDATA[
-      file name: spring-ldap-core-2.3.5.RELEASE.jar
-   ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
-   <cpe>cpe:/a:vmware:spring_framework</cpe>
 </suppress>
 </suppressions>

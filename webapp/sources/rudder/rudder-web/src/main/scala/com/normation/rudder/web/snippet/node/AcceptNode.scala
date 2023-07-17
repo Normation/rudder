@@ -42,6 +42,7 @@ import com.normation.box._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PendingInventory
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.ChooseTemplate
@@ -72,7 +73,7 @@ class AcceptNode extends Loggable {
   val serverGrid           = RudderConfig.nodeGrid
   val serverSummaryService = RudderConfig.nodeSummaryService
 
-  val diffRepos        = RudderConfig.inventoryHistoryLogRepository
+  val historyRepos     = RudderConfig.inventoryHistoryJdbcRepository
   val logRepository    = RudderConfig.eventLogRepository
   val acceptedNodesDit = RudderConfig.acceptedNodesDit
   val pendingNodeDit   = RudderConfig.pendingNodesDit
@@ -128,7 +129,7 @@ class AcceptNode extends Loggable {
    * Retrieve the last inventory for the selected server
    */
   def retrieveLastVersions(uuid: NodeId): Option[DateTime] = {
-    diffRepos.versions(uuid).toBox match {
+    historyRepos.versions(uuid).toBox match {
       case Full(list) if (list.nonEmpty) => Some(list.head)
       case _                             => None
     }
@@ -232,7 +233,7 @@ class AcceptNode extends Loggable {
       "#server_os *" #> srv.osFullName)(serverLine)
     }
 
-    serverSummaryService.find(pendingNodeDit, listNode: _*) match {
+    serverSummaryService.find(PendingInventory, listNode: _*) match {
       case Full(servers) =>
         val lines: NodeSeq = servers.flatMap(displayServerLine)
         ("#server_lines" #> lines).apply(

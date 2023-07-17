@@ -21,4 +21,9 @@ $(document).ready(function(){
   createInfoNotification = function (msg, code){
     appNotif.ports.infoNotification.send(msg, code);
   };
+  appNode  = document.querySelector("rudder-quicksearch");
+  appQuicksearch = Elm.QuickSearch.init({
+    node  : appNode,
+    flags : flags
+  });
 });

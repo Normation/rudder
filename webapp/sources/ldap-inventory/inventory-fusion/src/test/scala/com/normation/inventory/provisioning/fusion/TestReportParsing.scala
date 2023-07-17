@@ -496,7 +496,7 @@ class TestInventoryParsing extends Specification with Loggable {
   }
   "Virtuozzo VM should be correctly parsed" in {
     val inventory = parseRun("fusion-inventories/virtuozzo.ocs")
-
+    import com.normation.inventory.domain.VmType._
     (inventory.machine.machineType must beEqualTo(VirtualMachineType(Virtuozzo))) and
     (inventory.node.main.osDetails must beEqualTo(
       Linux(Debian, "Debian GNU/Linux 9.5 (stretch)", new Version("9.5"), None, new Version("4.9.0-7-amd64"))

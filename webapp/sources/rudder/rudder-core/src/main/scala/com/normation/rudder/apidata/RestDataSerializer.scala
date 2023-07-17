@@ -143,6 +143,7 @@ final case class RestDataSerializerImpl(
   private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
     machine match {
       case None                           => "No machine Inventory"
+      case Some(UnknownMachineType)       => "Unknown"
       case Some(PhysicalMachineType)      => "Physical"
       case Some(VirtualMachineType(kind)) => "Virtual"
     }

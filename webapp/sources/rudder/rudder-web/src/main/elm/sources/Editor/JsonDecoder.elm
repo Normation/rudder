@@ -11,6 +11,14 @@ import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
 
 
+headList : Decoder (List a) -> Decoder a
+headList decoder =
+  andThen ( \l ->
+    case l of
+      [] -> fail ""
+      x :: _ -> succeed x
+    ) decoder
+
 decodeTechniqueParameter : Decoder TechniqueParameter
 decodeTechniqueParameter =
   succeed TechniqueParameter

@@ -42,6 +42,7 @@ import com.normation.errors.RudderError
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.InetAddressUtils._
 import com.normation.inventory.domain.NodeTimezone
+import com.normation.inventory.domain.VmType._
 import com.normation.inventory.ldap.core.InventoryMappingResult._
 import com.normation.inventory.ldap.core.InventoryMappingRudderError._
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -473,6 +474,7 @@ class InventoryMapper(
       case VirtualMachineType(Virtuozzo)     => OC(OC_VM_VIRTUOZZO)
       case VirtualMachineType(LXC)           => OC(OC_VM_LXC)
       case PhysicalMachineType               => OC(OC_PM)
+      case UnknownMachineType                => OC(OC_PM) // we didn't had unknown in that time and physical was the default
     }
   }
 

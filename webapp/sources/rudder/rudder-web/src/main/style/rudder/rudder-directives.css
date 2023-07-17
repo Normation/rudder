@@ -280,6 +280,13 @@
 .directiveAddGroup{
   margin-top: 15px;
 }
+.directive-input-group .btn-group.input-feature .btn.dropdown-toggle {
+  border-radius: 4px 4px 0 0;
+  margin-bottom: -1px;
+}
+.directive-input-group .btn-group.input-feature + textarea.form-control{
+  border-top-left-radius: 0 !important;
+}
 
 /* === OVERRIDE TEMPLATE === */
 .main-header.no-header,

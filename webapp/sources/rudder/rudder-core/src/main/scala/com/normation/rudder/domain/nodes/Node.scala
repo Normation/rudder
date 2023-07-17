@@ -117,6 +117,14 @@ object NodeState       {
     }
   }
 
+  def parse(s: String): Either[String, NodeState] = {
+    values.find(_.name == s.toLowerCase) match {
+      case None    =>
+        Left(s"Value '${s}' is not recognized as node state. Accepted values are: '${values.map(_.name).mkString("', '")}'")
+      case Some(x) => Right(x)
+    }
+  }
+
 }
 
 /**

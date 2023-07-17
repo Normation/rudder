@@ -425,6 +425,18 @@ pre.display-keys > label{
 .variable-syntax:after{
   content:"`";
 }
+#nodeProp .tab-table-content{
+  margin-top: 20px;
+}
+#nodeProp .table-header, #nodeProp .table-container {
+  width: 100%;
+  margin: 0;
+}
+#nodeProp .table-header,
+#nodeProp .table-container > .dataTable{
+  border-left: 1px solid #d6deef;
+  border-right: 1px solid #d6deef;
+}
 /* SETTINGS TAB */
 #nodeState > h3.page-title:first-child,
 #logsDetails h3.page-title{
@@ -436,4 +448,7 @@ pre.display-keys > label{
 }
 .currentNodeState {
   font-size: 14px;
+}
+#reporting-mode-title{
+  display: none;
 }

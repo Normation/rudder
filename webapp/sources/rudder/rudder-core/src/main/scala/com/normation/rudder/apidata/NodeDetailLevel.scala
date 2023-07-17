@@ -212,6 +212,7 @@ object NodeDetailLevel {
     val machine = { (info: INFO) =>
       val (machineType, provider) = info._1.machine
         .map(_.machineType match {
+          case UnknownMachineType       => ("Unknown", None)
           case PhysicalMachineType      => ("Physical", None)
           case VirtualMachineType(kind) => ("Virtual", Some(kind))
         })

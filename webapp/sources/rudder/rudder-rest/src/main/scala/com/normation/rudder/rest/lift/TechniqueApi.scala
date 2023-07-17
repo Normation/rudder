@@ -81,7 +81,8 @@ class TechniqueApi(
     techniqueRepository:  TechniqueRepository,
     techniqueSerializer:  TechniqueSerializer,
     uuidGen:              StringUuidGenerator,
-    resourceFileService:  ResourceFileService
+    resourceFileService:  ResourceFileService,
+    configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
 
   import techniqueSerializer._
@@ -126,8 +127,8 @@ class TechniqueApi(
 
   class GetResources[T <: TwoParam](newTechnique: Boolean, val schema: T) extends LiftApiModule {
 
-    val restExtractor     = restExtractorService
-    implicit val dataName = "resources"
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "resources"
     def process(
         version:       ApiVersion,
         path:          ApiPath,
@@ -141,7 +142,7 @@ class TechniqueApi(
       import zio.syntax._
 
       def serializeResourceWithState(resource: ResourceFile) = {
-        (("name" -> resource.path) ~ ("state" -> resource.state.value))
+        (("path" -> resource.path) ~ ("state" -> resource.state.value))
       }
 
       val action = if (newTechnique) { "newTechniqueResources" }
@@ -173,8 +174,8 @@ class TechniqueApi(
 
   object DeleteTechnique extends LiftApiModule        {
     val schema: TwoParam = API.DeleteTechnique
-    val restExtractor     = restExtractorService
-    implicit val dataName = "techniques"
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "techniques"
 
     def process(
         version:       ApiVersion,
@@ -240,8 +241,8 @@ class TechniqueApi(
   }
 
   object GetTechniques extends LiftApiModule0 {
-    val schema            = API.GetTechniques
-    implicit val dataName = "techniques"
+    val schema = API.GetTechniques
+    implicit val dataName:                                                                                     String       = "techniques"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.getTechniquesWithData().toLiftResponseList(params, schema)
     }
@@ -250,9 +251,9 @@ class TechniqueApi(
 
   object GetMethods extends LiftApiModule0 {
 
-    val schema            = API.GetMethods
-    val restExtractor     = restExtractorService
-    implicit val dataName = "methods"
+    val schema        = API.GetMethods
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
@@ -268,9 +269,9 @@ class TechniqueApi(
 
   object UpdateMethods extends LiftApiModule0 {
 
-    val schema            = API.UpdateMethods
-    val restExtractor     = restExtractorService
-    implicit val dataName = "methods"
+    val schema        = API.UpdateMethods
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = for {
@@ -286,9 +287,9 @@ class TechniqueApi(
 
   object UpdateTechniques extends LiftApiModule0 {
 
-    val schema            = API.UpdateTechniques
-    val restExtractor     = restExtractorService
-    implicit val dataName = "techniques"
+    val schema        = API.UpdateTechniques
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "techniques"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId    = ModificationId(uuidGen.newUuid)
@@ -314,9 +315,9 @@ class TechniqueApi(
 
   object GetAllTechniqueCategories extends LiftApiModule0 {
 
-    val schema            = API.GetAllTechniqueCategories
-    val restExtractor     = restExtractorService
-    implicit val dataName = "techniqueCategories"
+    val schema        = API.GetAllTechniqueCategories
+    val restExtractor = restExtractorService
+    implicit val dataName: String = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val response = {
@@ -349,8 +350,8 @@ class TechniqueApi(
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
 
-      val workspaceDir = File(s"/var/rudder/configuration-repository/${workspacePath}")
-      val finalDir     = File(s"/var/rudder/configuration-repository/${finalPath}")
+      val workspaceDir = File(s"${configRepoPath}/${workspacePath}")
+      val finalDir     = File(s"${configRepoPath}/${finalPath}")
 
       IOResult.attempt("Error when moving resource file from workspace to final destination")(if (workspaceDir.exists) {
         finalDir.createDirectoryIfNotExists(true)

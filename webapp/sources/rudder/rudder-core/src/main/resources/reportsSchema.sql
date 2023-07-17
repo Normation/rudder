@@ -396,6 +396,11 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
+/*
+ *************************************************************************************
+ * table related to (patch) campaign
+ *************************************************************************************
+ */
 
 CREATE TABLE CampaignEvents (
   campaignId   text
@@ -409,3 +414,16 @@ CREATE TABLE CampaignEvents (
 
 
 CREATE INDEX event_state_index ON CampaignEvents ((state->>'value'));
+
+
+/*
+ *************************************************************************************
+ * Table for storing node facts info
+ *************************************************************************************
+ */
+
+CREATE TABLE NodeFacts (
+  nodeId           text PRIMARY KEY
+, acceptRefuseDate timestamp with time zone
+, acceptRefuseFact jsonb
+);

@@ -48,7 +48,7 @@ encodeTechnique technique =
 encodeResource: Resource -> Value
 encodeResource resource =
   object [
-    ("name" , string resource.name)
+    ("path" , string resource.name)
   , ("state", string ( case resource.state of
                          Untouched -> "untouched"
                          New       -> "new"

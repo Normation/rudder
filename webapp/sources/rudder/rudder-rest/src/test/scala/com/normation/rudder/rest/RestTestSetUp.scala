@@ -184,7 +184,7 @@ import zio.syntax._
  */
 class RestTestSetUp {
 
-  implicit val userService = new UserService {
+  implicit val userService: UserService = new UserService {
     val user           = new User {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
@@ -904,7 +904,8 @@ class RestTestSetUp {
       techniqueRepository,
       techniqueSerializer,
       uuidGen,
-      resourceFileService
+      resourceFileService,
+      mockGitRepo.configurationRepositoryRoot.pathAsString
     ),
     new DirectiveApi(
       mockDirectives.directiveRepo,

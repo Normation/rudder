@@ -3,7 +3,7 @@ module Editor.ApiCalls exposing (..)
 import Dict
 import Http exposing (..)
 import Http.Detailed as Detailed
-import Json.Decode
+import Json.Decode exposing (list)
 import Maybe.Extra
 
 import Editor.DataTypes exposing (..)
@@ -90,7 +90,7 @@ saveTechnique  technique creation internalId model  =
         , headers = []
         , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.id.value++"/"++technique.version)
         , body    = encoder |> jsonBody
-        , expect  = Detailed.expectJson SaveTechnique ( Json.Decode.at ["data", "techniques", "technique" ] ( decodeTechnique ))
+        , expect  = Detailed.expectJson SaveTechnique ( Json.Decode.at ["data", "techniques" ] ( list decodeTechnique ) |> headList)
         , timeout = Nothing
         , tracker = Nothing
         }

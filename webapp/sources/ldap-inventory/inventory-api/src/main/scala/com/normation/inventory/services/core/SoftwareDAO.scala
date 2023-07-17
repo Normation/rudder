@@ -43,8 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.inventory.domain.SoftwareUuid
 
-trait ReadOnlySoftwareDAO {
-  def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]]
+trait ReadOnlySoftwareNameDAO {
 
   /**
    * Return softwares for the node id, as efficiently
@@ -53,6 +52,11 @@ trait ReadOnlySoftwareDAO {
   def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]]
 
   def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]]
+}
+
+trait ReadOnlySoftwareDAO extends ReadOnlySoftwareNameDAO {
+
+  def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]]
 
   /**
     * Returns all software ids in ou=Software,ou=Inventories

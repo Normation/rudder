@@ -2,30 +2,30 @@
 
 <input-text>
   <div class="directive-input-group">
-    <div class="input-group input-group-sm text-section col-xs-12" ng-controller="textController">
-      <div class="input-group-btn" ng-show="feature" ng-cloak>
-        <button class="btn btn-default  dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
+    <div class="input-group input-group-sm text-section col-xs-12">
+      <div class="input-group-btn input-feature">
+        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
         <ul class="dropdown-menu">
-          <li><a  ng-click="current.prefix = ''"  href="#">Text</a></li>
-          <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
+          <li><a onclick="updatePrefix(this, '')"        >Text </a></li>
+          <li><a onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
         </ul>
       </div>
-        <input class="form-control monospace-font" ng-model="current.value" type="text" />
+      <input class="form-control monospace-font" type="text" oninput="updateResult(this);"/>
     </div>
   </div>
 </input-text>
 
 <input-textarea>
   <div class="directive-input-group">
-    <div class="text-section col-xs-12 row" ng-controller="textController">
-    <div class="btn-group-sm btn-group" ng-show="feature" ng-cloak>
-      <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
-      <ul class="dropdown-menu">
-        <li><a ng-click="current.prefix = ''"  href="#">Text</a></li>
-        <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
-      </ul>
-    </div>
-    <textarea class="form-control textarea monospace-font" ng-model="current.value" ng-trim="false" ></textarea>
+    <div class="input-group input-group-sm text-section col-xs-12">
+      <div class="btn-group btn-group-sm input-feature">
+        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
+        <ul class="dropdown-menu">
+          <li><a onclick="updatePrefix(this, '')"        >Text </a></li>
+          <li><a onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
+        </ul>
+      </div>
+      <textarea class="form-control textarea monospace-font" oninput="updateResult(this);" ></textarea>
     </div>
   </div>
 </input-textarea>

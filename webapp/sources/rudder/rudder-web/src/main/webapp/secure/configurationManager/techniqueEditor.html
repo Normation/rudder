@@ -3,15 +3,12 @@
     <head>
       <title>Rudder - Technique Editor</title>
       <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-technique-editor.css"/>
+      <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-filemanager.css" />
       <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-editor.js"></script>
-      <script data-lift="with-cached-resource" src="/javascript/rudder/angular/fileManager-editor.js"></script>
-
+      <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filemanager.js"></script>
     </head>
 
-    <div id="filemanager-editor" ng-controller="filemanager-editor">
-      <div ng-if="fileManagerState.open" ng-class="{ 'filemanager-container' : fileManagerState.open }" ng-click="closeWindow($event,false)">
-        <angular-filemanager></angular-filemanager>
-      </div>
+    <div id="filemanager-editor">
     </div>
     <div id="technique-editor">
       <script>
@@ -60,20 +57,33 @@ $(document).ready(function(){
      navigator.clipboard.writeText(value).then(function(){  }, function() {})
   });
 
-  angular.bootstrap('#filemanager-editor', ['filemanager-editor']);
-  var scope = angular.element($("#filemanager-editor")).scope();
-  var port = app.ports.response
+  var baseUrl = contextPath ? contextPath : "/rudder";
+  var apiPath = baseUrl + '/secure/api/resourceExplorer/';
 
-  scope.$apply(function(){
-    scope.init(app.ports.updateResources);
-  });
+  var container = document.getElementById("filemanager-editor")
+  var fm = Elm.FileManager.init({
+      node: container,
+      flags: {
+        api: apiPath,
+        thumbnailsUrl: apiPath,
+        downloadsUrl: apiPath,
+        dir: "/",
+        hasWriteRights : hasWriteRights
+      }
+    });
+
 
   app.ports.openManager.subscribe(function(url) {
-
-    scope.$apply(function(){
-      scope.updateFileManagerConf(url);
-    });
+    fm.ports.updateApiPAth.send(url);
+    fm.ports.onOpen.send(null);
   });
+
+
+  fm.ports.close.subscribe(function(files) {
+    console.log(files)
+    app.ports.updateResources.send(null)
+  });
+
 
 
   app.ports.pushUrl.subscribe(function(id) {
