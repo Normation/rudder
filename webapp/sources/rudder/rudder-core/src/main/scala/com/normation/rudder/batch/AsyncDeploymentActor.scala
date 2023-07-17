@@ -269,6 +269,7 @@ final class AsyncDeploymentActor(
                 "Automatic policy generation request: queued - one policy " +
                 "generation already running"
               )
+              currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, 0)
 
             case p: ProcessingAndPendingAuto => // drop message, one is already pending
               PolicyGenerationLogger.manager.debug(
