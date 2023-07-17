@@ -1232,10 +1232,10 @@ class ExecutionBatchTest extends Specification {
       withBad.componentValues.size === 4
     }
     "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
-      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) === Unexpected :: EnforceRepaired :: Nil
+      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) === EnforceRepaired :: Unexpected :: Nil
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) === Missing :: Unexpected :: Nil
+      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) === Unexpected :: Missing :: Nil
     }
   }
 
@@ -1592,9 +1592,9 @@ class ExecutionBatchTest extends Specification {
         "component",
         "keyvalue",
         executionTimestamp,
-        "message"
+        "message c1"
       ),
-      new ResultRepairedReport(
+      new ResultSuccessReport(
         executionTimestamp,
         "cr",
         "policy",
@@ -1603,8 +1603,8 @@ class ExecutionBatchTest extends Specification {
         "component",
         "keyvalue",
         executionTimestamp,
-        "message"
-      ),
+        "message c2"
+      ), // following are 3 iterations for b2c1
       new ResultSuccessReport(
         executionTimestamp,
         "cr",
@@ -1614,30 +1614,30 @@ class ExecutionBatchTest extends Specification {
         "component",
         "keyvalue",
         executionTimestamp,
-        "message"
-      ), // following are 3 iterations for b2c2
-      new ResultSuccessReport(
+        "message_1 loop1"
+      ),
+      new ResultRepairedReport(
         executionTimestamp,
         "cr",
         "policy",
         "nodeId",
-        "report_id_b2c2",
+        "report_id_b2c1",
         "component",
         "keyvalue",
         executionTimestamp,
-        "message_1"
+        "message_2 loop1"
       ),
       new ResultSuccessReport(
         executionTimestamp,
         "cr",
         "policy",
         "nodeId",
-        "report_id_b2c2",
+        "report_id_b2c1",
         "component",
-        "loop2",
+        "loop",
         executionTimestamp,
-        "message_2 loop2"
-      ),
+        "message_3 loop1"
+      ), // following is 1 iterations for b2c2
       new ResultRepairedReport(
         executionTimestamp,
         "cr",
@@ -1645,9 +1645,9 @@ class ExecutionBatchTest extends Specification {
         "nodeId",
         "report_id_b2c2",
         "component",
-        "loop2",
+        "loop",
         executionTimestamp,
-        "message_3 loop3"
+        "message_1 loop2"
       )
     )
 
@@ -1669,10 +1669,10 @@ class ExecutionBatchTest extends Specification {
         ReportingLogic.WeightedReport,
         new ValueExpectedReport(
           "component",
-          ExpectedValueId("keyvalue", "report_id_b2c1") :: Nil
+          ExpectedValueId("${loop1}", "report_id_b2c1") :: Nil
         ) :: new ValueExpectedReport(
           "component",
-          ExpectedValueId("${loop}", "report_id_b2c2") :: Nil
+          ExpectedValueId("${loop2}", "report_id_b2c2") :: Nil
         ) :: Nil
       ) :: Nil
     )
@@ -1696,37 +1696,59 @@ class ExecutionBatchTest extends Specification {
       withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
     }
 
-    "return one root component with 3 key values (because 'keyvalue' and '${loop}' apart, and in ${loop} replaced keyvalues apart (two cases))" in {
-      // ie we have:
-      // keyvalue(<-> keyvalue):[Success:"message";Repaired:"message";Repaired:"message"] (for block 1 sub-block 1 and 2, block 2 sub-block 1)
-      // keyvalue(<-> ${loop}):[Success:"message_1"] (for block 2, sub component 2, loop iter 1)
-      // loop2(<-> ${loop}):[Repaired:"message_3 loop3";Success:"message_2 loop2"] (for component 2, sub component 2, loop iter 2 and 3)
+    "correctly split apart report with same component name and key value when report id is different and merge merge message otherwise" in {
+
       val root = withLoop.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
 
-      val keyvalues = root.componentValues.filter(v => v.expectedComponentValue == "keyvalue" && v.componentValue == "keyvalue")
+      val expectedRoot = {
+        ComponentValueStatusReport(
+          "keyvalue",
+          "keyvalue",
+          "report_id_b1c1",
+          List(MessageStatusReport(EnforceRepaired, Some("message c1")))
+        ) ::
+        ComponentValueStatusReport(
+          "keyvalue",
+          "keyvalue",
+          "report_id_b1c2",
+          List(MessageStatusReport(EnforceSuccess, Some("message c2")))
+        ) ::
+        ComponentValueStatusReport(
+          "keyvalue",
+          "${loop1}",
+          "report_id_b2c1",
+          List(
+            MessageStatusReport(EnforceRepaired, Some("message_2 loop1")),
+            MessageStatusReport(EnforceSuccess, Some("message_1 loop1"))
+          )
+        ) ::
+        ComponentValueStatusReport(
+          "loop",
+          "${loop1}",
+          "report_id_b2c1",
+          List(MessageStatusReport(EnforceSuccess, Some("message_3 loop1")))
+        ) ::
+        ComponentValueStatusReport(
+          "loop",
+          "${loop2}",
+          "report_id_b2c2",
+          List(MessageStatusReport(EnforceRepaired, Some("message_1 loop2")))
+        ) ::
+        Nil
+      }
 
-      (root.componentValues.size === 3) and
-      (keyvalues.size === 1) and
-      (keyvalues.head.messages.size === 3) and
-      (root.componentValues.filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "keyvalue").size === 1) and
-      (root.componentValues.filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "loop2").size === 1)
+      root.componentValues must containTheSameElementsAs(expectedRoot)
     }
 
-    "the loop2 component has two merged message" in {
-      val loop2 = withLoop.components
-        .filter(_.componentName == "blockRoot")
-        .head
-        .asInstanceOf[BlockStatusReport]
-        .componentValues
-        .filter(v => v.expectedComponentValue == "${loop}" && v.componentValue == "loop2")
-        .head
+    "correctly find the status for a given multi-reports component" in {
+      val s = withLoop.getByReportId("report_id_b2c1").filter(_.componentValue == "keyvalue").map(_.status)
 
-      loop2.messages.size === 2
+      (s.size === 1) and
+      (s.head === EnforceRepaired)
     }
-
   }
 
   "Sub block with same component names are authorised, with reporting focus " should {
@@ -2580,7 +2602,7 @@ class ExecutionBatchTest extends Specification {
     )
 
     /*
-     * we see that for now, we are quite lenient on the check: we don't check for the shape of returned component messages and names
+     * we check the pattern of returned component name
      */
     val badReports = Seq[ResultReports](
       // user mallory
@@ -2590,7 +2612,7 @@ class ExecutionBatchTest extends Specification {
         "dir",
         "nodeId",
         "report_0",
-        "I'm doing whatever",
+        "I'm doing whatever", // does not match patter: Check user ${user} created
         "/bin/badScript",
         executionTimestamp,
         "mallory is correctly created"
@@ -2601,7 +2623,7 @@ class ExecutionBatchTest extends Specification {
         "dir",
         "nodeId",
         "report_1",
-        "Really, nobody looks to green compliance",
+        "Really, nobody looks to green compliance", // does not match pattern: Check right OK for ${user}
         "/bin/moreBadThings",
         executionTimestamp,
         "mallory rights are correct"
@@ -2645,7 +2667,7 @@ class ExecutionBatchTest extends Specification {
         List("""Success:"alice rights are correct"""", """Repaired:"bob rights are correct"""")
       ))
     }
-    "mallory can get green compliance with other things executed that what we though" in {
+    "we check that component name matches the variable regex from expected" in {
       (withBad.compliance === ComplianceLevel(unexpected = 2, missing = 2)) and
       (withBad.componentValues
         .filter(_.expectedComponentValue == "/bin/createUserScript ${user}")

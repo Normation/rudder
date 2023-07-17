@@ -266,6 +266,10 @@ final case class DirectiveStatusReport(
                                |    ${components.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
+  def getByReportId(reportId: String): List[ComponentValueStatusReport] = {
+    components.collect { case c => c.componentValues.collect { case cv if (cv.reportId == reportId) => cv } }.flatten
+  }
+
   def withFilteredElements(
       component: ComponentStatusReport => Boolean,
       values:    ComponentValueStatusReport => Boolean
@@ -434,6 +438,7 @@ object ComponentStatusReport extends Loggable {
 final case class ComponentValueStatusReport(
     componentValue:         String,
     expectedComponentValue: String,
+    reportId:               String,
     messages:               List[MessageStatusReport]
 ) extends StatusReport {
 
@@ -452,14 +457,17 @@ object ComponentValueStatusReport extends Loggable {
 
   /**
    * Merge a set of ComponentValueStatusReport, grouping
-   * them by component *unexpanded* value
+   * them by component reportId and then actual value and then expected value
    */
   def merge(values: Iterable[ComponentValueStatusReport]): List[ComponentValueStatusReport] = {
-    values.groupBy(_.componentValue).toList.flatMap {
-      case (component, values) =>
-        values.groupBy(_.expectedComponentValue).toList.map {
-          case (unexpanded, values) =>
-            ComponentValueStatusReport(component, unexpanded, values.toList.flatMap(_.messages))
+    values.groupBy(_.reportId).toList.flatMap {
+      case (id, groupedById) =>
+        groupedById.groupBy(_.componentValue).toList.flatMap {
+          case (component, groupedByActualValue) =>
+            groupedByActualValue.groupBy(_.expectedComponentValue).toList.map {
+              case (unexpanded, groupedByExpectedValue) =>
+                ComponentValueStatusReport(component, unexpanded, id, groupedByActualValue.toList.flatMap(_.messages))
+            }
         }
     }
   }

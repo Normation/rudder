@@ -1283,13 +1283,17 @@ object ExecutionBatch extends Loggable {
                         ValueStatusReport(
                           component,
                           component,
-                          reportsByComponents.groupBy(_.keyValue).toList.map {
-                            case (keyValue, reportsByComponent) =>
-                              ComponentValueStatusReport(
-                                keyValue,
-                                keyValue,
-                                reportsByComponent.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
-                              )
+                          reportsByComponents.groupBy(_.keyValue).toList.flatMap {
+                            case (keyValue, groupedByKeyValue) =>
+                              groupedByKeyValue.groupBy(_.reportId).toList.map {
+                                case (id, groupedById) =>
+                                  ComponentValueStatusReport(
+                                    keyValue,
+                                    keyValue,
+                                    id,
+                                    groupedById.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
+                                  )
+                              }
                           }
                         )
                     }
@@ -1312,7 +1316,12 @@ object ExecutionBatch extends Loggable {
         ValueStatusReport(
           r.component,
           r.component,
-          ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil) :: Nil
+          ComponentValueStatusReport(
+            r.keyValue,
+            r.keyValue,
+            r.reportId,
+            MessageStatusReport(ReportType.Unexpected, r.message) :: Nil
+          ) :: Nil
         ) :: Nil
       )
 
@@ -1329,11 +1338,11 @@ object ExecutionBatch extends Loggable {
           c.componentName,
           c.componentName,
           c.componentsValues.map {
-            case ExpectedValueId(v, _)    => (v, v)
-            case ExpectedValueMatch(v, u) => (v, u)
+            case ExpectedValueId(v, id)   => (v, v, id)
+            case ExpectedValueMatch(v, u) => (v, u, "0") // by convention, components without a report id have it set to 0
           }.map {
-            case (v, u) =>
-              ComponentValueStatusReport(v, u, MessageStatusReport(reportType, None) :: Nil)
+            case (v, u, id) =>
+              ComponentValueStatusReport(v, u, id, MessageStatusReport(reportType, None) :: Nil)
           }
         )
       case c: BlockExpectedReport =>
@@ -1567,7 +1576,12 @@ object ExecutionBatch extends Loggable {
               case (component, r) =>
                 val cv = r.groupBy(_.keyValue).toList.map {
                   case (key, r) =>
-                    ComponentValueStatusReport(key, expectedValueId.value, r.map(_.toMessageStatusReport(policyMode)))
+                    ComponentValueStatusReport(
+                      key,
+                      expectedValueId.value,
+                      expectedValueId.id,
+                      r.map(_.toMessageStatusReport(policyMode))
+                    )
                 }
                 ValueStatusReport(component, expectedComponent.componentName, cv)
             }
@@ -1579,6 +1593,7 @@ object ExecutionBatch extends Loggable {
                 ComponentValueStatusReport(
                   expectedValueId.value,
                   expectedValueId.value,
+                  expectedValueId.id,
                   MessageStatusReport(noAnswerType, "Missing report") :: Nil
                 ) :: Nil
               ) :: Nil
@@ -1593,6 +1608,7 @@ object ExecutionBatch extends Loggable {
                     ComponentValueStatusReport(
                       key,
                       expectedValueId.value,
+                      expectedValueId.id,
                       r.map(r => MessageStatusReport(ReportType.Unexpected, r.message))
                     )
                 }
@@ -1652,7 +1668,7 @@ object ExecutionBatch extends Loggable {
         val pairedReportStatus = pairedValue.map { v =>
           // here, we need to lie a little about the cardinality. It should be 1 (because it's only one component value),
           // but it may be more if we accept duplicate/unboundVar. So just use the max(1, number of paired reports)
-          buildComponentValueStatus(
+          buildNoReportIdComponentValueStatus(
             v.expectedValue,
             v.matchingReports,
             componentGotAtLeastOneReport,
@@ -1700,7 +1716,7 @@ object ExecutionBatch extends Loggable {
    * to be the "unexpanded" one, and that so, the expanded value is lost.
    *
    */
-  private[this] def buildComponentValueStatus(
+  private[this] def buildNoReportIdComponentValueStatus(
       expectedValue:       ExpectedValue,
       filteredReports:     Seq[Reports],
       componentGotReports: Boolean, // does the component got at least one report?
@@ -1744,6 +1760,7 @@ object ExecutionBatch extends Loggable {
     ComponentValueStatusReport(
       expectedValue.value,
       expectedValue.value,
+      "0", // by convention, for historical reports we use "0" as report ID
       messageStatusReports
     )
   }
