@@ -329,7 +329,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                </div>
               } else NodeSeq.Empty
             } &
-            "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
+            "#techniqueversion-app *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
         }
     })
   }
@@ -375,7 +375,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]
   ): NodeSeq = {
 
-    val techniqueVersionInfo = validTechniques.map {
+    val techniqueVersionInfo    = validTechniques.map {
       case (v, t, timeStamp) =>
         val isDeprecated                      = t.deprecrationInfo.isDefined
         val deprecationMessage                = t.deprecrationInfo.map(_.message).getOrElse("")
@@ -392,10 +392,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           case (MergeDirectives, _) => ("Limited multi instance", limitedMessage)
           case (_, _)               => ("Multi instance", multiMessage)
         }
-        val action                            = {
-          val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique))
-          AnonFunc("", ajax)
-        }
         JsObj(
           ("version" -> v.serialize),
           ("isDeprecated"        -> isDeprecated),
@@ -404,19 +400,57 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           ("dscSupport"          -> dscSupport),
           ("classicSupport"      -> classicSupport),
           ("multiVersionSupport" -> multiVersionSupport),
-          ("mvsMessage"          -> mvsMessage),
-          ("action"              -> action)
+          ("mvsMessage"          -> mvsMessage)
         )
     }
-    val dataArray            = JsArray(techniqueVersionInfo.toList)
+    val techniqueVersionActions = validTechniques.map {
+      case (v, t, timeStamp) =>
+        val action = {
+          val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique))
+          AnonFunc("", ajax)
+        }
+        JsObj(
+          ("version" -> v.serialize),
+          ("action" -> action)
+        )
+    }
+    val dataArray               = JsArray(techniqueVersionInfo.toList)
+    val actionsArray            = JsArray(techniqueVersionActions.toList)
 
-    Script(OnLoad(JsRaw(s"""
-          angular.bootstrap('#techniqueDetails', ['techniqueDetails']);
-          var scope = angular.element($$("#techniqueVersion")).scope();
-          scope.$$apply(function(){
-            scope.init(${dataArray.toJsCmd});
-          } );
-          createTooltip();""")))
+    Script(
+      OnLoad(
+        JsRaw(
+          s"""
+             |var main = document.getElementById("techniqueversion-app");
+             |var initValues = {
+             |    contextPath    : "${S.contextPath}"
+             |  , hasWriteRights : hasWriteRights
+             |  , versions       : ${dataArray.toJsCmd}
+             |};
+             |var app = Elm.Techniqueversion.init({node: main , flags: initValues});
+             |// Initialize tooltips
+             |app.ports.initTooltips.subscribe(function(msg) {
+             |  setTimeout(function(){
+             |    $$('.bs-tooltip').bsTooltip();
+             |  }, 400);
+             |});
+             |app.ports.errorNotification.subscribe(function(msg) {
+             |  createErrorNotification(msg);
+             |});
+             |app.ports.createDirective.subscribe(function(version) {
+             |  var versions = ${actionsArray.toJsCmd}
+             |  var getVersion = versions.find(v => v.version === version)
+             |  if (getVersion === undefined) {
+             |    createErrorNotification("Error while creating Directive based on technique version '"+version+"'. Reason: Unknown version")
+             |  }else{
+             |    console.log(getVersion);
+             |    getVersion.action();
+             |  }
+             |});
+          """.stripMargin
+        )
+      )
+    )
   }
 
   ///////////// finish migration pop-up ///////////////

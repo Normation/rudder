@@ -148,62 +148,16 @@
                 <li ng-non-bindable id="isSingle">[Unique Technique]</li>
               </ul>
             </div>
-            <div id="techniqueVersion" ng-controller="techniqueVersion">
-              <h4>Available versions</h4>
-              <lift:authz role="directive_write">
-                <style>
-                      #versionTable > thead > tr > th:last-child,
-                      #versionTable > tbody > tr > td:last-child{
-                        display: table-cell !important;
-                      }
-                    </style>
-              </lift:authz>
-              <table id="versionTable">
-                <thead>
-                <tr>
-                  <th colspan="2">Version</th>
-                  <th>Instances</th>
-                  <th colspan="2">Agent type</th>
-                  <th>Last updated on</th>
-                  <th>Use this version</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
-                  <td>
-                    {{technique.version}}
-                  </td>
-                  <td>
-                    <span ng-if="technique.isDeprecated" class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="Deprecated: {{technique.deprecationMessage}}"></span>
-                  </td>
-                  <td>
-                    {{technique.multiVersionSupport}}<span class="fa fa-question-circle bsTooltip multiversion-icon" data-toggle="tooltip" data-placement="top" data-html="true" title="{{technique.mvsMessage}}"></span>
-                  </td>
-                  <td>
-                    <span ng-if="technique.classicSupport" class="fa fa-gear bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b>classic</b> agent."></span>
-                  </td>
-                  <td>
-                    <span ng-if="technique.dscSupport" class="dsc-icon bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title="This Technique version is compatible with the <b class='dsc'>Windows</b> agent."></span>
-                  </td>
-                  <td>
-                    {{technique.acceptationDate}}
-                  </td>
-                  <td>
-                    <button type="button" ng-click="technique.action()" class="btn btn-success new-icon btn-xs">Create Directive</button>
-                  </td>
-                </tr>
-                </tbody>
-              </table>
-              <div class="checkbox-group">
-                <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated"/>
-                <label for="displayDeprecation">Display deprecated Technique versions</label>
-              </div>
-              <lift:authz role="directive_write">
-                <div class="space-top">
-                  <button type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" class="btn btn-success new-icon">Create with latest version</button>
-                </div>
-              </lift:authz>
-            </div>
+            <div id="techniqueversion-app"></div>
+            <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-techniqueversion.js"></script>
+            <script>
+              var hasWriteRights = false;
+            </script>
+            <lift:authz role="node_write">
+              <script>
+                hasWriteRights = true;
+              </script>
+            </lift:authz>
           </div>
         </div>
       </div>

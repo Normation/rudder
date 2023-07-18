@@ -65,7 +65,8 @@
   display: none;
 }
 #versionTable + .checkbox-group{
-  margin-top:4px;
+  margin-top: 10px;
+  cursor: pointer;
 }
 #versionTable + .checkbox-group input{
   margin: 0px 2px 0px 0px;
@@ -309,4 +310,10 @@
 
 .rudder-template .template-sidebar + .template-main .main-details .input-group-btn .dropdown-toggle {
   height: 31px;
+}
+
+/* === TECHNIQUE === */
+#versionTable > thead > tr > th:last-child,
+#versionTable > tbody > tr > td:last-child{
+  display: table-cell !important;
 }
