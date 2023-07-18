@@ -42,6 +42,7 @@ import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.inventory.domain._
 import com.normation.rudder.apidata.FullDetailLevel
+import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
@@ -146,7 +147,8 @@ trait SerializeFacts[A, B] {
 
 class GitNodeFactRepository(
     override val gitRepo: GitRepositoryProvider,
-    groupOwner:           String
+    groupOwner:           String,
+    actuallyCommit:       Boolean
 ) extends NodeFactRepository with GitItemRepository
     with SerializeFacts[(NodeId, InventoryStatus), (NodeInfo, FullInventory, Seq[Software])] {
 
@@ -154,6 +156,14 @@ class GitNodeFactRepository(
   override val entity:     String = "node"
   override val fileFormat: String = "1"
   val commiter = new PersonIdent("rudder-fact", "email not set")
+
+  if (actuallyCommit) {
+    NodeLogger.info(s"Nodes changes will be historized in Git in ${gitRepo.rootDirectory.pathAsString}/nodes")
+  } else {
+    NodeLogger.info(
+      s"Nodes changes won't be historized in Git, only last state is stored in ${gitRepo.rootDirectory.pathAsString}/nodes"
+    )
+  }
 
   override def getEntityPath(id: (NodeId, InventoryStatus)): String = {
     s"${id._2.name}/${id._1.value}.json"
@@ -214,16 +224,17 @@ class GitNodeFactRepository(
 
   override def persist(nodeInfo: NodeInfo, inventory: FullInventory, software: Seq[Software]): IOResult[Unit] = {
     for {
-      json   <- toJson((nodeInfo, inventory, software))
-      file    = getFile(nodeInfo.id, inventory.node.main.status)
-      _      <- IOResult.attempt(file.write(json))
-      _      <- IOResult.attempt(file.setGroup(groupOwner))
-      gitPath = toGitPath(file.toJava)
-      saved  <- commitAddFile(
+      json <- toJson((nodeInfo, inventory, software))
+      file  = getFile(nodeInfo.id, inventory.node.main.status)
+      _    <- IOResult.attempt(file.write(json))
+      _    <- IOResult.attempt(file.setGroup(groupOwner))
+      _    <- ZIO.when(actuallyCommit) {
+                commitAddFile(
                   commiter,
-                  gitPath,
+                  toGitPath(file.toJava),
                   s"Save inventory facts for ${inventory.node.main.status.name} node '${nodeInfo.hostname}' (${nodeInfo.id.value})"
                 )
+              }
     } yield ()
   }
 
@@ -239,12 +250,14 @@ class GitNodeFactRepository(
         // however toFile exists, move, because if present it may be because a deletion didn't work and
         // we need to overwritte
         IOResult.attempt(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
-        commitMvDirectory(
-          commiter,
-          toGitPath(fromFile.toJava),
-          toGitPath(toFile.toJava),
-          s"Updating facts for node '${nodeId.value}': accepted"
-        ), // if source file does not exist, check if dest is present. If present, assume it's ok, else error
+        ZIO.when(actuallyCommit) {
+          commitMvDirectory(
+            commiter,
+            toGitPath(fromFile.toJava),
+            toGitPath(toFile.toJava),
+            s"Updating facts for node '${nodeId.value}': accepted"
+          )
+        }, // if source file does not exist, check if dest is present. If present, assume it's ok, else error
 
         ZIO.whenZIO(IOResult.attempt(!toFile.exists)) {
           Inconsistency(
@@ -261,7 +274,11 @@ class GitNodeFactRepository(
       ZIO.foreach(List(PendingInventory, AcceptedInventory)) { s =>
         val file = getFile(nodeId, s)
         ZIO.whenZIO(IOResult.attempt(file.exists)) {
-          commitRmFile(commiter, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
+          if (actuallyCommit) {
+            commitRmFile(commiter, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
+          } else {
+            IOResult.attempt(file.delete())
+          }
         }
       } *> checkInit()
     }
