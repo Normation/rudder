@@ -158,6 +158,14 @@ class GitNodeFactRepositoryImpl(
     )
   }
 
+  if (actuallyCommit) {
+    NodeLogger.info(s"Nodes changes will be historized in Git in ${gitRepo.rootDirectory.pathAsString}/nodes")
+  } else {
+    NodeLogger.info(
+      s"Nodes changes won't be historized in Git, only last state is stored in ${gitRepo.rootDirectory.pathAsString}/nodes"
+    )
+  }
+
   override def getEntityPath(id: (NodeId, InventoryStatus)): String = {
     s"${id._2.name}/${id._1.value}.json"
   }
