@@ -2824,6 +2824,51 @@ class ExecutionBatchTest extends Specification {
 
   }
 
+  "A component with var in expected value and a multiline returned value matching the pattern" should {
+
+    val expectedComponent = new ValueExpectedReport(
+      "test",
+      ExpectedValueMatch(
+        "${list_failed_login.sanitized_content} list of failed login",
+        "${list_failed_login.sanitized_content} list of failed login"
+      ) :: Nil
+    )
+
+    val reports = Seq[ResultReports](
+      // first user: alice, already there
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "dir",
+        "nodeId",
+        "report_0",
+        "test",
+        """nicarles ssh:notty Tue Jul 18 21:53:59 2023 - Tue Jul 18 21:53:59 2023 (00:00) 192.168.254.30
+          |nicarles ssh:notty Tue Jul 18 21:53:56 2023 - Tue Jul 18 21:53:56 2023 (00:00) 192.168.254.30
+          |nicolas. ssh:notty Tue Jul 18 21:53:52 2023 - Tue Jul 18 21:53:52 2023 (00:00) 192.168.254.30
+          |nicolas. ssh:notty Tue Jul 18 21:53:47 2023 - Tue Jul 18 21:53:47 2023 (00:00) 192.168.254.30
+          |nicolas. ssh:notty Tue Jul 18 21:53:39 2023 - Tue Jul 18 21:53:39 2023 (00:00) 192.168.254.30
+          |nicolas. ssh:notty Tue Jul 18 21:53:36 2023 - Tue Jul 18 21:53:36 2023 (00:00) 192.168.254.30 list of failed login""".stripMargin,
+        executionTimestamp,
+        "alice is correctly created"
+      )
+    )
+
+    val withGood = ExecutionBatch
+      .checkExpectedComponentWithReports(
+        expectedComponent,
+        reports,
+        ReportType.Missing,
+        PolicyMode.Enforce,
+        strictUnexpectedInterpretation
+      )
+      .head
+
+    "return a success" in {
+      withGood.compliance === ComplianceLevel(success = 1)
+    }
+  }
+
   "Compliance for cfengine vars and reports" should {
 
     sealed trait Kind { def tpe: ReportType }
