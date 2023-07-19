@@ -321,13 +321,7 @@ class NodeGroupForm(
       </div>)
 
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
-    intro ++ tabProperties ++ Script(OnLoad(JsRaw(s"""
-      angular.bootstrap('#nodeProp', ['nodeProperties']);
-      var scope  = angular.element($$("#nodeProp")).scope();
-      scope.$$apply(function(){
-        scope.init("${groupId}",${userHasRights},'group');
-      });
-    """)))
+    intro ++ tabProperties
   }
 
   ///////////// fields for category settings ///////////////////
