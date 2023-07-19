@@ -350,7 +350,7 @@ class StatusReportTest extends Specification {
         case (l, i) =>
           val parsed = l.split(",").map(_.trim).toList
           parsed match {
-            case n :: r :: _ :: d :: c :: v :: uv :: t :: m :: Nil =>
+            case n :: r :: id :: d :: c :: v :: uv :: t :: m :: Nil =>
               Some(
                 RuleNodeStatusReport(
                   n,
@@ -369,6 +369,7 @@ class StatusReportTest extends Specification {
                             ComponentValueStatusReport(
                               v,
                               uv,
+                              id,
                               List(
                                 MessageStatusReport(toRT(t), ?(m))
                               )
@@ -381,8 +382,8 @@ class StatusReportTest extends Specification {
                   DateTime.now.plusMinutes(5)
                 )
               )
-            case "" :: Nil | Nil                                   => None
-            case _                                                 => throw new IllegalArgumentException(s"Can not parse line ${i}: '${l}'")
+            case "" :: Nil | Nil                                    => None
+            case _                                                  => throw new IllegalArgumentException(s"Can not parse line ${i}: '${l}'")
           }
       }
       .flatten

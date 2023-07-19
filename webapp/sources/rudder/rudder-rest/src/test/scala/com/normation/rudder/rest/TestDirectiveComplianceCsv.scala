@@ -119,6 +119,7 @@ class TestDirectiveComplianceCsv extends Specification {
                         ComponentValueStatusReport(
                           "Disable-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\" ",
                           "",
+                          "0",
                           List(
                             MessageStatusReport(
                               ReportType.AuditNotApplicable,
@@ -139,6 +140,7 @@ class TestDirectiveComplianceCsv extends Specification {
                         ComponentValueStatusReport(
                           "Disable-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\" ",
                           "",
+                          "0",
                           List(
                             MessageStatusReport(
                               ReportType.AuditNotApplicable,
@@ -165,6 +167,7 @@ class TestDirectiveComplianceCsv extends Specification {
                         ComponentValueStatusReport(
                           "(Get-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\").Count",
                           "",
+                          "0",
                           List(
                             MessageStatusReport(
                               ReportType.AuditNotApplicable,
@@ -185,6 +188,7 @@ class TestDirectiveComplianceCsv extends Specification {
                         ComponentValueStatusReport(
                           "(Get-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\").Count",
                           "",
+                          "0",
                           List(
                             MessageStatusReport(
                               ReportType.AuditCompliant,
