@@ -1543,12 +1543,8 @@ object ExecutionBatch extends Loggable {
 
             val (ok, unexpected) = matched.foldLeft((List.empty[ResultReports], List.empty[ResultReports])) {
               case ((ok, unexp), next) =>
-                val componentOk = next.component == expectedComponent.componentName || replaceCFEngineVars(
-                  expectedComponent.componentName
-                ).matcher(next.component).matches()
-                val valueOk     = next.keyValue == expectedValueId.value || replaceCFEngineVars(expectedValueId.value)
-                  .matcher(next.keyValue)
-                  .matches()
+                val componentOk = next.component.startsWith(expectedComponent.componentName.takeWhile(_ != '$'))
+                val valueOk     = next.keyValue.startsWith(expectedValueId.value.takeWhile(_ != '$'))
 
                 if (componentOk && valueOk) {
                   (next :: ok, unexp)
