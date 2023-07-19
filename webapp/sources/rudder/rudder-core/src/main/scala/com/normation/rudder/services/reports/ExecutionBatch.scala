@@ -351,7 +351,7 @@ object ExecutionBatch extends Loggable {
    * For example, "${foo}(bar)$(baz)foo" => "\Q\E.*\Q(bar)\E.*\Qfoo\E"
    */
   final def replaceCFEngineVars(x: String): Pattern = {
-    Pattern.compile("""\Q""" + x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
+    Pattern.compile("""(?s)\Q""" + x.replaceAll(replaceCFEngineVars, """\\E.*\\Q""") + """\E""")
   }
 
   final def checkExpectedVariable(expected: ExpectedValue, effective: ResultReports): Boolean = {
