@@ -56,7 +56,6 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.ActionType
-import com.normation.rudder.rest.RestUtils.actionResponse2
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits._
 import com.normation.utils.ParseVersion
@@ -97,7 +96,28 @@ class TechniqueApi(
   def actionResp(function: Box[ActionType], req: Req, errorMessage: String, actor: EventActor)(implicit
       action:              String
   ): LiftResponse = {
-    actionResponse2(restExtractorService, dataName, uuidGen, None)(function, req, errorMessage)(action, actor)
+    // implementation copied from RestUtils#actionResponse2
+    // but changed to never fail on reason message extraction
+    implicit val prettify = restExtractorService.extractPrettify(req.params)
+    import net.liftweb.json.JsonDSL._
+    import net.liftweb.common.EmptyBox
+
+    (
+      for {
+        reason <- restExtractorService.extractReason(req).or(Full(Some("Technique updated via technique editor API")))
+        modId   = ModificationId(uuidGen.newUuid)
+        result <- function.flatMap(_(actor, modId, reason))
+      } yield {
+        result
+      }
+    ) match {
+      case Full(result: JValue) =>
+        RestUtils.toJsonResponse(None, (dataName -> result))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        RestUtils.toJsonError(None, message)
+    }
+
   }
 
   def getLiftEndpoints(): List[LiftApiModule] = {
