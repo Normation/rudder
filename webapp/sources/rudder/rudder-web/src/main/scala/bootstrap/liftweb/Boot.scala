@@ -653,7 +653,7 @@ class Boot extends Loggable {
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap: _*))
 
     // load users from rudder-users.xml
-    RudderConfig.rudderUserListProvider.reload()
+    RudderConfig.rudderUserListProvider.reload(false)
 
     // start node count historization
     ZioRuntime.runNow(

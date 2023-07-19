@@ -313,9 +313,9 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reloadPure(): IOResult[Unit] = {
+  def reloadPure(resetRoles: Boolean): IOResult[Unit] = {
     for {
-      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled, reload = true)
+      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled, resetRoles)
       _      <- cache.set(config)
       cbs    <- callbacks.get
       _      <- ZIO.foreach(cbs) { cb =>
@@ -327,8 +327,8 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
     } yield ()
   }
 
-  def reload(): Unit = {
-    reloadPure()
+  def reload(resetRoles: Boolean): Unit = {
+    reloadPure(resetRoles)
       .catchAll(err =>
         ApplicationLoggerPure.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}")
       )
