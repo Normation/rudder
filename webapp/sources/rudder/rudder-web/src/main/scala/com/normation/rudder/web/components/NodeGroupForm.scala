@@ -293,10 +293,6 @@ class NodeGroupForm(
   }
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
-    import com.normation.rudder.AuthorizationType
-
-    val groupId       = group.id.serialize
-    val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
 
     val intro = (<div class="info">
         <h4>Hierarchy of group and unicity of property name</h4>
