@@ -159,16 +159,15 @@ pub mod action {
     use serde_json::Value;
 
     pub use crate::compiler::compile;
-    use crate::compiler::read_technique;
     use crate::{
         backends::unix::cfengine::cf_agent,
-        compiler::metadata,
+        compiler::{metadata, read_technique},
         doc::{book, Format},
         frontends::methods::read_methods,
         ir::Technique,
         logs::ok_output,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
+        METADATA_FILE, RESOURCES_DIR, TARGET_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
     };
 
     /// Create a technique skeleton
@@ -292,20 +291,23 @@ pub mod action {
         // Run everything relatively to the test directory
         // Collect test cases
         let mut cases = vec![];
-        for entry in fs::read_dir(test_dir)? {
-            let e = entry?;
-            let name = e.file_name().into_string().unwrap();
-            if e.file_type()?.is_file() && name.ends_with(".yml") {
-                if let Some(ref f) = filter {
-                    // Filter by file name
-                    if e.path().file_stem().unwrap().to_string_lossy().contains(f) {
+        if test_dir.exists() {
+            for entry in fs::read_dir(test_dir)? {
+                let e = entry?;
+                let name = e.file_name().into_string().unwrap();
+                if e.file_type()?.is_file() && name.ends_with(".yml") {
+                    if let Some(ref f) = filter {
+                        // Filter by file name
+                        if e.path().file_stem().unwrap().to_string_lossy().contains(f) {
+                            cases.push(e.path())
+                        }
+                    } else {
                         cases.push(e.path())
                     }
-                } else {
-                    cases.push(e.path())
                 }
             }
         }
+
         ok_output("Running", format!("{} test(s)", cases.len()));
         for case_path in cases {
             ok_output("Testing", case_path.to_string_lossy());
@@ -325,7 +327,18 @@ pub mod action {
             if libraries.len() > 1 {
                 bail!("Tests only support one library path containing a full 'ncf' library");
             }
-            cf_agent(technique_file, case_path.as_path(), libraries[0].as_path())?;
+            let run_log = cf_agent(technique_file, case_path.as_path(), libraries[0].as_path())?;
+            let report_file = Path::new(TARGET_DIR).join(case_path.with_extension("json"));
+            create_dir_all(report_file.parent().unwrap())?;
+            fs::write(&report_file, serde_json::to_string_pretty(&run_log)?)?;
+            ok_output(
+                "Writing",
+                format!(
+                    "test report for {} into '{}'",
+                    case_path.display(),
+                    report_file.display()
+                ),
+            );
             // Run test checks
             case.check(test_dir)?;
         }

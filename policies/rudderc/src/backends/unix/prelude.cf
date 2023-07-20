@@ -71,8 +71,8 @@ bundle agent rudder_test_init {
       "params" string => getenv("PARAMS_FILE","2048");
       "tmp" string => getenv("TMP_DIR","2048");
       # Read params for current test case
-      "test_case" data => readyaml("${params}", 100k);
-      
+      "test_case" data => readyaml("${cwd}/${params}", 100k);
+
   methods:
     # lib ("ncf") init, including modules update
       "initialization";

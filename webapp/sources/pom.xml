@@ -24,7 +24,7 @@ limitations under the License.
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
 
   <description>
-    Rudder helps you continualy configure and check compliance of your infrastructure.
+    Rudder helps you continuously configure and check compliance of your infrastructure.
   </description>
 
   <organization>
@@ -188,7 +188,7 @@ limitations under the License.
             <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
             <arg>-Ywarn-unused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
             <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
-            <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable paralellisation — change to desired number! -->
+            <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable parallelization — change to desired number! -->
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
 <!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->

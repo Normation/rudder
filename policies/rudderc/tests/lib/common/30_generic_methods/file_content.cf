@@ -73,6 +73,9 @@ bundle agent file_content(path, lines, enforce)
       create        => "true",
       edit_line     => insert_lines("${lines}"),
       edit_defaults => ncf_empty_select("${enforce}");
+
+  reports:
+    "R: @@Common@@result_repaired@@empty@@empty@@0@@CRON Daemon@@None@@empty##empty@#The ${path} file was repaired";
 }
 
 bundle edit_line insert_lines(lines)

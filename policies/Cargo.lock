@@ -1345,6 +1345,8 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "fancy-regex",
+ "nom",
+ "pretty_assertions",
  "serde",
 ]
 

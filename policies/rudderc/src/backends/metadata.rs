@@ -15,11 +15,10 @@ use quick_xml::se::Serializer;
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
 
-use crate::ir::technique::{Parameter, ParameterType};
 use crate::{
     backends::{Backend, Windows},
     ir,
-    ir::technique::{Id, ItemKind, LeafReportingMode},
+    ir::technique::{Id, ItemKind, LeafReportingMode, Parameter, ParameterType},
     RESOURCES_DIR,
 };
 

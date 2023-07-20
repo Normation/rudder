@@ -10,12 +10,13 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
 use rudder_commons::{is_canonified, Target};
 
-use crate::ir::technique::{ParameterType, PasswordType};
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
     frontends::{methods::method::MethodInfo, yaml},
     ir::{
-        technique::{Block, BlockReportingMode, Id, ItemKind, Method, Parameter},
+        technique::{
+            Block, BlockReportingMode, Id, ItemKind, Method, Parameter, ParameterType, PasswordType,
+        },
         Technique,
     },
     logs::ok_output,
