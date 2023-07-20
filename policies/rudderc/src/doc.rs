@@ -225,17 +225,17 @@ mod markdown {
             let values = list
                 .iter()
                 // empty value is assimilated to "optional" and handled below
-                .filter(|v| !v.is_empty())
-                .map(|v| format!("<li>`{v}`</li>"))
+                .filter(|v| !v.value.is_empty())
+                .map(|v| format!("<li>`{}`</li>", v.value))
                 .collect::<Vec<String>>()
                 .join("");
             constraints.push(format!("Choices:<br><ul>{values}</ul>"));
         } else {
-            if p.constraints.allow_whitespace_string {
+            if p.constraints.allow_whitespace {
                 constraints.push("This parameter can contain only whitespaces.".to_string())
             }
             if let Some(r) = &p.constraints.regex {
-                constraints.push(format!("This parameter must match `{r}`."));
+                constraints.push(format!("This parameter must match `{}`.", r.value));
             }
             if p.constraints.max_length != DEFAULT_MAX_PARAM_LENGTH {
                 constraints.push(format!(
@@ -245,7 +245,7 @@ mod markdown {
             }
         }
         // No list of allowed valued, document other constraints
-        if p.constraints.allow_empty_string {
+        if p.constraints.allow_empty {
             constraints.push("This parameter is optional.".to_string())
         } else {
             constraints.push("This parameter is required.".to_string())
@@ -253,7 +253,7 @@ mod markdown {
 
         format!(
             "|{name}|{description}<br><br>{constraints}|",
-            name = if p.constraints.allow_empty_string {
+            name = if p.constraints.allow_empty {
                 format!("_{}_", p.name)
             } else {
                 format!("**{}**", p.name)
@@ -280,15 +280,15 @@ mod markdown {
         let mut params = HashMap::new();
         for p in &m.parameter {
             let value = if let Some(ss) = &p.constraints.select {
-                // try to use one value of the select, if possible the first non-empty
-                if let Some(non_empty) = ss.iter().find(|x| !x.is_empty()) {
-                    non_empty.clone()
+                // try to use one value of the select, if possible, the first non-empty
+                if let Some(non_empty) = ss.iter().find(|x| !x.value.is_empty()) {
+                    non_empty.value.clone()
                 } else {
                     // at least one value
-                    ss.first().unwrap().clone()
+                    ss.first().unwrap().value.clone()
                 }
             } else {
-                if p.constraints.allow_empty_string {
+                if p.constraints.allow_empty {
                     "OPTIONAL_VALUE"
                 } else {
                     "VALUE"

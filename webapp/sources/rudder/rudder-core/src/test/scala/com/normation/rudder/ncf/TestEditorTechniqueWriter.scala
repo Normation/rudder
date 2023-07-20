@@ -353,7 +353,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       }
     },
     new YamlTechniqueSerializer(
-      parameterTypeService,
       new ResourceFileService() {
         override def getResources(technique: EditorTechnique): IOResult[List[ResourceFile]] = Nil.succeed
         override def getResourcesFromDir(

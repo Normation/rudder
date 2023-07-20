@@ -15,4 +15,5 @@ params:
   - id: package_version
     name: version
     description: Package version to install
-    may_be_empty: false
+    constraints:
+      allow_empty: false

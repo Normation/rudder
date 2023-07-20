@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://docs.rudder.io/schemas/technique.schema.json",
   "title": "Rudder Technique",
-  "description": "A rudder technique",
+  "description": "A Rudder technique",
   "type": "object",
   "required": [ "id", "name", "version", "items" ],
   "additionalProperties": false,

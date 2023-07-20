@@ -34,7 +34,8 @@ parameter:
       allow_empty_string: true
       allow_whitespace_string: false
       select: ~
-      regex: "^[a-z]*$"
+      regex:
+        value: "^[a-z]*$"
       max_length: 16384
     type: string
   - name: provider
@@ -43,15 +44,15 @@ parameter:
       allow_empty_string: true
       allow_whitespace_string: false
       select:
-        - ""
-        - default
-        - yum
-        - apt
-        - zypper
-        - zypper_pattern
-        - slackpkg
-        - pkg
-        - ips
-        - nimclient
+        - value: ""
+        - value: default
+        - value: yum
+        - value: apt
+        - value: zypper
+        - value: zypper_pattern
+        - value: slackpkg
+        - value: pkg
+        - value: ips
+        - value: nimclient
       max_length: 16384
     type: string

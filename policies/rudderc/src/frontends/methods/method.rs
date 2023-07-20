@@ -9,7 +9,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
-use rudder_commons::{Constraint, Constraints, ParameterType, Target};
+use rudder_commons::{Escaping, MethodConstraint, MethodConstraints, Target};
 use serde::{Deserialize, Serialize};
 
 use crate::regex;
@@ -114,9 +114,9 @@ pub struct ParameterRename {
 pub struct Parameter {
     pub name: String,
     pub description: String,
-    pub constraints: Constraints,
+    pub constraints: MethodConstraints,
     #[serde(rename = "type")]
-    pub p_type: ParameterType,
+    pub escaping: Escaping,
 }
 
 impl Default for Parameter {
@@ -124,8 +124,8 @@ impl Default for Parameter {
         Self {
             name: "".to_string(),
             description: "".to_string(),
-            constraints: Constraints::default(),
-            p_type: ParameterType::String,
+            constraints: MethodConstraints::default(),
+            escaping: Escaping::String,
         }
     }
 }
@@ -181,13 +181,14 @@ impl FromStr for MethodInfo {
                 match tag {
                     "parameter" => parameter.description = caps[4].to_string(),
                     "parameter_constraint" => {
-                        let constraint: Constraint = serde_json::from_str(&format!(
+                        // Stored as ~ JSON
+                        let constraint: MethodConstraint = serde_json::from_str(&format!(
                             "{{ {} }}",
                             caps[4].replace('\\', "\\\\")
                         ))?;
                         parameter.constraints.update(constraint)?;
                     }
-                    "parameter_type" => parameter.p_type = caps[4].parse()?,
+                    "parameter_type" => parameter.escaping = caps[4].parse()?,
                     _ => debug!("Unknown tag {}", tag),
                 }
                 continue;

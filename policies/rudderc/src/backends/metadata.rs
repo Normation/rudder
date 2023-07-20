@@ -6,7 +6,7 @@
 //! Contains information about expected reports for the Rudder app
 //!
 //! WARNING: We do not implement the format exhaustively but only the parts we need to
-//! generate our metadata file. There are parts that are could be made optional, and others are missing.
+//! generate our metadata file. There are parts that could be made optional, and others are missing.
 
 use std::path::Path;
 
@@ -15,6 +15,7 @@ use quick_xml::se::Serializer;
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
 
+use crate::ir::technique::{Parameter, ParameterType};
 use crate::{
     backends::{Backend, Windows},
     ir,
@@ -46,6 +47,113 @@ impl Metadata {
     }
 }
 
+fn parameter_type_to_metadata(p: ParameterType) -> &'static str {
+    match p {
+        ParameterType::Boolean => "boolean",
+        ParameterType::String => "string",
+        ParameterType::MultilineString => "textarea",
+        ParameterType::Json => "textarea",
+        ParameterType::Yaml => "textarea",
+        ParameterType::Mail => "mail",
+        ParameterType::Ip => "ip",
+        ParameterType::Ipv4 => "ipv4",
+        ParameterType::Ipv6 => "ipv6",
+        ParameterType::Integer => "integer",
+        ParameterType::SizeB => "size-b",
+        ParameterType::SizeKb => "size-kb",
+        ParameterType::SizeMb => "size-mb",
+        ParameterType::SizeGb => "size-gb",
+        ParameterType::SizeTb => "size-tb",
+        ParameterType::Permissions => "perm",
+        ParameterType::SharedFile => "sharedfile",
+        ParameterType::Password => "password",
+    }
+}
+
+impl From<Parameter> for Input {
+    fn from(p: Parameter) -> Self {
+        let type_constraint = parameter_type_to_metadata(p._type);
+
+        let regex_constraint = p.constraints.regex.map(|r| Regex {
+            error: r
+                .error_message
+                .unwrap_or(format!("Value should match regex: '{}'", r.value)),
+            regex: r.value,
+        });
+
+        let password_constraint = if matches!(p._type, ParameterType::Password) {
+            Some(
+                p.constraints
+                    .password_hashes
+                    .unwrap()
+                    .into_iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","),
+            )
+        } else {
+            None
+        };
+
+        Self {
+            name: p.name.clone(),
+            description: p.description.unwrap_or(p.name),
+            long_description: p.documentation,
+            constraint: Constraint {
+                _type: type_constraint.to_string(),
+                may_be_empty: if p.constraints.allow_empty {
+                    Some(true)
+                } else {
+                    None
+                },
+                regex: regex_constraint,
+                password_hashes: password_constraint,
+                default: p.default,
+            },
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct SelectItem {
+    label: String,
+    value: String,
+}
+
+impl From<Parameter> for SelectOne {
+    fn from(p: Parameter) -> Self {
+        let items = if let Some(s) = p.constraints.select {
+            s.into_iter()
+                .map(|i| SelectItem {
+                    label: i.name.unwrap_or(i.value.clone()),
+                    value: i.value,
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        Self {
+            name: p.name.clone(),
+            description: p.description.unwrap_or(p.name),
+            long_description: p.documentation,
+            item: items,
+            constraint: Constraint {
+                _type: parameter_type_to_metadata(p._type).to_string(),
+                may_be_empty: if p.constraints.allow_empty {
+                    Some(true)
+                } else {
+                    None
+                },
+                regex: None,
+                password_hashes: None,
+                default: p.default,
+            },
+        }
+    }
+}
+
 impl TryFrom<(ir::Technique, &Path)> for Technique {
     type Error = Error;
 
@@ -64,8 +172,8 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
                 )
             })
             .collect();
-        let multi_instance = !src.parameters.is_empty();
-        let policy_generation = if src.parameters.is_empty() {
+        let multi_instance = !src.params.is_empty();
+        let policy_generation = if src.params.is_empty() {
             // merged for compatibility?
             "separated"
         } else {
@@ -75,30 +183,28 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
         // First parse block et reports sections
         let mut sections: Vec<SectionType> = SectionType::from(src.items.clone());
         // Now let's add INPUT sections
-        let input: Vec<Input> = src
-            .parameters
+        let input: Vec<InputType> = src
+            .params
             .into_iter()
-            .map(|p| Input {
-                name: p.id.to_string().to_uppercase(),
-                description: Some(p.name),
-                long_description: p.description,
-                constraint: Constraint {
-                    _type: "textarea".to_string(),
-                    may_be_empty: p.may_be_empty,
-                },
+            .map(|p| {
+                if p.constraints.select.is_some() {
+                    InputType::SelectOne(p.into())
+                } else {
+                    InputType::Input(p.into())
+                }
             })
             .collect();
         if !input.is_empty() {
             let section = SectionInput {
                 name: "Technique parameters".to_string(),
-                input,
+                section: input,
             };
             sections.push(SectionType::SectionInput(section));
         }
 
         Ok(Technique {
-            name: src.name,
-            description: src.description,
+            name: src.name.clone(),
+            description: src.description.unwrap_or(src.name),
             // false is for legacy techniques, we only use the modern reporting
             use_method_reporting: true,
             agent,
@@ -114,7 +220,7 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
 struct Technique {
     #[serde(rename = "@name")]
     name: String,
-    description: Option<String>,
+    description: String,
     #[serde(rename = "USEMETHODREPORTING")]
     use_method_reporting: bool,
     #[serde(rename = "MULTIINSTANCE")]
@@ -245,10 +351,18 @@ struct SectionBlock {
 
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
+enum InputType {
+    Input(Input),
+    #[serde(rename = "SELECT1")]
+    SelectOne(SelectOne),
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
 struct SectionInput {
     #[serde(rename = "@name")]
     name: String,
-    input: Vec<Input>,
+    section: Vec<InputType>,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -257,10 +371,26 @@ struct Input {
     // actually, the id
     name: String,
     // actually, the name
-    description: Option<String>,
+    description: String,
     #[serde(rename = "LONGDESCRIPTION")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     // actually, the description
     long_description: Option<String>,
+    constraint: Constraint,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "UPPERCASE")]
+struct SelectOne {
+    // actually, the id
+    name: String,
+    // actually, the name
+    description: String,
+    #[serde(rename = "LONGDESCRIPTION")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // actually, the description
+    long_description: Option<String>,
+    item: Vec<SelectItem>,
     constraint: Constraint,
 }
 
@@ -270,7 +400,23 @@ struct Constraint {
     #[serde(rename = "TYPE")]
     _type: String,
     #[serde(rename = "MAYBEEMPTY")]
-    may_be_empty: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    may_be_empty: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    regex: Option<Regex>,
+    #[serde(rename = "PASSWORDHASH")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    password_hashes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+struct Regex {
+    #[serde(rename = "@error")]
+    error: String,
+    #[serde(rename = "$value")]
+    regex: String,
 }
 
 impl SectionType {
@@ -363,15 +509,18 @@ mod tests {
                     }),
                     SectionType::SectionInput(SectionInput {
                         name: "Technique parameters".to_string(),
-                        input: vec![Input {
+                        section: vec![InputType::Input(Input {
                             name: "server".to_string(),
-                            description: Some("My parameter".to_string()),
+                            description: "My parameter".to_string(),
                             long_description: Some("My interesting parameter".to_string()),
                             constraint: Constraint {
                                 _type: "string".to_string(),
-                                may_be_empty: false,
+                                may_be_empty: Some(false),
+                                regex: None,
+                                password_hashes: None,
+                                default: None,
                             },
-                        }],
+                        })],
                     }),
                 ],
             })],
@@ -412,7 +561,7 @@ mod tests {
 
         let t = Technique {
             name: "Configure NTP".into(),
-            description: Some("This is a description".into()),
+            description: "This is a description".into(),
             use_method_reporting: true,
             multi_instance: true,
             policy_generation: "separated-with-parameters".to_string(),

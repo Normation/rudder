@@ -7,7 +7,7 @@ function {{ id|dsc_case }} {
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 {% for p in parameters %}
-        [parameter(Mandatory = ${{ !p.may_be_empty }})]
+        [parameter(Mandatory = ${{ !p.constraints.allow_empty }})]
         [string]${{ p.name }},
 {%- endfor %}
         [Rudder.PolicyMode]$policyMode

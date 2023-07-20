@@ -1,9 +1,9 @@
 <TECHNIQUE name="NTP">
-  <DESCRIPTION/>
+  <DESCRIPTION>NTP</DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <MULTIINSTANCE>true</MULTIINSTANCE>
   <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>ntp</NAME>
     </BUNDLES>
@@ -50,12 +50,10 @@
     </SECTION>
     <SECTION name="Technique parameters">
       <INPUT>
-        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
-        <DESCRIPTION>server</DESCRIPTION>
-        <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
+        <NAME>server</NAME>
+        <DESCRIPTION>The server hostname</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
-          <MAYBEEMPTY>true</MAYBEEMPTY>
         </CONSTRAINT>
       </INPUT>
     </SECTION>

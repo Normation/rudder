@@ -87,35 +87,34 @@ case class Reporting(
     id:   Option[String]
 )
 
-import ParameterType._
-
 case class TechniqueParameter(
-    id:           ParameterId,
-    name:         ParameterId,
-    description:  Option[String],
-    _type:        Option[ParameterType],
-    may_be_empty: Option[Boolean]
+    id:          ParameterId,
+    name:        ParameterId,
+    description: Option[String],
+    constraints: Constraints
 )
 
-class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resourceFileService: ResourceFileService) {
-  implicit val encoderParameterId:            JsonEncoder[ParameterId]        = JsonEncoder[String].contramap(_.value)
-  implicit val encoderFieldParameterId:       JsonFieldEncoder[ParameterId]   = JsonFieldEncoder[String].contramap(_.value)
-  implicit val encoderBundleName:             JsonEncoder[BundleName]         = JsonEncoder[String].contramap(_.value)
-  implicit val encoderVersion:                JsonEncoder[Version]            = JsonEncoder[String].contramap(_.value)
-  implicit val encoderReporting:              JsonEncoder[Reporting]          = DeriveJsonEncoder.gen
-  implicit lazy val encoderMethodElem:        JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
-  implicit val encoderTechniqueParameterType: JsonEncoder[ParameterType]      =
-    JsonEncoder[String].contramap(s => parameterTypeService.value(s).getOrElse(s.toString))
-  implicit val encoderTechniqueParameter:     JsonEncoder[TechniqueParameter] = DeriveJsonEncoder.gen
-  implicit val encoderTechnique:              JsonEncoder[Technique]          = DeriveJsonEncoder.gen
+case class Constraints(
+    allow_empty: Option[Boolean]
+)
+
+class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
+  implicit val encoderParameterId:        JsonEncoder[ParameterId]        = JsonEncoder[String].contramap(_.value)
+  implicit val encoderFieldParameterId:   JsonFieldEncoder[ParameterId]   = JsonFieldEncoder[String].contramap(_.value)
+  implicit val encoderBundleName:         JsonEncoder[BundleName]         = JsonEncoder[String].contramap(_.value)
+  implicit val encoderVersion:            JsonEncoder[Version]            = JsonEncoder[String].contramap(_.value)
+  implicit val encoderReporting:          JsonEncoder[Reporting]          = DeriveJsonEncoder.gen
+  implicit val encoderConstraints:        JsonEncoder[Constraints]        = DeriveJsonEncoder.gen
+  implicit lazy val encoderMethodElem:    JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
+  implicit val encoderTechniqueParameter: JsonEncoder[TechniqueParameter] = DeriveJsonEncoder.gen
+  implicit val encoderTechnique:          JsonEncoder[Technique]          = DeriveJsonEncoder.gen
 
   implicit val decoderBundleName:         JsonDecoder[BundleName]         = JsonDecoder[String].map(BundleName.apply)
   implicit val decoderParameterId:        JsonDecoder[ParameterId]        = JsonDecoder[String].map(ParameterId.apply)
   implicit val decoderFieldParameterId:   JsonFieldDecoder[ParameterId]   = JsonFieldDecoder[String].map(ParameterId.apply)
   implicit val decoderVersion:            JsonDecoder[Version]            = JsonDecoder[String].map(s => new Version(s))
   implicit val decoderReporting:          JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
-  implicit val decoderParameterType:      JsonDecoder[ParameterType]      =
-    JsonDecoder[String].mapOrFail(parameterTypeService.create(_).left.map(_.msg))
+  implicit val decoderConstraints:        JsonDecoder[Constraints]        = DeriveJsonDecoder.gen
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
   implicit lazy val decoderMethodElem:    JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
   implicit val decoderTechnique:          JsonDecoder[Technique]          = DeriveJsonDecoder.gen
@@ -177,8 +176,7 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
       techniqueParameter.id,
       techniqueParameter.name,
       if (techniqueParameter.description.isEmpty) None else Some(techniqueParameter.description),
-      None,
-      Some(techniqueParameter.mayBeEmpty)
+      Constraints(allow_empty = Some(techniqueParameter.mayBeEmpty))
     )
   }
 
@@ -187,7 +185,7 @@ class YamlTechniqueSerializer(parameterTypeService: ParameterTypeService, resour
       techniqueParameter.id,
       techniqueParameter.name,
       techniqueParameter.description.getOrElse(""),
-      techniqueParameter.may_be_empty.getOrElse(false)
+      techniqueParameter.constraints.allow_empty.getOrElse(false)
     )
   }
 

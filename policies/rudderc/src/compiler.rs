@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
 use rudder_commons::{is_canonified, Target};
 
+use crate::ir::technique::{ParameterType, PasswordType};
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
     frontends::{methods::method::MethodInfo, yaml},
@@ -24,27 +25,21 @@ use crate::{
 pub type Methods = HashMap<String, MethodInfo>;
 
 /// Read technique and augment with data from libraries
-fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
     let mut policy = yaml::read(input)?;
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
     methods_metadata(&mut policy.items, methods)?;
-    for p in policy.parameters.as_slice() {
+    for p in &mut policy.params {
         check_parameter(p)?;
     }
     check_ids_unicity(&policy)?;
+    check_parameter_unicity(&policy)?;
     Ok(policy)
 }
 
 /// Compute the output of the file
-pub fn compile(
-    methods: &'static Methods,
-    input: &str,
-    target: Target,
-    src: &Path,
-    standalone: bool,
-) -> Result<String> {
-    let policy = read_technique(methods, input)?;
+pub fn compile(policy: Technique, target: Target, src: &Path, standalone: bool) -> Result<String> {
     ok_output(
         "Compiling",
         format!("{} v{} [{}]", policy.name, policy.version, target,),
@@ -54,8 +49,7 @@ pub fn compile(
 }
 
 /// Compile metadata file
-pub fn metadata(methods: &'static Methods, input: &str, src: &Path) -> Result<String> {
-    let policy = read_technique(methods, input)?;
+pub fn metadata(policy: Technique, src: &Path) -> Result<String> {
     ok_output(
         "Generating",
         format!("{} v{} [Metadata]", policy.name, policy.version,),
@@ -89,23 +83,29 @@ fn methods_metadata(modules: &mut Vec<ItemKind>, info: &'static Methods) -> Resu
 }
 
 /// Check technique parameter consistency
-fn check_parameter(param: &Parameter) -> Result<()> {
+///
+/// Fix constraints if necessary.
+fn check_parameter(param: &mut Parameter) -> Result<()> {
     if !is_canonified(&param.name) {
         bail!(
             "Technique parameter name '{}' must be canonified",
             param.name
         )
     }
+    // Only allow modern hashes if not specified
+    if param._type == ParameterType::Password && param.constraints.password_hashes.is_none() {
+        param.constraints.password_hashes = Some(PasswordType::acceptable())
+    };
     Ok(())
 }
 
 /// Check method call consistency
 fn check_method(method: &mut Method) -> Result<()> {
     for p in &method.info.unwrap().parameter {
-        // Empty value if missing and allow_empty_string
+        // Empty value if missing and allow_empty
         match method.params.get(&p.name) {
             Some(_) => (),
-            None if p.constraints.allow_empty_string => {
+            None if p.constraints.allow_empty => {
                 method.params.insert(p.name.clone(), "".to_string());
             }
             _ => bail!("Missing parameter in '{}': '{}'", method.name, p.name),
@@ -182,7 +182,7 @@ fn check_block(block: &Block) -> Result<()> {
 }
 
 /// Check id unicity
-// Could be more efficient...
+// TODO: Could be more efficient...
 fn check_ids_unicity(technique: &Technique) -> Result<()> {
     fn get_ids(r: &ItemKind) -> Vec<Id> {
         match r {
@@ -196,9 +196,25 @@ fn check_ids_unicity(technique: &Technique) -> Result<()> {
         }
     }
     let mut ids = HashSet::new();
-    for id in technique.items.iter().flat_map(get_ids) {
+    for id in technique
+        .items
+        .iter()
+        .flat_map(get_ids)
+        .chain(technique.params.iter().map(|p| p.id.clone()))
+    {
         if !ids.insert(id.clone()) {
             bail!("Duplicate id '{}'", &id);
+        }
+    }
+    Ok(())
+}
+
+/// Ensure all parameters have a unique name
+fn check_parameter_unicity(technique: &Technique) -> Result<()> {
+    let mut names = HashSet::new();
+    for name in technique.params.iter().map(|p| p.name.clone()) {
+        if !names.insert(name.clone()) {
+            bail!("Duplicate parameter name '{}'", &name);
         }
     }
     Ok(())

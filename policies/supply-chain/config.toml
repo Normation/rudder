@@ -30,10 +30,6 @@ criteria = "safe-to-deploy"
 version = "0.1.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.askama]]
-version = "0.12.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.askama_derive]]
 version = "0.12.1"
 criteria = "safe-to-deploy"
@@ -245,10 +241,6 @@ criteria = "safe-to-deploy"
 [[exemptions.pretty_assertions]]
 version = "1.3.0"
 criteria = "safe-to-run"
-
-[[exemptions.pulldown-cmark]]
-version = "0.9.3"
-criteria = "safe-to-deploy"
 
 [[exemptions.rand]]
 version = "0.8.5"
