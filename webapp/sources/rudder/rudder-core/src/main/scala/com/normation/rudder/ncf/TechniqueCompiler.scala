@@ -91,9 +91,8 @@ trait TechniqueCompiler {
  */
 sealed trait TechniqueCompilerApp { def name: String }
 object TechniqueCompilerApp       {
-  case object Webapp          extends TechniqueCompilerApp { val name = "webapp"            }
-  case object Rudderc         extends TechniqueCompilerApp { val name = "rudderc"           }
-  case object RuddercUnixOnly extends TechniqueCompilerApp { val name = "rudderc-unix-only" }
+  case object Webapp  extends TechniqueCompilerApp { val name = "webapp"  }
+  case object Rudderc extends TechniqueCompilerApp { val name = "rudderc" }
 
   def values = ca.mrvisser.sealerate.values[TechniqueCompilerApp]
 
@@ -372,18 +371,7 @@ class TechniqueCompilerWithFallback(
       }
     }
 
-    val ruddercAll  = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
-    val ruddercUnix = {
-      for {
-        time_1 <- currentTimeMillis
-        _      <- writeAgentFiles(technique, methods, onlyPS1 = true)
-        time_2 <- currentTimeMillis
-        _      <- TimingDebugLoggerPure.trace(
-                    s"writeTechnique: writing agent files for technique '${technique.name}' took ${time_2 - time_1}ms"
-                  )
-        r      <- ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
-      } yield r
-    }
+    val ruddercAll = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
 
     // recover from rudderc if result says so
     def recoverIfNeeded(app: TechniqueCompilerApp, r: RuddercResult): IOResult[TechniqueCompilationOutput] = {
@@ -397,11 +385,9 @@ class TechniqueCompilerWithFallback(
     }
 
     app match {
-      case TechniqueCompilerApp.Webapp          => // in that case, we can't fallback even more, so the result is final
+      case TechniqueCompilerApp.Webapp  => // in that case, we can't fallback even more, so the result is final
         webApp
-      case TechniqueCompilerApp.RuddercUnixOnly =>
-        ruddercUnix.flatMap(res => recoverIfNeeded(TechniqueCompilerApp.RuddercUnixOnly, res))
-      case TechniqueCompilerApp.Rudderc         =>
+      case TechniqueCompilerApp.Rudderc =>
         ruddercAll.flatMap(res => recoverIfNeeded(TechniqueCompilerApp.Rudderc, res))
     }
   }
