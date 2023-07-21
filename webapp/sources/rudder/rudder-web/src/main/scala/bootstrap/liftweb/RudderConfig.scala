@@ -1004,6 +1004,24 @@ object RudderParsedProperties {
     }
   }
 
+  // Comes with the rudder-server packages
+  val GENERIC_METHODS_SYSTEM_LIB = {
+    try {
+      config.getString("")
+    } catch {
+      case ex: ConfigException => "/usr/share/ncf/tree/30_generic_methods"
+    }
+  }
+
+  // User-defined methods + plugin methods (including windows)
+  val GENERIC_METHODS_LOCAL_LIB = {
+    try {
+      config.getString("rudder.technique.methods.localLib")
+    } catch {
+      case ex: ConfigException => "/var/rudder/configuration-repository/ncf/30_generic_methods"
+    }
+  }
+
   /*
    * the return code used by rudderc to notify the webapp that it didn't successfully terminated
    * and that the webapp should generate the technique.
@@ -1494,7 +1512,6 @@ object RudderConfigInit {
     }
 
     lazy val ncfTechniqueReader: ncf.TechniqueReader = new ncf.TechniqueReader(
-      restExtractorService,
       stringUuidGenerator,
       personIdentService,
       gitConfigRepo,
@@ -1502,8 +1519,11 @@ object RudderConfigInit {
       gitModificationRepository,
       RUDDER_CHARSET.name,
       RUDDER_GROUP_OWNER_CONFIG_REPO,
-      techniqueSerializer,
-      yamlTechniqueSerializer
+      yamlTechniqueSerializer,
+      typeParameterService,
+      RUDDERC_CMD,
+      GENERIC_METHODS_SYSTEM_LIB,
+      GENERIC_METHODS_LOCAL_LIB
     )
 
     lazy val techniqueSerializer = new TechniqueSerializer(typeParameterService)

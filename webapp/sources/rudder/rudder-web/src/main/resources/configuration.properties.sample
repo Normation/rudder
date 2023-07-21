@@ -394,6 +394,21 @@ rudder.dir.dependencies=/var/rudder/tools
 #
 rudder.batch.techniqueLibrary.updateInterval=5
 
+#
+# Generic methods library path
+# The are used to generate the list of generic methods available for
+# the technique editor after being compiled by rudderc into
+# /var/rudder/configuration-repository/ncf/generic_methods.json
+#
+# System lib comes with the rudder-server packages
+#
+rudder.technique.methods.systemLib=/usr/share/ncf/tree/30_generic_methods
+
+#
+# Local lib is for user-defined methods + plugin methods (including windows)
+#
+rudder.technique.methods.localLib=/var/rudder/configuration-repository/ncf/30_generic_methods
+
 ######################################################################
 # Configuration and fact repositories, its update and Git properties ###########################
 #####################################################################
