@@ -18,6 +18,9 @@ test: libs
 	# Parse lib
 	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 
+static: libs version
+	cargo build --release --locked --features embedded-lib
+
 %.cf: %.yml libs
 	cd $(shell dirname $@) && cargo run --quiet --bin rudderc -- --quiet build -l ../../../../target/repos/ncf/tree/30_generic_methods/
 

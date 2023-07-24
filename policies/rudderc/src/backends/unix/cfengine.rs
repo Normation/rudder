@@ -35,10 +35,11 @@ use std::{fs, path::Path, process::Command};
 
 use anyhow::{bail, Result};
 use log::debug;
-use rudder_commons::report::{Report, RunLog};
+use rudder_commons::{
+    regex_comp,
+    report::{Report, RunLog},
+};
 use tempfile::tempdir;
-
-use crate::regex;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
@@ -136,7 +137,7 @@ fn cfengine_canonify_condition(c: &str) -> String {
         format!("\"{c}\"")
     } else {
         // TODO: does not handle nested vars, we need a parser for this.
-        let var = regex!(r"(\$\{[^\}]*})");
+        let var = regex_comp!(r"(\$\{[^\}]*})");
         format!(
             "concat(\"{}\")",
             var.replace_all(c, r##"",canonify("$1"),""##)

@@ -31,7 +31,14 @@ walkdir = "2"
 tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
 
+[features]
+"embedded-lib" = []
+
 [dev-dependencies]
 pretty_assertions = "1"
 # Fix for workspace not merged yet
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
+
+[build-dependencies]
+rudder_commons = { path = "../rudder-commons" }
+serde_json = "1"

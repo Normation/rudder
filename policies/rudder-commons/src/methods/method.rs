@@ -9,10 +9,9 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 use log::debug;
-use rudder_commons::{Escaping, MethodConstraint, MethodConstraints, Target};
 use serde::{Deserialize, Serialize};
 
-use crate::regex;
+use crate::{regex_comp, Escaping, MethodConstraint, MethodConstraints, Target};
 
 /// Supported agent for a legacy method, now replaced by `Target`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -148,7 +147,7 @@ impl FromStr for MethodInfo {
         for line in s.lines() {
             // Parameter tags (with a parameter sub key)
             let attributes_tag_re =
-                regex!(r"^\s*#\s*@(parameter\w*)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$");
+                regex_comp!(r"^\s*#\s*@(parameter\w*)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$");
             if let Some(caps) = attributes_tag_re.captures(line) {
                 multiline = None;
                 let tag = &caps[1];
@@ -195,7 +194,7 @@ impl FromStr for MethodInfo {
             }
 
             // Other tags, allow multiline
-            let tag_re = regex!(r"^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$");
+            let tag_re = regex_comp!(r"^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$");
             if let Some(caps) = tag_re.captures(line) {
                 multiline = None;
                 let tag = &caps[1];
@@ -233,7 +232,7 @@ impl FromStr for MethodInfo {
                 continue;
             }
 
-            let multiline_re = regex!(r"^\s*# ?(.*)$");
+            let multiline_re = regex_comp!(r"^\s*# ?(.*)$");
             if let Some(multi) = multiline {
                 if let Some(caps) = multiline_re.captures(line) {
                     match multi {
@@ -261,7 +260,7 @@ impl FromStr for MethodInfo {
                 continue;
             }
 
-            let bundle_re = regex!(r"[^#]*bundle\s+agent.*$");
+            let bundle_re = regex_comp!(r"[^#]*bundle\s+agent.*$");
             if bundle_re.captures(line).is_some() {
                 // We're done with metadata parsing, let's stop now
                 break;
@@ -269,7 +268,7 @@ impl FromStr for MethodInfo {
         }
 
         // Bundle signature
-        let bundle_re = regex!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*");
+        let bundle_re = regex_comp!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*");
         if let Some(caps) = bundle_re.captures(s) {
             method.bundle_name = (caps[1]).to_string();
             method.bundle_args = match &caps.get(3) {

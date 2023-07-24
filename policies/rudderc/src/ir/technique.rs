@@ -9,12 +9,12 @@ use std::{
 };
 
 use anyhow::{bail, Error, Result};
-use rudder_commons::{RegexConstraint, Select};
+use rudder_commons::{methods::method::MethodInfo, RegexConstraint, Select};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
 use uuid::Uuid;
 
-use crate::{frontends::methods::method::MethodInfo, ir::condition::Condition};
+use crate::ir::condition::Condition;
 
 /// Valid id for techniques, methods, etc.
 ///

@@ -1344,10 +1344,16 @@ name = "rudder_commons"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
+ "colored",
+ "env_logger",
  "fancy-regex",
+ "log 0.4.19",
  "nom",
  "pretty_assertions",
+ "regex",
  "serde",
+ "serde_json",
+ "walkdir",
 ]
 
 [[package]]

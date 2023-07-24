@@ -61,5 +61,7 @@ rudderc test --library /path/to/lib
 rudderc test --library /path/to/lib case1
 ```
 
-* the library parameter here **must** be a full library (containing `10_ncf_internals`, etc.), because it will also be used by the agent to run.
+* When running this command outside a Rudder server, you need to pass it a library path
+(as it is required to run the agent).
+  * It can be the `tree` directory in a clone of the [ncf repository](https://github.com/Normation/ncf/)
 * the optional argument allows filtering the tests, only run those containing the given string.

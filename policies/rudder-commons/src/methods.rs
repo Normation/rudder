@@ -5,16 +5,16 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, Context, Result};
 
-use crate::{
-    compiler::Methods,
-    frontends::methods::{method::MethodInfo, reader::read_lib},
-    logs::ok_output,
-};
+use crate::logs::ok_output;
+
+pub type Methods = HashMap<String, MethodInfo>;
+
+use crate::methods::{method::MethodInfo, reader::read_lib};
 
 pub mod method;
 pub mod reader;
 
-pub fn read_methods(libraries: &[PathBuf]) -> Result<&'static Methods> {
+pub fn read(libraries: &[PathBuf]) -> Result<&'static Methods> {
     let mut methods = HashMap::new();
     for library in libraries {
         let add = read_lib(library)

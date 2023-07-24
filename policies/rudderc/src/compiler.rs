@@ -1,33 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::{
-    collections::{HashMap, HashSet},
-    path::Path,
-};
+use std::{collections::HashSet, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
-use rudder_commons::{is_canonified, Target};
+use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
 
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
-    frontends::{methods::method::MethodInfo, yaml},
+    frontends,
     ir::{
         technique::{
             Block, BlockReportingMode, Id, ItemKind, Method, Parameter, ParameterType, PasswordType,
         },
         Technique,
     },
-    logs::ok_output,
     RESOURCES_DIR,
 };
 
-pub type Methods = HashMap<String, MethodInfo>;
-
 /// Read technique and augment with data from libraries
 pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
-    let mut policy = yaml::read(input)?;
+    let mut policy = frontends::read(input)?;
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
     methods_metadata(&mut policy.items, methods)?;
