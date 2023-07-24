@@ -1007,7 +1007,7 @@ object RudderParsedProperties {
   // Comes with the rudder-server packages
   val GENERIC_METHODS_SYSTEM_LIB = {
     try {
-      config.getString("")
+      config.getString("rudder.technique.methods.systemLib")
     } catch {
       case ex: ConfigException => "/usr/share/ncf/tree/30_generic_methods"
     }
