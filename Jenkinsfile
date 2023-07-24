@@ -418,8 +418,8 @@ pipeline {
                         name 'JDK_VERSION'
                         // The rationale here is:
                         // * all base test already run on the lowest supported (LTS) version
-                        // * add specific compatibility tests for  other supported LTS + latest release
-                        values '19'
+                        // * add specific compatibility tests for other supported LTS + latest release
+                        values '20'
                     }
                 }
                 stages {
