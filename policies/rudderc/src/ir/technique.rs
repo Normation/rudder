@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::fmt::{Display, Formatter};
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{
+    collections::HashMap,
+    fmt,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use anyhow::{bail, Error, Result};
 use rudder_commons::{RegexConstraint, Select};
@@ -448,9 +452,11 @@ pub enum LeafReportingMode {
 
 #[cfg(test)]
 mod tests {
-    use crate::ir::technique::{Id, Parameter};
-    use pretty_assertions::assert_eq;
     use std::str::FromStr;
+
+    use pretty_assertions::assert_eq;
+
+    use crate::ir::technique::{Id, Parameter};
 
     #[test]
     fn it_parses_parameters() {

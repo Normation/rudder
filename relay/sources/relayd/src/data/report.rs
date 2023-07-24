@@ -42,7 +42,7 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
         map(tag("   debug"), |_| "log_debug"),
         // At log level >= info, CFEngine adds the program name
         // https://github.com/cfengine/core/blob/f57d0359757c6adb7ec2416f2072546b8db1181b/libutils/logging.c#L223
-        // For us it should always be "rudder" as it is part of our policies
+        // For us, it should always be "rudder" as it is part of our policies
         map(tag("rudder CRITICAL"), |_| "log_warn"),
         map(tag("rudder    error"), |_| "log_warn"),
         map(tag("rudder  warning"), |_| "log_warn"),

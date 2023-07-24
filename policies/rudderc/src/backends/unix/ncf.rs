@@ -4,7 +4,7 @@
 //! Configuration items (in the classic Rudder/methods meaning).
 //!
 //! We keep these names as it is still the reality of Rudder (technique editor, etc.)
-//! Once we get rid of these we will be able to make things more general, but for now,
+//! Once we get rid of these, we will be able to make things more general, but for now,
 //! let's stick with what the webapp generates.
 
 pub mod method_call;

@@ -33,8 +33,9 @@ pub(crate) mod promise;
 
 use std::{fs, path::Path, process::Command};
 
-use anyhow::Result;
-use log::{debug, error};
+use anyhow::{bail, Result};
+use log::debug;
+use rudder_commons::report::{Report, RunLog};
 use tempfile::tempdir;
 
 use crate::regex;
@@ -143,7 +144,7 @@ fn cfengine_canonify_condition(c: &str) -> String {
     }
 }
 
-pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<()> {
+pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<RunLog> {
     debug!("Running cf-agent on {}", input.display());
     // Use a dedicated workdir for each test
     // Required to run agents concurrently without trouble
@@ -172,18 +173,18 @@ pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<()> {
         .env("PARAMS_FILE", params)
         .env("LIB_PATH", lib_path)
         .env("TMP_DIR", work_dir.path().to_string_lossy().to_string())
+        .env("CWD", std::env::current_dir()?)
         .output()?;
+    let stdout = String::from_utf8(cmd.stdout)?;
+    let stderr = String::from_utf8(cmd.stderr)?;
     if !cmd.status.success() {
-        error!(
-            "Failed to run cf-agent:\nstdout: {}\nstderr:{}",
-            String::from_utf8(cmd.stdout)?,
-            String::from_utf8(cmd.stderr)?
-        );
+        bail!("Failed to run cf-agent:\nstdout: {stdout}\nstderr:{stderr}",);
     } else {
-        // Our CFEngine does not output on stderr
-        debug!("cf-agent output: {}", String::from_utf8(cmd.stdout)?);
+        // CFEngine output everything on stdout
+        let run_log = Report::parse(&stdout)?;
+        debug!("cf-agent output: {}", stdout);
+        Ok(run_log)
     }
-    Ok(())
 }
 
 #[cfg(test)]

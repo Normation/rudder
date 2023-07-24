@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+pub mod report;
+
 use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 
 use anyhow::{anyhow, bail, Error, Result};

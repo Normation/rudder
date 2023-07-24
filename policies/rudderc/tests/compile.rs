@@ -10,10 +10,9 @@ use std::{
 
 use pretty_assertions::assert_eq;
 use rudder_commons::{Target, ALL_TARGETS};
-use rudderc::compiler::read_technique;
 use rudderc::{
     action,
-    compiler::{metadata, Methods},
+    compiler::{metadata, read_technique, Methods},
     frontends::methods::read_methods,
 };
 use test_generator::test_resources;
