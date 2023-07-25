@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+pub mod logs;
+pub mod methods;
 pub mod report;
 
 use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
@@ -11,6 +13,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub const ALL_TARGETS: &[Target] = &[Target::Unix, Target::Windows];
 
 pub const DEFAULT_MAX_PARAM_LENGTH: usize = 16384;
+
+/// We want to only compile the regex once
+#[macro_export]
+macro_rules! regex_comp {
+    ($re:literal $(,)?) => {{
+        static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+        RE.get_or_init(|| regex::Regex::new($re).unwrap())
+    }};
+}
 
 /// Targets. A bit like (machine, vendor, operating-system) targets for system compiler like
 /// "x86_64-unknown-linux-gnu", it depends on several items.

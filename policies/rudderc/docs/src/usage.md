@@ -13,21 +13,19 @@ There are currently two possible targets, which are the platforms Rudder has age
 
 These platforms use different agent technology, but the YAML policies
 unify them.
+
+### Installation
+
+* `rudderc` is built into the Rudder server. The binary is available in `/opt/rudder/bin/rudderc`.
+* On other systems, like workstations, you can download a
+  [pre-built binary](https://repository.rudder.io/tools/rudderc/8.0/rudderc) for Linux x86_64 in the repository.
+
 To be able to check and compile techniques, the `rudderc` program
 needs access to the method library of the target systems.
-
-To get access to the base Linux methods set, you can use git
-and use the repository as library argument:
-
-```shell
-$ git clone https://github.com/Normation/ncf/
-# [...]
-$ rudderc subcommand -l /.../ncf/tree/30_generic_methods/ 
-```
-
-Alternatively, if you `rudderc` on a system with a Rudder agent, like a Rudder server,
-which also has a built-in `rudderc` binary, you do not need to specify anything and
-the local library (in `/var/rudder/ncf`) will be used automatically.
+When running on a Rudder server, which has a built-in `rudderc` binary,
+the local library will be used.
+The standalone binary from the repository includes the default library.
+You can override the default library by passing a `--library` argument.
 
 ### Create a technique
 
@@ -61,7 +59,7 @@ directory.
 You can check the current technique syntax with:
 
 ```shell
-$ rudderc check --library /path/to/methods/lib
+$ rudderc check
         Read 179 methods (/path/to/methods/lib)
    Compiling my_technique v0.1 [Linux]
    Compiling my_technique v0.1 [Windows]
@@ -74,7 +72,7 @@ to the target platforms.
 ### Compile for the target platforms
 
 ```shell
-$ rudderc build -l /path/to/methods/lib
+$ rudderc build
         Read 179 methods (/path/to/methods/lib)
    Compiling my_technique v0.1 [Linux]
        Wrote target/technique.cf
@@ -101,7 +99,7 @@ This can be specially useful if you use custom methods not
 present in the public documentation.
 
 ```shell
-$ rudderc lib -l /.../ncf/tree/30_generic_methods/
+$ rudderc lib
         Read 179 methods (/.../ncf/tree/30_generic_methods/)
 Book building has started
 Running the html backend

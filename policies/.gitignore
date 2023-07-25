@@ -6,3 +6,4 @@
 /rudderc/repos
 /rudderc/docs/examples/*.cf
 /rudderc/docs/examples/*.ps1
+rudderc/src/methods.json

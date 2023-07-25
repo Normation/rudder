@@ -9,11 +9,11 @@ use std::{
 };
 
 use pretty_assertions::assert_eq;
-use rudder_commons::{Target, ALL_TARGETS};
+use rudder_commons::{methods::Methods, Target, ALL_TARGETS};
 use rudderc::{
     action,
-    compiler::{metadata, read_technique, Methods},
-    frontends::methods::read_methods,
+    compiler::{metadata, read_technique},
+    frontends::read_methods,
 };
 use test_generator::test_resources;
 

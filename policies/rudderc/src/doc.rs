@@ -7,9 +7,8 @@ use std::fmt;
 
 use anyhow::{Context, Result};
 use clap::ValueEnum;
+use rudder_commons::{logs::ok_output, methods::Methods};
 use serde::Serialize;
-
-use crate::{compiler::Methods, logs::ok_output};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, ValueEnum)]
 pub enum Format {
@@ -93,8 +92,9 @@ pub mod book {
     use anyhow::{Context, Result};
     use include_dir::{include_dir, Dir};
     use mdbook::MDBook;
+    use rudder_commons::methods::Methods;
 
-    use crate::{compiler::Methods, doc::markdown};
+    use crate::doc::markdown;
 
     // Include doc dir at compile time
     static BOOK_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs");
@@ -152,10 +152,11 @@ mod markdown {
     use std::collections::HashMap;
 
     use anyhow::Result;
-    use rudder_commons::{Target, DEFAULT_MAX_PARAM_LENGTH};
+    use rudder_commons::{
+        methods::method::{MethodInfo, Parameter},
+        Target, DEFAULT_MAX_PARAM_LENGTH,
+    };
     use serde::Serialize;
-
-    use crate::frontends::methods::method::{MethodInfo, Parameter};
 
     /// Render method doc to markdown
     pub fn method(m: &'static MethodInfo) -> Result<String> {

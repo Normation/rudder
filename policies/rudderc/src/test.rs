@@ -15,9 +15,8 @@
 use std::{collections::HashMap, path::Path, process::Command};
 
 use anyhow::{bail, Result};
+use rudder_commons::logs::ok_output;
 use serde::{Deserialize, Serialize};
-
-use crate::logs::ok_output;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Step {

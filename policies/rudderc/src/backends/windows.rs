@@ -53,9 +53,9 @@ mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
-    use rudder_commons::{Escaping, Target};
+    use rudder_commons::{regex_comp, Escaping, Target};
 
-    use crate::{ir::value::Expression, regex};
+    use crate::ir::value::Expression;
 
     fn uppercase_first_letter(s: &str) -> String {
         let mut c = s.chars();
@@ -102,7 +102,7 @@ mod filters {
             Ok(format!("\"{s}\""))
         } else {
             // TODO: does not handle nested vars, we need a parser for this.
-            let var = regex!(r"(\$\{[^\}]*})");
+            let var = regex_comp!(r"(\$\{[^\}]*})");
             // Format expression for Windows too
             value_fmt(format!(
                 "\"{}\"",

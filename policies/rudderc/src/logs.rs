@@ -5,11 +5,10 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
-use std::{fmt::Display, io};
+use std::io;
 
-use colored::Colorize;
 use env_logger::fmt::{Color, Formatter, Style, StyledValue};
-use log::{info, Level, LevelFilter, Record};
+use log::{Level, LevelFilter, Record};
 
 fn colored_level(style: &mut Style, level: Level) -> StyledValue<&'static str> {
     match level {
@@ -47,9 +46,4 @@ pub fn init(verbose: u8, quiet: bool) {
         .filter_level(filter)
         .format(format)
         .init();
-}
-
-/// Output a successful step
-pub fn ok_output<T: Display>(step: &'static str, message: T) {
-    info!("{:>12} {message}", step.green().bold(),);
 }

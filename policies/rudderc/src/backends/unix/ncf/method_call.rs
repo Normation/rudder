@@ -10,13 +10,12 @@
 use std::convert::TryFrom;
 
 use anyhow::{bail, Error};
-use rudder_commons::canonify;
+use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::{
     backends::unix::cfengine::{
         bundle::Bundle, cfengine_escape, expanded, promise::Promise, quoted,
     },
-    frontends::methods::method::Agent,
     ir::{
         condition::Condition,
         technique::{LeafReportingMode, Method},

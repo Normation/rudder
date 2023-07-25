@@ -7,7 +7,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+#[cfg(not(feature = "embedded-lib"))]
+use anyhow::bail;
+use anyhow::{anyhow, Context, Result};
+#[cfg(not(feature = "embedded-lib"))]
 use log::debug;
 
 use crate::cli::{Command, MainArgs};
@@ -20,16 +23,6 @@ pub mod frontends;
 pub mod ir;
 pub mod logs;
 pub mod test;
-
-/// We want to only compile the regex once
-macro_rules! regex {
-    ($re:literal $(,)?) => {{
-        static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-        RE.get_or_init(|| regex::Regex::new($re).unwrap())
-    }};
-}
-
-pub(crate) use regex;
 
 pub const TARGET_DIR: &str = "target";
 pub const TESTS_DIR: &str = "tests";
@@ -52,7 +45,13 @@ pub fn run(args: MainArgs) -> Result<()> {
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
 
+    #[cfg(feature = "embedded-lib")]
+    fn check_libraries(parameters: Vec<PathBuf>) -> Result<Vec<PathBuf>> {
+        Ok(parameters)
+    }
+
     // Check libraries and apply default value if relevant
+    #[cfg(not(feature = "embedded-lib"))]
     fn check_libraries(parameters: Vec<PathBuf>) -> Result<Vec<PathBuf>> {
         Ok(if parameters.is_empty() {
             let path = PathBuf::from(DEFAULT_LIB_PATH);
@@ -155,7 +154,7 @@ pub mod action {
 
     use anyhow::{bail, Context, Result};
     use boon::{Compiler, Schemas};
-    use rudder_commons::ALL_TARGETS;
+    use rudder_commons::{logs::ok_output, ALL_TARGETS};
     use serde_json::Value;
 
     pub use crate::compiler::compile;
@@ -163,9 +162,8 @@ pub mod action {
         backends::unix::cfengine::cf_agent,
         compiler::{metadata, read_technique},
         doc::{book, Format},
-        frontends::methods::read_methods,
+        frontends::read_methods,
         ir::Technique,
-        logs::ok_output,
         test::TestCase,
         METADATA_FILE, RESOURCES_DIR, TARGET_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
     };
