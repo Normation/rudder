@@ -65,3 +65,22 @@ rudderc test --library /path/to/lib case1
 (as it is required to run the agent).
   * It can be the `tree` directory in a clone of the [ncf repository](https://github.com/Normation/ncf/)
 * the optional argument allows filtering the tests, only run those containing the given string.
+
+### Test outputs
+
+The test runner will parse the agent output and place it in JSON format into `target/tests/case1.json`.
+It is written before running check steps, so you can use it to assess reporting output
+(for example, using `jq` in a shell script).
+
+```json
+[
+  {
+    "component": "Ensure correct ntp configuration",
+    "key_value": "/tmp/rudderc_test_one",
+    "event_type": "result_repaired",
+    "msg": "Insert content into /tmp/rudderc_test_one was repaired",
+    "report_id": "d86ce2e5-d5b6-45cc-87e8-c11cca71d907",
+    "logs": []
+  }
+]
+```

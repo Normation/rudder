@@ -4,7 +4,12 @@
   "title": "Rudder Technique",
   "description": "A Rudder technique",
   "type": "object",
-  "required": [ "id", "name", "version", "items" ],
+  "required": [
+    "id",
+    "name",
+    "version",
+    "items"
+  ],
   "additionalProperties": false,
   "properties": {
     "format": {
@@ -15,6 +20,13 @@
     },
     "description": {
       "type": "string"
+    },
+    "documentation": {
+      "type": "string",
+      "format": "markdown"
+    },
+    "tags": {
+      "$ref": "#/$defs/tags"
     },
     "params": {
       "type": "array",
@@ -57,6 +69,10 @@
     },
     "techniqueParameter": {
       "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
       "properties": {
         "id": {
           "$ref": "#/$defs/uuid"
@@ -64,28 +80,145 @@
         "description": {
           "type": "string"
         },
+        "documentation": {
+          "type": "string",
+          "format": "markdown"
+        },
         "name": {
           "$ref": "#/$defs/techniqueParameterName"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            null,
+            "string",
+            "multiline-string",
+            "json",
+            "yaml",
+            "boolean",
+            "mail",
+            "ip",
+            "ipv4",
+            "ipv6",
+            "integer",
+            "size-b",
+            "size-kb",
+            "size-mb",
+            "size-gb",
+            "size-tb",
+            "permissions",
+            "shared-file",
+            "password"
+          ]
+        },
+        "default": {
+          "type": [
+            "string",
+            "boolean",
+            "number"
+          ]
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "allow_empty": {
+              "type": "boolean"
+            },
+            "password_hashes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  null,
+                  "pre-hashed",
+                  "plain",
+                  "unix-crypt-des",
+                  "md5",
+                  "sha1",
+                  "sha256",
+                  "sha512",
+                  "md5-crypt",
+                  "sha256-crypt",
+                  "sha512-crypt",
+                  "md5-crypt-aix",
+                  "sha256-crypt-aix",
+                  "sha512-crypt-aix"
+                ]
+              }
+            },
+            "regex": {
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "format": "regex"
+                },
+                "error_message": {
+                  "type": "string"
+                }
+              }
+            },
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
-    "reportingMode" :{
+    "tags": {
+      "type": "object"
+    },
+    "reportingMode": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "mode": { "enum": [ "worst-case-weighted-one", "worst-case-weighted-sum", "disabled", "enabled", "weighted" ]  }
+            "mode": {
+              "enum": [
+                "worst-case-weighted-one",
+                "worst-case-weighted-sum",
+                "disabled",
+                "enabled",
+                "weighted"
+              ]
+            }
           },
-          "required": [ "mode" ],
+          "required": [
+            "mode"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "id": { "$ref": "#/$defs/uuid" },
-            "mode": { "const": "focus" }
+            "id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "mode": {
+              "const": "focus"
+            }
           },
-          "required": [ "mode", "id" ],
+          "required": [
+            "mode",
+            "id"
+          ],
           "additionalProperties": false
         }
       ]
@@ -97,6 +230,9 @@
         },
         "id": {
           "$ref": "#/$defs/uuid"
+        },
+        "tags": {
+          "$ref": "#/$defs/tags"
         },
         "condition": {
           "type": "string"
@@ -110,9 +246,6 @@
         "params": {
           "type": "object"
         },
-        "tags": {
-          "type": "object"
-        },
         "items": {
           "type": "array",
           "items": {
@@ -121,20 +254,29 @@
         }
       },
       "additionalProperties": false,
-      "required": [ "id" ],
       "not": {
         "anyOf": [
           {
-            "required": [ "params", "items" ]
+            "required": [
+              "params",
+              "items"
+            ]
           },
           {
-            "required": [ "method", "items" ]
+            "required": [
+              "method",
+              "items"
+            ]
           }
         ]
       },
       "dependencies": {
-        "params": [ "method" ],
-        "method": [ "params" ]
+        "params": [
+          "method"
+        ],
+        "method": [
+          "params"
+        ]
       }
     }
   }

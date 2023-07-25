@@ -106,4 +106,42 @@ Running the html backend
        Wrote target/doc/book/index.html
 ```
 
-To open the documentation in your browser when built, pass the `--open` option.
+To open the documentation in your browser after build, pass the `--open` option.
+
+## Import a technique into Rudder
+
+### As normal techniques
+
+To add a YAML technique as a "normal" technique, which gives access to the full power of
+parameter types, you need to run these commands on your server:
+
+```shell
+rudderc build
+cd /var/rudder/configuration-repository/techniques/
+mkdir -p CATEGORY/MY_TECHNIQUE/1.0/
+cp -r /path/to/technique/target/* CATEGORY/MY_TECHNIQUE/1.0/
+git add CATEGORY/MY_TECHNIQUE/
+git commit -m "Add my technique"
+rudder server reload-techniques
+```
+
+*Warning*: `rudder server reload-techniques` is an asynchronous command.
+It returns immediately with a success, and
+you need to check web application logs for errors (`/var/log/rudder/webapp/`) afterwards.
+
+Once imported, the technique will be available like built-in ones, in the directives' page.
+To update the technique, repeat the import steps.
+
+### In the technique editor
+
+The technique editor is able to directly use the YAML format (but does not support technique parameter types
+for now, and does not display tags).
+
+```shell
+cd /var/rudder/configuration-repository/
+mkdir -p CATEGORY/MY_TECHNIQUE/1.0/
+cp /path/to/technique.yml  CATEGORY/MY_TECHNIQUE/1.0/
+git add CATEGORY/MY_TECHNIQUE/
+git commit -m "Add my technique"
+rudder server reload-techniques
+```

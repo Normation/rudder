@@ -62,9 +62,10 @@ Each parameter contains the following fields:
   * `regex` (optional): Restricts allowed value with a regular expression. Defined with:
     * `value`: The regular expression.
     * `error_message` (optional): A message to give the user in case the value does not match.
-  * `select` (optional): Allows restricting possible values to a given set. Defined by:
-    * `value`: The associated value
-    * `name` (optional): The displayed name (`value`'s value by default)
+  * `select` (optional): Allows restricting possible values to a given set. Defined as:
+    * An array of:
+      * `value`: The associated value
+      * `name` (optional): The displayed name (`value`'s value by default)
   * `password_hashes` (optional): A comma-separated list of password hashes types to accept in a `password` typed field. By default,
                                   only accepts pre-hashed values or sha2-crypt algorithms. Available values:
     * `pre-hashed`: A pre-hashed value in the `/etc/shadow` format.
@@ -136,7 +137,7 @@ Methods contains:
 
 * `method`: Method technical name (also called "Technique ID").
 * `id` (optional): UUID identifying the method.
-* `name`: Name used in reporting, identifying what the method does.
+* `name` (optional): Name used in reporting, identifying what the method does. Uses the method name by default.
 * `tags` (optional): Optional key-value tags.
 * `params`: Key-Value dictionary of parameters for the method.
 * `condition` (optional): A condition expression for the method
