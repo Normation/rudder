@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::path::PathBuf;
+
 use anyhow::{bail, Result};
 use log::trace;
 use rudder_commons::methods::{self, Methods};
-use std::path::PathBuf;
 
 use crate::ir::Technique;
 

@@ -1,7 +1,8 @@
 #[cfg(feature = "embedded-lib")]
-use rudder_commons::methods::read;
-#[cfg(feature = "embedded-lib")]
 use std::{fs, path::PathBuf};
+
+#[cfg(feature = "embedded-lib")]
+use rudder_commons::methods::read;
 
 #[cfg(feature = "embedded-lib")]
 const METHODS_FILE: &str = "src/methods.json";
