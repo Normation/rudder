@@ -72,6 +72,10 @@ pub enum Command {
 
         /// Filter tests cases
         filter: Option<String>,
+
+        /// Verbose agent
+        #[arg(long)]
+        agent_verbose: bool,
     },
 
     /// Build the method documentation
