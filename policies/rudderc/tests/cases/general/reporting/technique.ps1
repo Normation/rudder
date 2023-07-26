@@ -30,23 +30,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "htop"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "htop"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "b86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     $componentKey = "htop"
@@ -90,23 +84,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c45"
     $componentKey = "ntp"
@@ -120,23 +108,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c14"
     $componentKey = "ntp"
@@ -150,23 +132,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c13"
     $componentKey = "ntp"
@@ -180,23 +156,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c21"
     $componentKey = "ntp"
@@ -210,23 +180,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
     $reportId=$reportIdBase + "c76686bb-79ab-4ae5-b45f-108492ab4101"
     $componentKey = "ntp"
@@ -240,23 +204,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "ntp"
-            Provider = ""
-            Version = @'
-
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
+        Version = ""
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
 
     EndTechniqueCall -Name $techniqueName

@@ -30,23 +30,17 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""true""
-    if ($localContext.Evaluate($class)) {
-        $methodParams = @{
-            Architecture = ""
-            Name = "htop"
-            Provider = ""
-            Version = @'
-2.3.4
-'@
-            
-        }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
-    } else {
-        Rudder-Report-NA @reportParams
+    $methodParams = @{
+        Architecture = ""
+        Name = "htop"
+        Provider = ""
+        Version = "2.3.4"
+        
     }
+    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
 
     EndTechniqueCall -Name $techniqueName

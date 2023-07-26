@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Result};
 use askama::Template;
 use rudder_commons::Escaping;
 
@@ -134,49 +134,50 @@ struct WindowsMethod {
     name: String,
 }
 
-impl TryFrom<Method> for WindowsMethod {
-    type Error = Error;
+fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
+    let Some(report_parameter) = m.params.get(&m.info.unwrap().class_parameter) else {
+        bail!("Missing parameter {}", m.info.unwrap().class_parameter)
+    };
+    let condition = condition.and(&m.condition);
 
-    fn try_from(m: Method) -> Result<Self, Self::Error> {
-        let Some(report_parameter) = m.params.get(&m.info.unwrap().class_parameter) else {
-            bail!("Missing parameter {}", m.info.unwrap().class_parameter)
-        };
-
-        // Let's build a (Name, Value, Type) tuple required for proper rendering.
-        let mut args: Vec<(String, String, Escaping)> = m
-            .params
-            .clone()
-            .into_iter()
-            .map(|(n, v)| {
-                // Extract parameter type
-                // The technique has been linted, the parameter name is correct.
-                let p_type = m
-                    .info
-                    .unwrap()
-                    .parameter
-                    .iter()
-                    .find(|p| p.name == n)
-                    .unwrap()
-                    .escaping;
-                (n, v, p_type)
-            })
-            .collect();
-
-        // We want a stable output
-        args.sort();
-
-        Ok(Self {
-            id: m.id.to_string(),
-            class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
-            component_name: m.name,
-            component_key: report_parameter.to_string(),
-            disable_reporting: m.reporting.mode == LeafReportingMode::Disabled,
-            // FIXME: None
-            condition: Some(m.condition.to_string()),
-            args,
-            name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
+    // Let's build a (Name, Value, Type) tuple required for proper rendering.
+    let mut args: Vec<(String, String, Escaping)> = m
+        .params
+        .clone()
+        .into_iter()
+        .map(|(n, v)| {
+            // Extract parameter type
+            // The technique has been linted, the parameter name is correct.
+            let p_type = m
+                .info
+                .unwrap()
+                .parameter
+                .iter()
+                .find(|p| p.name == n)
+                .unwrap()
+                .escaping;
+            (n, v, p_type)
         })
-    }
+        .collect();
+
+    // We want a stable output
+    args.sort();
+
+    Ok(WindowsMethod {
+        id: m.id.to_string(),
+        class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
+        component_name: m.name,
+        component_key: report_parameter.to_string(),
+        disable_reporting: m.reporting.mode == LeafReportingMode::Disabled,
+        condition: if condition.is_defined() {
+            // If true, no need to add conditional expression
+            None
+        } else {
+            Some(condition.to_string())
+        },
+        args,
+        name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
+    })
 }
 
 impl Windows {
@@ -225,7 +226,7 @@ impl Windows {
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<WindowsMethod> = vec![r.try_into()?];
+                    let method: Vec<WindowsMethod> = vec![method_call(r, context)?];
                     Ok(method)
                 }
                 _ => todo!(),

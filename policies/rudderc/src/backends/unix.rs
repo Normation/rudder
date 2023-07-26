@@ -10,7 +10,7 @@ use super::Backend;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
-        ncf::technique::Technique,
+        ncf::{method_call::method_call, technique::Technique},
     },
     ir::{
         self,
@@ -76,7 +76,7 @@ impl Backend for Unix {
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<(Promise, Bundle)> = vec![r.try_into()?];
+                    let method: Vec<(Promise, Bundle)> = vec![method_call(r, context)?];
                     Ok(method)
                 }
                 _ => todo!(),
