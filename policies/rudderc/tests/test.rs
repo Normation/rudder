@@ -36,6 +36,7 @@ fn test(filename: &str) {
         technique_dir.join("tests").as_path(),
         &[cwd.join(TEST_LIB)],
         None,
+        false,
     )
     .unwrap();
 }

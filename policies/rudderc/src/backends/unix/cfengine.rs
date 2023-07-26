@@ -145,7 +145,12 @@ fn cfengine_canonify_condition(c: &str) -> String {
     }
 }
 
-pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<RunLog> {
+pub fn cf_agent(
+    input: &Path,
+    params: &Path,
+    lib_path: &Path,
+    agent_verbose: bool,
+) -> Result<RunLog> {
     debug!("Running cf-agent on {}", input.display());
     // Use a dedicated workdir for each test
     // Required to run agents concurrently without trouble
@@ -164,6 +169,7 @@ pub fn cf_agent(input: &Path, params: &Path, lib_path: &Path) -> Result<RunLog> 
     };
     let cmd = Command::new(Path::new(CF_BIN_DIR).join("cf-agent"))
         .args([
+            if agent_verbose { "--verbose" } else { "--info" },
             "--no-lock",
             "--workdir",
             &work_dir.path().to_string_lossy(),
