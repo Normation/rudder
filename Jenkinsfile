@@ -666,7 +666,7 @@ pipeline {
                                 withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                     sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/book/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/techniques/${RUDDER_VERSION}', label: 'publish techniques docs'
                                 }
-                                sh script: 'make static', label: 'public binary'
+                                sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                     sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/release/rudderc packager@${HOST_REPO}:/var/www/repos/tools/rudderc/${RUDDER_VERSION}/rudderc-linux-x86_64', label: 'publish rudderc'
                                 }
