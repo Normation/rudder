@@ -40,7 +40,7 @@ Each parameter contains the following fields:
 * `id` (optional): UUID identifying the parameter.
 * `name`: Name of the parameter. Must only contain alphanumeric or underscore characters.
 * `description` (optional): Single line description of what the parameter does.
-* `documentation` (optional): Documentation in Markdown format.
+* `documentation` (optional): Documentation (plain text, *not* in Markdown format).
 * `type` (optional): The type of the parameter, can be:
   * `string`: A simple string.
   * `multiline-string` (default): A multiline string (displayed in a `textarea`).

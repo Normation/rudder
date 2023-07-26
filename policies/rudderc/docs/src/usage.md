@@ -145,3 +145,15 @@ git add CATEGORY/MY_TECHNIQUE/
 git commit -m "Add my technique"
 rudder server reload-techniques
 ```
+
+## Editor/IDE integration
+
+We provide a [JSON schema](https://raw.githubusercontent.com/Normation/rudder/master/policies/rudderc/src/technique.schema.json)
+for Rudder YAML techniques.
+Depending on the editor, it provides various handy features,
+like property name completion, or technique structure linting.
+You need to import the schema in you editor
+([Visual Studio Code](https://code.visualstudio.com/docs/languages/json#_json-schemas-and-settings),
+[JetBrains Editor](https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom),
+[vim](https://github.com/Quramy/vison), etc.
+).
