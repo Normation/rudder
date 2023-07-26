@@ -113,7 +113,11 @@ pub fn run(args: MainArgs) -> Result<()> {
                 store_ids,
             )
         }
-        Command::Test { library, filter } => {
+        Command::Test {
+            library,
+            filter,
+            agent_verbose,
+        } => {
             let library = check_libraries(library)?;
             action::build(library.as_slice(), input, target.as_path(), true, false)?;
             action::test(
@@ -121,6 +125,7 @@ pub fn run(args: MainArgs) -> Result<()> {
                 Path::new(TESTS_DIR),
                 library.as_slice(),
                 filter,
+                agent_verbose,
             )
         }
         Command::Lib {
@@ -285,6 +290,7 @@ pub mod action {
         test_dir: &Path,
         libraries: &[PathBuf],
         filter: Option<String>,
+        agent_verbose: bool,
     ) -> Result<()> {
         // Run everything relatively to the test directory
         // Collect test cases
@@ -325,7 +331,12 @@ pub mod action {
             if libraries.len() > 1 {
                 bail!("Tests only support one library path containing a full 'ncf' library");
             }
-            let run_log = cf_agent(technique_file, case_path.as_path(), libraries[0].as_path())?;
+            let run_log = cf_agent(
+                technique_file,
+                case_path.as_path(),
+                libraries[0].as_path(),
+                agent_verbose,
+            )?;
             let report_file = Path::new(TARGET_DIR).join(case_path.with_extension("json"));
             create_dir_all(report_file.parent().unwrap())?;
             fs::write(&report_file, serde_json::to_string_pretty(&run_log)?)?;
