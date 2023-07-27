@@ -108,7 +108,7 @@ Blocks contains:
 * `name`: Human-readable name of the block
 * `tags` (optional): Optional key-value tags.
 * `items`: A list of items (block or method call). Cannot be empty.
-* `condition` (optional): A condition expression for the whole block
+* `condition` (optional): A condition expression for the whole block. `true` is an always defined (default), `false` is never defined.
 * `reporting` (optional)
   * `mode`
     * `weighted` (default)
@@ -137,10 +137,10 @@ Methods contains:
 
 * `method`: Method technical name (also called "Technique ID").
 * `id` (optional): UUID identifying the method.
-* `name` (optional): Name used in reporting, identifying what the method does. Uses the method name by default.
+* `name` (optional): Name used in reporting, identifying what the method does. It uses the method name by default.
 * `tags` (optional): Optional key-value tags.
 * `params`: Key-Value dictionary of parameters for the method.
-* `condition` (optional): A condition expression for the method
+* `condition` (optional): A condition expression for the method. `true` is an always defined (default), `false` is never defined.
 * `reporting` (optional)
   * `mode` 
     * `enabled` (default): Normal reporting
