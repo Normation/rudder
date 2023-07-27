@@ -35,7 +35,7 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""debian""
+    $class = ""false""
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             Architecture = ""
@@ -65,7 +65,7 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""false""
+    $class = ""linux.fedora""
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             Name = "ntp"
