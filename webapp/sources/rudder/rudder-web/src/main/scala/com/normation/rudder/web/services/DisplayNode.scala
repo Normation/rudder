@@ -66,6 +66,8 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JE.Str
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonDSL._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
@@ -885,27 +887,38 @@ object DisplayNode extends Loggable {
         if (value.strip().isEmpty) {
           <td></td>
         } else {
-          <td>{value}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
-            value
-          }><i class="ion ion-clipboard"></i></button></td>
+          <td>
+            <pre class="json-inventory-vars">{value}</pre>
+            <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={value}>
+              <i class="ion ion-clipboard"></i>
+            </button>
+          </td>
         }
       }
      </tr>
     }
 
+    val os = (
+      ("fullName"          -> escape(sm.node.main.osDetails.fullName))
+        ~ ("name"          -> escape(S.?("os.name." + sm.node.main.osDetails.os.name)))
+        ~ ("version"       -> escape(sm.node.main.osDetails.version.value))
+        ~ ("servicePack"   -> escape(sm.node.main.osDetails.servicePack.getOrElse("None")))
+        ~ ("kernelVersion" -> escape(sm.node.main.osDetails.kernelVersion.value))
+    )
+
+    val machine = (
+      ("manufacturer"    -> escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("")))
+        ~ ("machineType" -> displayMachineType(sm.machine).text.toString)
+    )
+
     val values = Seq[(String, String)](
       ("localAdministratorAccountName", escape(sm.node.main.rootUser)),
       ("hostname", escape(sm.node.main.hostname)),
       ("policyServerId", escape(sm.node.main.policyServerId.value)),
-      ("os.fullName", escape(sm.node.main.osDetails.fullName)),
-      ("os.name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
-      ("os.version", escape(sm.node.main.osDetails.version.value)),
-      ("os.servicePack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+      ("os", net.liftweb.json.prettyRender(os)),
       ("archDescription", escape(sm.node.archDescription.getOrElse("None"))),
-      ("os.kernelVersion", escape(sm.node.main.osDetails.kernelVersion.value)),
       ("ram", escape(sm.node.ram.map(_.size.toString).getOrElse(""))),
-      ("machine.manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse(""))),
-      ("machine.machineType", displayMachineType(sm.machine).text.toString),
+      ("machine", net.liftweb.json.prettyRender(machine)),
       (
         "timezone",
         escape(
