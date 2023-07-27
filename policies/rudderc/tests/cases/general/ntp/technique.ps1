@@ -65,7 +65,7 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""linux.fedora""
+    $class = ""false""
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             Name = "ntp"

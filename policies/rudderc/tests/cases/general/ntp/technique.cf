@@ -33,11 +33,7 @@ bundle agent call_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id,
 
   methods:
     "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => package_install("${name}"),
-                                             if => "linux.fedora";
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_package_install_ntp")),
-                                         unless => "linux.fedora";
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Package install' with key parameter 'ntp' since condition 'linux.fedora' is not reached", "ntp", canonify("${class_prefix}_package_install_ntp"), canonify("${class_prefix}_package_install_ntp"), @{args}),
-                                         unless => "fedora";
+    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_package_install_ntp"));
+    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Package install' with key parameter 'ntp' since condition 'false' is not reached", "ntp", canonify("${class_prefix}_package_install_ntp"), canonify("${class_prefix}_package_install_ntp"), @{args});
 
 }
