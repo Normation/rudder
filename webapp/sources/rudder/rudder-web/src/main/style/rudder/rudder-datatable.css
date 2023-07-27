@@ -179,7 +179,7 @@ td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditComplian
 }
 td.AuditNonCompliant,td.NonCompliant,
 .report-compliance .auditNonCompliant {
-  background-color:#ff7125;
+  background-color:#ef9600;
   color: #fff;
 }
 td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode,
