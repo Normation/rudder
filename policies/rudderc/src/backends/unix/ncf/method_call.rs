@@ -105,7 +105,7 @@ pub fn method_call(m: Method, condition: Condition) -> Result<(Promise, Bundle)>
                     na_condition.clone(),
                     na_condition,
                     "@{args}".to_string()
-                ]).unless_condition(&m.condition)
+                ]).unless_condition(&condition)
             ],
             (Condition::NotDefined, true) => vec![
                 reporting_context,
