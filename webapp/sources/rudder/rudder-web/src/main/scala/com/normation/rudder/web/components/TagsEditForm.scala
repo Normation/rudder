@@ -25,7 +25,13 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
 
   def tagsForm(controllerId: String, appId: String, update: Box[Tags] => Unit, isRule: Boolean): NodeSeq = {
 
-    val valueInput = SHtml.textarea("", s => update(parseResult(s)), ("ng-model", "result"), ("ng-hide", "true"))
+    // TODO: THIS MUST BE CHANGE WHEN TAGS APP IS REWRITTEN
+    val valueInput = SHtml.textarea(
+      "",
+      s => update(parseResult("""[{"key":"TODO-CHANGE-CODE", "value":"in TagsEditForm"}]""")),
+      ("ng-model", "result"),
+      ("ng-hide", "true")
+    )
     val css: CssSel = {
       s"#${controllerId} *+" #> valueInput &
       s"#${controllerId} #tagForm" #> editTagsTemplate
