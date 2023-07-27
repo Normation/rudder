@@ -442,7 +442,7 @@ limitations under the License.
     <caffeine-version>3.1.6</caffeine-version>
     <jgrapht-version>1.5.2</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
-    <graalvm-version>23.0.0</graalvm-version>
+    <graalvm-version>23.0.1</graalvm-version>
     <chimney-version>0.7.5</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.4.0</ipaddress-version>
