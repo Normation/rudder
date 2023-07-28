@@ -74,10 +74,7 @@ impl fmt::Display for Technique {
         if self.description.is_some() {
             writeln!(f, "# @description {}", self.description.as_ref().unwrap())?;
         }
-
-        let mut sorted_bundles = self.bundles.clone();
-        sorted_bundles.sort_by(|a, b| b.name.cmp(&a.name));
-        for bundle in sorted_bundles {
+        for bundle in &self.bundles {
             write!(f, "\n{}", bundle)?;
         }
         writeln!(f)?;
