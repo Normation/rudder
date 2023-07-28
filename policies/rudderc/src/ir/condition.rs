@@ -6,6 +6,7 @@ use std::{fmt, str::FromStr};
 use anyhow::{bail, Error};
 use rudder_commons::is_canonified;
 use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_yaml::Value;
 
 /// Valid condition
 ///
@@ -136,7 +137,16 @@ impl<'de> Deserialize<'de> for Condition {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(de::Error::custom)
+        match Value::deserialize(deserializer)? {
+            Value::Bool(b) => Ok({
+                if b {
+                    Condition::Defined
+                } else {
+                    Condition::NotDefined
+                }
+            }),
+            Value::String(s) => FromStr::from_str(&s).map_err(de::Error::custom),
+            _ => Err(de::Error::custom("Wrong type, expected boolean or string")),
+        }
     }
 }
