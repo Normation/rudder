@@ -11,12 +11,6 @@ response:
       "data":{
         "techniques":[
           {
-            "name":"rudder-service-postgresql",
-            "versions":[
-              "1.0"
-            ]
-          },
-          {
             "name":"inventory",
             "versions":[
               "1.0"
@@ -79,6 +73,18 @@ response:
           },
           {
             "name":"rudder-service-apache",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"a_simple_yaml_technique",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
+            "name":"rudder-service-postgresql",
             "versions":[
               "1.0"
             ]

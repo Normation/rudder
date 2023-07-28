@@ -331,7 +331,6 @@ class TechniqueCompilerWithFallback(
                 }
       app     = config.compiler.getOrElse(defaultCompiler)
       res    <- compileTechniqueInternal(technique, methods, app)
-      _      <- effectUioUnit(println(s"***** + $res}"))
       _      <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
                   writeCompilationOutputFile(technique, res)
                 }

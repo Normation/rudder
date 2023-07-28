@@ -1,0 +1,22 @@
+# @name A simple yaml technique
+# @version 1.0
+
+bundle agent a_simple_yaml_technique {
+
+  vars:
+    "args"              slist => {};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("a_simple_yaml_technique_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  methods:
+    "bfe1978f-b0e7-4da3-9544-06d53eb985fa_${report_data.directive_id}" usebundle => call_bfe1978f_b0e7_4da3_9544_06d53eb985fa("File content", "/tmp/test-rudder.txt", "bfe1978f-b0e7-4da3-9544-06d53eb985fa", @{args}, "${class_prefix}", "/tmp/test-rudder.txt", "Hello World!", "true");
+
+}
+bundle agent call_bfe1978f_b0e7_4da3_9544_06d53eb985fa(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+
+  methods:
+    "bfe1978f-b0e7-4da3-9544-06d53eb985fa_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "bfe1978f-b0e7-4da3-9544-06d53eb985fa_${report_data.directive_id}" usebundle => file_content("${path}", "${lines}", "${enforce}");
+
+}

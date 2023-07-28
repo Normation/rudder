@@ -41,20 +41,17 @@ import better.files.File
 import better.files.File.root
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.Version
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.ncf._
+import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import zio._
-import zio.json._
 import zio.syntax._
 
 /**
@@ -66,103 +63,9 @@ class MigrateOldTechniques(
     systemApiToken:  ApiAccount,
     uuidGen:         StringUuidGenerator,
     techLibUpdate:   UpdateTechniqueLibrary,
-    techniqueReader: TechniqueReader
+    techniqueReader: EditorTechniqueReader
 ) extends BootstrapChecks {
 
-  case class JRTechniqueElem(
-      id:               String,
-      component:        String,
-      reportingLogic:   Option[JRReportingLogic],
-      condition:        String,
-      calls:            Option[List[JRTechniqueElem]],
-      method:           Option[String],
-      parameters:       Option[List[JRMethodCallValue]],
-      disableReporting: Option[Boolean]
-  )
-
-  case class JREditorTechnique(
-      name:        String,
-      version:     String,
-      id:          String,
-      category:    String,
-      calls:       List[JRTechniqueElem],
-      description: String,
-      parameter:   Seq[JRTechniqueParameter],
-      resources:   Seq[JRTechniqueResource]
-  )
-
-  case class JRTechniqueParameter(
-      id:          String,
-      name:        String,
-      description: String,
-      mayBeEmpty:  Boolean
-  )
-
-  case class JRTechniqueResource(
-      path:  String,
-      state: String
-  )
-
-  case class JRMethodCallValue(
-      name:  String,
-      value: String
-  )
-  case class JRReportingLogic(
-      name:  String,
-      value: Option[String]
-  )
-
-  object OldTechniqueSerializer {
-    implicit val oldResourceJsonDecoder:   JsonDecoder[JRTechniqueResource]  = DeriveJsonDecoder.gen
-    implicit val oldCallJsonDecoder:       JsonDecoder[JRMethodCallValue]    = DeriveJsonDecoder.gen
-    implicit val oldPReportingJsonDecoder: JsonDecoder[JRReportingLogic]     = DeriveJsonDecoder.gen
-    implicit val oldParamJsonDecoder:      JsonDecoder[JRTechniqueParameter] = DeriveJsonDecoder.gen
-    implicit lazy val oldElemJsonDecoder:  JsonDecoder[JRTechniqueElem]      = DeriveJsonDecoder.gen
-    implicit val oldJsonDecoder:           JsonDecoder[JREditorTechnique]    = DeriveJsonDecoder.gen
-    implicit val j:                        JsonDecoder[EditorTechnique]      = JsonDecoder[JREditorTechnique].map(toEditorTechnique)
-
-    def toMethodElem(elem: JRTechniqueElem):                MethodElem      = {
-      val reportingLogic = elem.reportingLogic
-        .flatMap(r => ReportingLogic.parse(r.name ++ (r.value.map(v => s":$v")).getOrElse("")).toOption)
-        .getOrElse(WeightedReport)
-      elem.calls match {
-        case Some(calls) =>
-          MethodBlock(
-            elem.id,
-            elem.component,
-            reportingLogic,
-            elem.condition,
-            calls.map(toMethodElem)
-          )
-        case None        =>
-          MethodCall(
-            BundleName(elem.method.getOrElse("")),
-            elem.id,
-            elem.parameters.getOrElse(Nil).map(p => (ParameterId(p.name), p.value)).toMap,
-            elem.condition,
-            elem.component,
-            elem.disableReporting.getOrElse(false)
-          )
-      }
-    }
-    def toEditorTechnique(oldTechnique: JREditorTechnique): EditorTechnique = {
-      val (desc, doc) =
-        if (oldTechnique.description.contains("\n")) ("", oldTechnique.description) else (oldTechnique.description, "")
-      EditorTechnique(
-        BundleName(oldTechnique.id),
-        new Version(oldTechnique.version),
-        oldTechnique.name,
-        oldTechnique.category,
-        oldTechnique.calls.map(toMethodElem),
-        desc,
-        doc,
-        oldTechnique.parameter.map(p => TechniqueParameter(ParameterId(p.id), ParameterId(p.name), p.description, p.mayBeEmpty)),
-        oldTechnique.resources.flatMap(s => ResourceFileState.parse(s.state).map(ResourceFile(s.path, _)).toSeq),
-        Map(),
-        None
-      )
-    }
-  }
   override val description = "Migrate technique.json to technique.yml"
 
   val conf_repo = root / "var" / "rudder" / "configuration-repository" / "techniques"
@@ -189,17 +92,18 @@ class MigrateOldTechniques(
     }
 
     def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod])] = {
-      import OldTechniqueSerializer._
-
       for {
         methods        <- techniqueReader.getMethodsMetadata
         techniqueFiles <- getAllTechniqueFiles(conf_repo)
-        techniques     <- ZIO.foreach(techniqueFiles)(file => {
-                            file.contentAsString
-                              .fromJson[EditorTechnique]
-                              .toIO
-                              .chainError("An Error occurred while extracting data from techniques API")
-                          })
+        techniques     <- ZIO.foreach(techniqueFiles) { file =>
+                            for {
+                              json <- IOResult.attempt(s"Error when reading file '${file}'")(file.contentAsString)
+                              et   <- MigrateOldTechniquesService
+                                        .readFromOldJsonTechnique(json)
+                                        .toIO
+                                        .chainError("An Error occurred while extracting data from techniques API")
+                            } yield et
+                          }
       } yield {
         (techniques, methods)
       }
@@ -218,7 +122,7 @@ class MigrateOldTechniques(
         written   <- ZIO.foreach(techniques) { t =>
                        techniqueWrite
                          .writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
-                         .chainError(s"An error occured while writing technique ${t.id.value}")
+                         .chainError(s"An error occurred while writing technique ${t.id.value}")
                      }
         // Actually write techniques
         allFiles  <- getAllTechniqueFiles(conf_repo)
@@ -231,7 +135,7 @@ class MigrateOldTechniques(
                          Some(s"Update Technique library after updating all techniques at start up")
                        )
                        .toIO
-                       .chainError(s"An error occured during techniques update after update of all techniques from the editor")
+                       .chainError(s"An error occurred during techniques update after update of all techniques from the editor")
 
       } yield {
         techniques

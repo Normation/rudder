@@ -103,12 +103,11 @@ trait TechniqueWriter {
  * to rudder dev.
  */
 class TechniqueWriterImpl(
-    archiver:            TechniqueArchiver,
-    techLibUpdate:       UpdateTechniqueLibrary,
-    deleteService:       DeleteEditorTechnique,
-    techniqueSerializer: YamlTechniqueSerializer,
-    compiler:            TechniqueCompiler,
-    baseConfigRepoPath:  String // root of config repos
+    archiver:           TechniqueArchiver,
+    techLibUpdate:      UpdateTechniqueLibrary,
+    deleteService:      DeleteEditorTechnique,
+    compiler:           TechniqueCompiler,
+    baseConfigRepoPath: String // root of config repos
 ) extends TechniqueWriter {
 
   def deleteTechnique(
@@ -182,10 +181,13 @@ class TechniqueWriterImpl(
   ///// utility methods /////
 
   def writeYaml(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
+    import YamlTechniqueSerializer._
+    import zio.yaml.YamlOps._
+
     val metadataPath = s"${technique.path}/technique.yml"
     val path         = s"${baseConfigRepoPath}/${metadataPath}"
     for {
-      content <- techniqueSerializer.toYml(technique).toIO
+      content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
                    val file             = File(path).createFileIfNotExists(true)

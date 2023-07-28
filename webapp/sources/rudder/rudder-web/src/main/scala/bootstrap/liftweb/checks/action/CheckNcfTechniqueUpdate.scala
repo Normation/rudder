@@ -45,10 +45,10 @@ import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
-import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
@@ -80,7 +80,7 @@ class CheckNcfTechniqueUpdate(
     systemApiToken:      ApiAccount,
     uuidGen:             StringUuidGenerator,
     techLibUpdate:       UpdateTechniqueLibrary,
-    techniqueReader:     TechniqueReader,
+    techniqueReader:     EditorTechniqueReader,
     resourceFileService: ResourceFileService
 ) extends BootstrapChecks {
 

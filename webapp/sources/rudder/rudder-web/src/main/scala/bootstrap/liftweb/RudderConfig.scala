@@ -1133,7 +1133,7 @@ object RudderConfig extends Loggable {
   val linkUtil:                            LinkUtil                                   = rci.linkUtil
   val logDisplayer:                        LogDisplayer                               = rci.logDisplayer
   val mainCampaignService:                 MainCampaignService                        = rci.mainCampaignService
-  val ncfTechniqueReader:                  ncf.TechniqueReader                        = rci.ncfTechniqueReader
+  val ncfTechniqueReader:                  ncf.EditorTechniqueReader                  = rci.ncfTechniqueReader
   val newNodeManager:                      NewNodeManager                             = rci.newNodeManager
   val newNodeManagerHooks:                 NewNodeManagerHooks                        = rci.newNodeManagerHooks
   val nodeDit:                             NodeDit                                    = rci.nodeDit
@@ -1320,7 +1320,7 @@ case class RudderServiceApi(
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
     workflowLevelService:                DefaultWorkflowLevel,
-    ncfTechniqueReader:                  ncf.TechniqueReader,
+    ncfTechniqueReader:                  ncf.EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
     restExtractorService:                RestExtractorService,
@@ -1511,7 +1511,7 @@ object RudderConfigInit {
       def getCurrentUser = CurrentUser
     }
 
-    lazy val ncfTechniqueReader: ncf.TechniqueReader = new ncf.TechniqueReader(
+    lazy val ncfTechniqueReader: ncf.EditorTechniqueReader = new ncf.EditorTechniqueReader(
       stringUuidGenerator,
       personIdentService,
       gitConfigRepo,
@@ -1835,7 +1835,6 @@ object RudderConfigInit {
         workflowLevelService,
         RUDDER_GIT_ROOT_CONFIG_REPO
       ),
-      yamlTechniqueSerializer,
       techniqueCompiler,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
