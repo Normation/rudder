@@ -235,7 +235,7 @@
           "$ref": "#/$defs/tags"
         },
         "condition": {
-          "type": "string"
+          "type": ["string", "boolean"]
         },
         "reporting": {
           "$ref": "#/$defs/reportingMode"
