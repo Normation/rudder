@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -56,6 +57,8 @@ import com.normation.rudder.services.reports.NoReportInInterval
 import com.normation.rudder.services.reports.Pending
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.web.snippet.RegisterToasts
+import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import net.liftweb.common._
@@ -412,7 +415,7 @@ object DisplayNode extends Loggable {
             if (!isRootNode(sm.node.main.id)) {
               <div>
                   <div class="col-xs-12">
-                    {showDeleteButton(sm.node.main.id)}
+                    {showDeleteButton(sm.node.main)}
                   </div>
                 </div>
             } else { NodeSeq.Empty }
@@ -1096,7 +1099,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private[this] def showDeleteButton(nodeId: NodeId) = {
+  private[this] def showDeleteButton(node: NodeSummary) = {
     def toggleDeletion(): JsCmd = {
       JsRaw(""" $('#deleteButton').toggle(300); $('#confirmDeletion').toggle(300) """)
     }
@@ -1122,7 +1125,7 @@ object DisplayNode extends Loggable {
       SHtml.ajaxButton("Cancel", () => { toggleDeletion() }, ("class", "btn btn-default"))
     }
           {
-      SHtml.ajaxButton("Confirm", () => { removeNode(nodeId) }, ("class", "btn btn-danger"))
+      SHtml.ajaxButton("Confirm", () => { removeNode(node) }, ("class", "btn btn-danger"))
     }
         </span>
       </div>
@@ -1131,109 +1134,41 @@ object DisplayNode extends Loggable {
 </div>
   }
 
-  private[this] def removeNode(nodeId: NodeId): JsCmd = {
+  private[this] def removeNode(node: NodeSummary): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    removeNodeService.removeNodePure(nodeId, RudderConfig.RUDDER_DEFAULT_DELETE_NODE_MODE, modId, CurrentUser.actor).toBox match {
+    removeNodeService
+      .removeNodePure(node.id, RudderConfig.RUDDER_DEFAULT_DELETE_NODE_MODE, modId, CurrentUser.actor)
+      .toBox match {
       case Full(_) =>
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-        onSuccess
+        onSuccess(node)
       case eb: EmptyBox =>
-        val message = s"There was an error while deleting Node '${nodeId.value}'"
+        val message = s"There was an error while deleting Node '${node.hostname}' [${node.id.value}]"
         val e       = eb ?~! message
-        logger.error(e.messageChain)
-        onFailure(nodeId, message, e.messageChain, None)
+        NodeLoggerPure.Delete.logEffect.error(e.messageChain)
+        onFailure(node, message, e.messageChain, None)
     }
   }
 
   private[this] def onFailure(
-      nodeId:    NodeId,
+      node:      NodeSummary,
       message:   String,
       details:   String,
       hookError: Option[HookReturnCode.Error]
   ): JsCmd = {
-
-    val hookDetails = {
-      hookError match {
-        case Some(error) =>
-          {
-            if (error.stdout.size > 0) {
-              <b>stdout</b>
-            <pre>{error.stdout}</pre>
-            } else {
-              NodeSeq.Empty
-            }
-          } ++ {
-            if (error.stderr.size > 0) {
-              <b>stderr</b>
-            <pre>{error.stderr}</pre>
-            } else {
-              NodeSeq.Empty
-            }
-          }
-        case None        => NodeSeq.Empty
-      }
-    }
-
-    val popupHtml =
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
-                </div>
-                <h4 class="modal-title">
-                    Error during Node deletion
-                </h4>
-            </div>
-            <div class="modal-body">
-                <h4>{message}</h4>
-                <p>{details}</p>
-                {hookDetails}
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-default" type="button" data-dismiss="modal">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>;
-    JsRaw("""$('#errorPopupHtmlId').bsModal('hide');""") &
-    SetHtml(errorPopupHtmlId, popupHtml) &
-    JsRaw(s""" callPopupWithTimeout(200,"${errorPopupHtmlId}")""")
+    RegisterToasts.register(
+      ToastNotification.Error(
+        s"An error happened when trying to delete node '${node.hostname}' [${node.id.value}]. " +
+        "Please contact your server admin to resolve the problem. " +
+        s"Error was: '${message}'"
+      )
+    )
+    RedirectTo("/secure/nodeManager/nodes")
   }
 
-  private[this] def onSuccess: JsCmd = {
-    val popupHtml = {
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
-        <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="close" data-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
-                </div>
-                <h4 class="modal-title">
-                    Success
-                </h4>
-            </div>
-            <div class="modal-body">
-                <h4 class="text-center">The node has been successfully removed from Rudder.</h4>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-default" type="button" data-dismiss="modal">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-    }
-    JsRaw(s"updateHashString('nodeId', undefined); forceParseHashtag()") &
-    SetHtml("serverDetails", NodeSeq.Empty) &
-    JsRaw("""$('#successPopupHtmlId').bsModal('hide');""") &
-    SetHtml(successPopupHtmlId, popupHtml) &
-    JsRaw(s""" callPopupWithTimeout(200,"${successPopupHtmlId}") """)
+  private[this] def onSuccess(node: NodeSummary): JsCmd = {
+    RegisterToasts.register(ToastNotification.Success(s"Node '${node.hostname}' [${node.id.value}] was correctly deleted"))
+    RedirectTo("/secure/nodeManager/nodes")
   }
 
   private[this] def isRootNode(n: NodeId): Boolean = {
