@@ -951,13 +951,6 @@ class DSCTechniqueWriter(
     def indentNextLines(spaces: Int) = s.linesIterator.mkString("\n" + " " * spaces)
   }
 
-  // we use the same class prefix construction as for CFEngine.
-  // If it's really the same thing, it should either be given by technique editor or common to both
-  def computeClassPrefix(gm: GenericMethod, classParameter: String): String = {
-    // the canonification must be done commonly with other canon
-    s"""[Rudder.Condition]::canonify("${gm.classPrefix}_" + ${classParameter})"""
-  }
-
   // WARNING: this is extremely likely false, it MUST be done in the technique editor or
   // via a full fledge parser of conditions
   def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]) = {

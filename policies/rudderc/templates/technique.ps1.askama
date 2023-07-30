@@ -39,7 +39,7 @@ function {{ id|dsc_case }} {
     }
     {% match m.condition %}
     {%- when Some with (cond) %}
-    $class = "{{ cond|canonify_condition }}"
+    $class = {{ cond|canonify_condition }}
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             {% for arg in m.args %}
