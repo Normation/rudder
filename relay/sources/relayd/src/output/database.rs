@@ -7,6 +7,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use secrecy::ExposeSecret;
 use tracing::{debug, error, instrument, trace};
 
 use crate::{
@@ -65,7 +66,7 @@ pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
         } else {
             "?"
         },
-        urlencoding::encode(configuration.password.value())
+        urlencoding::encode(configuration.password.expose_secret())
     ));
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
@@ -166,10 +167,10 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 #[cfg(test)]
 mod tests {
     use diesel::dsl::count;
+    use secrecy::SecretString;
 
     use super::*;
     use crate::{
-        configuration::Secret,
         data::report::QueryableReport,
         output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     };
@@ -177,7 +178,7 @@ mod tests {
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
             url: "postgres://rudderreports:@postgres/rudder".to_string(),
-            password: Secret::new("PASSWORD".to_string()),
+            password: SecretString::new("PASSWORD".to_string()),
             max_pool_size: 5,
         };
         pg_pool(&db_config).unwrap()

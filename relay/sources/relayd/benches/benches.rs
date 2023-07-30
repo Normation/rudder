@@ -13,7 +13,7 @@ use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
 use rudder_relayd::{
-    configuration::{main::DatabaseConfig, Secret},
+    configuration::main::DatabaseConfig,
     data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
     input::signature,
     output::database::{
@@ -21,6 +21,7 @@ use rudder_relayd::{
         *,
     },
 };
+use secrecy::SecretString;
 
 fn bench_nodeslist(c: &mut Criterion) {
     c.bench_function("parse nodes list", move |b| {
@@ -97,7 +98,7 @@ fn bench_uncompress_runlog(c: &mut Criterion) {
 pub fn db() -> PgPool {
     let db_config = DatabaseConfig {
         url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
-        password: Secret::new("PASSWORD".to_string()),
+        password: SecretString::new("PASSWORD".to_string()),
         max_pool_size: 10,
     };
     pg_pool(&db_config).unwrap()

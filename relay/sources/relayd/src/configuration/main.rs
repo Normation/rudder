@@ -12,13 +12,14 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Error};
+use secrecy::SecretString;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
 };
 use tracing::{debug, warn};
 
-use crate::{configuration::Secret, data::node::NodeId};
+use crate::data::node::NodeId;
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -554,16 +555,24 @@ pub struct OutputConfig {
     pub upstream: UpstreamConfig,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct DatabaseConfig {
     /// URL without the password
     #[serde(default = "DatabaseConfig::default_url")]
     pub url: String,
     /// When the section is there, password is mandatory
-    pub password: Secret,
+    pub password: SecretString,
     #[serde(default = "DatabaseConfig::default_max_pool_size")]
     pub max_pool_size: u32,
 }
+
+impl PartialEq for DatabaseConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url && self.max_pool_size == other.max_pool_size
+    }
+}
+
+impl Eq for DatabaseConfig {}
 
 impl DatabaseConfig {
     fn default_url() -> String {
@@ -579,13 +588,13 @@ impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
             url: Self::default_url(),
-            password: Default::default(),
+            password: SecretString::new("".to_string()),
             max_pool_size: Self::default_max_pool_size(),
         }
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct UpstreamConfig {
     /// DEPRECATED: use host and global.https_port
     #[serde(default)]
@@ -596,10 +605,10 @@ pub struct UpstreamConfig {
     #[serde(default = "UpstreamConfig::default_user")]
     pub user: String,
     /// When the section is there, password is mandatory
-    pub password: Secret,
+    pub password: SecretString,
     /// Default password, to be used for new inventories
     #[serde(default = "UpstreamConfig::default_default_password")]
-    pub default_password: Secret,
+    pub default_password: SecretString,
     #[serde(default = "UpstreamConfig::default_verify_certificates")]
     /// Allows to completely disable certificate validation.
     ///
@@ -610,11 +619,23 @@ pub struct UpstreamConfig {
     pub verify_certificates: bool,
     /// Allows specifying the root certificate path
     /// Used for our Rudder PKI
-    /// Not used if verification model is not `Rudder`.
+    /// Not used if the verification model is not `Rudder`.
     #[serde(default = "UpstreamConfig::default_server_certificate_file")]
     pub server_certificate_file: PathBuf,
     // TODO timeout?
 }
+
+impl PartialEq for UpstreamConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+            && self.host == other.host
+            && self.user == other.user
+            && self.verify_certificates == other.verify_certificates
+            && self.server_certificate_file == other.server_certificate_file
+    }
+}
+
+impl Eq for UpstreamConfig {}
 
 impl UpstreamConfig {
     fn default_user() -> String {
@@ -625,8 +646,8 @@ impl UpstreamConfig {
         true
     }
 
-    fn default_default_password() -> Secret {
-        Secret::new("rudder".into())
+    fn default_default_password() -> SecretString {
+        SecretString::new("rudder".into())
     }
 
     fn default_server_certificate_file() -> PathBuf {
@@ -640,8 +661,8 @@ impl Default for UpstreamConfig {
             url: Default::default(),
             host: Default::default(),
             user: Self::default_user(),
-            password: Default::default(),
-            default_password: Default::default(),
+            password: SecretString::new("".to_string()),
+            default_password: SecretString::new("".to_string()),
             verify_certificates: Self::default_verify_certificates(),
             server_certificate_file: Self::default_server_certificate_file(),
         }
@@ -732,14 +753,14 @@ mod tests {
                     url: None,
                     host: "".to_string(),
                     user: "rudder".to_string(),
-                    password: Secret::new("".to_string()),
-                    default_password: Secret::new("".to_string()),
+                    password: SecretString::new("".to_string()),
+                    default_password: SecretString::new("".to_string()),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
-                    password: Secret::new("".to_string()),
+                    password: SecretString::new("".to_string()),
                     max_pool_size: 10,
                 },
             },
@@ -831,8 +852,8 @@ mod tests {
                     url: None,
                     host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
-                    password: Secret::new("password".to_string()),
-                    default_password: Secret::new("rudder".to_string()),
+                    password: SecretString::new("password".to_string()),
+                    default_password: SecretString::new("rudder".to_string()),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from(
                         "tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert",
@@ -840,7 +861,7 @@ mod tests {
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports@postgres/rudder".to_string(),
-                    password: Secret::new("PASSWORD".to_string()),
+                    password: SecretString::new("PASSWORD".to_string()),
                     max_pool_size: 5,
                 },
             },
