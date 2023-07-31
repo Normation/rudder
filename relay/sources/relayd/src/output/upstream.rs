@@ -4,9 +4,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use reqwest::Body;
+use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, instrument};
 
-use crate::{configuration::Secret, processing::inventory::InventoryType, Error, JobConfig};
+use crate::{processing::inventory::InventoryType, Error, JobConfig};
 
 #[instrument(name = "upstream", level = "debug", skip(job_config))]
 pub async fn send_report(job_config: Arc<JobConfig>, path: PathBuf) -> Result<(), Error> {
@@ -44,7 +45,7 @@ async fn forward_file(
     job_config: Arc<JobConfig>,
     endpoint: &str,
     path: PathBuf,
-    password: Secret,
+    password: SecretString,
 ) -> Result<(), Error> {
     let content = tokio::fs::read(path.clone()).await?;
 
@@ -59,7 +60,7 @@ async fn forward_file(
         ))
         .basic_auth(
             &job_config.cfg.output.upstream.user,
-            Some(&password.value()),
+            Some(&password.expose_secret()),
         )
         .body(Body::from(content))
         .send()

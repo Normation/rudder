@@ -5,41 +5,11 @@ pub mod cli;
 pub mod logging;
 pub mod main;
 
-use std::{fmt, path::Path};
+use std::path::Path;
 
 use anyhow::Error;
 use logging::LogConfig;
 use main::Configuration;
-use serde::Deserialize;
-
-/// Allows hiding a value in logs
-#[derive(Deserialize, PartialEq, Eq, Clone, Default)]
-#[serde(transparent)]
-pub struct Secret {
-    value: String,
-}
-
-impl<'a> Secret {
-    pub fn new(value: String) -> Self {
-        Self { value }
-    }
-
-    pub fn value(&'a self) -> &'a str {
-        &self.value
-    }
-}
-
-impl fmt::Display for Secret {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "******")
-    }
-}
-
-impl fmt::Debug for Secret {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\"******\"")
-    }
-}
 
 type Warnings = Vec<Error>;
 
