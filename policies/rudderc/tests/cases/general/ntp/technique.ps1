@@ -54,7 +54,7 @@
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c12"
-    $componentKey = "ntp"
+    $componentKey = "/bin/true "# ${boubou}""
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_install_" + $componentKey)))
         ComponentKey = $componentKey
@@ -68,7 +68,7 @@
     $class = "linux.fedora"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-            Name = "ntp"
+            Name = "/bin/true `"# ${boubou}`""
             
         }
         $call = PackageInstall $methodParams -PolicyMode $policyMode
