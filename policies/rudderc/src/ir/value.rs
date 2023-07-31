@@ -8,7 +8,7 @@
 //!
 //! NOTE: All the technique content will ONLY be interpreted by the target platforms, NOT the webapp.
 //! We hence only support what the agent support to provide better feedback to the developers.
-//! i.e. no `| options`, so `${ spaces . anywhere }`, etc.
+//! I.e., no `| options`, so `${ spaces . anywhere }`, etc.
 
 // TODO: add warnings when using instance-specific values (node properties, etc.)
 // TODO: specific parser for condition expressions
@@ -18,9 +18,9 @@ use std::{cmp::Ordering, str::FromStr};
 use anyhow::{bail, Error, Result};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till},
+    bytes::complete::{tag, take_till, take_until, take_while},
     character::complete::char,
-    combinator::{map, verify},
+    combinator::{eof, map, verify},
     multi::{many0, many1},
     sequence::{preceded, terminated},
     Finish, IResult,
@@ -83,7 +83,7 @@ impl FromStr for Expression {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match expression(s).finish() {
+        match complete_expression(s).finish() {
             Ok((_, e)) => Ok(e),
             Err(e) => bail!("Invalid expression '{}' with {:?}", s, e),
         }
@@ -178,8 +178,17 @@ impl Expression {
     }
 }
 
+/// Parses valid expressions until eof
+fn complete_expression(s: &str) -> IResult<&str, Expression> {
+    let (s, e) = expression(s, false)?;
+    let (s, _) = eof(s)?;
+    Ok((s, e))
+}
+
 /// Parses valid expressions
-fn expression(s: &str) -> IResult<&str, Expression> {
+///
+/// `in_var`: are we inside a var context or in normal text
+fn expression(s: &str, in_var: bool) -> IResult<&str, Expression> {
     map(
         // NOTE: parser used in many0 must not accept empty input
         many0(alt((
@@ -190,16 +199,26 @@ fn expression(s: &str) -> IResult<&str, Expression> {
             sys,
             const_,
             ncf_const,
-            // default var
-            other_var,
-            // default
-            string,
+            // generic var as fallback
+            generic_var,
+            // default is simple string
+            if in_var { string } else { out_string },
         ))),
         Expression::Sequence,
     )(s)
 }
 
-// Reads non-empty string until beginning or end of variable
+// Reads a non-empty string outside any evaluation, accepts isolated []{}$ special chars, stops on ${
+fn out_string(s: &str) -> IResult<&str, Expression> {
+    map(
+        verify(alt((take_until("${"), take_while(|_| true))), |s: &str| {
+            !s.is_empty()
+        }),
+        |s: &str| Expression::Scalar(s.to_string()),
+    )(s)
+}
+
+// Reads a non-empty string until beginning or end of variable
 fn string(s: &str) -> IResult<&str, Expression> {
     map(
         verify(
@@ -211,11 +230,14 @@ fn string(s: &str) -> IResult<&str, Expression> {
 }
 
 // Reads a node property
-fn other_var(s: &str) -> IResult<&str, Expression> {
+fn generic_var(s: &str) -> IResult<&str, Expression> {
     preceded(
         tag("${"),
         terminated(
-            map(expression, |out| Expression::OtherVar(Box::new(out))),
+            map(
+                |s| expression(s, true),
+                |out| Expression::OtherVar(Box::new(out)),
+            ),
             char('}'),
         ),
     )(s)
@@ -234,7 +256,7 @@ fn parameter(s: &str) -> IResult<&str, Expression> {
 fn sys(s: &str) -> IResult<&str, Expression> {
     let (s, _) = tag("${sys.")(s)?;
     // Property name, mandatory
-    let (s, name) = expression(s)?;
+    let (s, name) = expression(s, true)?;
     // Keys, optional
     let (s, mut keys) = many0(key)(s)?;
     let (s, _) = char('}')(s)?;
@@ -275,7 +297,7 @@ fn node_inventory(s: &str) -> IResult<&str, Expression> {
 
 // Reads a key in square brackets
 fn key(s: &str) -> IResult<&str, Expression> {
-    preceded(char('['), terminated(expression, char(']')))(s)
+    preceded(char('['), terminated(|s| expression(s, true), char(']')))(s)
 }
 
 #[cfg(test)]
@@ -299,30 +321,34 @@ mod tests {
     }
 
     #[test]
+    fn it_reads_out_string() {
+        let (_, out) = out_string("toto").unwrap();
+        assert_eq!(out, Expression::Scalar("toto".to_string()));
+        let (_, out) = out_string("toto]").unwrap();
+        assert_eq!(out, Expression::Scalar("toto]".to_string()));
+        let (_, out) = out_string("toto]to").unwrap();
+        assert_eq!(out, Expression::Scalar("toto]to".to_string()));
+        let (_, out) = out_string("toto}plop").unwrap();
+        assert_eq!(out, Expression::Scalar("toto}plop".to_string()));
+    }
+
+    #[test]
     fn it_reads_expression() {
-        let (_, out) = expression("toto").unwrap();
+        let out: Expression = "toto".parse().unwrap();
         assert_eq!(
             out,
             Expression::Sequence(vec![Expression::Scalar("toto".to_string())])
         );
-        let (_, out) = expression("toto]").unwrap();
-        assert_eq!(
-            out,
-            Expression::Sequence(vec![Expression::Scalar("toto".to_string())])
-        );
-        let (_, out) = expression("toto}").unwrap();
-        assert_eq!(
-            out,
-            Expression::Sequence(vec![Expression::Scalar("toto".to_string())])
-        );
-        let (_, out) = expression("${sys.host}").unwrap();
+        let out: Result<Expression, Error> = "${toto]".parse();
+        assert!(out.is_err());
+        let out: Expression = "${sys.host}".parse().unwrap();
         assert_eq!(
             out,
             Expression::Sequence(vec![Expression::Sys(vec![Expression::Sequence(vec![
                 Expression::Scalar("host".to_string())
             ])])])
         );
-        let (_, out) = expression("${sys.interface_flags[eth0]}").unwrap();
+        let out: Expression = "${sys.interface_flags[eth0]}".parse().unwrap();
         assert_eq!(
             out,
             Expression::Sequence(vec![Expression::Sys(vec![
@@ -373,7 +399,7 @@ mod tests {
 
     #[test]
     fn it_reads_generic_var() {
-        let (_, out) = other_var("${plouf}").unwrap();
+        let (_, out) = generic_var("${plouf}").unwrap();
         assert_eq!(
             out,
             Expression::OtherVar(Box::new(Expression::Sequence(vec![Expression::Scalar(

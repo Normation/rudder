@@ -54,7 +54,7 @@
         TechniqueName = $techniqueName
     }
     
-    $class = ""debian""
+    $class = "debian"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             Architecture = ""

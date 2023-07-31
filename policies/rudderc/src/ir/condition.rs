@@ -150,3 +150,16 @@ impl<'de> Deserialize<'de> for Condition {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::ir::condition::Condition;
+
+    #[test]
+    fn it_parses_conditions() {
+        let c = "${my_cond} . debian | ${sys.${plouf}}";
+        let reference = "${my_cond}.debian|${sys.${plouf}}";
+        let p: Condition = c.parse().unwrap();
+        assert_eq!(p, Condition::Expression(reference.to_string()));
+    }
+}

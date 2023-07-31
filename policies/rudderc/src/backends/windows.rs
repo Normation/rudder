@@ -249,3 +249,33 @@ impl Windows {
         technique.render().map_err(|e| e.into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use crate::backends::windows::filters::canonify_condition;
+
+    #[test]
+    fn it_canonifies_conditions() {
+        let c = "debian";
+        let r = "\"debian\"";
+        let res = canonify_condition(c).unwrap();
+        assert_eq!(res, r);
+
+        let c = "debian|ubuntu";
+        let r = "\"debian|ubuntu\"";
+        let res = canonify_condition(c).unwrap();
+        assert_eq!(res, r);
+
+        let c = "${var}";
+        let r = "\"\" + ([Rudder.Condition]::canonify(${var})) + \"\"";
+        let res = canonify_condition(c).unwrap();
+        assert_eq!(res, r);
+
+        let c = "${my_cond}.debian|${sys.${plouf}}";
+        let r = r##""" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}""##;
+        let res = canonify_condition(c).unwrap();
+        assert_eq!(res, r);
+    }
+}

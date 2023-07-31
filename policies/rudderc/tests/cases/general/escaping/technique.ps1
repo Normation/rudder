@@ -33,11 +33,11 @@
         TechniqueName = $techniqueName
     }
     
-    $class = """ + ("
+    $class = "" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             Architecture = ""
-            Name = "${sys.host} . | / ${sys.${host}} ' '' ''' "
+            Name = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3"
             Provider = ""
             Version = @'
 
