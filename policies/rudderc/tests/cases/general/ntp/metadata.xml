@@ -43,7 +43,7 @@
       <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
         <REPORTKEYS>
           <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
-            ntp
+            /bin/true &quot;# ${boubou}&quot;
           </VALUE>
         </REPORTKEYS>
       </SECTION>

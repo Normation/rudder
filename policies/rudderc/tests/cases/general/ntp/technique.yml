@@ -28,4 +28,4 @@ items:
         condition: fedora
         method: package_install
         params:
-          name: ntp
+          name: "/bin/true \"# ${boubou}\""
