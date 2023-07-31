@@ -67,7 +67,7 @@ class CheckAddSpecialNodeGroupsDescription(
   )
 
   val allNodeGroupNewName        = "All Linux Nodes"
-  val allNodeGroupNewDescription = "All Linux Nodes known by Rudder (Using a CFEngine based agent)"
+  val allNodeGroupNewDescription = "All Linux Nodes known by Rudder"
 
   val allNodeGroupPolicyServerNewName        = "All Linux Nodes managed by root policy server"
   val allNodeGroupPolicyServerNewDescription =
