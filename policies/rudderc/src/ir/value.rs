@@ -72,7 +72,7 @@ pub enum Expression {
     /// `${node.property[KEY][SUBKEY]}`
     NodeProperty(Vec<Expression>),
     /// `${anything_unidentified}` (all other variable expressions)
-    OtherVar(Box<Expression>),
+    GenericVar(Box<Expression>),
     /// A static value
     Scalar(String),
     /// A list of tokens
@@ -100,7 +100,7 @@ impl Expression {
                 }
             }
             // TODO: Maybe check for technique parameters, without dots
-            Self::OtherVar(e) => e.lint()?,
+            Self::GenericVar(e) => e.lint()?,
             Self::Scalar(_) => (),
             Self::NodeProperty(s) => {
                 for e in s {
@@ -131,7 +131,7 @@ impl Expression {
                 .map(|i| i.fmt(target))
                 .collect::<Vec<String>>()
                 .join(""),
-            Self::OtherVar(e) => format!("${{{}}}", e.fmt(target)),
+            Self::GenericVar(e) => format!("${{{}}}", e.fmt(target)),
             Self::Scalar(s) => s.to_string(),
             Self::NodeProperty(e) => {
                 let keys = e
@@ -236,7 +236,7 @@ fn generic_var(s: &str) -> IResult<&str, Expression> {
         terminated(
             map(
                 |s| expression(s, true),
-                |out| Expression::OtherVar(Box::new(out)),
+                |out| Expression::GenericVar(Box::new(out)),
             ),
             char('}'),
         ),
@@ -348,6 +348,15 @@ mod tests {
                 Expression::Scalar("host".to_string())
             ])])])
         );
+        let out: Expression = "${sys.${host}}".parse().unwrap();
+        assert_eq!(
+            out,
+            Expression::Sequence(vec![Expression::Sys(vec![Expression::Sequence(vec![
+                Expression::GenericVar(Box::new(Expression::Sequence(vec![Expression::Scalar(
+                    "host".to_string()
+                )])))
+            ])])])
+        );
         let out: Expression = "${sys.interface_flags[eth0]}".parse().unwrap();
         assert_eq!(
             out,
@@ -402,7 +411,7 @@ mod tests {
         let (_, out) = generic_var("${plouf}").unwrap();
         assert_eq!(
             out,
-            Expression::OtherVar(Box::new(Expression::Sequence(vec![Expression::Scalar(
+            Expression::GenericVar(Box::new(Expression::Sequence(vec![Expression::Scalar(
                 "plouf".to_string()
             )])))
         );
@@ -445,6 +454,12 @@ mod tests {
             e.fmt(Target::Windows),
             "$($node.properties[$($node.properties[inner${sys.host}$($sys.interfaces[eth0])])][tutu])".to_string()
         );
+        let e = Expression::Sequence(vec![Expression::Sys(vec![Expression::Sequence(vec![
+            Expression::GenericVar(Box::new(Expression::Sequence(vec![Expression::Scalar(
+                "host".to_string(),
+            )]))),
+        ])])]);
+        assert_eq!(e.fmt(Target::Windows), "${sys.${host}}".to_string())
     }
 
     #[test]
