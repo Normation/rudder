@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::env;
-use std::process::exit;
+use std::{env, process::exit};
 
 use clap::Parser;
 use rudderc::{cli::MainArgs, logs};
@@ -19,7 +18,7 @@ fn main() {
     }
 
     let args = MainArgs::parse();
-    logs::init(args.verbose, args.quiet);
+    logs::init(args.verbose, args.quiet, args.message_format);
     debug!(
         "Running {} v{}",
         env!("CARGO_PKG_NAME"),

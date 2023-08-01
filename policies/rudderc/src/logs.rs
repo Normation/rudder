@@ -5,11 +5,47 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
-use tracing_subscriber::filter::LevelFilter;
-use tracing_subscriber::fmt::Subscriber;
-use tracing_subscriber::{fmt, EnvFilter};
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
-pub fn init(verbose: u8, quiet: bool) {
+use anyhow::{bail, Error};
+use tracing_subscriber::{filter::LevelFilter, fmt, fmt::Subscriber, EnvFilter};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OutputFormat {
+    #[default]
+    Human,
+    Json,
+}
+
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Human => "human",
+                Self::Json => "json",
+            }
+        )
+    }
+}
+
+impl FromStr for OutputFormat {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            "json" => Self::Json,
+            "human" => Self::Human,
+            _ => bail!("Unrecognized output format '{s}'"),
+        })
+    }
+}
+
+pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
     let level = match (verbose, quiet) {
         (0, true) => LevelFilter::WARN,
         (0, false) => LevelFilter::INFO,
@@ -20,11 +56,9 @@ pub fn init(verbose: u8, quiet: bool) {
         .from_env_lossy()
         .add_directive(level.into());
 
-    let format = fmt::format().compact();
-
-    let builder = Subscriber::builder()
-        .event_format(format)
-        .without_time()
-        .with_env_filter(filter);
-    builder.init();
+    let builder = Subscriber::builder().without_time().with_env_filter(filter);
+    match format {
+        OutputFormat::Human => builder.event_format(fmt::format().compact()).init(),
+        OutputFormat::Json => builder.event_format(fmt::format().json()).init(),
+    };
 }
