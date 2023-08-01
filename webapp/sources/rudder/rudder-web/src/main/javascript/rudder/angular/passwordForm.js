@@ -89,10 +89,7 @@ passwordModule.controller("passwordController", function($scope) {
       $scope.current.isScript = isScript;
     }
     defaultHash = currentHash
-    if (current === undefined) {
-      currentAction = "change"
-      $scope.action = "change";
-    }
+
     if (currentAction === "change") {
       $scope.newPassword.password=current;
       $scope.newPassword.hash = currentHash;
@@ -114,7 +111,7 @@ passwordModule.controller("passwordController", function($scope) {
     }
     $scope.hashes = hashes;
     $scope.displayedPass = $scope.current.password;
-    $scope.action = currentAction;
+    $scope.action = currentAction === undefined ? "change" : currentAction;
     $scope.otherPasswords = otherPasswords;
     $scope.canBeDeleted = canBeDeleted;
     $scope.scriptEnabled = scriptEnabled;

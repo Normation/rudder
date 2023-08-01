@@ -272,6 +272,10 @@ body > .modal-backdrop.fade.in{
   top: calc(50% - 7px);
 }
 
+.content-wrapper .form-control[readonly] {
+  background-color: #F8F9FC;
+  cursor: default;
+}
 /* SPINNERS */
 .content-wrapper .btn i.fa-spin {
   position: absolute;

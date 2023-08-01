@@ -287,6 +287,9 @@
 .directive-input-group .btn-group.input-feature + textarea.form-control{
   border-top-left-radius: 0 !important;
 }
+.password-app .input-result{
+  display: none !important;
+}
 
 /* === OVERRIDE TEMPLATE === */
 .main-header.no-header,
