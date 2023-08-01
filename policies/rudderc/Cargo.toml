@@ -13,6 +13,7 @@ anyhow = "1"
 askama = "0.12"
 boon = "0.5.0"
 clap = { version = "4", features = ["derive"] }
+clap_mangen = "0.2"
 colored = "2"
 quick-xml = { version = "0.29.0", features = ["serialize"] }
 regex = "1"

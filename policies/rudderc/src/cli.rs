@@ -3,7 +3,8 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use anyhow::Result;
+use clap::{CommandFactory, Parser, Subcommand};
 
 use crate::{doc::Format, logs::OutputFormat};
 
@@ -93,6 +94,10 @@ pub enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
 
+        /// Generate man page
+        #[arg(short, long)]
+        man_page: bool,
+
         /// Output format
         #[arg(short, long)]
         #[arg(value_enum)]
@@ -110,4 +115,11 @@ pub enum Command {
 
     /// Remove all generated files
     Clean,
+}
+
+pub fn man() -> Result<String> {
+    let man = clap_mangen::Man::new(MainArgs::command());
+    let mut buffer: Vec<u8> = Default::default();
+    man.render(&mut buffer)?;
+    Ok(String::from_utf8(buffer).unwrap())
 }

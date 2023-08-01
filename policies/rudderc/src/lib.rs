@@ -13,7 +13,7 @@ use anyhow::{anyhow, Context, Result};
 #[cfg(not(feature = "embedded-lib"))]
 use tracing::debug;
 
-use crate::cli::{Command, MainArgs};
+use crate::cli::{man, Command, MainArgs};
 
 pub mod backends;
 pub mod cli;
@@ -134,16 +134,23 @@ pub fn run(args: MainArgs) -> Result<()> {
             format,
             open,
             stdout,
+            man_page,
         } => {
             let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
-            action::lib_doc(
-                library.as_slice(),
-                actual_output.as_path(),
-                format,
-                open,
-                stdout,
-            )
+            if man_page {
+                let page = man()?;
+                println!("{}", page);
+                Ok(())
+            } else {
+                action::lib_doc(
+                    library.as_slice(),
+                    actual_output.as_path(),
+                    format,
+                    open,
+                    stdout,
+                )
+            }
         }
     }
 }
