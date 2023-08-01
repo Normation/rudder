@@ -5,8 +5,6 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{bail, Context, Result};
 
-use crate::logs::ok_output;
-
 pub type Methods = HashMap<String, MethodInfo>;
 
 use crate::methods::{method::MethodInfo, reader::read_lib};
@@ -19,11 +17,9 @@ pub fn read(libraries: &[PathBuf]) -> Result<&'static Methods> {
     for library in libraries {
         let add = read_lib(library)
             .with_context(|| format!("Reading methods from {}", library.display()))?;
-        let len = add.len();
         for m in add {
             methods.insert(m.bundle_name.clone(), m);
         }
-        ok_output("Read", format!("{} methods ({})", len, library.display()))
     }
 
     if methods.is_empty() {
