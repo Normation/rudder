@@ -20,6 +20,7 @@ use crate::{
         technique::{
             Block, BlockReportingMode, Id, ItemKind, Method, Parameter, ParameterType, PasswordType,
         },
+        value::Expression,
         Technique,
     },
     RESOURCES_DIR,
@@ -81,6 +82,7 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
     check_ids_unicity(&policy)?;
     check_parameter_unicity(&policy)?;
 
+    // Final check
     let error_count = get_user_error_count();
     if error_count > 0 {
         exit_on_user_error();
@@ -180,6 +182,7 @@ fn check_method(method: &mut Method) -> Result<()> {
                 user_error()
             }
         }
+        lint_expression(value)?;
     }
     // Now let's check for unexpected parameters
     for p_name in method.params.keys() {
@@ -193,6 +196,10 @@ fn check_method(method: &mut Method) -> Result<()> {
             warn!("Unexpected parameter '{}' in '{}'", p_name, method.name)
         }
     }
+
+    // Check report parameter
+    lint_expression(&method.name)?;
+
     Ok(())
 }
 
@@ -277,6 +284,22 @@ fn check_parameter_unicity(technique: &Technique) -> Result<()> {
         if !names.insert(name.clone()) {
             error!("Duplicate parameter name '{}'", &name);
             user_error()
+        }
+    }
+    Ok(())
+}
+
+fn lint_expression(s: &str) -> Result<()> {
+    let res = s.parse::<Expression>();
+    match res {
+        Err(e) => {
+            // We are not sure the parser is totally correct, don't prevent compilation
+            warn!("Error parsing '{}': {:?}", s, e);
+        }
+        Ok(e) => {
+            if let Err(e) = e.lint() {
+                error!("Error checking '{}': {:?}", s, e);
+            }
         }
     }
     Ok(())

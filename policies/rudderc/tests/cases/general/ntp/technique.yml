@@ -28,4 +28,4 @@ items:
         condition: fedora
         method: package_install
         params:
-          name: "/bin/true \"# ${boubou}\""
+          name: "/bin/true \"# ${node.inventory[os][fullName]}\""
