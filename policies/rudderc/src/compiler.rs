@@ -197,6 +197,13 @@ fn check_method(method: &mut Method) -> Result<()> {
         }
     }
 
+    if let Some(d) = &method.info.unwrap().deprecated {
+        warn!(
+            "Deprecated method '{}' ({}): {d}",
+            method.method, method.name
+        );
+    }
+
     // Check report parameter
     lint_expression(&method.name)?;
 
