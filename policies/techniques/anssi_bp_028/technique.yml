@@ -4,8 +4,8 @@
 id: "anssi_bp_028"
 name: "ANSSI-BP-028"
 version: "0.1"
-parameters:
-    name: enable_ipv6
+params:
+  - name: enable_ipv6
     description: "Enable IPv6 on the system ('true' or 'false')"
 items:
   # Les RXX au premier niveau, certains peuvent être des blocs.

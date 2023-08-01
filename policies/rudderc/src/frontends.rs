@@ -3,11 +3,11 @@
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use rudder_commons::methods::{self, Methods};
-use tracing::trace;
+use tracing::{error, trace};
 
-use crate::ir::Technique;
+use crate::{compiler::user_error, ir::Technique};
 
 /// Rudder technique represented in YAML file
 pub fn read(input: &str) -> Result<Technique> {
@@ -16,7 +16,8 @@ pub fn read(input: &str) -> Result<Technique> {
 
     // Stop if unknown format
     if policy.format != 0 {
-        bail!("Unknown policy format version: {}", policy.format);
+        error!("Unknown policy format version: {}", policy.format);
+        user_error()
     }
     Ok(policy)
 }

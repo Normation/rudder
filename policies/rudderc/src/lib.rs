@@ -158,9 +158,7 @@ pub mod action {
     };
 
     use anyhow::{bail, Context, Result};
-    use boon::{Compiler, Schemas};
     use rudder_commons::{logs::ok_output, ALL_TARGETS};
-    use serde_json::Value;
 
     pub use crate::compiler::compile;
     use crate::{
@@ -252,25 +250,6 @@ pub mod action {
 
     /// Linter mode, check JSON schema compliance and ability to compile
     pub fn check(libraries: &[PathBuf], input: &Path) -> Result<()> {
-        let policy = read_to_string(input)
-            .with_context(|| format!("Failed to read input from {}", input.display()))?;
-        // JSON schema validity
-        //
-        // load schema first
-        let schema_url = "https://docs.rudder.io/schemas/technique.schema.json";
-        let schema: Value = serde_json::from_str(include_str!("./technique.schema.json")).unwrap();
-        let mut schemas = Schemas::new();
-        let mut compiler = Compiler::new();
-        compiler.add_resource(schema_url, schema).unwrap();
-        let sch_index = compiler.compile(schema_url, &mut schemas).unwrap();
-        // the load technique file
-        let instance: Value = serde_yaml::from_str(&policy)?;
-        // ... and validate
-        let result = schemas.validate(&instance, sch_index);
-        if let Err(error) = result {
-            // :# gives error details
-            bail!("{error:#}");
-        }
         // Compilation test
         let methods = read_methods(libraries)?;
         let policy_str = read_to_string(input)

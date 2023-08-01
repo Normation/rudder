@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use std::{collections::HashSet, path::Path};
+use std::{
+    collections::HashSet,
+    path::Path,
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+};
 
 use anyhow::{anyhow, bail, Context, Result};
+use boon::{Compiler, Schemas};
 use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
-use tracing::warn;
+use serde_json::Value;
+use tracing::{error, warn};
 
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
@@ -19,8 +25,52 @@ use crate::{
     RESOURCES_DIR,
 };
 
+// Count of user errors detected when reading the technique
+static USER_ERROR_COUNT: AtomicUsize = AtomicUsize::new(0);
+// Have we returned an error only based on user errors?
+// Allows setting special return code.
+static EXIT_ON_USER_ERROR: AtomicBool = AtomicBool::new(false);
+
+pub fn user_error() {
+    USER_ERROR_COUNT.fetch_add(1, Ordering::SeqCst);
+}
+
+pub fn exit_on_user_error() {
+    EXIT_ON_USER_ERROR.store(true, Ordering::SeqCst);
+}
+
+pub fn get_user_error_count() -> usize {
+    USER_ERROR_COUNT.load(Ordering::SeqCst)
+}
+
+pub fn is_exit_on_user_error() -> bool {
+    EXIT_ON_USER_ERROR.load(Ordering::SeqCst)
+}
+
 /// Read technique and augment with data from libraries
+///
+/// Don't return early on user error but display an error message
 pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+    // JSON schema validity
+    let schema_url = "https://docs.rudder.io/schemas/technique.schema.json";
+    let schema: Value = serde_json::from_str(include_str!("./technique.schema.json")).unwrap();
+    let mut schemas = Schemas::new();
+    let mut compiler = Compiler::new();
+    compiler.add_resource(schema_url, schema).unwrap();
+    let sch_index = compiler.compile(schema_url, &mut schemas).unwrap();
+    // then load technique file
+    let instance: Value = serde_yaml::from_str(input)?;
+    // ... and validate
+    let result = schemas.validate(&instance, sch_index);
+    if let Err(error) = result {
+        // :# gives error details
+        error!("{error:#}");
+        user_error();
+    }
+
+    // Deserialize into `Technique`
+    // Here return early as we can't do much if parsing failed,
+    // plus serde already displays as many errors as possible
     let mut policy = frontends::read(input)?;
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
@@ -30,6 +80,12 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
     }
     check_ids_unicity(&policy)?;
     check_parameter_unicity(&policy)?;
+
+    let error_count = get_user_error_count();
+    if error_count > 0 {
+        exit_on_user_error();
+        bail!("{error_count} error(s) were encountered when reading technique");
+    }
     Ok(policy)
 }
 
@@ -82,10 +138,11 @@ fn methods_metadata(modules: &mut Vec<ItemKind>, info: &'static Methods) -> Resu
 /// Fix constraints if necessary.
 fn check_parameter(param: &mut Parameter) -> Result<()> {
     if !is_canonified(&param.name) {
-        bail!(
+        error!(
             "Technique parameter name '{}' must be canonified",
             param.name
-        )
+        );
+        user_error();
     }
     // Only allow modern hashes if not specified
     if param._type == ParameterType::Password && param.constraints.password_hashes.is_none() {
@@ -103,18 +160,25 @@ fn check_method(method: &mut Method) -> Result<()> {
             None if p.constraints.allow_empty => {
                 method.params.insert(p.name.clone(), "".to_string());
             }
-            _ => bail!("Missing parameter in '{}': '{}'", method.name, p.name),
+            _ => {
+                error!("Missing parameter in '{}': '{}'", method.name, p.name);
+                user_error()
+            }
         }
         // Now let's check constraints!
         //
         // We skip values containing variables, using the `${` `}` markers
         let value = method.params.get(&p.name).unwrap();
         if !value.contains("${") {
-            p.constraints.is_valid(value).context(format!(
+            let res = p.constraints.is_valid(value).context(format!(
                 "Invalid parameter in '{}': '{}'",
                 method.name.clone(),
                 p.name.clone()
-            ))?;
+            ));
+            if let Err(e) = res {
+                error!("{:?}", e);
+                user_error()
+            }
         }
     }
     // Now let's check for unexpected parameters
@@ -153,23 +217,24 @@ fn check_block(block: &Block) -> Result<()> {
             if let Some(ref id) = block.reporting.id {
                 // check the id is valid
                 if block.items.iter().map(|r| is_id_child(r, id)).all(|t| !t) {
-                    bail!(
+                    error!(
                         "Unknown id '{}' of focused report in block '{}'",
-                        id,
-                        block.name
-                    )
+                        id, block.name
+                    );
+                    user_error()
                 }
             } else {
-                bail!("Missing id of focused report in block '{}'", block.name)
+                error!("Missing id of focused report in block '{}'", block.name);
+                user_error()
             }
         }
         m => {
             if block.reporting.id.is_some() {
-                bail!(
+                error!(
                     "Reporting mode {} does not expect an id in block '{}'",
-                    m,
-                    block.name
-                )
+                    m, block.name
+                );
+                user_error()
             }
         }
     }
@@ -198,7 +263,8 @@ fn check_ids_unicity(technique: &Technique) -> Result<()> {
         .chain(technique.params.iter().map(|p| p.id.clone()))
     {
         if !ids.insert(id.clone()) {
-            bail!("Duplicate id '{}'", &id);
+            error!("Duplicate id '{}'", &id);
+            user_error()
         }
     }
     Ok(())
@@ -209,7 +275,8 @@ fn check_parameter_unicity(technique: &Technique) -> Result<()> {
     let mut names = HashSet::new();
     for name in technique.params.iter().map(|p| p.name.clone()) {
         if !names.insert(name.clone()) {
-            bail!("Duplicate parameter name '{}'", &name);
+            error!("Duplicate parameter name '{}'", &name);
+            user_error()
         }
     }
     Ok(())

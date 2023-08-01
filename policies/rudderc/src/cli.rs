@@ -21,7 +21,7 @@ pub struct MainArgs {
 
     /// Format of the output
     #[arg(long)]
-    #[arg(default_value_t = OutputFormat::Json)]
+    #[arg(default_value_t = OutputFormat::Human)]
     pub message_format: OutputFormat,
 
     /// Directory to work in, default is current directory
