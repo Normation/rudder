@@ -213,6 +213,10 @@ pub mod action {
         stdout: bool,
     ) -> Result<()> {
         let methods = read_methods(libraries)?;
+        if !stdout {
+            ok_output("Read", format!("{} methods", methods.len()));
+        }
+
         // Special case as output is multi-file
         let file_to_open = if format == Format::Html {
             let index = book::render(methods, output_dir)?;
@@ -252,6 +256,8 @@ pub mod action {
     pub fn check(libraries: &[PathBuf], input: &Path) -> Result<()> {
         // Compilation test
         let methods = read_methods(libraries)?;
+        ok_output("Read", format!("{} methods", methods.len()));
+
         let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let policy = read_technique(methods, &policy_str)?;
@@ -347,6 +353,8 @@ pub mod action {
         let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let methods = read_methods(libraries)?;
+        ok_output("Read", format!("{} methods", methods.len()));
+
         create_dir_all(output_dir)?;
 
         // Read technique, only do it once

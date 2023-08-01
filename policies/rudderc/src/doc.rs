@@ -59,7 +59,6 @@ impl Format {
         match self {
             Self::Markdown => markdown(methods),
             Self::Json => {
-                ok_output("Generating", "modules description".to_owned());
                 // FIXME: sort output to limit changes
                 serde_json::to_string_pretty(&methods).context("Serializing modules")
             }
