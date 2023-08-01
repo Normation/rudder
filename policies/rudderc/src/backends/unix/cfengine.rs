@@ -34,12 +34,12 @@ pub(crate) mod promise;
 use std::{fs, path::Path, process::Command};
 
 use anyhow::{bail, Result};
-use log::debug;
 use rudder_commons::{
     regex_comp,
     report::{Report, RunLog},
 };
 use tempfile::tempdir;
+use tracing::debug;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;

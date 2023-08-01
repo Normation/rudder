@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use anyhow::Result;
-use log::trace;
+use tracing::trace;
 
 use super::Backend;
 use crate::{

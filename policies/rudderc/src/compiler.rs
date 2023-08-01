@@ -4,8 +4,8 @@
 use std::{collections::HashSet, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::warn;
 use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
+use tracing::warn;
 
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
