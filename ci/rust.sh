@@ -18,5 +18,6 @@ wget --quiet https://github.com/EmbarkStudios/cargo-deny/releases/download/$DENY
 tar -xf cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
 
-# cargo-vet
+# Build & check tools
 cargo install --locked cargo-vet@0.8.0
+cargo install --locked cargo-auditable@0.6.1
