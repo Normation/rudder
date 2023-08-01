@@ -164,8 +164,6 @@ impl Expression {
                             .unwrap()
                             .1;
 
-                        dbg!(second);
-
                         if let Some(seq) = second.as_sequence() {
                             let vals: Vec<&str> = seq.iter().map(|v| v.as_str().unwrap()).collect();
                             // Allow specifying only the first level to access the object
