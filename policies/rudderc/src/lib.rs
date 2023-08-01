@@ -11,7 +11,7 @@ use std::{
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
 #[cfg(not(feature = "embedded-lib"))]
-use log::debug;
+use tracing::debug;
 
 use crate::cli::{Command, MainArgs};
 

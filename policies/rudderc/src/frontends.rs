@@ -4,8 +4,8 @@
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
-use log::trace;
 use rudder_commons::methods::{self, Methods};
+use tracing::trace;
 
 use crate::ir::Technique;
 
