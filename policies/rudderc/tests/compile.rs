@@ -6,6 +6,7 @@
 use std::{
     fs::read_to_string,
     path::{Path, PathBuf},
+    sync::Once,
 };
 
 use pretty_assertions::assert_eq;
@@ -14,14 +15,25 @@ use rudderc::{
     action,
     compiler::{metadata, read_technique},
     frontends::read_methods,
+    logs,
 };
 use test_generator::test_resources;
+
+static INIT: Once = Once::new();
+
+/// We can only initialize the logger once
+pub fn init_logs() {
+    INIT.call_once(|| {
+        logs::init(0, false, Default::default());
+    });
+}
 
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compiles all files in `cases/general`. Files ending in `.fail.yml` are expected to fail.
 #[test_resources("tests/cases/general/*/*.yml")]
 fn compile(filename: &str) {
+    init_logs();
     let input = read_to_string(filename).unwrap();
     let methods = read_methods(&[PathBuf::from(TEST_METHODS)]).unwrap();
     let file = Path::new(filename);
@@ -35,51 +47,31 @@ fn compile(filename: &str) {
 /// Lint the given file
 fn lint_file(source: &Path) {
     let result = action::check(&[PathBuf::from(TEST_METHODS)], source);
-    if should_fail(source) {
-        assert!(result.is_err());
-    } else {
-        result.expect("Test check failed");
-    }
+    result.expect("Test check failed");
 }
 
 /// Compile the metadata.xml
 fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
     let result = read_technique(methods, input).and_then(|p| metadata(p, source));
-    if should_fail(source) {
-        assert!(result.is_err());
-    } else {
-        let output = result.expect("Test compilation failed");
-        let ref_file = source.parent().unwrap().join("metadata.xml");
-        // Update ref files
-        //std::fs::write(&ref_file, &output).unwrap();
+    let output = result.expect("Test compilation failed");
+    let ref_file = source.parent().unwrap().join("metadata.xml");
+    // Update ref files
+    //std::fs::write(&ref_file, &output).unwrap();
 
-        let reference = read_to_string(ref_file).unwrap();
-        assert_eq!(reference, output);
-    }
+    let reference = read_to_string(ref_file).unwrap();
+    assert_eq!(reference, output);
 }
 
 /// Compile the given source file with the given target. Panics if compilation fails.
 fn compile_file(methods: &'static Methods, input: &str, source: &Path, target: Target) {
     let result = read_technique(methods, input)
         .and_then(|p| rudderc::compiler::compile(p, target, source, false));
-    if should_fail(source) {
-        assert!(result.is_err());
-    } else {
-        let output = result.expect("Test compilation failed");
-        let ref_file = source.with_extension(target.extension());
-        // Update ref files
-        //std::fs::write(&ref_file, &output).unwrap();
 
-        let reference = read_to_string(ref_file).unwrap();
-        assert_eq!(reference, output);
-    }
-}
+    let output = result.expect("Test compilation failed");
+    let ref_file = source.with_extension(target.extension());
+    // Update ref files
+    //std::fs::write(&ref_file, &output).unwrap();
 
-/// Failing tests should end in `.fail.yml`
-fn should_fail(source: &Path) -> bool {
-    source
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .ends_with(".fail.yml")
+    let reference = read_to_string(ref_file).unwrap();
+    assert_eq!(reference, output);
 }

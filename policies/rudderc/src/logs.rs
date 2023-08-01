@@ -58,7 +58,9 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
 
     let builder = Subscriber::builder().without_time().with_env_filter(filter);
     match format {
-        OutputFormat::Human => builder.event_format(fmt::format().compact()).init(),
+        OutputFormat::Human => builder
+            .event_format(fmt::format().compact().without_time())
+            .init(),
         OutputFormat::Json => builder.event_format(fmt::format().json()).init(),
     };
 }

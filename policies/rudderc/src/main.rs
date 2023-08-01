@@ -4,7 +4,7 @@
 use std::{env, process::exit};
 
 use clap::Parser;
-use rudderc::{cli::MainArgs, logs};
+use rudderc::{cli::MainArgs, compiler::is_exit_on_user_error, logs};
 use tracing::{debug, error, trace};
 
 fn main() {
@@ -32,7 +32,11 @@ fn main() {
             // Display errors with logger
             // Use `Debug` to display anyhow error chain
             error!("{:?}", e);
-            exit(1);
+            if is_exit_on_user_error() {
+                exit(2);
+            } else {
+                exit(1);
+            }
         }
     }
 }

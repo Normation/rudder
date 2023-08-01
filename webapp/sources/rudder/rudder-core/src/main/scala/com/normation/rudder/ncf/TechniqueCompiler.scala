@@ -162,7 +162,10 @@ object RuddercResult       {
     // todo: parse a rudderc output and get an error from it
     if (code == 0) {
       Ok("", stdout, stderr)
+    } else if (code == 2) {
+      UserError(code, "", stdout, stderr)
     } else {
+      // returns 1 on internal error
       Fail(code, "", stdout, stderr)
     }
   }
