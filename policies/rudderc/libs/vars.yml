@@ -19,7 +19,6 @@ sys:
   - doc_root
   - domain
   - exports
-  - failsafe_policy_path
   - flavor
   - flavour
   - fqhost

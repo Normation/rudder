@@ -56,7 +56,10 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
         .from_env_lossy()
         .add_directive(level.into());
 
-    let builder = Subscriber::builder().without_time().with_env_filter(filter);
+    let builder = Subscriber::builder()
+        .without_time()
+        .with_target(false)
+        .with_env_filter(filter);
     match format {
         OutputFormat::Human => builder
             .event_format(fmt::format().compact().without_time())
