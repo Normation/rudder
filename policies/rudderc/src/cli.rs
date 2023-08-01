@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::doc::Format;
+use crate::{doc::Format, logs::OutputFormat};
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
@@ -18,6 +18,11 @@ pub struct MainArgs {
     /// Quiet
     #[arg(short, long)]
     pub quiet: bool,
+
+    /// Format of the output
+    #[arg(long)]
+    #[arg(default_value_t = OutputFormat::Json)]
+    pub message_format: OutputFormat,
 
     /// Directory to work in, default is current directory
     #[arg(short, long)]
