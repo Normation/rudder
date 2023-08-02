@@ -861,7 +861,6 @@ class PasswordField(
          , "${formId}"
        );
        passwordForms["${formId}"] = passwordForm;
-       console.log(passwordForms);
        initPasswordFormEvents("${formId}");
        updatePasswordFormView("${formId}");
        """)))

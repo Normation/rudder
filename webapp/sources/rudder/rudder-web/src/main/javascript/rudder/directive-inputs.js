@@ -133,16 +133,15 @@ class PasswordForm {
 
   formId = "";
 
-  constructor(currentValue, currentHash, isScript, currentAction, hashes, otherPasswords, canBeDeleted, scriptEnabled, previousHash, previousAlgo, previousIsScript, formId) {
-    console.log(currentHash)
+  constructor(currentValue, currentHash, isScript, currentAction, hashes, otherPasswords, canBeDeleted, scriptEnabled, previousPass, previousHash, previousIsScript, formId) {
     this.defaultHash  = currentHash;
-
-    if (currentAction === "keep") {
+    var action = currentValue === undefined ? "change" : currentAction
+    if (action === "keep") {
       this.current.password = currentValue;
       this.current.hash     = currentHash;
       this.current.isScript = isScript;
 
-    } else if (currentAction === "change") {
+    } else if (action === "change") {
       this.newPassword.password = currentValue;
       this.newPassword.hash     = currentHash;
       this.newPassword.isScript = isScript;
@@ -164,23 +163,23 @@ class PasswordForm {
 
     this.hashes         = hashes;
     this.displayedPass  = this.current.password;
-    this.action         = currentAction === undefined ? "change" : currentAction;
+    this.action         = action
     this.otherPasswords = otherPasswords;
     this.canBeDeleted   = canBeDeleted;
     this.scriptEnabled  = scriptEnabled;
 
     this.formId         = formId;
+
+    this.updateResult();
   }
 
   updateView() {
-    console.log("updating view")
     updatePasswordFormView(this.formId);
   }
 
   updateResult() {
     // Keep and delete, use current password as base
-    let result = this.action === "change" ? Object.assign({}, this.newPassword) : Object.assign({}, this.current)
-
+    let result = this.action === "change" ? Object.assign({}, this.newPassword) : Object.assign({}, this.current);
     if (result.hash === "plain" && result.isScript) {
       result.password = "evaljs:" + result.password;
     }
@@ -222,17 +221,16 @@ class PasswordForm {
       this.newPassword.isScript = true;
     }
     this.formType = formType;
-
-    console.log("-- Change form type & update result & view");
     this.updateResult();
   }
 
   changeAction(action) {
     this.action = action;
+    this.newPassword.password = "";
     if (action === "change") {
       if (this.current.isScript) {
         this.formType = "script";
-        this.newPassword = this.current;
+        this.newPassword = Object.assign({}, this.current);
       } else if (this.current.hash === "pre-hashed") {
         this.formType = "preHashed";
       } else if (this.current.hash === "plain") {
@@ -242,7 +240,6 @@ class PasswordForm {
       }
       this.newPassword.hash = this.current.hash;
     }
-    console.log("-- Change action & update result & view");
     this.updateResult();
   }
 
@@ -311,24 +308,35 @@ function initPasswordFormEvents(formId){
   // Update model when password changes
   formContainer.find(".input-new-passwd").on("input", function(){
     var newVal = this.value;
-    // TODO : Check
-    //passwordForm.current.password = newVal;
-    //passwordForm.displayedPass    = newVal;
-    console.log("-- Update value: "+ newVal)
+    passwordForm.newPassword.password = newVal;
+    passwordForm.updateResult();
   });
 
   // Hash algorithm select
   var selectHash = formContainer.find(".new-password-hash");
-  var hash, opt;
-  for (hash in passwordForm.hashes){
-    opt = $("<option />").text(passwordForm.hashes[hash]).val(hash);
-    if (hash === passwordForm.newPassword.hash){
+  var opt;
+  var hashes = passwordForm.hashes;
+  for (var h in hashes){
+    opt = $("<option />").text(passwordForm.hashes[h]).val(h);
+    if (h === passwordForm.current.hash){
       opt.attr("selected", true);
     }
     selectHash.append(opt);
   }
+  selectHash.on('input', function(){
+    passwordForm.newPassword.hash = this.value;
+    passwordForm.updateResult();
+  });
 
-  //ng-model="newPassword.hash" ng-options="prefix as hash for (prefix, hash) in hashes"
+}
+function updatePasswordResult(formId){
+
+  // Get passwordForm data
+  var passwordForm = passwordForms[formId];
+  if (passwordForm === undefined) return false;
+
+  var formContainer = $('#' + formId);
+  formContainer.find('.input-result').val(passwordForm.result);
 }
 
 function updatePasswordFormView(formId){
@@ -347,20 +355,22 @@ function updatePasswordFormView(formId){
 
   formContainer.find(".current-password").show();
 
+  passwdContainer.show();
+  if(current.isScript){
+    formContainer.find(".is-passwd").hide();
+  } else {
+    formContainer.find(".is-script").hide();
+  }
+
   switch(actionSection){
     case "keep" :
       passwdContainer.show();
-      if(current.isScript){
-        formContainer.find(".is-passwd").hide();
-        passwdContainer = formContainer.find(".is-script").show();
-      } else {
+      if(!current.isScript){
         // Display current hash
         formContainer.find("[current-hash]").html(passwordForm.displayCurrentHash());
-        passwdContainer = formContainer.find(".is-passwd").show();
-        formContainer.find(".is-script").hide();
       }
       // Display current password
-      $(".input-current-passwd").val(passwordForm.displayedPass);
+      passwdContainer.find(".input-current-passwd").val(passwordForm.displayedPass);
       break;
 
     case "delete" :
@@ -368,6 +378,13 @@ function updatePasswordFormView(formId){
       break;
 
     case "change" :
+      if(current.password === undefined){
+        formContainer.find(".current-password").hide();
+      }else{
+        formContainer.find(".current-password").show();
+      }
+      // Display current password
+      $(".input-current-passwd").val(passwordForm.displayedPass);
 
       // Update buttons that change the form type
       formContainer.find("[data-form]").each(function(){
@@ -385,6 +402,9 @@ function updatePasswordFormView(formId){
       formContainer.find('.bloc-action').hide();
       if(passwordForm.formType === "withHashes" || passwordForm.formType === "script"){
         formClass += passwordForm.formType;
+        if(passwordForm.formType === "script"){
+          formContainer.find('textarea.input-new-passwd').val(passwordForm.newPassword.password);
+        }
       } else {
         if(passwordForm.formType === "clearText"){
           formContainer.find(".cleartext-reveal").show();
@@ -400,10 +420,7 @@ function updatePasswordFormView(formId){
       $(".variation").text(infoMsg);
 
       // Update hash algorithm info
-      console.log("============")
-      console.log(passwordForm.hashes)
-      console.log(passwordForm.newPassword.hash)
-      //$(".hash-algorithm").text(passwordForm.hashes[passwordForm.newPassword.hash]);
+      $(".hash-algorithm").text(passwordForm.hashes[passwordForm.newPassword.hash]);
 
       break;
 
@@ -444,5 +461,9 @@ function updatePasswordFormView(formId){
       formContainer.find("input.input-new-passwd").attr("type", inputType);
     }
   });
+
+  // Update input result
+  updatePasswordResult(formId);
+
   return true;
 }
