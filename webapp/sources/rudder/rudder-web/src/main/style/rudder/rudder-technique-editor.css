@@ -1095,6 +1095,8 @@ ul li.hide-method {
   display: flex;
   align-items: center;
   cursor: grab;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
 }
 .method .method-condition,
 .method .method-name,
@@ -1627,7 +1629,6 @@ ul li.hide-method {
   transition: all 0.3s cubic-bezier(.25,.8,.25,1);
   background-color: #fff;
   border-radius: 6px;
-  overflow: hidden;
 }
 .card-method.hovered {
   box-shadow: 0 14px 28px rgba(0,0,100,0.07), 0 3px 3px rgba(0,0,0,0.05);
