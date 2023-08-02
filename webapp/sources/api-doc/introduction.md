@@ -7,7 +7,7 @@ Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 # Introduction
 
-Rudder exposes a REST API, enabling the user to interact with Rudder without using the webapp, for example in scripts or cronjobs.
+Rudder exposes a REST API, enabling the user to interact with Rudder without using the webapp, for example, in scripts or cron jobs.
 
 ## Versioning
 
@@ -58,7 +58,7 @@ period of time to allow migration from previous versions.
     <tr>
       <td class="code">2 to 10 (deprecated)</td>
       <td class="code">4.3 and before</td>
-      <td>These versions provided the core set of API features for rules, directives, nodes global parameters, change requests and compliance, rudder settings and system API</td>
+      <td>These versions provided the core set of API features for rules, directives, nodes global parameters, change requests and compliance, rudder settings, and system API</td>
     </tr>
     <tr>
       <td class="code">11</td>
@@ -102,6 +102,22 @@ period of time to allow migration from previous versions.
       <td><ul>
         <li>Create node API included from plugin</li>
         <li>Configuration archive import/export</li>
+      </ul></td>
+    </tr>
+    <tr>
+      <td class="code">17</td>
+      <td class="code">7.3</td>
+      <td><ul>
+        <li>Compliance by directive</li>
+        <li>Path campaigns API included</li>
+      </ul></td>
+    </tr>
+    <tr>
+      <td class="code">18</td>
+      <td class="code">8.0</td>
+      <td><ul>
+        <li>Allowed network </li>
+        <li>Improve the structure of `/settings/allowed_networks` output</li>
       </ul></td>
     </tr>
   </tbody>
@@ -234,7 +250,7 @@ curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/ru
 
 
 
-CAUTION: To avoid surprising behavior, do not put a '/' at the end of an URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
+CAUTION: To avoid surprising behavior, do not put a '/' at the end of a URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
 
 
 #### Sending data for POST/PUT requests
@@ -251,7 +267,7 @@ curl -X POST -H "Content-Type: application/json" ...
 
 The supplied file must contain a valid JSON: strings need quotes, booleans and integers don't, etc.
 
-The (human readable) format is:
+The (human-readable) format is:
 
 ```json
 {
