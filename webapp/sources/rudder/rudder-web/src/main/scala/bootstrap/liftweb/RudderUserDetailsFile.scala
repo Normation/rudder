@@ -118,17 +118,17 @@ object PasswordEncoder {
     }
   }
 
-  val PlainText = new PasswordEncoder() {
+  val PlainText    = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
   // Unsalted hash functions :
-  val MD5       = new DigestEncoder("MD5")
-  val SHA1      = new DigestEncoder("SHA-1")
-  val SHA256    = new DigestEncoder("SHA-256")
-  val SHA512    = new DigestEncoder("SHA-512")
+  val MD5          = new DigestEncoder("MD5")
+  val SHA1         = new DigestEncoder("SHA-1")
+  val SHA256       = new DigestEncoder("SHA-256")
+  val SHA512       = new DigestEncoder("SHA-512")
   // Salted hash functions :
-  val BCRYPT    = new PasswordEncoder() {
+  val BCRYPT       = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       random.nextBytes(salt)
@@ -147,6 +147,8 @@ object PasswordEncoder {
       }
     }
   }
+  // Encoders which are safe to use, exclude simple hashes as they are vulnerable
+  val safeEncoders = BCRYPT :: Nil
 
   def parse(name: String): Either[String, PasswordEncoder] = {
     name.toLowerCase match {
@@ -495,6 +497,11 @@ object UserFileProcessing {
       Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
     } else {
       val hash = PasswordEncoder.parse((root(0) \ "@hash").text).getOrElse(PasswordEncoder.BCRYPT)
+      if (!PasswordEncoder.safeEncoders.contains(hash)) {
+        ApplicationLoggerPure.Authz.logEffect.warn(
+          s"Local user authentication is configured with a deprecated and unsafe hash method '${hash}', you should switch to the recommended 'bcrypt' method."
+        )
+      }
 
       val isCaseSensitive: IOResult[Boolean] = (root(0) \ "@case-sensitivity").text.toLowerCase match {
         case "true"  => true.succeed
