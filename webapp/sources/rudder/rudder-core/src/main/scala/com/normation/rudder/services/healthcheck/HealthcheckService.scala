@@ -1,6 +1,7 @@
 package com.normation.rudder.services.healthcheck
 
 import better.files.File.root
+import bootstrap.liftweb.AppConfigAuth
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
@@ -166,6 +167,19 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
         case _                              =>
           Ok(name, s"Maximum number of file descriptors is ${limit}")
       }
+    }
+  }
+}
+
+final class CheckLocalAccountHashMethod(val authConfigProvider: FileUserDetailListProvider) extends Check {
+  def name: CheckName                   = CheckName("Local users password hashes")
+  def run:  IOResult[HealthcheckResult] = for {
+    hash <- authConfigProvider.authConfig.encoder
+  } yield {
+    if (PasswordEncoder.safeEncoders.contains(hash)) {
+      Ok(name, s"${hash} password hash")
+    } else {
+      Warning(name, s"Unsafe password hash method ${hash}, you should switch to bcrypt")
     }
   }
 }
