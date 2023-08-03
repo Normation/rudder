@@ -370,7 +370,6 @@ class DirectiveEditForm(
                  |});
                  |$$("#complianceLinkTab").on("click", function (){
                  |  app.ports.loadCompliance.send("");
-                 |
                  |});""".stripMargin)
       )
     )

@@ -10,8 +10,14 @@ import NodeProperties.DataTypes exposing (..)
 decodeGetProperties =
   at [ "data" ] (index 0 decodeProperties)
 
+decodeGetGroupProperties =
+  at [ "data", "groups" ] (index 0 decodeProperties)
+
 decodeSaveProperties =
   at [ "data" ] decodeProperties
+
+decodeSaveGroupProperties =
+  at [ "data", "groups" ] decodeProperties
 
 decodeProperties =
   at [ "properties" ] (list decodeProperty)
