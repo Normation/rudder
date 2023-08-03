@@ -246,13 +246,6 @@ user-id = 163
 user-login = "alex"
 user-name = "Alex Gaynor"
 
-[[publisher.openssl-src]]
-version = "111.26.0+1.1.1u"
-when = "2023-05-31"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
 [[publisher.openssl-sys]]
 version = "0.9.90"
 when = "2023-06-20"
@@ -393,6 +386,20 @@ user-id = 19631
 user-login = "tony-iqlusion"
 user-name = "Tony Arcieri (iqlusion)"
 
+[[publisher.security-framework]]
+version = "2.9.2"
+when = "2023-07-21"
+user-id = 988
+user-login = "kornelski"
+user-name = "Kornel"
+
+[[publisher.security-framework-sys]]
+version = "2.9.1"
+when = "2023-07-21"
+user-id = 988
+user-login = "kornelski"
+user-name = "Kornel"
+
 [[publisher.serde]]
 version = "1.0.164"
 when = "2023-06-08"
@@ -491,6 +498,13 @@ user-id = 72883
 user-login = "valenting"
 user-name = "Valentin Gosu"
 
+[[publisher.urlencoding]]
+version = "2.1.2"
+when = "2022-09-02"
+user-id = 988
+user-login = "kornelski"
+user-name = "Kornel"
+
 [[publisher.walkdir]]
 version = "2.3.3"
 when = "2023-03-16"
@@ -574,13 +588,6 @@ when = "2020-04-20"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
-
-[[publisher.windows-sys]]
-version = "0.42.0"
-when = "2022-09-27"
-user-id = 64539
-user-login = "kennykerr"
-user-name = "Kenny Kerr"
 
 [[publisher.windows-sys]]
 version = "0.45.0"

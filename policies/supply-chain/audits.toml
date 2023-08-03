@@ -1,15 +1,40 @@
 
 # cargo-vet audits file
 
+[[audits.boon]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.5.0 -> 0.5.1"
+
+[[audits.colored]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "2.0.0 -> 2.0.4"
+
 [[audits.cpufeatures]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.2.7 -> 0.2.8"
 
+[[audits.errno]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.2"
+
+[[audits.hermit-abi]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.2"
+
 [[audits.iana-time-zone]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.1.56 -> 0.1.57"
+
+[[audits.mdbook]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.4.30 -> 0.4.32"
 
 [[audits.nu-ansi-term]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
@@ -21,10 +46,20 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 version = "0.1.1"
 
+[[audits.pretty_assertions]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "1.3.0 -> 1.4.0"
+
 [[audits.tempfile]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "3.5.0 -> 3.6.0"
+
+[[audits.tempfile]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "3.6.0 -> 3.7.0"
 
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
@@ -62,6 +97,12 @@ user-id = 6743 # Ed Page (epage)
 start = "2023-03-08"
 end = "2024-06-27"
 
+[[trusted.anyhow]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-05"
+end = "2024-08-03"
+
 [[trusted.assert_cmd]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
@@ -85,6 +126,12 @@ criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-03-01"
 end = "2024-06-27"
+
+[[trusted.cc]]
+criteria = "safe-to-deploy"
+user-id = 4357 # Thom Chiovoloni (thomcc)
+start = "2023-08-02"
+end = "2024-08-03"
 
 [[trusted.chrono]]
 criteria = "safe-to-deploy"
@@ -122,6 +169,18 @@ user-id = 6743 # Ed Page (epage)
 start = "2022-04-15"
 end = "2024-06-27"
 
+[[trusted.cpufeatures]]
+criteria = "safe-to-deploy"
+user-id = 5059 # Artyom Pavlov (newpavlov)
+start = "2022-08-18"
+end = "2024-08-03"
+
+[[trusted.either]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-04-02"
+end = "2024-08-03"
+
 [[trusted.env_logger]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
@@ -133,6 +192,12 @@ criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
 start = "2023-02-05"
 end = "2024-06-27"
+
+[[trusted.fastrand]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2021-04-24"
+end = "2024-08-03"
 
 [[trusted.form_urlencoded]]
 criteria = "safe-to-deploy"
@@ -151,6 +216,12 @@ criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
 start = "2020-01-15"
 end = "2024-06-27"
+
+[[trusted.is-terminal]]
+criteria = "safe-to-deploy"
+user-id = 6825 # Dan Gohman (sunfishcode)
+start = "2022-01-22"
+end = "2024-08-03"
 
 [[trusted.itoa]]
 criteria = "safe-to-deploy"
@@ -194,6 +265,12 @@ user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2022-02-06"
 end = "2024-06-27"
 
+[[trusted.linux-raw-sys]]
+criteria = "safe-to-deploy"
+user-id = 6825 # Dan Gohman (sunfishcode)
+start = "2021-06-12"
+end = "2024-08-03"
+
 [[trusted.lock_api]]
 criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
@@ -217,6 +294,12 @@ criteria = "safe-to-deploy"
 user-id = 39 # Armin Ronacher (mitsuhiko)
 start = "2021-09-23"
 end = "2024-06-09"
+
+[[trusted.num-traits]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-05-20"
+end = "2024-08-03"
 
 [[trusted.parking_lot]]
 criteria = "safe-to-deploy"
@@ -386,6 +469,12 @@ user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-02-28"
 end = "2024-06-27"
 
+[[trusted.serde_spanned]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-01-20"
+end = "2024-08-03"
+
 [[trusted.serde_yaml]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
@@ -403,6 +492,12 @@ criteria = "safe-to-deploy"
 user-id = 1249 # Eliza Weisman (hawkw)
 start = "2019-10-02"
 end = "2024-08-01"
+
+[[trusted.smallvec]]
+criteria = "safe-to-deploy"
+user-id = 2017 # Matt Brubeck (mbrubeck)
+start = "2019-10-28"
+end = "2024-08-03"
 
 [[trusted.syn]]
 criteria = "safe-to-deploy"
@@ -422,6 +517,18 @@ user-id = 6743 # Ed Page (epage)
 start = "2021-10-07"
 end = "2024-06-27"
 
+[[trusted.thiserror]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-09"
+end = "2024-08-03"
+
+[[trusted.thiserror-impl]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-09"
+end = "2024-08-03"
+
 [[trusted.thread_local]]
 criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
@@ -433,6 +540,18 @@ criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-05-16"
 end = "2024-06-27"
+
+[[trusted.toml]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2022-12-14"
+end = "2024-08-03"
+
+[[trusted.toml_edit]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2021-09-13"
+end = "2024-08-03"
 
 [[trusted.tracing]]
 criteria = "safe-to-deploy"
@@ -475,6 +594,12 @@ criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-07-21"
 end = "2024-06-27"
+
+[[trusted.unicode-ident]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2021-10-02"
+end = "2024-08-03"
 
 [[trusted.unsafe-libyaml]]
 criteria = "safe-to-deploy"
@@ -595,3 +720,9 @@ criteria = "safe-to-deploy"
 user-id = 64539 # Kenny Kerr (kennykerr)
 start = "2021-10-27"
 end = "2024-06-22"
+
+[[trusted.winnow]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2023-02-22"
+end = "2024-08-03"
