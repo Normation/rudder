@@ -11,7 +11,7 @@ use colored::Colorize;
 use env_logger::fmt::{Color, Formatter, Style, StyledValue};
 use log::{info, Level, LevelFilter, Record};
 
-fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'static str> {
+fn colored_level(style: &mut Style, level: Level) -> StyledValue<&'static str> {
     match level {
         Level::Warn => style
             .set_color(Color::Yellow)
