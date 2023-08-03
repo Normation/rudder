@@ -15,9 +15,7 @@ import scala.xml.NodeSeq
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
 
   val templatePath = List("templates-hidden", "components", "ComponentTags")
-  def tagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-form")
-
-  def editTagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-editform")
+  def tagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tag-form")
 
   val jsTags = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(tags))
 
@@ -28,13 +26,11 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
     // TODO: THIS MUST BE CHANGE WHEN TAGS APP IS REWRITTEN
     val valueInput = SHtml.textarea(
       "",
-      s => update(parseResult("""[{"key":"TODO-CHANGE-CODE", "value":"in TagsEditForm"}]""")),
-      ("ng-model", "result"),
-      ("ng-hide", "true")
+      s => update(parseResult(s)),
+      ("id", "tags-result")
     )
     val css: CssSel = {
-      s"#${controllerId} *+" #> valueInput &
-      s"#${controllerId} #tagForm" #> editTagsTemplate
+      s"#${controllerId} *+" #> valueInput
     }
 
     css(tagTemplate(controllerId, appId, true, isRule))
@@ -46,10 +42,10 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
 
   private[this] def tagTemplate(controllerId: String, appId: String, isEditForm: Boolean, isRule: Boolean): NodeSeq = {
 
-    val filterId = if (isRule) {
-      "showFiltersRules"
+    val (filterId, objectType) = if (isRule) {
+      ("showFiltersRules", "rule")
     } else {
-      "directiveFilter"
+      ("directiveFilter", "directive")
     }
     val css: CssSel = {
       "#tagsController [id]" #> (controllerId) &
@@ -57,13 +53,23 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
     }
 
     css(tagsTemplate) ++ Script(OnLoad(JsRaw(s"""
-      if(!angular.element('#${appId}').scope()){
-        angular.bootstrap('#${appId}', ['tags']);
-      }
-      var scope = angular.element($$("#${controllerId}")).scope();
-      scope.$$apply(function(){
-        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule}, "${objectId}");
-      });
-    """)))
+      var main = document.getElementById("tags-app")
+                                                |var initValues = {
+                                                |    contextPath    : contextPath
+                                                |  , hasWriteRights : hasWriteRights
+                                                |  , tags           : ${jsTags}
+                                                |  , filterId       : "${filterId}"
+                                                |  , isEditForm     : ${isEditForm}
+                                                |  , objectType     : "${objectType}"
+                                                |  , objectId       : "${objectId}"
+                                                |};
+                                                |var app = Elm.Tags.init({node: main, flags: initValues});
+                                                |app.ports.updateResult.subscribe(function(result) {
+                                                |  $$('#tags-result').val(result);
+                                                |});
+                                                |app.ports.addToFilters.subscribe(function(tag) {
+                                                |  // TODO: Add this tag to the filters of the directives tree
+                                                |});
+    """.stripMargin)))
   }
 }

@@ -451,6 +451,11 @@ hr.separator-filter-tree{
   position: relative;
 }
 
+/* INPUT RESULT */
+#tags-result{
+  display: none !important;
+}
+
 @-webkit-keyframes exist {
   0%   {box-shadow: 0 0 0    #c2c2c2;}
   50%  {box-shadow: 0 0 13px #c2c2c2;}
