@@ -16,13 +16,14 @@ getUrl m url p=
 getNodeProperties : Model -> Cmd Msg
 getNodeProperties model =
   let
+    decoder = if model.objectType == "node" then decodeGetProperties else decodeGetGroupProperties
     req =
       request
         { method  = "GET"
         , headers = []
         , url     = getUrl model [ "displayInheritedProperties" ] []
         , body    = emptyBody
-        , expect  = expectJson GetNodeProperties decodeGetProperties
+        , expect  = expectJson GetNodeProperties decoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -32,13 +33,14 @@ getNodeProperties model =
 saveProperty : List EditProperty -> Model -> String -> Cmd Msg
 saveProperty properties model successMsg =
   let
+    decoder = if model.objectType == "node" then decodeSaveProperties else decodeSaveGroupProperties
     req =
       request
         { method  = "POST"
         , headers = []
         , url     = getUrl model [] []
         , body    = encodeProperty model properties "Add" |> jsonBody
-        , expect  = expectJson (SaveProperty successMsg) decodeSaveProperties
+        , expect  = expectJson (SaveProperty successMsg) decoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -49,13 +51,14 @@ deleteProperty : EditProperty -> Model -> Cmd Msg
 deleteProperty property model =
   let
     successMsg = "property '" ++ property.name ++ "' has been removed"
+    decoder = if model.objectType == "node" then decodeSaveProperties else decodeSaveGroupProperties
     req =
       request
         { method  = "POST"
         , headers = []
         , url     = getUrl model [] []
         , body    = encodeProperty model [property] "Delete" |> jsonBody
-        , expect  = expectJson (SaveProperty successMsg) decodeSaveProperties
+        , expect  = expectJson (SaveProperty successMsg) decoder
         , timeout = Nothing
         , tracker = Nothing
         }
