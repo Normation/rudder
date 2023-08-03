@@ -119,6 +119,10 @@ header.main-header .logo-lg img{
   overflow : hidden;
 }
 /* - JSON - */
+.json-inventory-vars {
+  border: none;
+  background-color: transparent;
+}
 pre.json-beautify, .content-wrapper pre.json-beautify{
   border: none;
   background-color: transparent;
