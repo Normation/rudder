@@ -63,12 +63,14 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
                                                 |  , objectType     : "${objectType}"
                                                 |  , objectId       : "${objectId}"
                                                 |};
-                                                |var app = Elm.Tags.init({node: main, flags: initValues});
-                                                |app.ports.updateResult.subscribe(function(result) {
+                                                |tagsApp = Elm.Tags.init({node: main, flags: initValues});
+                                                |tagsApp.ports.updateResult.subscribe(function(result) {
                                                 |  $$('#tags-result').val(result);
                                                 |});
-                                                |app.ports.addToFilters.subscribe(function(tag) {
-                                                |  // TODO: Add this tag to the filters of the directives tree
+                                                |tagsApp.ports.addToFilters.subscribe(function(tag) {
+                                                |  if (typeof filterApp === "undefined") return false;
+                                                |
+                                                |  filterApp.ports.addToFilter.send(tag);
                                                 |});
     """.stripMargin)))
   }
