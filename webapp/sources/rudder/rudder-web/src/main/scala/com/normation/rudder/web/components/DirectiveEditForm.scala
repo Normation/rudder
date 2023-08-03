@@ -370,7 +370,12 @@ class DirectiveEditForm(
                  |});
                  |$$("#complianceLinkTab").on("click", function (){
                  |  app.ports.loadCompliance.send("");
-                 |});""".stripMargin)
+                 |});
+                 |if(${isADirectiveCreation}){
+                 |$$("#complianceNav").hide();
+                 |}else{
+                 |$$("#complianceNav").show();
+                 |}""".stripMargin)
       )
     )
 
