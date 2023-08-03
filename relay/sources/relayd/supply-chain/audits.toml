@@ -16,6 +16,11 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "2.7.2 -> 2.8.0"
 
+[[audits.schannel]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.1.21 -> 0.1.22"
+
 [[audits.tempfile]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -363,6 +368,18 @@ user-id = 19631 # Tony Arcieri (iqlusion) (tony-iqlusion)
 start = "2019-05-23"
 end = "2024-07-30"
 
+[[trusted.security-framework]]
+criteria = "safe-to-deploy"
+user-id = 988 # Kornel (kornelski)
+start = "2019-02-27"
+end = "2024-08-03"
+
+[[trusted.security-framework-sys]]
+criteria = "safe-to-deploy"
+user-id = 988 # Kornel (kornelski)
+start = "2019-02-27"
+end = "2024-08-03"
+
 [[trusted.serde]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
@@ -440,6 +457,12 @@ criteria = "safe-to-deploy"
 user-id = 72883 # Valentin Gosu (valenting)
 start = "2020-01-09"
 end = "2024-06-27"
+
+[[trusted.urlencoding]]
+criteria = "safe-to-deploy"
+user-id = 988 # Kornel (kornelski)
+start = "2020-06-17"
+end = "2024-08-03"
 
 [[trusted.walkdir]]
 criteria = "safe-to-deploy"

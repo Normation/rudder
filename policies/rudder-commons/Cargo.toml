@@ -19,7 +19,6 @@ nom = "7"
 walkdir = "2"
 log = "0.4"
 regex = "1"
-env_logger = "0.10"
 
 [dev-dependencies]
 pretty_assertions = "1"

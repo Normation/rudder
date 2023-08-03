@@ -25,6 +25,10 @@ url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/
 [policy.test-generator]
 audit-as-crates-io = true
 
+[[exemptions.ahash]]
+version = "0.8.3"
+criteria = "safe-to-deploy"
+
 [[exemptions.ammonia]]
 version = "3.3.0"
 criteria = "safe-to-deploy"
@@ -49,16 +53,8 @@ criteria = "safe-to-deploy"
 version = "0.5.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.cc]]
-version = "1.0.79"
-criteria = "safe-to-deploy"
-
 [[exemptions.colored]]
 version = "2.0.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.cpufeatures]]
-version = "0.2.7"
 criteria = "safe-to-deploy"
 
 [[exemptions.diff]]
@@ -79,6 +75,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.fancy-regex]]
 version = "0.11.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.fastrand]]
+version = "2.0.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.file-owner]]
@@ -118,10 +118,6 @@ version = "4.3.7"
 criteria = "safe-to-deploy"
 
 [[exemptions.hermit-abi]]
-version = "0.1.19"
-criteria = "safe-to-deploy"
-
-[[exemptions.hermit-abi]]
 version = "0.3.1"
 criteria = "safe-to-deploy"
 
@@ -153,16 +149,8 @@ criteria = "safe-to-deploy"
 version = "0.7.3"
 criteria = "safe-to-deploy"
 
-[[exemptions.instant]]
-version = "0.1.12"
-criteria = "safe-to-deploy"
-
 [[exemptions.itertools]]
 version = "0.10.5"
-criteria = "safe-to-deploy"
-
-[[exemptions.linux-raw-sys]]
-version = "0.3.8"
 criteria = "safe-to-deploy"
 
 [[exemptions.log]]
@@ -217,17 +205,17 @@ criteria = "safe-to-deploy"
 version = "0.3.0"
 criteria = "safe-to-deploy"
 
+[[exemptions.normpath]]
+version = "1.1.1"
+criteria = "safe-to-deploy"
+
 [[exemptions.once_cell]]
 version = "1.17.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.opener]]
-version = "0.5.2"
+version = "0.6.1"
 criteria = "safe-to-deploy"
-
-[[exemptions.output_vt100]]
-version = "0.1.3"
-criteria = "safe-to-run"
 
 [[exemptions.ppv-lite86]]
 version = "0.2.17"
@@ -255,10 +243,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.siphasher]]
 version = "0.3.10"
-criteria = "safe-to-deploy"
-
-[[exemptions.smallvec]]
-version = "1.10.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.static_assertions]]

@@ -275,14 +275,6 @@ criteria = "safe-to-deploy"
 version = "0.2.7"
 criteria = "safe-to-deploy"
 
-[[exemptions.security-framework]]
-version = "2.9.1"
-criteria = "safe-to-deploy"
-
-[[exemptions.security-framework-sys]]
-version = "2.9.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.serde_urlencoded]]
 version = "0.7.1"
 criteria = "safe-to-deploy"
@@ -361,10 +353,6 @@ criteria = "safe-to-run"
 
 [[exemptions.unicode-bidi]]
 version = "0.3.13"
-criteria = "safe-to-deploy"
-
-[[exemptions.urlencoding]]
-version = "2.1.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.wait-timeout]]
