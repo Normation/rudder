@@ -783,10 +783,11 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
                } else {
                  // ... or if the condition needs rudder_reporting
                  if (methodCallNeedReporting(methods, parentBlocks)(c)) {
-                   val message   =
-                     s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${call.condition}' is not reached"""
-                   val condition = s"${canonifyCondition(call, parentBlocks)}"
-                   Some((condition, message))
+                   val condition       = formatCondition(c, parentBlocks)
+                   val message         =
+                     s"""Skipping method '${method_info.name}' with key parameter '${escapedClassParameterValue}' since condition '${condition}' is not reached"""
+                   val canon_condition = s"${canonifyCondition(call, parentBlocks)}"
+                   Some((canon_condition, message))
                  } else {
                    None
                  }
