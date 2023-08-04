@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: List all global parameters
-  description: Get the current value of all the global parameters
+  summary: List all global properties
+  description: Get the current value of all the global properties (a.k.a. global parameters)
   operationId: listParameters
   responses:
     "200":
@@ -44,8 +44,8 @@ get:
       source:
         $ref: ../../code_samples/curl/parameters/list-parameters.sh
 put:
-  summary: Create a new parameter
-  description: Create a new global parameter
+  summary: Create a new property
+  description: Create a new global property
   operationId: createParameter
   requestBody:
     required: true
@@ -68,7 +68,7 @@ put:
             properties:
               id:
                 type: string
-                description: Id of the parameter
+                description: Id of the property
                 example: rudder_file_edit_footer
               result:
                 type: string

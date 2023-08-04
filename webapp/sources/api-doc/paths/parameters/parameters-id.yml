@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Get the value of a parameter
-  description: Get the current value of a given parameter
+  summary: Get the value of a global property
+  description: Get the current value of a given global property (a.k.a. global parameter)
   operationId: parameterDetails
   parameters:
     - $ref: ../../components/parameters/parameter-id.yml
@@ -21,7 +21,7 @@ get:
             properties:
               id:
                 type: string
-                description: Id of the parameter
+                description: Id of the property
                 example: rudder_file_edit_footer
               result:
                 type: string
@@ -51,8 +51,8 @@ get:
       source:
         $ref: ../../code_samples/curl/parameters/get-parameter.sh
 post:
-  summary: Update a parameter's value
-  description: Update the properties of a parameter
+  summary: Update a global property's value
+  description: Update the details of a global property
   operationId: updateParameter
   parameters:
     - $ref: ../../components/parameters/parameter-id.yml
@@ -71,7 +71,7 @@ post:
             properties:
               id:
                 type: string
-                description: Id of the parameter
+                description: Id of the global property
                 example: rudder_file_edit_footer
               result:
                 type: string
@@ -101,14 +101,14 @@ post:
       source:
         $ref: ../../code_samples/curl/parameters/modify-parameter.sh
 delete:
-  summary: Delete a parameter
-  description: Delete an existing parameter
+  summary: Delete a global parameter
+  description: Delete an existing global parameter
   operationId: deleteParameter
   parameters:
     - $ref: ../../components/parameters/parameter-id.yml
   responses:
     "500":
-      description: Non existing parameter
+      description: Non existing global property
       content:
         application/json:
           schema:
@@ -121,7 +121,7 @@ delete:
             properties:
               id:
                 type: string
-                description: Id of the parameter
+                description: Id of the global property
                 example: rudder_file_edit_footer
               result:
                 type: string
@@ -151,7 +151,7 @@ delete:
             properties:
               id:
                 type: string
-                description: Id of the parameter
+                description: Id of the global property
                 example: rudder_file_edit_footer
               result:
                 type: string

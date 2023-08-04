@@ -1,41 +1,48 @@
-
 <lift:surround with="common-layout" at="content">
 
   <head>
-    <title>Rudder - Global parameters</title>
+    <title>Rudder - Global properties</title>
     <style>
-    .template-sidebar.sidebar-left{
-      box-shadow : none !important;
-      flex-basis : initial !important;
-      flex: initial !important;
-    }
-    .template-main{
-      flex-basis : initial !important;
-      flex: auto !important;
-    }
-    .callout-fade.callout-info {
-      margin-top: 10px;
-      min-height: 80px;
-    }
-    .btn.space-bottom{
-      margin-bottom:15px;
-    }
-    .btn.space-top{
-      margin-top:10px;
-    }
-    #actions_zone {
-      margin: 0;
-    }
-    #globalParametersGrid{
-      table-layout:fixed;
-    }
-    #globalParametersGrid .json-beautify{
-      padding:0;
-      max-height: initial;
-    }
-    #globalParametersGrid .json-beautify:after{
-      content:"";
-    }
+      .template-sidebar.sidebar-left {
+        box-shadow: none !important;
+        flex-basis: initial !important;
+        flex: initial !important;
+      }
+
+      .template-main {
+        flex-basis: initial !important;
+        flex: auto !important;
+      }
+
+      .callout-fade.callout-info {
+        margin-top: 10px;
+        min-height: 80px;
+      }
+
+      .btn.space-bottom {
+        margin-bottom: 15px;
+      }
+
+      .btn.space-top {
+        margin-top: 10px;
+      }
+
+      #actions_zone {
+        margin: 0;
+      }
+
+      #globalParametersGrid {
+        table-layout: fixed;
+      }
+
+      #globalParametersGrid .json-beautify {
+        padding: 0;
+        max-height: initial;
+      }
+
+      #globalParametersGrid .json-beautify:after {
+        content: "";
+      }
     </style>
   </head>
 
@@ -44,12 +51,13 @@
       <div class="main-header">
         <div class="header-title">
           <h1>
-            <span>Global Parameters</span>
+            <span>Global properties</span>
           </h1>
         </div>
         <div class="header-description">
           <p>
-            Global Parameters are key/value pairs. Once defined, they will be inherited by group properties and node properties,
+            Global properties are key/value pairs. Once defined, they will be inherited by group properties and node
+            properties,
             you can use them in directive parameters.
           </p>
         </div>
@@ -65,12 +73,15 @@
                   </div>
                   <div>
                     <p>
-                      The syntax to use a parameter is the same as using a node property <b>${node.properties&lsqb;key&rsqb;}</b>, where &lt;key&gt;
-                      is the name you chose for your Global Parameter.
+                      The syntax to use a parameter is the same as using a node property
+                      <b>${node.properties&lsqb;key&rsqb;}</b>, where &lt;key&gt;
+                      is the name you chose for your global property.
                     </p>
                     <p>
-                      Be careful to enter exactly <b>node.properties</b> (lower case) and your parameter name with the same case
-                      (Global Parameter keys are case sensitive). Also, remember that their value can be overriden by group and node properties.
+                      Be careful to enter exactly <b>node.properties</b> (lower case) and your parameter name with the
+                      same case
+                      (global property keys are case sensitive). Also, remember that their value can be overriden by
+                      group and node properties.
                     </p>
                   </div>
                 </div>
