@@ -38,7 +38,7 @@ def install_file(package_files, exact_version, exit_on_error=True):
         if exist:
             short_name = metadata['name'].replace('rudder-plugin-', '')
             # These don't have upgrade scripts for now
-            if short_name.startswith('cis-') or short_name == 'openscap':
+            if short_name.startswith('cis-'):
                 logger.info('Skipping update, this package cannot be updated')
                 break
             logger.info('The package is already installed, ugrading')
