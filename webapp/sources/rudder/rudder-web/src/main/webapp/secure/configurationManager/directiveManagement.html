@@ -4,9 +4,9 @@
   <title>Rudder - Directives Management</title>
   <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-directives.css" rel="stylesheet" type="text/css">
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/tree-tag-plugin.js"></script>
-  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/angular/filters.js"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/directive.js"></script>
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-directivecompliance.js"></script>
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filters.js"></script>
 </head>
 
 <div data-lift="configuration.DirectiveManagement.head"></div>
@@ -25,7 +25,8 @@
           <a id="newItem" href="/secure/configurationManager/techniqueEditor" class="btn btn-default pull-right">Edit techniques</a>
         </div>
       </div>
-
+      <div id="filters-app"></div>
+      <!--
       <div id="directiveFilter" ng-controller="filterTagCtrl" ng-cloak>
         <div class="header-filter">
           <div class="filter-auto-width">
@@ -97,6 +98,7 @@
           </form>
         </div>
       </div>
+      -->
     </div>
 
     <div class="sidebar-body">

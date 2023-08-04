@@ -1,6 +1,7 @@
 module Tags.DataTypes exposing (..)
 
 import Http exposing (Error)
+import Json.Decode as D exposing (..)
 
 --
 -- All our data types
@@ -12,6 +13,7 @@ type alias UI =
   , objectType       : String
   , completionKeys   : List CompletionValue
   , completionValues : List CompletionValue
+  , filterTags       : List Tag
   }
 
 type alias Tag =
@@ -27,6 +29,7 @@ type alias Model =
   }
 
 type Action = Add | Remove
+
 type Completion = Key | Val
 
 type alias CompletionValue =
@@ -38,5 +41,6 @@ type Msg
   | CallApi (Model -> Cmd Msg)
   | UpdateTag Completion Tag
   | UpdateTags Action (List Tag)
-  | AddToFilter Tag
-  | GetCompletionTags Completion (Result Error (List CompletionValue))
+  | AddToFilter Completion Tag
+  | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
+  | GetFilterTags (Result D.Error (List Tag))
