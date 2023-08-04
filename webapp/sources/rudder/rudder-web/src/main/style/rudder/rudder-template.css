@@ -398,12 +398,15 @@
   display: none !important;
 }
 .rudder-template .filters-container{
-  margin-left: -15px;
-  width: calc(100% + 30px);
+  margin: 0 -15px;
   padding: 15px;
   border-top: 1px solid #d6deef;
   background-color: #F8F9FC;
   position: relative;
+  display: flex;
+}
+.rudder-template .filters-container > div{
+  flex: 1;
 }
 .rudder-template .filters-container:before{
   content: "";

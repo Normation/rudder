@@ -45,9 +45,6 @@ update msg model =
       in
         ({model | tags = tags, newTag = newTag}, cmd)
 
-    AddToFilter tag ->
-      (model, addToFilters (encodeTag tag))
-
     GetCompletionTags completion res ->
       case res of
         Ok l ->
@@ -61,3 +58,19 @@ update msg model =
             (newModel, Cmd.none)
         Err err ->
           (model, Cmd.none)
+
+    AddToFilter c tag ->
+      (model, addToFilters (encodeTag tag))
+
+    GetFilterTags res ->
+       case res of
+         Ok l ->
+           let
+             ui = model.ui
+             newUi = { ui | filterTags = l }
+             newModel = { model | ui = newUi }
+           in
+             (newModel, Cmd.none)
+         Err err ->
+           (model, Cmd.none)
+

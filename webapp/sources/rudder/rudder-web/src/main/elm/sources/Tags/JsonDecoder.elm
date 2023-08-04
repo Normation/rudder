@@ -13,3 +13,8 @@ decodeCompletionValue =
   succeed CompletionValue
     |> required "value" string
 
+decodeTag : Decoder Tag
+decodeTag =
+  succeed Tag
+    |> required "key" string
+    |> required "value" string
