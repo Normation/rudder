@@ -44,7 +44,7 @@ tags:
   - name: Inventories
     description: Inventory processing service
   - name: Parameters
-    description: Global parameters
+    description: Global properties
   - name: Campaigns
     description: Campaigns
   - name: Archives

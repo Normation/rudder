@@ -83,9 +83,9 @@ class CreateOrUpdateGlobalParameterPopup(
    * - Create, delete, modify (save)
    */
   private def titles = change.action match {
-    case GlobalParamModAction.Delete => "Delete a Global Parameter"
-    case GlobalParamModAction.Update => "Update a Global Parameter"
-    case GlobalParamModAction.Create => "Add a Global Parameter"
+    case GlobalParamModAction.Delete => "Delete a global property"
+    case GlobalParamModAction.Update => "Update a global property"
+    case GlobalParamModAction.Create => "Add a global property"
   }
 
   private[this] val workflowEnabled = workflowService.needExternalValidation()
@@ -106,7 +106,7 @@ class CreateOrUpdateGlobalParameterPopup(
         if ((change.action == GlobalParamModAction.Update) || (change.action == GlobalParamModAction.Create))
           Full(AddGlobalParameterDiff(newParameter))
         else
-          Failure(s"Action ${change.action.name} is not possible on a new Global Parameter")
+          Failure(s"Action ${change.action.name} is not possible on a new global property")
       case Some(d) =>
         change.action match {
           case GlobalParamModAction.Delete                               => Full(DeleteGlobalParameterDiff(d))

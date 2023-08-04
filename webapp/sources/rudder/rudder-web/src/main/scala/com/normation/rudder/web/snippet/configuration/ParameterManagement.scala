@@ -78,8 +78,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }) match {
       case Full((seq)) => displayGridParameters(seq, gridName)
       case eb: EmptyBox =>
-        val e = eb ?~! "Error when trying to get global Parameters"
-        logger.error(s"Error when trying to display global Parameters, casue is: ${e.messageChain}")
+        val e = eb ?~! "Error when trying to get global properties"
+        logger.error(s"Error when trying to display global properties, casue is: ${e.messageChain}")
         <div class="error">{e.msg}</div>
     }
   }
@@ -117,7 +117,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       }) &
       ".createParameter *" #> (if (CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
                                  ajaxButton(
-                                   "Create Global Parameter",
+                                   "Create global property",
                                    () => showPopup(GlobalParamModAction.Create, None),
                                    ("class", "btn btn-success new-icon space-bottom space-top")
                                  )
