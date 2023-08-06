@@ -40,6 +40,7 @@ package com.normation.rudder.rest.internal
 import com.normation.box._
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
@@ -51,37 +52,47 @@ class RestCompletion(
 
   serve {
     case Get("secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "key" :: token :: Nil, req)   => {
-      val fetchTags = if (kind == "directive") {
-        completion.findDirectiveTagNames(token)
-      } else {
-        // rule
-        completion.findRuleTagNames(token)
-      }
-      fetchTags match {
-        case eb: EmptyBox =>
-          val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)("quicksearch", false)
+      implicit val prettify = false
+      implicit val action: String = "completeTagsKey"
 
-        case Full(results) =>
-          toJsonResponse(None, results.map(("value", _)))("completeTags", false)
-      }
+      OldInternalApiAuthz.withReadConfig {
+        val fetchTags = if (kind == "directive") {
+          completion.findDirectiveTagNames(token)
+        } else {
+          // rule
+          completion.findRuleTagNames(token)
+        }
+        fetchTags match {
+          case eb: EmptyBox =>
+            val e = eb ?~! s"Error when looking for object containing ${token}"
+            toJsonError(None, e.messageChain)
 
+          case Full(results) =>
+            toJsonResponse(None, results.map(("value", _)))
+        }
+
+      }
     }
     case Get("secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "value" :: token :: Nil, req) => {
+      implicit val prettify = false
+      implicit val action: String = "completeTagsValue"
 
-      val fetchTags = if (kind == "directive") {
-        completion.findDirectiveTagValues(token, None)
-      } else {
-        // rule
-        completion.findRuleTagValues(token, None)
-      }
-      fetchTags match {
-        case eb: EmptyBox =>
-          val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)("quicksearch", false)
+      OldInternalApiAuthz.withReadConfig {
 
-        case Full(results) =>
-          toJsonResponse(None, results.map(("value", _)))("completeTags", false)
+        val fetchTags = if (kind == "directive") {
+          completion.findDirectiveTagValues(token, None)
+        } else {
+          // rule
+          completion.findRuleTagValues(token, None)
+        }
+        fetchTags match {
+          case eb: EmptyBox =>
+            val e = eb ?~! s"Error when looking for object containing ${token}"
+            toJsonError(None, e.messageChain)
+
+          case Full(results) =>
+            toJsonResponse(None, results.map(("value", _)))
+        }
       }
 
     }
