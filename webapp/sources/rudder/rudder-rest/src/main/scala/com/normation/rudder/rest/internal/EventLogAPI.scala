@@ -40,6 +40,7 @@ import com.normation.box._
 import com.normation.eventlog._
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
+import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.user.PersonIdentService
@@ -130,7 +131,14 @@ class EventLogAPI(
         }
       }
 
-      (for {
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "eventFilterDetails"
+      OldInternalApiAuthz.withWriteAdmin((for {
         json   <- req.json
         draw   <- CompleteJson.extractJsonInt(json, "draw")
         start  <- CompleteJson.extractJsonInt(json, "start")
@@ -201,12 +209,12 @@ class EventLogAPI(
         case eb: EmptyBox =>
           val fail = eb ?~! "Error when fetching event logs"
           JsonResponse(errorFormatter(fail.messageChain), 500)
-      }
+      })
 
     case Get(id :: "details" :: Nil, req) =>
       implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action: String = "eventDetails"
-      (for {
+      OldInternalApiAuthz.withReadAdmin((for {
         realId     <- Box.tryo(id.toLong)
         event      <- repos.getEventLogById(realId).toBox
         crId        = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
@@ -226,13 +234,13 @@ class EventLogAPI(
         case eb: EmptyBox =>
           val fail = eb ?~! s"Error when getting event log with id '${id}' details"
           toJsonError(None, fail.messageChain)
-      }
+      })
 
     case Get(id :: "details" :: "rollback" :: Nil, req) =>
       implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action: String = "eventRollback"
 
-      (for {
+      OldInternalApiAuthz.withReadAdmin((for {
         reqParam     <- req.params.get("action") match {
                           case Some(actions) if (actions.size == 1) => Full(actions.head)
                           case Some(actions)                        =>
@@ -257,7 +265,7 @@ class EventLogAPI(
         case eb: EmptyBox =>
           val fail = eb ?~! s"Error when performing eventlog's rollback with id '${id}'"
           toJsonError(None, fail.messageChain)
-      }
+      })
   }
   serve("secure" / "api" / "eventlog" prefix requestDispatch)
 }

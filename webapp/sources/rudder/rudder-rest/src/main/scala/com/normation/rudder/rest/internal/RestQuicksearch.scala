@@ -41,6 +41,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.UserService
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
@@ -83,22 +84,25 @@ class RestQuicksearch(
 
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
+      implicit val prettify = false
+      implicit val action: String = "completeTagsValue"
 
-      val token = req.params.get("value") match {
-        case Some(value :: Nil) => value
-        case None               => ""
-        // Should not happen, but for now make one token from it, maybe we should only take head ?
-        case Some(values)       => values.mkString("")
+      OldInternalApiAuthz.withReadUser {
+        val token = req.params.get("value") match {
+          case Some(value :: Nil) => value
+          case None               => ""
+          // Should not happen, but for now make one token from it, maybe we should only take head ?
+          case Some(values)       => values.mkString("")
+        }
+        quicksearch.search(token) match {
+          case eb: EmptyBox =>
+            val e = eb ?~! s"Error when looking for object containing ${token}"
+            toJsonError(None, e.messageChain)
+
+          case Full(results) =>
+            toJsonResponse(None, prepare(results, MAX_RES_BY_KIND))
+        }
       }
-      quicksearch.search(token) match {
-        case eb: EmptyBox =>
-          val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)("quicksearch", false)
-
-        case Full(results) =>
-          toJsonResponse(None, prepare(results, MAX_RES_BY_KIND))("quicksearch", false)
-      }
-
     }
   }
 
