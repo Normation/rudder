@@ -7,6 +7,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use percent_encoding::NON_ALPHANUMERIC;
 use secrecy::ExposeSecret;
 use tracing::{debug, error, instrument, trace};
 
@@ -66,7 +67,10 @@ pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
         } else {
             "?"
         },
-        urlencoding::encode(configuration.password.expose_secret())
+        percent_encoding::percent_encode(
+            configuration.password.expose_secret().as_bytes(),
+            NON_ALPHANUMERIC
+        )
     ));
     Ok(Pool::builder()
         .max_size(configuration.max_pool_size)
