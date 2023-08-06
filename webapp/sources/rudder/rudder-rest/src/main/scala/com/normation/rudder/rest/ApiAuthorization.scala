@@ -49,6 +49,11 @@ import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.HttpAction
+import com.normation.rudder.domain.logger.ApiLogger
+import com.normation.rudder.web.services.CurrentUser
+import net.liftweb.common._
+import net.liftweb.http.LiftResponse
+import net.liftweb.json.JsonDSL._
 
 /*
  * This trait allows to check for autorisation on a given boundedendpoint
@@ -265,4 +270,43 @@ object AclCheck {
     recMatches(aclPath.parts.toList, path.parts.toList)
   }
 
+}
+
+/*
+ * Check rights for old API. These API must be ported to the new scheme, but in the meantime,
+ * we must check rights by hand;
+ */
+object OldInternalApiAuthz {
+  import com.normation.rudder.AuthorizationType._
+  def fail(implicit action: String) = Failure(s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}")
+
+  def withPerm(isAuthorized: Boolean, resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    if (isAuthorized) resp
+    else {
+      ApiLogger.warn(fail.messageChain)
+      RestUtils.toJsonError(None, fail.messageChain)
+    }
+  }
+
+  def withReadAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Administration.Read), resp)
+  }
+
+  def withWriteAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Administration.Write) || CurrentUser.checkRights(Administration.Edit), resp)
+  }
+
+  // this right is used for directive/rule tags completion, shared file/technique resource access, etc
+  def withReadConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Configuration.Read), resp)
+  }
+
+  // for quick search
+  def withReadUser(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Configuration.Read) || CurrentUser.checkRights(Node.Read), resp)
+  }
+
+  def withWriteConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Configuration.Write) || CurrentUser.checkRights(Configuration.Edit), resp)
+  }
 }
