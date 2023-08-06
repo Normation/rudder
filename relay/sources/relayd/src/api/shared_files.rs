@@ -13,6 +13,7 @@ use anyhow::Error;
 use bytes::{Buf, Bytes};
 use chrono::Utc;
 use humantime::parse_duration;
+use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{debug, error, instrument, warn};
@@ -68,6 +69,15 @@ pub mod handlers {
         buf: Bytes,
         job_config: Arc<JobConfig>,
     ) -> Result<impl Reply, Rejection> {
+        let (source_id, target_id, file_id) = (
+            percent_decode_str(&source_id)
+                .decode_utf8_lossy()
+                .to_string(),
+            percent_decode_str(&target_id)
+                .decode_utf8_lossy()
+                .to_string(),
+            percent_decode_str(&file_id).decode_utf8_lossy().to_string(),
+        );
         Ok(reply::with_status(
             "".to_string(),
             match super::put(
@@ -96,6 +106,15 @@ pub mod handlers {
         params: SharedFilesHeadParams,
         job_config: Arc<JobConfig>,
     ) -> Result<impl Reply, Rejection> {
+        let (source_id, target_id, file_id) = (
+            percent_decode_str(&source_id)
+                .decode_utf8_lossy()
+                .to_string(),
+            percent_decode_str(&target_id)
+                .decode_utf8_lossy()
+                .to_string(),
+            percent_decode_str(&file_id).decode_utf8_lossy().to_string(),
+        );
         Ok(reply::with_status(
             "".to_string(),
             match super::head(target_id, source_id, file_id, params, job_config.clone()).await {

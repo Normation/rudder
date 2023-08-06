@@ -67,6 +67,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
+    use percent_encoding::percent_decode_str;
     use warp::{reject, Rejection, Reply};
 
     use super::*;
@@ -77,6 +78,7 @@ pub mod handlers {
         params: HashMap<String, String>,
         job_config: Arc<JobConfig>,
     ) -> Result<impl Reply, Rejection> {
+        let node_id = percent_decode_str(&node_id).decode_utf8_lossy().to_string();
         match RemoteRun::new(RemoteRunTarget::Nodes(vec![node_id]), &params) {
             Ok(handle) => handle.run(job_config.clone()).await,
             Err(e) => Err(reject::custom(RudderReject::new(e))),
