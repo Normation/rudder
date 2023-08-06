@@ -280,45 +280,33 @@ object OldInternalApiAuthz {
   import com.normation.rudder.AuthorizationType._
   def fail(implicit action: String) = Failure(s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}")
 
-  def withReadAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (CurrentUser.checkRights(Administration.Read)) resp
+  def withPerm(isAuthorized: Boolean, resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    if (isAuthorized) resp
     else {
-      ApiLogger.info(fail.messageChain)
+      ApiLogger.warn(fail.messageChain)
       RestUtils.toJsonError(None, fail.messageChain)
     }
   }
 
+  def withReadAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(CurrentUser.checkRights(Administration.Read), resp)
+  }
+
   def withWriteAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (CurrentUser.checkRights(Administration.Write) || CurrentUser.checkRights(Administration.Edit)) resp
-    else {
-      ApiLogger.info(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
-    }
+    withPerm(CurrentUser.checkRights(Administration.Write) || CurrentUser.checkRights(Administration.Edit), resp)
   }
 
   // this right is used for directive/rule tags completion, shared file/technique resource access, etc
   def withReadConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (CurrentUser.checkRights(Configuration.Read)) resp
-    else {
-      ApiLogger.info(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
-    }
+    withPerm(CurrentUser.checkRights(Configuration.Read), resp)
   }
 
   // for quick search
   def withReadUser(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (CurrentUser.checkRights(Configuration.Read) || CurrentUser.checkRights(Node.Read)) resp
-    else {
-      ApiLogger.info(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
-    }
+    withPerm(CurrentUser.checkRights(Configuration.Read) || CurrentUser.checkRights(Node.Read), resp)
   }
 
   def withWriteConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (CurrentUser.checkRights(Configuration.Write) || CurrentUser.checkRights(Configuration.Edit)) resp
-    else {
-      ApiLogger.info(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
-    }
+    withPerm(CurrentUser.checkRights(Configuration.Write) || CurrentUser.checkRights(Configuration.Edit), resp)
   }
 }

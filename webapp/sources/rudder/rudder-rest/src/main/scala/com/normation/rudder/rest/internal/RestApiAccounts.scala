@@ -44,7 +44,9 @@ class RestApiAccounts(
         )
       implicit val action: String = "getAllAccounts"
 
-      OldInternalApiAuthz.withReadAdmin(readApi.getAllStandardAccounts.either.runNow match {
+      // here, 'write' and not 'read' because some tokens may have admin write access,
+      // and we want to avoid escalation
+      OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
           val accounts = {
             (
