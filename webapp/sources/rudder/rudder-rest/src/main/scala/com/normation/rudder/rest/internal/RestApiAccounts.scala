@@ -36,7 +36,17 @@ class RestApiAccounts(
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      readApi.getAllStandardAccounts.either.runNow match {
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "getAllAccounts"
+
+      // here, 'write' and not 'read' because some tokens may have admin write access,
+      // and we want to avoid escalation
+      OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
           val accounts = {
             (
@@ -44,16 +54,24 @@ class RestApiAccounts(
               ("accounts"         -> JArray(accountSeq.toList.map(_.toJson)))
             )
           }
-          toJsonResponse(None, accounts)("getAllAccounts", true)
+          toJsonResponse(None, accounts)
         case Left(err)         =>
           val msg = s"Could not get accounts cause : ${err.fullMsg}"
           logger.error(msg)
-          toJsonError(None, msg)("getAllAccounts", true)
+          toJsonError(None, msg)
 
-      }
+      })
 
     case "secure" :: "apiaccounts" :: Nil JsonPut body -> req =>
-      req.json match {
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "updateAccount"
+
+      OldInternalApiAuthz.withWriteAdmin(req.json match {
         case Full(json) =>
           restExtractor.extractApiAccountFromJSON(json) match {
             case Full(restApiAccount) =>
@@ -78,32 +96,40 @@ class RestApiAccounts(
                 writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
                   case Right(_) =>
                     val accounts = ("accounts" -> JArray(List(account.toJson)))
-                    toJsonResponse(None, accounts)("updateAccount", true)
+                    toJsonResponse(None, accounts)
 
                   case Left(err) =>
                     val msg = s"Could not create account cause : ${err.fullMsg}"
                     logger.error(msg)
-                    toJsonError(None, msg)("updateAccount", true)
+                    toJsonError(None, msg)
                 }
               } else {
                 val msg = s"Could not create account cause : could not get account"
                 logger.error(msg)
-                toJsonError(None, msg)("updateAccount", true)
+                toJsonError(None, msg)
               }
 
             case eb: EmptyBox =>
               val msg = s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}"
               logger.error(msg)
-              toJsonError(None, msg)("updateAccount", true)
+              toJsonError(None, msg)
           }
         case eb: EmptyBox =>
           logger.error("No Json data sent")
-          toJsonError(None, "No Json data sent")("updateAccount", true)
-      }
+          toJsonError(None, "No Json data sent")
+      })
 
     case "secure" :: "apiaccounts" :: token :: Nil JsonPost body -> req =>
-      val apiToken = ApiToken(token)
-      req.json match {
+      val apiToken          = ApiToken(token)
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "updateAccount"
+
+      OldInternalApiAuthz.withWriteAdmin(req.json match {
         case Full(json) =>
           restExtractor.extractApiAccountFromJSON(json) match {
             case Full(restApiAccount) =>
@@ -115,43 +141,59 @@ class RestApiAccounts(
                 case Right(None) =>
                   val msg = s"Could not update account with token $token cause : could not get account"
                   logger.error(msg)
-                  toJsonError(None, msg)("updateAccount", true)
+                  toJsonError(None, msg)
                 case Left(err)   =>
                   val msg = s"Could not update account with token $token cause : ${err.fullMsg}"
                   logger.error(msg)
-                  toJsonError(None, msg)("updateAccount", true)
+                  toJsonError(None, msg)
               }
             case eb: EmptyBox =>
               val msg = s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}"
               logger.error(msg)
-              toJsonError(None, msg)("updateAccount", true)
+              toJsonError(None, msg)
           }
         case eb: EmptyBox =>
-          toJsonError(None, "No Json data sent")("updateAccount", true)
-      }
+          toJsonError(None, "No Json data sent")
+      })
 
     case Delete("secure" :: "apiaccounts" :: token :: Nil, req) =>
-      val apiToken = ApiToken(token)
-      readApi.getByToken(apiToken).either.runNow match {
+      val apiToken          = ApiToken(token)
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "deleteAccount"
+
+      OldInternalApiAuthz.withWriteAdmin(readApi.getByToken(apiToken).either.runNow match {
         case Right(Some(account)) =>
           writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
             case Right(_) =>
               val accounts = ("accounts" -> JArray(List(account.toJson)))
-              toJsonResponse(None, accounts)("deleteAccount", true)
+              toJsonResponse(None, accounts)
 
             case Left(err) =>
-              toJsonError(None, s"Could not delete account with token $token cause : ${err.fullMsg}")("deleteAccount", true)
+              toJsonError(None, s"Could not delete account with token $token cause : ${err.fullMsg}")
           }
 
         case Right(None) =>
-          toJsonError(None, s"Could not delete account with token $token cause : could not get account")("deleteAccount", true)
+          toJsonError(None, s"Could not delete account with token $token cause : could not get account")
         case Left(err)   =>
-          toJsonError(None, s"Could not delete account with token $token cause : ${err.fullMsg}")("deleteAccount", true)
-      }
+          toJsonError(None, s"Could not delete account with token $token cause : ${err.fullMsg}")
+      })
 
     case Post("secure" :: "apiaccounts" :: token :: "regenerate" :: Nil, req) =>
-      val apiToken = ApiToken(token)
-      readApi.getByToken(apiToken).either.runNow match {
+      val apiToken          = ApiToken(token)
+      implicit val prettify = restExtractor
+        .extractBoolean("prettify")(req)(identity)
+        .getOrElse(Some(false))
+        .getOrElse(
+          false
+        )
+      implicit val action: String = "regenerateAccount"
+
+      OldInternalApiAuthz.withWriteAdmin(readApi.getByToken(apiToken).either.runNow match {
         case Right(Some(account)) =>
           val newToken       = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
@@ -165,7 +207,7 @@ class RestApiAccounts(
             .runNow match {
             case Right(account) =>
               val accounts = ("accounts" -> JArray(List(account.toJson)))
-              toJsonResponse(None, accounts)("regenerateAccount", true)
+              toJsonResponse(None, accounts)
 
             case Left(err) =>
               val msg = s"Could not regenerate account with token $token cause : ${err.fullMsg}"
@@ -179,23 +221,23 @@ class RestApiAccounts(
         case Right(None) =>
           val msg = s"Could not regenerate account with token $token cause could not get account"
           logger.error(msg)
-          toJsonError(None, msg)("regenerateAccount", true)
+          toJsonError(None, msg)
         case Left(err)   =>
           val msg = s"Could not regenerate account with token $token cause : ${err.fullMsg}"
           logger.error(msg)
-          toJsonError(None, msg)("regenerateAccount", true)
-      }
+          toJsonError(None, msg)
+      })
 
   }
 
-  def save(account: ApiAccount): LiftResponse = {
+  def save(account: ApiAccount)(implicit action: String, prettify: Boolean): LiftResponse = {
     writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
       case Right(res) =>
         val accounts = ("accounts" -> JArray(List(res.toJson)))
-        toJsonResponse(None, accounts)("updateAccount", true)
+        toJsonResponse(None, accounts)
 
       case Left(err) =>
-        toJsonError(None, s"Could not update account '${account.name.value}' cause : ${err.fullMsg}")("updateAccount", true)
+        toJsonError(None, s"Could not update account '${account.name.value}' cause : ${err.fullMsg}")
     }
   }
 

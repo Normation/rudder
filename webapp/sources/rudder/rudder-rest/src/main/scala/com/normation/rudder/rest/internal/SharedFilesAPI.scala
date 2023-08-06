@@ -41,6 +41,7 @@ import better.files._
 import com.normation.box._
 import com.normation.errors._
 import com.normation.errors.IOResult
+import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
 import java.nio.charset.StandardCharsets
