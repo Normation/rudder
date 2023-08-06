@@ -35,6 +35,7 @@ log = "0.4"
 md-5 = "0.10"
 nom = "7"
 openssl = { version = "0.10", features = ["vendored"] }
+percent-encoding = "2.3"
 prometheus = { version = "0.13", default-features = false, features = ["process"] }
 regex = "1"
 # Use openssl for TLS to be consistent
@@ -49,7 +50,6 @@ toml = "0.5"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "smallvec", "fmt", "tracing-log"] }
-urlencoding = "2"
 walkdir = "2"
 warp = { version = "0.3", default-features = false }
 # Use rust implementation

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{io, path::PathBuf, sync::Arc};
+use std::{io, sync::Arc};
 
 use anyhow::Error;
 use serde::Deserialize;
@@ -14,6 +14,7 @@ use warp::{
     path, query, Filter, Reply,
 };
 
+use crate::api::sanitize_path;
 use crate::{api::RudderReject, hashing::Hash, JobConfig};
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -38,7 +39,6 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use urlencoding::decode;
     use warp::{filters::path::Peek, reject, reply, Rejection, Reply};
 
     use crate::JobConfig;
@@ -50,14 +50,8 @@ pub mod handlers {
         params: SharedFolderParams,
         job_config: Arc<JobConfig>,
     ) -> Result<impl Reply, Rejection> {
-        let path = decode(file.as_str())
-            .map_err(|e| {
-                error!("{}", e);
-                reject::custom(RudderReject::new(e))
-            })?
-            .into_owned();
-        let path = PathBuf::from(path);
-        super::head(params, path, job_config.clone())
+        let file = file.as_str();
+        super::head(params, file, job_config.clone())
             .await
             .map(|c| reply::with_status("".to_string(), c))
             .map_err(|e| {
@@ -90,39 +84,38 @@ impl SharedFolderParams {
 #[instrument(name = "shared_folder_head", level = "debug", skip(job_config))]
 pub async fn head(
     params: SharedFolderParams,
-    // Relative path
-    file: PathBuf,
+    file: &str,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    let file_path = job_config.cfg.shared_folder.path.join(&file);
+    let file_path = sanitize_path(&job_config.cfg.shared_folder.path, file)?;
     debug!(
         "Received request for {:#} ({:#} locally) with the following parameters: {:?}",
-        file.display(),
+        file,
         file_path.display(),
         params
     );
 
     // TODO do not read entire file into memory
-    match read(file_path).await {
+    match read(&file_path).await {
         Ok(data) => match params.hash()? {
             None => {
-                debug!("{} exists and no hash was provided", file.display());
+                debug!("{} exists and no hash was provided", file_path.display());
                 Ok(StatusCode::OK)
             }
             Some(h) => {
                 let actual_hash = h.hash_type.hash(&data);
-                trace!("{} has hash '{}'", file.display(), actual_hash);
+                trace!("{} has hash '{}'", file_path.display(), actual_hash);
                 if h == actual_hash {
-                    debug!("{} exists and has same hash", file.display());
+                    debug!("{} exists and has same hash", file_path.display());
                     Ok(StatusCode::NOT_MODIFIED)
                 } else {
-                    debug!("{} exists but its hash is different", file.display());
+                    debug!("{} exists but its hash is different", file_path.display());
                     Ok(StatusCode::OK)
                 }
             }
         },
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-            debug!("{} does not exist on the server", file.display());
+            debug!("{} does not exist on the server", file_path.display());
             Ok(StatusCode::NOT_FOUND)
         }
         Err(e) => Err(e.into()),
