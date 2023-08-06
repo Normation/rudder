@@ -1,6 +1,6 @@
 /*
- ***************************o**********************************************************
- * Copyright 2016 Normation SwnloaAS
+ *************************************************************************************
+ * Copyright 2016 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -42,6 +42,7 @@ import com.normation.box._
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
@@ -68,22 +69,37 @@ import scala.jdk.CollectionConverters._
 import zio.ZIO
 import zio.syntax._
 
+object SharedFilesAPI {
+  def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
+    IOResult.attemptZIO {
+      // Actually canonifies the path
+      val filePath = baseFolder / path.dropWhile(_.equals('/'))
+      // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
+      val realPath = File(filePath.toJava.toPath.toRealPath())
+      // `false` means we allow access to the base directory itself
+      if (baseFolder.contains(realPath, strict = false)) {
+        realPath.succeed
+      } else {
+        Unexpected(s"Unauthorized access to file ${filePath.name} (real path: ${realPath})").fail
+      }
+    }
+  }
+}
+
 class SharedFilesAPI(
     restExtractor:    RestExtractorService,
     sharedFolderPath: String
 ) extends RestHelper with Loggable {
 
-  def checkPathAndContinue(path: String, baseFolder: File)(fun: File => IOResult[LiftResponse]): IOResult[LiftResponse] = {
+  private def checkPathAndContinue(path: String, baseFolder: File)(
+      fun:                               File => IOResult[LiftResponse]
+  ): IOResult[LiftResponse] = {
     IOResult.attemptZIO {
-      val filePath = baseFolder / path.dropWhile(_.equals('/'))
-      if (baseFolder.contains(filePath, false)) {
-        fun(filePath)
-      } else {
-        Unexpected(s"Unauthorized access to file ${filePath.name}").fail
-      }
+      sanitizePath(path, baseFolder).flatMap(fun)
     }
   }
-  def serialize(file: File):                                                                     IOResult[JValue]       = {
+
+  def serialize(file: File):             IOResult[JValue]       = {
     import net.liftweb.json.JsonDSL._
     IOResult.attempt(s"Error when serializing file ${file.name}") {
       val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow: _*).toMillis))
@@ -95,7 +111,7 @@ class SharedFilesAPI(
       ~ ("rights" -> file.permissionsAsString(File.LinkOptions.noFollow)))
     }
   }
-  def errorResponse(message: String):                                                            LiftResponse           = {
+  def errorResponse(message: String):    LiftResponse           = {
     import net.liftweb.json.JsonDSL._
     val content = {
       (("success" -> false)
@@ -103,7 +119,7 @@ class SharedFilesAPI(
     }
     JsonResponse(content, Nil, Nil, 500)
   }
-  val basicSuccessResponse:                                                                      LiftResponse           = {
+  val basicSuccessResponse:              LiftResponse           = {
     import net.liftweb.json.JsonDSL._
     val content = {
       (("success" -> true)
@@ -111,7 +127,7 @@ class SharedFilesAPI(
     }
     JsonResponse(content, Nil, Nil, 200)
   }
-  def downloadFile(file: File):                                                                  IOResult[LiftResponse] = {
+  def downloadFile(file: File):          IOResult[LiftResponse] = {
     IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
@@ -131,7 +147,7 @@ class SharedFilesAPI(
       }
     }
   }
-  def directoryContent(directory: File):                                                         IOResult[LiftResponse] = {
+  def directoryContent(directory: File): IOResult[LiftResponse] = {
 
     IOResult.attemptZIO {
       if (directory.exists) {
@@ -264,10 +280,14 @@ class SharedFilesAPI(
             file <- req.uploadedFiles
           } yield {
             for {
-              in  <- file.fileStream.autoClosed
-              out <- (basePath / dest.replaceFirst("/", "") / file.fileName).createFileIfNotExists().newOutputStream.autoClosed
+              path <- sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath)
             } yield {
-              in.pipeTo(out)
+              for {
+                in  <- file.fileStream.autoClosed
+                out <- path.newOutputStream.autoClosed
+              } yield {
+                in.pipeTo(out)
+              }
             }
           }
           basicSuccessResponse
@@ -278,7 +298,7 @@ class SharedFilesAPI(
                 json \ itemName match {
                   case JString(path) =>
                     checkPathAndContinue(path, basePath)(f => {
-                      (IOResult.attemptZIO(s"An error occured while running action '${actionName}' ") {
+                      (IOResult.attemptZIO(s"An error occurred while running action '${actionName}' ") {
                         action(f)
                       })
                     }).toBox
@@ -347,7 +367,7 @@ class SharedFilesAPI(
 
                 case JString("rename") =>
                   actionWithParam(
-                    "renmae",
+                    "rename",
                     "item",
                     "newItemPath",
                     (newItem => oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile)))
