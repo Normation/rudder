@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use anyhow::{bail, Error};
+use std::path::{Path, PathBuf};
 use std::{fmt, fmt::Display, net::ToSocketAddrs, sync::Arc};
 
+use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use tracing::{error, info, instrument};
 use warp::{http::StatusCode, path, reject, reject::Reject, reply, Filter, Rejection, Reply};
@@ -149,6 +152,39 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
     }
 }
 
+/// Adapted from warp: https://github.com/seanmonstar/warp/blob/376c80528fbf783dfb2825f8686698c3a51ac6d4/src/filters/fs.rs#L111
+fn sanitize_path(base: impl AsRef<Path>, tail: &str) -> Result<PathBuf, Error> {
+    let mut buf = PathBuf::from(base.as_ref());
+    let p = match percent_decode_str(tail).decode_utf8() {
+        Ok(p) => p,
+        Err(err) => {
+            bail!("Failed to decode path={:?}: {:?}", tail, err)
+        }
+    };
+    tracing::trace!("dir? base={:?}, route={:?}", base.as_ref(), p);
+    for seg in p.split('/') {
+        if seg.starts_with("..") {
+            bail!(
+                "Rejecting path={:?}: rejecting segment starting with '..'",
+                tail
+            )
+        } else if seg.contains('\\') {
+            bail!(
+                "Rejecting path={:?}: rejecting segment containing backslash (\\)",
+                tail
+            )
+        } else if cfg!(windows) && seg.contains(':') {
+            bail!(
+                "Rejecting path={:?}: rejecting segment containing colon (:)",
+                tail
+            )
+        } else {
+            buf.push(seg);
+        }
+    }
+    Ok(buf)
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::Error;
@@ -156,6 +192,19 @@ mod tests {
     use crate::error::RudderError;
 
     use super::*;
+
+    #[test]
+    fn it_sanitizes_path() {
+        let base = "tests/sanitize_path";
+        assert_eq!(
+            sanitize_path(base, "folder1/file1")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "tests/sanitize_path/folder1/file1"
+        );
+        assert!(sanitize_path(base, "folder1/../../../file1").is_err());
+    }
 
     #[test]
     fn it_serializes_api_response() {
