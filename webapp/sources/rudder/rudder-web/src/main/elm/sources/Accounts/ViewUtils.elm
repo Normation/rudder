@@ -10,6 +10,7 @@ import NaturalOrdering as N exposing (compare)
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
+import String exposing (length, slice)
 
 
 --
@@ -132,7 +133,7 @@ displayAccountsTable model =
           [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
             [ span [class "fa fa-repeat"][] ]
           , span [class "token-txt"]
-            [text (String.slice  0  5 a.token)
+            [text (if (length a.token) > 5 then slice 0 5 a.token else "")
             , span[class "fa hide-text"][]
             ]
           , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]

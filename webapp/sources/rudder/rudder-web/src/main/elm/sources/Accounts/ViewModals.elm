@@ -33,6 +33,7 @@ displayModals model =
        EditAccount a -> ( "Update account '" ++ a.name ++ "'"    , "Update" , "success" )
        Confirm Delete a call     -> ( "Delete API account '" ++ a ++ "'", "Confirm"  , "danger" )
        Confirm Regenerate a call -> ( "Regenerate token of API account '" ++ a ++ "'", "Confirm", "primary")
+       CopyToken a   -> ( "Save token", "Close", "success" )
 
     (popupBody, saveAction, displayAcl) = case model.ui.modalState of
       NoModal                  -> ( text "" , Ignore, False)
@@ -52,6 +53,15 @@ displayModals model =
           , call
           , False
           )
+      CopyToken a ->
+          (div[]
+            [ h4 [class "text-center"][text ("Copy token for API account.")]
+            , div [class "alert alert-warning"]
+              [ i [class "fa fa-exclamation-triangle"][]
+              , text "This value will not be displayed again"
+              ]
+              , p[][ text a ]
+            ], Ignore, False)
       _ ->
         case model.editAccount of
           Nothing -> ( text "" , Ignore, False )

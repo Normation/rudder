@@ -55,6 +55,9 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio._
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
@@ -101,14 +104,12 @@ final class RoLDAPApiAccountRepository(
     val systemAcl:     List[ApiAclElement]
 ) extends RoApiAccountRepository {
 
-  val tokenSize = 32
-
   val systemAPIAccount = {
     ApiAccount(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
-      ApiToken(tokenGen.newToken(tokenSize) + "-system"),
+      ApiToken(ApiToken.generate_secret(tokenGen, "-system")),
       "For internal use",
       true,
       DateTime.now,
@@ -141,15 +142,29 @@ final class RoLDAPApiAccountRepository(
   }
 
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
-    if (token == systemAPIAccount.token) {
+    if (token.value == systemAPIAccount.token.value) {
       Some(systemAPIAccount).succeed
     } else {
+      val hash = ApiToken.hash(token.value)
       for {
         ldap     <- ldapConnexion
         // here, be careful to the semantic of get with a filter!
-        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
+        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, hash))
         optRes   <- optEntry match {
-                      case None    => None.succeed
+                      case None    => {
+                        // Fallback on v1 clear text tokens
+                        for {
+                          optEntry <-
+                            // here, be careful to the semantic of get with a filter!
+                            ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
+                          optRes   <- optEntry match {
+                                        case None    => None.succeed
+                                        case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
+                                      }
+                        } yield {
+                          optRes
+                        }
+                      }
                       case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
                     }
       } yield {
@@ -187,7 +202,7 @@ final class WoLDAPApiAccountRepository(
   repo =>
   /*
    * We want to make all API account modification purely exclusive.
-   * The action is rare, so there is no contention/scalling problem here.
+   * The action is rare, so there is no contention/scaling problem here.
    */
   val semaphore = Semaphore.make(1).runNow
 
@@ -200,14 +215,10 @@ final class WoLDAPApiAccountRepository(
       for {
         ldap        <- ldapConnexion
         existing    <-
-          ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) map {
+          ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id)) map {
             case None    => None.succeed
             case Some(e) =>
-              if (e(A_API_UUID) == Some(principal.id.value)) {
-                Some(e).succeed
-              } else {
-                LDAPRudderError.Consistancy("An account with given token but different id already exists").fail
-              }
+              Some(e).succeed
           }
         name        <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
                          case None    => None.succeed

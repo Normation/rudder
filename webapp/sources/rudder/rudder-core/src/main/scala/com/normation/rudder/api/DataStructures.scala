@@ -38,6 +38,9 @@ package com.normation.rudder.api
 
 import cats.data._
 import cats.implicits._
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 
 /**
@@ -53,20 +56,42 @@ final case class ApiAccountName(value: String) extends AnyVal
 
 /**
  * The actual authentication token.
- * A token is defined with [0-9a-zA-Z]{n}, with n not small.
+ *
+ * There are two versions of tokens:
+ *
+ * * v1: 32 alphanumeric characters stored as clear text
+ *       they are also displayed in clear text in the interface.
+ * * v2: starting from Rudder 8.1, token are still 32 alphanumeric characters
+ *       but are now stored hashed in sha512. The tokens are only displayed
+ *       once at creation.
+ *
+ * Both can have a `-system` suffix to mark the system token.
+ *
+ * To make the difference, we use the length of the token:
+ *
+ * * If it is 32 (+7?) characters long, it is a clear-text v1 token
+ * * If it is 128 (+7?) characters long, it is a v2 SHA512 hash of the token
+ *
  */
-final case class ApiToken(value: String) extends AnyVal {
+case class ApiToken(value: String) extends AnyVal {
   // Avoid printing the value in logs
   override def toString: String = s"[REDACTED ApiToken]"
+
+  def isHash: Boolean = {
+    value.length() >= 128
+  }
 }
 
 object ApiToken {
+  val tokenSize = 32
 
-  val tokenRegex = """[0-9a-zA-Z]{12,128}""".r
+  def hash(clearText: String): String = {
+    val digest = MessageDigest.getInstance("SHA-512")
+    new String(Hex.encode(digest.digest(clearText.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
+  }
 
-  def buildCheckValue(value: String): Option[ApiToken] = value.trim match {
-    case tokenRegex(v) => Some(ApiToken(v))
-    case _             => None
+  def generate_secret(tokenGenerator: TokenGenerator, suffix: String = ""): String = {
+    tokenGenerator.newToken(tokenSize) + suffix
   }
 }
 

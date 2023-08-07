@@ -10,7 +10,7 @@ import Time exposing (Posix, Zone)
 -- All our data types
 --
 
-type ModalState = NoModal | NewAccount | EditAccount Account | Confirm ConfirmModalType String Msg
+type ModalState = NoModal | NewAccount | EditAccount Account | Confirm ConfirmModalType String Msg | CopyToken String
 
 type ConfirmModalType
   = Delete
@@ -86,6 +86,7 @@ type Msg
   | CallApi (Model -> Cmd Msg)
   | GetCheckedAcl (Result D.Error (List AccessControl))
   | ToggleEditPopup ModalState
+  | CopyToken String
   | GetAccountsResult (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult))
   | Ignore
   | UpdateTableFilters TableFilters

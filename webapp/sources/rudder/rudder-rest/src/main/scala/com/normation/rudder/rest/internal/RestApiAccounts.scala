@@ -28,8 +28,6 @@ class RestApiAccounts(
     apiAuthService: ApiAuthorizationLevelService
 ) extends RestHelper with Loggable {
 
-  val tokenSize = 32
-
   // used in ApiAccounts snippet to get the context path
   // of that service
   val relativePath = "secure" :: "apiaccounts" :: Nil
@@ -49,9 +47,18 @@ class RestApiAccounts(
       OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
           val accounts = {
+            // FIXME remove token if format V2
             (
               ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
-              ("accounts"         -> JArray(accountSeq.toList.map(_.toJson)))
+              ("accounts"         -> JArray(
+                accountSeq.toList
+                  .map((a) => {
+                    // Don't send hashes
+                    a.copy(token = if (a.token.isHash) { ApiToken("") }
+                    else { a.token })
+                  })
+                  .map(_.toJson)
+              ))
             )
           }
           toJsonResponse(None, accounts)
@@ -83,11 +90,13 @@ class RestApiAccounts(
                 val expiration = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
                 val acl        = restApiAccount.authz.getOrElse(ApiAuthz.None)
 
+                val secret  = ApiToken.generate_secret(tokenGenerator)
+                val hash    = ApiToken.hash(secret)
                 val account = ApiAccount(
                   id,
                   ApiAccountKind.PublicApi(acl, expiration),
                   restApiAccount.name.get,
-                  ApiToken(tokenGenerator.newToken(tokenSize)),
+                  ApiToken(hash),
                   restApiAccount.description.getOrElse(""),
                   restApiAccount.enabled.getOrElse(true),
                   now,
@@ -95,22 +104,31 @@ class RestApiAccounts(
                 )
                 writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
                   case Right(_) =>
-                    val accounts = ("accounts" -> JArray(List(account.toJson)))
+                    val accounts = ("accounts" -> JArray(
+                      List(
+                        account
+                          .copy(
+                            // Send clear text secret
+                            token = ApiToken(secret)
+                          )
+                          .toJson
+                      )
+                    ))
                     toJsonResponse(None, accounts)
 
                   case Left(err) =>
-                    val msg = s"Could not create account cause : ${err.fullMsg}"
+                    val msg = s"Could not create account cause: ${err.fullMsg}"
                     logger.error(msg)
                     toJsonError(None, msg)
                 }
               } else {
-                val msg = s"Could not create account cause : could not get account"
+                val msg = s"Could not create account cause: could not get account"
                 logger.error(msg)
                 toJsonError(None, msg)
               }
 
             case eb: EmptyBox =>
-              val msg = s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}"
+              val msg = s"Could not create account cause: ${(eb ?~ "could not extract data from JSON").msg}"
               logger.error(msg)
               toJsonError(None, msg)
           }
@@ -139,16 +157,16 @@ class RestApiAccounts(
                   save(updateAccount)
 
                 case Right(None) =>
-                  val msg = s"Could not update account ${tokenId} cause : could not get account"
+                  val msg = s"Could not update account ${tokenId} cause: could not get account"
                   logger.error(msg)
                   toJsonError(None, msg)
                 case Left(err)   =>
-                  val msg = s"Could not update account ${tokenId} cause : ${err.fullMsg}"
+                  val msg = s"Could not update account ${tokenId} cause: ${err.fullMsg}"
                   logger.error(msg)
                   toJsonError(None, msg)
               }
             case eb: EmptyBox =>
-              val msg = s"Could not update account ${tokenId} cause : ${(eb ?~ "could not extract data from JSON").msg}"
+              val msg = s"Could not update account ${tokenId} cause: ${(eb ?~ "could not extract data from JSON").msg}"
               logger.error(msg)
               toJsonError(None, msg)
           }
@@ -174,13 +192,13 @@ class RestApiAccounts(
               toJsonResponse(None, accounts)
 
             case Left(err) =>
-              toJsonError(None, s"Could not delete account ${tokenId} cause : ${err.fullMsg}")
+              toJsonError(None, s"Could not delete account ${tokenId} cause: ${err.fullMsg}")
           }
 
         case Right(None) =>
-          toJsonError(None, s"Could not delete account ${tokenId} cause : could not get account")
+          toJsonError(None, s"Could not delete account ${tokenId} cause: could not get account")
         case Left(err)   =>
-          toJsonError(None, s"Could not delete account ${tokenId} cause : ${err.fullMsg}")
+          toJsonError(None, s"Could not delete account ${tokenId} cause: ${err.fullMsg}")
       })
 
     case Post("secure" :: "apiaccounts" :: tokenId :: "regenerate" :: Nil, req) =>
@@ -195,24 +213,35 @@ class RestApiAccounts(
 
       OldInternalApiAuthz.withWriteAdmin(readApi.getById(apiTokenId).either.runNow match {
         case Right(Some(account)) =>
-          val newToken       = ApiToken(tokenGenerator.newToken(tokenSize))
+          val newSecret = ApiToken.generate_secret(tokenGenerator)
+          val newHash   = ApiToken.hash(newSecret)
+
           val generationDate = DateTime.now
           writeApi
             .save(
-              account.copy(token = newToken, tokenGenerationDate = generationDate),
+              account.copy(token = ApiToken(newHash), tokenGenerationDate = generationDate),
               ModificationId(uuidGen.newUuid),
               userService.getCurrentUser.actor
             )
             .either
             .runNow match {
             case Right(account) =>
-              val accounts = ("accounts" -> JArray(List(account.toJson)))
+              val accounts = ("accounts" -> JArray(
+                List(
+                  account
+                    .copy(
+                      // Send clear text secret
+                      token = ApiToken(newSecret)
+                    )
+                    .toJson
+                )
+              ))
               toJsonResponse(None, accounts)
 
             case Left(err) =>
-              val msg = s"Could not regenerate account ${tokenId} cause : ${err.fullMsg}"
+              val msg = s"Could not regenerate account ${tokenId} cause: ${err.fullMsg}"
               logger.error(msg)
-              toJsonError(None, s"Could not regenerate account ${tokenId} cause : ${err.fullMsg}")(
+              toJsonError(None, s"Could not regenerate account ${tokenId} cause: ${err.fullMsg}")(
                 "regenerateAccount",
                 true
               )
@@ -223,7 +252,7 @@ class RestApiAccounts(
           logger.error(msg)
           toJsonError(None, msg)
         case Left(err)   =>
-          val msg = s"Could not regenerate account ${tokenId} cause : ${err.fullMsg}"
+          val msg = s"Could not regenerate account ${tokenId} cause: ${err.fullMsg}"
           logger.error(msg)
           toJsonError(None, msg)
       })
