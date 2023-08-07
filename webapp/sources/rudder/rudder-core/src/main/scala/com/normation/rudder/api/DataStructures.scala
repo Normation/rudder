@@ -55,7 +55,10 @@ final case class ApiAccountName(value: String) extends AnyVal
  * The actual authentication token.
  * A token is defined with [0-9a-zA-Z]{n}, with n not small.
  */
-final case class ApiToken(value: String) extends AnyVal
+final case class ApiToken(value: String) extends AnyVal {
+  // Avoid printing the value in logs
+  override def toString: String = s"[REDACTED ApiToken]"
+}
 
 object ApiToken {
 
