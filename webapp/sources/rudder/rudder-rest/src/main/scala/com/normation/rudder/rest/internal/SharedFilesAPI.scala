@@ -44,6 +44,7 @@ import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
+import com.normation.zio._
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
@@ -95,9 +96,7 @@ class SharedFilesAPI(
   private def checkPathAndContinue(path: String, baseFolder: File)(
       fun:                               File => IOResult[LiftResponse]
   ): IOResult[LiftResponse] = {
-    IOResult.effectM {
-      sanitizePath(path, baseFolder).flatMap(fun)
-    }
+    sanitizePath(path, baseFolder).flatMap(fun)
   }
 
   def serialize(file: File):             IOResult[JValue]       = {
@@ -287,22 +286,31 @@ class SharedFilesAPI(
       OldInternalApiAuthz.withWriteConfig {
         req.params.get("destination") match {
           case Some(dest :: Nil) =>
-            for {
-              file <- req.uploadedFiles
-            } yield {
-              for {
-                path <- sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath)
-              } yield {
-                for {
-                  in  <- file.fileStream.autoClosed
-                  out <- path.newOutputStream.autoClosed
-                } yield {
-                  in.pipeTo(out)
+            // process uploaded files as a side effect.
+            // We check that we have only one file uploaded, else return an error to avoid that
+            // the last as decided by the uploaded-files logic wins and overide others.
+
+            req.uploadedFiles.toList match {
+              case Nil         => errorResponse(s"Missing file to copy to ${dest}")
+              case file :: Nil =>
+                sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath).map { path =>
+                  for {
+                    in  <- file.fileStream.autoClosed
+                    out <- path.newOutputStream.autoClosed
+                  } yield {
+                    in.pipeTo(out)
+                  }
+                }.either.runNow match {
+                  case Left(err) => errorResponse(err.fullMsg)
+                  case Right(_)  => basicSuccessResponse
                 }
-              }
+              case several     =>
+                errorResponse(
+                  s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
+                )
             }
-            basicSuccessResponse
-          case _                 =>
+
+          case _ =>
             (req.json match {
               case Full(json) =>
                 def simpleAction(actionName: String, itemName: String, action: File => IOResult[LiftResponse]) = {
