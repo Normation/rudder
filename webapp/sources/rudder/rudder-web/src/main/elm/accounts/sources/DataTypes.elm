@@ -21,6 +21,7 @@ type SortOrder = Asc | Desc
 
 type SortBy
   = Name
+  | Id
   | Token
   | ExpDate
 

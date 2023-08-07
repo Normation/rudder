@@ -38,7 +38,7 @@ saveAccount account model =
   let
     (method, url) = case model.ui.modalState of
       NewAccount -> ("PUT",["apiaccounts"])
-      _ -> ("POST", ["apiaccounts", account.token])
+      _ -> ("POST", ["apiaccounts", account.id])
     req =
       request
         { method  = method
@@ -59,7 +59,7 @@ deleteAccount account model =
       request
         { method  = "DELETE"
         , headers = []
-        , url     = getUrl model ["apiaccounts", account.token] []
+        , url     = getUrl model ["apiaccounts", account.id] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Delete) (decodePostAccount model.ui.datePickerInfo)
         , timeout = Nothing
@@ -75,7 +75,7 @@ regenerateToken account model =
       request
         { method  = "POST"
         , headers = []
-        , url     = getUrl model ["apiaccounts", account.token, "regenerate"] []
+        , url     = getUrl model ["apiaccounts", account.id, "regenerate"] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo)
         , timeout = Nothing
