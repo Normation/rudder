@@ -80,4 +80,18 @@
    <packageUrl regex="true">^pkg:maven/org\.springframework\.ldap/spring\-ldap\-core@.*$</packageUrl>
    <cpe>cpe:/a:vmware:spring_framework</cpe>
 </suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: postgresql-42.2.25.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.postgresql/postgresql@.*$</packageUrl>
+   <cve>CVE-2022-31197</cve>
+</suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: spring-web-5.3.29.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-web@.*$</packageUrl>
+   <cve>CVE-2016-1000027</cve>
+</suppress>
 </suppressions>
