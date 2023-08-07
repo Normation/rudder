@@ -42,6 +42,7 @@ getSortFunction model a1 a2 =
     datePickerInfo = model.ui.datePickerInfo
     order = case model.ui.tableFilters.sortBy of
       Name    -> N.compare a1.name a2.name
+      Id      -> N.compare a1.id a2.id
       Token   -> N.compare a1.token a2.token
       ExpDate ->
         let
@@ -64,6 +65,7 @@ getSortFunction model a1 a2 =
 
 searchField datePickerInfo a =
   List.append [ a.name
+  , a.id
   , a.token
   ] ( case a.expirationDate of
       Just d  -> [posixToString datePickerInfo d]
@@ -121,6 +123,8 @@ displayAccountsTable model =
         , span [class "badge badge-grey"][ text (getAuthorisationType a.authorisationType) ]
         , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
         ]
+        , td []
+        [ text a.id ]
         , td [class "token"]
           [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
             [ span [class "fa fa-repeat"][] ]
@@ -155,6 +159,7 @@ displayAccountsTable model =
     [ thead []
       [ tr [class "head"]
         [ th [class (thClass model.ui.tableFilters Name    ), onClick (UpdateTableFilters (sortTable filters Name    ))][ text "Account name"    ]
+        , th [class (thClass model.ui.tableFilters Id      ), onClick (UpdateTableFilters (sortTable filters Id      ))][ text "Account id"           ]
         , th [class (thClass model.ui.tableFilters Token   ), onClick (UpdateTableFilters (sortTable filters Token   ))][ text "Token"           ]
         , th [class (thClass model.ui.tableFilters ExpDate ), onClick (UpdateTableFilters (sortTable filters ExpDate ))][ text "Expiration date" ]
         , th [][ text "Actions" ]
