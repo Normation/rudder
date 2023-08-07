@@ -134,7 +134,7 @@ update msg model =
         (newModel, Cmd.none)
 
     GetCheckedAcl (Err err) ->
-        (model, errorNotification ("Error when selectin custom ACL" ))
+        (model, errorNotification ("Error when selecting custom ACL" ))
 
     -- DATEPICKER
     OpenPicker posix->
