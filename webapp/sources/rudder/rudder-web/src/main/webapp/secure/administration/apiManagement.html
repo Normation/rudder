@@ -1,98 +1,108 @@
 <lift:surround with="common-layout" at="content">
 
-<div data-lift="administration.ApiAccounts.render">
-  That gives us a JS variable with the servlet
-  context path named "contextPath" and the API
-  path for token management named apiPath
-  var contextPath = "/rudder"";
-</div>
+  <div data-lift="administration.ApiAccounts.render">
+    That gives us a JS variable with the servlet
+    context path named "contextPath" and the API
+    path for token management named apiPath
+    var contextPath = "/rudder"";
+  </div>
 
-<head>
-  <title>Rudder - API accounts</title>
-  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-elm-datepicker.css"  media="screen">
-  <style>
-    .reload-token{
-      margin-right:10px;
-    }
-    .rudder-template > .one-col{
-      flex: 1;
-    }
-    .template-main{
-      flex-basis : initial !important;
-      flex: auto !important;
-    }
-    .btn.delete-button{
-      margin-left:10px;
-    }
-    #newAccount-expiration {
-      margin-top: 6px;
-      margin-bottom: 12px;
-      width:100%
-    }
-    .dataTable thead > tr > th:last-child,
-    .dataTable tbody > tr > td:last-child{
-      width: 220px;
-    }
-    form.newAccount.datepicker-open {
-      padding-bottom: 220px;
-    }
-    .fa.hide-text{
-      font-size: .6em;
-      opacity: .8;
-      position: relative;
-      top: -1px;
-    }
-    .fa.hide-text:before{
-      content: "\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069";
-    }
-    #apiauthorization-app{
+  <head>
+    <title>Rudder - API accounts</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource"
+      href="/style/rudder/rudder-elm-datepicker.css" media="screen">
+    <style>
+      .reload-token {
+        margin-right: 10px;
+      }
 
-    }
-    .rudder-template .dataTable tr > td.token .token-txt{
-      font-family: monospace;
-      font-size: .9em;
-    }
-    .rudder-template .btn-goto {
-      padding: 3px 9px;
-      font-size: 1.4em;
-      position: relative;
-      top: 3px;
-    }
-  </style>
-</head>
+      .rudder-template>.one-col {
+        flex: 1;
+      }
+
+      .template-main {
+        flex-basis: initial !important;
+        flex: auto !important;
+      }
+
+      .btn.delete-button {
+        margin-left: 10px;
+      }
+
+      #newAccount-expiration {
+        margin-top: 6px;
+        margin-bottom: 12px;
+        width: 100%
+      }
+
+      .dataTable thead>tr>th:last-child,
+      .dataTable tbody>tr>td:last-child {
+        width: 220px;
+      }
+
+      form.newAccount.datepicker-open {
+        padding-bottom: 220px;
+      }
+
+      .fa.hide-text {
+        font-size: .6em;
+        opacity: .8;
+        position: relative;
+        top: -1px;
+      }
+
+      .fa.hide-text:before {
+        content: "\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069";
+      }
+
+      #apiauthorization-app {}
+
+      .rudder-template .dataTable tr>td.token .token-txt {
+        font-family: monospace;
+        font-size: .9em;
+      }
+
+      .rudder-template .btn-goto {
+        padding: 3px 9px;
+        font-size: 1.4em;
+        position: relative;
+        top: 3px;
+      }
+    </style>
+  </head>
 
   <div data-lift="administration.ApiAccounts.body">
-    <div id="accounts-app" ></div>
+    <div id="accounts-app"></div>
     <script>
-    var app;
-    $(document).ready(function(){
-      var main = document.getElementById("accounts-app")
-      var initValues = {
-        contextPath    : contextPath
-      , hasWriteRights : hasWriteRights
-      };
+      var app;
+      $(document).ready(function () {
+        var main = document.getElementById("accounts-app")
+        var initValues = {
+          contextPath: contextPath
+          , hasWriteRights: hasWriteRights
+        };
 
-      app = Elm.Accounts.init({node: main, flags: initValues});
+        app = Elm.Accounts.init({node: main, flags: initValues});
 
-      app.ports.successNotification.subscribe(function(str) {
-        createSuccessNotification(str)
-      });
+        app.ports.successNotification.subscribe(function (str) {
+          createSuccessNotification(str)
+        });
 
-      app.ports.errorNotification.subscribe(function(str) {
-        createErrorNotification(str)
-      });
+        app.ports.errorNotification.subscribe(function (str) {
+          createErrorNotification(str)
+        });
 
-      app.ports.copy.subscribe(function(str) {
-        navigator.clipboard.writeText(str);
+        app.ports.copy.subscribe(function (str) {
+          navigator.clipboard.writeText(str);
+        });
+        // Initialize tooltips
+        app.ports.initTooltips.subscribe(function (msg) {
+          setTimeout(function () {
+            $('.bs-tooltip').bsTooltip();
+          }, 600);
+        });
       });
-      // Initialize tooltips
-      app.ports.initTooltips.subscribe(function(msg) {
-        setTimeout(function(){
-          $('.bs-tooltip').bsTooltip();
-        }, 600);
-      });
-    });
-  </script>
+    </script>
     <div id="acl-app"></div>
   </div>
 
@@ -107,4 +117,3 @@
     </script>
   </lift:authz>
 </lift:surround>
-
