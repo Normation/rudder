@@ -86,7 +86,6 @@ type Msg
   | CallApi (Model -> Cmd Msg)
   | GetCheckedAcl (Result D.Error (List AccessControl))
   | ToggleEditPopup ModalState
-  | CopyToken String
   | GetAccountsResult (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult))
   | Ignore
   | UpdateTableFilters TableFilters

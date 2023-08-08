@@ -54,7 +54,7 @@ class RestApiAccounts(
                 accountSeq.toList
                   .map((a) => {
                     // Don't send hashes
-                    a.copy(token = if (a.token.isHash) { ApiToken("") }
+                    a.copy(token = if (a.token.isHashed) { ApiToken("") }
                     else { a.token })
                   })
                   .map(_.toJson)

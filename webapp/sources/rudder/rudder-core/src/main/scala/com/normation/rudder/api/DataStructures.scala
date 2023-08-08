@@ -38,6 +38,7 @@ package com.normation.rudder.api
 
 import cats.data._
 import cats.implicits._
+import com.normation.rudder.api.ApiToken.prefixV2
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
@@ -61,33 +62,34 @@ final case class ApiAccountName(value: String) extends AnyVal
  *
  * * v1: 32 alphanumeric characters stored as clear text
  *       they are also displayed in clear text in the interface.
- * * v2: starting from Rudder 8.1, token are still 32 alphanumeric characters
- *       but are now stored hashed in sha512. The tokens are only displayed
- *       once at creation.
+ * * v2: starting from Rudder 8.1, tokens are still 32 alphanumeric characters,
+ *       but are now stored hashed in sha512 (128 characters), prefixed with "v2:".
+ *       The tokens are only displayed once at creation.
  *
  * Both can have a `-system` suffix to mark the system token.
  *
- * To make the difference, we use the length of the token:
+ * To make the difference, we use a prefix to the hash value in v2
  *
- * * If it is 32 (+7?) characters long, it is a clear-text v1 token
- * * If it is 128 (+7?) characters long, it is a v2 SHA512 hash of the token
- *
+ * * If it starts with "v2:", it is a v2 SHA512 hash of the token
+ * * If it does not start with "v2:", it is a clear-text v1 token
+ *   Note: v2 tokens can never start with "v" as they are encoded as en hexadecimal string
  */
 case class ApiToken(value: String) extends AnyVal {
-  // Avoid printing the value in logs
+  // Avoid printing the value in logs, regardless of token type
   override def toString: String = s"[REDACTED ApiToken]"
 
-  def isHash: Boolean = {
-    value.length() >= 128
+  def isHashed: Boolean = {
+    value.startsWith(prefixV2)
   }
 }
 
 object ApiToken {
-  val tokenSize = 32
+  private val tokenSize = 32
+  private val prefixV2  = "v2:"
 
   def hash(clearText: String): String = {
     val digest = MessageDigest.getInstance("SHA-512")
-    new String(Hex.encode(digest.digest(clearText.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
+    prefixV2 + new String(Hex.encode(digest.digest(clearText.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
   }
 
   def generate_secret(tokenGenerator: TokenGenerator, suffix: String = ""): String = {

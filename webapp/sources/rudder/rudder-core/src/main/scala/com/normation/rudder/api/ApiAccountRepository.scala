@@ -141,6 +141,16 @@ final class RoLDAPApiAccountRepository(
     }
   }
 
+  // Here the process is:
+  //
+  // * Check if token matches in-memory system account
+  // * Then look for it in the LDAP:
+  //   * First as a hash
+  //   * Then, in fallback, as clear-text token
+  //
+  // Warning: When matching clear-text value we MUST make sure it is not
+  // a hash but a clear text token to avoid accepting the hash as valid token itself.
+  //
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
     if (token.value == systemAPIAccount.token.value) {
       Some(systemAPIAccount).succeed
@@ -159,7 +169,15 @@ final class RoLDAPApiAccountRepository(
                             ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
                           optRes   <- optEntry match {
                                         case None    => None.succeed
-                                        case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
+                                        case Some(e) =>
+                                          mapper
+                                            .entry2ApiAccount(e)
+                                            .map((a) => {
+                                              // A hash is NOT a clear-text token
+                                              if (a.token.isHashed) { None }
+                                              else { Some(a) }
+                                            })
+                                            .toIO
                                       }
                         } yield {
                           optRes

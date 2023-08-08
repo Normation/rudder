@@ -129,16 +129,18 @@ displayAccountsTable model =
         ]
         , td []
         [ text a.id ]
-        , td [class "token"]
+        , if (length a.token) > 5 then
+          td [class "token"]
           [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
             [ span [class "fa fa-repeat"][] ]
           , span [class "token-txt"]
-            [text (if (length a.token) > 5 then slice 0 5 a.token else "")
+            [text (slice 0 5 a.token)]
             , span[class "fa hide-text"][]
-            ]
           , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]
             [ i [class "ion ion-clipboard"][] ]
           ]
+        else
+          td [] []
         , td [class "date"][ text expirationDate ]
         , td []
           [ button [class "btn btn-default", onClick (ToggleEditPopup (EditAccount a))] [span [class "fa fa-pencil"] [] ]
