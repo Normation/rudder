@@ -45,7 +45,6 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPRudderError
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.api.TokenGenerator
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
@@ -55,9 +54,6 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio._
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
-import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._

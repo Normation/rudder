@@ -69,6 +69,12 @@ update msg model =
       in
         ( { model | ui = {ui | modalState = modalState}, editAccount = editAccount }, shareAcl (encodeTokenAcl tokenId acl) )
 
+    CloseCopyPopup ->
+      let
+        ui = model.ui
+      in
+        ({ model | ui = {ui | copyState = NoCopy}}, Cmd.none)
+
     UpdateTableFilters tableFilters ->
       let
         ui = model.ui
@@ -96,10 +102,14 @@ update msg model =
     SaveAccount (Ok (metadata, account)) ->
       let
         ui = model.ui
+        copyState = case ui.modalState of
+          NewAccount -> Token account.token
+          _ -> NoCopy
         action = case ui.modalState of
           NewAccount -> "created"
           _ -> "updated"
-        newModel = {model | ui = {ui | modalState = NoModal}, editAccount = Nothing}
+
+        newModel = {model | ui = {ui | modalState = NoModal, copyState = copyState }, editAccount = Nothing}
       in
         (newModel, Cmd.batch [(successNotification ("Account '"++ account.name ++"' successfully " ++ action)) , (getAccounts newModel)])
 
@@ -109,10 +119,13 @@ update msg model =
     ConfirmActionAccount actionType (Ok (metadata, account)) ->
       let
         ui = model.ui
-        newModel = {model | ui = {ui | modalState = NoModal}}
+        copyState = case actionType of
+          Delete     -> NoCopy
+          Regenerate -> Token account.token
+        newModel = {model | ui = {ui | modalState = NoModal, copyState = copyState }}
         message  = case actionType of
-          Delete     -> "Deleted"
-          Regenerate -> "Regenerated token of"
+          Delete     -> "deleted"
+          Regenerate -> "regenerated token of"
       in
         (newModel, Cmd.batch [successNotification ("Successfully " ++ message ++ " API account '" ++ account.name ++  "'"), (getAccounts model)])
 
@@ -120,7 +133,7 @@ update msg model =
       let
         action = case actionType of
           Delete     -> "Deleting"
-          Regenerate -> "Regenerating token of"
+          Regenerate -> "regenerating token of"
       in
         processApiError (action ++ " API account") err model
 
