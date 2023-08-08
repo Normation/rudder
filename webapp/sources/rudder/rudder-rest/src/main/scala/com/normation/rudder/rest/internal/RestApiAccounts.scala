@@ -47,7 +47,6 @@ class RestApiAccounts(
       OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
           val accounts = {
-            // FIXME remove token if format V2
             (
               ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
               ("accounts"         -> JArray(
