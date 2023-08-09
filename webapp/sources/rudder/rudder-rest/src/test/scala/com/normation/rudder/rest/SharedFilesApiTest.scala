@@ -75,6 +75,12 @@ class SharedFilesApiTest extends Specification {
     res.toString() must beEqualTo(tmp.toString() + "/file2")
   }
 
+  "sanitize non-existing valid path" >> {
+    val tail = "/file42"
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp))
+    res.toString() must beEqualTo(tmp.toString() + "/file42")
+  }
+
   "sanitize does prevent for traversal" >> {
     val tail = "/../../.."
     val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp).isFailure)
