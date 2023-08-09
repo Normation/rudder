@@ -26,7 +26,7 @@
         ComponentName = "No block without condition"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -37,7 +37,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -50,7 +50,7 @@
         ComponentName = "No block with condition"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -65,7 +65,7 @@
 '@
             
         }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
+        $call = Package-Present @methodParams -PolicyMode $policyMode
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -80,7 +80,7 @@
         ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -91,7 +91,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -104,7 +104,7 @@
         ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -115,7 +115,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -128,7 +128,7 @@
         ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -139,7 +139,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -152,7 +152,7 @@
         ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -163,7 +163,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -176,7 +176,7 @@
         ComponentName = "Enabled reporting"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -187,7 +187,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     
@@ -200,7 +200,7 @@
         ComponentName = "Disabled reporting"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = true
+        DisableReporting = $true
         TechniqueName = $techniqueName
     }
     
@@ -211,7 +211,7 @@
         Version = ""
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     

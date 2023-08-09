@@ -49,7 +49,7 @@ struct TechniqueTemplate<'a> {
 }
 
 /// Filters for the technique template
-mod filters {
+pub mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
@@ -84,7 +84,7 @@ mod filters {
     }
 
     /// `my_method` -> `MyMethod`
-    pub fn _camel_case<T: Display>(s: T) -> askama::Result<String> {
+    pub fn camel_case<T: Display>(s: T) -> askama::Result<String> {
         Ok(s.to_string()
             .split('_')
             .map(uppercase_first_letter)
@@ -176,7 +176,7 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
             Some(condition.to_string())
         },
         args,
-        name: Windows::pascal_case(&m.info.as_ref().unwrap().bundle_name),
+        name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
     })
 }
 
@@ -185,33 +185,8 @@ impl Windows {
         Self
     }
 
-    fn pascal_case(s: &str) -> String {
-        let chars = s.chars();
-
-        let mut pascal = String::new();
-        let mut is_next_uppercase = true;
-        for c in chars {
-            let next = match c {
-                ' ' | '_' | '-' => {
-                    is_next_uppercase = true;
-                    String::new()
-                }
-                c => {
-                    if is_next_uppercase {
-                        is_next_uppercase = false;
-                        c.to_uppercase().to_string()
-                    } else {
-                        c.to_string()
-                    }
-                }
-            };
-            pascal.push_str(&next);
-        }
-        pascal
-    }
-
     pub fn technique_name(s: &str) -> String {
-        Self::pascal_case(s)
+        filters::dsc_case(s).unwrap()
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {

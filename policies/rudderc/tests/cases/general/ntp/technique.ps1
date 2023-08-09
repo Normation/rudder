@@ -1,4 +1,4 @@
-﻿function Ntp {
+﻿function Ntp-Technique {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
@@ -31,7 +31,7 @@
         ComponentName = "Ensure correct ntp configuration"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -46,7 +46,7 @@
 '@
             
         }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
+        $call = Package-Present @methodParams -PolicyMode $policyMode
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -61,7 +61,7 @@
         ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -71,7 +71,7 @@
             Name = "/bin/true `"# $($node.inventory[os][fullName])`""
             
         }
-        $call = PackageInstall $methodParams -PolicyMode $policyMode
+        $call = Package-Install @methodParams -PolicyMode $policyMode
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
