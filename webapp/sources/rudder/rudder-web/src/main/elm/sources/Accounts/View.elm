@@ -1,7 +1,7 @@
 module Accounts.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, type_, placeholder, value, colspan, rowspan, style, selected, id, disabled)
+import Html.Attributes exposing (class, colspan, disabled, href, id, placeholder, rowspan, selected, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 import String
@@ -32,13 +32,17 @@ view model =
             [ div[ class "main-details"]
               [ div[ class "explanation-text"]
                 [ div[]
-                  [ p[][ text "Configure accounts allowed to connect to Rudder's REST API." ]
-                  , p[][ text "An account is composed of a name, used to identify its action (for example in event logs), an authentication token which is the secret that will allow it to use Rudder's API, and a description to explain the intent of that account."
+                  [ p[][
+                      span[][
+                        text "Configure accounts allowed to connect to Rudder's REST API. For API usage, read the dedicated ",
+                        a[ href "https://docs.rudder.io/api/" ][text "documentation"],
+                        text "."]
                     ]
                   ]
-                ]
+
+              ]
               , div [class "parameters-container"]
-                [ button [class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ][ text "Create API Account" ]
+                [ button [class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ][ text "Create an account" ]
                 , div [class "main-table"]
                   [ div [class "table-container"]
                     [ div [class "dataTables_wrapper_top table-filter"]
@@ -79,4 +83,5 @@ view model =
         ]
       ]
     , displayModals model
+    , displayCopy model
     ]
