@@ -52,7 +52,21 @@ pub fn is_exit_on_user_error() -> bool {
 ///
 /// Don't return early on user error but display an error message
 pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+    // Deserialize into `Technique`
+    // Here return early as we can't do much if parsing failed,
+    // plus serde already displays as many errors as possible
+    let mut policy = frontends::read(input)?;
+    // Inject methods info into policy
+    // Also check consistency (parameters, constraints, etc.)
+    methods_metadata(&mut policy.items, methods)?;
+    for p in &mut policy.params {
+        check_parameter(p)?;
+    }
+    check_ids_unicity(&policy)?;
+    check_parameter_unicity(&policy)?;
+
     // JSON schema validity
+    // We do it in the end as error messages are a bit cryptic
     let schema_url = "https://docs.rudder.io/schemas/technique.schema.json";
     let schema: Value = serde_json::from_str(include_str!("./technique.schema.json")).unwrap();
     let mut schemas = Schemas::new();
@@ -68,19 +82,6 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
         error!("{error:#}");
         user_error();
     }
-
-    // Deserialize into `Technique`
-    // Here return early as we can't do much if parsing failed,
-    // plus serde already displays as many errors as possible
-    let mut policy = frontends::read(input)?;
-    // Inject methods info into policy
-    // Also check consistency (parameters, constraints, etc.)
-    methods_metadata(&mut policy.items, methods)?;
-    for p in &mut policy.params {
-        check_parameter(p)?;
-    }
-    check_ids_unicity(&policy)?;
-    check_parameter_unicity(&policy)?;
 
     // Final check
     let error_count = get_user_error_count();
