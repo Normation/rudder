@@ -54,7 +54,7 @@
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c12"
-    $componentKey = "/bin/true "# ${node.inventory[os][fullName]}""
+    $componentKey = "/bin/true `"# ${node.inventory[os][fullName]}`""
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_install_" + $componentKey)))
         ComponentKey = $componentKey
