@@ -27,7 +27,7 @@ function {{ id|dsc_case }} {
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
-    $componentKey = "{{ m.component_key }}"
+    $componentKey = "{{ m.component_key|escape_double_quotes }}"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
         ComponentKey = $componentKey
