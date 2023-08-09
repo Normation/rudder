@@ -26,7 +26,7 @@
         ComponentName = "Package present"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -37,7 +37,7 @@
         Version = "2.3.4"
         
     }
-    $call = PackagePresent $methodParams -PolicyMode $policyMode
+    $call = Package-Present @methodParams -PolicyMode $policyMode
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     

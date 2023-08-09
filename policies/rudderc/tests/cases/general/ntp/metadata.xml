@@ -5,7 +5,7 @@
   <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
   <AGENT type="cfengine-community">
     <BUNDLES>
-      <NAME>ntp</NAME>
+      <NAME>ntp_technique</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.cf">
@@ -13,13 +13,13 @@
       </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>ntp/0.1/resources/file.cfg</OUTPATH>
+        <OUTPATH>ntp_technique/0.1/resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>
   <AGENT type="dsc">
     <BUNDLES>
-      <NAME>Ntp</NAME>
+      <NAME>Ntp-Technique</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.ps1">
@@ -27,7 +27,7 @@
       </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
-        <OUTPATH>ntp/0.1/resources/file.cfg</OUTPATH>
+        <OUTPATH>ntp_technique/0.1/resources/file.cfg</OUTPATH>
       </FILE>
     </FILES>
   </AGENT>

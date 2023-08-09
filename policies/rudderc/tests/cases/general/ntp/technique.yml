@@ -1,5 +1,5 @@
 ---
-id: ntp
+id: ntp_technique
 name: NTP
 version: "0.1"
 params:

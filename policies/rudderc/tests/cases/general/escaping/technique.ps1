@@ -29,7 +29,7 @@
         ComponentName = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3"
         PolicyMode = $policyMode
         ReportId = $reportId
-        DisableReporting = false
+        DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
@@ -44,7 +44,7 @@
 '@
             
         }
-        $call = PackagePresent $methodParams -PolicyMode $policyMode
+        $call = Package-Present @methodParams -PolicyMode $policyMode
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
