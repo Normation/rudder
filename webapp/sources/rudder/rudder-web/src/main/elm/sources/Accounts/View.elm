@@ -15,7 +15,7 @@ import Accounts.ViewUtils exposing (..)
 view : Model -> Html Msg
 view model =
   let
-    test = "hello world"
+    hasClearTextTokens = List.any (\a -> (String.length a.token) > 0) model.accounts
   in
     div[ class "rudder-template"]
     [ div[ class "one-col"]
@@ -35,14 +35,24 @@ view model =
                   [ p[][
                       span[][
                         text "Configure accounts allowed to connect to Rudder's REST API. For API usage, read the dedicated ",
-                        a[ href "https://docs.rudder.io/api/" ][text "documentation"],
-                        text "."]
+                        a[ href "https://docs.rudder.io/api/" ][ text "documentation" ],
+                        text "."
+                      ]
                     ]
                   ]
 
               ]
-              , div [class "parameters-container"]
-                [ button [class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ][ text "Create an account" ]
+              , div [class "parameters-container"] [
+                if hasClearTextTokens then
+                  div [class "alert alert-warning"]
+                    [ i [class "fa fa-exclamation-triangle"][]
+                    , text "You have API accounts with tokens generated on a previous Rudder versions, those for which the "
+                    , text "beginning of the token value is displayed in the table. They are now deprecated, you should "
+                    , text "re-generate or replace them for improved security."
+                    ]
+                else
+                  text ""
+                , button [class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ][ text "Create an account" ]
                 , div [class "main-table"]
                   [ div [class "table-container"]
                     [ div [class "dataTables_wrapper_top table-filter"]
