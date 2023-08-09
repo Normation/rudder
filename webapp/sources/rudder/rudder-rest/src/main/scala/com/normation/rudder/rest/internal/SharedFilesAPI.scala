@@ -77,7 +77,11 @@ object SharedFilesAPI {
       // Actually canonifies the path
       val filePath = baseFolder / path.dropWhile(_.equals('/'))
       // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
-      val realPath = File(filePath.toJava.toPath.toRealPath())
+      val realPath = if (filePath.exists()) {
+        File(filePath.toJava.toPath.toRealPath())
+      } else {
+        filePath
+      }
       // `false` means we allow access to the base directory itself
       if (baseFolder.contains(realPath, strict = false)) {
         realPath.succeed
