@@ -24,6 +24,7 @@ type SortBy
   = Name
   | Id
   | ExpDate
+  | CreDate
 
 type alias TableFilters =
   { sortBy    : SortBy

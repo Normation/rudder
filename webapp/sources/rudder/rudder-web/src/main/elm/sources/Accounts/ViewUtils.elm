@@ -57,6 +57,7 @@ getSortFunction model a1 a2 =
             Nothing -> ""
         in
           N.compare expDate1 expDate2
+      CreDate -> N.compare a1.creationDate a2.creationDate
   in
     if model.ui.tableFilters.sortOrder == Asc then
       order
@@ -119,6 +120,7 @@ displayAccountsTable model =
         expirationDate = case a.expirationDate of
           Just d  -> if a.expirationDateDefined then (posixToString model.ui.datePickerInfo d) else "Never"
           Nothing -> "Never"
+        creationDate = slice 0 16 (String.replace "T" " " a.creationDate)
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -142,7 +144,7 @@ displayAccountsTable model =
                   [ i [class "ion ion-clipboard"][] ]
                 ]
           else
-            text ""
+            td [class "date"][ text creationDate ]
         , td [class "date"][ text expirationDate ]
         , td []
           [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
@@ -170,7 +172,10 @@ displayAccountsTable model =
       [ tr [class "head"]
         [ th [class (thClass model.ui.tableFilters Name    ), onClick (UpdateTableFilters (sortTable filters Name    ))][ text "Account name"    ]
         , th [class (thClass model.ui.tableFilters Id      ), onClick (UpdateTableFilters (sortTable filters Id      ))][ text "Account id"           ]
-        , if hasClearTextTokens then th [][ text "Token" ] else text ""
+        , if hasClearTextTokens then
+            th [][ text "Token" ]
+          else
+            th [class (thClass model.ui.tableFilters CreDate ), onClick (UpdateTableFilters (sortTable filters CreDate ))][ text "Creation date" ]
         , th [class (thClass model.ui.tableFilters ExpDate ), onClick (UpdateTableFilters (sortTable filters ExpDate ))][ text "Expiration date" ]
         , th [][ text "Actions" ]
         ]

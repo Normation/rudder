@@ -139,6 +139,7 @@ final class RoLDAPApiAccountRepository(
 
   // Here the process is:
   //
+  // * Ensure it is a clear-text token
   // * Check if token matches in-memory system account
   // * Then look for it in the LDAP:
   //   * First as a hash
@@ -148,7 +149,9 @@ final class RoLDAPApiAccountRepository(
   // a hash but a clear text token to avoid accepting the hash as valid token itself.
   //
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
-    if (token.value == systemAPIAccount.token.value) {
+    if (token.isHashed) {
+      None.succeed
+    } else if (token == systemAPIAccount.token) {
       Some(systemAPIAccount).succeed
     } else {
       val hash = ApiToken.hash(token.value)
@@ -168,11 +171,7 @@ final class RoLDAPApiAccountRepository(
                                         case Some(e) =>
                                           mapper
                                             .entry2ApiAccount(e)
-                                            .map((a) => {
-                                              // A hash is NOT a clear-text token
-                                              if (a.token.isHashed) { None }
-                                              else { Some(a) }
-                                            })
+                                            .map(Some(_))
                                             .toIO
                                       }
                         } yield {
