@@ -21,6 +21,16 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.3.1 -> 0.3.2"
 
+[[audits.format_serde_error]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
+
+[[audits.format_serde_error]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.0 -> 0.3.1@git:06ef275ce1f2c56b91fa0a4785e28c3aa9c67b31"
+
 [[audits.hermit-abi]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
