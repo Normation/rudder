@@ -22,7 +22,7 @@
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d966"
-    $componentKey = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ " "" \ \\😋aà3"
+    $componentKey = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
