@@ -22,7 +22,7 @@ components:
   securitySchemes:
     $ref: components/securitySchemes/token.yml
 security:
-  # Apply the same auth everywhere by default, can be overriden
+  # Apply the same auth everywhere by default, can be overridden
   - "API-Tokens": []
 tags:
   - name: API Info
