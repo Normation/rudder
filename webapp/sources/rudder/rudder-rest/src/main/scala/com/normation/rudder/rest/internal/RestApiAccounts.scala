@@ -46,17 +46,20 @@ class RestApiAccounts(
       // and we want to avoid escalation
       OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
+          val filtered = accountSeq.toList
+            .map((a) => {
+              // Don't send hashes
+              a.copy(token = if (a.token.isHashed) {
+                ApiToken("")
+              } else {
+                a.token
+              })
+            })
           val accounts = {
             (
               ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
               ("accounts"         -> JArray(
-                accountSeq.toList
-                  .map((a) => {
-                    // Don't send hashes
-                    a.copy(token = if (a.token.isHashed) { ApiToken("") }
-                    else { a.token })
-                  })
-                  .map(_.toJson)
+                filtered.map(_.toJson)
               ))
             )
           }
@@ -187,7 +190,12 @@ class RestApiAccounts(
         case Right(Some(account)) =>
           writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
             case Right(_) =>
-              val accounts = ("accounts" -> JArray(List(account.toJson)))
+              val filtered = account.copy(token = if (account.token.isHashed) {
+                ApiToken("")
+              } else {
+                account.token
+              })
+              val accounts = ("accounts" -> JArray(List(filtered.toJson)))
               toJsonResponse(None, accounts)
 
             case Left(err) =>
@@ -261,7 +269,12 @@ class RestApiAccounts(
   def save(account: ApiAccount)(implicit action: String, prettify: Boolean): LiftResponse = {
     writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
       case Right(res) =>
-        val accounts = ("accounts" -> JArray(List(res.toJson)))
+        val filtered = res.copy(token = if (res.token.isHashed) {
+          ApiToken("")
+        } else {
+          res.token
+        })
+        val accounts = ("accounts" -> JArray(List(filtered.toJson)))
         toJsonResponse(None, accounts)
 
       case Left(err) =>
