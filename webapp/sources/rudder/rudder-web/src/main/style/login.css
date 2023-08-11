@@ -1,11 +1,3 @@
-@font-face {
-    font-family: 'LatoWeb';
-    src: url('fonts/Lato/Lato-Regular.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-
 html,body{
   padding: 0;
   margin : 0;
@@ -13,7 +5,8 @@ html,body{
   background-color : #F8F9FC;
   color: #041922;
   font-size   : 18px;
-  font-family : "LatoWeb", sans-serif;
+  font-family : system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+                "Noto Sans", "Liberation Sans", Arial, sans-serif;
 }
 
 .flex-container{

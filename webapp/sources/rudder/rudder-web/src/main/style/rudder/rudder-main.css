@@ -35,137 +35,12 @@
 *************************************************************************************
 */
 
-@font-face {
-    font-family: 'LatoWebBlack';
-    src: url('../fonts/Lato/Lato-Black.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebBlack';
-    src: url('../fonts/Lato/Lato-BlackItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebBold';
-    src: url('../fonts/Lato/Lato-Bold.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebBold';
-    src: url('../fonts/Lato/Lato-BoldItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebHairline';
-    src: url('../fonts/Lato/Lato-Hairline.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebHairline';
-    src: url('../fonts/Lato/Lato-HairlineItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebHeavy';
-    src: url('../fonts/Lato/Lato-Heavy.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebHeavy';
-    src: url('../fonts/Lato/Lato-HeavyItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWeb';
-    src: url('../fonts/Lato/Lato-Italic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebLight';
-    src: url('../fonts/Lato/Lato-Light.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebLight';
-    src: url('../fonts/Lato/Lato-LightItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebMedium';
-    src: url('../fonts/Lato/Lato-Medium.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebMedium';
-    src: url('../fonts/Lato/Lato-MediumItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWeb';
-    src: url('../fonts/Lato/Lato-Regular.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebSemibold';
-    src: url('../fonts/Lato/Lato-Semibold.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebSemibold';
-    src: url('../fonts/Lato/Lato-SemiboldItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebThin';
-    src: url('../fonts/Lato/Lato-Thin.woff2') format('woff2');
-    font-style: normal;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-@font-face {
-    font-family: 'LatoWebThin';
-    src: url('../fonts/Lato/Lato-ThinItalic.woff2') format('woff2');
-    font-style: italic;
-    font-weight: normal;
-    text-rendering: optimizeLegibility;
-}
-
 body {
-   font-family: 'LatoWeb', sans-serif;
+  font-family: var(--font-sans);
 }
-
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+}
 
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
@@ -202,7 +77,7 @@ body {
 }
 
 .content-wrapper h1,.content-wrapper h2,.content-wrapper h3,.content-wrapper h4,.content-wrapper h5,.content-wrapper h6,.content-wrapper .rudder-form{
-    font-family: "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
 }
 .text-align{
   text-align:center!important;
@@ -1169,7 +1044,7 @@ form .tooltip-content p {
 }
 .content-wrapper .label-text:after{
   float: left;
-  font-family : "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
 }
 
 
@@ -1180,7 +1055,7 @@ form .tooltip-content p {
 .callout-fade{
   position: relative;
   padding-right: 40px !important;
-  font-family : "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
   font-size:14px;
   background-color: #fff;
   padding: 10px 15px;
@@ -1302,7 +1177,7 @@ form .tooltip-content p {
   background-color: #f5f5f5;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: var(--font-mono);
   overflow:auto;
 }
 /*
@@ -1419,7 +1294,7 @@ form .tooltip-content p {
   margin: 5px 0 20px;
   font-size: 22px !important;
   font-weight: 500 !important;
-  font-family: "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.42857143 !important;
   cursor: default;
 }
@@ -1434,7 +1309,7 @@ form .tooltip-content p {
   margin: 5px 0 20px;
   font-size: 16px !important;
   font-weight: 500 !important;
-  font-family: "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.42857143 !important;
   cursor: default;
 }

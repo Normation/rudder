@@ -38,7 +38,7 @@
   bottom: 100px;
   right: 100px;
   z-index: 1;
-  font-family: sans-serif;
+  font-family: var(--font-sans);
 }
 
 .fm-bar {

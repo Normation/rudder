@@ -113,7 +113,7 @@ body{
 
 .modal-header {
   background-color: #041922;
-  font-family: sans-serif;
+  font-family: var(--font-sans);
   font-weight: bold;
   color: #fff;
   border-radius: 0;
@@ -127,7 +127,7 @@ body{
   background-color: #ee7f00;
   background-image: linear-gradient(#ffa033, #ee7f00 50%, #b86200);
   border: none;
-  font-family: sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight:bold;
 }
@@ -673,7 +673,7 @@ body{
   margin-bottom:0;
 }
 .content-wrapper .monospace-font{
-  font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+  font-family: var(--font-mono);
   word-break: break-all;
   word-wrap: break-word;
 }

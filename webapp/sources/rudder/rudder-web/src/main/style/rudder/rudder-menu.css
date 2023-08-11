@@ -130,7 +130,7 @@
   line-height: 50px;
   text-align: center;
   width: 230px;
-  font-family: "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
   padding: 0 15px;
   font-weight: 300;
   overflow: hidden;

@@ -6,158 +6,152 @@
   <title>Rudder - Loading</title>
   <link type="image/x-icon" rel="icon" data-lift="with-cached-resource" href="../../webapp/images/rudder-favicon.ico">
   <style type="text/css">
-          @font-face {
-              font-family: 'LatoWeb';
-              src: url('fonts/Lato/Lato-Regular.woff2') format('woff2');
-              font-style: normal;
-              font-weight: normal;
-              text-rendering: optimizeLegibility;
-          }
-          html, body {
-             margin:0;
-             padding: 0;
-          }
-          body {
-            font-size: 4px;
-            font-family: 'LatoWeb', sans-serif;
-            color: #36474E;
-            overflow-y: hidden;
-            background-color: #f8f9fc;
-          }
-          svg{
-            width: 100%;
-          }
-          #logo-rudder-text{
-          max-width: 400px;
-            margin: 0 20px;
-          }
-          #gear.animate {
-            transform-box: fill-box;
-            transform-origin: center;
-            -webkit-transform-origin: center;
-            -moz-transform-origin: center;
-            -webkit-animation: rotation 0.4s linear infinite;
-            -moz-animation:    rotation 0.4s linear infinite;
-            -o-animation:      rotation 0.4s linear infinite;
-            animation:         rotation 0.4s linear infinite;
-          }
-          hr{
-            margin:auto;
-            width: 70%;
-            border: none;
-            border-top: 1px solid transparent;
-            margin-bottom: 2rem;
-          }
-          .container {
-            padding-right: 15px;
-            padding-left: 15px;
-            margin-right: auto;
-            margin-left: auto;
-          }
-          @media (max-width: 767px) {
-            h2{
-              margin-top: 0px;
-              font-size: 2rem !important;
-            }
-            hr{
-              margin-bottom: 1rem;
-            }
-          }
-          @media (min-width: 768px) {
-            .container {
-              width: 750px;
-            }
-            body {
-              font-size: 10px;
-            }
-          }
-          @media (min-width: 992px) {
-            .container {
-              width: 970px;
-            }
-            body {
-              font-size: 12px;
-            }
-          }
-          @media (min-width: 1200px) {
-            .container {
-              width: 1170px;
-            }
-            body {
-              font-size: 14px;
-            }
-          }
-          h1{
-            margin-top: 40px;
-          }
-          h1, h2{
-            text-align: center;
-          }
-          h2{
-            font-size: 3rem;
-          }
-          .loading{
-            position: relative;
-          }
-          .loading:after{
-            content: ".";
-            position: absolute;
-            -webkit-animation: loading 2.5s linear infinite;
-            -moz-animation: loading 2.5s linear infinite;
-            -o-animation: loading 2.5s linear infinite;
-            animation: loading 2.5s linear infinite;
-          }
-          .container .explanation {
-            color: #555;
-            font-size: 1.3rem;
-          }
-          .container ul{
-            list-style-type: none;
-          }
-          .container ul > li:before{
-            content: "⚫";
-            font-size: 18px;
-            position: relative;
-            top: -2px;
-            margin-right: 15px !important;
-            color: #d6deef;
-          }
-          @-webkit-keyframes rotation {
-            0%   {transform: rotate(0deg);  }
-            100% {transform: rotate(45deg);}
-          }
-          @-moz-keyframes rotation {
-            0%   {transform: rotate(0deg);  }
-            100% {transform: rotate(45deg);}
-          }
-          @-o-keyframes rotation {
-            0%   {transform: rotate(0deg);  }
-            100% {transform: rotate(45deg);}
-          }
-          @keyframes rotation {
-            0%   {transform: rotate(0deg);  }
-            100% {transform: rotate(45deg);}
-          }
-          @-webkit-keyframes loading {
-            0%   {content: ".";    }
-            33%  {content: "..";   }
-            66%  {content: "...";  }
-          }
-          @-moz-keyframes loading {
-            0%   {content: ".";    }
-            33%  {content: "..";   }
-            66%  {content: "...";  }
-          }
-          @-o-keyframes loading {
-            0%   {content: ".";    }
-            33%  {content: "..";   }
-            66%  {content: "...";  }
-          }
-          @keyframes loading {
-            0%   {content: ".";    }
-            33%  {content: "..";   }
-            66%  {content: "...";  }
-          }
+    html, body {
+       margin:0;
+       padding: 0;
+    }
+    body {
+      font-size: 4px;
+      font-family : system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+                    "Noto Sans", "Liberation Sans", Arial, sans-serif;
+      color: #36474E;
+      overflow-y: hidden;
+      background-color: #f8f9fc;
+    }
+    svg{
+      width: 100%;
+    }
+    #logo-rudder-text{
+    max-width: 400px;
+      margin: 0 20px;
+    }
+    #gear.animate {
+      transform-box: fill-box;
+      transform-origin: center;
+      -webkit-transform-origin: center;
+      -moz-transform-origin: center;
+      -webkit-animation: rotation 0.4s linear infinite;
+      -moz-animation:    rotation 0.4s linear infinite;
+      -o-animation:      rotation 0.4s linear infinite;
+      animation:         rotation 0.4s linear infinite;
+    }
+    hr{
+      margin:auto;
+      width: 70%;
+      border: none;
+      border-top: 1px solid transparent;
+      margin-bottom: 2rem;
+    }
+    .container {
+      padding-right: 15px;
+      padding-left: 15px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+    @media (max-width: 767px) {
+      h2{
+        margin-top: 0px;
+        font-size: 2rem !important;
+      }
+      hr{
+        margin-bottom: 1rem;
+      }
+    }
+    @media (min-width: 768px) {
+      .container {
+        width: 750px;
+      }
+      body {
+        font-size: 10px;
+      }
+    }
+    @media (min-width: 992px) {
+      .container {
+        width: 970px;
+      }
+      body {
+        font-size: 12px;
+      }
+    }
+    @media (min-width: 1200px) {
+      .container {
+        width: 1170px;
+      }
+      body {
+        font-size: 14px;
+      }
+    }
+    h1{
+      margin-top: 40px;
+    }
+    h1, h2{
+      text-align: center;
+    }
+    h2{
+      font-size: 3rem;
+    }
+    .loading{
+      position: relative;
+    }
+    .loading:after{
+      content: ".";
+      position: absolute;
+      -webkit-animation: loading 2.5s linear infinite;
+      -moz-animation: loading 2.5s linear infinite;
+      -o-animation: loading 2.5s linear infinite;
+      animation: loading 2.5s linear infinite;
+    }
+    .container .explanation {
+      color: #555;
+      font-size: 1.3rem;
+    }
+    .container ul{
+      list-style-type: none;
+    }
+    .container ul > li:before{
+      content: "⚫";
+      font-size: 18px;
+      position: relative;
+      top: -2px;
+      margin-right: 15px !important;
+      color: #d6deef;
+    }
+    @-webkit-keyframes rotation {
+      0%   {transform: rotate(0deg);  }
+      100% {transform: rotate(45deg);}
+    }
+    @-moz-keyframes rotation {
+      0%   {transform: rotate(0deg);  }
+      100% {transform: rotate(45deg);}
+    }
+    @-o-keyframes rotation {
+      0%   {transform: rotate(0deg);  }
+      100% {transform: rotate(45deg);}
+    }
+    @keyframes rotation {
+      0%   {transform: rotate(0deg);  }
+      100% {transform: rotate(45deg);}
+    }
+    @-webkit-keyframes loading {
+      0%   {content: ".";    }
+      33%  {content: "..";   }
+      66%  {content: "...";  }
+    }
+    @-moz-keyframes loading {
+      0%   {content: ".";    }
+      33%  {content: "..";   }
+      66%  {content: "...";  }
+    }
+    @-o-keyframes loading {
+      0%   {content: ".";    }
+      33%  {content: "..";   }
+      66%  {content: "...";  }
+    }
+    @keyframes loading {
+      0%   {content: ".";    }
+      33%  {content: "..";   }
+      66%  {content: "...";  }
+    }
   </style>
 </head>
 

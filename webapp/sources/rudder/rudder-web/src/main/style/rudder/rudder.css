@@ -35,6 +35,15 @@
 *************************************************************************************
 */
 
+:root {
+/* Use system fonts consistently */
+/* Based on bootstrap 5.3 */
+--font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+             "Noto Sans", "Liberation Sans", Arial, sans-serif;
+--font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+             monospace;
+}
+
 @-moz-document url-prefix() {
   fieldset { display: table-cell; }
 }
@@ -1493,7 +1502,7 @@ label span.text-fit{
 .content-wrapper .ui-tabs-panel .jstree {
   margin-top:0;
   font-size: 12px;
-  font-family : "LatoWeb", sans-serif;
+  font-family: var(--font-sans);
 }
 
 .cursorPointer {

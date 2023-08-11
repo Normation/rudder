@@ -302,7 +302,7 @@ body {
 }
 
 textarea.code {
-  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   min-height: 250px;
   resize: vertical;
@@ -609,7 +609,7 @@ table th > a:focus {
 }
 
 .item-extension::after {
-  font-family: "Roboto","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: var(--font-sans);
   content: attr(data-ext);
   left: 4px;
   position: absolute;
