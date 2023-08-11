@@ -769,6 +769,7 @@
   background-color: transparent;
   padding: 0 !important;
   margin: 10%;
+  font-weight: normal;
 }
 .rudder-template .template-main .jumbotron h1{
   font-size: 4em;
