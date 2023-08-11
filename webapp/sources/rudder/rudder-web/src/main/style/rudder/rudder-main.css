@@ -35,6 +35,13 @@
 *************************************************************************************
 */
 
+body {
+  font-family: var(--font-sans);
+}
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+}
+
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
   font-weight: bold;
@@ -70,7 +77,7 @@
 }
 
 .content-wrapper h1,.content-wrapper h2,.content-wrapper h3,.content-wrapper h4,.content-wrapper h5,.content-wrapper h6,.content-wrapper .rudder-form{
-  font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 .text-align{
   text-align:center!important;
@@ -1037,7 +1044,7 @@ form .tooltip-content p {
 }
 .content-wrapper .label-text:after{
   float: left;
-  font-family: Verdana,Arial,sans-serif;
+  font-family: var(--font-sans);
 }
 
 
@@ -1048,7 +1055,7 @@ form .tooltip-content p {
 .callout-fade{
   position: relative;
   padding-right: 40px !important;
-  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family: var(--font-sans);
   font-size:14px;
   background-color: #fff;
   padding: 10px 15px;
@@ -1170,7 +1177,7 @@ form .tooltip-content p {
   background-color: #f5f5f5;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: var(--font-mono);
   overflow:auto;
 }
 /*
@@ -1287,7 +1294,7 @@ form .tooltip-content p {
   margin: 5px 0 20px;
   font-size: 22px !important;
   font-weight: 500 !important;
-  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.42857143 !important;
   cursor: default;
 }
@@ -1302,7 +1309,7 @@ form .tooltip-content p {
   margin: 5px 0 20px;
   font-size: 16px !important;
   font-weight: 500 !important;
-  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.42857143 !important;
   cursor: default;
 }
