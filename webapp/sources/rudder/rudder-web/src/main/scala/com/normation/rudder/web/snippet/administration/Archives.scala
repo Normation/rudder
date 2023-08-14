@@ -105,17 +105,17 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "rulesForm",
       archiveButtonId = "exportRulesButton",
-      archiveButtonName = "Archive Rules",
+      archiveButtonName = "Archive rules",
       archiveFunction = (a, b, c, d, e) => itemArchiver.exportRules(a, b, c, d, e).map(x => (x, noElements)),
-      archiveErrorMessage = "Error when exporting Rules.",
-      archiveSuccessDebugMessage = s => "Exporting Rules on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when exporting rules.",
+      archiveSuccessDebugMessage = s => "Exporting rules on user request, archive id: %s".format(s),
       archiveDateSelectId = "importRulesSelect",
       archiveListFunction = () => itemArchiver.getRulesTags,
       restoreButtonId = "importRulesButton",
-      restoreButtonName = "Restore Rules",
+      restoreButtonName = "Restore rules",
       restoreFunction = itemArchiver.importRules,
-      restoreErrorMessage = "Error when imporing Rules.",
-      restoreSuccessDebugMessage = "Importing Rules on user request",
+      restoreErrorMessage = "Error when importing rules.",
+      restoreSuccessDebugMessage = "Importing rules on user request",
       downloadButtonId = "downloadRulesButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = "rules"
@@ -126,17 +126,17 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "directiveLibraryForm",
       archiveButtonId = "exportDirectiveLibraryButton",
-      archiveButtonName = "Archive Directive library",
+      archiveButtonName = "Archive directive library",
       archiveFunction = itemArchiver.exportTechniqueLibrary,
-      archiveErrorMessage = "Error when exporting Directive library.",
-      archiveSuccessDebugMessage = s => "Exporting Directive library on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when exporting directive library.",
+      archiveSuccessDebugMessage = s => "Exporting directive library on user request, archive id: %s".format(s),
       archiveDateSelectId = "importDirectiveLibrarySelect",
       archiveListFunction = () => itemArchiver.getTechniqueLibraryTags,
       restoreButtonId = "importDirectiveLibraryButton",
-      restoreButtonName = "Restore Directive library",
+      restoreButtonName = "Restore directive library",
       restoreFunction = itemArchiver.importTechniqueLibrary,
-      restoreErrorMessage = "Error when importing Directive library.",
-      restoreSuccessDebugMessage = "Importing Directive library on user request",
+      restoreErrorMessage = "Error when importing directive library.",
+      restoreSuccessDebugMessage = "Importing directive library on user request",
       downloadButtonId = "downloadDirectiveLibraryButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = "directives"
@@ -168,17 +168,17 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "parametersForm",
       archiveButtonId = "exportParametersButton",
-      archiveButtonName = "Archive Parameters",
+      archiveButtonName = "Archive global properties",
       archiveFunction = (a, b, c, d, e) => itemArchiver.exportParameters(a, b, c, d, e).map(x => (x, noElements)),
-      archiveErrorMessage = "Error when exporting Parameters.",
-      archiveSuccessDebugMessage = s => "Exporting Parameters on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when exporting global properties.",
+      archiveSuccessDebugMessage = s => "Exporting global properties on user request, archive id: %s".format(s),
       archiveDateSelectId = "importParametersSelect",
       archiveListFunction = () => itemArchiver.getParametersTags,
       restoreButtonId = "importParametersButton",
       restoreButtonName = "Restore Parameters",
       restoreFunction = itemArchiver.importParameters,
-      restoreErrorMessage = "Error when imporing Parameters.",
-      restoreSuccessDebugMessage = "Importing Parameters on user request",
+      restoreErrorMessage = "Error when importing global properties.",
+      restoreSuccessDebugMessage = "Importing global properties on user request",
       downloadButtonId = "downloadParametersButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = "parameters"
@@ -247,14 +247,14 @@ class Archives extends DispatchSnippet with Loggable {
 
       if (!elements.isEmpty) {
         val cats = elements.categories.map {
-          case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.fullMsg)
+          case CategoryNotArchived(catId, f) => "Error when archiving category with id '%s': %s".format(catId.value, f.fullMsg)
         }
         val ats  = elements.activeTechniques.map {
           case ActiveTechniqueNotArchived(atId, f) =>
-            "Error when archiving Active Technique with id '%s': %s".format(atId.value, f.fullMsg)
+            "Error when archiving active technique with id '%s': %s".format(atId.value, f.fullMsg)
         }
         val dirs = elements.directives.map {
-          case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.fullMsg)
+          case DirectiveNotArchived(dirId, f) => "Error when archiving directive with id '%s': %s".format(dirId.value, f.fullMsg)
         }
 
         val all = cats ++ ats ++ dirs

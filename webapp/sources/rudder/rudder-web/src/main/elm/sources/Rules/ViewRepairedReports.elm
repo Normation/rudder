@@ -36,7 +36,7 @@ showTab model details =
   in
     div[class "tab-table-content"]
       [ div [class "table-title"]
-        [ h4 [][text "Recent changes - ", select [onInput (\s -> GetRepairedReport (details.rule.id) (Maybe.withDefault 0 (String.toInt s)) ), class "form-control" ] (options details.rule.id model) ] ]
+        [ h4 [][text "Recent changes ", select [onInput (\s -> GetRepairedReport (details.rule.id) (Maybe.withDefault 0 (String.toInt s)) ), class "form-control" ] (options details.rule.id model) ] ]
       , div [class "table-header"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
           , onInput (\s ->

@@ -219,7 +219,7 @@ editionTemplate model details =
         else
           li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
-            [ text "Recent Changes"
+            [ text "Recent changes"
             , span[class "badge badge-secondary badge-resources tooltip-bs"]
               [ span [class "nb-resources"] [text (String.fromFloat (countRecentChanges details.rule.id model.changes))]
               ]

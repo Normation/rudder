@@ -197,14 +197,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           case (x, y, z) =>
             (x :: y :: z :: Nil).foreach {
               case eb: EmptyBox =>
-                val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+                val f = eb ?~! "Error when trying to get the root category of active techniques"
                 logger.error(f.messageChain)
                 f.rootExceptionCause.foreach(ex => logger.error("Exception causing the error was:", ex))
 
               case _ => //
             }
 
-            <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            <span class="error">An error occured when trying to get information from the database. Please contact your administrator or retry latter.</span>
         }
       }</div>: NodeSeq
     ) ++ Script(OnLoad(buildJsTree()))
@@ -246,15 +246,15 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               </style>
               <div class="jumbotron">
                 <h1>Directives</h1>
-                <p>A Directive is an instance of a Technique, which allows to set values for the parameters of the latter.</p>
-                <p>Each Directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the Technique.</p>
+                <p>A directive is an instance of a technique, which allows to set values for the parameters of the latter.</p>
+                <p>Each directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the technique.</p>
                 <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
                 <ol>
                   <li><b>Bugs</b> are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
                   <li>A new <b>minor</b> technique version is created for any new features</li>
                   <li>A new <b>major</b> version is created for any <b>architectural change</b> (such as refactoring)</li>
                 </ol>
-                <p>You can find your own Techniques written in the Technique Editor in the <b>User Techniques</b> category.</p>
+                <p>You can find your own techniques written in the technique editor in the <b>User Techniques</b> category.</p>
               </div>
             </div>
         }
@@ -262,8 +262,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Some((fullActiveTechnique, version)) =>
         fullActiveTechnique.techniques.get(version) match {
           case None =>
-            val m = s"There was an error when trying to read version ${version.debugString} of the Technique." +
-              "This is bad. Please check if that version exists on the filesystem and is correctly registered in the Technique Library."
+            val m = s"There was an error when trying to read version ${version.debugString} of the technique." +
+              "Please check if that version exists on the filesystem and is correctly registered in the technique library."
 
             logger.error(m)
 
@@ -288,17 +288,17 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   case Some(timeStamp) => Some((v, t, timeStamp))
                   case None            =>
                     logger.error(
-                      "Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(
+                      "Inconsistent technique version state for technique with ID '%s' and its version '%s': ".format(
                         fullActiveTechnique.techniqueName,
                         v.debugString
                       ) +
                       "that version was not correctly registered into Rudder and can not be use for now."
                     )
                     logger.info(
-                      "A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
+                      "A workaround is to remove that version manually from Rudder (move the directory for that version of the technique out " +
                       "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
-                      "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
-                      "modification), and reload again the Technique Library."
+                      "reload the technique library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                      "modification), and reload the technique library again."
                     )
 
                     None
@@ -335,12 +335,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
   private[this] val (monoMessage, multiMessage, limitedMessage) = {
     (
-      "A unique Directive derived from that technique can be deployed on a given server.",
-      """Several Directives derived from that technique can be deployed on a given server.
-      Those Directives can be deployed at the same time even if they have a different policy mode.
-      Directives from this technique version can also be used with other Directives from a single limited multi instance technique version.
+      "A unique directive derived from that technique can be deployed on a given server.",
+      """Several directives derived from that technique can be deployed on a given server.
+      Those directives can be deployed at the same time even if they have a different policy mode.
+      Directives from this technique version can also be used with other directives from a single limited multi instance technique version.
       """,
-      "Several Directives derived from that technique can be deployed on a given server if they are based on the same technique version and have the same policy mode."
+      "Several directives derived from that technique can be deployed on a given server if they are based on the same technique version and have the same policy mode."
     )
   }
 
@@ -441,7 +441,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              |  var versions = ${actionsArray.toJsCmd}
              |  var getVersion = versions.find(v => v.version === version)
              |  if (getVersion === undefined) {
-             |    createErrorNotification("Error while creating Directive based on technique version '"+version+"'. Reason: Unknown version")
+             |    createErrorNotification("Error while creating directive based on technique version '"+version+"'. Reason: Unknown version")
              |  }else{
              |    console.log(getVersion);
              |    getVersion.action();
@@ -466,7 +466,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     currentDirectiveSettingForm.get match {
       case Failure(m, ex, _) =>
         <div id={htmlId_policyConf} class="col-md-offset-2 col-md-8" style="margin-top:50px">
-          <h4 class="text-warning">An error happened when trying to load Directive configuration.</h4>
+          <h4 class="text-warning">An error happened when trying to load directive configuration.</h4>
           <div class="bs-callout bs-callout-danger">
             <strong>Error message was:</strong>
             <p>{m}</p>{
@@ -482,7 +482,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
                       CurrentUser.actor,
                       Some(
-                        s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its Technique isn't available anymore"
+                        s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
                       ).toBox
                     )
                     .toBox match {
@@ -554,7 +554,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         SetHtml(html_techniqueDetails, NodeSeq.Empty) &
         JsRaw("""createTooltip();""")
       case eb: EmptyBox =>
-        val fail      = eb ?~! "Could not get global policy mode while creating new Directive"
+        val fail      = eb ?~! "Could not get global policy mode while creating new directive"
         logger.error(fail.messageChain)
         val errorHtml = {
           <div class="deca">
@@ -611,7 +611,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] case class MissingTechniqueException(directive: Directive) extends Exception(
-        s"Directive ${directive.name} (${directive.id.uid.value}) is bound to a Technique without any valid version available"
+        s"Directive ${directive.name} (${directive.id.uid.value}) is bound to a technique without any valid version available"
       )
 
   private[this] def updateDirectiveSettingForm(
@@ -657,7 +657,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 <div class="bs-callout bs-callout-danger text-left">
                 <p>This directive was linked to version '{
                 directive.techniqueVersion.debugString
-              }' of the Technique which is not available anymore. It was automatically
+              }' of the technique which is not available anymore. It was automatically
                 migrated to version '{version}' but the change is not commited yet.</p>
                 <p>You can now delete the directive or save it to confirm migration. If you keep that directive without commiting changes, Rudder will not be
                 able to generate policies for rules which use it.</p>
