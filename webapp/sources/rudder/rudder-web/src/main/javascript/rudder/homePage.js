@@ -136,7 +136,7 @@ function homePage (
   var target = document.getElementById('complianceGauge'); // your canvas element
   var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
   gauge.maxValue = 100; // set max gauge value
-  gauge.animationSpeed = 25; // set animation speed (32 is default value)
+  gauge.animationSpeed = 14; // set animation speed (32 is default value)
 
   if(globalGauge < 0) { //put placeholder texte
     $("#globalCompliance").html('<div class="placeholder progress"></div>');
@@ -248,6 +248,10 @@ function doughnutChart (id,data,count,colors,hoverColors) {
       type: 'doughnut'
     , data: chartData
     , options: {
+        animation: {
+            // in ms
+            duration: 500
+        },
         plugins: {
           htmlLegend: {
           // ID of the container to put the legend in
@@ -425,12 +429,3 @@ function homePageSoftware (
 ) {
   doughnutChart('nodeAgents', nodeAgents, count, inventoryColors, hoverColors);
 }
-
-function userAgentIsIE() {
-    var msie = window.navigator.userAgent.indexOf("MSIE ");
-    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)){
-        return true;
-    }
-    return false;
-}
-
