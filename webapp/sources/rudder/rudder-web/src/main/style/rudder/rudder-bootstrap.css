@@ -392,6 +392,9 @@ body{
 .modal-dialog {
   z-index:1050;
 }
+.modal.fade .modal-dialog {
+    transition: transform .1s ease-out,-webkit-transform .1s ease-out,-o-transform .1s ease-out;
+}
 
 .modal .table#grid_dependentRulesGrid {
   margin-bottom: 0;

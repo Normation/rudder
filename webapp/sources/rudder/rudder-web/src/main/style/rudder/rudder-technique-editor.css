@@ -157,7 +157,7 @@ body > .container-fluid {
 }
 .col-techniques,
 .col-methods {
-  transition-duration: .3s;
+  transition-duration: .15s;
   transition-timing-function: ease;
   overflow: hidden;
 }

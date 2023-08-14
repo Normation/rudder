@@ -456,7 +456,7 @@
   flex-basis: 70%;
   flex-direction: column;
   height: auto;
-  animation: fadein .8s ease-out forwards;
+  animation: fadein .2s ease-out forwards;
   overflow: hidden;
 }
 .rudder-template.one-col .template-main{
@@ -1243,7 +1243,7 @@ label.custom-toggle > input {
 label.custom-toggle .custom-toggle-group{
   display: inline-flex;
   margin: 0;
-  transition-duration: .4s;
+  transition-duration: .1s;
   transition-timing-function: ease;
   position: relative;
   left: 0;
@@ -1259,7 +1259,7 @@ label.custom-toggle .custom-toggle-group > label{
   text-align: center;
   cursor: pointer;
   box-shadow: inset 0 0 6px 3px #16293220;
-  transition-duration: .2s;
+  transition-duration: .1s;
   transition-property: box-shadow;
 }
 label.custom-toggle:hover .custom-toggle-group > label{
