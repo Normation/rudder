@@ -295,7 +295,7 @@ showTechnique model technique origin ui =
     , div [ class "main-navbar" ] [
         ul [ class "ui-tabs-nav nav nav-tabs" ] [
           li [ class (activeTabClass General) , onClick (SwitchTab General)] [
-            a [] [ text "General information" ]
+            a [] [ text "Information" ]
           ]
         , li [ class (activeTabClass Parameters), onClick (SwitchTab Parameters) ] [
             a [] [
@@ -358,7 +358,7 @@ view model =
                       , p [] [ text "Create a new technique or edit one from the list on the left."]
                       , p [] [ text "Define target configuration using the generic methods from the list on the right as building blocks."]
                       , button [ class "btn btn-success btn-lg" , onClick (GenerateId (\s -> NewTechnique (TechniqueId s) ))] [
-                          text "Create Technique "
+                          text "Create technique "
                         , i [ class "fa fa-plus-circle" ] []
                         ]
                       ]

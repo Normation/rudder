@@ -692,7 +692,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     $iconButton.children().remove(".svg-loading");
     $iconButton.addClass("fa fa-play");
     $( "#triggerBtn" ).prop('disabled', null).blur();
-    $textAction.html("Trigger Agent")
+    $textAction.html("Trigger agent")
   }
 
   $iconButton.removeClass("fa fa-play").append(spinner)
@@ -738,7 +738,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
         $iconButton.children().remove(".svg-loading");
         $iconButton.addClass("fa fa-play");
         $( "#triggerBtn" ).prop('disabled', null).blur();
-        $textAction.html("Trigger Agent");
+        $textAction.html("Trigger agent");
         $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-lg fa-times-custom"></i>');
         $("#report").remove("pre").html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
         $("#report").addClass("border-fail");
