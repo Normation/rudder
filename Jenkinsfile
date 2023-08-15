@@ -11,12 +11,12 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.0'
+                            additionalBuildArgs  '--build-arg VERSION=1.16'
                         }
                     }
                     steps {
-                        dir('language') {
-                            sh script: 'typos', label: 'check language typos'
+                        dir('tree') {
+                            sh script: 'typos --exclude 20_cfe_basics/cfengine/ --exclude 10_ncf_internals/modules/', label: 'check typos'
                         }
                     }
                     post {

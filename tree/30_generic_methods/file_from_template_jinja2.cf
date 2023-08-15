@@ -263,7 +263,7 @@ bundle agent file_from_template_jinja2(source_template, path)
                    if => "!_have_python";
 
   classes:
-      # If the stderr of the python templating command was empty, we consider that the templating succeeeded.
+      # If the stderr of the python templating command was empty, we consider that the templating succeeded.
       "templating_ok" expression => strcmp("${errors}", "");
 
       "pass3" expression => "pass2";
