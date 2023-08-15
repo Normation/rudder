@@ -515,7 +515,7 @@ class RemoveNodeFromGroups(
 ) extends PostNodeDeleteAction {
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
     (for {
-      _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from his groups")
+      _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from its groups")
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
       _            <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
                         val msg = Some("Automatic update of group due to deletion of node " + nodeId.value)

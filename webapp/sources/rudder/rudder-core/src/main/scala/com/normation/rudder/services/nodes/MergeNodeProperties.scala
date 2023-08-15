@@ -76,7 +76,7 @@ import scala.jdk.CollectionConverters._
  * Merge rules are the following:
  * Overriding is authorized for same keys IF AND ONLY IF:
  * - on a group by another group, if the second group is a subgroup of the first,
- *   i.e if he has a "AND" query composition, same nature (static/dynamic), and
+ *   i.e if it has a "AND" query composition, same nature (static/dynamic), and
  *   a `SubGroupComparator` criterion with value the parent groupid.
  * - on a node, if provider if the same.
  *

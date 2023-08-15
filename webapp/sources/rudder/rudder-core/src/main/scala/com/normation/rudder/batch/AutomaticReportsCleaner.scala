@@ -437,9 +437,9 @@ class AutomaticReportsCleaning(
     private[this] val reportLogger = ReportLogger
     private[this] val automatic    = reportsttl > 0
     // compliancettl may be disabled, it's managed with the Option[DeleteCommand.ComplianceLevel]
-    // We don't handle the case where compliancelevel cleaning would be enabled and reports one
-    // disable, because really, if someone has enought free space to keep ruddersysevent forever,
-    // he can handle compliance forever, too.
+    // We don't handle the case where compliancelevel cleaning would be enabled and reports
+    // disable, because really, if someone has enough free space to keep ruddersysevent forever,
+    // they can handle compliance forever, too.
     private[this] var currentState: CleanerState = IdleCleaner
     private[this] var lastRun:      DateTime     = DateTime.now()
 

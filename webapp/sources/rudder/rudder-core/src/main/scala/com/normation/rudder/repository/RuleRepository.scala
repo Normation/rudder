@@ -83,7 +83,7 @@ trait WoRuleRepository {
    * NOTE: only save here, deploy is done in the DeploymentService
    *
    * NOTE: some parameter may be forced to a value different from the
-   * one provided. It is the responsability of the user to check that if he wants
+   * one provided. It is the responsibility of the user to check that if they want
    * with the provided resulting rule.
    *
    * We can't create a rule with a revision, it will fail. Use #load for that.
@@ -97,7 +97,7 @@ trait WoRuleRepository {
    * If the rule is not in the repos, the method fails.
    * If the rule is a system one, the methods fails.
    *
-   * We can't update a rule with a revision, it will failt. Use #load for that.
+   * We can't update a rule with a revision, it will fail. Use #load for that.
    */
   def update(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]]
 

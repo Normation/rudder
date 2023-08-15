@@ -3210,10 +3210,10 @@ object RudderConfigInit {
     lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
 
     /*
-     * Cleaning action are run for the case where the node was accepted, deleted, and unknown
+     * Cleaning actions are run in the case where the node was accepted, deleted, and unknown
      * (ie: we want to be able to run cleaning actions even on a node that was deleted in the past, but
-     * for some reason the user discover that theres remaining things, and he wants to get rid of them
-     * without knowing rudder internal place to look for all possible garbages)
+     * for some reason the user discovers that there are remaining things, and they want to get rid of them
+     * without knowing rudder internal place to look for all possible garbage)
      */
 
     /*

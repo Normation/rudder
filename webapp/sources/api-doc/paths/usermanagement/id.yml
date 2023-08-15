@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 delete:
   summary: Delete an user
-  description: Delete the user and his permissions
+  description: Delete the user and their permissions
   operationId: deleteUser
   parameters:
     - $ref: ../../components/parameters/username.yml

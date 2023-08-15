@@ -1924,9 +1924,9 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * - the rudder configuration parameter for compability mode is not set (default).
    *
    * If the configuration parameter is set to false, we never write it (to take care of
-   * cases where the limit whould be lower for unknown reasons).
+   * cases where the limit would be lower for unknown reasons).
    * if the configuration parameter is set to true, we always write it (to take care of
-   * cases where the user knows what he is doingà).
+   * cases where the user knows what they are doing).
    */
   def getNodeIdsEnv(
       setNodeIdsParameter: Option[Boolean],
