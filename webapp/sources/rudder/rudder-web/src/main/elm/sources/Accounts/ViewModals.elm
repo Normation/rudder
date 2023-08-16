@@ -1,7 +1,7 @@
 module Accounts.ViewModals exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, type_, for, attribute, name, value, checked, style, placeholder, disabled, selected)
+import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, readonly, selected, size, style, title, type_, value)
 import Html.Events exposing (onClick, onInput, custom, onCheck)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Task
@@ -143,3 +143,43 @@ displayModals model =
         ]
       ]
     ]
+
+
+-- Almost a modal as it is a notification that requires user interaction (copy)
+displayCopy : Model -> Html Msg
+displayCopy model =
+    let
+      t = case model.ui.copyState of
+          NoCopy -> ""
+          Token string -> string
+      modalClass = if model.ui.copyState == NoCopy then "" else " in"
+    in
+        div [class ("modal fade" ++ modalClass)]
+        [ div [class "modal-backdrop fade in", onClick (CloseCopyPopup)][]
+        , div [class "modal-dialog"]
+          [ div [class "modal-content"]
+            [ div [class "modal-header"]
+              [ div [class "close", attribute "data-dismiss" "modal", onClick (CloseCopyPopup)]
+                [ span[][text (String.fromChar (Char.fromCode 215))]
+                ]
+              , h4 [class "modal-title"] [text "Copy the token"]
+              ]
+            , div [class "modal-body"]
+              [ div[]
+                [ div [class "alert alert-info"]
+                  [ i [class "fa fa-exclamation-triangle"][]
+                  , text "This is the only time the token value will be available."
+                  ]
+                , div [][ span [class "token-txt"]
+                  [ text t ]
+                  , a [ class "btn-goto always clipboard", title "Copy to clipboard", onClick (Copy t) ]
+                    [ i [class "ion ion-clipboard"][] ]
+                  ]
+                ]
+              ]
+            , div [class "modal-footer"]
+              [button [type_ "button", class ("btn btn-success"), onClick (CloseCopyPopup) ][text "Close"]
+              ]
+            ]
+          ]
+        ]

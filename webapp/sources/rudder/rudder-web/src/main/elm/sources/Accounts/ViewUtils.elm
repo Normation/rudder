@@ -10,6 +10,7 @@ import NaturalOrdering as N exposing (compare)
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
+import String exposing (isEmpty, length, slice)
 
 
 --
@@ -46,7 +47,6 @@ getSortFunction model a1 a2 =
     order = case model.ui.tableFilters.sortBy of
       Name    -> N.compare a1.name a2.name
       Id      -> N.compare a1.id a2.id
-      Token   -> N.compare a1.token a2.token
       ExpDate ->
         let
           expDate1 = case a1.expirationDate of
@@ -57,6 +57,7 @@ getSortFunction model a1 a2 =
             Nothing -> ""
         in
           N.compare expDate1 expDate2
+      CreDate -> N.compare a1.creationDate a2.creationDate
   in
     if model.ui.tableFilters.sortOrder == Asc then
       order
@@ -110,13 +111,16 @@ generateLoadingList =
 displayAccountsTable : Model -> Html Msg
 displayAccountsTable model =
   let
-    trAccount : Account -> Html Msg
-    trAccount a =
+    hasClearTextTokens = List.any (\a -> (String.length a.token) > 0) model.accounts
+
+    trAccount : Account -> Bool -> Html Msg
+    trAccount a showTokens =
       let
         inputId = "toggle-" ++ a.id
         expirationDate = case a.expirationDate of
           Just d  -> if a.expirationDateDefined then (posixToString model.ui.datePickerInfo d) else "Never"
           Nothing -> "Never"
+        creationDate = slice 0 16 (String.replace "T" " " a.creationDate)
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -127,20 +131,25 @@ displayAccountsTable model =
         , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
         ]
         , td []
-        [ text a.id ]
-        , td [class "token"]
-          [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
-            [ span [class "fa fa-repeat"][] ]
-          , span [class "token-txt"]
-            [text (String.slice  0  5 a.token)
-            , span[class "fa hide-text"][]
-            ]
-          , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]
-            [ i [class "ion ion-clipboard"][] ]
-          ]
+        [ span [class "token-txt"][ text a.id ] ]
+        , if showTokens then
+            if isEmpty a.token then
+                td [class "token"] [ span [class "token-txt"][ text "[hashed]" ] ]
+            else
+                td [class "token"]
+                [ span [class "token-txt"]
+                  [text (slice 0 5 a.token)]
+                  , span[class "fa hide-text"][]
+                , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]
+                  [ i [class "ion ion-clipboard"][] ]
+                ]
+          else
+            td [class "date"][ text creationDate ]
         , td [class "date"][ text expirationDate ]
         , td []
-          [ button [class "btn btn-default", onClick (ToggleEditPopup (EditAccount a))] [span [class "fa fa-pencil"] [] ]
+          [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
+            [ span [class "fa fa-repeat"][] ]
+          , button [class "btn btn-default", onClick (ToggleEditPopup (EditAccount a))] [span [class "fa fa-pencil"] [] ]
           , label [for inputId, class "custom-toggle"]
             [ input [type_ "checkbox", id inputId, checked a.enabled, onCheck (\c -> CallApi (saveAccount {a | enabled = c}))][]
             , label [for inputId, class "custom-toggle-group"]
@@ -163,7 +172,10 @@ displayAccountsTable model =
       [ tr [class "head"]
         [ th [class (thClass model.ui.tableFilters Name    ), onClick (UpdateTableFilters (sortTable filters Name    ))][ text "Account name"    ]
         , th [class (thClass model.ui.tableFilters Id      ), onClick (UpdateTableFilters (sortTable filters Id      ))][ text "Account id"           ]
-        , th [class (thClass model.ui.tableFilters Token   ), onClick (UpdateTableFilters (sortTable filters Token   ))][ text "Token"           ]
+        , if hasClearTextTokens then
+            th [][ text "Token" ]
+          else
+            th [class (thClass model.ui.tableFilters CreDate ), onClick (UpdateTableFilters (sortTable filters CreDate ))][ text "Creation date" ]
         , th [class (thClass model.ui.tableFilters ExpDate ), onClick (UpdateTableFilters (sortTable filters ExpDate ))][ text "Expiration date" ]
         , th [][ text "Actions" ]
         ]
@@ -178,7 +190,7 @@ displayAccountsTable model =
           [ td[class "empty", colspan 4][i [class"fa fa-exclamation-triangle"][], text "No api accounts match your filters"] ]
         ]
       else
-        List.map trAccount filteredAccounts
+        List.map (\a -> trAccount a hasClearTextTokens) filteredAccounts
       )
     ]
 

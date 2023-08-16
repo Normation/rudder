@@ -12,6 +12,8 @@ import Time exposing (Posix, Zone)
 
 type ModalState = NoModal | NewAccount | EditAccount Account | Confirm ConfirmModalType String Msg
 
+type CopyState = NoCopy | Token String
+
 type ConfirmModalType
   = Delete
   | Regenerate
@@ -21,8 +23,8 @@ type SortOrder = Asc | Desc
 type SortBy
   = Name
   | Id
-  | Token
   | ExpDate
+  | CreDate
 
 type alias TableFilters =
   { sortBy    : SortBy
@@ -41,6 +43,7 @@ type alias DatePickerInfo =
 type alias UI =
   { tableFilters    : TableFilters
   , modalState      : ModalState
+  , copyState       : CopyState
   , hasWriteRights  : Bool
   , loadingAccounts : Bool
   , datePickerInfo  : DatePickerInfo
@@ -86,6 +89,7 @@ type Msg
   | CallApi (Model -> Cmd Msg)
   | GetCheckedAcl (Result D.Error (List AccessControl))
   | ToggleEditPopup ModalState
+  | CloseCopyPopup
   | GetAccountsResult (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult))
   | Ignore
   | UpdateTableFilters TableFilters

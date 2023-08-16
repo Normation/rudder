@@ -38,6 +38,10 @@ package com.normation.rudder.api
 
 import cats.data._
 import cats.implicits._
+import com.normation.rudder.api.ApiToken.prefixV2
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 
 /**
@@ -53,20 +57,43 @@ final case class ApiAccountName(value: String) extends AnyVal
 
 /**
  * The actual authentication token.
- * A token is defined with [0-9a-zA-Z]{n}, with n not small.
+ *
+ * There are two versions of tokens:
+ *
+ * * v1: 32 alphanumeric characters stored as clear text
+ *       they are also displayed in clear text in the interface.
+ * * v2: starting from Rudder 8.1, tokens are still 32 alphanumeric characters,
+ *       but are now stored hashed in sha512 (128 characters), prefixed with "v2:".
+ *       The tokens are only displayed once at creation.
+ *
+ * Both can have a `-system` suffix to mark the system token.
+ *
+ * To make the difference, we use a prefix to the hash value in v2
+ *
+ * * If it starts with "v2:", it is a v2 SHA512 hash of the token
+ * * If it does not start with "v2:", it is a clear-text v1 token
+ *   Note: v2 tokens can never start with "v" as they are encoded as en hexadecimal string
  */
-final case class ApiToken(value: String) extends AnyVal {
-  // Avoid printing the value in logs
+case class ApiToken(value: String) extends AnyVal {
+  // Avoid printing the value in logs, regardless of token type
   override def toString: String = s"[REDACTED ApiToken]"
+
+  def isHashed: Boolean = {
+    value.startsWith(prefixV2)
+  }
 }
 
 object ApiToken {
+  private val tokenSize = 32
+  private val prefixV2  = "v2:"
 
-  val tokenRegex = """[0-9a-zA-Z]{12,128}""".r
+  def hash(clearText: String): String = {
+    val digest = MessageDigest.getInstance("SHA-512")
+    prefixV2 + new String(Hex.encode(digest.digest(clearText.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
+  }
 
-  def buildCheckValue(value: String): Option[ApiToken] = value.trim match {
-    case tokenRegex(v) => Some(ApiToken(v))
-    case _             => None
+  def generate_secret(tokenGenerator: TokenGenerator, suffix: String = ""): String = {
+    tokenGenerator.newToken(tokenSize) + suffix
   }
 }
 
