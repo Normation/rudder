@@ -17,6 +17,7 @@ encodeAccount datePickerInfo account =
     acl = case account.acl of
       Just a  -> [("acl", list encodeAcl a)]
       Nothing -> []
+
   in
     object (
       [ ( "id"                    , string account.id                  )

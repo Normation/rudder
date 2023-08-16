@@ -9,6 +9,52 @@ Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 Rudder exposes a REST API, enabling the user to interact with Rudder without using the webapp, for example, in scripts or cron jobs.
 
+## Authentication
+
+The Rudder REST API uses simple API keys for authentication.
+All requests must be authenticated (except from a generic status API).
+The tokens are 32-character strings, passed in a `X-API-Token` header, like in: 
+
+```bash
+curl --header "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules
+```
+
+The tokens are the API equivalent of a password, and must
+be secured just like a password would be.
+
+### API accounts
+
+The accounts are managed in the Web interface. There are two possible types of accounts:
+
+* **Global API accounts**: they are not linked to a Rudder user, and are managed by Rudder administrators in the _Administration -> API accounts_ page. You should define an expiration date whenever possible.
+
+![General API tokens settings](assets/api-tokens.png "General API tokens settings")
+
+* **User tokens**: they are linked to a Rudder user, and give the same rights the user has.
+There can be only one token by user. This feature is provided by the `api-authorizatons` plugin.
+
+![User API token](assets/api-user.png "User API token")
+
+When an action produces a change of configuration on the server, the API account that made it will
+be recorded in the event log, like for a Web interaction.
+
+### Authorization
+
+When using Rudder without the `api-authorizatons` plugin, only global accounts are available, with
+two possible privilege levels, read-only or write.
+With the `api-authorizatons` plugin, you also get access to:
+
+* User tokens, which have the same permissions as the user, using the Rudder roles and permissions feature.
+* Custom ACLs on global API accounts. They provide fine-grained permissions on every endpoint:
+
+![Custom API ACL](assets/custom-acl.png "Custom API ACL")
+
+As a general principle,
+you should create dedicated tokens with the least privilege level for each different interaction you have with the
+API.
+This limits the risks of exploitation if a token is stolen, and allows tracking the activity
+of each token separately. Token renewal is also easier when they are only used for a limited purpose.
+
 ## Versioning
 
 Each time the API is extended with new features (new functions, new parameters, new responses, ...), it will be assigned a new version number. This will allow you
@@ -248,8 +294,6 @@ Parameters in URLs are used to indicate which resource you want to interact with
 curl -H "X-API-Token: yourToken" https://rudder.example.com/rudder/api/latest/rules/id
 ```
 
-
-
 CAUTION: To avoid surprising behavior, do not put a '/' at the end of a URL: it would be interpreted as '/[empty string parameter]' and redirected to '/index', likely not what you wanted to do.
 
 
@@ -276,7 +320,6 @@ The (human-readable) format is:
   "key3": 42
 }
 ```
-
 
 Here is an example with inlined data:
 

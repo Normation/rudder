@@ -489,7 +489,7 @@ header.main-header .logo-lg img{
 }
 .navbar-nav .notifications-menu>.dropdown-menu>li .menu,
 .navbar-nav>.tasks-menu>.dropdown-menu>li .menu {
-  max-height: 200px;
+  max-height: 250px;
   margin: 0;
   padding: 0;
   list-style: none;

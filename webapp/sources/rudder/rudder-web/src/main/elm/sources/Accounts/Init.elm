@@ -37,7 +37,7 @@ init flags =
   let
     initDatePicker = DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
     initFilters    = TableFilters Name Asc "" ""
-    initUi         = UI initFilters NoModal False True initDatePicker False
+    initUi         = UI initFilters NoModal NoCopy False True initDatePicker False
     initModel      = Model flags.contextPath initUi [] False Nothing
     initActions    =
       [ Task.perform Tick Time.now
