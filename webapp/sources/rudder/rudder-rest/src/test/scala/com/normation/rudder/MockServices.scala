@@ -342,8 +342,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     getModifiedFilesTtl = () => Full(30),
     getCfengineOutputsTtl = () => Full(7),
     getSendMetrics = () => Full(None),
-    getReportProtocolDefault = () => Full(AgentReportingHTTPS),
-    getRudderVerifyCertificates = () => Full(false)
+    getReportProtocolDefault = () => Full(AgentReportingHTTPS)
   )
 
   val globalAgentRun       = AgentRunInterval(None, 5, 1, 0, 4)

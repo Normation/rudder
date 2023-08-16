@@ -207,11 +207,6 @@ trait ReadConfigService {
   def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation]
 
   /**
-   * Make Rudder verify all certificates in HTTPS exchange
-   */
-  def rudder_verify_certificates(): IOResult[Boolean]
-
-  /**
    * For debugging / disabling some part of Rudder. Should not be exposed in UI
    */
   def rudder_compute_changes():              IOResult[Boolean]
@@ -353,11 +348,6 @@ trait UpdateConfigService {
   def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit]
 
   def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation): IOResult[Unit]
-
-  /**
-   * Make Rudder verify all certificates in HTTPS exchange
-   */
-  def set_rudder_verify_certificates(verify: Boolean, actor: EventActor, reason: Option[String]): IOResult[Unit]
 
   def set_rudder_compute_changes(value:              Boolean): IOResult[Unit]
   def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]
@@ -758,12 +748,6 @@ class GenericConfigService(
     for {
       _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
     } yield ()
-  }
-
-  def rudder_verify_certificates():                                                               IOResult[Boolean] = get("rudder_verify_certificates")
-  def set_rudder_verify_certificates(verify: Boolean, actor: EventActor, reason: Option[String]): IOResult[Unit]    = {
-    val info = ModifyGlobalPropertyInfo(ModifyRudderVerifyCertificates, actor, reason)
-    save("rudder_verify_certificates", verify, Some(info))
   }
 
   ///// debug / perf /////

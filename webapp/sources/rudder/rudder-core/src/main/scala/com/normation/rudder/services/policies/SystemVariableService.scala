@@ -133,11 +133,10 @@ class SystemVariableServiceImpl(
     getSyncPromises:    () => Box[Boolean],
     getSyncSharedFiles: () => Box[Boolean], // TTLs are runtime properties too
 
-    getModifiedFilesTtl:         () => Box[Int],
-    getCfengineOutputsTtl:       () => Box[Int],
-    getSendMetrics:              () => Box[Option[SendMetrics]],
-    getReportProtocolDefault:    () => Box[AgentReportingProtocol],
-    getRudderVerifyCertificates: () => Box[Boolean]
+    getModifiedFilesTtl:      () => Box[Int],
+    getCfengineOutputsTtl:    () => Box[Int],
+    getSendMetrics:           () => Box[Option[SendMetrics]],
+    getReportProtocolDefault: () => Box[AgentReportingProtocol]
 ) extends SystemVariableService with Loggable {
 
   import SystemVariableService._
@@ -180,8 +179,6 @@ class SystemVariableServiceImpl(
     val relaySyncPromises    = getProp("RELAY_SYNC_PROMISES", getSyncPromises)
     val relaySyncSharedFiles = getProp("RELAY_SYNC_SHAREDFILES", getSyncSharedFiles)
 
-    val rudderVerifyCertificates = getProp("RUDDER_VERIFY_CERTIFICATES", getRudderVerifyCertificates)
-
     val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
 
     import SendMetrics._
@@ -210,7 +207,6 @@ class SystemVariableServiceImpl(
       modifiedFilesTtl ::
       cfengineOutputsTtl ::
       varSendMetrics ::
-      rudderVerifyCertificates ::
       varServerVersion ::
       Nil
     }
