@@ -229,7 +229,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       val xml = {
         roActiveTechniqueRepository.getActiveTechniqueLibrary.toBox match {
           case eb: EmptyBox =>
-            val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+            val f = eb ?~! "Error when trying to get the root category of active techniques"
             logger.error(f.messageChain)
             f.rootExceptionCause.foreach(ex => logger.error("Exception causing the error was:", ex))
             <div class="col-xs-12">
@@ -260,7 +260,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                   var arg = JSON.stringify({ 'sourceactiveTechniqueId' : sourceactiveTechniqueId, 'destCatId' : destCatId });
                     %2$s;
                 } else {
-                  alert("Trying to add a Technique that has no technique id");
+                  alert("Trying to add a technique that has no technique id");
                   $.jstree.rollback(data.rlbk);
                 }
               } else {
@@ -319,7 +319,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 }
 
             });
-            //Check if url anchor is a Technique name, if so open its details.
+            //Check if url anchor is a technique name, if so open its details.
             var anch = window.location.hash.substr(1);
             if(anch!==""){
               var selector = '#ref-technique-'+anch+'_anchor'
@@ -358,7 +358,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       case _               =>
         <div id={htmlId_bottomPanel}>
           <div  class="text-center">
-          Click on a Technique or a category from user library to
+          Click on a technique or a category from user library to
           display its details.</div>
         </div>
     }
@@ -373,7 +373,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       case e: EmptyBox =>
         <div id={htmlId_bottomPanel}>
           <h3>Technique details</h3>
-          <p>Click on a Technique to display its details</p>
+          <p>Click on a technique to display its details</p>
         </div>
       case Full(form) => form.showForm()
     }
@@ -406,7 +406,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             activeTechnique <- roActiveTechniqueRepository
                                  .getActiveTechnique(TechniqueName(sourceactiveTechniqueId))
                                  .toBox
-                                 .flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(
+                                 .flatMap(Box(_)) ?~! "Error while trying to find active technique with requested id %s".format(
                                  sourceactiveTechniqueId
                                )
             result          <- rwActiveTechniqueRepository
@@ -417,7 +417,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                                    CurrentUser.actor,
                                    Some("User moved active technique from UI")
                                  )
-                                 .toBox ?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'"
+                                 .toBox ?~! "Error while trying to move active technique with requested id '%s' to category id '%s'"
                                  .format(sourceactiveTechniqueId, destCatId)
           } yield {
             result
@@ -431,14 +431,14 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty =>
               Alert(
-                "Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page."
+                "Error while trying to move active technique with requested id '%s' to category id '%s'\nPlease reload the page."
                   .format(sourceactiveTechniqueId, destCatId)
               )
           }
-        case _                                           => Alert("Error while trying to move Active Technique: bad client parameters")
+        case _                                           => Alert("Error while trying to move active technique: bad client parameters")
       }
     } catch {
-      case e: Exception => Alert("Error while trying to move Active Technique")
+      case e: Exception => Alert("Error while trying to move active technique")
     }
   }
 
@@ -461,7 +461,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                           None,
                           ModificationId(uuidGen.newUuid),
                           CurrentUser.actor,
-                          Some("User moved Active Technique Category from UI")
+                          Some("User moved active technique category from UI")
                         )
                         .toBox ?~! "Error while trying to move category with requested id %s into new parent: %s".format(
                         sourceCatId,
@@ -520,7 +520,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                             false,
                             ModificationId(uuidGen.newUuid),
                             CurrentUser.actor,
-                            Some("Active Technique added by user from UI")
+                            Some("Active technique added by user from UI")
                           )
                           .toBox
                         ?~! errorMess.format(sourceactiveTechniqueId, destCatId))
@@ -537,16 +537,16 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 refreshBottomPanel(res.id)
               case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
               case Empty     =>
-                val errorMess = "Error while trying to move Active Technique with " +
+                val errorMess = "Error while trying to move active technique with " +
                   "requested id '%s' to category id '%s'\nPlease reload the page."
                 Alert(errorMess.format(sourceactiveTechniqueId, destCatId))
             }
           }
         case _                                           =>
-          Alert("Error while trying to move Active Technique: bad client parameters")
+          Alert("Error while trying to move active technique: bad client parameters")
       }
     } catch {
-      case e: Exception => Alert("Error while trying to move Active Technique")
+      case e: Exception => Alert("Error while trying to move active technique")
     }
   }
 
@@ -558,7 +558,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   def onFailureReasonPopup(srcActiveTechId: String, destCatId: String): JsCmd = {
-    val errorMessage = "Error while trying to move Active Technique with " +
+    val errorMessage = "Error while trying to move active technique with " +
       "requested id '%s' to category id '%s'\nPlease reload the page."
     Alert(errorMessage.format(srcActiveTechId, destCatId))
   }
@@ -733,7 +733,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             """
               val badgeDisabled    = if (activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
               val tooltipid1       = Helpers.nextFuncName
-              val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
+              val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that technique"
               SHtml.a(
                 () => onClickTemplateNode(Some(technique), Some(activeTechnique)),
                 (
@@ -758,7 +758,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case None            =>
           if (activeTechnique.isEnabled) {
             val msg =
-              s"Disableling active technique '${activeTechnique.id.value}' because its Technique '${activeTechnique.techniqueName.value}' was not found in the repository"
+              s"Disabling active technique '${activeTechnique.id.value}' because its technique '${activeTechnique.techniqueName.value}' was not found in the repository"
             rwActiveTechniqueRepository
               .changeStatus(
                 activeTechnique.id,
@@ -882,9 +882,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         Some("Technique library reloaded by user")
       ) match {
         case Full(x) =>
-          JsRaw("""createSuccessNotification("The Technique library was successfully reloaded")""")
+          JsRaw("""createSuccessNotification("The technique library was successfully reloaded")""")
         case e: EmptyBox =>
-          val error = e ?~! "An error occured when updating the Technique library from file system"
+          val error = e ?~! "An error occurred when updating the technique library from file system"
           logger.debug(error.messageChain, e)
           JsRaw(s"""createErrorNotification(s"${error.msg}}")""")
       }
@@ -900,7 +900,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
 
     (Script(OnLoad(initJs)): NodeSeq) ++
-    SHtml.ajaxButton("Reload Techniques", process _, ("class", "btn btn-primary"))
+    SHtml.ajaxButton("Reload techniques", process _, ("class", "btn btn-primary"))
   }
 
 }

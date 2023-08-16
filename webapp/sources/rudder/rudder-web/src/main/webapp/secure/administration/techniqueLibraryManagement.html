@@ -1,7 +1,7 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - Technique Library Management</title>
+<title>Rudder - Technique library management</title>
 </head>
 
 <div data-lift="administration.TechniqueLibraryManagement.head"></div>
@@ -15,19 +15,19 @@
           <span class="glyphicon glyphicon-info-sign"></span>
         </div>
         <lift:authz role="directive_read">
-          Only Techniques in the User library are available to create <a href="/secure/configurationManager/directiveManagement">new Directives</a>. Add new Techniques by drag'n'dropping them from left to right.
+          Only techniques in the user library are available to create <a href="/secure/configurationManager/directiveManagement">new directives</a>. Add new techniques by drag'n'dropping them from left to right.
           <br/>
         </lift:authz>
-        Arrange Techniques and categories in the Active Techniques library into the organization that suits you best.
+        Arrange techniques and categories in the active techniques library into the organization that suits you best.
         <br/>
       </div>
     </div>
       <div class="row">
         <div class="col-xs-12 col-sm-6">
           <div class="page-title with-btn">
-            Reference Technique library
+            Reference technique library
             <lift:authz role="technique_write">
-              <a class="btn btn-default pull-right" href="/secure/configurationManager/techniqueEditor">Edit Techniques</a>
+              <a class="btn btn-default pull-right" href="/secure/configurationManager/techniqueEditor">Edit techniques</a>
             </lift:authz>
           </div>
           <div id="TechniquesLibraryTree_actions_zone" class="row">
@@ -58,7 +58,7 @@
 
         <div class="col-xs-12 col-sm-6">
           <div class="page-title with-btn">
-            Active Techniques library
+            Active techniques library
             <lift:authz role="technique_write">
               <div data-lift="administration.TechniqueLibraryManagement.userLibraryAction" ></div>
             </lift:authz>
