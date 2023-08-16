@@ -176,7 +176,7 @@ function scrollToMethod(target){
   var targetOffset    = target.offset().top - paddingTop;
   var offsetDiff      = targetOffset - containerOffset;
   var scrollTop       = container.scrollTop()
-  container.animate({ scrollTop: scrollTop + offsetDiff }, 0);
+  container.animate({ scrollTop: scrollTop + offsetDiff }, "fast");
   return false;
 }
 </script>

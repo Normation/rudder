@@ -43,7 +43,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
     data.instance.open_all();
   }).jstree({
     "core" : {
-        "animation" : 300
+        "animation" : 150
       , "html_titles" : true
       , "multiple" : false
     },
@@ -94,7 +94,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
 	  data.instance.open_all();
   }).jstree({
     "core" : {
-    "animation" : 300
+    "animation" : 150
     , "multiple" : false
     , "html_titles" : true,
     "check_callback" : function (operation, node, node_parent, node_position, more) {
@@ -160,7 +160,7 @@ var buildRuleCategoryTree = function(id, initially_select , appContext) {
     data.instance.open_all();
   }).jstree({
       "core" : {
-      "animation" : 300,
+      "animation" : 150,
       "html_titles" : true,
       "check_callback" : true,
       },
@@ -202,7 +202,7 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
     data.instance.open_all();
   }).jstree({
       "core" : {
-      "animation" : 300,
+      "animation" : 150,
       "html_titles" : true,
       "initially_open" : [ "jstn_0" ]
       },
@@ -278,7 +278,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
     });
   }).jstree({
     "core" : {
-      "animation" : 300,
+      "animation" : 150,
       "html_titles" : true
     },
     "ui" : {
@@ -372,7 +372,7 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
       data.instance.open_all();
     }).jstree({
       "core" : {
-      "animation" : 300,
+      "animation" : 150,
       "html_titles" : true
       },
      "ui" : {
@@ -431,7 +431,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       });
     }).jstree({
       "core" : {
-        "animation" : 300,
+        "animation" : 150,
         "html_titles" : true
       },
       // I set both options to -2, as I do not need depth and children count checking
@@ -490,7 +490,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 var buildChangesTree = function(id,appContext) {
   $(id).jstree({
       "core" : {
-      "animation" : 300,
+      "animation" : 150,
       "html_titles" : true,
       "initially_open" : [ "changes","directives","rules","groups", "params" ]
       },

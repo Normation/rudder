@@ -72,7 +72,7 @@ displayTechniqueRow model =
       , if model.ui.hasWriteRights then
         td[]
         [ button [type_ "button", class "btn btn-success new-icon btn-xs", onClick (Create technique.version)]
-          [ text "Create Directive" ]
+          [ text "Create" ]
         ]
         else
         text ""

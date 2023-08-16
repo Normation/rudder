@@ -656,7 +656,7 @@ nodesTab model details =
   in
     div[class "tab-table-content"]
       [ div [class "table-title"]
-        [ h4 [][text "Compliance by Nodes"]
+        [ h4 [][text "Compliance by nodes"]
         , ( if model.ui.hasWriteRights then
             button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
             [ text "Select groups", i[class "fa fa-plus-circle" ][]]

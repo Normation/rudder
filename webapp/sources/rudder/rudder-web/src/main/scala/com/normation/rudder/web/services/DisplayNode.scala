@@ -296,11 +296,11 @@ object DisplayNode extends Loggable {
   def showInventoryVerticalMenu(sm: FullInventory, optNode: Option[NodeInfo], salt: String = ""): NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
-      <li><a href={htmlId_#(jsId, "sd_os_")}>Operating System</a></li> ::
+      <li><a href={htmlId_#(jsId, "sd_os_")}>Operating system</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_fs_")}>File systems</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_net_")}>Network interfaces</a></li> ::
       <li id="soft_tab"><a href={htmlId_#(jsId, "sd_soft_")}>Software</a></li> ::
-      <li><a href={htmlId_#(jsId, "sd_softUpdates_")}>Software Update</a></li> ::
+      <li><a href={htmlId_#(jsId, "sd_softUpdates_")}>Software updates</a></li> ::
       <li><a href={htmlId_#(jsId, "sd_var_")}>Environment</a></li> ::
       // Hardware content
       <li><a href={htmlId_#(jsId, "sd_bios_")}>BIOS</a></li> ::
@@ -314,7 +314,7 @@ object DisplayNode extends Loggable {
       <li><a href={htmlId_#(jsId, "sd_videos_")}>Video</a></li> ::
       //
       <li><a href={htmlId_#(jsId, "sd_process_")}>Processes</a></li> ::
-      <li><a href={htmlId_#(jsId, "sd_vm_")}>Virtual Machines</a></li> ::
+      <li><a href={htmlId_#(jsId, "sd_vm_")}>Virtual machines</a></li> ::
       Nil
     }
 
@@ -435,7 +435,7 @@ object DisplayNode extends Loggable {
             <li><b>Type:</b> ${escape(sm.node.main.osDetails.os.kernelName)}</li>
             <li><b>Name:</b> ${escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
             <li><b>Version:</b> ${escape(sm.node.main.osDetails.version.value)}</li>
-            <li><b>Service Pack:</b> ${escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
+            <li><b>Service pack:</b> ${escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
             <li><b>Architecture:</b> ${escape(sm.node.archDescription.getOrElse("None"))}</li>
             <li><b>Kernel version:</b> ${escape(sm.node.main.osDetails.kernelVersion.value)}</li>
           </ul>
@@ -450,8 +450,8 @@ object DisplayNode extends Loggable {
             <li><b>Total physical memory (RAM):</b> ${escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))}</li>
             <li><b>Manufacturer:</b> ${escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))}</li>
             <li><b>Total swap space:</b> ${escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))}</li>
-            <li><b>System Serial Number:</b> ${escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))}</li>
-            <li><b>Time Zone:</b>
+            <li><b>System serial number:</b> ${escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))}</li>
+            <li><b>Time zone:</b>
               ${escape(
           sm.node.timezone
             .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
@@ -575,7 +575,7 @@ object DisplayNode extends Loggable {
                 c.cert.either.runNow match {
                   case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
                   case Right(cert) => (
-                    <div><label>SHA1 Fingerprint: </label> <samp>{
+                    <div><label>Fingerprint (sha1): </label> <samp>{
                       SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
                     }</samp></div>
                         <div><label>Expiration date: </label> {
@@ -672,9 +672,9 @@ object DisplayNode extends Loggable {
             sm.node.main.hostname
           )}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
         logger.error(e)
-        <div class="error"><label>Policy Server:</label> Could not fetch details about the policy server</div>
+        <div class="error"><label>Policy server:</label> Could not fetch details about the policy server</div>
       case Right(Some(policyServerDetails)) =>
-        <div><label>Policy Server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={
+        <div><label>Policy server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={
           s"updateNodeIdAndReload('${policyServerDetails.id.value}')"
         }>{escape(policyServerDetails.hostname)}</a></div>
       case Right(None)                      =>
@@ -756,28 +756,28 @@ object DisplayNode extends Loggable {
         Seq(
           ("Node ID", escape(sm.node.main.id.value)),
           ("Hostname", escape(sm.node.main.hostname)),
-          ("Policy Server ID", escape(sm.node.main.policyServerId.value)),
-          ("Operating System Detailed name", escape(sm.node.main.osDetails.fullName)),
-          ("Operating System Type", escape(sm.node.main.osDetails.os.kernelName)),
-          ("Operating System Name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
-          ("Operating System Version", escape(sm.node.main.osDetails.version.value)),
-          ("Operating System Service Pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
-          ("Operating System Architecture Description", escape(sm.node.archDescription.getOrElse("None"))),
-          ("Kernel Version", escape(sm.node.main.osDetails.kernelVersion.value)),
-          ("Total Physical Memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
+          ("Policy server ID", escape(sm.node.main.policyServerId.value)),
+          ("Operating system detailed name", escape(sm.node.main.osDetails.fullName)),
+          ("Operating system type", escape(sm.node.main.osDetails.os.kernelName)),
+          ("Operating system name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
+          ("Operating system version", escape(sm.node.main.osDetails.version.value)),
+          ("Operating system service pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+          ("Operating system architecture description", escape(sm.node.archDescription.getOrElse("None"))),
+          ("Kernel version", escape(sm.node.main.osDetails.kernelVersion.value)),
+          ("Total physical memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
           ("Manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))),
-          ("Machine Type", displayMachineType(sm.machine).text),
-          ("Total Swap Space (Swap)", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
-          ("System Serial Number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
+          ("Machine type", displayMachineType(sm.machine).text),
+          ("Total swap space (Swap)", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
+          ("System serial number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
           ("Agent type", escape(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
-          ("Node State", escape(optNode.map(n => getNodeState(n.state)).getOrElse("-"))),
+          ("Node state", escape(optNode.map(n => getNodeState(n.state)).getOrElse("-"))),
           ("Account(s)", displayAccounts(sm.node)),
-          ("Administrator Account", escape(sm.node.main.rootUser)),
-          ("IP Addresses", escape(sm.node.serverIps.mkString(", "))),
-          ("Last Inventory Date", escape(optNode.map(n => DateFormaterService.getDisplayDate(n.inventoryDate)).getOrElse("-"))),
-          ("Policy Server ID", escape(sm.node.main.policyServerId.value)),
+          ("Administrator account", escape(sm.node.main.rootUser)),
+          ("IP addresses", escape(sm.node.serverIps.mkString(", "))),
+          ("Last inventory date", escape(optNode.map(n => DateFormaterService.getDisplayDate(n.inventoryDate)).getOrElse("-"))),
+          ("Policy server ID", escape(sm.node.main.policyServerId.value)),
           (
-            "Time Zone",
+            "Time zone",
             escape(
               sm.node.timezone
                 .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
@@ -788,7 +788,7 @@ object DisplayNode extends Loggable {
             "Machine ID",
             sm.machine
               .map(x => escape(x.id.value))
-              .getOrElse("Machine Information are missing for that node")
+              .getOrElse("Machine information is missing for that node")
           )
         )
       )
@@ -816,7 +816,7 @@ object DisplayNode extends Loggable {
     displayTabGrid(jsId)("softUpdates", Full(sm.node.softwareUpdates)) {
       ("Name", { x: SoftwareUpdate => Text(x.name) }) ::
       ("Version", { x: SoftwareUpdate => Text(x.version.getOrElse("-")) }) ::
-      ("Arch", { x: SoftwareUpdate => Text(x.arch.getOrElse("-")) }) ::
+      ("Architecture", { x: SoftwareUpdate => Text(x.arch.getOrElse("-")) }) ::
       ("From", { x: SoftwareUpdate => Text(x.from.getOrElse("-")) }) ::
       ("Kind", { x: SoftwareUpdate => Text(x.kind.name) }) ::
       ("Source", { x: SoftwareUpdate => ?(x.source) }) ::
@@ -1010,7 +1010,7 @@ object DisplayNode extends Loggable {
       ("Name", { x: Bios => escapeHTML(x.name) }) ::
       ("Editor", { x: Bios => ?(x.editor.map(_.name)) }) ::
       ("Version", { x: Bios => ?(x.version.map(_.value)) }) ::
-      ("Release Date", { x: Bios => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_))) }) ::
+      ("Release date", { x: Bios => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_))) }) ::
       Nil
     }
   }
@@ -1030,7 +1030,7 @@ object DisplayNode extends Loggable {
       ("Slot", { x: MemorySlot => escapeHTML(x.slotNumber) }) ::
       ("Capacity", { x: MemorySlot => ?(x.capacity.map(_.toStringMo)) }) ::
       ("Description", { x: MemorySlot => ?(x.description) }) ::
-      ("Serial Number", { x: MemorySlot => ?(x.serialNumber) }) ::
+      ("Serial number", { x: MemorySlot => ?(x.serialNumber) }) ::
       ("Speed", { x: MemorySlot => ?(x.speed) }) ::
       ("Type", { x: MemorySlot => ?(x.memType) }) ::
       ("Quantity", { x: MemorySlot => escapeHTML(x.quantity.toString) }) ::
@@ -1054,7 +1054,7 @@ object DisplayNode extends Loggable {
       ("Speed", { x: Processor => ?(x.speed.map(_.toString)) }) ::
       ("Model", { x: Processor => ?(x.model.map(_.toString())) }) ::
       ("Family", { x: Processor => ?(x.family.map(_.toString())) }) ::
-      ("Family Name", { x: Processor => ?(x.familyName) }) ::
+      ("Family name", { x: Processor => ?(x.familyName) }) ::
       ("Manufacturer", { x: Processor => ?(x.manufacturer.map(_.name)) }) ::
       ("Thread", { x: Processor => ?(x.thread.map(_.toString())) }) ::
       ("Core", { x: Processor => ?(x.core.map(_.toString())) }) ::
@@ -1155,7 +1155,7 @@ object DisplayNode extends Loggable {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
         onSuccess(node)
       case eb: EmptyBox =>
-        val message = s"There was an error while deleting Node '${node.hostname}' [${node.id.value}]"
+        val message = s"There was an error while deleting node '${node.hostname}' [${node.id.value}]"
         val e       = eb ?~! message
         NodeLoggerPure.Delete.logEffect.error(e.messageChain)
         onFailure(node, message, e.messageChain, None)

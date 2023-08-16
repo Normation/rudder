@@ -247,7 +247,7 @@ object DisplayDirectiveTree extends Loggable {
                         "",
                         _ => newDirective(technique, activeTechnique)
                       )}"""
-                  } title="Create Directive with latest version">Create <i class="fa fa-plus"></i></span>
+                  } title="Create directive with latest version">Create <i class="fa fa-plus"></i></span>
                 } else NodeSeq.Empty
               case None               => NodeSeq.Empty
             }

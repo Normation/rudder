@@ -392,7 +392,7 @@ class ReportDisplayer(
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden).toJsCmd});"
                           }>
-              <span>Trigger Agent</span>
+              <span>Trigger agent</span>
               &nbsp;
               <i class="fa fa-play"></i>
             </button>

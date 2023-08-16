@@ -38,19 +38,15 @@ get:
                 type: object
                 description: Information about the allowed_networks settings
                 required:
-                  - settings
+                  - allowed_network
                 properties:
-                  settings:
-                    type: object
-                    required:
-                      - allowed_networks
-                    properties:
-                      allowed_networks:
-                        type: array
-                        items:
-                          type: string
-                        example: ["162.168.1.0/24", "192.168.2.0/24"]
-                        description: Array of allowed networks
+                  allowed_network:
+                    type: array
+                    description: Array of allowed networks
+                    items:
+                      type: string
+                    example: ["162.168.1.0/24", "192.168.2.0/24"]
+
   tags:
     - Settings
   x-codeSamples:

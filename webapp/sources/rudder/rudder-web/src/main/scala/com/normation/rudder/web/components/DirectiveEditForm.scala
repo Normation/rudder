@@ -304,7 +304,7 @@ class DirectiveEditForm(
         }
       } &
       "#techniqueID *" #> technique.id.name.value &
-      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">Technique description</button> &
+      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">technique description</button> &
       "#techniqueDescription *" #> technique.description &
       "#isDisabled" #> {
         if (!activeTechnique.isEnabled || !directive.isEnabled) {
@@ -334,7 +334,7 @@ class DirectiveEditForm(
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> updateAndDisplayNotifications() &
-      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
+      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">technical details</button> &
       "#isSingle *" #> showIsSingle() &
       "#paramInfo *" #> showParametersLink() &
       displayDeprecationWarning
@@ -560,7 +560,7 @@ class DirectiveEditForm(
       <div>
         You may override the agent policy mode on this directive.
         If set to <b>Audit</b> this directive will never be enforced.
-        If set to <b>Enforce</b> this directive will appply necessary changes except on Nodes with a <b>Verify</b> override setting.
+        If set to <b>Enforce</b> this directive will appply necessary changes except on nodes with a <b>Verify</b> override setting.
       </div>
     case Unoverridable =>
       <p>

@@ -152,7 +152,7 @@ techniqueTab model technique creation ui =
                        ,-} div [ class "row form-group" ] [--ng-class="{'has-error':ui.editForm.name.$dirty && (ui.editForm.name.$error.required || ui.editForm.name.$error.techniqueName)}">
                            label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name"  ]
                          , div  [ class "col-sm-8" ] [
-                             input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class ("form-control" ++ classErrorName) , placeholder "Technique Name", value technique.name
+                             input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class ("form-control" ++ classErrorName) , placeholder "Technique name", value technique.name
                               , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value (String.toLower newName)) else technique.id.value) })
                               ] []
                            ]
@@ -185,7 +185,7 @@ techniqueTab model technique creation ui =
                                    --  data-html="true"
                            ]
                          , div [ class "col-sm-8" ] [
-                             textarea [  readonly (not model.hasWriteRights), name "documentation",  class "form-control technique-description", id "techniqueDocumentation", rows  4, value technique.documentation, placeholder "documentation"
+                             textarea [  readonly (not model.hasWriteRights), name "documentation",  class "form-control technique-description", id "techniqueDocumentation", rows  4, value technique.documentation, placeholder "Documentation"
                              , onInput (\desc -> UpdateTechnique {technique | documentation = desc })
                              ] []--msd-elastic
                            ]
