@@ -18,6 +18,7 @@
 
 # @name File lines present
 # @description Ensure that one or more lines are present in a file
+# @documentation Edit the file, and ensure it contains the defined line(s). Regular expression can be used for the file name.
 #
 # @parameter path  File name to edit (absolute path on the target node)
 # @parameter lines Line(s) to add in the file
