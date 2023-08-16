@@ -128,7 +128,7 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 
   reports:
     info.!class_prefix_size_ok::
-      # Since the class_prefix is too long, i'm not outputing it (it would fill several lines of text with no added value)
+      # Since the class_prefix is too long, i'm not outputting it (it would fill several lines of text with no added value)
       "${configuration.info}: Class prefix is too long - fallbacking to old_class_prefix ${old_class_prefix} for reporting";
 }
 

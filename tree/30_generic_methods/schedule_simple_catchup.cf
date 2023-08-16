@@ -25,7 +25,7 @@
 #  * _not_ok and _reached have their usual meaning
 #
 #  If the agent run is skipped during the period, method tries to catchup the run on next agent run.
-#  If the agent run is skipped twice,, only one run is catched up.
+#  If the agent run is skipped twice, only one run is caught up.
 #  If the agent is run twice (for example from a manual run), the job is run only once.
 #
 # @parameter job_id                A string to identify this job

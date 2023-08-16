@@ -33,7 +33,7 @@
 #
 # * an **Error** in Audit mode as the command will not be executed
 # * an **Error** in Enforce mode if the command did throw an exception
-# * an **Error** in Enforce mode if the `LASTEXITCODE` of the execution was not 0. This can happend when calling '.exe' binaries for instance.
+# * an **Error** in Enforce mode if the `LASTEXITCODE` of the execution was not 0. This can happen when calling '.exe' binaries for instance.
 # * a **Repaired** in any other cases
 #
 # Do not use the "exit" command on Windows as the shell used is the same than the one running the agent!

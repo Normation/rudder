@@ -39,7 +39,7 @@
 # * `restart`
 # * `reload` (or `refresh`)
 # * `is-active` (or `status`)
-# * `is-active-process` (in this case, the "service" parameter is the regex to match againt process list)
+# * `is-active-process` (in this case, the "service" parameter is the regex to match against process list)
 # * `enable`
 # * `disable`
 # * `is-enabled`

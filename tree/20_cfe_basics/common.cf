@@ -83,7 +83,7 @@ body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_
 
     inherit_from => classes_generic_two("${x}", "${y}");
 
-    # Cfengine does not allow body attribute merging, so we nned to override
+    # Cfengine does not allow body attribute merging, so we need to override
     # the repaired and kept cases in order to define the ${boolean_prefix}_false and ${boolean_prefix}_true
 
     promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
@@ -229,7 +229,7 @@ body classes kept_if_else_persist(kept, repaired, failed, persist)
 # set kept if the promise is kept
 # yes if repaired
 # no if cannot repair
-# Trigger an additionnal promise if repaired
+# Trigger an additional promise if repaired
 ################################################
 body classes kept_if_else_hook(kept,yes,no,hook)
 {

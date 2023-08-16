@@ -207,7 +207,7 @@ body file control
    namespace => "bodydefault";
 }
 
-# Actions that can be dry runned
+# Actions that can be dry run
 # (for some reason, we cannot inherit_from a default body)
 
 # in bundle agent

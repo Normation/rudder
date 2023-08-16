@@ -108,7 +108,7 @@ validate_requirements() {
         fi
       done
   
-      # exclue if there is no match
+      # exclude if there is no match
       if [ ${count} != ${count_wanted} ]
       then
         include_caps=1 # false in shell
