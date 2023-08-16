@@ -76,6 +76,9 @@ searchField datePickerInfo a =
       Nothing -> []
     )
 
+cleanDate: String -> String
+cleanDate date = slice 0 16 (String.replace "T" " " date)
+
 filterSearch : String -> List String -> Bool
 filterSearch filterString searchFields =
   let
@@ -120,7 +123,6 @@ displayAccountsTable model =
         expirationDate = case a.expirationDate of
           Just d  -> if a.expirationDateDefined then (posixToString model.ui.datePickerInfo d) else "Never"
           Nothing -> "Never"
-        creationDate = slice 0 16 (String.replace "T" " " a.creationDate)
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -144,10 +146,10 @@ displayAccountsTable model =
                   [ i [class "ion ion-clipboard"][] ]
                 ]
           else
-            td [class "date"][ text creationDate ]
+            td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
         , td []
-          [ button [class "btn btn-default reload-token", onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
+          [ button [class "btn btn-default reload-token", title ("Generated: " ++ (cleanDate a.tokenGenerationDate)), onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
             [ span [class "fa fa-repeat"][] ]
           , button [class "btn btn-default", onClick (ToggleEditPopup (EditAccount a))] [span [class "fa fa-pencil"] [] ]
           , label [for inputId, class "custom-toggle"]
