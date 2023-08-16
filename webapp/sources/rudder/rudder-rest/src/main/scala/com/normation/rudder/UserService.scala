@@ -43,7 +43,7 @@ import com.normation.rudder.api.ApiAuthorization
 
 /*
  * This file define data type around what is a User in Rudder,
- * and a servive to access it.
+ * and a service to access it.
  */
 
 /**
@@ -68,7 +68,7 @@ trait User {
 }
 
 /**
- * A minimalistic definition of a service that give access to currently logged user .
+ * A minimalistic definition of a service that give access to currently logged user.
  */
 trait UserService {
   def getCurrentUser: User

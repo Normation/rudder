@@ -202,7 +202,7 @@ class RuleTargetTest extends Specification with Loggable {
       allTargets.forall { gt =>
         RuleTarget.unser(gt.target) match {
           case Some(unser) => unser == gt
-          // TODO: what was he meaning of this test? It makes no sense
+          // TODO: what was the meaning of this test? It makes no sense
           case None        => false // gt.target == gt
         }
       } === true

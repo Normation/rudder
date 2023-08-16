@@ -31,5 +31,5 @@ properties:
           example: "49.3"
         arch:
           type : string
-          description: Architecture of the packkage to update
+          description: Architecture of the package to update
           example: "x64"

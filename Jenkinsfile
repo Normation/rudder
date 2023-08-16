@@ -137,7 +137,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.8.1'
+                            additionalBuildArgs  '--build-arg VERSION=1.16.5'
                         }
                     }
 
@@ -147,13 +147,13 @@ pipeline {
                             updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('language') {
-                                sh script: 'typos --exclude "*.svg" --exclude "tests/" --exclude "docs/DESIGN_DECISIONS"', label: 'check language typos'
+                            dir('policies') {
+                                sh script: 'typos', label: 'check policies typos'
                             }
                             dir('webapp/sources/api-doc') {
                                 sh script: 'typos', label: 'check webapp api doc typos'
                             }
-                            dir('relay/sources/') {
+                            dir('relay') {
                                 sh script: 'typos --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
                             }
                         }

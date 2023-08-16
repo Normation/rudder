@@ -763,7 +763,7 @@ class DirectiveApiService14(
       opTechniqueVersion: Option[TechniqueVersion]
   ): IOResult[Technique] = {
     // we need at least a name.
-    // It version is not specified, use last version of technique, last revision, even if revision is specified (if someone want something precise, he must give the main version)
+    // It version is not specified, use last version of technique, last revision, even if revision is specified (if someone want something precise, they must give the main version)
     // If both version and revision are specified, revision from techniqueRevision field is prefered.
     (optTechniqueName, opTechniqueVersion) match {
       case (None, _)                            =>

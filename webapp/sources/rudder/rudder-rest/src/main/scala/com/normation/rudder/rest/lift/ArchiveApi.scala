@@ -929,7 +929,7 @@ class ZipArchiveReaderImpl(
 
 /*
  * A service in charge of assessing the consistency of an archive before saving it, and trying
- * to pack problems so that an user has as much information as he can in one round.
+ * to pack problems so that an user has as much information as they can in one round.
  */
 trait CheckArchiveService {
   /*

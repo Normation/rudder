@@ -462,14 +462,14 @@ object JsEngine {
       variable.values.find(x => x.startsWith(default)) match {
         /*
          * Here, we need to chose between:
-         * - fails when the feature is disabled, but the string starts with $eval,
+         * - fail when the feature is disabled, but the string starts with $eval,
          *   meaning that maybe the user wanted to use it anyway.
          *   But that means that we are changing GENERATION behavior on existing prod,
          *   for a feature the user don't know anything.
-         * - not fails, because perhaps the user had that in its parameter. But in
-         *   that case, it will fails when feature is enabled by default.
-         *   And we risk to let the user spread sensitive information  into nodes
-         *   (because he thought the will be hashed, but in fact no).
+         * - don't fail, because perhaps the user had that in its parameter. But in
+         *   that case, it will fail when the feature is enabled by default.
+         *   And we risk to let the user spread sensitive information into nodes
+         *   (because they thought it will be hashed, but in fact no).
          *
          * For now, failing because it seems to be the safe bet.
          */

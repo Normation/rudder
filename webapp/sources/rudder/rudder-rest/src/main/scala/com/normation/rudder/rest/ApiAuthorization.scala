@@ -117,18 +117,18 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
     val user = userService.getCurrentUser
     for {
-      // we want to compare the exact path asked by the user to take care of cases where he only has
+      // we want to compare the exact path asked by the user to take care of cases where they only have
       // access to a limited subset of named resourced for the endpoint.
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
       ok   <- ((aclEnabled(), user.getApiAuthz, user.account) match {
                 /*
                * We need to check the account type. It is ok for a user account to have that
                * kind of ACL rights, because it's the way we use to map actual user account role to internal API
-               * access (for ex: an user with role "node r/w/e" can change node properties, which use "update setting"
-               * API, so he must have access to that, but not to other configuration API).
+               * access (for ex: a user with role "node r/w/e" can change node properties, which use "update setting"
+               * API, so they must have access to that, but not to other configuration API).
                * On the other hand, if we are dealing with an actual API account, we need to check its kind more
-               * preciselly:
-               * - a system account keep ACL eval (most likelly equiv to RW)
+               * precisely:
+               * - a system account keep ACL eval (most likely equiv to RW)
                * - a standard account get RO (we can broke third party app behovior but don't open too big security
                *   hole with updates)
                * - an user API account is disabled.

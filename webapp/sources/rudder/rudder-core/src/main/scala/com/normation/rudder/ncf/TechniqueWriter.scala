@@ -99,7 +99,7 @@ trait TechniqueWriter {
  *
  * In that two last cases, then a big red persistent message is displayed in the technique editor
  * with the fact that a fallback was used.
- * In the last case, in addition, we need to display to the user the problem that he needs to report
+ * In the last case, in addition, we need to display to the user the problem that they need to report
  * to rudder dev.
  */
 class TechniqueWriterImpl(
