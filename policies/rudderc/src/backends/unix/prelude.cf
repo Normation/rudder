@@ -29,7 +29,7 @@ body common control
 {
       # we're not supposed to make CFEngine calls but just in case
         protocol_version => "2";
-        tls_min_version  => "1.2";
+        tls_min_version  => "1.3";
 
         inputs => {
                     @{lib.files},
