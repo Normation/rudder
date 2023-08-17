@@ -61,22 +61,22 @@ class CreateSystemToken(systemAccount: ApiAccount) extends BootstrapChecks {
     (for {
       path <- tryo {
                 Paths.get(tokenPath)
-              } ?~! "An error occured while getting system api token path"
+              } ?~! "An error occurred while getting system api token path"
 
       file <- tryo {
                 Files.deleteIfExists(path)
                 Files.createFile(path)
                 Files.write(path, systemAccount.token.value.getBytes(StandardCharsets.UTF_8))
-              } ?~! "An error occured while creating system api token file"
+              } ?~! "An error occurred while creating system api token file"
 
       perms <- tryo {
                  Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
-               } ?~! "An error occured while setting permissions on system api token file"
+               } ?~! "An error occurred while setting permissions on system api token file"
     } yield {}) match {
       case Full(_) =>
         BootstrapLogger.logEffect.info(s"System api token file created in ${tokenPath}")
       case eb: EmptyBox =>
-        val fail = eb ?~! s"An error occured while creating system api token file in ${tokenPath}"
+        val fail = eb ?~! s"An error occurred while creating system api token file in ${tokenPath}"
         BootstrapLogger.logEffect.error(fail.messageChain)
     }
 
