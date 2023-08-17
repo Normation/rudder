@@ -54,6 +54,7 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio._
+import java.security.MessageDigest
 import org.joda.time.DateTime
 import zio._
 import zio.syntax._
@@ -151,7 +152,8 @@ final class RoLDAPApiAccountRepository(
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
     if (token.isHashed) {
       None.succeed
-    } else if (token == systemAPIAccount.token) {
+    } else if (MessageDigest.isEqual(token.value.getBytes(), systemAPIAccount.token.value.getBytes())) {
+      // Constant-time comparison
       Some(systemAPIAccount).succeed
     } else {
       val hash = ApiToken.hash(token.value)
