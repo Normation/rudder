@@ -792,16 +792,16 @@ class PasswordField(
     import com.normation.cfclerk.domain.HashAlgoConstraint._
 
     def name = a match {
-      case PLAIN                         => "Verbatim text"
-      case PreHashed                     => "Pre hashed"
-      case MD5                           => "MD5 (Non salted)"
-      case SHA1                          => "SHA1 (Non salted)"
-      case SHA256                        => "SHA256 (Non salted)"
-      case SHA512                        => "SHA512 (Non salted)"
-      case LinuxShadowMD5 | AixMD5       => "MD5"
-      case LinuxShadowSHA256 | AixSHA256 => "SHA256"
-      case LinuxShadowSHA512 | AixSHA512 => "SHA512"
-      case UnixCryptDES                  => "DES"
+      case PLAIN                         => "Plain text"
+      case PreHashed                     => "Pre-hashed"
+      case MD5                           => "MD5 (non salted)"
+      case SHA1                          => "SHA1 (non salted)"
+      case SHA256                        => "SHA256 (non salted)"
+      case SHA512                        => "SHA512 (non salted)"
+      case LinuxShadowMD5 | AixMD5       => "MD5-crypt"
+      case LinuxShadowSHA256 | AixSHA256 => "SHA256-crypt"
+      case LinuxShadowSHA512 | AixSHA512 => "SHA512-crypt"
+      case UnixCryptDES                  => "DES-crypt"
     }
   }
 
