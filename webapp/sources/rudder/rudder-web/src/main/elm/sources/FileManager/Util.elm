@@ -45,3 +45,7 @@ isJust maybe = case maybe of
 
 button : List (Attribute msg) -> List (Html msg) -> Html msg
 button atts childs = Html.button (type_ "button" :: atts) childs
+
+getDirPath : List String -> String
+getDirPath dir =
+  String.replace "//" "/" ((String.join "/" dir) ++ "/")
