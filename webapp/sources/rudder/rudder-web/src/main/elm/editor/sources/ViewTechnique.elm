@@ -213,7 +213,7 @@ showTechnique model technique origin ui =
            ( element "li"
              |> addAttribute (id "no-methods")
              |> addStyle ("text-align", "center")
-             |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd StartList) then "1" else  "0.4"))
+             |> addClass (if (DragDrop.isCurrentDropTarget model.dnd StartList) then " drop-target" else "")
              |> appendChild
                 ( element "i"
                   |> addClass "fas fa-sign-in-alt"
@@ -236,9 +236,10 @@ showTechnique model technique origin ui =
                                                        Just _ -> False
                   dropElem = AfterElem Nothing call
                   dropTarget =  element "li"
-                                   |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
+                                   |> addAttribute (id "no-methods")
+                                   |> addStyle ("padding", "3px 15px")
                                    |> addStyle ("text-align", "center")
-                                   |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
+                                   |> addClass (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then " drop-target" else  "")
                                    |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
                                    |> appendChild
                                       ( element "i"
