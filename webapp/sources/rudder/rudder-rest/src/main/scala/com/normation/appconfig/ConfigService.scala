@@ -50,7 +50,6 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
 import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
-import com.normation.rudder.domain.eventlog.ModifyRudderVerifyCertificates
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -419,7 +418,6 @@ class GenericConfigService(
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportUnboundedVarValues=true
-       rudder.verify.certificates=false
        rudder.compute.changes=true
        rudder.generation.compute.dyngroups=true
        rudder.save.db.compliance.levels=true
