@@ -37,8 +37,6 @@ bundle common rudder_roles
 
       "rudder_global_audit_mode"      not => strcmp("&RUDDER_COMPLIANCE_MODE&", "enforce");
 
-      "rudder_verify_certs"    expression => strcmp("&RUDDER_VERIFY_CERTIFICATES&", "true");
-
       # full compliance is the default mode
       "full_compliance" not => "changes_only|reports_disabled";
 }
@@ -324,7 +322,7 @@ bundle agent configure_rudder_reporting_system {
   reports:
     !agent_capability_http_reporting.!reports_disabled::
       "******************************************************************
-       * This version of rudder-agent does not support https reporting. * 
+       * This version of rudder-agent does not support https reporting. *
        * Please upgrade rudder-agent to version 6.0 or more.            *
        ******************************************************************";
 }
