@@ -280,22 +280,16 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def cfserverNetworkConfiguration = { xml: NodeSeq =>
     //  initial values, updated on successfull submit
-    var initDenyBadClocks      = configService.cfengine_server_denybadclocks().toBox
-    var initEnforceCertificate = configService.rudder_verify_certificates().toBox
+    var initDenyBadClocks = configService.cfengine_server_denybadclocks().toBox
 
     // form values
-    var denyBadClocks      = initDenyBadClocks.getOrElse(false)
-    var enforceCertificate = initEnforceCertificate.getOrElse(false)
+    var denyBadClocks = initDenyBadClocks.getOrElse(false)
 
     def submit() = {
       configService
         .set_cfengine_server_denybadclocks(denyBadClocks)
         .toBox
         .foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
-      configService
-        .set_rudder_verify_certificates(enforceCertificate, CurrentUser.actor, genericReasonMessage)
-        .toBox
-        .foreach(updateOk => initEnforceCertificate = Full(enforceCertificate))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration()
@@ -303,9 +297,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def noModif = (
-      initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false) && initEnforceCertificate
-        .map(_ == enforceCertificate)
-        .getOrElse(false)
+      initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false)
     )
 
     def check() = {
@@ -341,20 +333,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             </div>
 
         case _ => NodeSeq.Empty
-      }
-    } &
-
-    "#enforceCertificateValidation" #> {
-      initEnforceCertificate match {
-        case Full(value) =>
-          SHtml.ajaxCheckbox(
-            value,
-            (b: Boolean) => { enforceCertificate = b; check() },
-            ("id", "enforceCertificateValidation")
-          )
-        case eb: EmptyBox =>
-          val fail = eb ?~ "there was an error while fetching value of property: 'Certificate value' "
-          <div class="error">{fail.msg}</div>
       }
     } &
 

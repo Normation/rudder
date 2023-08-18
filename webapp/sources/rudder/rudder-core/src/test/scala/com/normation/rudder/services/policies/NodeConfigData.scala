@@ -757,8 +757,7 @@ class TestNodeConfiguration(
     getModifiedFilesTtl = () => Full(30),
     getCfengineOutputsTtl = () => Full(7),
     getSendMetrics = () => Full(None),
-    getReportProtocolDefault = () => Full(AgentReportingHTTPS),
-    getRudderVerifyCertificates = () => Full(false)
+    getReportProtocolDefault = () => Full(AgentReportingHTTPS)
   )
 
   val t8 = System.currentTimeMillis()
