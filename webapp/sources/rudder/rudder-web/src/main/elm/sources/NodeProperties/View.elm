@@ -1,7 +1,7 @@
 module NodeProperties.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, disabled, for, checked, selected, value, style, attribute, placeholder, name, title, colspan)
+import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 
 import NodeProperties.DataTypes exposing (..)
@@ -40,6 +40,12 @@ view model =
                     , name "newPropName"
                     , value newProperty.name
                     , onInput (\s -> UpdateNewProperty { newProperty | name = s, pristineName = False})
+                    -- to deactivate plugin "Grammarly" or "Language Tool" from
+                    -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+                    , attribute "data-gramm" "false"
+                    , attribute "data-gramm_editor" "false"
+                    , attribute "data-enable-grammarly" "false"
+                    , spellcheck False
                     ][]
                   ]
                 , td []
@@ -52,6 +58,10 @@ view model =
                     , name "newPropValue"
                     , value newProperty.value
                     , onInput (\s -> UpdateNewProperty { newProperty | value = s, pristineValue = False, errorFormat = False})
+                    , attribute "data-gramm" "false"
+                    , attribute "data-gramm_editor" "false"
+                    , attribute "data-enable-grammarly" "false"
+                    , spellcheck False
                     ][]
                   ]
                 , td [class "json-check-col"]
