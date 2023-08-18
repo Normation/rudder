@@ -367,7 +367,7 @@ body > .ng-toast {
   display: flex;
   flex-direction: column;
 }
-.main-details > .editForm > .tab-general + .row{
+.main-details > .editForm > .tab + .row{
   flex: 1;
   display: flex;
   flex-direction: column;
