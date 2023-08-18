@@ -36,7 +36,6 @@
  */
 package com.normation.rudder.web.services
 
-import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.RudderAccount
@@ -74,7 +73,7 @@ object RudderAuthType {
   case object Api  extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
 
-    val apiRudderRights = new Rights(AuthorizationType.NoRights)
+    val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
   }
 }
@@ -91,9 +90,8 @@ case class RudderUserDetail(
     apiAuthz: ApiAuthorization
 ) extends UserDetails {
   // merge roles rights
-  val authz                                               = new Rights(
-    (if (roles.nonEmpty) roles.flatMap(_.rights.authorizationTypes).toSeq else Seq(AuthorizationType.NoRights)): _*
-  )
+  val authz = Rights(roles.flatMap(_.rights.authorizationTypes))
+
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
     case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)

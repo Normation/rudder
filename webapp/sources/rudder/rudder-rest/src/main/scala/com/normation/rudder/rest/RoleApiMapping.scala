@@ -237,7 +237,7 @@ class RoleApiMapping(mapper: AuthorizationApiMapping) {
   }
 
   def getApiAclFromRoles(roles: Seq[Role]): List[ApiAclElement] = {
-    getApiAclFromRights(new Rights(roles.flatMap(_.rights.authorizationTypes): _*))
+    getApiAclFromRights(Rights(roles.flatMap(_.rights.authorizationTypes)))
   }
 
   // a merge function that groups action for identical path
