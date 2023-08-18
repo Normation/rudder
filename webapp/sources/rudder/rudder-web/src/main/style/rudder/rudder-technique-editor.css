@@ -459,9 +459,16 @@ ul.tabs-list > li > .badge.empty{
   color: #0519258c;
   background-color: #f3f8ff;
   cursor: pointer;
-  transition-property: opacity;
+  transition-property: opacity, border-color, box-shadow;
   transition-duration: .5s;
-  text-align:center
+  text-align:center;
+  opacity: .6;
+}
+
+.drop-target{
+  border-color: #1295c2 !important;
+  opacity:1 !important;
+  box-shadow: 0 0px 12px #1295c236;
 }
 
 /* FILEMANAGER */
