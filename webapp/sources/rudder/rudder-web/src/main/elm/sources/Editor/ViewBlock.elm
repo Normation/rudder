@@ -498,13 +498,13 @@ showChildren model block ui techniqueUi parentId =
              ]
 
           |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+          |> addClass (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then " drop-target" else  "")
         ) (List.isEmpty block.calls)
      |> appendChildConditional
         ( element "li"
           |> addAttribute (id "no-methods")
           |> addStyle ("text-align", "center")
-          |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then "1" else  "0.4"))
+          |> addClass (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then " drop-target" else  "")
           |> appendChild
              ( element "i"
                |> addClass "fas fa-sign-in-alt"
@@ -512,10 +512,11 @@ showChildren model block ui techniqueUi parentId =
              )
           |> addStyle ("padding", "3px 15px")
           |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-        ) ( case DragDrop.currentlyDraggedObject model.dnd of
-            Nothing -> False
-            Just (Move x) ->Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
-            Just _ -> not (List.isEmpty block.calls)
+        ) ( case (List.isEmpty block.calls , DragDrop.currentlyDraggedObject model.dnd) of
+            ( True , _    ) -> False
+            ( _ , Nothing ) -> False
+            ( _ , Just (Move x) ) -> Maybe.withDefault True (Maybe.map (\c->  (getId x) /= (getId c)) (List.head block.calls))
+            ( _ , Just _        ) -> not (List.isEmpty block.calls)
         )
      |> appendChildList
           ( List.concatMap ( \ call ->
@@ -530,9 +531,10 @@ showChildren model block ui techniqueUi parentId =
                   base =     [ showMethodCall model methodUi techniqueUi (Just block.id) c ]
                   dropElem = AfterElem (Just block.id) (Call parentId c)
                   dropTarget =  element "li"
-                                |> addAttribute (id "no-methods") |> addStyle ("padding", "3px 15px")
+                                |> addAttribute (id "no-methods")
+                                |> addStyle ("padding", "3px 15px")
                                 |> addStyle ("text-align", "center")
-                                |> addStyle ("opacity", (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then "1" else  "0.4"))
+                                |> addClass (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then " drop-target" else  "")
                                 |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
                                 |> addAttribute (hidden currentDragChild)
                                 |> appendChild
