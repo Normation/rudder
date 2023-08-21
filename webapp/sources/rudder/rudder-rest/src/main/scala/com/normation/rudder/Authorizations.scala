@@ -291,18 +291,9 @@ object AuthorizationType {
  * a new AuthorizationType which melt each AuthorizationType
  * that composed it.
  */
-class Rights(_authorizationTypes: AuthorizationType*) {
-
-  require(
-    null != _authorizationTypes && _authorizationTypes.nonEmpty,
-    "At least one AuthorizationType must be include in a Rights object"
-  )
-
-  val authorizationTypes = _authorizationTypes.toSet
+case class Rights private (authorizationTypes: Set[AuthorizationType]) {
 
   def displayAuthorizations = authorizationTypes.map(_.id).toList.sorted.mkString(", ")
-
-  override lazy val hashCode = 23 * authorizationTypes.hashCode
 
   override def equals(other: Any) = other match {
     case that: Rights => this.authorizationTypes == that.authorizationTypes
@@ -312,6 +303,23 @@ class Rights(_authorizationTypes: AuthorizationType*) {
   override def toString: String = {
     displayAuthorizations
   }
+}
+
+object Rights {
+
+  val NoRights = Rights.forAuthzs(AuthorizationType.NoRights)
+
+  val AnyRights = Rights.forAuthzs(AuthorizationType.AnyRights)
+
+  def apply(authorizationTypes: Iterable[AuthorizationType]): Rights = {
+    if (authorizationTypes.isEmpty) {
+      NoRights
+    } else {
+      new Rights(authorizationTypes.toSet)
+    }
+  }
+
+  def forAuthzs(authorizationTypes: AuthorizationType*) = apply(authorizationTypes.toSeq)
 }
 
 /*
@@ -325,9 +333,7 @@ sealed trait Role {
 }
 object Role       {
   import com.normation.rudder.{AuthorizationType => A}
-  implicit private class ToRights[T <: AuthorizationType](authorizations: Set[T]) {
-    def toRights: Rights = new Rights(authorizations.toSeq: _*)
-  }
+
   def allRead = A.allKind.collect { case x: ActionType.Read => x }
 
   // for now, all account type also have the "user account" rights
@@ -335,47 +341,47 @@ object Role       {
 
   // a special account, with all rights, present and future, even if declared at runtime.
   final case object Administrator extends Role {
-    val name = "administrator"; def rights = new Rights(AuthorizationType.AnyRights)
+    val name = "administrator"; def rights = Rights.AnyRights
   }
 
   // other standard predefined roles
-  final case object User       extends Role { val name = "user"; def rights = (ua ++ A.nodeKind ++ A.configurationKind).toRights }
+  final case object User       extends Role { val name = "user"; def rights = Rights(ua ++ A.nodeKind ++ A.configurationKind) }
   final case object AdminOnly  extends Role {
-    val name = "administration_only"; def rights = (ua ++ A.Administration.values.map(identity)).toRights
+    val name = "administration_only"; def rights = Rights(ua ++ A.Administration.values.map(identity))
   }
   final case object Workflow   extends Role {
-    val name = "workflow"; def rights = (ua ++ A.workflowKind ++ A.complianceKind).toRights
+    val name = "workflow"; def rights = Rights(ua ++ A.workflowKind ++ A.complianceKind)
   }
   final case object Deployer   extends Role {
-    val name = "deployer"; def rights = (ua ++ A.Deployer.values ++ A.complianceKind).toRights
+    val name = "deployer"; def rights = Rights(ua ++ A.Deployer.values ++ A.complianceKind)
   }
   final case object Validator  extends Role {
-    val name = "validator"; def rights = (ua ++ A.Validator.values ++ A.complianceKind).toRights
+    val name = "validator"; def rights = Rights(ua ++ A.Validator.values ++ A.complianceKind)
   }
   case object Configuration    extends Role {
-    val name = "configuration"; val rights = (ua ++ A.configurationKind.map(identity)).toRights
+    val name = "configuration"; val rights = Rights(ua ++ A.configurationKind.map(identity))
   }
-  final case object ReadOnly   extends Role { val name = "read_only"; def rights = (ua ++ allRead).toRights                      }
-  final case object Compliance extends Role { val name = "compliance"; def rights = (ua ++ A.complianceKind).toRights            }
-  final case object Inventory  extends Role { val name = "inventory"; def rights = (ua ++ Set(A.Node.Read)).toRights             }
+  final case object ReadOnly   extends Role { val name = "read_only"; def rights = Rights(ua ++ allRead)                      }
+  final case object Compliance extends Role { val name = "compliance"; def rights = Rights(ua ++ A.complianceKind)            }
+  final case object Inventory  extends Role { val name = "inventory"; def rights = Rights(ua ++ Set(A.Node.Read))             }
   final case object RuleOnly   extends Role {
-    val name = "rule_only"; def rights = (ua ++ Set(A.Configuration.Read, A.Rule.Read)).toRights
+    val name = "rule_only"; def rights = Rights(ua ++ Set(A.Configuration.Read, A.Rule.Read))
   }
 
   // a special Role that means that a user has no rights at all. That role must super-seed any other right given by other roles
-  final case object NoRights extends Role { val name = "no_rights"; def rights = (Set(AuthorizationType.NoRights)).toRights }
+  final case object NoRights extends Role { val name = "no_rights"; def rights = Rights(Set(AuthorizationType.NoRights)) }
 
   // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
   final case class Custom(rights: Rights) extends Role {
     val name                 = "custom"
     override def debugString = s"authz[${rights.displayAuthorizations}]"
   }
-  def forRight(right: AuthorizationType) = Custom(new Rights(right))
-  def forRights(rights: Set[AuthorizationType]) = Custom(new Rights(rights.toSeq: _*))
+  def forRight(right: AuthorizationType) = Custom(Rights.forAuthzs(right))
+  def forRights(rights: Set[AuthorizationType]) = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag
   final case class NamedCustom(name: String, permissions: Seq[Role]) extends Role {
-    def rights               = new Rights(permissions.flatMap(_.rights.authorizationTypes): _*)
+    def rights               = Rights(permissions.flatMap(_.rights.authorizationTypes))
     override def debugString = s"customRole[${permissions.map(_.debugString).mkString(",")}]"
   }
 
@@ -444,7 +450,7 @@ object RudderRoles {
           AuthorizationType.parseRight(role) match {
             case Left(err) =>
               Inconsistency(s"Role '${role}' can not be resolved to a named role nor it matches a valid authorization").fail
-            case Right(x)  => Role.Custom(new Rights(x.toSeq: _*)).succeed
+            case Right(x)  => Role.Custom(Rights(x)).succeed
           }
       }
     })

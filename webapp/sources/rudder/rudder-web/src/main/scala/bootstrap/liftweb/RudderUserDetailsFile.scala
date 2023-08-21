@@ -370,7 +370,7 @@ object RudderAuthType {
   case object Api  extends RudderAuthType {
     override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
 
-    val apiRudderRights = new Rights(AuthorizationType.NoRights)
+    val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
   }
 }
