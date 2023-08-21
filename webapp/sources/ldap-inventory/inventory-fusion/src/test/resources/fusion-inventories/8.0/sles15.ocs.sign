@@ -1,0 +1,6 @@
+header=rudder-signature-v1
+algorithm=sha512
+digest=
+hostname=sles15
+keydate=
+keyid=
