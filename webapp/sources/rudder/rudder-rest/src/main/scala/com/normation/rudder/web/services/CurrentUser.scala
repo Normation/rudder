@@ -64,7 +64,7 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
 
   def getRights: Rights = this.get match {
     case Some(u) => u.authz
-    case None    => new Rights(AuthorizationType.NoRights)
+    case None    => Rights.forAuthzs(AuthorizationType.NoRights)
   }
 
   def account: RudderAccount = this.get match {

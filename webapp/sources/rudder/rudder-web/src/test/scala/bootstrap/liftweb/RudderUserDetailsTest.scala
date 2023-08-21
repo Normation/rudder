@@ -167,7 +167,8 @@ class RudderUserDetailsTest extends Specification {
     (userDetailList.isCaseSensitive must beTrue) and
     (userDetailList.users.size must beEqualTo(3)) and
     (userDetailList.customRoles must containTheSameElementsAs(parsedRoles)) and
-    (userDetailList.users("user_a1").roles must containTheSameElementsAs(List(roleA1)))
+    (userDetailList.users("user_a1").roles must containTheSameElementsAs(List(roleA1))) and
+    (roleC2.rights must beEqualTo(Role.NoRights.rights))
   }
 
   /// role specific  unit tests

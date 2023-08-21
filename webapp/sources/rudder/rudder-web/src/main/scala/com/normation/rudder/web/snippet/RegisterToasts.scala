@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.snippet
 
-import bootstrap.liftweb.StaticResourceRewrite
 import net.liftweb.http._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
