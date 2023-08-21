@@ -64,12 +64,17 @@ decodeCompositionRule =
           "worst-case-weighted-sum" -> succeed (WorstReport WorstReportWeightedSum)
           "worst-case-weighted-one" -> succeed (WorstReport WorstReportWeightedOne)
           "weighted"                -> succeed WeightedReport
-          "focus"                   -> succeed FocusReport
-                                       |> required "value" string
-          _                         -> fail (v ++ " is not a valid reporting logic")
-  in succeed innerDecoder
-    |> required "type" string
-    |> resolve
+          "focus"                   -> succeed (FocusReport "")
+          value                     ->
+            if (String.startsWith "focus:" value)
+            then
+              let
+                focusValue = String.split ":" value |> List.tail |> Maybe.withDefault [] |> String.join ""
+              in
+                succeed (FocusReport focusValue)
+            else fail (v ++ " is not a valid reporting logic")
+  in  string
+    |> andThen innerDecoder
 
 decodeBlock : Decoder MethodBlock
 decodeBlock =
