@@ -1,0 +1,5748 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+    <ACCESSLOG>
+      <LOGDATE>2023-07-19 15:20:34</LOGDATE>
+    </ACCESSLOG>
+    <BATTERIES>
+      <CAPACITY>50000</CAPACITY>
+      <CHEMISTRY>Unknown</CHEMISTRY>
+      <MANUFACTURER>innotek</MANUFACTURER>
+      <NAME>1</NAME>
+      <REAL_CAPACITY>50000</REAL_CAPACITY>
+      <SERIAL>0</SERIAL>
+      <VOLTAGE>10000</VOLTAGE>
+    </BATTERIES>
+    <BIOS>
+      <ASSETTAG />  <BDATE>12/01/2006</BDATE>
+      <BMANUFACTURER>innotek GmbH</BMANUFACTURER>
+      <BVERSION>VirtualBox</BVERSION>
+      <MMANUFACTURER>Oracle Corporation</MMANUFACTURER>
+      <MMODEL>VirtualBox</MMODEL>
+      <MSN>0</MSN>
+      <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
+      <SMODEL>VirtualBox</SMODEL>
+      <SSN>703a3f7c-bf59-4dee-896b-eadf6c74c61c</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>440FX - 82441FX PMC [Natoma]</NAME>
+      <PCICLASS>0600</PCICLASS>
+      <PCISLOT>00:00.0</PCISLOT>
+      <PRODUCTID>1237</PRODUCTID>
+      <REV>02</REV>
+      <TYPE>Host bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 ISA [Natoma/Triton II]</NAME>
+      <PCICLASS>0601</PCICLASS>
+      <PCISLOT>00:01.0</PCISLOT>
+      <PRODUCTID>7000</PRODUCTID>
+      <TYPE>ISA bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>SVGA II Adapter</CAPTION>
+      <DRIVER>vmwgfx</DRIVER>
+      <MANUFACTURER>VMware</MANUFACTURER>
+      <NAME>SVGA II Adapter</NAME>
+      <PCICLASS>0300</PCICLASS>
+      <PCISLOT>00:02.0</PCISLOT>
+      <PCISUBSYSTEMID>15ad:0405</PCISUBSYSTEMID>
+      <PRODUCTID>0405</PRODUCTID>
+      <TYPE>VGA compatible controller</TYPE>
+      <VENDORID>15ad</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <DRIVER>e1000</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>PRO/1000 MT Desktop Adapter</NAME>
+      <PCICLASS>0200</PCICLASS>
+      <PCISLOT>00:03.0</PCISLOT>
+      <PCISUBSYSTEMID>8086:001e</PCISUBSYSTEMID>
+      <PRODUCTID>100e</PRODUCTID>
+      <REV>02</REV>
+      <TYPE>Ethernet controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Guest Service</CAPTION>
+      <DRIVER>vboxguest</DRIVER>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Guest Service</NAME>
+      <PCICLASS>0880</PCICLASS>
+      <PCISLOT>00:04.0</PCISLOT>
+      <PRODUCTID>cafe</PRODUCTID>
+      <TYPE>System peripheral</TYPE>
+      <VENDORID>80ee</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371AB/EB/MB PIIX4 ACPI</CAPTION>
+      <DRIVER>piix4_smbus</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371AB/EB/MB PIIX4 ACPI</NAME>
+      <PCICLASS>0680</PCICLASS>
+      <PCISLOT>00:07.0</PCISLOT>
+      <PRODUCTID>7113</PRODUCTID>
+      <REV>08</REV>
+      <TYPE>Bridge</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <DRIVER>e1000</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>PRO/1000 MT Desktop Adapter</NAME>
+      <PCICLASS>0200</PCICLASS>
+      <PCISLOT>00:08.0</PCISLOT>
+      <PCISUBSYSTEMID>8086:001e</PCISUBSYSTEMID>
+      <PRODUCTID>100e</PRODUCTID>
+      <REV>02</REV>
+      <TYPE>Ethernet controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</CAPTION>
+      <DRIVER>ahci</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]</NAME>
+      <PCICLASS>0106</PCICLASS>
+      <PCISLOT>00:0d.0</PCISLOT>
+      <PRODUCTID>2829</PRODUCTID>
+      <REV>02</REV>
+      <TYPE>SATA controller</TYPE>
+      <VENDORID>8086</VENDORID>
+    </CONTROLLERS>
+    <CPUS>
+      <ARCH>i386</ARCH>
+      <CORE>1</CORE>
+      <FAMILYNUMBER>25</FAMILYNUMBER>
+      <MANUFACTURER>AMD</MANUFACTURER>
+      <MODEL>80</MODEL>
+      <NAME>AMD Ryzen 7 PRO 5850U with Radeon Graphics</NAME>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <FILESYSTEM>ext4</FILESYSTEM>
+      <FREE>17705</FREE>
+      <SERIAL>d614af06-856c-4d2e-ac62-bc21d6852507</SERIAL>
+      <TOTAL>19985</TOTAL>
+      <TYPE>/</TYPE>
+      <VOLUMN>/dev/sda1</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>vboxsf</FILESYSTEM>
+      <FREE>265725</FREE>
+      <TOTAL>486745</TOTAL>
+      <TYPE>/vagrant</TYPE>
+      <VOLUMN>vagrant</VOLUMN>
+    </DRIVES>
+    <ENVS>
+      <KEY>SUDO_UID</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/home/vagrant</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>unknown</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATH</KEY>
+      <VAL>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USER</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LOGNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_USER</KEY>
+      <VAL>vagrant</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_GID</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LANG</KEY>
+      <VAL>C.UTF-8</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHELL</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>INFOMGR_BYPASS_NONSA</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MAIL</KEY>
+      <VAL>/var/mail/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_COMMAND</KEY>
+      <VAL>/bin/sh -c /opt/rudder/bin/run-inventory --local=/tmp/debian11.ocs</VAL>
+    </ENVS>
+    <FIREWALL>
+      <STATUS>off</STATUS>
+    </FIREWALL>
+    <HARDWARE>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DATELASTLOGGEDUSER>Wed Jul 19 14:41:29</DATELASTLOGGEDUSER>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DNS>8.8.4.4/8.8.8.8</DNS>
+      <ETIME>1</ETIME>
+      <IPADDR>10.0.2.15/192.168.42.5</IPADDR>
+      <LASTLOGGEDUSER>wtmp</LASTLOGGEDUSER>
+      <MEMORY>221</MEMORY>
+      <NAME>debian11</NAME>
+      <OSCOMMENTS>#1 SMP Debian 5.10.84-1 (2021-12-08)</OSCOMMENTS>
+      <OSNAME>Debian GNU/Linux 11 (bullseye)</OSNAME>
+      <OSVERSION>5.10.0-10-amd64</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORT>AMD Ryzen 7 PRO 5850U with Radeon Graphics</PROCESSORT>
+      <UUID>703a3f7c-bf59-4dee-896b-eadf6c74c61c</UUID>
+      <VMSYSTEM>VirtualBox</VMSYSTEM>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>AT Translated Set 2 keyboard</CAPTION>
+      <DESCRIPTION>AT Translated Set 2 keyboard</DESCRIPTION>
+      <TYPE>sysrq</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>Video Bus</CAPTION>
+      <DESCRIPTION>Video Bus</DESCRIPTION>
+      <TYPE>Keyboard</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>ImExPS/2 Generic Explorer Mouse</CAPTION>
+      <DESCRIPTION>ImExPS/2 Generic Explorer Mouse</DESCRIPTION>
+      <TYPE>Pointing</TYPE>
+    </INPUTS>
+    <LOCAL_USERS>
+      <HOME>/root</HOME>
+      <ID>0</ID>
+      <LOGIN>root</LOGIN>
+      <NAME>root</NAME>
+      <SHELL>/bin/bash</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/usr/sbin</HOME>
+      <ID>1</ID>
+      <LOGIN>daemon</LOGIN>
+      <NAME>daemon</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/bin</HOME>
+      <ID>2</ID>
+      <LOGIN>bin</LOGIN>
+      <NAME>bin</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/dev</HOME>
+      <ID>3</ID>
+      <LOGIN>sys</LOGIN>
+      <NAME>sys</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/bin</HOME>
+      <ID>4</ID>
+      <LOGIN>sync</LOGIN>
+      <NAME>sync</NAME>
+      <SHELL>/bin/sync</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/usr/games</HOME>
+      <ID>5</ID>
+      <LOGIN>games</LOGIN>
+      <NAME>games</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/cache/man</HOME>
+      <ID>6</ID>
+      <LOGIN>man</LOGIN>
+      <NAME>man</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/spool/lpd</HOME>
+      <ID>7</ID>
+      <LOGIN>lp</LOGIN>
+      <NAME>lp</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/mail</HOME>
+      <ID>8</ID>
+      <LOGIN>mail</LOGIN>
+      <NAME>mail</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/spool/news</HOME>
+      <ID>9</ID>
+      <LOGIN>news</LOGIN>
+      <NAME>news</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/spool/uucp</HOME>
+      <ID>10</ID>
+      <LOGIN>uucp</LOGIN>
+      <NAME>uucp</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/bin</HOME>
+      <ID>13</ID>
+      <LOGIN>proxy</LOGIN>
+      <NAME>proxy</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/www</HOME>
+      <ID>33</ID>
+      <LOGIN>www-data</LOGIN>
+      <NAME>www-data</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/backups</HOME>
+      <ID>34</ID>
+      <LOGIN>backup</LOGIN>
+      <NAME>backup</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/list</HOME>
+      <ID>38</ID>
+      <LOGIN>list</LOGIN>
+      <NAME>Mailing List Manager</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/ircd</HOME>
+      <ID>39</ID>
+      <LOGIN>irc</LOGIN>
+      <NAME>ircd</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/lib/gnats</HOME>
+      <ID>41</ID>
+      <LOGIN>gnats</LOGIN>
+      <NAME>Gnats Bug-Reporting System (admin)</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/nonexistent</HOME>
+      <ID>65534</ID>
+      <LOGIN>nobody</LOGIN>
+      <NAME>nobody</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/nonexistent</HOME>
+      <ID>100</ID>
+      <LOGIN>_apt</LOGIN>
+      <NAME></NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/systemd</HOME>
+      <ID>101</ID>
+      <LOGIN>systemd-timesync</LOGIN>
+      <NAME>systemd Time Synchronization,,,</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/systemd</HOME>
+      <ID>102</ID>
+      <LOGIN>systemd-network</LOGIN>
+      <NAME>systemd Network Management,,,</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/systemd</HOME>
+      <ID>103</ID>
+      <LOGIN>systemd-resolve</LOGIN>
+      <NAME>systemd Resolver,,,</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/nonexistent</HOME>
+      <ID>104</ID>
+      <LOGIN>messagebus</LOGIN>
+      <NAME></NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/var/lib/chrony</HOME>
+      <ID>105</ID>
+      <LOGIN>_chrony</LOGIN>
+      <NAME>Chrony daemon,,,</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/sshd</HOME>
+      <ID>106</ID>
+      <LOGIN>sshd</LOGIN>
+      <NAME></NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/home/vagrant</HOME>
+      <ID>1000</ID>
+      <LOGIN>vagrant</LOGIN>
+      <NAME></NAME>
+      <SHELL>/bin/bash</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/</HOME>
+      <ID>999</ID>
+      <LOGIN>systemd-coredump</LOGIN>
+      <NAME>systemd Core Dumper</NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <LOCAL_USERS>
+      <HOME>/run/uuidd</HOME>
+      <ID>107</ID>
+      <LOGIN>uuidd</LOGIN>
+      <NAME></NAME>
+      <SHELL>/usr/sbin/nologin</SHELL>
+    </LOCAL_USERS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <IPMASK>255.0.0.0</IPMASK>
+      <IPSUBNET>127.0.0.0</IPSUBNET>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <STATUS>Up</STATUS>
+      <TYPE>loopback</TYPE>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS6>::1</IPADDRESS6>
+      <IPMASK6>fff0::</IPMASK6>
+      <IPSUBNET6>::</IPSUBNET6>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <STATUS>Up</STATUS>
+      <TYPE>loopback</TYPE>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPGATEWAY>10.0.2.2</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:8d:c0:4d</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fe8d:c04d</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:8d:c0:4d</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth1</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>192.168.42.5</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.42.0</IPSUBNET>
+      <MACADDR>08:00:27:54:40:2c</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth1</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fe54:402c</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:54:40:2c</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <ARCH>x86_64</ARCH>
+      <BOOT_TIME>2023-07-19 14:41:29</BOOT_TIME>
+      <DNS_DOMAIN>rudder.local</DNS_DOMAIN>
+      <FQDN>debian11.rudder.local</FQDN>
+      <FULL_NAME>Debian GNU/Linux 11 (bullseye)</FULL_NAME>
+      <HOSTID>a8c0052a</HOSTID>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>5.10.0-10-amd64</KERNEL_VERSION>
+      <NAME>Debian</NAME>
+      <SSH_KEY>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDBAS8MD2IHhpLoyCnkJJ9bylUUJBbaY1mWb+3rq2LJ24IH3vQymnfKc2oPcWDaSis4psbebG83CksdQTCQPoBpcNK2u3gVDOY6FR3qBcMlZ2R+Pn5qsHbzbRO1i3NQsKq/QRkgSpnJHT3H0qX2CZNChXOT3w7Fhw1IzMo/Cxb2k8ccjnCCCrXXv1wFWYdr3u2K6mRmt++WsTLHaS0ROhCA/NUQcJyQ+MLEGUoNfGXijVEGl58QhBfq8EvQu5g/BvRSv9hnYbQivt/znusDsTLgKxcRZf/Dj4FMM6wPpI1gNCTWndCA+GBz5V1wWDwiSoNfcBBUQMuiiayWP5CKTBag8BT+rlKvE9SYDt35M2rDyBWn45NCIPq6kwvNjYDD2lYbGkZh1FOkfCXB3p/2BYuKp7qXGxkcdkidYW6wEWoY8SxMmPSgZwDKFvDZJkgzbCfiyq61M78/w0+HbR93ixqWM09D+2op5hu7KjD8SVom0AyRTlRB3A7z0amkUda9cu8=</SSH_KEY>
+      <TIMEZONE>
+        <NAME>UTC</NAME>
+        <OFFSET>+0000</OFFSET>
+      </TIMEZONE>
+      <VERSION>11</VERSION>
+    </OPERATINGSYSTEM>
+    <PROCESSES>
+      <CMD>/sbin/init</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>3.4</MEM>
+      <PID>1</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>164856</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthreadd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_gp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>3</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_par_gp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>4</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:0H-events_highpri]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[mm_percpu_wq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>9</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_tasks_rude_]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>10</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_tasks_trace]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>11</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksoftirqd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>12</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_sched]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>13</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[migration/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>14</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cpuhp/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>15</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdevtmpfs]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>17</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[netns]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>18</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kauditd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>19</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khungtaskd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>20</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[oom_reaper]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>21</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[writeback]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>22</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kcompactd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>23</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksmd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>24</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kintegrityd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>42</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kblockd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>43</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[blkcg_punt_bio]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>44</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[edac-poller]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>45</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[devfreq_wq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>46</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1H-kblockd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>47</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kswapd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>48</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthrotld]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>49</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[acpi_thermal_pm]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>50</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ipv6_addrconf]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>51</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kstrp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>61</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[zswap-shrink]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>64</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u3:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>65</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:2-events]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>98</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata_sff]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>103</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>104</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_tmf_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>105</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:2-flush-8:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>126</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[jbd2/sda1-8]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>127</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ext4-rsv-conver]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>128</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/lib/systemd/systemd-journald</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>5.2</MEM>
+      <PID>176</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>48332</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/lib/systemd/systemd-udevd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.0</MEM>
+      <PID>195</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>21524</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cryptd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>221</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[irq/18-vmwgfx]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>236</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ttm_swap]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>237</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>239</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>240</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>243</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc3]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>246</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc4]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>248</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc5]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>250</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc6]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>252</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[card0-crtc7]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>253</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/cron -f</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>287</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>5576</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.4</MEM>
+      <PID>288</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>message+</USER>
+      <VIRTUALMEMORY>8188</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/rsyslogd -n -iNONE</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.3</MEM>
+      <PID>294</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>220740</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/lib/systemd/systemd-logind</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.8</MEM>
+      <PID>297</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>22140</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/agetty -o -p -- \u --noclear tty1 linux</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>329</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2812</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>5.3</MEM>
+      <PID>331</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>26544</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/chronyd -F 1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>333</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>_chrony</USER>
+      <VIRTUALMEMORY>18968</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/chronyd -F 1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.8</MEM>
+      <PID>335</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>_chrony</USER>
+      <VIRTUALMEMORY>10776</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.7</MEM>
+      <PID>538</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>13292</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:3-events]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>576</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/dhclient -4 -v -i -pf /run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -I -df /var/lib/dhcp/dhclient6.eth0.leases eth0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.1</MEM>
+      <PID>976</PID>
+      <STARTED>2023-07-19 14:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>99824</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-execd --no-fork</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>4.3</MEM>
+      <PID>4861</PID>
+      <STARTED>2023-07-19 14:42</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>26644</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-serverd --graceful-detach=600 --no-fork --inform</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>4.7</MEM>
+      <PID>4862</PID>
+      <STARTED>2023-07-19 14:42</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>26776</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:0-ext4-rsv-conversion]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>5498</PID>
+      <STARTED>2023-07-19 14:50</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:1-ext4-rsv-conversion]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6039</PID>
+      <STARTED>2023-07-19 15:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:3-flush-8:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6809</PID>
+      <STARTED>2023-07-19 15:15</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:4-ext4-rsv-conversion]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7001</PID>
+      <STARTED>2023-07-19 15:17</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/CRON -f</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.5</MEM>
+      <PID>7105</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>8528</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh -c /opt/rudder/bin/rudder agent check -q &gt;&gt; /var/log/rudder/agent-check/check.log 2&gt;&amp;1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>7106</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2420</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/share/commands/agent-check -q</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.7</MEM>
+      <PID>7107</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2420</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sleep 104</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>7153</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4224</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cf-execd] &lt;defunct&gt;</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7157</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant [priv]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>3.8</MEM>
+      <PID>7174</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>14656</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/lib/systemd/systemd --user</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>3.3</MEM>
+      <PID>7177</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>14992</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>(sd-pam)</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>7178</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>167808</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant@notty</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>2.1</MEM>
+      <PID>7196</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>14656</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sudo /bin/sh -c /opt/rudder/bin/run-inventory --local=/tmp/debian11.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>2.2</MEM>
+      <PID>7197</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>9512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh -c /opt/rudder/bin/run-inventory --local=/tmp/debian11.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>7198</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2420</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/tmp/debian11.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>7199</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2420</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/rudder-perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/tmp/debian11.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>7203</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2420</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>fusioninventory-agent: running task Inventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>22.3</MEM>
+      <PID>7204</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>54404</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>7218</PID>
+      <STARTED>2023-07-19 15:20</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>6700</VIRTUALMEMORY>
+    </PROCESSES>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>-----BEGIN CERTIFICATE-----
+MIIFqzCCA5OgAwIBAgIUSgoBxQSOjEP81ZMnLeHKZdacvt0wDQYJKoZIhvcNAQEL
+BQAwNjE0MDIGCgmSJomT8ixkAQEMJGUxMDIyNzJhLWJiYjQtNDhjMi05YTc5LTI1
+Yzc4NTc1Yjk0ZTAeFw0yMzA3MTkxNDQyMTVaFw0zMzA3MTYxNDQyMTVaMDYxNDAy
+BgoJkiaJk/IsZAEBDCRlMTAyMjcyYS1iYmI0LTQ4YzItOWE3OS0yNWM3ODU3NWI5
+NGUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDLBNyZXUfZls6ycUtG
+B+VFulhdmLiu5xMmvUgSmFcAierRNQC33xU6cJ0wfcXfrOv8uq0YV6BAj+cGFbSt
+kgEvchJZYhlCifrdip41nO0F0l5AkwwCaEiMeDU4uaVccno6tt6NdJu35/8qQm9Q
+NPqkPtJz3u3RJ2huhXb0iB+b+DxBWPYx595bNYBsMrJ/8rO8a+IoRauR6YbyddvI
+dsq9MtzDroNKgsCOveFDjl4k4Dm0WaF0jpkD+PADVxy9gTFANQAp02PK474EMfT9
+2IaERhq1zgjCZ7rdsgGNbUn9BJ2igVA9AhAX5L0/d9CtsUlKQ14hCSc0jsu0mwCX
+5vcB8e4neV7bHRO7S7Z+7T1aLopdH9lGApFoki8yIdp/Q37KFLlKCZIkVxAxmrls
+yIMRGpr4TPtZzlrdJ2MRzDpluE+0tqSMFhxntmcewbsVGguL2+ZYoXZtjV9QgDZ2
+R2El+Un1Bui80Ajm0OBmx/ZS1B9JgqsmJnPv5F0KjSWY+hPEF+eigPQntthdFPf2
+LU4rNQJUwAhfkr8Q4kvDRDKNUD9hE7CO77AzCco4L0DNbUwKxlauO51bixIe50Yv
+I8omvnpflnz3s5SBmxS96epRUVwbl3yqb1fupPzEzlk7clbdNEGuD26xuEoQWjnt
+oVh8I3yFI/mXCc418ggnC3dQRQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD
+VR0OBBYEFJpX6O0V43QrXFjB/B1CtSNW7/ciMHEGA1UdIwRqMGiAFJpX6O0V43Qr
+XFjB/B1CtSNW7/cioTqkODA2MTQwMgYKCZImiZPyLGQBAQwkZTEwMjI3MmEtYmJi
+NC00OGMyLTlhNzktMjVjNzg1NzViOTRlghRKCgHFBI6MQ/zVkyct4cpl1py+3TAL
+BgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAIEhijd//aZENpmdDE7eyKrC
+VUWqccm7HxIvvDZYKnV9CNA5Ls8iafBRSZPejrWZ5q+u4q/eFQhT2M90nhM6NU1q
+RsxDAz6km5/YDl0nx1+AK6PGLRDwSpsOiYyHivUB9DVc/oaf8qlAXgDMCoSWb4SD
+yqh1PVfMANhifBOR4xzGY0qHbBDvpOlRd5PK+gGzKNzVSNodcsN4zoXp46mdcmDy
+cPiWntYz3/E/lKYIF+rm8W93q45ivelkjR5dwM4bd0zhiBqejINEYOyU+2DI0QtC
+mC3SwFDGi9wdR5XrElzyXqchBQeI5R16qEANt37hjjJacKlPSQ2q6pnte7sJZO1Y
+tRHS6eHkF2UOny7k0DpSjqJ9OI7ztI94R6T6pqAXgdK6t21VvB11Z9YvHqwvWjqN
+Wd3ggCT+GOciFvGo8I4txdO5BONzIAxy1rRo/WrrdHgCKThBoT8/7MUK6/WZ4x3l
++5TT+u8SGI3hsQLPjw1RN5X0YmOS5isHOBzAeLejyEgne5oL7ebi03LDoCgXsrRM
+gOntesK32pUrxxHZV5MVod0GePTsUnFR5xhg6nILlviRsbh21fdzcpNMZCkMtCld
+EH9KpBhbWbRZmpV4lBFXLaJypg7Zl4RFBMZjjh5vrNcsNcPfMVwjAz8e1X2DQdbd
+PHB0S0S/ZpgIAlmU4VnZ
+-----END CERTIFICATE-----
+        </AGENT_CERT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
+MIICCgKCAgEAywTcmV1H2ZbOsnFLRgflRbpYXZi4rucTJr1IEphXAInq0TUAt98V
+OnCdMH3F36zr/LqtGFegQI/nBhW0rZIBL3ISWWIZQon63YqeNZztBdJeQJMMAmhI
+jHg1OLmlXHJ6OrbejXSbt+f/KkJvUDT6pD7Sc97t0SdoboV29Igfm/g8QVj2Mefe
+WzWAbDKyf/KzvGviKEWrkemG8nXbyHbKvTLcw66DSoLAjr3hQ45eJOA5tFmhdI6Z
+A/jwA1ccvYExQDUAKdNjyuO+BDH0/diGhEYatc4Iwme63bIBjW1J/QSdooFQPQIQ
+F+S9P3fQrbFJSkNeIQknNI7LtJsAl+b3AfHuJ3le2x0Tu0u2fu09Wi6KXR/ZRgKR
+aJIvMiHaf0N+yhS5SgmSJFcQMZq5bMiDERqa+Ez7Wc5a3SdjEcw6ZbhPtLakjBYc
+Z7ZnHsG7FRoLi9vmWKF2bY1fUIA2dkdhJflJ9QbovNAI5tDgZsf2UtQfSYKrJiZz
+7+RdCo0lmPoTxBfnooD0J7bYXRT39i1OKzUCVMAIX5K/EOJLw0QyjVA/YROwju+w
+MwnKOC9AzW1MCsZWrjudW4sSHudGLyPKJr56X5Z897OUgZsUvenqUVFcG5d8qm9X
+7qT8xM5ZO3JW3TRBrg9usbhKEFo57aFYfCN8hSP5lwnONfIIJwt3UEUCAwEAAQ==
+-----END RSA PUBLIC KEY-----
+        </CFENGINE_KEY>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>rudder</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID /></AGENT>
+      <AGENT_CAPABILITIES>
+        <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>jq</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>yaml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>xml</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>curl</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>http_reporting</AGENT_CAPABILITY>
+        <AGENT_CAPABILITY>acl</AGENT_CAPABILITY>
+      </AGENT_CAPABILITIES>
+      <HOSTNAME>debian11.rudder.local</HOSTNAME>
+      <SERVER_ROLES></SERVER_ROLES>
+      <UUID>e102272a-bbb4-48c2-9a79-25c78575b94e</UUID>
+    </RUDDER>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>869376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>adduser</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.118</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2615296</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apparmor</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.13.6-10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4441088</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>433152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-listchanges</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.24</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>165888</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-transport-https</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>apt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>oldlibs</SYSTEM_CATEGORY>
+      <VERSION>2.2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1191936</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>apt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>2001920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>augeas-lenses</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>augeas</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>1.12.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>241664</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>augeas-tools</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>augeas</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.12.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>348160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-files</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>11.1+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>248832</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-passwd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.5.51</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>6625280</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bash (5.1-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>shells</SYSTEM_CATEGORY>
+      <VERSION>5.1-2+b3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1559552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash-completion</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>shells</SYSTEM_CATEGORY>
+      <VERSION>1:2.11-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>730112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bind9-dnsutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bind9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:9.16.22-1~deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>382976</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bind9-host</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bind9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:9.16.22-1~deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3817472</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bind9-libs</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bind9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:9.16.22-1~deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>99328</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>binutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>14230528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>binutils-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>binutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>8933376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>binutils-x86-64-linux-gnu</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>binutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>393216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdextrautils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>403456</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux (2.36.1-8)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1:2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>124928</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bzip2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.0.8-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>391168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ca-certificates</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>20210119</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>644096</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>chrony</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>4.0-8+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>62464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-guest-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cloud-utils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.31-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>65536</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-image-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cloud-utils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.31-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>22528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-initramfs-growroot</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cloud-initramfs-tools</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.18.debian8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>18432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.31-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>17897472</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>coreutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>coreutils (8.32-4)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>8.32-4+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1163264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cpio</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.13+dfsg-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>269312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cron</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.0pl1-137</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>440320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>curl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>web</SYSTEM_CATEGORY>
+      <VERSION>7.74.0-1.3+deb11u7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>226304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dash</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>shells</SYSTEM_CATEGORY>
+      <VERSION>0.5.11+git20200708+dd9ef66-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>627712</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dbus</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.12.20-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>529408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.5.77</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>791552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf-i18n</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>debconf</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>1.5.77</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>239616</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debian-archive-keyring</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>2021.1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>836608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debian-faq</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>doc</SYSTEM_CATEGORY>
+      <VERSION>10.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>235520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debianutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>4.11.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1636352</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>diffutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1:3.7-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1309696</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dirmngr</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>19456</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>distro-info-data</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>0.51+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>207872</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dmidecode</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>261120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dmsetup</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lvm2 (2.03.11-2.1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2:1.02.175-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>169984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>doc-debian</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>doc</SYSTEM_CATEGORY>
+      <VERSION>6.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>7038976</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dpkg</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.20.9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1547264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>e2fsprogs</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.46.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>532480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fdisk</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>106496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>file</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1:5.39-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2006016</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>findutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>4.8.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>267264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-10-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gcc-10</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>10.2.1-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>268288</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-9-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gcc-9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>9.3.0-22</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1691648</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>genisoimage</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cdrkit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>otherosfs</SYSTEM_CATEGORY>
+      <VERSION>9:1.1.11-3.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>674816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gettext-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gettext</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>0.21-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>35926016</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>git</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>vcs</SYSTEM_CATEGORY>
+      <VERSION>1:2.30.2-1+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1922048</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>git-man</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>git</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>doc</SYSTEM_CATEGORY>
+      <VERSION>1:2.30.2-1+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>884736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gnupg</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>5022720</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gnupg-l10n</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1835008</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gnupg-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1597440</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpg</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1315840</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpg-agent</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>673792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpg-wks-client</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>649216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpg-wks-server</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>789504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpgconf</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>973824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpgsm</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>903168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpgv</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnupg2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.2.27-2+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1117184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grep</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3748864</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>groff-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>groff</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>text</SYSTEM_CATEGORY>
+      <VERSION>1.22.4-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>17840128</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>grub2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.04-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>545792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-pc</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>grub2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.04-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3133440</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-pc-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>grub2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.04-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1346560</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub2-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>grub2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.04-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>247808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gzip</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.10-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>51200</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>hostname</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.23</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>327680</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>htop</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.0.5-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>222208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ifupdown</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.8.36</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>22528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>init</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>init-system-helpers</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>metapackages</SYSTEM_CATEGORY>
+      <VERSION>1.60</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>134144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>init-system-helpers</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.60</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>114688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initramfs-tools</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>0.140</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>216064</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initramfs-tools-core</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>initramfs-tools</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>0.140</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2935808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iproute2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>5.10.0-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2581504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iptables</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1.8.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>115712</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iputils-ping</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>iputils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>3:20210202-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>702464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>isc-dhcp-client</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>isc-dhcp</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>4.4.1-2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>152576</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>isc-dhcp-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>isc-dhcp</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>4.4.1-2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>112640</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>jq</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.6-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>560128</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>klibc-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>klibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.0.8-6.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>247808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>kmod</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>28-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>310272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>krb5-locales</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>krb5</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>1.18.3-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>736256</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ldap-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openldap</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>2.4.57+dfsg-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>163840</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ldapscripts</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.0.8-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>303104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>less</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>text</SYSTEM_CATEGORY>
+      <VERSION>551-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>72704</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libacl1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>acl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.2.53-10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>36864</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaio1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libaio</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.3.112-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>165888</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapparmor1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>apparmor</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.13.6-10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3453952</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapt-pkg6.0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>apt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>58368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libargon2-1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>argon2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0~20171227-0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>123904</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libassuan0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libassuan</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.5.3-7.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>57344</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libattr1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>attr</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:2.4.48-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>26624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaudit-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>audit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:3.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>157696</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaudit1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>audit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:3.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>716800</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaugeas0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>augeas</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.12.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2906112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbinutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>binutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>431104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libblkid1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>276480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbpf0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libbpf (0.3-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:0.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>802816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbrotli1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>brotli (1.0.9-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.9-2+b2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>195584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbsd0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libbsd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.11.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>106496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbz2-1.0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bzip2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.8-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3781632</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>glibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.31-13+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>4502528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc-l10n</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>glibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>2.31-13+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>13080576</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>glibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.31-13+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>49152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap-ng0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libcap-ng (0.7.9-2.2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.7.9-2.2+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>66560</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:2.44-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>118784</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap2-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libcap2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1:2.44-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>93184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcbor0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libcbor</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.5.0+dfsg-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>99328</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcom-err2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>e2fsprogs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.46.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>231424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcrypt1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libxcrypt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:4.4.18-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>566272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcryptsetup12</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cryptsetup</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2:2.3.5-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>195584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libctf-nobfd0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>binutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>144384</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libctf0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>binutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>devel</SYSTEM_CATEGORY>
+      <VERSION>2.35.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>741376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcurl3-gnutls</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>curl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>7.74.0-1.3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>757760</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcurl4</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>curl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>7.74.0-1.3+deb11u7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1861632</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdb5.3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>db5.3</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>5.3.28+dfsg1-0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>495616</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdbus-1-3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>dbus</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.12.20-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>75776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdebconfclient0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cdebconf</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.260</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>490496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdevmapper1.02.1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lvm2 (2.03.11-2.1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2:1.02.175-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2541568</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdns-export1110</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bind9-libs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:9.11.19+dfsg-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>265216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libedit2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libedit (3.1-20191231-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.1-20191231-2+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>119808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libefiboot1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>efivar</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>37-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>174080</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libefivar1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>efivar</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>37-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>968704</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libelf1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>elfutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.183-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>76800</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liberror-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>0.17029-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>33792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libestr0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libestr (0.1.10-2.1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.1.10-2.1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>419840</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libexpat1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>expat</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.2.10-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>591872</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libext2fs2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>e2fsprogs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.46.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>77824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfastjson4</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libfastjson</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.99.9-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>565248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfdisk1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>67584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libffi7</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libffi</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>177152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfido2-1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libfido2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.6.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>917504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfreetype6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>freetype</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.10.4+dfsg-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>72704</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfstrm0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>fstrm (0.6.0-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.6.0-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>362496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfuse2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>fuse</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.9.9-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>118784</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcc-s1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gcc-10</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>10.2.1-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1387520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcrypt20</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.8.7-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>68608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgdbm-compat4</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gdbm</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.19-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>116736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgdbm6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gdbm</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.19-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4092928</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libglib2.0-0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>glib2.0</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.66.8-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>883712</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgmp10</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gmp</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2:6.2.1+dfsg-1+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3217408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgnutls30</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gnutls28</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.7.1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>192512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpg-error0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libgpg-error</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.38-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>66560</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpm2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gpm</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.20.7-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>461824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgssapi-krb5-2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>krb5</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.18.3-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>465920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhogweed6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>nettle</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.7.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>33947648</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libicu67</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>icu</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>67.1-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>307200</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libidn2-0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libidn2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.3.0-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>82944</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libip4tc2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>iptables</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.8.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>82944</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libip6tc2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>iptables</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.8.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>727040</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisc-export1105</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>bind9-libs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:9.11.19+dfsg-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>101376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjansson4</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>jansson</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.13.1-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>370688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjq1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>jq</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.6-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>109568</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjson-c5</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>json-c</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.15-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>303104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libk5crypto3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>krb5</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.18.3-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>47104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkeyutils1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>keyutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.6.1-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>112640</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libklibc</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>klibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.0.8-6.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>138240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkmod2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>kmod</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>28-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1134592</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb5-3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>krb5</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.18.3-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>173056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb5support0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>krb5</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.18.3-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>315392</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libksba8</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libksba</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.5.0-3+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>551936</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libldap-2.4-2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openldap</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.4.57+dfsg-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>106496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblmdb0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lmdb</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.9.24-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>56320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblocale-gettext-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>liblocale-gettext-perl (1.07-4)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>1.07-4+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>54272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblockfile-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>liblockfile (1.17-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.17-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>173056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblognorm5</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>liblognorm</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.0.5-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>429056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libltdl7</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libtool</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.4.6-15</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>160768</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblz4-1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lz4</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.9.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>283648</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblzma5</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>xz-utils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>5.2.5-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>6712320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmagic-mgc</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>file</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:5.39-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>256000</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmagic1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>file</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:5.39-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>77824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmaxminddb0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libmaxminddb</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.5.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>78848</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmd0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libmd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.3-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>47104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmnl0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libmnl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.4-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>488448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmount1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>284672</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmpdec3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>mpdecimal</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.5.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>343040</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncurses6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>430080</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncursesw6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>143360</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnetfilter-conntrack3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnetfilter-conntrack</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.8-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>491520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnettle8</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>nettle</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.7.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>388096</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnewt0.52</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>newt (0.52.21-4)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.52.21-4+b3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>41984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnfnetlink0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnfnetlink (1.0.1-3)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.0.1-3+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>809984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnftables1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>nftables</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.9.8-3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>241664</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnftnl11</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnftnl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.1.9-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>222208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnghttp2-14</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>nghttp2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.43.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>186368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnl-3-200</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnl3 (3.4.0-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.4.0-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>59392</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnl-genl-3-200</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnl3 (3.4.0-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.4.0-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>51200</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnpth0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>npth</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.6-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>130048</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnsl2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libnsl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.3.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>370688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnss-systemd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>664576</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libonig5</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libonig</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>6.9.6-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1434624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libp11-kit0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>p11-kit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.23.22-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1073152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-modules</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pam</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.4.0-9+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>232448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-modules-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pam</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.4.0-9+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>988160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-runtime</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pam</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.4.0-9+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>587776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-systemd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>249856</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam0g</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pam</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.4.0-9+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>121856</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpci3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pciutils</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:3.7.0-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>679936</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcre2-8-0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pcre2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>10.36-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>685056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcre3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pcre3</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2:8.39-13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>28537856</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libperl5.32</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>perl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>5.32.1-4+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>92160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpipeline1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libpipeline</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.5.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>454656</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpng16-16</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libpng1.6</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.6.37-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>232448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpopt0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>popt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.18-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>135168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libprocps8</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>procps</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2:3.3.17-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>67584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libprotobuf-c1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>protobuf-c (1.3.3-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.3.3-1+b2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>97280</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpsl5</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libpsl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.21.0-1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>38912</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpython3-stdlib</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3-defaults</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>5073920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpython3.9-minimal</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3.9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>8083456</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpython3.9-stdlib</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3.9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>482304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libreadline8</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>readline</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>8.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>149504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>librtmp1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>rtmpdump (2.4+20151223.gitfa8646d.1-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.4+20151223.gitfa8646d.1-2+b2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>192512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsasl2-2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cyrus-sasl2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.1.27+dfsg-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>103424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsasl2-modules-db</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>cyrus-sasl2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.1.27+dfsg-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>161792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libseccomp2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libseccomp</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.5.1-1+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>211968</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libselinux1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libselinux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.1-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>36864</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsemanage-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libsemanage</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>314368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsemanage1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libsemanage (3.1-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.1-1+b2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>760832</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsepol1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libsepol</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1670144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libslang2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>slang2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.3.2-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>335872</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsmartcols1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1553408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsqlite3-0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>sqlite3</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>3.34.1-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>115712</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libss2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>e2fsprogs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.46.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>305152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libssh2-1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libssh2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.9.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4216832</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libssl1.1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openssl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.1.1k-1+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2407424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libstdc++6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>gcc-10</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>10.2.1-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>884736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsystemd0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>126976</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtasn1-6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>4.16.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>44032</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-charwidth-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libtext-charwidth-perl (0.04-10)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>0.04-10+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>52224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-iconv-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libtext-iconv-perl (1.7-7)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>1.7-7+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>26624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-wrapi18n-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>0.06-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>548864</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtinfo6</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>34816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtirpc-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libtirpc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.3.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>230400</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtirpc3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libtirpc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.3.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>212992</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuchardet0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>uchardet</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.0.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>287744</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libudev1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1630208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libunistring2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libunistring</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.9.10-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>33792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liburing1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>liburing</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.7-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>132096</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuuid1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>293888</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuv1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.40.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>111616</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libwrap0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>tcp-wrappers</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>7.6.q-31</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>65536</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-treepp-perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>0.43-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1920000</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>2.9.10+dfsg-6.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>113664</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxtables12</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>iptables</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.8.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>116736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxxhash0</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>xxhash</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.8.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>151552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libyaml-0-2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libyaml</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>0.2.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>925696</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libzstd1</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>libzstd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1.4.8+dfsg-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>83968</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>kernel</SYSTEM_CATEGORY>
+      <VERSION>4.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>301758464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-5.10.0-10-amd64</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>linux-signed-amd64 (5.10.84+1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>kernel</SYSTEM_CATEGORY>
+      <VERSION>5.10.84-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>13312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-amd64</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>linux-signed-amd64 (5.10.84+1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>kernel</SYSTEM_CATEGORY>
+      <VERSION>5.10.84-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>16398336</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>locales</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>glibc</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>2.31-13+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2391040</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>login</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>shadow</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1:4.8.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>174080</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>logrotate</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.18.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>95232</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>logsave</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>e2fsprogs</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.46.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>50176</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lsb</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>11.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>64512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-release</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>lsb</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>11.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>461824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsof</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>4.93.2+dfsg-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>88064</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mailcap</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.69</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2942976</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>man-db</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>doc</SYSTEM_CATEGORY>
+      <VERSION>2.9.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1709056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>doc</SYSTEM_CATEGORY>
+      <VERSION>5.10-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>247808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mawk</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>interpreters</SYSTEM_CATEGORY>
+      <VERSION>1.3.4.20200120-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>94208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>media-types</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>4.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>17408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mime-support</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>3.66</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>448512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mount</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2590720</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nano</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>5.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>394240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>660480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-bin</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>4286464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-term</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>ncurses</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>misc</SYSTEM_CATEGORY>
+      <VERSION>6.2+20201114-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1014784</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>net-tools</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1.60+git20181103.0eebece-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>41984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netbase</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>6.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>147456</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netcat-traditional</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>netcat</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1.10-46</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>182272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nftables</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>0.9.8-3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4401152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-client</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openssh</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:8.4p1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1604608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-server</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openssh</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:8.4p1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>140288</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-sftp-server</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>openssh</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:8.4p1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1500160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.1.1k-1+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2801664</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>passwd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>shadow</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1:4.8.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>253952</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>patch</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>vcs</SYSTEM_CATEGORY>
+      <VERSION>2.7.6-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1266688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pci.ids</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>0.0~2021.02.08-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>200704</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pciutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1:3.7.0-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>721920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>5.32.1-4+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>7847936</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-base</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>perl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>perl</SYSTEM_CATEGORY>
+      <VERSION>5.32.1-4+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>17873920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-modules-5.32</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>perl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>5.32.1-4+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>123904</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pinentry-curses</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pinentry</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.1.0-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1687552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>procps</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2:3.3.17-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>52224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pwgen</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.08-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>570368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apt-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-apt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>2.2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>91136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3-defaults</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>724992</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-apt</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-apt</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>2.2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>331776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-certifi</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-certifi</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>2020.6.20-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1093632</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-chardet</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>chardet</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>4.0.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>424960</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-dbus</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>dbus-python</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.2.16-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>18432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-debconf</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>debconf</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.5.77</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>359424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-debian</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-debian</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>0.1.39</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>52224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-debianbts</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-debianbts</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>34816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-distro-info</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>distro-info</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>142336</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-httplib2</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-httplib2</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>0.18.1-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>306176</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-idna</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-idna</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>2.10-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>123904</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-minimal</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3-defaults</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>582656</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-pkg-resources</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>setuptools</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>52.0.0-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>193536</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-pycurl</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pycurl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>7.43.0.6-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>196608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-pysimplesoap</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>pysimplesoap</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.16.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>396288</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-reportbug</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>reportbug</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>7.10.3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>235520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-requests</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>requests</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>2.25.1+dfsg-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>63488</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-six</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>six</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.16.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>467968</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3-urllib3</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python-urllib3</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>1.26.5-1~exp1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>553984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3.9</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>5607424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python3.9-minimal</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>python3.9</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>python</SYSTEM_CATEGORY>
+      <VERSION>3.9.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>6223872</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>qemu-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>qemu</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>otherosfs</SYSTEM_CATEGORY>
+      <VERSION>1:5.2+dfsg-11+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>94208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>readline-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>readline</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>8.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>263168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>reportbug</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>7.10.3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>754688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsync</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>3.2.3-4+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1920000</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsyslog</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>8.2102.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>28185600</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rudder-agent</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>8.0.0~alpha2~git202307191239-debian11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>20480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>runit-helper</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>dh-runit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.10.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>904192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sed</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>4.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>45056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sensible-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>0.0.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1455104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sharutils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1:4.15.2-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4699136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sudo</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>1.9.5p2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>16399360</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>systemd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>142336</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>systemd-sysv</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>80896</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysvinit-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>sysvinit</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.96-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3227648</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tar</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.34+dfsg-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>404480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.68</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>216064</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel-data</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>tasksel</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>3.68</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>166912</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>telnet</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>netkit-telnet</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>0.17-42</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>162816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>traceroute</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>traceroute (1:2.1.0-2)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>net</SYSTEM_CATEGORY>
+      <VERSION>1:2.1.0-2+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>117760</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tree</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>tree (1.8.0-1)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>1.8.0-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>3490816</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tzdata</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>localization</SYSTEM_CATEGORY>
+      <VERSION>2021a-1+deb11u2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>237568</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ucf</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>3.0043</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>9187328</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>udev</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>systemd</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>247.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>333824</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>unattended-upgrades</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>2.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>4709376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>util-linux</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>224256</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>uuid-runtime</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>util-linux</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>2.36.1-8+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3364864</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>2:8.2.2434-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>349184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>vim</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>2:8.2.2434-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>32905216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-runtime</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>vim</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>2:8.2.2434-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>1611776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-tiny</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>vim</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>2:8.2.2434-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>1019904</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wamerican</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>scowl</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>text</SYSTEM_CATEGORY>
+      <VERSION>2019.10.06-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>3559424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wget</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>web</SYSTEM_CATEGORY>
+      <VERSION>1.21-1+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>72704</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>whiptail</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>newt (0.52.21-4)</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>0.52.21-4+b3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>244736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xxd</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>vim</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>editors</SYSTEM_CATEGORY>
+      <VERSION>2:8.2.2434-3+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>626688</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xz-utils</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>utils</SYSTEM_CATEGORY>
+      <VERSION>5.2.5-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>169984</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zlib1g</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>zlib</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>libs</SYSTEM_CATEGORY>
+      <VERSION>1:1.2.11.dfsg-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <FILESIZE>2526208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zsh</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION></SOURCE_VERSION>
+      <SYSTEM_CATEGORY>shells</SYSTEM_CATEGORY>
+      <VERSION>5.8-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <FILESIZE>15761408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zsh-common</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_NAME>install ok installed</SOURCE_NAME>
+      <SOURCE_VERSION>zsh</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>shells</SYSTEM_CATEGORY>
+      <VERSION>5.8-6+deb11u1</VERSION>
+    </SOFTWARES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>base-files</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>11.1+deb11u7</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>bash</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>5.1-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>dpkg</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>1.20.12</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>grep</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>3.6-1+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>ncurses-bin</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libc6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.31-13+deb11u6</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libncurses6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libncursesw6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libtinfo6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libc-bin</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.31-13+deb11u6</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>ncurses-base</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>sysvinit-utils</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.96-7+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libsystemd0</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libnss-systemd</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libpam-systemd</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>systemd</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>udev</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libudev1</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>systemd-sysv</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>247.3-7+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>libssl1.1</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>1.1.1n-0+deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libtasn1-6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>4.16.0-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>nftables</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>0.9.8-3.1+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libnftables1</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>0.9.8-3.1+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>tzdata</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2021a-1+deb11u10</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>chrony</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>4.0-8+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>tasksel-data</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>3.68+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>tasksel</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>3.68+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>debian-archive-keyring</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2021.1.1+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libpcre2-8-0</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>10.36-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>isc-dhcp-client</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>4.4.1-2.3+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>isc-dhcp-common</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>4.4.1-2.3+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>logrotate</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>3.18.0-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>nano</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>5.4-2+deb11u2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>bind9-dnsutils</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>1:9.16.42-1~deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>bind9-libs</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>1:9.16.42-1~deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>bind9-host</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>1:9.16.42-1~deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libc-l10n</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.31-13+deb11u6</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>locales</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.31-13+deb11u6</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>ncurses-term</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>6.2+20201114-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>openssh-sftp-server</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>1:8.4p1-5+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>openssh-server</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>1:8.4p1-5+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>openssh-client</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>1:8.4p1-5+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>traceroute</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>1:2.1.0-2+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>all</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>distro-info-data</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>0.51+deb11u3</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>grub2-common</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.06-3~deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>grub-pc</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.06-3~deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>grub-pc-bin</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.06-3~deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>libfreetype6</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.10.4+dfsg-1+deb11u1</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>none</KIND>
+      <NAME>grub-common</NAME>
+      <SOURCE>Debian:11.7/oldstable</SOURCE>
+      <VERSION>2.06-3~deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>linux-image-amd64</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>5.10.179-2</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>amd64</ARCH>
+      <FROM>apt-get</FROM>
+      <KIND>security</KIND>
+      <NAME>openssl</NAME>
+      <SOURCE>Debian-Security:11/oldstable-security</SOURCE>
+      <VERSION>1.1.1n-0+deb11u5</VERSION>
+    </SOFTWAREUPDATES>
+    <STORAGES>
+      <DESCRIPTION>SATA</DESCRIPTION>
+      <DISKSIZE>21474</DISKSIZE>
+      <FIRMWARE>1.0</FIRMWARE>
+      <MANUFACTURER>VBOX HARDDISK</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>sda</NAME>
+      <SERIALNUMBER>VBfba21a6b-99d9f77b</SERIALNUMBER>
+      <TYPE>disk</TYPE>
+    </STORAGES>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.6</VERSIONCLIENT>
+    <VERSIONPROVIDER>
+      <COMMENTS>Platform  : linux localhost 4.19.0 1 smp debian 4.19.0 x86_64 gnulinux </COMMENTS>
+      <COMMENTS>Build date: Sat Jul 15 00:17:23 2023 GMT</COMMENTS>
+      <NAME>FusionInventory</NAME>
+      <PERL_EXE>/usr/bin/perl</PERL_EXE>
+      <PERL_VERSION>v5.32.1</PERL_VERSION>
+      <PROGRAM>/opt/rudder/bin/fusioninventory-agent</PROGRAM>
+      <VERSION>2.6</VERSION>
+    </VERSIONPROVIDER>
+  </CONTENT>
+  <DEVICEID>debian11-2023-07-19-15-19-18</DEVICEID>
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
