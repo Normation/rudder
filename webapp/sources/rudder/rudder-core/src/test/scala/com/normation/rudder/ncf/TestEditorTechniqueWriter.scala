@@ -52,6 +52,7 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -69,6 +70,7 @@ import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -84,6 +86,7 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
+
 import com.normation.zio._
 import java.io.{File => JFile}
 import java.io.InputStream
@@ -97,8 +100,10 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
+
 import scala.collection.SortedMap
 import scala.collection.SortedSet
+
 import zio._
 import zio.syntax._
 
@@ -324,38 +329,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService
-  val compiler      = new TechniqueCompilerWithFallback(
-    valueCompiler,
-    new RudderPrettyPrinter(Int.MaxValue, 2),
-    parameterTypeService,
-    new RuddercService {
-      override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
-        RuddercResult.Ok("", "", "").succeed
-      }
-    },
-    TechniqueCompilerApp.Webapp,
-    _.path,
-    basePath
-  )
-  val writer        = new TechniqueWriterImpl(
-    TestTechniqueArchiver,
-    TestLibUpdater,
-    new DeleteEditorTechnique {
-      override def deleteTechnique(
-          techniqueName:    String,
-          techniqueVersion: String,
-          deleteDirective:  Boolean,
-          modId:            ModificationId,
-          committer:        EventActor
-      ): IOResult[Unit] = {
-        ZIO.unit
-      }
-    },
-    compiler,
-    basePath
-  )
-  val dscWriter     = new DSCTechniqueWriter(basePath, valueCompiler, new ParameterType.PlugableParameterTypeService, _.path)
-  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
 
   import ParameterType._
   val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
@@ -541,6 +514,56 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     )
   }
 
+  val editorTechniqueReader = new EditorTechniqueReader() {
+    override def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+      (List(technique), methods, Nil).succeed
+    }
+
+    override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed
+
+    override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
+  }
+
+  val compiler = new TechniqueCompilerWithFallback(
+    valueCompiler,
+    new RudderPrettyPrinter(Int.MaxValue, 2),
+    parameterTypeService,
+    new RuddercService {
+      override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
+        RuddercResult.Ok("", "", "").succeed
+      }
+    },
+    TechniqueCompilerApp.Webapp,
+    editorTechniqueReader,
+    _.path,
+    basePath
+  )
+  val writer = new TechniqueWriterImpl(
+    TestTechniqueArchiver,
+    TestLibUpdater,
+    new DeleteEditorTechnique {
+      override def deleteTechnique(
+        techniqueName   : String,
+        techniqueVersion: String,
+        deleteDirective : Boolean,
+        modId           : ModificationId,
+        committer       : EventActor
+      ): IOResult[Unit] = {
+        ZIO.unit
+      }
+    },
+    compiler,
+    basePath
+  )
+  val dscWriter = new DSCTechniqueWriter(
+    basePath,
+    valueCompiler,
+    new ParameterType.PlugableParameterTypeService,
+    _.path
+  )
+  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
+
+
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/metadata.xml"
   val dscTechniquePath     = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.ps1"
   val techniquePath        = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.cf"
@@ -560,7 +583,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write yaml file without problem" in {
-      writer.writeYaml(technique, methods).either.runNow must beRight(yamlPath)
+      writer.writeYaml(technique).either.runNow must beRight(yamlPath)
     }
 
     "Should generate expected yaml content for our technique" in {
@@ -651,7 +674,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write yaml file without problem" in {
-      writer.writeYaml(technique_any, methods).either.runNow must beRight(techniquePath_yaml)
+      writer.writeYaml(technique_any).either.runNow must beRight(techniquePath_yaml)
     }
 
     "Should generate expected yaml content for our technique" in {
@@ -738,7 +761,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     }
 
     "Should write metadata file without problem" in {
-      writer.writeYaml(technique_var_cond, methods).either.runNow must beRight(
+      writer.writeYaml(technique_var_cond).either.runNow must beRight(
         s"techniques/ncf_techniques/${techniquePath_var_cond_yaml}"
       )
     }
@@ -790,7 +813,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     val techniquePath_any        = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/technique.cf"
 
     "Should write everything without error" in {
-      (writer.writeTechnique(tech, methods, ModificationId("test"), EventActor("test")).either.runNow must beRight(tech))
+      (writer.writeTechnique(tech, ModificationId("test"), EventActor("test")).either.runNow must beRight(tech))
     }
 
     "Should generate expected metadata content for our technique" in {

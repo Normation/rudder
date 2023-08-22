@@ -121,7 +121,7 @@ class MigrateOldTechniques(
         // Actually write techniques
         written   <- ZIO.foreach(techniques) { t =>
                        techniqueWrite
-                         .writeTechnique(t, methods, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
+                         .writeTechnique(t, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
                          .chainError(s"An error occurred while writing technique ${t.id.value}")
                      }
         // Actually write techniques

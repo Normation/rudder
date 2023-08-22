@@ -56,12 +56,14 @@ import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
 import com.normation.appconfig._
+
 import com.normation.box._
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -143,6 +145,8 @@ import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.EditorTechniqueReaderImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.reports.ComplianceModeService
@@ -197,6 +201,7 @@ import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
+
 import com.normation.zio._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
@@ -204,6 +209,7 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -213,8 +219,10 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
+
 import zio.{Scheduler => _, System => _, _}
 import zio.syntax._
 
@@ -1320,7 +1328,7 @@ case class RudderServiceApi(
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
     workflowLevelService:                DefaultWorkflowLevel,
-    ncfTechniqueReader:                  ncf.EditorTechniqueReader,
+    ncfTechniqueReader:                  EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
     restExtractorService:                RestExtractorService,
@@ -1511,7 +1519,7 @@ object RudderConfigInit {
       def getCurrentUser = CurrentUser
     }
 
-    lazy val ncfTechniqueReader: ncf.EditorTechniqueReader = new ncf.EditorTechniqueReader(
+    lazy val ncfTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
       stringUuidGenerator,
       personIdentService,
       gitConfigRepo,
@@ -1820,6 +1828,7 @@ object RudderConfigInit {
       typeParameterService,
       new RuddercServiceImpl(RUDDERC_CMD, RUDDERC_FALLBACK_RETURN_CODE, 5.seconds),
       TECHNIQUE_COMPILER_APP,
+      ncfTechniqueReader,
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )

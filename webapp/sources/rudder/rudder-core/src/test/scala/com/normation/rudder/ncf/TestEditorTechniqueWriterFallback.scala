@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.TechniqueCompilerApp._
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -169,32 +170,47 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   val valueCompiler        = new InterpolatedValueCompilerImpl(new PropertyEngineServiceImpl(List.empty))
   val parameterTypeService = new PlugableParameterTypeService
 
+  import ParameterType._
+
+  val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
+
+  val methods = (
+    GenericMethod(
+      BundleName("package_install"),
+      "Package install",
+      MethodParameter(ParameterId("package_name"), "", defaultConstraint, StringParameter) :: Nil,
+      ParameterId("package_name"),
+      "package_install",
+      AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil,
+      "Package install",
+      None,
+      None,
+      None,
+      Seq()
+    ) ::
+      Nil
+  ).map(m => (m.id, m)).toMap
+
+  val editorTechniqueReader = new EditorTechniqueReader {
+    def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+      ???
+    }
+
+    def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed
+
+    override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
+  }
+
   def newCompilerWithBase(baseDir: String, defaultCompiler: TechniqueCompilerApp = Rudderc) = new TechniqueCompilerWithFallback(
     valueCompiler,
     new RudderPrettyPrinter(Int.MaxValue, 2),
     parameterTypeService,
     TestRudderc,
     defaultCompiler,
+    editorTechniqueReader,
     _.id.value, // remove useless /technique/categories/techId/1.0/ and keep only techId
     baseDir
   )
-
-  import ParameterType._
-  val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
-  val methods           = (GenericMethod(
-    BundleName("package_install"),
-    "Package install",
-    MethodParameter(ParameterId("package_name"), "", defaultConstraint, StringParameter) :: Nil,
-    ParameterId("package_name"),
-    "package_install",
-    AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil,
-    "Package install",
-    None,
-    None,
-    None,
-    Seq()
-  ) ::
-    Nil).map(m => (m.id, m)).toMap
 
   val techniqueTemplate = {
     EditorTechnique(
@@ -274,7 +290,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Use the default compiler app and no fallback on success" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueOK)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 0, "ok", "stdout", ""))) and
       (compilationConfigFile.exists must beFalse) and
@@ -287,7 +303,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Use the default compiler app and no fallback on user error" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_user)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 7, "nok:user", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -300,7 +316,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Fallback to webapp with compilation-output written when failing with code < 0" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_empty_neg)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, -42, "nok:empty", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -313,7 +329,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Fallback to webapp with compilation-output written when failing with code > limit code on xml" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_empty_pos)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 50, "nok:empty", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -326,7 +342,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Fallback to webapp with compilation-output written when failing on cfe and rewrite XML written by rudderc" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_xml)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 60, "nok:xml", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -339,7 +355,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Fallback to webapp with compilation-output written when failing on ps1 and rewrite XML,cf written by rudderc" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_xml_cfe)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 70, "nok:cfe", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -352,7 +368,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     "Fallback to webapp with compilation-output written when failing on the end and rewrite XML,cf,ps1 written by rudderc" in {
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueNOK_xml_cfe_ps1)
       initDirectories(compiler, technique)
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 80, "nok:ps1", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
@@ -380,7 +396,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       implicit val technique = techniqueTemplate.modify(_.id.value).setTo(Content.techniqueOK)
       initDirectories(compiler, technique)
       writeConfig
-      val res                = compiler.compileTechnique(technique, methods).runNow
+      val res                = compiler.compileTechnique(technique).runNow
 
       (res must beEqualTo(TechniqueCompilationOutput(Webapp, false, 0, "Technique 'techniqueOK' written by webapp", "", ""))) and
       (compilationConfigFile.exists must beTrue) and

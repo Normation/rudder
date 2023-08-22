@@ -29,7 +29,15 @@ import zio.ZIO._
 import zio.json._
 import zio.syntax._
 
-class EditorTechniqueReader(
+trait EditorTechniqueReader {
+  def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])]
+  def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]]
+  
+  // this one is an implementation detail of the cache-based version and should likely not be exposed here
+  def updateMethodsMetadataFile: IOResult[CmdResult]
+}
+
+class EditorTechniqueReaderImpl(
     uuidGen:                                StringUuidGenerator,
     personIdentService:                     PersonIdentService,
     override val gitRepo:                   GitRepositoryProvider,
@@ -42,7 +50,7 @@ class EditorTechniqueReader(
     ruddercCmd:                             String,
     methodsSystemLib:                       String,
     methodsLocalLib:                        String
-) extends GitConfigItemRepository with XmlArchiverUtils {
+) extends EditorTechniqueReader with GitConfigItemRepository with XmlArchiverUtils {
   override val relativePath: String = "ncf"
   val configuration_repository = gitRepo.rootDirectory
   val ncfRootDir               = configuration_repository / relativePath
@@ -68,7 +76,7 @@ class EditorTechniqueReader(
     }
   }
 
-  def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+  override def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
     for {
       methods        <- getMethodsMetadata
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")

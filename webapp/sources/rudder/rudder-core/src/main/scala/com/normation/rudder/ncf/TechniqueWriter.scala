@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -50,8 +51,11 @@ import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueArchiver
+import com.normation.rudder.repository.xml.TechniqueFiles
+
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
+
 import zio._
 
 /*
@@ -71,7 +75,6 @@ trait TechniqueWriter {
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod],
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique]
@@ -79,7 +82,6 @@ trait TechniqueWriter {
   // Write and commit all techniques files
   def writeTechnique(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod],
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique]
@@ -120,12 +122,11 @@ class TechniqueWriterImpl(
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod],
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique] = {
     for {
-      updatedTechnique <- writeTechnique(technique, methods, modId, committer)
+      updatedTechnique <- writeTechnique(technique, modId, committer)
       libUpdate        <-
         techLibUpdate
           .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
@@ -139,7 +140,6 @@ class TechniqueWriterImpl(
   // Write and commit all techniques files
   override def writeTechnique(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod],
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique] = {
@@ -152,16 +152,16 @@ class TechniqueWriterImpl(
                                      }
       techniqueWithResourceUpdated = technique.copy(resources = updateResources)
 
-      json     <- writeYaml(techniqueWithResourceUpdated, methods)
+      _        <- writeYaml(techniqueWithResourceUpdated)
       time_1   <- currentTimeMillis
       _        <-
         TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_1 - time_0}ms")
-      _        <- compiler.compileTechnique(techniqueWithResourceUpdated, methods)
+      _        <- compiler.compileTechnique(techniqueWithResourceUpdated)
       time_3   <- currentTimeMillis
       id       <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the the "resources/" prefix
       resources = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
-      commit   <- archiver.saveTechnique(
+      _        <- archiver.saveTechnique(
                     id,
                     technique.category.split('/').toIndexedSeq,
                     Chunk.fromIterable(resources),
@@ -180,11 +180,12 @@ class TechniqueWriterImpl(
 
   ///// utility methods /////
 
-  def writeYaml(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[String] = {
+  // write the given EditorTechnique as YAML file in ${technique.path}/technique.yml
+  def writeYaml(technique: EditorTechnique): IOResult[String] = {
     import YamlTechniqueSerializer._
     import zio.yaml.YamlOps._
 
-    val metadataPath = s"${technique.path}/technique.yml"
+    val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
     val path         = s"${baseConfigRepoPath}/${metadataPath}"
     for {
       content <- technique.toYaml().toIO

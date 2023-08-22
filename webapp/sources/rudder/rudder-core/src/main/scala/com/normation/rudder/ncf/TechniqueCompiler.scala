@@ -79,7 +79,6 @@ import zio.syntax._
 trait TechniqueCompiler {
   def compileTechnique(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod]
   ): IOResult[TechniqueCompilationOutput]
 }
 
@@ -295,6 +294,7 @@ class TechniqueCompilerWithFallback(
     parameterTypeService:     ParameterTypeService,
     ruddercService:           RuddercService,
     defaultCompiler:          TechniqueCompilerApp,
+    editorTechniqueReader:    EditorTechniqueReader,
     getTechniqueRelativePath: EditorTechnique => String, // get the technique path relative to git root.
     val baseConfigRepoPath:   String                     // root of config repos
 ) extends TechniqueCompiler {
@@ -322,7 +322,6 @@ class TechniqueCompilerWithFallback(
    */
   override def compileTechnique(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod]
   ): IOResult[TechniqueCompilationOutput] = {
     for {
       config <- readCompilationConfigFile(technique)
@@ -330,7 +329,7 @@ class TechniqueCompilerWithFallback(
                   IOResult.attempt(getCompilationOutputFile(technique).delete()) // clean-up previous output
                 }
       app     = config.compiler.getOrElse(defaultCompiler)
-      res    <- compileTechniqueInternal(technique, methods, app)
+      res    <- compileTechniqueInternal(technique, app)
       _      <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
                   writeCompilationOutputFile(technique, res)
                 }
@@ -345,7 +344,6 @@ class TechniqueCompilerWithFallback(
    */
   def compileTechniqueInternal(
       technique: EditorTechnique,
-      methods:   Map[BundleName, GenericMethod],
       app:       TechniqueCompilerApp
   ): IOResult[TechniqueCompilationOutput] = {
 
@@ -354,6 +352,7 @@ class TechniqueCompilerWithFallback(
 
     val webApp = {
       for {
+        methods  <- editorTechniqueReader.getMethodsMetadata
         _        <- writeAgentFiles(technique, methods, onlyPS1 = false)
         time_1   <- currentTimeMillis
         metadata <- writeMetadata(technique, methods)

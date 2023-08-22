@@ -75,7 +75,6 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
