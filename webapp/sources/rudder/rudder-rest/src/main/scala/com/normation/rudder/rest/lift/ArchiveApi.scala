@@ -1089,7 +1089,6 @@ class SaveArchiveServicebyRepo(
     techniqueArchiver: TechniqueArchiverImpl,
     techniqueReader:   TechniqueReader,
     techniqueRepos:    TechniqueRepository,
-//    techniqueCompiler: TechniqueCompiler,
     roDirectiveRepos:  RoDirectiveRepository,
     woDirectiveRepos:  WoDirectiveRepository,
     roGroupRepos:      RoNodeGroupRepository,
@@ -1168,7 +1167,6 @@ class SaveArchiveServicebyRepo(
                  f.writeBytes(bytes.iterator)
                }
            }
-      // if the technique is a YAML file, we need in addition to regenerate files TODO
       // finally commit
       _ <- techniqueArchiver.saveTechnique(
              t.technique.id,

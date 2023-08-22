@@ -52,7 +52,6 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -86,7 +85,6 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
-
 import com.normation.zio._
 import java.io.{File => JFile}
 import java.io.InputStream
@@ -100,10 +98,8 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-
 import scala.collection.SortedMap
 import scala.collection.SortedSet
-
 import zio._
 import zio.syntax._
 
@@ -515,7 +511,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   val editorTechniqueReader = new EditorTechniqueReader() {
-    override def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+    override def readTechniquesMetadataFile
+        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
       (List(technique), methods, Nil).succeed
     }
 
@@ -524,7 +521,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
   }
 
-  val compiler = new TechniqueCompilerWithFallback(
+  val compiler      = new TechniqueCompilerWithFallback(
     valueCompiler,
     new RudderPrettyPrinter(Int.MaxValue, 2),
     parameterTypeService,
@@ -538,16 +535,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     _.path,
     basePath
   )
-  val writer = new TechniqueWriterImpl(
+  val writer        = new TechniqueWriterImpl(
     TestTechniqueArchiver,
     TestLibUpdater,
     new DeleteEditorTechnique {
       override def deleteTechnique(
-        techniqueName   : String,
-        techniqueVersion: String,
-        deleteDirective : Boolean,
-        modId           : ModificationId,
-        committer       : EventActor
+          techniqueName:    String,
+          techniqueVersion: String,
+          deleteDirective:  Boolean,
+          modId:            ModificationId,
+          committer:        EventActor
       ): IOResult[Unit] = {
         ZIO.unit
       }
@@ -555,14 +552,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     compiler,
     basePath
   )
-  val dscWriter = new DSCTechniqueWriter(
+  val dscWriter     = new DSCTechniqueWriter(
     basePath,
     valueCompiler,
     new ParameterType.PlugableParameterTypeService,
     _.path
   )
   val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
-
 
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/metadata.xml"
   val dscTechniquePath     = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.ps1"

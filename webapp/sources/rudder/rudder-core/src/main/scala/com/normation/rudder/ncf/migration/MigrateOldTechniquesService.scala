@@ -37,12 +37,16 @@
 
 package com.normation.rudder.ncf.migration
 
+import better.files.File
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
 import com.normation.errors._
 import com.normation.inventory.domain.Version
 import com.normation.rudder.ncf._
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
+import com.normation.rudder.repository.xml.TechniqueFiles
+import java.nio.charset.StandardCharsets
+import zio._
 import zio.json._
 
 /**
@@ -174,5 +178,25 @@ object MigrateOldTechniquesService {
                    )
       yaml      <- technique.toYaml().left.map(Inconsistency(_))
     } yield yaml
+  }
+
+  // migrate JSON technique at base path. If technique.json does not exists, does nothing (noop)
+  def migrateJson(techniquePath: File): IOResult[Unit] = {
+    val jsonFile = techniquePath / TechniqueFiles.json
+    val yamlFile = techniquePath / TechniqueFiles.yaml
+
+    ZIO
+      .whenZIO(IOResult.attempt(jsonFile.exists)) {
+        for {
+          json <- IOResult.attempt(s"Error when reading file '${jsonFile.pathAsString}'") {
+                    jsonFile.contentAsString(StandardCharsets.UTF_8)
+                  }
+          yaml <- toYaml(json).toIO
+          _    <- IOResult.attempt(yamlFile.write(yaml))
+          // on success, delete json file
+          _    <- IOResult.attempt(jsonFile.delete())
+        } yield ()
+      }
+      .unit
   }
 }

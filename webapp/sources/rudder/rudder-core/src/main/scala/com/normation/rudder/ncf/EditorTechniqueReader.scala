@@ -31,8 +31,8 @@ import zio.syntax._
 
 trait EditorTechniqueReader {
   def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])]
-  def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]]
-  
+  def getMethodsMetadata:         IOResult[Map[BundleName, GenericMethod]]
+
   // this one is an implementation detail of the cache-based version and should likely not be exposed here
   def updateMethodsMetadataFile: IOResult[CmdResult]
 }
@@ -76,7 +76,8 @@ class EditorTechniqueReaderImpl(
     }
   }
 
-  override def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+  override def readTechniquesMetadataFile
+      : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
     for {
       methods        <- getMethodsMetadata
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")

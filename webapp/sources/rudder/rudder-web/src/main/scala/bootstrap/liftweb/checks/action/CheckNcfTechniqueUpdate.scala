@@ -41,7 +41,6 @@ import better.files.File
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -52,7 +51,6 @@ import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.utils.StringUuidGenerator
-
 import com.normation.zio._
 import zio._
 import zio.syntax.ToZio

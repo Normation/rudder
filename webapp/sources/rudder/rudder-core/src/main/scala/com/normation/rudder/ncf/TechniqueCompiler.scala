@@ -51,7 +51,9 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
+import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.utils.Control
 import com.normation.zio.currentTimeMillis
@@ -77,9 +79,54 @@ import zio.syntax._
  * The webapp writing part is still in TechniqueWriter
  */
 trait TechniqueCompiler {
-  def compileTechnique(
-      technique: EditorTechnique,
-  ): IOResult[TechniqueCompilationOutput]
+
+  /*
+   * Note: until we get ride of webapp generation, we must keep `EditorTechnique` as the main parameter of the
+   * compilation service. This is because the likely main case where we will need to fallback to webapp generation
+   * is for technique from editor, and in that case we have more chance to be able to fall back if we use
+   * directly the data structure of the editor than if we follow a chain of translation from editor technique to yaml to
+   * something back that the fallback compiler can understand.
+   */
+
+  // compile given technique based on editor
+  def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput]
+
+  // compile based on absolute path of techniqueId/1.0 directory. If the technique is not yaml, it's an error.
+  // If you have a json technique, you need to migrate it first.
+  def compileAtPath(techniqueBaseDirectory: File): IOResult[TechniqueCompilationOutput] = {
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer._
+    val yamlFile = techniqueBaseDirectory / TechniqueFiles.yaml
+    for {
+      yaml <- IOResult.attempt(s"Error when reading technique metadata '${yamlFile}'") {
+                yamlFile.contentAsString(StandardCharsets.UTF_8)
+              }
+      t    <- yaml.fromYaml[EditorTechnique].toIO
+      res  <- compileTechnique(t)
+    } yield res
+  }
+
+  /*
+   * check if the technique is an old JSON technique (try to migrate) or a yaml technique
+   * without or with old generated files.
+   */
+  def migrateCompileIfNeeded(techniquePath: File): IOResult[Unit] = {
+    val yamlFile    = techniquePath / TechniqueFiles.yaml
+    val metadata    = techniquePath / TechniqueFiles.Generated.metadata
+    val compileYaml = compileAtPath(techniquePath)
+
+    for {
+      _ <- MigrateOldTechniquesService.migrateJson(techniquePath)
+      _ <- IOResult.attemptZIO {
+             if (yamlFile.exists) {
+               if (metadata.exists) {
+                 if (yamlFile.lastModifiedTime.isAfter(metadata.lastModifiedTime)) {
+                   compileYaml
+                 } else ZIO.unit
+               } else compileYaml
+             } else ZIO.unit
+           }
+    } yield ()
+  }
 }
 
 /*
@@ -320,9 +367,7 @@ class TechniqueCompilerWithFallback(
    * This method read compilation file, compile accordingly, and write if need the new
    * compilation file
    */
-  override def compileTechnique(
-      technique: EditorTechnique,
-  ): IOResult[TechniqueCompilationOutput] = {
+  override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
     for {
       config <- readCompilationConfigFile(technique)
       _      <- ZIO.whenZIO(IOResult.attempt(getCompilationOutputFile(technique).exists)) {
@@ -639,7 +684,7 @@ class ClassicTechniqueWriter(
     args.map(escapeCFEngineString(_)).map(""""${""" + _ + """}"""").mkString(",")
   }
 
-  def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
+  override def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
 
     // increment of the bundle number in the technique, used by createCallingBundle
     var bundleIncrement = 0
@@ -898,7 +943,7 @@ class ClassicTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): PureResult[NodeSeq] = {
+  override def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): PureResult[NodeSeq] = {
 
     val needReporting = needReportingBundle(technique, methods)
     val xml           = <AGENT type="cfengine-community,cfengine-nova">
@@ -1107,7 +1152,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
+  override def writeAgentFiles(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): IOResult[Seq[String]] = {
 
     val parameters = technique.parameters.map { p =>
       val mandatory = if (p.mayBeEmpty) "$false" else "$true"
@@ -1164,7 +1209,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
+  override def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.id.validDscName}</NAME>

@@ -42,7 +42,6 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -52,10 +51,8 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
-
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
-
 import zio._
 
 /*
