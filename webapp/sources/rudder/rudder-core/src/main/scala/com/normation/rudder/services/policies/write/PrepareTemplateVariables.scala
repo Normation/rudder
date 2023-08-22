@@ -146,7 +146,9 @@ class PrepareTemplateVariablesImpl(
         .toVariable(if (agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
       systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString)),
       systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value)),
-      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name))
+      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name)),
+      // For compatibility with pre-8.0 agents
+      systemVariableSpecService.get("RUDDER_VERIFY_CERTIFICATES").toVariable(Seq("false"))
     ).map(x => (x.spec.name, x)).toMap
 
     val agentNodeProps = AgentNodeProperties(
