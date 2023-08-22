@@ -79,31 +79,40 @@ bundle agent variable_string_from_command(prefix, name, command)
       # define the variable within the prefix namespace
     pass2::
       "${prefix}.${name}" string =>  string_tail("${temp}", "${output_length}"),
-                                        ifvarclass => "returned_zero";
+                              if => "returned_zero";
 
   classes:
       "should_report"     expression => "${report_data.should_report}";
     pass1::
       "returned_zero"     expression => strcmp("${code}", "0");
     pass2::
-      "variable_defined" expression => isvariable("${prefix}.${name}");
+      "variable_defined"  expression => isvariable("${prefix}.${name}");
 
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
+  files:
+    # avoid backups for tmp files
+    pass1.!pass2::
+      "${tmp_script_name}"
+        create        => "true",
+        edit_line     => insert_lines("${command}"),
+        edit_defaults => empty,
+        perms         => mog("700", "root", "0"),
+        comment       => "${class_prefix}",
+        action        => immediate_ignore_dry_run,
+        classes       => classes_generic("${inner_class_prefix}");
+
+    pass3::
+      "${tmp_script_name}"
+        delete => tidy;
+
   methods:
       # In audit mode, we need to force enforce mode to set and remove the temp files.
       "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
 
-      "disable_reporting_${class_prefix}"
-                 usebundle => disable_reporting;
-      # put the command in a script, and make it executable
-      "script_${class_prefix}"
-                 usebundle => file_content("${tmp_script_name}", "${command}", "true");
-      "perms_${class_prefix}"
-                 usebundle => permissions("${tmp_script_name}", "700", "root", "0");
     pass3.!variable_defined::
       "error"    usebundle => _classes_failure("${old_class_prefix}");
       "error"    usebundle => _classes_failure("${class_prefix}");
@@ -113,24 +122,14 @@ bundle agent variable_string_from_command(prefix, name, command)
       "success"  usebundle => _classes_success("${class_prefix}");
 
     pass3::
-      "clean_${class_prefix}"
-                 usebundle => file_absent("${tmp_script_name}");
-
-      "restore dry-run_${class_prefix}"
-                 usebundle => pop_dry_run_mode();
-
-      "reenable_reporting_${class_prefix}"
-         usebundle => enable_reporting,
-                if => "should_report";
+      "restore dry-run_${class_prefix}" usebundle => pop_dry_run_mode();
 
       "report"
         usebundle  => _log_v3("Set the string ${prefix}.${name} to the output of '${command}'", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-
 
   reports:
     pass3.info.returned_zero::
       "The '${command}' command returned '${${prefix}.${name}}'";
     pass3.info.!returned_zero::
       "The '${command}' command failed with ${code} code";
-
 }
