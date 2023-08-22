@@ -39,7 +39,6 @@ package com.normation.inventory.provisioning.fusion
 
 import com.normation.errors._
 import com.normation.inventory.domain._
-import com.normation.inventory.domain.AgentType._
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.domain.VmType._
@@ -358,7 +357,7 @@ class FusionInventoryParser(
    * <RUDDER>
    *   <AGENT>
    *     <AGENT_NAME>cfengine-community</AGENT_NAME>
-   *     <CFENGINE_KEY>....</CFENGINE_KEY>
+   *     <AGENT_CERT>....</AGENT_CERT>
    *     <OWNER>root</OWNER>
    *     <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
    *     <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
@@ -416,10 +415,15 @@ class FusionInventoryParser(
      */
     val agentList = ZIO.foreach((xml \\ "AGENT").toList) { agentXML =>
       val agent = for {
-        agentName <- optText(agentXML \ "AGENT_NAME").notOptional(
-                       "could not parse agent name (tag AGENT_NAME) from rudder specific inventory"
-                     )
-        agentType <- ZIO.fromEither(AgentType.fromValue(agentName))
+        agentName    <- optText(agentXML \ "AGENT_NAME").notOptional(
+                          "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
+                        )
+        rawAgentType <- ZIO.fromEither(AgentType.fromValue(agentName))
+        agentType    <- if (rawAgentType == AgentType.CfeEnterprise) {
+                          Inconsistency(
+                            "CFEngine Enterprise/Nova agents are not supported anymore"
+                          ).fail
+                        } else { rawAgentType.succeed }
 
         rootUser       <-
           optText(agentXML \\ "OWNER").notOptional("could not parse rudder user (tag OWNER) from rudder specific inventory")
@@ -427,26 +431,14 @@ class FusionInventoryParser(
                             "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory"
                           )
         optCert         = optText(agentXML \ "AGENT_CERT")
-        optKey          = optText(agentXML \ "AGENT_KEY").orElse(optText(agentXML \ "CFENGINE_KEY"))
-        securityToken  <- agentType match {
-                            case Dsc =>
-                              optCert match {
-                                case Some(cert) => Certificate(cert).succeed
-                                case None       =>
-                                  Inconsistency(
-                                    "could not parse agent certificate (tag AGENT_CERT), which is mandatory for dsc agent"
-                                  ).fail
-                              }
-                            case _   =>
-                              (optCert, optKey) match {
-                                case (Some(cert), _)   => Certificate(cert).succeed
-                                case (None, Some(key)) => PublicKey(key).succeed
-                                case (None, None)      =>
-                                  Inconsistency(
-                                    "could not parse agent security Token (tag AGENT_KEY or CFENGINE_KEY or AGENT_CERT), which is mandatory for cfengine agent"
-                                  ).fail
-                              }
-                          }
+        securityToken  <-
+          optCert match {
+            case Some(cert) => Certificate(cert).succeed
+            case None       =>
+              Inconsistency(
+                "could not parse agent security token (tag AGENT_CERT), which is mandatory"
+              ).fail
+          }
 
       } yield {
 

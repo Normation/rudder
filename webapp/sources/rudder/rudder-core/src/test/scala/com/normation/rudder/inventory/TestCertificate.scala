@@ -150,29 +150,6 @@ class TestCertificate extends Specification with Loggable {
   def asManagedStream(name: String) = IOManaged.make(Resource.getAsStream(name))(_.close())
 
   // LINUX
-  "when a linux node is not in repository, it is ok to have a signature with cfe-key" in {
-    repository.remove(linuxKey); saveDone = false
-
-    val res = processor
-      .saveInventoryInternal(
-        SaveInventoryInfo(
-          "linux-cfe-sign-key",
-          asManagedStream("certificates/linux-cfe-sign-key.ocs"),
-          asManagedStream("certificates/linux-cfe-sign-key.ocs.sign"),
-          exist
-        )
-      )
-      .runNow
-
-    waitSaveDone
-
-    (res must beAnInstanceOf[InventoryProcessStatus.Saved]) and
-    (repository.get(linuxKey) must beSome) and
-    (kind(repository(linuxKey).node.agents.head.securityToken) === "publicKey") and
-    (repository(linuxKey).node.agents.head.securityToken.key === Cert.KEY_CFE_OK) and
-    (repository(linuxKey).node.main.keyStatus == CertifiedKey)
-
-  }
   "when a linux node is not in repository, it is ok to have a signature with certificate" in {
     repository.remove(linuxCert);
     saveDone = false
@@ -254,8 +231,8 @@ class TestCertificate extends Specification with Loggable {
     val res = processor
       .saveInventoryInternal(
         SaveInventoryInfo(
-          "linux-cfe-sign-key",
-          asManagedStream("certificates/linux-cfe-sign-key.ocs"),
+          "linux-cfe-sign-cert",
+          asManagedStream("certificates/linux-cfe-sign-cert.ocs"),
           asManagedStream("certificates/windows-bad-certificate.ocs.sign"),
           exist
         )

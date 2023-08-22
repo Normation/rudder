@@ -460,7 +460,7 @@ me+OtBe+t/SLT7lnKFYUwfrtTgUd0L3cbYb+FqWnpsNc0F1eH1c+Yull
 -----END CERTIFICATE-----
         </AGENT_CERT>
         <AGENT_NAME>dsc</AGENT_NAME>
-        <CFENGINE_KEY />  <OWNER>agent1\vagrant</OWNER>
+        <OWNER>agent1\vagrant</OWNER>
         <POLICY_SERVER_HOSTNAME>192.168.44.2</POLICY_SERVER_HOSTNAME>
         <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
       </AGENT>
