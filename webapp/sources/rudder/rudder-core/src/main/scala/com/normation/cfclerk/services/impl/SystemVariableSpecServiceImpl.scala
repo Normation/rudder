@@ -390,6 +390,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "RUDDER_COMPLIANCE_MODE",
       "Rudder compliance mode (enforce or audit)",
       multivalued = false
+    ),
+    // Deprecated, kept for compatibility with pre-8.0 agents
+    SystemVariableSpec(
+      "RUDDER_VERIFY_CERTIFICATES",
+      "Enforce certificate validation in all HTTPS calls",
+      multivalued = false
     )
   )
 
