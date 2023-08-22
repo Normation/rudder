@@ -53,8 +53,7 @@ class PathComputerTest extends Specification {
     Constants.NODE_PROMISES_PARENT_DIR_BASE,
     Constants.NODE_PROMISES_PARENT_DIR,
     Some("/var/rudder/backup/"),
-    Constants.CFENGINE_COMMUNITY_PROMISES_PATH,
-    Constants.CFENGINE_NOVA_PROMISES_PATH
+    Constants.CFENGINE_COMMUNITY_PROMISES_PATH
   )
 
   ////////////////////////// test //////////////////////////

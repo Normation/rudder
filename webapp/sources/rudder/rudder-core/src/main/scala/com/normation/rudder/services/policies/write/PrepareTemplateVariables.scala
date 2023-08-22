@@ -138,12 +138,6 @@ class PrepareTemplateVariablesImpl(
     }
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-      systemVariableSpecService
-        .get("NOVA")
-        .toVariable(if (agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq()),
-      systemVariableSpecService
-        .get("COMMUNITY")
-        .toVariable(if (agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
       systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString)),
       systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value)),
       systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name))

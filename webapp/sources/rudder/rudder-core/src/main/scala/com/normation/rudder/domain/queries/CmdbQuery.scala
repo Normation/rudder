@@ -753,7 +753,7 @@ case object AgentComparator extends LDAPCriterionType {
 
   val ANY_CFENGINE          = "cfengine"
   val (cfeTypes, cfeAgents) =
-    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: Nil))
   val allAgents             = AgentType.allValues.toList
 
   val agentTypes = (cfeTypes :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy(_._2)

@@ -273,7 +273,7 @@ class TechniqueArchiverImpl(
     ) ++ // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
       (if (
          technique.agentConfigs
-           .collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)
+           .collectFirst(a => a.agentType == AgentType.CfeCommunity)
            .nonEmpty
        ) {
          Chunk("rudder_reporting.cf", "technique.cf")

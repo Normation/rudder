@@ -187,7 +187,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     MethodParameter(ParameterId("package_name"), "", defaultConstraint, StringParameter) :: Nil,
     ParameterId("package_name"),
     "package_install",
-    AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil,
+    AgentType.CfeCommunity :: Nil,
     "Package install",
     None,
     None,

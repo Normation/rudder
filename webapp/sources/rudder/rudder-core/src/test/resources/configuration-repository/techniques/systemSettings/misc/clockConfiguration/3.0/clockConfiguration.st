@@ -385,7 +385,7 @@ bundle agent check_clock_configuration
         classes => cf2_if_else("ntp_hwclock_synced", "ntp_hwclock_sync_error"),
         comment => "synchronizing hardware clock";
 
-&if(NOVA)&
+&if(COMMUNITYPORT)&
   databases:
 
     windows::

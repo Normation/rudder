@@ -256,7 +256,7 @@ object GenericMethodSerialization {
   implicit val decodeAgentType:                        JsonDecoder[List[AgentType]]                  = JsonDecoder.string.mapOrFail(id => {
     id match {
       case "dsc"                => Right(AgentType.Dsc :: Nil)
-      case "cfengine-community" => Right(AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil)
+      case "cfengine-community" => Right(AgentType.CfeCommunity :: Nil)
       case x                    => Left(s"Error: '${x}' is not recognized as an agent type")
     }
   })

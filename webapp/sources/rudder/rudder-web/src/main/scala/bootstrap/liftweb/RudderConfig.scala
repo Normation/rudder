@@ -2317,8 +2317,7 @@ object RudderConfigInit {
       Constants.NODE_PROMISES_PARENT_DIR_BASE,
       Constants.NODE_PROMISES_PARENT_DIR,
       RUDDER_DIR_BACKUP,
-      Constants.CFENGINE_COMMUNITY_PROMISES_PATH,
-      Constants.CFENGINE_NOVA_PROMISES_PATH
+      Constants.CFENGINE_COMMUNITY_PROMISES_PATH
     )
 
     /*

@@ -333,8 +333,8 @@ class SystemVariableServiceImpl(
       // The distribution is chosen based on agent type.
       val (nodesAgentWithCfserverDistrib, nodesAgentWithHttpDistrib) = childerNodesList.partition(x => {
         x._1.agentType match {
-          case AgentType.CfeCommunity | AgentType.CfeEnterprise => true
-          case _                                                => false
+          case AgentType.CfeCommunity => true
+          case _                      => false
         }
       })
 

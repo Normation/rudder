@@ -57,7 +57,6 @@ object Constants {
   val NODE_PROMISES_PARENT_DIR      = "share"
 
   val CFENGINE_COMMUNITY_PROMISES_PATH = "/var/rudder/cfengine-community/inputs"
-  val CFENGINE_NOVA_PROMISES_PATH      = "/var/cfengine/inputs"
 
   val GENERATED_PROPERTY_DIR   = "properties.d"
   val GENERATED_PROPERTY_FILE  = "properties.json"

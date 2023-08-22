@@ -471,9 +471,9 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
         s"[missing value for: $${data.${e}[${m.mkString("][")}] ${opt}]"
       case Property(path, opt)   =>
         agent match {
-          case AgentType.Dsc                                    =>
+          case AgentType.Dsc          =>
             s"$$($$node.properties[${path.mkString("][")}])"
-          case AgentType.CfeCommunity | AgentType.CfeEnterprise =>
+          case AgentType.CfeCommunity =>
             s"$${node.properties[${path.mkString("][")}]}"
         }
     }

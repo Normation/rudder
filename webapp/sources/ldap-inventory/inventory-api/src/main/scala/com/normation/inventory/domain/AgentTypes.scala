@@ -97,17 +97,6 @@ sealed trait AgentType {
 
 object AgentType {
 
-  final case object CfeEnterprise extends AgentType {
-    override def id                                              = "cfengine-nova"
-    override def oldShortName                                    = "nova"
-    override def displayName                                     = "CFEngine Enterprise"
-    override def toRulesPath                                     = "/cfengine-nova"
-    override def inventoryAgentNames                             = Set("cfengine-nova", "nova")
-    override val inventorySoftwareName                           = "cfengine nova"
-    override def toAgentVersionName(softwareVersionName: String) = s"cfe-${softwareVersionName}"
-    override val defaultPolicyExtension                          = ".cf"
-  }
-
   final case object CfeCommunity extends AgentType {
     override def id                                              = "cfengine-community"
     override def oldShortName                                    = "community"

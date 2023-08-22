@@ -507,15 +507,14 @@ class NodeApi(
         optNode <- apiV2.nodeInfoService.getNodeInfo(NodeId(id)).toBox
       } yield {
         optNode match {
-          case Some(node)
-              if (node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)) =>
+          case Some(node) if (node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity)) =>
             OutputStreamResponse(apiV8service.runNode(node.id, classes))
-          case Some(node) =>
+          case Some(node)                                                                         =>
             toJsonError(
               None,
               s"Node with id '${id}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run"
             )("applyPolicy", prettify)
-          case None       =>
+          case None                                                                               =>
             toJsonError(None, s"Node with id '${id}' was not found")("applyPolicy", prettify)
         }
       }) match {
@@ -1665,7 +1664,7 @@ class NodeApiService8(
         } yield {
           // remote run only works for CFEngine based agent
           val commandResult = {
-            if (node.agentsName.exists(a => a.agentType == AgentType.CfeEnterprise || a.agentType == AgentType.CfeCommunity)) {
+            if (node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity)) {
               val request = remoteRunRequest(node.id, classes, false, true)
               try {
                 val result = request.asString

@@ -278,7 +278,7 @@ class TestInventoryParsing extends Specification with Loggable {
 
     "have two agent when using community and nova" in {
       val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
-      agents === (CfeCommunity :: CfeEnterprise :: Nil)
+      agents === (CfeCommunity :: Nil)
     }
 
     "be empty when there is two agents, using two different policy servers" in {

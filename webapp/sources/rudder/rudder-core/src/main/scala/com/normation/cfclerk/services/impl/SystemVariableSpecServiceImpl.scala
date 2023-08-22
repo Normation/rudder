@@ -100,18 +100,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     SystemVariableSpec("INPUTLIST", "Input list", multivalued = false),
     SystemVariableSpec("BUNDLELIST", "Bundle list", multivalued = false),
     SystemVariableSpec(
-      "NOVA",
-      "The Cfengine Nova agent",
-      multivalued = false,
-      constraint = Constraint(mayBeEmpty = true)
-    ),
-    SystemVariableSpec(
-      "COMMUNITY",
-      "The Cfengine Community agent",
-      multivalued = false,
-      constraint = Constraint(mayBeEmpty = true)
-    ),
-    SystemVariableSpec(
       "SHARED_FILES_FOLDER",
       "The path to the shared files folder",
       multivalued = false,
@@ -316,6 +304,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
         default = Some("full-compliance")
       )
     ),
+    // Not used anymore but kept for compatibility with old agents
     SystemVariableSpec(
       "RUDDER_HEARTBEAT_INTERVAL",
       "Interval between two heartbeat sending in changes-only mode (in number of runs)",
@@ -371,6 +360,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       multivalued = false
     ), // Configure node protocol, SYLOG or HTTPS
 
+    // Not used anymore but kept for compatibility with old agents
     SystemVariableSpec(
       "REPORTING_PROTOCOL",
       "Protocol used by agent to send reports (HTTPS or SYSLOG)",

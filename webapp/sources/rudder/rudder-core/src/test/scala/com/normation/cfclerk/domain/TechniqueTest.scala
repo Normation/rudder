@@ -109,8 +109,8 @@ class TechniqueTest extends Specification {
       tml.included === false and tml.outPath === "foo/1.0/tml3.cf"
     }
 
-    "system vars are 'BUNDLELIST,COMMUNITY'" in {
-      technique.systemVariableSpecs.map(_.name) === Set("BUNDLELIST", "COMMUNITY")
+    "system vars are 'BUNDLELIST,COMMUNITYPORT'" in {
+      technique.systemVariableSpecs.map(_.name) === Set("BUNDLELIST", "COMMUNITYPORT")
     }
 
     "tracking variable is bound to A" in {
