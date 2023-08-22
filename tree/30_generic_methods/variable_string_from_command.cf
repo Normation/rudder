@@ -102,7 +102,7 @@ bundle agent variable_string_from_command(prefix, name, command)
         perms         => mog("700", "root", "0"),
         comment       => "${class_prefix}",
         action        => immediate_ignore_dry_run,
-        classes       => classes_generic("file_lines_present_${c_tmp_script_name}");
+        classes       => classes_generic("${inner_class_prefix}");
 
     pass3::
       "${tmp_script_name}"
