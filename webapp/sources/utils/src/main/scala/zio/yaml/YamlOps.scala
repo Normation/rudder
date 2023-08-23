@@ -1,38 +1,5 @@
 /*
- *************************************************************************************
- * Copyright 2023 Normation SAS
- *************************************************************************************
- *
- * This file is part of Rudder.
- *
- * Rudder is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * In accordance with the terms of section 7 (7. Additional Terms.) of
- * the GNU General Public License version 3, the copyright holders add
- * the following Additional permissions:
- * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
- * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
- * Public License version 3, when you create a Related Module, this
- * Related Module is not considered as a part of the work and may be
- * distributed under the license agreement of your choice.
- * A "Related Module" means a set of sources files including their
- * documentation that, without modification of the Source Code, enables
- * supplementary functions or services in addition to those offered by
- * the Software.
- *
- * Rudder is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
- *
- *************************************************************************************
+ Copied from zio.json.yaml to change JsonOps.toYaml internals, see inline comments.
  */
 
 package zio.yaml
@@ -59,81 +26,7 @@ import zio.json.ast.Json
 import zio.json.yaml.YamlOptions
 
 object YamlOps {
-
   import zio.json._
-  implicit final class EncoderYamlOps[A](private val a: A) extends AnyVal {
-    def toYaml(options: YamlOptions = YamlOptions.default)(implicit A: JsonEncoder[A]): Either[String, String] =
-      a.toJsonAST.flatMap(_.toYaml(options).left.map(_.getMessage))
-
-    def toYamlAST(options: YamlOptions = YamlOptions.default)(implicit A: JsonEncoder[A]): Either[String, Node] =
-      a.toJsonAST.map(_.toYamlAST(options))
-  }
-
-  import scala.jdk.CollectionConverters._
-
-  final private def jsonToYaml(json: Json, options: YamlOptions): Node = {
-    json match {
-      case Json.Obj(fields)   =>
-        val finalFields = {
-          if (options.dropNulls) {
-            fields.filter {
-              case (_, value) =>
-                value match {
-                  case Json.Null => false
-                  case _         => true
-                }
-            }
-          } else {
-            fields
-          }
-        }
-        new MappingNode(
-          Tag.MAP,
-          finalFields.map {
-            case (key, value) =>
-              new NodeTuple(
-                new ScalarNode(Tag.STR, key, null, null, options.keyStyle(key)),
-                jsonToYaml(value, options)
-              )
-          }.toList.asJava,
-          options.flowStyle(json)
-        )
-      case Json.Arr(elements) =>
-        new SequenceNode(
-          Tag.SEQ,
-          elements.map(jsonToYaml(_, options)).toList.asJava,
-          options.flowStyle(json)
-        )
-      case Json.Bool(value)   =>
-        new ScalarNode(Tag.BOOL, value.toString, null, null, options.scalarStyle(json))
-      case Json.Str(value)    =>
-        if (options.nonPrintableStyle == NonPrintableStyle.BINARY && !StreamReader.isPrintable(value)) {
-          new ScalarNode(
-            Tag.BINARY,
-            Base64.getEncoder.encodeToString(value.getBytes(StandardCharsets.UTF_8)),
-            null,
-            null,
-            ScalarStyle.LITERAL
-          )
-        } else {
-
-          val multiline: Regex = "[\n\u0085\u2028\u2029]".r
-          val isMultiLine = multiline.findFirstIn(value).isDefined
-          val style       = options.scalarStyle(json)
-          val finalStyle  = if (style == ScalarStyle.PLAIN && isMultiLine) ScalarStyle.LITERAL else style
-          new ScalarNode(Tag.STR, value, null, null, finalStyle)
-        }
-      case Json.Num(value)    =>
-        val stripped = value.stripTrailingZeros()
-        if (stripped.scale() <= 0) {
-          new ScalarNode(Tag.INT, stripped.intValue().toString, null, null, options.scalarStyle(json))
-        } else {
-          new ScalarNode(Tag.FLOAT, stripped.toString, null, null, options.scalarStyle(json))
-        }
-      case Json.Null          =>
-        new ScalarNode(Tag.NULL, "null", null, null, options.scalarStyle(json))
-    }
-  }
 
   implicit final class JsonOps(private val json: Json) extends AnyVal {
     def toYaml(options: YamlOptions = YamlOptions.default): Either[YAMLException, String] = {
@@ -151,6 +44,7 @@ object YamlOps {
             dumperOptions.setSplitLines(false)
         }
         dumperOptions.setLineBreak(options.lineBreak)
+        // this is the modification compared to io.json.yaml.JsonOps, see https://gist.github.com/fanf/445e9228cd62bb786960ce2242c1020c
         dumperOptions.setIndentWithIndicator(true)
 
         val resolver   = new Resolver
@@ -169,7 +63,16 @@ object YamlOps {
       }
     }
 
-    def toYamlAST(options: YamlOptions = YamlOptions.default): Node = jsonToYaml(json, options)
+    def toYamlAST(options: YamlOptions = YamlOptions.default): Node = {
+      zio.json.yaml.JsonOps(json).toYamlAST(options)
+    }
   }
 
+  implicit final class EncoderYamlOps[A](private val a: A) extends AnyVal {
+    def toYaml(options: YamlOptions = YamlOptions.default)(implicit A: JsonEncoder[A]): Either[String, String] =
+      a.toJsonAST.flatMap(_.toYaml(options).left.map(_.getMessage))
+
+    def toYamlAST(options: YamlOptions = YamlOptions.default)(implicit A: JsonEncoder[A]): Either[String, Node] =
+      a.toJsonAST.map(_.toYamlAST(options))
+  }
 }
