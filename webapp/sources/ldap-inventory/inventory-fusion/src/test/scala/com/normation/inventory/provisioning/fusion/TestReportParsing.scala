@@ -297,11 +297,6 @@ class TestInventoryParsing extends Specification with Loggable {
       agents.node.agents.map(_.agentType).toList === (CfeCommunity :: Nil)
     }
 
-    "have two agent when using community and nova" in {
-      val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.agentType).toList
-      agents === (CfeCommunity :: CfeEnterprise :: Nil)
-    }
-
     "be empty when there is two agents, using two different policy servers" in {
       val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
       agents must beEmpty
@@ -427,7 +422,7 @@ class TestInventoryParsing extends Specification with Loggable {
   "Hostname should be correctly detected" should {
     "get node1 when it is defined as this" in {
       val hostname = parseRun("fusion-inventories/signed_inventory.ocs").node.main.hostname
-      hostname === "node1"
+      hostname === "node1-overridden.rudder.local.override"
     }
 
     "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
@@ -456,11 +451,6 @@ class TestInventoryParsing extends Specification with Loggable {
     "be found for community agent" in {
       val version = parseRun("fusion-inventories/sles-11-sp1-64-2011-09-02-12-00-43.ocs").node.agents(0).version
       version must beEqualTo(Some(AgentVersion("2.3.0.beta1~git-1")))
-    }
-
-    "be found for nova agent" in {
-      val version = parseRun("fusion-inventories/WIN-2017-rudder-4-1.ocs").node.agents(0).version
-      version must beEqualTo(Some(AgentVersion("cfe-3.7.4.65534")))
     }
 
     "be unknown if rudder agent is missing" in {

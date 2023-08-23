@@ -259,14 +259,13 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  // since Rudder 4.3, a security token is mandatory
+  // since Rudder 6.0, an agent certificate is mandatory
   private[this] def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     for {
-      tagHere <- checkWithinNodeSeq(agentNodeSeq, "CFENGINE_KEY")
-                   .orElse(checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT"))
+      tagHere <- checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT")
                    .chainError(
-                     "Missing security token attribute (RUDDER/AGENT/CFENGINE_KEY or RUDDER/AGENT/AGENT_CERT) " +
-                     "in inventory. This attribute is mandatory and must contains agent certificate or public key."
+                     "Missing security token attribute (RUDDER/AGENT/AGENT_CERT) " +
+                     "in inventory. This attribute is mandatory and must contains the agent certificate"
                    )
     } yield {
       inventory
