@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_root_integrity_check(trackingkey, technique_name)
+{
+  vars:
+      "key_destination" string => "${sys.workdir}/ppkeys/root-${sys.key_digest}.pub";
+      "component"       string => "Check configuration-repository";
+      "component_key1"  string => "Configuration-repository exists";
+      "component_key2"  string => "Check configuration-repository GIT lock";
+
+  classes:
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+      "${g.rudder_configuration_repository}"
+        create => "true",
+        action => WarnOnly,
+        classes => if_else("rudder_integrity_ok", "rudder_integrity_failed");
+
+      "${g.rudder_configuration_repository}/.git/index.lock"
+        delete       => tidy,
+        file_select  => ncf_minutes_old("5"),
+        classes      => classes_generic("rudder_git_lock"),
+        comment      => "Delete the git locking file in the configuration-repository if older than 5 minutes";
+
+  methods:
+      "link the key" usebundle => disable_reporting;
+      "link the key" usebundle => file_create_symlink("${sys.workdir}/ppkeys/localhost.pub", "${key_destination}"),
+                       comment => "Creating a link of the server key to itself to allow auto-copy";
+      "link the key" usebundle => enable_reporting;
+
+    pass3.rudder_integrity_ok.!rudder_integrity_failed::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "${component}", "${component_key1}", "The ${g.rudder_configuration_repository} directory is present");
+
+    pass3.(!rudder_integrity_ok|rudder_integrity_failed)::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_error", "${trackingkey}", "${component}", "${component_key1}", "The required ${g.rudder_configuration_repository} directory is absent, central server will not operate properly");
+
+    pass3.(!rudder_git_lock_repaired.!rudder_git_lock_failed)::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_success", "${trackingkey}", "${component}", "${component_key2}", "The ${g.rudder_configuration_repository} git lock file is not present or not older than 5 minutes");
+
+    pass3.(rudder_git_lock_repaired.!rudder_git_lock_failed)::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_repaired", "${trackingkey}", "${component}", "${component_key2}", "The ${g.rudder_configuration_repository} git lock file was older than 5 minutes and has been deleted");
+
+    pass3.rudder_git_lock_failed::
+      "any" usebundle => rudder_common_report("${technique_name}", "result_error", "${trackingkey}", "${component}", "${component_key2}", "The ${g.rudder_configuration_repository} git lock file is older than 5 minutes and could not be deleted, central server will not operate properly");
+}

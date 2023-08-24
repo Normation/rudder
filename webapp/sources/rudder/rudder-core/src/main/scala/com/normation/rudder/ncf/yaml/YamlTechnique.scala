@@ -62,11 +62,11 @@ case class Technique(
     name:          String,
     version:       Version,
     description:   Option[String],
-    items:         List[MethodItem],
     documentation: Option[String],
-    category:      Option[String],
     tags:          Option[Map[String, String]],
-    params:        Option[List[TechniqueParameter]]
+    category:      Option[String],
+    params:        Option[List[TechniqueParameter]],
+    items:         List[MethodItem]
 )
 
 case class MethodItem(
@@ -195,15 +195,15 @@ object YamlTechniqueSerializer {
       } else {
         Some(technique.description)
       },
-      technique.calls.map(fromJsonMethodElem).toList,
       if (technique.documentation.isEmpty) None else Some(technique.documentation),
-      Some(technique.category),
       if (technique.tags.isEmpty) None else Some(technique.tags),
+      Some(technique.category),
       if (technique.parameters.isEmpty) {
         None
       } else {
         Some(technique.parameters.map(fromJsonParam).toList)
-      }
+      },
+      technique.calls.map(fromJsonMethodElem).toList
     )
   }
 

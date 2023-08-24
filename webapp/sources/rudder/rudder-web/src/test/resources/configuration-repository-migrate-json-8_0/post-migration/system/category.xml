@@ -1,0 +1,9 @@
+
+<xml>
+    <name>System Techniques</name>
+    <description>
+        This category contains internal Techniques (system).
+        These Techniques should not be used directly.
+    </description>
+    <system>true</system>
+</xml>

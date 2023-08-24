@@ -202,12 +202,16 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   }
 
   def newCompilerWithBase(baseDir: String, defaultCompiler: TechniqueCompilerApp = Rudderc) = new TechniqueCompilerWithFallback(
-    valueCompiler,
-    new RudderPrettyPrinter(Int.MaxValue, 2),
-    parameterTypeService,
+    new WebappTechniqueCompiler(
+      valueCompiler,
+      new RudderPrettyPrinter(Int.MaxValue, 2),
+      parameterTypeService,
+      editorTechniqueReader,
+      _.id.value, // remove useless /technique/categories/techId/1.0/ and keep only techId
+      baseDir
+    ),
     TestRudderc,
     defaultCompiler,
-    editorTechniqueReader,
     _.id.value, // remove useless /technique/categories/techId/1.0/ and keep only techId
     baseDir
   )

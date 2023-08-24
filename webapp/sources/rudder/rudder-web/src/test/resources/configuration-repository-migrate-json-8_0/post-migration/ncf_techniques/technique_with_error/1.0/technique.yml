@@ -1,0 +1,10 @@
+id: technique_with_error
+name: technique with compile error
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 00000000-f940-4b65-834a-4d8ddd085c34
+    name: Command execution
+    method: command_execution
+    params:
+      command: touch /tmp/error

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent system_relay_logrotate {
+  vars:
+    !redhat::
+      "reports_postrotate" string => "service ${rudder_syslog.service_name} ${rudder_syslog.rotation_method} > /dev/null || true";
+    redhat::
+      "reports_postrotate" string => "/bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true";
+
+    pass1.!duration_configured::
+      "logrotate_duration" string => "30";
+    pass1.duration_configured::
+      "logrotate_duration" string => "${rudder_parameters.log_duration}";
+
+    pass1::
+      "relay_data"            data => parsejson('{
+                                       "name": "${g.rudder_log}/reports/*.log",
+                                       "duration": "${logrotate_duration}",
+                                       "create": "${rudder_syslog.file_mode} ${rudder_syslog.user_name} ${rudder_syslog.group_name}",
+                                       "postrotate": "${reports_postrotate}"
+                                     }');
+
+  classes:
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "duration_configured" expression => isvariable("rudder_parameters.log_duration");
+
+  files:
+      "/etc/logrotate.d/rudder"
+        delete  => tidy,
+        comment => "Removing logrotate file from 6.x";
+
+  methods:
+    pass2::
+      "any" usebundle => _method_reporting_context("Rudder-relayd service", "Log rotation");
+      "any" usebundle => file_from_template_mustache("${sys.workdir}/inputs/rudder-service-relayd/1.0/common/relay-logrotate.mustache", "/etc/logrotate.d/rudder-relay");
+}
