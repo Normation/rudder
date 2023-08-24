@@ -158,7 +158,7 @@ bundle agent check
     "var_name[${init.indices}]" string => "${init.var_prefix[${init.indices}]}.${init.var_name[${init.indices}]}";
 
   classes:
-    # On error there var must not be created
+    # On error the var must not be created
     "must_not_be_defined_${init.indices}" expression => strcmp("${init.expected_value[${init.indices}]}", "");
     "error_${init.indices}_not_ok" expression => isvariable("${var_name[${init.indices}]}"),
       ifvarclass => "must_not_be_defined_${init.indices}";
