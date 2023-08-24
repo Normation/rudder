@@ -110,15 +110,24 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
       "canonified_path"   string => canonify("${file_path}");
-      "url"               string => "https://${server_info.policy_server}/rudder/relay-api/shared-files/${remote_node}/${g.uuid}/${file_id}";
+      "endpoint"          string => "/rudder/relay-api/shared-files/${remote_node}/${g.uuid}/${file_id}";
+      "url"               string => "https://${server_info.policy_server}${endpoint}";
 
       "hash"              string => execresult("sed -n '/^hash_value=/s/^hash_value=//p' ${file_path}.sign", "useshell"),
                       ifvarclass => "${canonified_path}_signed";
 
       "url_ttl"           string => execresult("echo ${ttl} | sed 's/ /+/g'", "useshell");
 
+      "version_str"      string => execresult("rudder agent version", "useshell");
+      "version_data"       data => data_regextract("Rudder agent (\d+)\.(\d+)\.(\d+)", "${version_str}");
+
   classes:
     any::
+      "version_ge_8"      expression => isgreaterthan("${version_data[1]}", 7);
+      "version_ge_7_3_6"  expression => and(regcmp("Rudder agent 7\.3.*", "${version_str}"), isgreaterthan("${version_data[3]}", 5));
+      "version_ge_7_2_11" expression => and(regcmp("Rudder agent 7\.2.*", "${version_str}"), isgreaterthan("${version_data[3]}", 10));
+      "use_rudder_client" expression => "version_ge_8|version_ge_7_3_6|version_ge_7_2_11";
+
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -157,14 +166,22 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
         classes => if_ok("${canonified_path}_signed"),
         ifvarclass => "!${canonified_path}_signed";
 
-    _ncf_path_exists_curl.pass2::
+    use_rudder_client.pass2::
+      "code=`/opt/rudder/bin/rudder-client -e ${endpoint}?hash=${hash} -r -- --head` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
+        contain => in_shell,
+        classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
+        ifvarclass => "${canonified_path}_signed";
+
+    # remove when 7.2 and 7.3 agents are not supported anymore
+    !use_rudder_client._ncf_path_exists_curl.pass2::
       "code=`${ncf_paths.path[curl]} ${url}?hash=${hash} ${g.rudder_verify_certs_option} --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
         ifvarclass => "${canonified_path}_signed";
 
-      "echo | cat ${file_path}.sign - ${file_path} | ${ncf_paths.path[curl]}"
-        args => "${url}?ttl=${url_ttl} ${g.rudder_verify_certs_option} --tlsv1 --location --request PUT --output /dev/null --silent --fail --header 'Content-Type: application/octet-stream' --data-binary @-",
+    pass2::
+      "echo | cat ${file_path}.sign - ${file_path} | /opt/rudder/bin/rudder-client"
+        args => "-e ${endpoint}?ttl=${url_ttl} -- --request PUT --output /dev/null --header 'Content-Type: application/octet-stream' --data-binary @-",
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
         ifvarclass => "${canonified_path}_signed.(${old_class_prefix}_exist_repaired|${class_prefix}_exist_repaired)";
