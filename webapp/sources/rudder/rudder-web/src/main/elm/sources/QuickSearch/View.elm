@@ -39,8 +39,9 @@ viewResult result =
         a [ role "button", attribute "data-toggle" "collapse", href ("#result" ++name) ] [
           span [ class "glyphicon glyphicon-chevron-right" ] []
         , text name
-        , span [ class "angucomplete-description ng-binding" ] [
-            text ((String.fromInt result.header.numbers) ++" found, only displaying the first 10. Please refine your query.")
+        , span [ class "angucomplete-description" ]
+          [ text ((String.fromInt result.header.numbers) ++" found")
+          , text (if result.header.numbers > 10 then ", only displaying the first 10. Please refine your query." else "")
           ]
         ]
       ]

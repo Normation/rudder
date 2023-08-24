@@ -217,6 +217,7 @@
   border-bottom:none;
 }
 .wrapper .dropdown-menu.dropdown-search{
+  border: none;
   position:fixed;
   top: 50px;
   left:280px;
@@ -446,6 +447,7 @@
 .wrapper .angucomplete-dropdown .angucomplete-description {
   color: #828282;
   font-size: 14px;
+  font-weight: normal;
 }
 .wrapper .dropdown-search .list-group-item .panel-heading {
   margin: -10px;
