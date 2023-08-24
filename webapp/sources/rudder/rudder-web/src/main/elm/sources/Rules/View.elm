@@ -229,7 +229,8 @@ view model =
           ]
         , input [type_ "checkbox", id "toggle-filters", class "toggle-filters", checked True][]
         , div[class "filters-container"]
-          [ div [class "form-group"]
+          [ div[]
+            [ div [class "form-group"]
             [ label[for "tag-key"][text "Tags"]
             , div [class "input-group"]
               [ input[type_ "text", value model.ui.ruleFilters.treeFilters.newTag.key, placeholder "key", class "form-control", id "tag-key", onInput (\s -> UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | newTag = {newTag | key = s}}})][]
@@ -274,6 +275,7 @@ view model =
                 ]
             ) treeFilters.tags |> List.reverse)
           )]
+          ]
         ]
       , div [class "sidebar-body"]
         [ div [class "sidebar-list"][(
