@@ -296,3 +296,8 @@
 .fm-content {
   padding: 20px 0;
 }
+
+.fm-modal textarea {
+  width: 50vw;
+  height: 50vh;
+}

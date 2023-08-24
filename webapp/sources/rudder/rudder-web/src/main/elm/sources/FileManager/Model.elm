@@ -82,5 +82,6 @@ type EnvMsg
   | GetLs String
   | LsGotten (Result Error (List FileMeta)) 
   | Refresh (Result Error ())
+  | GotContent (Result Error String)
 
-type DialogAction = Rename FileMeta String | NewFile String | NewDir String | Closed
+type DialogAction = Rename FileMeta String | NewFile String | NewDir String | Edit String String | Closed

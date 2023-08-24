@@ -1,7 +1,7 @@
 module FileManager.View exposing (..)
 
 import FileManager.Events exposing (..)
-import Html exposing (Attribute, Html, br, div, i, input, img, label, strong, text)
+import Html exposing (Attribute, Html, br, div, i, img, input, label, strong, text, textarea)
 import Html.Attributes exposing (attribute, class, draggable, id, src, style, title, type_, value)
 import Html.Events exposing (onClick, onDoubleClick, onInput)
 import Http exposing (Progress(..))
@@ -174,29 +174,46 @@ contextMenu (Vec2 x y) maybe paste many filesAmount = if filesAmount > 0
       ]
   else div [ class "fm-context-menu", style "left" (toPx x), style "top" (toPx y) ] <| case maybe of
     Just file ->
-      [ button [ class "div white", onClick Download ] [ text "Download" ]
-      , button (if many then [ class "div white disabled" ] else [ class "div white", onClick (OpenNameDialog (Rename file file.name)) ]) [ text "Rename" ]
+      [ (if file.type_ == "dir" then text "" else button [ class "div white", onClick (OpenNameDialog (Edit file.name "")) ] [ text "Edit" ])
+      , button [ class "div white", onClick Download ] [ text "Download" ]
+      , (if many then text "" else  button [ class "div white", onClick (OpenNameDialog (Rename file file.name)) ] [ text "Rename" ])
       , button [ class "div white", onClick Cut ] [ text "Cut" ]
-      , button (if paste && file.type_ == "dir" then [ class "div white", onClick Paste ] else [ class "div white disabled" ]) [ text "Paste" ]
+      , (if paste && file.type_ == "dir" then button [ class "div white", onClick Paste ] [ text "Paste" ] else text "")
       , button [ class "div white", onClick Delete ] [ text "Delete" ]
       ]
     Nothing ->
       [ button [ class "div white", onClick ChooseFiles ] [ text "Upload" ]
       , button [ class "div white", onClick (OpenNameDialog (NewDir "")) ] [ text "New folder" ]
       , button [ class "div white", onClick (OpenNameDialog (NewFile "")) ] [ text "New file" ]
-      , button (if paste then [ class "div white", onClick Paste ] else [ class "div white disabled" ]) [ text "Paste" ]
+      , (if paste then button [ class "div white", onClick Paste ] [ text "Paste" ] else text "" )
       ]
 
 nameDialog : DialogAction -> Html Msg
 nameDialog dialogState =
   let
     n = case dialogState of
+               Edit _ _ -> ""
                Closed -> ""
                Rename _ name -> name
                NewFile name -> name
                NewDir name -> name
   in
   case dialogState of
+
+    Edit file content ->
+      div [ class "fm-screen" ]
+      [ div [ class "fm-modal" ]
+      [ label []
+          [ strong [] [ text "Content" ]
+          , br [] []
+          , textarea [ value content, onInput Name ] []
+          ]
+      , div []
+          [ button [ class "fm-button", onClick CloseNameDialog ] [ text "Cancel" ]
+          , button [ class "fm-button", onClick ConfirmNameDialog ] [ text "Save" ]
+          ]
+        ]
+      ]
     Closed -> text ""
     _ ->
       div [ class "fm-screen" ]
