@@ -32,6 +32,15 @@
     </FILES>
   </AGENT>
   <SECTIONS>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>server</NAME>
+        <DESCRIPTION>The server hostname</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
     <SECTION name="Ensure correct ntp configuration" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
       <REPORTKEYS>
         <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">
@@ -47,15 +56,6 @@
           </VALUE>
         </REPORTKEYS>
       </SECTION>
-    </SECTION>
-    <SECTION name="Technique parameters">
-      <INPUT>
-        <NAME>server</NAME>
-        <DESCRIPTION>The server hostname</DESCRIPTION>
-        <CONSTRAINT>
-          <TYPE>textarea</TYPE>
-        </CONSTRAINT>
-      </INPUT>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>

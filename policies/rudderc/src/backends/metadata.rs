@@ -198,7 +198,8 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
                 name: "Technique parameters".to_string(),
                 section: input,
             };
-            sections.push(SectionType::SectionInput(section));
+            // parameters should be the first section
+            sections.insert(0, SectionType::SectionInput(section));
         }
 
         Ok(Technique {
