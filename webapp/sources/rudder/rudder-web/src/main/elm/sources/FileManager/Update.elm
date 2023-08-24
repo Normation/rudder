@@ -77,13 +77,20 @@ update msg model = case msg of
         _ -> ({ model | filesAmount = 0 }, listDirectory model.api model.dir)
     Err _ -> (model, Cmd.none)
   OpenNameDialog state->
+    let
+      cmd =
+        case state of
+          Edit file _ -> getContent model.api model.dir file
+          _ -> Cmd.none
+    in
     ( { model
       | dialogState = state
       , showContextMenu = False
       }
-      , Cmd.none
+      , cmd
     )
-  CloseNameDialog -> ({ model | dialogState = Closed }, Cmd.none)
+  CloseNameDialog ->
+      ({ model | dialogState = Closed }, Cmd.none)
   Name name ->
    let
      dialogState = case model.dialogState of
@@ -91,6 +98,7 @@ update msg model = case msg of
                      NewDir _ -> NewDir name
                      NewFile _ -> NewFile name
                      Rename f _ -> Rename f name
+                     Edit f _ -> Edit f name
    in
      ({ model | dialogState = dialogState }, Cmd.none)
   ConfirmNameDialog ->
@@ -99,6 +107,8 @@ update msg model = case msg of
       NewDir s -> ({ model | dialogState = Closed, load = True }, newDir model.api model.dir s)
       NewFile s -> ({ model | dialogState = Closed, load = True }, newFile model.api model.dir s)
       Rename f s -> ({ model | dialogState = Closed, load = True },FileManager.Action.rename model.api model.dir f.name s)
+      Edit file content -> ({ model | dialogState = Closed, load = True },saveContent model.api model.dir file content)
+
   Download ->
     ( { model
       | showContextMenu = False

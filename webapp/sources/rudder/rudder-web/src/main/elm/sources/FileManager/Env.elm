@@ -87,6 +87,14 @@ handleEnvMsg msg model = case msg of
   Refresh result -> case result of
     Ok () -> (model, listDirectory model.api model.dir)
     Err _ -> (model, Cmd.none)
+  GotContent result ->
+      case model.dialogState of
+        Edit f _ ->
+          case result of
+            Ok content -> ({model | dialogState = Edit f content}, Cmd.none)
+            Err _ -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
+
 
 getBounds : List FileMeta -> Cmd Msg
 getBounds files = Task.attempt (EnvMsg << GetBounds)

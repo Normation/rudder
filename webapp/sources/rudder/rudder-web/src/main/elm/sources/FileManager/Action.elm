@@ -1,7 +1,7 @@
 module FileManager.Action exposing (..)
 
 import File exposing (File)
-import Json.Decode as Decode exposing (succeed)
+import Json.Decode as Decode exposing (andThen, fail, succeed)
 import Json.Decode exposing (Decoder)
 import Http exposing (Body, emptyBody, expectJson, header, request, stringBody)
 import Json.Decode.Pipeline exposing (required)
@@ -119,6 +119,46 @@ newFile api dir name =
   (Http.jsonBody body )
   (Decode.succeed ())
   (EnvMsg << Refresh)
+
+headList : Decoder (List a) -> Decoder a
+headList decoder =
+  andThen ( \l ->
+    case l of
+      [] -> fail ""
+      x :: _ -> succeed x
+    ) decoder
+
+getContent : String  -> String -> String -> Cmd Msg
+getContent api dir name =
+  let
+    filePath = dir ++ "/" ++ name
+    body =  Json.Encode.object [
+              ("action", Json.Encode.string "getContent")
+            , ("item", Json.Encode.string filePath)
+            ]
+  in
+  post
+  api
+  (Http.jsonBody body )
+  (Decode.at ["result"] Json.Decode.string)
+  (EnvMsg << GotContent)
+
+saveContent : String  -> String -> String -> String -> Cmd Msg
+saveContent api dir name content =
+  let
+    filePath = dir ++ "/" ++ name
+    body =  Json.Encode.object [
+              ("action", Json.Encode.string "edit")
+            , ("item", Json.Encode.string filePath)
+            , ("content", Json.Encode.string content)
+            ]
+  in
+  post
+  api
+  (Http.jsonBody body )
+  (Decode.succeed ())
+  (EnvMsg << Refresh)
+
 
 newDir : String  -> String -> String -> Cmd Msg
 newDir api dir name =
