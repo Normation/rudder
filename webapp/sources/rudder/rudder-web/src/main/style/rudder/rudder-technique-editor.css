@@ -475,15 +475,6 @@ ul.tabs-list > li > .badge.empty{
 .ng-hide{
   display: none !important;
 }
-.filemanager-container > angular-filemanager > div{
-  height: auto;
-  max-width: 1280px;
-  margin: auto;
-  margin-top: 40px;
-  background-color: #fff;
-  overflow: hidden;
-  border-radius: 4px;
-}
 .filemanager-container nav.navbar.navbar-inverse {
   border: none !important;
   border-bottom-left-radius: 0;
@@ -516,10 +507,6 @@ ul.tabs-list > li > .badge.empty{
 }
 .filemanager-container .sidebar{
   margin: 0;
-}
-.filemanager-container > angular-filemanager > div > .container-fluid > .row > div{
-  min-height: 250px;
-  padding: 0;
 }
 .filemanager-container .nav > li > a {
   padding: 6px 10px;

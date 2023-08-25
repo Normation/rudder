@@ -973,16 +973,8 @@ class FileField(
     val formId     = Helpers.nextFuncName
     val valueInput =
       SHtml.text(toClient, s => parseClient(s), ("class", "form-control input-sm col-xs-12"), ("id", formId + "-fileInput"))
-    val initScript = {
-      Script(OnLoad(JsRaw(s"""
 
-
-        //fileManager.constant('contextPath', '${S.contextPath}');
-        //angular.bootstrap("#${formId}", ['fileManager']);
-      """)))
-    }
-
-    val form = (".input-group -*" #> valueInput).apply(xml(formId)) ++ initScript
+    val form = (".input-group -*" #> valueInput).apply(xml(formId))
     Full(form)
 
   }

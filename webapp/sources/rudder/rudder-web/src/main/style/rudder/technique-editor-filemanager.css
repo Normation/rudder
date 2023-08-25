@@ -588,11 +588,6 @@ table th > a:focus {
     padding-left: 0;
   }
 
-  /* The view should fill all available vertical space */
-  angular-filemanager > div,.row,.main,.sidebar {
-    height: 100%;
-  }
-
   .container-fluid {
     height: -webkit-calc(100% - 58px);
     height: -moz-calc(100% - 58px);
