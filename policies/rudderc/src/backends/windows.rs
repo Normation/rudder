@@ -83,10 +83,10 @@ pub mod filters {
             .join("-"))
     }
 
-    /// `my_method` -> `MyMethod`
+    /// `my_test-method` -> `MyTestMethod`
     pub fn camel_case<T: Display>(s: T) -> askama::Result<String> {
         Ok(s.to_string()
-            .split('_')
+            .split(['-', '_'])
             .map(uppercase_first_letter)
             .collect::<Vec<String>>()
             .join(""))
@@ -156,7 +156,8 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
                 .find(|p| p.name == n)
                 .unwrap()
                 .escaping;
-            (n, v, p_type)
+            let n_formatted = filters::camel_case(n).unwrap();
+            (n_formatted, v, p_type)
         })
         .collect();
 
@@ -251,6 +252,31 @@ mod tests {
         let c = "${my_cond}.debian|${sys.${plouf}}";
         let r = r##""" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}""##;
         let res = canonify_condition(c).unwrap();
+        assert_eq!(res, r);
+    }
+
+    use crate::backends::windows::filters::camel_case;
+
+    #[test]
+    fn it_camelcase_method_params() {
+        let p = "packageName";
+        let r = "PackageName";
+        let res = camel_case(p).unwrap();
+        assert_eq!(res, r);
+
+        let p = "package-name";
+        let r = "PackageName";
+        let res = camel_case(p).unwrap();
+        assert_eq!(res, r);
+
+        let p = "package_name";
+        let r = "PackageName";
+        let res = camel_case(p).unwrap();
+        assert_eq!(res, r);
+
+        let p = "Report-Message";
+        let r = "ReportMessage";
+        let res = camel_case(p).unwrap();
         assert_eq!(res, r);
     }
 }
