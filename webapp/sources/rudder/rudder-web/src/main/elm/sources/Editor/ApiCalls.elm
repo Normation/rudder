@@ -4,7 +4,7 @@ import Dict
 import Http exposing (..)
 import Http.Detailed as Detailed
 import Json.Decode exposing (list)
-import Maybe.Extra
+import Json.Encode exposing (object, string)
 
 import Editor.DataTypes exposing (..)
 import Editor.JsonDecoder exposing (..)
@@ -45,6 +45,38 @@ getTechniques  model =
   in
     req
 
+
+getTechniqueYaml :  Model -> Technique -> Cmd Msg
+getTechniqueYaml model technique =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model "techniques/"++technique.id.value++"/"++technique.version++"?format=yaml"
+        , body    = emptyBody
+        , expect  = Detailed.expectJson GetYaml ( Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list (Json.Decode.at ["content"] Json.Decode.string))))
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+checkTechniqueYaml :  Model -> String -> Cmd Msg
+checkTechniqueYaml model content =
+  let
+    req =
+      request
+        { method  = "POST"
+        , headers = []
+        , url     = getUrl model "techniques/check"
+        , body    = jsonBody (object [( "content", string content)] )
+        , expect  = Detailed.expectJson CheckTechnique ( Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list decodeTechnique)))
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
 getTechniquesCategories : Model -> Cmd Msg
 getTechniquesCategories model =
   let

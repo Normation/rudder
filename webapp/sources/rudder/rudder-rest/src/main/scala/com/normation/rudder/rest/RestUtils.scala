@@ -81,6 +81,13 @@ case class JsonResponsePrettify(
  */
 object RestUtils extends Loggable {
 
+  def getCharset(req: Req) = {
+    // copied from `Req.forcedBodyAsJson`
+    def r  = """; *charset=(.*)""".r
+    def r2 = """[^=]*$""".r
+    req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
+  }
+
   def apiVersionFromRequest(req: Req)(implicit availableVersions: List[ApiVersion]): Box[ApiVersion] = {
 
     val latest = availableVersions.maxBy(_.value)

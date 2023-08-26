@@ -621,6 +621,12 @@ object TechniqueApi       extends ApiModuleProvider[TechniqueApi]               
     val description    = "reload methods metadata from file system"
     val (action, path) = POST / "methods" / "reload"
   }
+  final case object CheckTechnique         extends TechniqueApi with ZeroParam with StartsAtVersion16 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Check if a techniques is valid yaml, with rudderc compilation, with various output (json ? yaml ?)"
+    val (action, path) = POST / "techniques" / "check"
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[TechniqueApi].toList.sortBy(_.z)
 }
 
