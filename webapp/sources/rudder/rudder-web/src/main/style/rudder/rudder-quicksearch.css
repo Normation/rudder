@@ -409,15 +409,18 @@
 }
 
 .wrapper .dropdown-search .list-group-item{
-  padding:5px 10px;
   border:none;
   margin-bottom:0px;
   border-bottom:1px solid #d6deef;
   color:#4d4d4d;
   font-size:13px;
+  padding: 0;
+}
+.wrapper .dropdown-search .list-group-item a{
+  display: block;
+  padding:5px 10px;
   cursor:pointer;
 }
-
 .wrapper .dropdown-search .list-group-item a:link,
 .wrapper .dropdown-search .list-group-item a:visited,
 .wrapper .dropdown-search .list-group-item a:hover,
