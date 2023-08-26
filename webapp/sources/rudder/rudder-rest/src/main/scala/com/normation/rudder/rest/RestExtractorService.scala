@@ -39,14 +39,12 @@ package com.normation.rudder.rest
 
 import com.normation.GitVersion
 import com.normation.box._
-import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors._
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.KeyStatus
@@ -78,18 +76,9 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows._
-import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.Constraint._
-import com.normation.rudder.ncf.GenericMethod
-import com.normation.rudder.ncf.MethodParameter
-import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import com.normation.rudder.ncf.ResourceFile
-import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.NodeStateEncoder
 import com.normation.rudder.rest.data._
 import com.normation.rudder.rule.category.RuleCategoryId

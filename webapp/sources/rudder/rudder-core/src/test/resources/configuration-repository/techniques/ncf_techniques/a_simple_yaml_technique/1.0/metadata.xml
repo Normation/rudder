@@ -1,0 +1,35 @@
+<TECHNIQUE name="A simple yaml technique">
+  <DESCRIPTION>A simple yaml technique</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>a_simple_yaml_technique</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>A-Simple-Yaml-Technique</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="File content" id="bfe1978f-b0e7-4da3-9544-06d53eb985fa" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="bfe1978f-b0e7-4da3-9544-06d53eb985fa">
+          /tmp/test-rudder.txt
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

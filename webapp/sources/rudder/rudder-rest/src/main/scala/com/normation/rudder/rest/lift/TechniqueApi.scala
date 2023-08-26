@@ -76,7 +76,7 @@ class TechniqueApi(
     apiV6:                TechniqueAPIService6,
     serviceV14:           TechniqueAPIService14,
     techniqueWriter:      TechniqueWriter,
-    techniqueReader:      TechniqueReader,
+    techniqueReader:      EditorTechniqueReader,
     techniqueRepository:  TechniqueRepository,
     techniqueSerializer:  TechniqueSerializer,
     uuidGen:              StringUuidGenerator,
@@ -704,7 +704,7 @@ class TechniqueAPIService6(
 class TechniqueAPIService14(
     readDirective:       RoDirectiveRepository,
     techniqueRevisions:  TechniqueRevisionRepository,
-    techniqueReader:     TechniqueReader,
+    techniqueReader:     EditorTechniqueReader,
     techniqueSerializer: TechniqueSerializer,
     restDataSerializer:  RestDataSerializer
 ) {

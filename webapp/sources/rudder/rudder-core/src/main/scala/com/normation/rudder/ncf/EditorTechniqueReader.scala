@@ -4,7 +4,6 @@ import better.files._
 import com.normation.errors._
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
-import com.normation.errors.PureChainError
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -18,6 +17,7 @@ import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
@@ -29,7 +29,7 @@ import zio.ZIO._
 import zio.json._
 import zio.syntax._
 
-class TechniqueReader(
+class EditorTechniqueReader(
     uuidGen:                                StringUuidGenerator,
     personIdentService:                     PersonIdentService,
     override val gitRepo:                   GitRepositoryProvider,
@@ -48,14 +48,14 @@ class TechniqueReader(
   val ncfRootDir               = configuration_repository / relativePath
   val methodsFile              = ncfRootDir / "generic_methods.json"
 
-  def getAllTechniqueFiles(currentPath: File): IOResult[List[File]]                                                                 = {
+  def getAllTechniqueFiles(currentPath: File): IOResult[List[File]] = {
     import com.normation.errors._
     for {
       subdirs      <- IOResult.attempt(s"error when getting subdirectories of ${currentPath.pathAsString}")(
                         currentPath.children.partition(_.isDirectory)._1.toList
                       )
       checkSubdirs <- foreach(subdirs)(getAllTechniqueFiles).map(_.flatten)
-      techniqueFilePath: File = currentPath / "technique.yml"
+      techniqueFilePath: File = currentPath / TechniqueFiles.yaml
       result <- IOResult.attempt(
                   if (techniqueFilePath.exists) {
                     techniqueFilePath :: checkSubdirs
@@ -67,29 +67,26 @@ class TechniqueReader(
       result
     }
   }
-  def readTechniquesMetadataFile:              IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
-    import yamlTechniqueSerializer._
 
-    import zio.json.yaml._
+  def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
     for {
       methods        <- getMethodsMetadata
       techniqueFiles <- getAllTechniqueFiles(configuration_repository / "techniques")
-      techniqueRes    = techniqueFiles.map(file => {
-
-                          file.contentAsString
-                            .fromYaml[EditorTechnique]
-                            .left
-                            .map(Inconsistency(_))
-                            .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
-
-                        })
-      (techniques, errors) = techniqueRes.foldRight((List.empty[EditorTechnique], List.empty[RudderError])) {
-                               case (Right(t), (accT, accE)) => (t :: accT, accE)
-                               case (Left(e), (accT, accE))  => (accT, e :: accE)
-                             }
+      techniqueRes   <- ZIO.foldLeft(techniqueFiles)((List.empty[EditorTechnique], List.empty[RudderError])) {
+                          case ((accT, accE), file) =>
+                            (for {
+                              content    <- IOResult.attempt(s"Error when reading '${file.pathAsString}'")(file.contentAsString)
+                              editorTech <- yamlTechniqueSerializer.yamlToEditorTechnique(file.contentAsString)
+                            } yield editorTech)
+                              .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
+                              .either
+                              .map {
+                                case Right(t) => (t :: accT, accE)
+                                case Left(e)  => (accT, e :: accE)
+                              }
+                        }
     } yield {
-
-      (techniques, methods, errors)
+      (techniqueRes._1, methods, techniqueRes._2)
     }
   }
 
