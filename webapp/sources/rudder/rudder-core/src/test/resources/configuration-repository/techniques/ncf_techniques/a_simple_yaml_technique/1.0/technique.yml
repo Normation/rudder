@@ -1,0 +1,12 @@
+id: a_simple_yaml_technique
+name: A simple yaml technique
+version: '1.0'
+items:
+  - id: bfe1978f-b0e7-4da3-9544-06d53eb985fa
+    name: ''
+    method: file_content
+    params:
+      path: /tmp/test-rudder.txt
+      lines: Hello World!
+      enforce: 'true'
+category: ncf_techniques

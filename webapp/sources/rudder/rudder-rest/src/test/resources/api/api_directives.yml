@@ -2031,6 +2031,11 @@ response:
                     ]
                   },
                   {
+                    "id":"a_simple_yaml_technique",
+                    "name":"A simple yaml technique",
+                    "directives":[]
+                  },
+                  {
                     "id": "technique_any",
                     "name": "TestTechnique created through Rudder API",
                     "directives": []
@@ -2047,7 +2052,7 @@ response:
                   },
                   {
                     "id": "test_import_export_archive",
-                    "name": "test_import_export_archive",
+                    "name": "test import/export archive",
                     "directives": [
                       {
                         "id": "test_import_export_archive_directive",

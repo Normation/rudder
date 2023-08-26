@@ -1,4 +1,4 @@
-<TECHNIQUE name="test_import_export_archive">
+<TECHNIQUE name="test import/export archive">
   <DESCRIPTION></DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
   <AGENT type="cfengine-community,cfengine-nova">

@@ -56,9 +56,12 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.ZipUtils
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
+import com.normation.rudder.rest.lift.TechniqueInfo
+import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import java.io.FileOutputStream
@@ -104,9 +107,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   def children(f: File) = f.children.toList.map(_.name)
 
   // format: off
-  //org.slf4j.LoggerFactory.getLogger("application.archive").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
-  //org.slf4j.LoggerFactory.getLogger("configuration").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+//  org.slf4j.LoggerFactory.getLogger("application.archive").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+//  org.slf4j.LoggerFactory.getLogger("configuration").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   // format: on
+
   sequential
 
   "when the feature switch is disabled, request" should {
@@ -241,11 +245,18 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         (children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(List(fileName))) and
         (children(testDir / s"${archiveName}/groups").isEmpty must beTrue) and
         (children(testDir / s"${archiveName}/rules").isEmpty must beTrue) and
-        (children(testDir / s"${archiveName}/techniques").nonEmpty must beTrue)
+        (
+          // when we export a JSON technique, we let it as it is, with all its generated content
+          children(
+            testDir / s"${archiveName}/techniques/ncf_techniques/test_import_export_archive/1.0"
+          ) must containTheSameElementsAs(
+            List("technique.json", "technique.ps1", "technique.cf", "metadata.xml")
+          )
+        )
 
       case err => ko(s"I got an error in test: ${err}")
     } and {
-      val tech      = restTestSetUp.mockTechniques.techniqueRepo
+      val tech     = restTestSetUp.mockTechniques.techniqueRepo
         .get(
           TechniqueId(
             TechniqueName("test_import_export_archive"),
@@ -253,6 +264,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
           )
         )
         .getOrElse(throw new IllegalArgumentException("test"))
+      // during import, we are actually migrating to Yaml
+      val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Yaml)
+
       val directive = restTestSetUp.mockDirectives.directiveRepo
         .getDirective(
           DirectiveUid("test_import_export_archive_directive")
@@ -271,7 +285,11 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             case None         => ko(s"No policies were saved")
             case Some((p, m)) =>
               (m must beEqualTo(MergePolicy.OverrideAll)) and
-              (p.techniques(0).technique must beEqualTo(tech)) and
+              (p.techniques(0).technique must beEqualTo(techInfo)) and
+              (
+                // when we import a JSON technique, then we migrate to YAML and don't import generated file which are regenerated
+                p.techniques(0).files.map(_._1) must containTheSameElementsAs(List("technique.yml"))
+              ) and
               (p.directives(0).directive must beEqualTo(directive))
           }
 
@@ -368,6 +386,34 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
+  "correctly build an archive of a YAML technique and filter generated files" >> {
+    val archiveName = "archive-technique"
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+    val techniqueId = "a_simple_yaml_technique/1.0"
+    restTest.testGETResponse(s"/api/latest/archives/export?techniques=${techniqueId}&include=none") {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        // unzip
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        val techniqueFiles = List(TechniqueFiles.yaml) // other generated files are not included in archive
+
+        (
+          children(testDir / s"${archiveName}/techniques/ncf_techniques/${techniqueId}") must containTheSameElementsAs(
+            techniqueFiles
+          )
+        )
+        (children(testDir / s"${archiveName}/groups").isEmpty must beTrue) and
+        (children(testDir / s"${archiveName}/directives").isEmpty must beTrue) and
+        (children(testDir / s"${archiveName}/rules").isEmpty must beTrue)
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
   "correctly build an archive with two rules and only group and directive" in {
     val fileName1 = "10__Global_configuration_for_all_nodes.json"
     val fileName2 = "60-rule-technique-std-lib.json"
@@ -442,9 +488,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .flatMap(entries => restTestSetUp.archiveAPIModule.zipArchiveReader.readPolicyItems(archiveDir + ".zip", entries))
       .runNow
 
-    val rule1 = restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test").runNow
-    val dir1  = restTestSetUp.mockDirectives.directiveRepo.getDirective(DirectiveUid("directive1")).notOptional(s"test").runNow
-    val tech  = restTestSetUp.mockTechniques.techniqueRepo
+    val rule1    = restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test").runNow
+    val dir1     = restTestSetUp.mockDirectives.directiveRepo.getDirective(DirectiveUid("directive1")).notOptional(s"test").runNow
+    val tech     = restTestSetUp.mockTechniques.techniqueRepo
       .get(
         TechniqueId(
           TechniqueName("clockConfiguration"),
@@ -452,8 +498,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         )
       )
       .getOrElse(throw new IllegalArgumentException("test"))
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
 
-    (p.techniques(0).technique must beEqualTo(tech)) and
+    (p.techniques(0).technique must beEqualTo(techInfo)) and
     (p.directives(0).directive must beEqualTo(dir1)) and
     (p.rules(0) must beEqualTo(rule1))
   }
@@ -475,7 +522,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     // add a group
     (testDir / "archive-group" / "groups" / "Real_nodes.json").copyToDirectory(testDir / "import-rule-with-dep" / "groups")
 
-    val tech  = restTestSetUp.mockTechniques.techniqueRepo
+    val tech     = restTestSetUp.mockTechniques.techniqueRepo
       .get(
         TechniqueId(
           TechniqueName("clockConfiguration"),
@@ -484,6 +531,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       )
       .getOrElse(throw new IllegalArgumentException("test"))
       .copy(name = "Time settings updated")
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
+
     val dir1  = restTestSetUp.mockDirectives.directiveRepo
       .getDirective(DirectiveUid("directive1"))
       .notOptional(s"test")
@@ -528,7 +577,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
           case None         => ko(s"No policies were saved")
           case Some((p, m)) =>
-            (p.techniques(0).technique must beEqualTo(tech)) and
+            (p.techniques(0).technique must beEqualTo(techInfo)) and
             (p.directives(0).directive must beEqualTo(dir1)) and
             (p.groups(0).group must beEqualTo(group))
             (p.rules(0) must beEqualTo(rule1))

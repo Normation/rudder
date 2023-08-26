@@ -214,6 +214,35 @@ final case class TechniqueFilesToCommit(
     delete: Chunk[String]
 )
 
+object TechniqueFiles {
+
+  val json = "technique.json" // pre-rudder 8.0 technique file descriptor. Need migration.
+  val yaml = "technique.yml"  // high-level API between technique editor and rudderc.
+
+  // generated
+
+  object Generated {
+
+    val metadata = "metadata.xml" // standard technique API, used for policy generation pipeline
+
+    val all_common = Chunk(
+      metadata
+    )
+
+    // specific by agent
+
+    val cfengine = Chunk("rudder_reporting.cf", "technique.cf")
+
+    val dsc = Chunk("technique.ps1")
+
+    val all: Chunk[String] = all_common ++ cfengine ++ dsc
+  }
+
+  // all is for current version only, ie json is not part of it.
+  val all: Chunk[String] = yaml +: Generated.all
+  val common = yaml +: Generated.all_common
+}
+
 class TechniqueArchiverImpl(
     override val gitRepo:                   GitRepositoryProvider,
     override val xmlPrettyPrinter:          RudderPrettyPrinter,
@@ -264,22 +293,16 @@ class TechniqueArchiverImpl(
       resourcesStatus:  Chunk[ResourceFile]
   ): TechniqueFilesToCommit = {
     // parse metadata.xml and find what files need to be added
-    val filesToAdd = (Chunk(
-      "metadata.xml", // standard technique API, used for policy generation pipeline
-
-      "technique.yml", // high-level API between technique editor and rudderc.
-
-      "technique.rd"
-    ) ++ // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+    val filesToAdd = (TechniqueFiles.common ++
       (if (
          technique.agentConfigs
            .collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)
            .nonEmpty
        ) {
-         Chunk("rudder_reporting.cf", "technique.cf")
+         TechniqueFiles.Generated.cfengine
        } else Chunk()) ++
       (if (technique.agentConfigs.collectFirst(_.agentType == AgentType.Dsc).nonEmpty) {
-         Chunk("technique.ps1")
+         TechniqueFiles.Generated.dsc
        } else Chunk()) ++
       resourcesStatus.collect {
         case ResourceFile(path, action) if action == ResourceFileState.New | action == ResourceFileState.Modified => path
@@ -289,7 +312,8 @@ class TechniqueArchiverImpl(
     val filesToDelete = (
       s"ncf/50_techniques/${technique.id.name.value}" +:       // added in 5.1 for migration to 6.0
         s"dsc/ncf/50_techniques/${technique.id.name.value}" +: // added in 6.1
-        (gitTechniquePath + "/technique.json") +:
+        (gitTechniquePath + "technique.rd") +:                 // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+        (gitTechniquePath + "/technique.json") +:              // should have been migrated to technique.yml
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 

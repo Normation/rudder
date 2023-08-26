@@ -70,7 +70,6 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -352,16 +351,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ZIO.unit
       }
     },
-    new YamlTechniqueSerializer(
-      new ResourceFileService() {
-        override def getResources(technique: EditorTechnique): IOResult[List[ResourceFile]] = Nil.succeed
-        override def getResourcesFromDir(
-            resourcesPath:    String,
-            techniqueName:    String,
-            techniqueVersion: String
-        ): IOResult[List[ResourceFile]] = Nil.succeed
-      }
-    ),
     compiler,
     basePath
   )

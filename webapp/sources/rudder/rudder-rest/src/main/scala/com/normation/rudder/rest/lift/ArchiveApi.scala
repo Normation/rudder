@@ -75,6 +75,9 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.TechniqueCompiler
+import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -82,6 +85,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{ArchiveApi => API}
 import com.normation.rudder.rest.ApiPath
@@ -483,23 +487,34 @@ class ZipArchiveBuilderService(
                     .notOptional(
                       s"Technique with ID '${techniqueId.serialize}' was not found in repository. Please check name and revision."
                     )
+      // We need to separate the case for historical techniques and for yaml techniques. When we have a yaml technique,
+      // we need to filter-out every file that rudderc generate: technique.{ps1, cf}, metadata.xml.
+      // When we have a `technique.json`, it's an unexpected case: migration should have been done at boot. So we are ignoring
+      // that case here and we are just considering it as an historical technique for export.
+      // In the last case (historical technique), we need to keep everything.
+      // The upd-to-date list of file for a technique is in: TechniqueFiles.all. We filter them out excepted `technique.yml`
+
+      filtered = if (contents.exists(f => f._1 == TechniqueFiles.yaml)) { // this is a yaml technique, keep only the yaml source
+                   contents.filter(x => !TechniqueFiles.Generated.all.contains(x._1))
+                 } else contents
+
       // we need to change root of zippable, we want techniques/myTechnique/1.0/[HERE] and we need to filter out root category
-      catDirs   = cats.collect { case TechniqueCategoryName(value) if value != "/" => value }
-      basePath  = techniquesDir + "/" + catDirs.mkString("/") + "/" + techniqueId.withDefaultRev.serialize + "/"
+      catDirs  = cats.collect { case TechniqueCategoryName(value) if value != "/" => value }
+      basePath = techniquesDir + "/" + catDirs.mkString("/") + "/" + techniqueId.withDefaultRev.serialize + "/"
       // start by adding directories toward technique
-      zips      = catDirs
-                    .foldLeft(List[Zippable]()) {
-                      case (dirs, current) =>
-                        // each time, head is the last parent, revert at the end
-                        dirs.headOption match {
-                          case None         => Zippable(techniquesDir + "/" + current, None) :: Nil
-                          case Some(parent) => Zippable(parent.path + "/" + current, None) :: dirs
-                        }
-                    }
-                    .reverse ++ contents.map { case (p, opt) => Zippable.make(basePath + p, opt) }
-      _        <- ApplicationLoggerPure.Archive.debug(
-                    s"Building archive '${archiveName}': adding technique zipables: ${zips.map(_.path).mkString(", ")}"
-                  )
+      zips     = catDirs
+                   .foldLeft(List[Zippable]()) {
+                     case (dirs, current) =>
+                       // each time, head is the last parent, revert at the end
+                       dirs.headOption match {
+                         case None         => Zippable(techniquesDir + "/" + current, None) :: Nil
+                         case Some(parent) => Zippable(parent.path + "/" + current, None) :: dirs
+                       }
+                   }
+                   .reverse ++ filtered.map { case (p, opt) => Zippable.make(basePath + p, opt) }
+      _       <- ApplicationLoggerPure.Archive.debug(
+                   s"Building archive '${archiveName}': adding technique zipables: ${zips.map(_.path).mkString(", ")}"
+                 )
     } yield {
       zips
     }
@@ -655,8 +670,10 @@ case object PolicyArchiveMetadata {
   def empty = PolicyArchiveMetadata("")
 }
 
+final case class TechniqueInfo(id: TechniqueId, name: String, kind: TechniqueType)
+
 final case class TechniqueArchive(
-    technique: Technique,
+    technique: TechniqueInfo,
     category:  Chunk[String],
     files:     Chunk[(String, Array[Byte])]
 )
@@ -711,9 +728,17 @@ object PolicyArchiveUnzip {
   def empty = PolicyArchiveUnzip(PolicyArchive.empty, Chunk.empty)
 }
 
+sealed trait TechniqueType { def name: String }
+object TechniqueType       {
+  case object Yaml     extends TechniqueType { val name = TechniqueFiles.yaml               }
+  case object Json     extends TechniqueType { val name = TechniqueFiles.json               }
+  case object Metadata extends TechniqueType { val name = TechniqueFiles.Generated.metadata }
+}
+
 /**
  * That class is in charge of reading a zip archive (as a sequence of ZipEntry items) and
  * unflatten it into the corresponding Rudder policy items.
+ * Nothing is put on file system at that point.
  * We want to provide maximum information in one go for the user, so that if an archive
  * can not be saved because some items override existing ones, then we want to list them
  * all (and not stop at the first, then let the user iterate and stop again for the next file).
@@ -721,6 +746,7 @@ object PolicyArchiveUnzip {
 trait ZipArchiveReader {
   def readPolicyItems(archiveName: String, zipEntries: Seq[(ZipEntry, Option[Array[Byte]])]): IOResult[PolicyArchive]
 }
+
 class ZipArchiveReaderImpl(
     cmdbQueryParser: CmdbQueryParser,
     techniqueParser: TechniqueParser
@@ -729,7 +755,9 @@ class ZipArchiveReaderImpl(
 
   // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
   val techniqueRegex = """(.*/|)techniques/(.+)""".r
-  val metadataRegex  = """(.+)/metadata.xml""".r
+  val yamlRegex      = s"""(.+)/${TechniqueType.Yaml.name}""".r
+  val jsonRegex      = s"""(.+)/${TechniqueType.Json.name}""".r
+  val metadataRegex  = s"""(.+)/${TechniqueType.Metadata.name}""".r
   val directiveRegex = """(.*/|)directives/(.+.json)""".r
   val groupRegex     = """(.*/|)groups/(.+.json)""".r
   val ruleRegex      = """(.*/|)rules/(.+.json)""".r
@@ -758,35 +786,78 @@ class ZipArchiveReaderImpl(
       }
     }
 
+    /*
+     * As we go through all files of the technique package, we look for either technique.{json,yml} or metadata.xml
+     * to find the technique information.
+     * If technique.json is available, it is migrated to yaml on the fly.
+     * Updated content or previous one is returned.
+     * Both technique.json and technique.yaml have priority above metadata.xml
+     */
+    def checkParseTechniqueDescriptor(
+        id:      TechniqueId,
+        optTech: Ref[Option[TechniqueInfo]],
+        name:    String,
+        content: Array[Byte]
+    ): IOResult[(String, Array[Byte])] = {
+      import YamlTechniqueSerializer._
+      import com.normation.rudder.ncf.yaml.{Technique => YTechnique}
+      import zio.json.yaml._
+
+      // In the technique.json and technique.yml case, we always override what we might already have parsed for metadata/
+      // In technique.json, we also first try to migrate to yml.
+      name.toLowerCase() match {
+        case TechniqueType.Json.name =>
+          val json = new String(content, StandardCharsets.UTF_8)
+          for {
+            yaml <- MigrateOldTechniquesService.toYaml(json).toIO
+            res  <- checkParseTechniqueDescriptor(id, optTech, TechniqueType.Yaml.name, yaml.getBytes(StandardCharsets.UTF_8))
+          } yield res
+
+        case TechniqueType.Yaml.name =>
+          val yaml = new String(content, StandardCharsets.UTF_8)
+          for {
+            tech <- yaml.fromYaml[YTechnique].toIO
+            v    <- TechniqueVersion.parse(tech.version.value).toIO
+            _    <- optTech.set(Some(TechniqueInfo(id, tech.name, TechniqueType.Yaml)))
+          } yield (name, content)
+
+        case TechniqueType.Metadata.name =>
+          for {
+            xml  <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
+            tech <- techniqueParser.parseXml(xml, id).toIO
+            _    <- optTech.update {
+                      case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata))
+                      case Some(x) => Some(x) // ignore, we may already found a technique.yml
+                    }
+          } yield (name, content)
+
+        case x => // zap
+          (name, content).succeed
+      }
+    }
+
     for {
       path    <- parseBasePath(basepath)
       (id, c)  = path
-      optTech <- Ref.Synchronized.make(Option.empty[Technique])
+      optTech <- Ref.Synchronized.make(Option.empty[TechniqueInfo])
       // update path in files, and parse metadata when found
       updated <- ZIO.foreach(files) {
                    case (f, content) =>
                      val name = f.replaceFirst(basepath + "/", "")
-                     ZIO.when(name.equalsIgnoreCase("metadata.xml")) {
-                       for {
-                         xml  <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
-                         tech <- techniqueParser.parseXml(xml, id).toIO
-                         _    <- optTech.updateZIO {
-                                   case None    => Some(tech).succeed
-                                   case Some(_) =>
-                                     Unexpected(
-                                       s"Error: archive contains several metadata.xml files for " +
-                                       s"techniques '${basepath}', exactly one expected"
-                                     ).fail
-                                 }
-                       } yield ()
-                     } *>
-                     (name, content).succeed
+                     checkParseTechniqueDescriptor(id, optTech, name, content)
                  }
-      tech    <- optTech.get.notOptional(
-                   s"Error: archive does not contains a metadata.xml file for technique with id " +
-                   s"'${basepath}', exactly one was expected"
-                 )
-    } yield TechniqueArchive(tech, c, updated)
+      tech    <-
+        optTech.get.notOptional(
+          s"Error: archive does not contains a ${TechniqueType.Yaml.name} or ${TechniqueType.Metadata.name} or ${TechniqueType.Json.name} file " +
+          s"for technique with id '${basepath}', at least one was expected"
+        )
+    } yield {
+      // if we have a Yaml technique, we need to remove generated contents
+      val files = if (tech.kind == TechniqueType.Yaml) {
+        updated.filter { case (name, _) => !TechniqueFiles.Generated.all.contains(name) }
+      } else updated
+      TechniqueArchive(tech, c, files)
+    }
   }
   def parseDirective(name: String, content: Array[Byte])(implicit dec: JsonDecoder[JRDirective]): IOResult[DirectiveArchive] = {
     (new String(content, StandardCharsets.UTF_8))
@@ -881,18 +952,25 @@ class ZipArchiveReaderImpl(
     }
 
     // techniques are more complicated: they have several files and categories so we don't know where they are at first.
+    // Plus we need to know if we have a technique.yml or an old one.
     // We look for metadata.xml files, and from that we deduce a technique base path
     // create a map of technique names -> list of (filename, content)
-    val metadatas = sortedEntries.techniques.collect { case (metadataRegex(basePath), c) => basePath }
+    val techniques = sortedEntries.techniques.collect {
+      case (yamlRegex(basePath), _)     => basePath
+      case (jsonRegex(basePath), _)     => basePath
+      case (metadataRegex(basePath), _) => basePath
+    }
 
     // then, group by base path (cats/id/version) for technique ; then for each group, find from base path category
+    // if its a json or yml technique
     val techniqueUnzips = sortedEntries.techniques.groupBy {
-      case (filename, _) => metadatas.find(base => filename.startsWith(base))
+      case (filename, _) =>
+        techniques.find(base => filename.startsWith(base))
     }.flatMap {
       case (None, files)       => // files that are not related to a metadata file: ignore (but log)
         ApplicationLoggerPure.Archive.debug(
           s"Archive ${archiveName}: these were under 'techniques' directory but are not " +
-          s"linked to a metadata.xml file: ${files.map(_._1).mkString(" , ")}"
+          s"linked to a technique.yml or metadata.xml (old format) file: ${files.map(_._1).mkString(" , ")}"
         )
         None
       case (Some(base), files) =>
@@ -1012,6 +1090,7 @@ class SaveArchiveServicebyRepo(
     techniqueArchiver: TechniqueArchiverImpl,
     techniqueReader:   TechniqueReader,
     techniqueRepos:    TechniqueRepository,
+//    techniqueCompiler: TechniqueCompiler,
     roDirectiveRepos:  RoDirectiveRepository,
     woDirectiveRepos:  WoDirectiveRepository,
     roGroupRepos:      RoNodeGroupRepository,
@@ -1039,16 +1118,20 @@ class SaveArchiveServicebyRepo(
       _        <- ApplicationLoggerPure.Archive.debug(
                     s"Adding technique from archive: '${t.technique.name}' (${techniqueDir.pathAsString})"
                   )
-      addedRef <-
-        Ref.make(Chunk.fromIterable(t.files.map(_._1))) // path are relative to technique. Files we need to add as new in the end
+      // path are relative to technique. Files we need to add as new in the end
+      addedRef <- Ref.make(Chunk.fromIterable(t.files.map(_._1)))
       diffRef  <- Ref.make(Chunk[ResourceFile]())
       // get all file path (relative to technique dir)
-      existing <-
-        IOResult.attempt(if (techniqueDir.exists) {
-          techniqueDir.collectChildren(_ => true).toList.map(_.pathAsString.replaceFirst(techniqueDir.pathAsString + "/", ""))
-        } else { // technique or technique version does not exists
-          Chunk.empty
-        })
+      existing <- IOResult.attempt {
+                    if (techniqueDir.exists) {
+                      techniqueDir
+                        .collectChildren(_ => true)
+                        .toList
+                        .map(_.pathAsString.replaceFirst(techniqueDir.pathAsString + "/", ""))
+                    } else { // technique or technique version does not exists
+                      Chunk.empty
+                    }
+                  }
       _        <- ZIO.foreachDiscard(existing) { e =>
                     for {
                       keep <- addedRef.modify(a => {
@@ -1086,6 +1169,7 @@ class SaveArchiveServicebyRepo(
                  f.writeBytes(bytes.iterator)
                }
            }
+      // if the technique is a YAML file, we need in addition to regenerate files TODO
       // finally commit
       _ <- techniqueArchiver.saveTechnique(
              t.technique.id,

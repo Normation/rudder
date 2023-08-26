@@ -83,8 +83,8 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
@@ -846,11 +846,11 @@ class RestTestSetUp {
     restDataSerializer
   )
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
-  val ncfTechniqueWriter:  TechniqueWriter     = null
-  val ncfTechniqueReader:  TechniqueReader     = null
-  val techniqueRepository: TechniqueRepository = null
-  val techniqueSerializer: TechniqueSerializer = null
-  val resourceFileService: ResourceFileService = null
+  val ncfTechniqueWriter:  TechniqueWriter       = null
+  val ncfTechniqueReader:  EditorTechniqueReader = null
+  val techniqueRepository: TechniqueRepository   = null
+  val techniqueSerializer: TechniqueSerializer   = null
+  val resourceFileService: ResourceFileService   = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
