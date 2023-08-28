@@ -1,18 +1,23 @@
 module FileManager.View exposing (..)
 
-import FileManager.Events exposing (..)
-import Html exposing (Attribute, Html, br, div, i, img, input, label, strong, text, textarea)
-import Html.Attributes exposing (attribute, class, draggable, id, src, style, title, type_, value)
+import Html exposing (Attribute, Html, br, div, i, input, textarea, img, label, strong, text, ul, table, thead, tbody, tr, th, td, ul, li, a)
+import Html.Attributes exposing (attribute, class, draggable, id, src, style, title, type_, value, placeholder, disabled)
 import Html.Events exposing (onClick, onDoubleClick, onInput)
 import Http exposing (Progress(..))
 import List exposing (head, indexedMap, isEmpty, length, map, member, range, reverse, tail)
-import FileManager.Model exposing (..)
+import List.Extra exposing (last)
 import Maybe exposing (andThen, withDefault)
 import String exposing (fromInt, fromFloat, join, split)
 import Svg exposing (svg, path, circle)
 import Svg.Attributes exposing (cx, cy, d, width, height, fill, r, viewBox)
-import FileManager.Util exposing (button, isJust)
+import NaturalOrdering as N exposing (compare)
+import Dict exposing (Dict)
+
+import FileManager.Model exposing (..)
+import FileManager.Util exposing (button, isJust, getDirPath)
 import FileManager.Vec exposing (..)
+import FileManager.Events exposing (..)
+
 
 view : Model -> Html Msg
 view model = if model.open
@@ -23,8 +28,15 @@ view model = if model.open
       [ class "fm-main"
       , onMouseMove (\_ -> None)
       ]
-      [ bar model.dir model.load
-      , files model
+      [ bar model
+      , div[class "files-container"]
+        [ filesTree model
+        , ( if model.viewMode == GridView then
+          filesGrid model
+          else
+          filesList model
+          )
+        ]
       , div [ class "fm-control" ]
         [ button [ onClick <| EnvMsg Accept ] [ text "Close" ]
         ]
@@ -39,10 +51,16 @@ view model = if model.open
     ]
   else div [] []
 
-bar : String -> Bool -> Html Msg
-bar dir load = div [ class "fm-bar" ]
-  [ arrowIcon <| EnvMsg <| GetLs <| back dir
-  , div [ class "fm-text" ] [ text dir ]
+bar : Model -> Html Msg
+bar model =
+  let
+    dir  = model.dir
+    load = model.load
+    filters = model.filters
+  in
+  div [ class "fm-bar" ]
+  [ arrowIcon dir <| EnvMsg <| GetLs (back dir)
+  , div [ class "fm-text" ] [ text (getDirPath dir) ]
   , if load
       then div [ class "fm-loader" ]
       [ svg [ width "25", height "25" ]
@@ -50,20 +68,124 @@ bar dir load = div [ class "fm-bar" ]
         ]
       ]
       else div [] []
+  , div [class "fm-bar-actions"]
+    [ div [class "btn-group"]
+      [ button [attribute "data-toggle" "dropdown", id "dropDownMenuSearch", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
+        [ i [class "glyphicon glyphicon-search mr2"][]
+        ]
+      , ul [class "dropdown-menu search-dropdown pull-right"]
+        [ li[]
+          [ input [class "form-control", type_ "text", placeholder "Search...", onInput (\s -> UpdateFilters {filters | filter = s}), value filters.filter][]]
+        ]
+      ]
+    , ( if model.viewMode == GridView then
+      button [class "btn btn-flat btn-sm", onClick (ChangeViewMode ListView)]
+      [ i [class "glyphicon glyphicon-th-list"][]
+      ]
+      else
+      button [class "btn btn-flat btn-sm", onClick (ChangeViewMode GridView)]
+      [ i [class "glyphicon glyphicon-th-large" ][]
+      ]
+      )
+    , div [class "btn-group"]
+      [ button [attribute "data-toggle" "dropdown", id "more", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
+        [ i [class "glyphicon glyphicon-option-vertical"][]
+        ]
+      , mainContextMenu
+      ]
+    , button [ title "Close", class"btn btn-flat btn-sm", onClick <| EnvMsg Accept ]
+      [ i [class "fa fa-times"][]
+      ]
+    ]
   ]
 
-files : Model -> Html Msg
-files model = div
-  [ class "fm-files"
+filesTree : Model -> Html Msg
+filesTree model =
+  let
+    openedDir = model.filters.opened
+
+    listFolders : String -> Html Msg
+    listFolders name =
+      case Dict.get name model.tree of
+        Nothing -> text ""
+        Just fs ->
+          ul[]
+          ( fs.childs
+            |> List.map (\f ->
+              let
+                parents = fs.parents
+              in
+                li [ ]
+                [ a [ onClick <| EnvMsg <| GetLsTree (List.append fs.parents [fs.name, f] ) ]
+                  [ folderIcon 20
+                  , text f
+                  ]
+                , if List.member f openedDir then listFolders f else text ""
+                ]
+            )
+          )
+  in
+    div [class "fm-filetree"]
+    [ listFolders "/" ]
+
+currentDir : List String -> String
+currentDir dirList = case List.Extra.last dirList of
+  Just f  -> f
+  Nothing -> "/"
+
+filesGrid : Model -> Html Msg
+filesGrid model =
+  let
+    currentFiles =
+      model.files
+      |> List.filter (\f -> (filterSearch model.filters.filter (searchField f)))
+      |> List.sortBy .name
+      |> List.sortBy .type_
+      |> indexedMap (renderFile model)
+  in
+    div
+    [ class "fm-files"
+    , class <| if model.drag then "fm-drag" else ""
+    , onMouseDown (\x y -> EnvMsg <| MouseDown Nothing x y)
+    , onMouseMove <| EnvMsg << MouseMove
+    , onMouseUp <| EnvMsg << MouseUp Nothing
+    , onDragEnter ShowDrop
+    ]
+    [ div [ class "fm-wrap" ]
+      [ div [ class "fm-fluid" ]
+        <| currentFiles
+        ++ reverse (map (renderUploading model.progress) (range 0 <| model.filesAmount - 1))
+      ]
+    , if model.showDrop && model.hasWriteRights
+      then div [ class "fm-drop", onDragLeave HideDrop, onDrop GotFiles ] []
+      else div [] []
+    ]
+
+filesList : Model -> Html Msg
+filesList model =
+  div
+  [ class "fm-files-list"
   , class <| if model.drag then "fm-drag" else ""
   , onMouseDown (\x y -> EnvMsg <| MouseDown Nothing x y)
   , onMouseMove <| EnvMsg << MouseMove
   , onMouseUp <| EnvMsg << MouseUp Nothing
   , onDragEnter ShowDrop
   ]
-  [ div [ class "fm-wrap" ]
-    [ div [ class "fm-fluid" ]
-      <| indexedMap (renderFile model) model.files
+  [ table [ class "dataTable" ]
+    [ thead[]
+      [ tr[class "head"]
+        [ th[class (thClass model.filters FileName   ), onClick (UpdateFilters (sortTable model.filters FileName   ))] [ text "Name" ]
+        , th[class (thClass model.filters FileSize   ), onClick (UpdateFilters (sortTable model.filters FileSize   ))] [ text "Size" ]
+        , th[class (thClass model.filters FileDate   ), onClick (UpdateFilters (sortTable model.filters FileDate   ))] [ text "Date" ]
+        , th[class (thClass model.filters FileRights ), onClick (UpdateFilters (sortTable model.filters FileRights ))] [ text "Permissions" ]
+        ]
+      ]
+    , tbody []
+      <| ( model.files
+        |> List.filter (\f -> (filterSearch model.filters.filter (searchField f)))
+        |> List.sortWith (getSortFunction model)
+        |> indexedMap (renderFileList model)
+        )
       ++ reverse (map (renderUploading model.progress) (range 0 <| model.filesAmount - 1))
     ]
   , if model.showDrop && model.hasWriteRights
@@ -71,22 +193,29 @@ files model = div
     else div [] []
   ]
 
-arrowIcon : Msg -> Html Msg
-arrowIcon msg = button [ class "fm-arrow", onClick msg ]
-  [
-    svg
-    [ attribute "height" "24"
-    , viewBox "0 0 24 24"
-    , attribute "width" "24"
-    , attribute "xmlns" "http://www.w3.org/2000/svg"
+arrowIcon : List String -> Msg -> Html Msg
+arrowIcon dir msg =
+  let
+    disable = List.length dir <= 1
+  in
+    button [ class "fm-arrow", onClick msg , disabled disable]
+    [ svg
+      [ attribute "height" "24"
+      , viewBox "0 0 24 24"
+      , attribute "width" "24"
+      , attribute "xmlns" "http://www.w3.org/2000/svg"
+      ]
+      [ path [ d "M0 0h24v24H0z", fill "none" ] []
+      , path [ d "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z", fill "#ffffff" ] []
+      ]
     ]
-    [ path [ d "M0 0h24v24H0z", fill "none" ] []
-    , path [ d "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z", fill "#ffffff" ] []
-    ]
-  ]
 
-back : String -> String
-back route = "/" ++ (join "/" <| withDefault [] <| andThen tail <| tail <| reverse <| split "/" route)
+back : List String -> String
+back list =
+  case last list of
+    Just l  -> l
+    Nothing -> "/"
+
 
 renderUploading : Http.Progress -> Int -> Html Msg
 renderUploading progress i = div [ class "fm-file fm-upload" ]
@@ -105,27 +234,50 @@ renderFile : Model -> Int -> FileMeta -> Html Msg
 renderFile { api, thumbnailsUrl, dir, selected, clipboardDir, clipboardFiles } i file = div
   [ id <| "fm-file-" ++ fromInt i, class <| "fm-file"
       ++ (if member file selected then " fm-selected" else "")
-      ++ (if dir == clipboardDir && member file clipboardFiles then " fm-cut" else "")
+      ++ (if (getDirPath dir) == clipboardDir && member file clipboardFiles then " fm-cut" else "")
   , title file.name
   , onMouseDown <| (\x y -> EnvMsg <| MouseDown (Just file) x y)
   , onMouseUp <| EnvMsg << (MouseUp <| Just file)
-  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| GetLs <| dir ++ file.name ++ "/" else Download
+  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| GetLs file.name else Download
   ]
-  [ renderThumb thumbnailsUrl api dir file
+  [ renderThumb thumbnailsUrl api (getDirPath dir) file
   , div [ class "fm-name" ] [ text file.name ]
+  ]
+
+renderFileList : Model -> Int -> FileMeta -> Html Msg
+renderFileList { api, thumbnailsUrl, dir, selected, clipboardDir, clipboardFiles } i file =
+  tr
+  [ id <| "fm-file-" ++ fromInt i, class <| "fm-file-list"
+      ++ (if member file selected then " fm-selected" else "")
+      ++ (if (getDirPath dir) == clipboardDir && member file clipboardFiles then " fm-cut" else "")
+  , title file.name
+  , onMouseDown <| (\x y -> EnvMsg <| MouseDown (Just file) x y)
+  , onMouseUp <| EnvMsg << (MouseUp <| Just file)
+  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| (GetLs file.name) else Download
+  ]
+  [ td[]
+    [ div[]
+      [ renderThumb thumbnailsUrl api (getDirPath dir) file
+      , div [ class "fm-name" ] [ text file.name ]
+      ]
+    ]
+  , td[][text ((String.fromInt file.size) ++ " B")]
+  , td[][text file.date   ]
+  , td[][text file.rights ]
   ]
 
 renderThumb : String -> String -> String -> FileMeta -> Html Msg
 renderThumb thumbApi api dir file = if file.type_ == "dir"
-  then div [ class "fm-thumb" ] [ fileIcon ]
+  then div [ class "fm-thumb" ] [ (folderIcon 48) ]
   else renderFileThumb api thumbApi <| dir ++ file.name
 
 fileIcon : Html Msg
-fileIcon = svg [ attribute "height" "48", viewBox "0 0 24 24", attribute "width" "48", attribute "xmlns" "http://www.w3.org/2000/svg" ]
-  [ path [ d "M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z", fill "#ffb900" ]
-      []
+fileIcon =
+  svg [ attribute "height" "48", viewBox "0 0 24 24", attribute "width" "48", attribute "xmlns" "http://www.w3.org/2000/svg" ]
+  [ path [ d "M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z", fill "#0078d4" ]
+    []
   , path [ d "M0 0h24v24H0z", fill "none" ]
-      []
+    []
   ]
 
 renderFileThumb : String -> String -> String -> Html Msg
@@ -133,15 +285,19 @@ renderFileThumb api thumbApi fullName = if member (getExt fullName) ["jpg", "jpe
   then div [ class "fm-thumb" ]
     [ img [ src <| thumbApi ++ fullName, draggable "false" ] []
     ]
-  else div [ class "fm-thumb" ] [ folderIcon ]
+  else div [ class "fm-thumb" ] [ fileIcon ]
 
-folderIcon : Html Msg
-folderIcon = svg [ attribute "height" "48", viewBox "0 0 24 24", attribute "width" "48", attribute "xmlns" "http://www.w3.org/2000/svg" ]
-  [ path [ d "M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z", fill "#0078d4" ]
+folderIcon : Int -> Html Msg
+folderIcon s =
+  let
+    size = String.fromInt s
+  in
+    svg [ attribute "height" size, viewBox "0 0 24 24", attribute "width" size, attribute "xmlns" "http://www.w3.org/2000/svg" ]
+    [ path [ d "M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z", fill "#ffb900" ]
       []
-  , path [ d "M0 0h24v24H0z", fill "none" ]
+    , path [ d "M0 0h24v24H0z", fill "none" ]
       []
-  ]
+    ]
 
 getExt : String -> String
 getExt name = withDefault "" <| head <| reverse <| split "." name
@@ -179,7 +335,7 @@ contextMenu (Vec2 x y) maybe paste many filesAmount = if filesAmount > 0
       , (if many then text "" else  button [ class "div white", onClick (OpenNameDialog (Rename file file.name)) ] [ text "Rename" ])
       , button [ class "div white", onClick Cut ] [ text "Cut" ]
       , (if paste && file.type_ == "dir" then button [ class "div white", onClick Paste ] [ text "Paste" ] else text "")
-      , button [ class "div white", onClick Delete ] [ text "Delete" ]
+      , button [ class "div white text-danger", onClick Delete ] [ text "Delete" ]
       ]
     Nothing ->
       [ button [ class "div white", onClick ChooseFiles ] [ text "Upload" ]
@@ -187,6 +343,23 @@ contextMenu (Vec2 x y) maybe paste many filesAmount = if filesAmount > 0
       , button [ class "div white", onClick (OpenNameDialog (NewFile "")) ] [ text "New file" ]
       , (if paste then button [ class "div white", onClick Paste ] [ text "Paste" ] else text "" )
       ]
+
+mainContextMenu : Html Msg
+mainContextMenu =
+  ul[class "dropdown-menu pull-right"]
+  [ li[]
+    [ a [ onClick (OpenNameDialog (NewDir "")) ]
+      [ i [class "glyphicon glyphicon-plus"][]
+      , text "New folder"
+      ]
+    ]
+  , li[]
+    [ a [ onClick ChooseFiles ]
+      [ i [class "glyphicon glyphicon-cloud-upload"][]
+      , text "Upload files"
+      ]
+    ]
+  ]
 
 nameDialog : DialogAction -> Html Msg
 nameDialog dialogState =
@@ -221,11 +394,70 @@ nameDialog dialogState =
       [ label []
           [ strong [] [ text "Name" ]
           , br [] []
-          , input [ type_ "text", value n, onInput Name ] []
+          , input [ type_ "text", class "form-control", value n, onInput Name ] []
           ]
       , div []
-          [ button [ class "fm-button", onClick CloseNameDialog ] [ text "Cancel" ]
-          , button [ class "fm-button", onClick ConfirmNameDialog ] [ text "Ok" ]
+          [ button [ class "fm-button btn btn-default" , onClick CloseNameDialog   ] [ text "Cancel"  ]
+          , button [ class "fm-button btn btn-success" , onClick ConfirmNameDialog ] [ text "Confirm" ]
           ]
         ]
       ]
+
+searchString : String -> String
+searchString str = str
+  |> String.toLower
+  |> String.trim
+
+filterSearch : String -> List String -> Bool
+filterSearch filterString searchFields =
+  let
+    -- Join all the fields into one string to simplify the search
+    stringToCheck = searchFields
+      |> String.join "|"
+      |> String.toLower
+  in
+    String.contains (searchString filterString) stringToCheck
+
+thClass : Filters -> SortBy -> String
+thClass filters sortBy =
+  if sortBy == filters.sortBy then
+    case  filters.sortOrder of
+      Asc  -> "sorting_asc"
+      Desc -> "sorting_desc"
+  else
+    "sorting"
+
+sortTable : Filters -> SortBy -> Filters
+sortTable filters sortBy =
+  let
+    order =
+      case filters.sortOrder of
+        Asc -> Desc
+        Desc -> Asc
+  in
+    if sortBy == filters.sortBy then
+      { filters | sortOrder = order}
+    else
+      { filters | sortBy = sortBy, sortOrder = Asc}
+
+getSortFunction : Model -> FileMeta -> FileMeta -> Order
+getSortFunction model f1 f2 =
+  let
+    order = case model.filters.sortBy of
+      FileName   -> N.compare f1.name f2.name
+      FileSize   -> Basics.compare f1.size f2.size
+      FileDate   -> N.compare f1.date f2.date
+      FileRights -> N.compare f1.rights f2.rights
+  in
+    if model.filters.sortOrder == Asc then
+      order
+    else
+      case order of
+        LT -> GT
+        EQ -> EQ
+        GT -> LT
+
+searchField : FileMeta -> List String
+searchField file =
+  [ file.name
+  ]

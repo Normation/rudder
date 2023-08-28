@@ -4,6 +4,7 @@ import Browser.Dom exposing (Element)
 import File exposing (File)
 import Http exposing (Error)
 import FileManager.Vec exposing (..)
+import Dict exposing (Dict)
 
 type alias Flags =
   { api: String
@@ -13,11 +14,24 @@ type alias Flags =
   , hasWriteRights : Bool
   }
 
+type ViewMode = ListView | GridView
+
+type SortBy = FileName | FileSize | FileDate | FileRights
+
+type SortOrder = Asc | Desc
+
+type alias Filters =
+  { filter : String
+  , sortBy : SortBy
+  , sortOrder : SortOrder
+  , opened : List String
+  }
+
 type alias Model =
   { api: String
   , thumbnailsUrl: String
   , downloadsUrl: String
-  , dir: String
+  , dir: List String
   , open: Bool
   , load: Bool
   , pos1: Vec2
@@ -41,6 +55,15 @@ type alias Model =
   , clipboardFiles: List FileMeta
   , uploadQueue: List File
   , hasWriteRights: Bool
+  , viewMode : ViewMode
+  , filters  : Filters
+  , tree     : Dict String TreeItem
+  }
+
+type alias TreeItem =
+  { name    : String
+  , parents : List String
+  , childs  : List String
   }
 
 type alias FileMeta =
@@ -70,6 +93,8 @@ type Msg
   | Delete
   | UpdateApiPath String
   | None
+  | ChangeViewMode ViewMode
+  | UpdateFilters Filters
 
 type EnvMsg
   = Open ()
@@ -80,7 +105,8 @@ type EnvMsg
   | MouseMove Vec2
   | MouseUp (Maybe FileMeta) Int
   | GetLs String
-  | LsGotten (Result Error (List FileMeta)) 
+  | GetLsTree (List String)
+  | LsGotten String (Result Error (List FileMeta))
   | Refresh (Result Error ())
   | GotContent (Result Error String)
 

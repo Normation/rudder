@@ -7,9 +7,13 @@ import Http exposing (Body, emptyBody, expectJson, header, request, stringBody)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode
 import List exposing ( map)
-import FileManager.Model exposing (..)
+import List.Extra
+
 import String exposing (dropLeft)
 import Url.Builder exposing (string, toQuery, QueryParameter)
+
+import FileManager.Model exposing (..)
+import FileManager.Util exposing (getDirPath)
 
 get :  String -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 get url decoder handler =
@@ -47,19 +51,23 @@ upload api dir file =
     , tracker = Just "upload"
     }
 
-listDirectory : String -> String -> Cmd Msg
+listDirectory : String -> List String -> Cmd Msg
 listDirectory api dir =
   let
+    currentFolder = case List.Extra.last dir of
+      Just  d -> d
+      Nothing -> "/"
+
     body =  Json.Encode.object [
               ("action", Json.Encode.string "list")
-            , ("path", Json.Encode.string dir)
+            , ("path", Json.Encode.string (getDirPath dir))
             ]
   in
   post
     api
     (Http.jsonBody body )
     (Decode.at ["result"] (Decode.list fileDecoder))
-    (EnvMsg << LsGotten)
+    (EnvMsg << (LsGotten currentFolder))
 
 fileDecoder : Decode.Decoder FileMeta
 fileDecoder =
