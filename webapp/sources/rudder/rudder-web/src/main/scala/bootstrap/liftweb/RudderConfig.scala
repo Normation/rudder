@@ -133,6 +133,8 @@ import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.DeleteEditorTechniqueImpl
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.EditorTechniqueReaderImpl
 import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.RuddercServiceImpl
@@ -1320,7 +1322,7 @@ case class RudderServiceApi(
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
     workflowLevelService:                DefaultWorkflowLevel,
-    ncfTechniqueReader:                  ncf.EditorTechniqueReader,
+    ncfTechniqueReader:                  EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
     restExtractorService:                RestExtractorService,
@@ -1511,7 +1513,7 @@ object RudderConfigInit {
       def getCurrentUser = CurrentUser
     }
 
-    lazy val ncfTechniqueReader: ncf.EditorTechniqueReader = new ncf.EditorTechniqueReader(
+    lazy val ncfTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
       stringUuidGenerator,
       personIdentService,
       gitConfigRepo,
@@ -1812,6 +1814,7 @@ object RudderConfigInit {
       gitModificationRepository,
       personIdentService,
       techniqueParser,
+      techniqueCompiler,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
     lazy val techniqueCompiler:  TechniqueCompiler = new TechniqueCompilerWithFallback(
@@ -1820,6 +1823,7 @@ object RudderConfigInit {
       typeParameterService,
       new RuddercServiceImpl(RUDDERC_CMD, RUDDERC_FALLBACK_RETURN_CODE, 5.seconds),
       TECHNIQUE_COMPILER_APP,
+      ncfTechniqueReader,
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )

@@ -75,7 +75,6 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -1090,7 +1089,6 @@ class SaveArchiveServicebyRepo(
     techniqueArchiver: TechniqueArchiverImpl,
     techniqueReader:   TechniqueReader,
     techniqueRepos:    TechniqueRepository,
-//    techniqueCompiler: TechniqueCompiler,
     roDirectiveRepos:  RoDirectiveRepository,
     woDirectiveRepos:  WoDirectiveRepository,
     roGroupRepos:      RoNodeGroupRepository,
@@ -1169,7 +1167,6 @@ class SaveArchiveServicebyRepo(
                  f.writeBytes(bytes.iterator)
                }
            }
-      // if the technique is a YAML file, we need in addition to regenerate files TODO
       // finally commit
       _ <- techniqueArchiver.saveTechnique(
              t.technique.id,

@@ -387,7 +387,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   }
 
   "correctly build an archive of a YAML technique and filter generated files" >> {
-    val archiveName = "archive-technique"
+    val archiveName = "archive-technique-yaml"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
     val techniqueId = "a_simple_yaml_technique/1.0"
     restTest.testGETResponse(s"/api/latest/archives/export?techniques=${techniqueId}&include=none") {

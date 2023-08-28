@@ -250,7 +250,7 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           methodMap        <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor)
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
           json             <- updatedTechnique.toJsonAST.toIO
         } yield {
           json
@@ -322,7 +322,7 @@ class TechniqueApi(
                                             s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                                           )
                                         }
-        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, methods, modId, authzToken.actor))
+        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, modId, authzToken.actor))
         json                         <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
       } yield {
         json
@@ -433,7 +433,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, methodMap, modId, authzToken.actor)
+          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
           json          <- updatedTech.toJsonAST.toIO
         } yield {
           json

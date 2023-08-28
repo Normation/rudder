@@ -65,6 +65,7 @@ import com.normation.rudder.git.GitPath
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.user.PersonIdentService
@@ -243,12 +244,18 @@ object TechniqueFiles {
   val common = yaml +: Generated.all_common
 }
 
+/*
+ * This implementation will try:
+ * - to compile a YAML technique if `technique.yml` exists but not `metadata.xml`
+ * - to migrate from `technique.json` to `technique.yml` if needed
+ */
 class TechniqueArchiverImpl(
     override val gitRepo:                   GitRepositoryProvider,
     override val xmlPrettyPrinter:          RudderPrettyPrinter,
     override val gitModificationRepository: GitModificationRepository,
     personIdentservice:                     PersonIdentService,
     techniqueParser:                        TechniqueParser,
+    techniqueCompiler:                      TechniqueCompiler,
     override val groupOwner:                String
 ) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
 
@@ -312,8 +319,7 @@ class TechniqueArchiverImpl(
     val filesToDelete = (
       s"ncf/50_techniques/${technique.id.name.value}" +:       // added in 5.1 for migration to 6.0
         s"dsc/ncf/50_techniques/${technique.id.name.value}" +: // added in 6.1
-        (gitTechniquePath + "technique.rd") +:                 // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
-        (gitTechniquePath + "/technique.json") +:              // should have been migrated to technique.yml
+        (gitTechniquePath + "/technique.rd") +:                // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 
@@ -331,9 +337,11 @@ class TechniqueArchiverImpl(
 
     val categoryPath     = categories.filter(_ != "/").mkString("/")
     val techniqueGitPath = s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
+    val techniquePath    = gitRepo.rootDirectory / techniqueGitPath
 
     (for {
-      metadata <- IOResult.attempt(XML.load(Source.fromFile((gitRepo.rootDirectory / techniqueGitPath / "metadata.xml").toJava)))
+      _        <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
+      metadata <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files     = getFilesToCommit(tech, techniqueGitPath, resourcesStatus)
       ident    <- personIdentservice.getPersonIdentOrDefault(committer.name)
