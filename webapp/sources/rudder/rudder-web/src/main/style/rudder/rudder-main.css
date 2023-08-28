@@ -193,6 +193,7 @@ body > .modal-backdrop.fade.in{
   border: 1px solid #d6deef;
   -webkit-box-shadow: none;
   box-shadow: none;
+  font-weight: normal;
 }
 .content-wrapper .form-control:active:focus {
   border-color: #d6deef;

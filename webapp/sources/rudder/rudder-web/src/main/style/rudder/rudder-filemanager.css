@@ -19,6 +19,10 @@
   cursor: pointer;
 }
 
+.fm-modal .fm-button{
+  min-width: 70px;
+}
+
 .fm-simple-screen {
   position: fixed;
   left: 0;
@@ -26,7 +30,6 @@
   width: 100%;
   height: 100%;
   z-index: 10000;
-  background-color: rgba(0, 0, 0, 0.75);
 }
 
 .fm-main {
@@ -39,12 +42,14 @@
   right: 100px;
   z-index: 1;
   font-family: var(--font-sans);
+  font-size: 14px;
 }
 
 .fm-bar {
   display: flex;
   align-items: center;
-  background-color: #0078D4;
+  background-color: #F8F9FC;
+  border-bottom: 1px solid #D6DEEF;
   padding: 0 12px;
 }
 
@@ -53,6 +58,11 @@
   border: none;
   background: none;
   cursor: pointer;
+  display: inline-flex;
+}
+
+.fm-arrow > svg > path:last-child{
+  fill: #738195;
 }
 
 .fm-arrow:focus {
@@ -62,7 +72,8 @@
 .fm-text {
   flex-grow: 1;
   margin-left: 10px;
-  color: #FFFFFF;
+  color: #738195;
+  font-weight: 500;
 }
 
 .fm-bar circle {
@@ -93,6 +104,7 @@
   border-bottom: 1px solid #FFFFFF;
   background-color: #FFFFFF;
   overflow: hidden;
+  flex: 1;
 }
 
 .fm-wrap {
@@ -127,11 +139,11 @@
 }
 
 .fm-file:hover {
-  background-color: #DEECF9;
+  background-color: #eef1f9;
 }
 
 .fm-selected {
-  background-color: #C7E0F4;
+  background-color: #C7E0F4 !important;
 }
 
 .fm-drag .fm-selected, .fm-cut {
@@ -143,7 +155,7 @@
   justify-content: center;
   align-items: center;
   width: 100px;
-  height: 100px;
+  height: 60px;
 }
 
 .fm-upload .fm-thumb {
@@ -166,9 +178,7 @@
 
 .fm-name {
   width: 100px;
-  margin-top: 10px;
   overflow: hidden;
-  font-size: 0.8em;
   text-align: center;
 }
 
@@ -177,17 +187,18 @@
   justify-content: flex-end;
   align-items: center;
   padding: 0 12px;
-  background-color: #0078D4;
+  background-color: #F8F9FC;
+  border-top: 1px solid #D6DEEF;
 }
 
 .fm-control button {
     margin-left: 7px;
     padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    color: #0078D4;
+    border-radius: 4px;
+    color: #041922;
     background-color: #FFFFFF;
-    cursor: pointer;    
+    cursor: pointer;
+    border: 1px solid #D6DEEF;
 }
 
 .fm-helper {
@@ -215,8 +226,9 @@
   position: fixed;
   width: 150px;
   padding: 5px 0;
-  border: 1px solid #D0D0D0;
+  border: 1px solid #D6DEEF;
   background-color: #FFFFFF;
+  border-radius: 4px;
 }
 
 .fm-context-menu button {
@@ -230,7 +242,7 @@
 }
 
 .fm-context-menu button:hover {
-  background-color: #D0D0D0;
+  background-color: #eef1f9;
 }
 
 .fm-context-menu .disabled {
@@ -270,17 +282,23 @@
   z-index: 1;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: #041922AA;
 }
 
 .fm-modal {
   padding: 20px;
   background-color: #FFFFFF;
+  border-radius: 4px;
 }
 
 .fm-modal label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+  min-width: 400px;
+}
+
+.fm-modal label > strong{
+  margin-bottom: 6px;
 }
 
 .fm-modal > h1 {
@@ -300,4 +318,104 @@
 .fm-modal textarea {
   width: 50vw;
   height: 50vh;
+}
+
+/* BAR BUTTONS */
+.fm-bar-actions > .btn,
+.fm-bar-actions > .btn-group{
+  margin-left: 6px;
+}
+
+.fm-bar-actions .btn{
+  font-size: 16px;
+  background-color: transparent !important;
+  color: #738195;
+}
+
+/* SEARCH FILTER */
+.dropdown-menu.search-dropdown{
+  padding: 10px;
+  background-color: #F8F9FC;
+  width: 250px;
+}
+
+/* FILES TREE */
+.files-container {
+  background-color: #fff;
+  display: flex;
+  flex-direction: row;
+}
+
+.fm-filetree {
+  width: 320px;
+  height: 100%;
+  background-color: #fafafa;
+  border-right: 1px solid #D6DEEF;
+}
+
+.fm-filetree ul{
+  padding-left: 24px;
+  position: relative;
+}
+
+.fm-filetree > ul{
+  padding-left: 15px;
+}
+
+.fm-filetree ul li a{
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  cursor: pointer;
+  color: #738195;
+  position: relative;
+  padding-left: 24px;
+}
+
+.fm-filetree ul li a:hover{
+  background-color: #eef1f9;
+  color: #041922;
+}
+.fm-filetree ul li a:before,
+.fm-filetree ul ul:before{
+  content: "";
+  border-left: 2px solid #D6DEEF;
+  display: block;
+  position: absolute;
+  height: 100%;
+  left: 10px;
+  top: 0;
+}
+.fm-filetree ul > li:last-child a:before {
+  height: 50%;
+}
+.fm-filetree ul > li:last-child ul:before {
+  content: initial;
+}
+.fm-filetree ul li svg{
+  position: absolute;
+  left: 0;
+}
+
+.fm-files-list{
+  width: 100%;
+}
+.fm-files-list > .dataTable {
+  border: none;
+}
+
+tr.fm-file-list > td > div {
+  display: flex;
+  align-items: center;
+}
+
+tr.fm-file-list .fm-thumb {
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+}
+
+tr.fm-file-list .fm-name {
+  margin-left: 4px;
+  width: initial;
 }

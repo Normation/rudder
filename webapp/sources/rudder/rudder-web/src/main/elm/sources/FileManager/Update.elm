@@ -1,25 +1,29 @@
 module FileManager.Update exposing (..)
 
-import FileManager.Action exposing (..)
 import Browser.Navigation exposing (reload)
-import FileManager.Env exposing (handleEnvMsg)
 import File.Download
 import File.Select
 import List exposing (map, filter)
 import Http
-import FileManager.Model exposing (..)
 import Maybe
+import Dict exposing (Dict)
+
+import FileManager.Model exposing (..)
 import FileManager.Vec exposing (..)
+import FileManager.Action exposing (..)
+import FileManager.Env exposing (handleEnvMsg)
+import FileManager.Util exposing (getDirPath)
+
 
 init : Flags -> (Model, Cmd Msg)
-init flags = (initModel flags, let { api, dir } = flags in listDirectory api dir)
+init flags = (initModel flags, let { api, dir } = flags in listDirectory api [dir] )
 
 initModel : Flags -> Model
 initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
   { api = api
   , thumbnailsUrl = thumbnailsUrl
   , downloadsUrl = downloadsUrl
-  , dir = dir
+  , dir  = [ dir ]
   , open = False
   , load = False
   , pos1 = Vec2 0 0
@@ -43,6 +47,9 @@ initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
   , clipboardFiles = []
   , uploadQueue = []
   , hasWriteRights = hasWriteRights
+  , viewMode = GridView
+  , filters = Filters "" FileName Asc []
+  , tree = Dict.empty
   }
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -58,7 +65,7 @@ update msg model = case msg of
       , filesAmount = List.length files + 1
       , showDrop = False
       }
-      , FileManager.Action.upload model.api model.dir file
+      , FileManager.Action.upload model.api (getDirPath model.dir) file
     )
   Progress progress -> ({ model | progress = progress }, Cmd.none)
   Cancel -> (model, reload)
@@ -71,7 +78,7 @@ update msg model = case msg of
             },
             Cmd.batch
               [ listDirectory model.api model.dir
-              , FileManager.Action.upload model.api model.dir file
+              , FileManager.Action.upload model.api (getDirPath model.dir) file
               ]
           )
         _ -> ({ model | filesAmount = 0 }, listDirectory model.api model.dir)
@@ -80,7 +87,7 @@ update msg model = case msg of
     let
       cmd =
         case state of
-          Edit file _ -> getContent model.api model.dir file
+          Edit file _ -> getContent model.api (getDirPath model.dir) file
           _ -> Cmd.none
     in
     ( { model
@@ -104,21 +111,21 @@ update msg model = case msg of
   ConfirmNameDialog ->
     case model.dialogState of
       Closed -> (model,Cmd.none)
-      NewDir s -> ({ model | dialogState = Closed, load = True }, newDir model.api model.dir s)
-      NewFile s -> ({ model | dialogState = Closed, load = True }, newFile model.api model.dir s)
-      Rename f s -> ({ model | dialogState = Closed, load = True },FileManager.Action.rename model.api model.dir f.name s)
-      Edit file content -> ({ model | dialogState = Closed, load = True },saveContent model.api model.dir file content)
+      NewDir s -> ({ model | dialogState = Closed, load = True }, newDir model.api (getDirPath model.dir) s)
+      NewFile s -> ({ model | dialogState = Closed, load = True }, newFile model.api (getDirPath model.dir) s)
+      Rename f s -> ({ model | dialogState = Closed, load = True },FileManager.Action.rename model.api (getDirPath model.dir) f.name s)
+      Edit file content -> ({ model | dialogState = Closed, load = True },saveContent model.api (getDirPath model.dir) file content)
 
   Download ->
     ( { model
       | showContextMenu = False
       }
       , Cmd.batch
-      <| map (File.Download.url << (++) (model.downloadsUrl  ++ "?action=download&path=" ++ model.dir) << .name)
+      <| map (File.Download.url << (++) (model.downloadsUrl  ++ "?action=download&path=" ++ (getDirPath model.dir)) << .name)
       <| filter (.type_ >> (/=) "dir") model.selected
     )
-  Cut -> ({ model | clipboardDir = model.dir, clipboardFiles = model.selected, showContextMenu = False }, Cmd.none)
-  Paste -> if model.dir == model.clipboardDir
+  Cut -> ({ model | clipboardDir = (getDirPath model.dir), clipboardFiles = model.selected, showContextMenu = False }, Cmd.none)
+  Paste -> if (getDirPath model.dir) == model.clipboardDir
     then ({ model | clipboardFiles = [], showContextMenu = False }, Cmd.none)
     else
       ( { model
@@ -128,11 +135,16 @@ update msg model = case msg of
       }
       , case model.caller of
           Just file -> if file.type_ == "dir"
-            then move model.api model.clipboardDir model.clipboardFiles <| model.dir ++ file.name ++ "/"
+            then move model.api model.clipboardDir model.clipboardFiles <| (getDirPath model.dir) ++ file.name ++ "/"
             else Cmd.none
-          Nothing -> move model.api model.clipboardDir model.clipboardFiles model.dir
+          Nothing -> move model.api model.clipboardDir model.clipboardFiles (getDirPath model.dir)
       )
-  Delete -> ({ model | showContextMenu = False, load = True }, delete model.api  model.dir model.selected)
-  UpdateApiPath apiPath -> ({model | api = apiPath, downloadsUrl =  apiPath } , listDirectory apiPath "")
+  Delete -> ({ model | showContextMenu = False, load = True }, delete model.api (getDirPath model.dir) model.selected)
+
+  UpdateApiPath apiPath -> ({model | api = apiPath, downloadsUrl =  apiPath } , listDirectory apiPath ["/"])
+
+  ChangeViewMode viewMode -> ({model | viewMode = viewMode}, Cmd.none)
+
+  UpdateFilters filters -> ({model | filters = filters}, Cmd.none)
 
   None -> (model, Cmd.none)
