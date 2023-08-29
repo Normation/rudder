@@ -56,6 +56,15 @@ type alias Method =
   , rename         : Maybe String
   }
 
+type alias CompilationOutput =
+  { compiler:  String
+  , fallbacked: Bool
+  , resultCode: Int
+  , msg:        String
+  , stdout:     String
+  , stderr:     String
+  }
+
 type alias Technique =
   { id            : TechniqueId
   , version       : String
@@ -67,6 +76,7 @@ type alias Technique =
   , parameters    : List TechniqueParameter
   , resources     : List Resource
   , tags          : List (String,String)
+  , output        : Maybe CompilationOutput
   }
 
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock
@@ -207,7 +217,7 @@ type alias TechniqueUiInfo =
 type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
 type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
-type Tab = General |  Parameters | Resources | None
+type Tab = General | Parameters | Resources | Output | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo
 
 

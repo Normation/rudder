@@ -135,6 +135,10 @@ trait TechniqueCompiler {
            }
     } yield x
   }
+
+  def getCompilationOutputFile(technique: EditorTechnique): File
+
+  def getCompilationConfigFile(technique: EditorTechnique): File
 }
 
 /*
@@ -372,20 +376,21 @@ class TechniqueCompilerWithFallback(
    */
   override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
     for {
-      config <- readCompilationConfigFile(technique)
-      _      <- ZIO.whenZIO(IOResult.attempt(getCompilationOutputFile(technique).exists)) {
-                  IOResult.attempt(getCompilationOutputFile(technique).delete()) // clean-up previous output
-                }
+      config    <- readCompilationConfigFile(technique)
+      outPutFile = getCompilationOutputFile(technique)
+      _         <- ZIO.whenZIO(IOResult.attempt(outPutFile.exists)) {
+                     IOResult.attempt(outPutFile.delete()) // clean-up previous output
+                   }
       // if compiler app is defined, recover is forbidden
-      app     = config.compiler
+      app        = config.compiler
       // clean-up generated files
-      _      <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
-                  IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
-                }
-      res    <- compileTechniqueInternal(technique, app)
-      _      <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
-                  writeCompilationOutputFile(technique, res)
-                }
+      _         <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
+                     IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
+                   }
+      res       <- compileTechniqueInternal(technique, app)
+      _         <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
+                     writeCompilationOutputFile(technique, res)
+                   }
     } yield res
   }
 
@@ -652,6 +657,19 @@ class WebappTechniqueCompiler(
       </TECHNIQUE>
     }
   }
+
+  // root of technique repository
+  val gitDir = File(baseConfigRepoPath)
+
+  val compilationConfigFilename = "compilation-config.yml"
+  val compilationOutputFilename = "compilation-output.yml"
+
+  def getCompilationOutputFile(technique: EditorTechnique) =
+    gitDir / getTechniqueRelativePath(technique) / compilationOutputFilename
+
+  def getCompilationConfigFile(technique: EditorTechnique) =
+    gitDir / getTechniqueRelativePath(technique) / compilationConfigFilename
+
 }
 
 trait AgentSpecificTechniqueWriter {
