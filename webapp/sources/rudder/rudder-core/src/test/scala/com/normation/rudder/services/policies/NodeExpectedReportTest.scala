@@ -53,7 +53,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_0._
+import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_1.JsonRuleExpectedReports7_1
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import org.joda.time.DateTime
 import org.junit.runner._
@@ -95,7 +95,7 @@ class NodeExpectedReportTest extends Specification {
     (ComponentId(v.spec.name, v.spec.name :: "root" :: Nil, None), v)
   }
 
-  def parse(s: String) = s.fromJson[List[JsonRuleExpectedReports7_0]] match {
+  def parse(s: String) = s.fromJson[List[JsonRuleExpectedReports7_1]] match {
     case Left(err) => throw new IllegalArgumentException(err)
     case Right(v)  => v.map(_.transform)
   }
@@ -312,46 +312,31 @@ class NodeExpectedReportTest extends Specification {
       val expected = parse("""
         [
            {
-             "ruleId": "rule_1"
-           , "directives": [
+             "rid": "rule_1"
+           , "ds": [
                {
-                 "directiveId": "directive_1"
-               , "policyMode" : "audit"
-               , "isSystem"   : false
-               , "components" : [
+                 "did": "directive_1"
+               , "pm" : "audit"
+               , "s"   : false
+               , "cs" : [
                    {
-                     "componentName": "var_1_0"
-                   , "values"       : [
-                       {
-                         "unexpanded":"1_0_0"
-                       , "value":"1_0_0"
-                       }
+                     "vid": "var_1_0"
+                   , "vs" : [
+                       ["1_0_0"]
                      ]
                    }
                  , {
-                     "componentName": "m_var_1_1"
-                   , "values"       : [
-                       {
-                         "unexpanded":"1_1_0"
-                       , "value":"1_1_0"
-                       }
-                     , {
-                         "unexpanded":"1_1_1"
-                       ,  "value":"1_1_1"
-                       }
+                     "vid": "m_var_1_1"
+                   , "vs"       : [
+                       ["1_1_0"]
+                     , ["1_1_1"]
                      ]
                    }
                  , {
-                     "componentName": "m_var_1_2"
-                   , "values"       : [
-                       {
-                         "unexpanded":"1_2_0"
-                       , "value":"1_2_0"
-                       }
-                     , {
-                         "unexpanded":"1_2_1"
-                       ,  "value":"1_2_1"
-                       }
+                     "vid": "m_var_1_2"
+                   , "vs"       : [
+                       ["1_2_0"]
+                     , ["1_2_1"]
                      ]
                    }
                  ]
@@ -359,82 +344,63 @@ class NodeExpectedReportTest extends Specification {
              ]
            }
          , {
-             "ruleId": "rule_2"
-           , "directives": [
+             "rid": "rule_2"
+           , "ds": [
                {
-                 "directiveId": "directive_2"
-               , "isSystem"   : false
-               , "components" : [
+                 "did": "directive_2"
+               , "s"   : false
+               , "cs" : [
                    {
-                     "componentName": "var_1_0"
-                   , "values"       : [
-                       {
-                         "unexpanded":"2_0_0"
-                       , "value":"2_0_0"
-                       }
+                     "vid": "var_1_0"
+                   , "vs"       : [
+                       ["2_0_0"]
                      ]
                    }
                  , {
-                     "componentName": "m_var_1_1"
-                   , "values"       : [
-                       {
-                         "unexpanded":"2_1_0"
-                       , "value":"2_1_0"
-                       }
+                     "vid": "m_var_1_1"
+                   , "vs"       : [
+                       ["2_1_0"]
                      ]
                    }
                  , {
-                     "componentName": "m_var_1_2"
-                   , "values"       : [
-                       {
-                         "unexpanded":"2_2_0"
-                       , "value":"2_2_0"
-                       }
+                     "vid": "m_var_1_2"
+                   , "vs"       : [
+                       ["2_2_0"]
                      ]
                    }
                  ]
                }
              , {
-                 "directiveId": "directive_3"
-               , "isSystem"   : false
-               , "components" : [
+                 "did": "directive_3"
+               , "s"   : false
+               , "cs" : [
                    {
-                     "componentName": "var_2_0"
-                   , "values"       : [
-                       {
-                         "unexpanded":"3_0_0"
-                       , "value":"3_0_0"
-                       }
+                     "vid": "var_2_0"
+                   , "vs"       : [
+                       ["3_0_0"]
                      ]
                    }
                  , {
-                     "componentName":"m_var_2_1"
-                   , "values"       : [
-                       {
-                         "unexpanded":"3_1_0"
-                       , "value":"3_1_0"
-                       }
+                     "vid":"m_var_2_1"
+                   , "vs"       : [
+                       ["3_1_0"]
                      ]
                    }
                  , {
-                     "componentName": "m_var_2_2"
-                   , "values"       : [
-                       {
-                         "unexpanded":"3_2_0"
-                       , "value":"3_2_0"
-                       }
+                     "vid": "m_var_2_2"
+                   , "vs"       : [
+                       ["3_2_0"]
                      ]
                    }
                  ]
                }
              , {
-                 "directiveId": "directive_4"
-               , "isSystem"   : false
-               , "components" : [
+                 "did": "directive_4"
+               , "s"   : false
+               , "cs" : [
                    {
-                     "componentName": "tnoComponent"
-                   , "values"       : ["None"]
-                   , "unexpanded"   : ["None"]
+                     "vid": "tnoComponent"
+                   , "vs"       : [["None"]]
                    }
                  ]
                }
@@ -498,68 +464,53 @@ class NodeExpectedReportTest extends Specification {
         """
         [
            {
-             "ruleId": "rule_3"
-           , "directives": [
+             "rid": "rule_3"
+           , "ds": [
                {
-                 "directiveId": "directive_4"
-               , "policyMode" : "enforce"
-               , "isSystem"   : false
-               , "components":[
+                 "did": "directive_4"
+               , "pm" : "enforce"
+               , "s"   : false
+               , "cs":[
                    {
-                     "componentName":"First block"
-                   , "reportingLogic":"weighted"
-                   , "subComponents": [
+                     "bid":"First block"
+                   , "rl":"weighted"
+                   , "scs": [
                        {
-                         "componentName":"inner block"
-                       , "reportingLogic":"weighted"
-                       , "subComponents": [
+                         "bid":"inner block"
+                       , "rl":"weighted"
+                       , "scs": [
                          {
-                           "componentName":"Command execution"
-                         , "values": [
-                             {
-                               "unexpanded":"/bin/true"
-                             , "value":"/bin/true"
-                             }
+                           "vid":"Command execution"
+                         , "vs": [
+                             ["/bin/true"]
                            ]
                          }
                        , {
-                           "componentName":"File absent"
-                         , "values":[
-                             {
-                               "unexpanded":"/tmp/block1_1"
-                             , "value":"/tmp/block1_1"
-                             }
+                           "vid":"File absent"
+                         , "vs":[
+                             ["/tmp/block1_1"]
                            ]
                          }
                        ]
                      }
                     , {
-                       "componentName":"File absent"
-                     , "values":[
-                         {
-                           "unexpanded":"/tmp/block1"
-                         , "value":"/tmp/block1"
-                         }
+                       "vid":"File absent"
+                     , "vs":[
+                         ["/tmp/block1"]
                        ]
                      }
                      ]
                    }
                  , {
-                     "componentName":"Command execution"
-                   , "values": [
-                       {
-                         "unexpanded":"/bin/true #root1"
-                       , "value":"/bin/true #root1"
-                       }
+                     "vid":"Command execution"
+                   , "vs": [
+                       ["/bin/true #root1"]
                      ]
                    }
                  , {
-                     "componentName":"File absent"
-                   , "values": [
-                       {
-                         "unexpanded":"/tmp/root2"
-                       , "value":"/tmp/root2"
-                       }
+                     "vid":"File absent"
+                   , "vs": [
+                       ["/tmp/root2"]
                      ]
                    }
                  ]

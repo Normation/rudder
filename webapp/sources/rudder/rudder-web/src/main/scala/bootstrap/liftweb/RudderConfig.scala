@@ -48,8 +48,6 @@ import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
-import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
-import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
 import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
@@ -3303,19 +3301,7 @@ object RudderConfigInit {
         techniqueRepositoryImpl,
         uuidGen
       ),
-      new CheckAddSpecialTargetAllPolicyServers(rwLdap),
       new CheckAddSpecialNodeGroupsDescription(rwLdap),
-      new CheckMigratedSystemTechniques(
-        policyServerManagementService,
-        gitConfigRepo,
-        nodeInfoService,
-        rwLdap,
-        techniqueRepository,
-        techniqueRepositoryImpl,
-        uuidGen,
-        woDirectiveRepository,
-        woRuleRepository
-      ),
       new CheckRemoveRuddercSetting(rwLdap),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
       new CheckInitUserTemplateLibrary(
