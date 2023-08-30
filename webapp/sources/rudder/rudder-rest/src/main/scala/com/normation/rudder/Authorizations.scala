@@ -40,6 +40,8 @@ import cats.implicits._
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.rudder.Role.Builtin
+import com.normation.rudder.Role.BuiltinName
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.zio._
 import scala.collection.immutable.SortedMap
@@ -333,50 +335,72 @@ sealed trait Role {
 }
 object Role       {
   import com.normation.rudder.{AuthorizationType => A}
-
-  def allRead = A.allKind.collect { case x: ActionType.Read => x }
-
   // for now, all account type also have the "user account" rights
   val ua = A.UserAccount.values
 
-  // a special account, with all rights, present and future, even if declared at runtime.
-  final case object Administrator extends Role {
-    val name = "administrator"; def rights = Rights.AnyRights
+  // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
+  final case class Custom(rights: Rights) extends Role {
+    val name = "custom"
+
+    override def debugString = s"authz[${rights.displayAuthorizations}]"
   }
 
-  // other standard predefined roles
-  final case object User       extends Role { val name = "user"; def rights = Rights(ua ++ A.nodeKind ++ A.configurationKind) }
-  final case object AdminOnly  extends Role {
-    val name = "administration_only"; def rights = Rights(ua ++ A.Administration.values.map(identity))
+  trait BuiltinName  { // not sealed, plugins need to extend
+    val value: String
   }
-  final case object Workflow   extends Role {
-    val name = "workflow"; def rights = Rights(ua ++ A.workflowKind ++ A.complianceKind)
+  // core builtin name are given as object here, plugin
+  object BuiltinName {
+    case object User               extends BuiltinName { val value = "user"                }
+    case object AdministrationOnly extends BuiltinName { val value = "administration_only" }
+    case object Workflow           extends BuiltinName { val value = "workflow"            }
+    case object Deployer           extends BuiltinName { val value = "deployer"            }
+    case object Validator          extends BuiltinName { val value = "validator"           }
+    case object Configuration      extends BuiltinName { val value = "configuration"       }
+    case object ReadOnly           extends BuiltinName { val value = "read_only"           }
+    case object Compliance         extends BuiltinName { val value = "compliance"          }
+    case object Inventory          extends BuiltinName { val value = "inventory"           }
+    case object RuleOnly           extends BuiltinName { val value = "rule_only"           }
+
+    case class PluginRoleName(value: String) extends BuiltinName
   }
-  final case object Deployer   extends Role {
-    val name = "deployer"; def rights = Rights(ua ++ A.Deployer.values ++ A.complianceKind)
+
+  // built-in roles
+  final case class Builtin(_name: BuiltinName, rights: Rights) extends Role {
+    val name = _name.value
   }
-  final case object Validator  extends Role {
-    val name = "validator"; def rights = Rights(ua ++ A.Validator.values ++ A.complianceKind)
-  }
-  case object Configuration    extends Role {
-    val name = "configuration"; val rights = Rights(ua ++ A.configurationKind.map(identity))
-  }
-  final case object ReadOnly   extends Role { val name = "read_only"; def rights = Rights(ua ++ allRead)                      }
-  final case object Compliance extends Role { val name = "compliance"; def rights = Rights(ua ++ A.complianceKind)            }
-  final case object Inventory  extends Role { val name = "inventory"; def rights = Rights(ua ++ Set(A.Node.Read))             }
-  final case object RuleOnly   extends Role {
-    val name = "rule_only"; def rights = Rights(ua ++ Set(A.Configuration.Read, A.Rule.Read))
+
+  // a special account, with all rights, present and future, even if declared at runtime.
+  final case object Administrator extends Role {
+    val name = "administrator";
+
+    def rights = Rights.AnyRights
   }
 
   // a special Role that means that a user has no rights at all. That role must super-seed any other right given by other roles
-  final case object NoRights extends Role { val name = "no_rights"; def rights = Rights(Set(AuthorizationType.NoRights)) }
+  final case object NoRights extends Role {
+    val name = "no_rights";
 
-  // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
-  final case class Custom(rights: Rights) extends Role {
-    val name                 = "custom"
-    override def debugString = s"authz[${rights.displayAuthorizations}]"
+    def rights = Rights(Set(A.NoRights))
   }
-  def forRight(right: AuthorizationType) = Custom(Rights.forAuthzs(right))
+
+  // standard predefined built-in roles
+  def standardBuiltIn: Map[BuiltinName, Role] = {
+    import BuiltinName._
+    List(
+      Builtin(User, Rights(ua ++ A.nodeKind ++ A.configurationKind)),
+      Builtin(AdministrationOnly, Rights(ua ++ A.Administration.values.map(identity))),
+      Builtin(Workflow, Rights(ua ++ A.workflowKind ++ A.complianceKind)),
+      Builtin(Deployer, Rights(ua ++ A.Deployer.values ++ A.complianceKind)),
+      Builtin(Validator, Rights(ua ++ A.Validator.values ++ A.complianceKind)),
+      Builtin(Configuration, Rights(ua ++ A.configurationKind.map(identity))),
+      Builtin(ReadOnly, Rights(ua ++ A.allKind.collect { case x: ActionType.Read => x })),
+      Builtin(Compliance, Rights(ua ++ A.complianceKind)),
+      Builtin(Inventory, Rights(ua ++ Set(A.Node.Read))),
+      Builtin(RuleOnly, Rights(ua ++ Set(A.Configuration.Read, A.Rule.Read)))
+    ).map(r => (r._name, r)).toMap
+  }
+
+  def forRight(right: AuthorizationType)        = Custom(Rights.forAuthzs(right))
   def forRights(rights: Set[AuthorizationType]) = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag
@@ -385,7 +409,11 @@ object Role       {
     override def debugString = s"customRole[${permissions.map(_.debugString).mkString(",")}]"
   }
 
-  def values: Set[Role] = ca.mrvisser.sealerate.collect[Role]
+  // standard predefined special roles, ie Admin et NoRights
+  def specialBuiltIn: Set[Role] = ca.mrvisser.sealerate.collect[Role]
+
+  def allBuiltInRoles: Map[String, Role] =
+    standardBuiltIn.map { case (k, v) => (k.value, v) } ++ specialBuiltIn.map(r => (r.name, r)).toMap
 }
 
 // custom role utility classes to help parse/resolve them
@@ -402,17 +430,28 @@ object RudderRoles {
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
 
   // role names are case insensitive
-  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
-  val builtInRoles        = SortedMap[String, Role](Role.values.toList.map(r => (r.name, r)): _*)
+  implicit val roleOrdering: Ordering[String]= Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+
+  // built-in roles are provided by Rudder core and can be provided by plugins. We assume people knows what they are doing
+  // and fewer check are done on them.
+  private val builtInCoreRoles = SortedMap[String, Role](Role.allBuiltInRoles.toList: _*)
+
+  // this is the actual set of currently knowed builin roles
+  val builtInRoles = Ref.make(builtInCoreRoles).runNow
+
   private val customRoles = Ref.make(SortedMap.empty[String, Role]).runNow
   private val allRoles: Ref[SortedMap[String, Role]] = ZioRuntime.unsafeRun(for {
     all <- computeAllRoles
     ref <- Ref.make(all)
   } yield ref)
 
-  // compute all roles but be sure that no custom role ever override a builtIn one and that
-  private def computeAllRoles: UIO[SortedMap[String, Role]] =
-    customRoles.get.map(_ ++ builtInRoles)
+  // compute all roles but be sure that no custom role ever override a builtIn one
+  private def computeAllRoles: UIO[SortedMap[String, Role]] = {
+    for {
+      builtIns <- builtInRoles.get
+      customs  <- customRoles.get
+    } yield (customs ++ builtIns)
+  }
 
   def getAllRoles = allRoles.get
 
@@ -431,6 +470,42 @@ object RudderRoles {
       all <- computeAllRoles
       _   <- allRoles.set(all)
     } yield ()
+  }
+
+  /*
+   * Register built-in roles. These roles are typically provided by plugins and can't be unloaded or
+   * changed at run-time, contrary to user-provided custom roles.
+   * If the registered role is a new name, then it is just added to the list of built-in roles.
+   * If the registered role has an existing name, then it *extends* the existing built-in role with the provided Rights.
+   *
+   * Administrator and NoRights roles are special and can't be overridden.
+   */
+  def registerBuiltin(roleName: BuiltinName, addedAuthorisations: Set[AuthorizationType]): IOResult[Unit] = {
+    val debugAuthz = addedAuthorisations.map(_.id).mkString(", ")
+    if (Role.specialBuiltIn.exists(_.name == roleName.value)) {
+      // this is a noop, just log that it does nothing
+      ApplicationLoggerPure.warn(
+        s"The role '${roleName.value}` can not have is permissions updated, ignoring request to add: ${debugAuthz}."
+      )
+    } else {
+      for {
+        _   <- ApplicationLoggerPure.info(s"Extending built-in role '${roleName.value}' with permissions: ${debugAuthz}")
+        // first already existing, then override with new ones, then be sure that admin/no rights are not changed
+        _   <- builtInRoles.update { existing =>
+                 val rights = existing.get(roleName.value) match {
+                   case Some(r) => Rights(r.rights.authorizationTypes ++ addedAuthorisations)
+                   case None    => Rights(addedAuthorisations)
+                 }
+                 existing + (roleName.value -> Builtin(roleName, rights))
+               }
+        all <- computeAllRoles
+        _   <- allRoles.set(all)
+      } yield ()
+    }
+  }
+  // short-cut to register a new plugin role
+  def registerBuiltin(role: Builtin):                                                      IOResult[Unit] = {
+    registerBuiltin(role._name, role.rights.authorizationTypes)
   }
 
   def findRoleByName(role: String): IOResult[Option[Role]] = {

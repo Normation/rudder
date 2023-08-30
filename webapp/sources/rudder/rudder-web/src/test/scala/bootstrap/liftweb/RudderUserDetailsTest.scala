@@ -38,9 +38,13 @@
 package bootstrap.liftweb
 
 import com.normation.errors.IOResult
+import com.normation.rudder.ActionType
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.CustomRoleResolverResult
+import com.normation.rudder.Rights
 import com.normation.rudder.Role
+import com.normation.rudder.Role.Builtin
+import com.normation.rudder.Role.BuiltinName
 import com.normation.rudder.Role.NamedCustom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.UncheckedCustomRole
@@ -119,6 +123,7 @@ class RudderUserDetailsTest extends Specification {
     <custom-roles>
       <role name="role-a1" permissions="ROLE-a0,roLE-A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
       <role name="role-a0" permissions="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
+      <role name="role-a2" permissions="plugin"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
 
       <role name="ROLE-B0" permissions="inventory"/> <!-- node_read -->
       <role name="role-c0" permissions="rule_only"/> <!-- node_* -->
@@ -143,18 +148,36 @@ class RudderUserDetailsTest extends Specification {
 
   "general rules around custom roles definition and error should be parsed correctly" >> {
     import AuthorizationType._
+
+    // add a plugin built-in role and check it is available too
+
+    sealed trait PluginAuth extends AuthorizationType { def authzKind = "pluginAuth" }
+    object PluginAuth {
+      final case object Read  extends PluginAuth with ActionType.Read with AuthorizationType
+      final case object Edit  extends PluginAuth with ActionType.Edit with AuthorizationType
+      final case object Write extends PluginAuth with ActionType.Write with AuthorizationType
+      def values: Set[AuthorizationType] = Set(Read, Edit, Write)
+    }
+    val pluginRole = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
+    RudderRoles.registerBuiltin(pluginRole).force
+
     val userDetailList = getUserDetailList(userXML_3, "userXML_3")
 
-    val roleA0 = NamedCustom("role-a0", List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.Configuration))
+    val roleA0 = NamedCustom(
+      "role-a0",
+      List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.allBuiltInRoles(Role.BuiltinName.Configuration.value))
+    )
     val roleA1 = NamedCustom("role-a1", List(roleA0))
-    val roleB0 = NamedCustom("ROLE-B0", List(Role.Inventory))
-    val roleC0 = NamedCustom("role-c0", List(Role.RuleOnly))
-    val roleC1 = NamedCustom("role-c1", List(Role.RuleOnly))
+    val roleA2 = NamedCustom("role-a2", List(pluginRole))
+    val roleB0 = NamedCustom("ROLE-B0", List(Role.allBuiltInRoles(Role.BuiltinName.Inventory.value)))
+    val roleC0 = NamedCustom("role-c0", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
+    val roleC1 = NamedCustom("role-c1", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
     val roleC2 = NamedCustom("role-c2", List())
 
     val parsedRoles = {
       roleA0 ::
       roleA1 ::
+      roleA2 ::
       roleB0 ::
       roleC0 ::
       roleC1 ::
@@ -175,7 +198,7 @@ class RudderUserDetailsTest extends Specification {
 
   "Unknown roles in user list are ignored but don't lead to no_right" >> {
     RudderRoles.parseRoles(List("configuration", "non-existing-role", "inventory")).runNow must beEqualTo(
-      List(Role.Configuration, Role.Inventory)
+      List(Role.allBuiltInRoles(Role.BuiltinName.Configuration.value), Role.allBuiltInRoles(Role.BuiltinName.Inventory.value))
     )
   }
 

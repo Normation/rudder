@@ -55,6 +55,15 @@ trait AuthorizationApiMapping {
   def mapAuthorization(authz: AuthorizationType): List[ApiAclElement]
 }
 
+class AuthorizationMappingListEndpoint(endpoints: List[EndpointSchema]) extends AuthorizationApiMapping {
+  val acls: Map[AuthorizationType, List[ApiAclElement]] =
+    endpoints.flatMap(e => e.authz.map(a => (a, AuthzForApi(e)))).groupMap(_._1)(_._2)
+
+  override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
+    acls.get(authz).getOrElse(Nil)
+  }
+}
+
 /*
  * An extensible mapper that allows for plugins to contribute to
  * its mapper
