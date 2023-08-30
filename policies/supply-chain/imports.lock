@@ -2,22 +2,22 @@
 # cargo-vet imports lock
 
 [[publisher.aho-corasick]]
-version = "1.0.2"
-when = "2023-06-04"
+version = "1.0.5"
+when = "2023-08-29"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.anstream]]
-version = "0.3.2"
-when = "2023-05-01"
+version = "0.5.0"
+when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.anstyle]]
-version = "1.0.1"
-when = "2023-06-20"
+version = "1.0.2"
+when = "2023-08-23"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -37,15 +37,15 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.anstyle-wincon]]
-version = "1.0.1"
-when = "2023-04-24"
+version = "2.1.0"
+when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.anyhow]]
-version = "1.0.72"
-when = "2023-07-15"
+version = "1.0.75"
+when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -64,9 +64,23 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
+[[publisher.bitflags]]
+version = "1.3.2"
+when = "2021-08-16"
+user-id = 3204
+user-login = "KodrAus"
+user-name = "Ashley Mannix"
+
+[[publisher.bitflags]]
+version = "2.4.0"
+when = "2023-08-11"
+user-id = 3204
+user-login = "KodrAus"
+user-name = "Ashley Mannix"
+
 [[publisher.bstr]]
-version = "1.6.0"
-when = "2023-07-05"
+version = "1.6.1"
+when = "2023-08-29"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
@@ -79,50 +93,50 @@ user-login = "fitzgen"
 user-name = "Nick Fitzgerald"
 
 [[publisher.cc]]
-version = "1.0.81"
-when = "2023-08-02"
+version = "1.0.83"
+when = "2023-08-20"
 user-id = 4357
 user-login = "thomcc"
 user-name = "Thom Chiovoloni"
 
 [[publisher.chrono]]
-version = "0.4.26"
-when = "2023-05-30"
+version = "0.4.27"
+when = "2023-08-29"
 user-id = 4556
 user-login = "djc"
 user-name = "Dirkjan Ochtman"
 
 [[publisher.clap]]
-version = "4.3.19"
-when = "2023-07-21"
+version = "4.4.1"
+when = "2023-08-28"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_builder]]
-version = "4.3.19"
-when = "2023-07-21"
+version = "4.4.1"
+when = "2023-08-28"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_complete]]
-version = "4.3.2"
-when = "2023-07-05"
+version = "4.4.0"
+when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_derive]]
-version = "4.3.12"
-when = "2023-07-14"
+version = "4.4.0"
+when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_lex]]
-version = "0.5.0"
-when = "2023-05-19"
+version = "0.5.1"
+when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -247,25 +261,45 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.log]]
-version = "0.4.19"
-when = "2023-06-11"
+version = "0.4.20"
+when = "2023-08-12"
 user-id = 3204
 user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
+[[publisher.mdbook]]
+version = "0.4.34"
+when = "2023-08-05"
+user-id = 55123
+user-login = "rust-lang-owner"
+
 [[publisher.memchr]]
-version = "2.5.0"
-when = "2022-04-30"
+version = "2.6.1"
+when = "2023-08-29"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
+[[publisher.mime]]
+version = "0.3.17"
+when = "2023-03-20"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
 [[publisher.minijinja]]
-version = "1.0.5"
-when = "2023-07-18"
+version = "1.0.7"
+when = "2023-08-25"
 user-id = 39
 user-login = "mitsuhiko"
 user-name = "Armin Ronacher"
+
+[[publisher.nix]]
+version = "0.27.1"
+when = "2023-08-28"
+user-id = 6094
+user-login = "asomers"
+user-name = "Alan Somers"
 
 [[publisher.num-traits]]
 version = "0.2.16"
@@ -352,8 +386,8 @@ user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
 [[publisher.pin-project-lite]]
-version = "0.2.10"
-when = "2023-07-02"
+version = "0.2.13"
+when = "2023-08-25"
 user-id = 33035
 user-login = "taiki-e"
 user-name = "Taiki Endo"
@@ -407,15 +441,15 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.quote]]
-version = "1.0.32"
-when = "2023-07-23"
+version = "1.0.33"
+when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.regex]]
-version = "1.9.1"
-when = "2023-07-07"
+version = "1.9.4"
+when = "2023-08-26"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
@@ -428,8 +462,8 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.regex-automata]]
-version = "0.3.4"
-when = "2023-07-28"
+version = "0.3.7"
+when = "2023-08-26"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
@@ -442,8 +476,8 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.regex-syntax]]
-version = "0.7.4"
-when = "2023-07-11"
+version = "0.7.5"
+when = "2023-08-26"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
@@ -456,8 +490,8 @@ user-login = "sunfishcode"
 user-name = "Dan Gohman"
 
 [[publisher.rustix]]
-version = "0.38.6"
-when = "2023-08-02"
+version = "0.38.10"
+when = "2023-08-28"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
@@ -484,32 +518,25 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.serde]]
-version = "1.0.180"
-when = "2023-07-31"
+version = "1.0.188"
+when = "2023-08-26"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_derive]]
-version = "1.0.180"
-when = "2023-07-31"
+version = "1.0.188"
+when = "2023-08-26"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_json]]
-version = "1.0.104"
-when = "2023-07-26"
+version = "1.0.105"
+when = "2023-08-15"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
-
-[[publisher.serde_spanned]]
-version = "0.6.3"
-when = "2023-06-24"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
 
 [[publisher.serde_yaml]]
 version = "0.9.25"
@@ -531,6 +558,13 @@ when = "2021-10-12"
 user-id = 1249
 user-login = "hawkw"
 user-name = "Eliza Weisman"
+
+[[publisher.siphasher]]
+version = "0.3.11"
+when = "2023-08-23"
+user-id = 468
+user-login = "jedisct1"
+user-name = "Frank Denis"
 
 [[publisher.smallvec]]
 version = "1.11.0"
@@ -554,8 +588,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.syn]]
-version = "2.0.28"
-when = "2023-07-31"
+version = "2.0.29"
+when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -575,15 +609,15 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.thiserror]]
-version = "1.0.44"
-when = "2023-07-21"
+version = "1.0.47"
+when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.thiserror-impl]]
-version = "1.0.44"
-when = "2023-07-21"
+version = "1.0.47"
+when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -598,20 +632,6 @@ user-name = "Amanieu d'Antras"
 [[publisher.toml]]
 version = "0.5.11"
 when = "2023-01-20"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.toml]]
-version = "0.7.6"
-when = "2023-07-05"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.toml_edit]]
-version = "0.19.14"
-when = "2023-07-14"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -665,6 +685,13 @@ user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
+[[publisher.unicase]]
+version = "2.7.0"
+when = "2023-08-21"
+user-id = 359
+user-login = "seanmonstar"
+user-name = "Sean McArthur"
+
 [[publisher.unicode-ident]]
 version = "1.0.11"
 when = "2023-07-15"
@@ -694,8 +721,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.url]]
-version = "2.4.0"
-when = "2023-06-05"
+version = "2.4.1"
+when = "2023-08-28"
 user-id = 72883
 user-login = "valenting"
 user-name = "Valentin Gosu"
@@ -771,67 +798,60 @@ user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows-targets]]
-version = "0.48.1"
-when = "2023-06-28"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_aarch64_gnullvm]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_aarch64_msvc]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_i686_gnu]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_i686_msvc]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_x86_64_gnu]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_x86_64_gnullvm]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows_x86_64_msvc]]
-version = "0.48.0"
-when = "2023-03-31"
+version = "0.48.5"
+when = "2023-08-18"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
-
-[[publisher.winnow]]
-version = "0.5.3"
-when = "2023-08-01"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
 
 [[audits.bytecode-alliance.wildcard-audits.bumpalo]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
@@ -845,25 +865,6 @@ who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.21.0"
 notes = "This crate has no dependencies, no build.rs, and contains no unsafe code."
-
-[[audits.bytecode-alliance.audits.bitflags]]
-who = "Jamey Sharp <jsharp@fastly.com>"
-criteria = "safe-to-deploy"
-delta = "2.1.0 -> 2.2.1"
-notes = """
-This version adds unsafe impls of traits from the bytemuck crate when built
-with that library enabled, but I believe the impls satisfy the documented
-safety requirements for bytemuck. The other changes are minor.
-"""
-
-[[audits.bytecode-alliance.audits.bitflags]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-delta = "2.3.2 -> 2.3.3"
-notes = """
-Nothing outside the realm of what one would expect from a bitflags generator,
-all as expected.
-"""
 
 [[audits.bytecode-alliance.audits.block-buffer]]
 who = "Benjamin Bouvier <public@benj.me>"
@@ -939,11 +940,6 @@ who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.1.0"
 
-[[audits.bytecode-alliance.audits.pin-utils]]
-who = "Pat Hickey <phickey@fastly.com>"
-criteria = "safe-to-deploy"
-version = "0.1.0"
-
 [[audits.bytecode-alliance.audits.pulldown-cmark]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
@@ -986,15 +982,6 @@ intended to multiplex across the internal representation of a tinyvec,
 presumably. This trivially doesn't contain anything bad.
 """
 
-[[audits.bytecode-alliance.audits.unicase]]
-who = "Alex Crichton <alex@alexcrichton.com>"
-criteria = "safe-to-deploy"
-version = "2.6.0"
-notes = """
-This crate contains no `unsafe` code and no unnecessary use of the standard
-library.
-"""
-
 [[audits.bytecode-alliance.audits.unicode-bidi]]
 who = "Alex Crichton <alex@alexcrichton.com>"
 criteria = "safe-to-deploy"
@@ -1015,12 +1002,6 @@ who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
 delta = "0.3.0 -> 0.4.0"
 notes = "No unsafe usage or ambient capabilities"
-
-[[audits.embark-studios.audits.toml_datetime]]
-who = "Johan Andersson <opensource@embark-studios.com>"
-criteria = "safe-to-deploy"
-delta = "0.6.1 -> 0.6.2"
-notes = "No notable changes"
 
 [[audits.embark-studios.audits.utf8parse]]
 who = "Johan Andersson <opensource@embark-studios.com>"
@@ -1056,6 +1037,11 @@ who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
 delta = "0.21.1 -> 0.21.2"
 
+[[audits.isrg.audits.base64]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "0.21.2 -> 0.21.3"
+
 [[audits.isrg.audits.block-buffer]]
 who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
@@ -1071,6 +1057,11 @@ notes = "These changes include some new `unsafe` code for the `emscripten` and `
 who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "1.17.2 -> 1.18.0"
+
+[[audits.isrg.audits.rand_chacha]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.3.1"
 
 [[audits.isrg.audits.rand_core]]
 who = "David Cook <dcook@divviup.org>"
@@ -1168,25 +1159,6 @@ version = "0.6.3"
 notes = "Another crate I own via contain-rs that is ancient and in maintenance mode but otherwise perfectly fine."
 aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
 
-[[audits.mozilla.audits.bitflags]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "1.3.2 -> 2.0.2"
-notes = "Removal of some unsafe code/methods. No changes to externals, just some refactoring (mostly internal)."
-aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.bitflags]]
-who = "Nicolas Silva <nical@fastmail.com>"
-criteria = "safe-to-deploy"
-delta = "2.0.2 -> 2.1.0"
-aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.bitflags]]
-who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "2.2.1 -> 2.3.2"
-aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
-
 [[audits.mozilla.audits.block-buffer]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -1273,24 +1245,4 @@ who = "Jack Grigg <jack@z.cash>"
 criteria = "safe-to-deploy"
 delta = "0.1.0 -> 0.1.1"
 notes = "Adds `#![forbid(unsafe_code)]` and license files."
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.toml_datetime]]
-who = "Jack Grigg <jack@z.cash>"
-criteria = "safe-to-deploy"
-version = "0.5.1"
-notes = "Crate has `#![forbid(unsafe_code)]`, no `unwrap / expect / panic`, no ambient capabilities."
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.toml_datetime]]
-who = "Jack Grigg <jack@electriccoin.co>"
-criteria = "safe-to-deploy"
-delta = "0.5.1 -> 0.6.1"
-notes = "Fixes a bug in parsing negative minutes in datetime string offsets."
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.toml_datetime]]
-who = "Jack Grigg <thestr4d@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "0.6.2 -> 0.6.3"
 aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
