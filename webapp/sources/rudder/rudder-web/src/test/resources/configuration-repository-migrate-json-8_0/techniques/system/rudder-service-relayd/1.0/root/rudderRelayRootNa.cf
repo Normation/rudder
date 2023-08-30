@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent rudder_relay_root_na(trackingkey, technique_name) {
+  methods:
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "Synchronize resources", "None", "No need to synchronize resources on the root server");
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "Synchronize policies", "None", "No need to synchronize policies on the root server");
+      "any" usebundle => rudder_common_report("${technique_name}", "result_na", "${trackingkey}", "Synchronize files", "None", "No need to synchronize shared-files on the root server");
+}

@@ -1,0 +1,36 @@
+<TECHNIQUE name="Rudder Postgresql">
+  <DESCRIPTION>Configure the postgresql Rudder database and service</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>system_rudder_postgresql_configuration</NAME>
+    </BUNDLES>
+    <TMLS>
+      <TML name="password-check"/>
+      <TML name="main"/>
+    </TMLS>
+  </AGENT>
+
+  <SYSTEMVARS>
+    <NAME>RUDDER_REPORTS_DB_URL</NAME>
+    <NAME>RUDDER_REPORTS_DB_NAME</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Postgresql configuration" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Check pgpass file</VALUE>
+        <VALUE>Postgresql credentials</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Postgresql service" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Started</VALUE>
+        <VALUE>Enabled</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

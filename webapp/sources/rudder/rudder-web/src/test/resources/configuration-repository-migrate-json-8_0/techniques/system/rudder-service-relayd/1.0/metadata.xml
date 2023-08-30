@@ -1,0 +1,73 @@
+<TECHNIQUE name="Rudder relay">
+  <DESCRIPTION>Configure the relay components</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+
+  <TMLS>
+    <!-- Note that the policy server is set via the common.xml -->
+    <TML name="main"/>
+    <TML name="relay/nodeslist.json">
+      <INCLUDED>false</INCLUDED>
+      <OUTPATH>rudder-service-relayd/1.0/relay/nodeslist.json</OUTPATH>
+    </TML>
+  </TMLS>
+
+  <FILES>
+    <FILE name="common/relayd.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="common/relayd.conf.tpl">
+      <OUTPATH>rudder-service-relayd/1.0/common/relayd.conf.tpl</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+    <FILE name="common/logrotate.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="common/relay-logrotate.mustache">
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+    <FILE name="relay/propagatePromises.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="root/rudderRelayRootNa.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+  </FILES>
+
+  <BUNDLES>
+    <NAME>system_rudder_relay_configuration</NAME>
+  </BUNDLES>
+
+  <SYSTEMVARS>
+    <NAME>SUB_NODES_NAME</NAME>
+    <NAME>SUB_NODES_ID</NAME>
+    <NAME>SUB_NODES_KEYHASH</NAME>
+    <NAME>SUB_NODES_SERVER</NAME>
+    <NAME>RELAY_SYNC_METHOD</NAME>
+    <NAME>RELAY_SYNC_PROMISES</NAME>
+    <NAME>RELAY_SYNC_SHAREDFILES</NAME>
+    <NAME>RUDDER_REPORTS_DB_URL</NAME>
+    <NAME>RUDDER_REPORTS_DB_PASSWORD</NAME>
+    <NAME>HTTPS_POLICY_DISTRIBUTION_PORT</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Rudder-relayd service" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Configuration permissions</VALUE>
+        <VALUE>Configuration</VALUE>
+        <VALUE>Enabled</VALUE>
+        <VALUE>Started</VALUE>
+        <VALUE>Log rotation</VALUE>
+        <VALUE>Policy-server certificate</VALUE>
+        <VALUE>Root server certificate</VALUE>
+        <VALUE>Root certificate permissions</VALUE>
+        <VALUE>Policy server certificate permissions</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Synchronize policies" component="true"/>
+    <SECTION name="Synchronize files" component="true"/>
+    <SECTION name="Synchronize resources" component="true"/>
+  </SECTIONS>
+</TECHNIQUE>

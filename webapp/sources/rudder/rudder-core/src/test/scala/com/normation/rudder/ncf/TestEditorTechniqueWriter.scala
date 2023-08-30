@@ -521,21 +521,26 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
   }
 
-  val compiler      = new TechniqueCompilerWithFallback(
+  val webappCompiler = new WebappTechniqueCompiler(
     valueCompiler,
     new RudderPrettyPrinter(Int.MaxValue, 2),
     parameterTypeService,
-    new RuddercService {
-      override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
-        RuddercResult.Ok("", "", "").succeed
-      }
-    },
-    TechniqueCompilerApp.Webapp,
     editorTechniqueReader,
     _.path,
     basePath
   )
-  val writer        = new TechniqueWriterImpl(
+  val compiler       = new TechniqueCompilerWithFallback(
+    webappCompiler,
+    new RuddercService {
+      override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
+        RuddercResult.Fail(42, "error:see implementation of test", "", "").succeed
+      }
+    },
+    TechniqueCompilerApp.Webapp,
+    _.path,
+    basePath
+  )
+  val writer         = new TechniqueWriterImpl(
     TestTechniqueArchiver,
     TestLibUpdater,
     new DeleteEditorTechnique {
@@ -552,13 +557,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     compiler,
     basePath
   )
-  val dscWriter     = new DSCTechniqueWriter(
+  val dscWriter      = new DSCTechniqueWriter(
     basePath,
     valueCompiler,
     new ParameterType.PlugableParameterTypeService,
     _.path
   )
-  val classicWriter = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
+  val classicWriter  = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
 
   val expectedMetadataPath = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/metadata.xml"
   val dscTechniquePath     = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.ps1"
@@ -569,7 +574,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.name}" should {
 
     "Should write metadata file without problem" in {
-      compiler.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
+      webappCompiler.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -660,7 +665,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
-      compiler.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
+      webappCompiler.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
     }
 
     "Should generate expected metadata content for our technique" in {
@@ -751,7 +756,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write metadata file without problem" in {
-      compiler.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
+      webappCompiler.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
         s"techniques/ncf_techniques/${expectedMetadataPath_var_cond}"
       )
     }

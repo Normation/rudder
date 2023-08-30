@@ -117,7 +117,7 @@ class CheckNcfTechniqueUpdate(
         written                 <- ZIO.foreach(techniquesWithResources) { t =>
                                      techniqueWrite
                                        .writeTechnique(t, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
-                                       .chainError(s"An error occured while writing technique ${t.id.value}")
+                                       .chainError(s"An error occured while writing technique '${t.id.value}'")
                                    }
         // Update technique library once all technique are updated
         libUpdate               <- techLibUpdate

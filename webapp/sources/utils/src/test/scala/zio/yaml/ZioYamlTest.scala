@@ -29,19 +29,12 @@ import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import zio.json._
 
+// test data
+final case class Param(id: String, mandatory: Boolean)
+final case class Container(id: String, version: Int, params: Seq[Param])
+
 @RunWith(classOf[JUnitRunner])
 class ZioYamlTest extends Specification {
-
-  final case class Param(
-      id:        String,
-      mandatory: Boolean
-  )
-
-  final case class Container(
-      id:      String,
-      version: Int,
-      params:  Seq[Param]
-  )
 
   implicit val codecParam:           JsonCodec[Param]     = DeriveJsonCodec.gen
   implicit val codecSimpleContainer: JsonCodec[Container] = DeriveJsonCodec.gen

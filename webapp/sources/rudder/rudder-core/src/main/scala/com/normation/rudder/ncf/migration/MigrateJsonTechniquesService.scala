@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
 import com.normation.errors._
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.ncf._
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueFiles
@@ -55,7 +56,7 @@ import zio.json._
  *
  * It understands the last available JSON file format in Rudder 7.3.
  */
-object MigrateOldTechniquesService {
+object MigrateJsonTechniquesService {
 
   private object OldTechniqueSerializer {
     case class JRTechniqueElem(
@@ -98,8 +99,8 @@ object MigrateOldTechniquesService {
     )
 
     case class JRReportingLogic(
-        name:  String,
-        value: Option[String]
+        `type`: String,
+        value:  Option[String]
     )
 
     implicit val oldResourceJsonDecoder:   JsonDecoder[JRTechniqueResource]  = DeriveJsonDecoder.gen
@@ -112,7 +113,7 @@ object MigrateOldTechniquesService {
 
     private def toMethodElem(elem: JRTechniqueElem): MethodElem = {
       val reportingLogic = elem.reportingLogic
-        .flatMap(r => ReportingLogic.parse(r.name ++ (r.value.map(v => s":$v")).getOrElse("")).toOption)
+        .flatMap(r => ReportingLogic.parse(r.`type` ++ (r.value.map(v => s":$v")).getOrElse("")).toOption)
         .getOrElse(WeightedReport)
       elem.calls match {
         case Some(calls) =>
@@ -157,7 +158,7 @@ object MigrateOldTechniquesService {
   /*
    * Read a JSON string in old Rudder 7.3 metadata format as an Editor technique
    */
-  def readFromOldJsonTechnique(json: String): PureResult[EditorTechnique] = {
+  def fromOldJsonTechnique(json: String): PureResult[EditorTechnique] = {
     import OldTechniqueSerializer._
     json
       .fromJson[EditorTechnique]
@@ -173,7 +174,7 @@ object MigrateOldTechniquesService {
     import zio.yaml.YamlOps._
 
     for {
-      technique <- readFromOldJsonTechnique(json).left.map(err =>
+      technique <- fromOldJsonTechnique(json).left.map(err =>
                      Inconsistency(s"Error when trying to parse a technique.json in Rudder 7.3 format: ${err}")
                    )
       yaml      <- technique.toYaml().left.map(Inconsistency(_))
@@ -193,8 +194,11 @@ object MigrateOldTechniquesService {
                   }
           yaml <- toYaml(json).toIO
           _    <- IOResult.attempt(yamlFile.write(yaml))
-          // on success, delete json file
-          _    <- IOResult.attempt(jsonFile.delete())
+          // on success, delete json file and generated files
+          _    <- IOResult
+                    .attempt(jsonFile.delete())
+                    .chainError(s"Error when deleting migrated json metadata file: '${jsonFile.pathAsString}'")
+          _    <- ApplicationLoggerPure.debug(s"Technique '${techniquePath}' migrated to YAML format")
         } yield ()
       }
       .unit

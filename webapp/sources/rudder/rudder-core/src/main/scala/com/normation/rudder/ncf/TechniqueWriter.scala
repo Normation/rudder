@@ -142,7 +142,7 @@ class TechniqueWriterImpl(
   ): IOResult[EditorTechnique] = {
     for {
       time_0                      <- currentTimeMillis
-      _                           <- TechniqueWriterLoggerPure.debug(s"Writing technique ${technique.name}")
+      _                           <- TechniqueWriterLoggerPure.debug(s"Writing technique '${technique.name}'")
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources              = technique.resources.collect {
                                        case r if r.state != ResourceFileState.Deleted => r.copy(state = ResourceFileState.Untouched)

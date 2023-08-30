@@ -1,0 +1,6 @@
+compiler: rudderc
+fallbacked: false
+resultCode: 42
+msg: error
+stdout: ''
+stderr: error stderr
