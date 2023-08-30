@@ -216,12 +216,14 @@ type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUi
 type Msg =
     SelectTechnique (Either Technique Draft)
   | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+  | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UpdateTechnique Technique
   | DeleteTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueId ))
   | GetTechniqueResources  (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
   | GetCategories (Result (Http.Detailed.Error String)  ( Http.Metadata, TechniqueCategory ))
   | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
+  | CheckTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
   | RemoveMethod CallId
@@ -267,6 +269,7 @@ type Msg =
   | MoveCompleted DragElement DropElement
   -- Sometimes drag and drop event are blocked / catched, fire it manually
   | CompleteMove
+  | FinalizeImport String
   | SetMissingIds String
   | Notification (String -> Cmd Msg) String
   | DisableDragDrop

@@ -52,12 +52,14 @@ import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf._
 import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.ActionType
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.lift.TechniqueApi.OutputFormat
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
@@ -70,6 +72,21 @@ import zio._
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
 import zio.syntax._
+
+object TechniqueApi {
+  sealed trait OutputFormat
+  object OutputFormat {
+    def parse(s: String): OutputFormat = {
+      s.toLowerCase match {
+        case "yaml" => Yaml
+        case "json" => Json
+        case _      => Json // default to json for now
+      }
+    }
+    case object Json extends OutputFormat
+    case object Yaml extends OutputFormat
+  }
+}
 
 class TechniqueApi(
     restExtractorService: RestExtractorService,
@@ -84,8 +101,9 @@ class TechniqueApi(
     configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
 
-  import techniqueSerializer._
+  import TechniqueApi._
   import zio.json._
+  import zio.json.yaml._
   def schemas = API
 
   val dataName = "techniques"
@@ -140,6 +158,7 @@ class TechniqueApi(
           case API.GetAllTechniqueCategories => GetAllTechniqueCategories
           case API.GetTechniqueAllVersion    => GetTechniqueDetailsAllVersion
           case API.GetTechnique              => GetTechnique
+          case API.CheckTechnique            => CheckTechnique
         }
       })
       .toList
@@ -235,12 +254,9 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
+      import techniqueSerializer._
 
-      // copied from `Req.forcedBodyAsJson`
-      def r  = """; *charset=(.*)""".r
-      def r2 = """[^=]*$""".r
-      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
-
+      def charset: String = RestUtils.getCharset(req)
       // end copy
       val response = {
         for {
@@ -307,6 +323,8 @@ class TechniqueApi(
 
   object UpdateTechniques extends LiftApiModule0 {
 
+    import techniqueSerializer._
+
     val schema        = API.UpdateTechniques
     val restExtractor = restExtractorService
     implicit val dataName: String = "techniques"
@@ -366,6 +384,8 @@ class TechniqueApi(
 
   object CreateTechnique extends LiftApiModule0 {
 
+    import techniqueSerializer._
+
     def moveRessources(technique: EditorTechnique, internalId: String) = {
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
@@ -398,11 +418,7 @@ class TechniqueApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
 
-      def r = """; *charset=(.*)""".r
-
-      def r2 = """[^=]*$""".r
-
-      def charset: String = req.contentType.flatMap(ct => r.findFirstIn(ct).flatMap(r2.findFirstIn)).getOrElse("UTF-8")
+      def charset: String = RestUtils.getCharset(req)
 
       // end copy
       val response = {
@@ -456,6 +472,40 @@ class TechniqueApi(
         req,
         s"Could not find list of techniques"
       )("listTechniques")
+    }
+  }
+
+  object CheckTechnique extends LiftApiModule0 {
+    val schema        = API.CheckTechnique
+    val restExtractor = restExtractorService
+    implicit val dataName:                                                                                     String       = "techniques"
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      case class Content(content: String)
+      def charset:          String               = RestUtils.getCharset(req)
+      implicit val decoder: JsonDecoder[Content] = DeriveJsonDecoder.gen[Content]
+
+      val response: IOResult[Json] = {
+        for {
+          content   <-
+            req.body match {
+              case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
+              case Full(bytes) => new String(bytes, charset).fromJson[Content].toIO
+            }
+          technique <- {
+            import YamlTechniqueSerializer._
+            val t: IOResult[EditorTechnique] = content.content.fromYaml[EditorTechnique].toIO
+            t
+          }
+          json      <- {
+            import techniqueSerializer._
+            technique.toJsonAST.toIO
+          }
+        } yield {
+          json
+        }
+      }
+
+      response.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -573,7 +623,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      serviceV14.getTechniqueWithData(techniqueName, None).toLiftResponseList(params, schema)
+      serviceV14.getTechniqueWithData(techniqueName, None, OutputFormat.Json).toLiftResponseList(params, schema)
     }
   }
 
@@ -589,15 +639,16 @@ class TechniqueApi(
     ): LiftResponse = {
       val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
 
-      val directives = TechniqueVersion.parse(version) match {
+      val format = req.params("format").map(TechniqueApi.OutputFormat.parse).headOption.getOrElse(OutputFormat.Json)
+      val json   = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
-          serviceV14.getTechniqueWithData(techniqueName, Some(techniqueVersion))
+          serviceV14.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)
         case Left(error)             =>
           Inconsistency(
             s"Could not find technique '${techniqueName.value}' details, because we could not parse '${version}' as a valid technique version"
           ).fail
       }
-      directives.toLiftResponseList(params, schema)
+      json.toLiftResponseList(params, schema)
     }
   }
 
@@ -702,11 +753,12 @@ class TechniqueAPIService6(
 }
 
 class TechniqueAPIService14(
-    readDirective:       RoDirectiveRepository,
-    techniqueRevisions:  TechniqueRevisionRepository,
-    techniqueReader:     EditorTechniqueReader,
-    techniqueSerializer: TechniqueSerializer,
-    restDataSerializer:  RestDataSerializer
+    readDirective:           RoDirectiveRepository,
+    techniqueRevisions:      TechniqueRevisionRepository,
+    techniqueReader:         EditorTechniqueReader,
+    techniqueSerializer:     TechniqueSerializer,
+    yamlTechniqueSerializer: YamlTechniqueSerializer,
+    restDataSerializer:      RestDataSerializer
 ) {
 
   def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
@@ -780,7 +832,7 @@ class TechniqueAPIService14(
     techniqueRevisions.getTechniqueRevision(name, version).map(_.map(JRRevisionInfo.fromRevisionInfo))
   }
 
-  def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion]) = {
+  def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion], format: TechniqueApi.OutputFormat) = {
     for {
       lib                          <- readDirective.getFullDirectiveLibrary()
       activeTechnique               = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
@@ -807,9 +859,16 @@ class TechniqueAPIService14(
                     t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
                   ) match {
                     case Some(editorTechnique) =>
-                      import techniqueSerializer._
-                      import zio.json._
-                      editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                      format match {
+                        case OutputFormat.Yaml =>
+                          import YamlTechniqueSerializer._
+                          import zio.yaml.YamlOps._
+                          editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
+                        case OutputFormat.Json =>
+                          import techniqueSerializer._
+                          import zio.json._
+                          editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                      }
                     case None                  =>
                       restDataSerializer.serializeTechnique(technique).succeed
                   }

@@ -243,6 +243,8 @@ update msg model =
     ImportFile file ->
       (model, Task.perform (ParseImportedFile file) (File.toString file) )
     ParseImportedFile file content ->
+      (model, checkTechniqueYaml model content)
+      {-
       case Json.Decode.decodeString (Json.Decode.at ["data"] decodeTechnique ) content of
         Ok t ->
           let
@@ -256,7 +258,7 @@ update msg model =
             ( newModel, Cmd.batch [ cmd, infoNotification ("Technique '"++ t.id.value ++ "' successfully imported, please save to create technique") ] )
         Err err ->
          (model, errorNotification ("Error when importing technique from file " ++ (File.name file) ++ ": " ++ (Json.Decode.errorToString err)))
-
+      -}
 
 -- Edit a technique: high level action: save/update, clone, export, switch tab
 
@@ -448,11 +450,8 @@ update msg model =
       let
         action = case model.mode of
                    TechniqueDetails t _ _ ->
-                     let
-                       data =  encodeExportTechnique t
-                       content = Json.Encode.encode 2 data
-                     in
-                       File.Download.string (t.id.value ++ ".json") "application/json" content
+                       getTechniqueYaml model t
+
                    _ -> Cmd.none
       in
         (model, action)
@@ -892,3 +891,37 @@ update msg model =
           ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} }, Cmd.none )
     HoverMethod id ->
       ({model | isMethodHovered = id} , Cmd.none)
+
+    GetYaml result ->
+      let
+        cmd = case result of
+          Ok (_, content) ->
+             case model.mode of
+               TechniqueDetails t _ _ ->
+                 File.Download.string (t.id.value ++ ".yml") "application/json" content
+               _ -> Cmd.none
+          Err e -> Cmd.none
+      in
+        (model,cmd)
+
+    CheckTechnique result ->
+       case result of
+          Ok (_, technique) ->
+            let
+               callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls technique.elems)))
+               blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems)))
+               ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+            in
+               update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui }
+          Err e -> (model, Cmd.none)
+
+    FinalizeImport draftId ->
+      case model.mode of
+        TechniqueDetails t _ ui ->
+          updatedStoreTechnique {model | mode = TechniqueDetails t (Creation (TechniqueId draftId)) ui }
+        _ ->
+          (model, Cmd.none)
+
+
+
+

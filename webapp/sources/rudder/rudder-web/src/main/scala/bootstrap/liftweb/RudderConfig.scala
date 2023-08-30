@@ -1639,6 +1639,7 @@ object RudderConfigInit {
         gitParseTechniqueLibrary,
         ncfTechniqueReader,
         techniqueSerializer,
+        yamlTechniqueSerializer,
         restDataSerializer
       )
     }
