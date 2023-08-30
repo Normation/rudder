@@ -3336,12 +3336,6 @@ object RudderConfigInit {
         inventoryHistoryJdbcRepository,
         KEEP_REFUSED_NODE_FACT_DURATION
       ),
-      new MigrateJsonTechniquesToYaml(
-        ncfTechniqueWriter,
-        uuidGen,
-        updateTechniqueLibrary,
-        gitConfigRepo.rootDirectory.pathAsString
-      ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
@@ -3349,6 +3343,12 @@ object RudderConfigInit {
         updateTechniqueLibrary,
         ncfTechniqueReader,
         resourceFileService
+      ),
+      new MigrateJsonTechniquesToYaml(
+        ncfTechniqueWriter,
+        uuidGen,
+        updateTechniqueLibrary,
+        gitConfigRepo.rootDirectory.pathAsString
       ),
       new TriggerPolicyUpdate(
         asyncDeploymentAgent,
