@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
+import com.normation.errors.effectUioUnit
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -466,7 +467,7 @@ object UserFileProcessing {
   ): IOResult[ValidatedUserList] = {
     for {
       parsed <- parseXmlNoResolve(xml, debugFileName)
-      known  <- if (reload) RudderRoles.builtInRoles.succeed else RudderRoles.getAllRoles
+      known  <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
       roles  <- resolveRoles(known, parsed.customRoles, extendedAuthz)
       _      <- RudderRoles.register(roles, resetExisting = reload)
       users  <- resolveUsers(parsed.users, extendedAuthz, debugFileName)

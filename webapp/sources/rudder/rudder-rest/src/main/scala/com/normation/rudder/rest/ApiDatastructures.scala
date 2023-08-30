@@ -39,6 +39,7 @@ package com.normation.rudder.rest
 
 import cats.data._
 import cats.implicits._
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 
@@ -181,9 +182,9 @@ trait ApiModuleProvider[A <: EndpointSchema] {
   // the list of endpoints for that module
   def endpoints: List[A]
 
-  // specific authorization required for accesing path in that module
+  // specific authorization required for accessing path in that module
   // a default is provided that tells "only admin can access it"
-  def authorizationApiMapping: AuthorizationApiMapping = AuthorizationApiMapping.OnlyAdmin
+  lazy val authorizationApiMapping: AuthorizationApiMapping = new AuthorizationMappingListEndpoint(endpoints)
 }
 
 /**
@@ -224,6 +225,9 @@ trait EndpointSchema {
 
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
+
+  // any authorization that allows to access that API - by default, admin.write
+  def authz: List[AuthorizationType] = List(AuthorizationType.Administration.Write)
 }
 
 trait EndpointSchema0 extends EndpointSchema {
