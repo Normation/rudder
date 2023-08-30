@@ -439,7 +439,7 @@ limitations under the License.
     <unboundid-version>6.0.9</unboundid-version>
     <fastparse-version>3.0.2</fastparse-version>
     <config-version>1.4.2</config-version>
-    <caffeine-version>3.1.6</caffeine-version>
+    <caffeine-version>3.1.8</caffeine-version>
     <jgrapht-version>1.5.2</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
     <graalvm-version>23.0.1</graalvm-version>
