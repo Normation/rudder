@@ -51,7 +51,7 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
+import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.services.policies.InterpolatedValueCompiler
@@ -109,23 +109,31 @@ trait TechniqueCompiler {
    * check if the technique is an old JSON technique (try to migrate) or a yaml technique
    * without or with old generated files.
    */
-  def migrateCompileIfNeeded(techniquePath: File): IOResult[Unit] = {
+  def migrateCompileIfNeeded(techniquePath: File): IOResult[TechniqueCompilationOutput] = {
     val yamlFile    = techniquePath / TechniqueFiles.yaml
     val metadata    = techniquePath / TechniqueFiles.Generated.metadata
     val compileYaml = compileAtPath(techniquePath)
+    val success     = TechniqueCompilationOutput(
+      TechniqueCompilerApp.Rudderc,
+      false,
+      0,
+      "no compilation needed: artifact are up-to-date",
+      "",
+      ""
+    ).succeed
 
     for {
-      _ <- MigrateOldTechniquesService.migrateJson(techniquePath)
-      _ <- IOResult.attemptZIO {
+      _ <- MigrateJsonTechniquesService.migrateJson(techniquePath)
+      x <- IOResult.attemptZIO {
              if (yamlFile.exists) {
                if (metadata.exists) {
                  if (yamlFile.lastModifiedTime.isAfter(metadata.lastModifiedTime)) {
                    compileYaml
-                 } else ZIO.unit
+                 } else success
                } else compileYaml
-             } else ZIO.unit
+             } else success
            }
-    } yield ()
+    } yield x
   }
 }
 
@@ -335,22 +343,17 @@ class RuddercServiceImpl(
   }
 }
 
+/*
+ * The main compiler service, which is able to choose between rudderc and webapp based on
+ * default & local config, and can fallback from rudder to webapp when needed.
+ */
 class TechniqueCompilerWithFallback(
-    translater:               InterpolatedValueCompiler,
-    xmlPrettyPrinter:         RudderPrettyPrinter,
-    parameterTypeService:     ParameterTypeService,
+    fallbackCompiler:         TechniqueCompiler,
     ruddercService:           RuddercService,
     defaultCompiler:          TechniqueCompilerApp,
-    editorTechniqueReader:    EditorTechniqueReader,
     getTechniqueRelativePath: EditorTechnique => String, // get the technique path relative to git root.
     val baseConfigRepoPath:   String                     // root of config repos
 ) extends TechniqueCompiler {
-
-  private[this] val cfengineTechniqueWriter =
-    new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService, getTechniqueRelativePath)
-  private[this] val dscTechniqueWriter      =
-    new DSCTechniqueWriter(baseConfigRepoPath, translater, parameterTypeService, getTechniqueRelativePath)
-  private[this] val agentSpecific           = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
 
   // root of technique repository
   val gitDir = File(baseConfigRepoPath)
@@ -373,7 +376,12 @@ class TechniqueCompilerWithFallback(
       _      <- ZIO.whenZIO(IOResult.attempt(getCompilationOutputFile(technique).exists)) {
                   IOResult.attempt(getCompilationOutputFile(technique).delete()) // clean-up previous output
                 }
-      app     = config.compiler.getOrElse(defaultCompiler)
+      // if compiler app is defined, recover is forbidden
+      app     = config.compiler
+      // clean-up generated files
+      _      <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
+                  IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
+                }
       res    <- compileTechniqueInternal(technique, app)
       _      <- ZIO.when(res.fallbacked == true || res.resultCode != 0) {
                   writeCompilationOutputFile(technique, res)
@@ -389,33 +397,12 @@ class TechniqueCompilerWithFallback(
    */
   def compileTechniqueInternal(
       technique: EditorTechnique,
-      app:       TechniqueCompilerApp
+      // if app is given, then recover is forbidden
+      app:       Option[TechniqueCompilerApp]
   ): IOResult[TechniqueCompilationOutput] = {
 
     val verbose        = true
     val ruddercOptions = RuddercOptions(verbose)
-
-    val webApp = {
-      for {
-        methods  <- editorTechniqueReader.getMethodsMetadata
-        _        <- writeAgentFiles(technique, methods, onlyPS1 = false)
-        time_1   <- currentTimeMillis
-        metadata <- writeMetadata(technique, methods)
-        time_2   <- currentTimeMillis
-        _        <- TimingDebugLoggerPure.trace(
-                      s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_2 - time_1}ms"
-                    )
-      } yield {
-        TechniqueCompilationOutput(
-          TechniqueCompilerApp.Webapp,
-          false,
-          0,
-          s"Technique '${getTechniqueRelativePath(technique)}' written by webapp",
-          "",
-          ""
-        )
-      }
-    }
 
     val ruddercAll = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
 
@@ -425,16 +412,19 @@ class TechniqueCompilerWithFallback(
       r match {
         case _: RuddercResult.Fail =>
           // fallback but keep rudderc error for logs
-          webApp *> ltc.copy(compiler = TechniqueCompilerApp.Webapp, fallbacked = true).succeed
+          fallbackCompiler
+            .compileTechnique(technique) *> ltc.copy(compiler = TechniqueCompilerApp.Webapp, fallbacked = true).succeed
         case _ => ltc.succeed
       }
     }
 
     app match {
-      case TechniqueCompilerApp.Webapp  => // in that case, we can't fallback even more, so the result is final
-        webApp
-      case TechniqueCompilerApp.Rudderc =>
-        ruddercAll.flatMap(res => recoverIfNeeded(TechniqueCompilerApp.Rudderc, res))
+      case None                               =>
+        ruddercAll.flatMap(res => recoverIfNeeded(defaultCompiler, res))
+      case Some(TechniqueCompilerApp.Webapp)  => // in that case, we can't fallback even more, so the result is final
+        fallbackCompiler.compileTechnique(technique)
+      case Some(TechniqueCompilerApp.Rudderc) =>
+        ruddercAll.map(r => TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, false, r.code, r.msg, r.stdout, r.stderr))
     }
   }
 
@@ -469,6 +459,47 @@ class TechniqueCompilerWithFallback(
       value <- comp.toYaml().toIO
       _     <- IOResult.attempt(getCompilationOutputFile(technique).write(value))
     } yield ()
+  }
+}
+
+/*
+ * This class implements the old webapp-based compiler used in Rudder 7.x.
+ * It is now use as a fallback for when rudderc fails or if configured.
+ */
+class WebappTechniqueCompiler(
+    translater:               InterpolatedValueCompiler,
+    xmlPrettyPrinter:         RudderPrettyPrinter,
+    parameterTypeService:     ParameterTypeService,
+    editorTechniqueReader:    EditorTechniqueReader,
+    getTechniqueRelativePath: EditorTechnique => String, // get the technique path relative to git root.
+    val baseConfigRepoPath:   String                     // root of config repos
+) extends TechniqueCompiler {
+  private[this] val cfengineTechniqueWriter =
+    new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService, getTechniqueRelativePath)
+  private[this] val dscTechniqueWriter      =
+    new DSCTechniqueWriter(baseConfigRepoPath, translater, parameterTypeService, getTechniqueRelativePath)
+  private[this] val agentSpecific           = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
+
+  override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+    for {
+      methods <- editorTechniqueReader.getMethodsMetadata
+      _       <- writeAgentFiles(technique, methods, onlyPS1 = false)
+      time_1  <- currentTimeMillis
+      _       <- writeMetadata(technique, methods)
+      time_2  <- currentTimeMillis
+      _       <- TimingDebugLoggerPure.trace(
+                   s"writeTechnique: generating metadata for technique '${technique.name}' took ${time_2 - time_1}ms"
+                 )
+    } yield {
+      TechniqueCompilationOutput(
+        TechniqueCompilerApp.Webapp,
+        false,
+        0,
+        s"Technique '${getTechniqueRelativePath(technique)}' written by webapp",
+        "",
+        ""
+      )
+    }
   }
 
   def writeAgentFiles(

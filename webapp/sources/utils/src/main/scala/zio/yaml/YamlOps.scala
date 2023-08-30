@@ -5,23 +5,12 @@
 package zio.yaml
 
 import java.io.StringWriter
-import java.nio.charset.StandardCharsets
-import java.util.Base64
 import org.yaml.snakeyaml.DumperOptions
-import org.yaml.snakeyaml.DumperOptions.NonPrintableStyle
-import org.yaml.snakeyaml.DumperOptions.ScalarStyle
 import org.yaml.snakeyaml.emitter.Emitter
 import org.yaml.snakeyaml.error.YAMLException
-import org.yaml.snakeyaml.nodes.MappingNode
 import org.yaml.snakeyaml.nodes.Node
-import org.yaml.snakeyaml.nodes.NodeTuple
-import org.yaml.snakeyaml.nodes.ScalarNode
-import org.yaml.snakeyaml.nodes.SequenceNode
-import org.yaml.snakeyaml.nodes.Tag
-import org.yaml.snakeyaml.reader.StreamReader
 import org.yaml.snakeyaml.resolver.Resolver
 import org.yaml.snakeyaml.serializer.Serializer
-import scala.util.matching.Regex
 import zio.json.ast.Json
 import zio.json.yaml.YamlOptions
 

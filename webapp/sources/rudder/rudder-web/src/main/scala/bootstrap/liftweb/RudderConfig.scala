@@ -42,7 +42,6 @@ import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
 import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
 import bootstrap.liftweb.checks.action.CreateSystemToken
 import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
-import bootstrap.liftweb.checks.action.MigrateOldTechniques
 import bootstrap.liftweb.checks.action.RemoveFaultyLdapEntries
 import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
@@ -52,6 +51,7 @@ import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
 import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
 import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
 import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
@@ -144,6 +144,7 @@ import com.normation.rudder.ncf.TechniqueCompilerWithFallback
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.WebappTechniqueCompiler
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
@@ -1513,7 +1514,7 @@ object RudderConfigInit {
       def getCurrentUser = CurrentUser
     }
 
-    lazy val ncfTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
+    lazy val ncfTechniqueReader = new EditorTechniqueReaderImpl(
       stringUuidGenerator,
       personIdentService,
       gitConfigRepo,
@@ -1818,12 +1819,16 @@ object RudderConfigInit {
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
     lazy val techniqueCompiler:  TechniqueCompiler = new TechniqueCompilerWithFallback(
-      interpolationCompiler,
-      prettyPrinter,
-      typeParameterService,
+      new WebappTechniqueCompiler(
+        interpolationCompiler,
+        prettyPrinter,
+        typeParameterService,
+        ncfTechniqueReader,
+        _.path,
+        RUDDER_GIT_ROOT_CONFIG_REPO
+      ),
       new RuddercServiceImpl(RUDDERC_CMD, RUDDERC_FALLBACK_RETURN_CODE, 5.seconds),
       TECHNIQUE_COMPILER_APP,
-      ncfTechniqueReader,
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
@@ -3331,12 +3336,11 @@ object RudderConfigInit {
         inventoryHistoryJdbcRepository,
         KEEP_REFUSED_NODE_FACT_DURATION
       ),
-      new MigrateOldTechniques(
+      new MigrateJsonTechniquesToYaml(
         ncfTechniqueWriter,
-        roLDAPApiAccountRepository.systemAPIAccount,
         uuidGen,
         updateTechniqueLibrary,
-        ncfTechniqueReader
+        gitConfigRepo.rootDirectory.pathAsString
       ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,

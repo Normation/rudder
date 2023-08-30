@@ -340,7 +340,13 @@ class TechniqueArchiverImpl(
     val techniquePath    = gitRepo.rootDirectory / techniqueGitPath
 
     (for {
-      _        <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
+      res      <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
+      _        <- ZIO.when(res.resultCode != 0) {
+                    Unexpected(
+                      s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
+                      s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"
+                    ).fail
+                  }
       metadata <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files     = getFilesToCommit(tech, techniqueGitPath, resourcesStatus)

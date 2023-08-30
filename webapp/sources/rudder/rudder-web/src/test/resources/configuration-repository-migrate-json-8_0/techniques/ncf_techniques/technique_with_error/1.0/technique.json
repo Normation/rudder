@@ -1,0 +1,25 @@
+{
+  "id":"technique_with_error",
+  "version":"1.0",
+  "category":"ncf_techniques",
+  "description":"",
+  "name":"technique with compile error",
+  "calls":[
+    {
+      "method":"command_execution",
+      "condition":"",
+      "disableReporting":false,
+      "component":"Command execution",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"touch /tmp/error"
+        }
+      ],
+      "id":"00000000-f940-4b65-834a-4d8ddd085c34"
+    }
+  ],
+  "parameter":[],
+  "resources":[],
+  "source":"editor"
+}

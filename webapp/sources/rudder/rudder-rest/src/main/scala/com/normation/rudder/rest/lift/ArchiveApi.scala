@@ -75,7 +75,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.migration.MigrateOldTechniquesService
+import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -808,7 +808,7 @@ class ZipArchiveReaderImpl(
         case TechniqueType.Json.name =>
           val json = new String(content, StandardCharsets.UTF_8)
           for {
-            yaml <- MigrateOldTechniquesService.toYaml(json).toIO
+            yaml <- MigrateJsonTechniquesService.toYaml(json).toIO
             res  <- checkParseTechniqueDescriptor(id, optTech, TechniqueType.Yaml.name, yaml.getBytes(StandardCharsets.UTF_8))
           } yield res
 
