@@ -723,6 +723,7 @@ class RestTestSetUp {
     mockTechniques.techniqueRevisionRepo,
     null,
     null,
+    null,
     null
   )
 
