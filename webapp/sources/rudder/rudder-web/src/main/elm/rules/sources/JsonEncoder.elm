@@ -2,15 +2,14 @@ module  JsonEncoder exposing (..)
 
 import DataTypes exposing (..)
 import Json.Encode exposing (..)
-import ChangeRequest exposing (ChangeRequestSettings, encodeChangeRequestSettings)
+import ChangeRequest exposing (ChangeRequestSettings)
 
-encodeRuleDetails: Rule -> Maybe ChangeRequestSettings -> Value
-encodeRuleDetails ruleDetails crSettings =
+encodeRuleDetails: Rule -> Value
+encodeRuleDetails ruleDetails =
   let
     listTags = object(List.map (\t -> (t.key, string t.value)) ruleDetails.tags)
-    encodeCrSettings = encodeChangeRequestSettings crSettings
   in
-      object ( List.append
+   object
         [ ("id"               , string ruleDetails.id.value            )
         , ("displayName"      , string ruleDetails.name                )
         , ("category"         , string ruleDetails.categoryId          )
@@ -22,8 +21,6 @@ encodeRuleDetails ruleDetails crSettings =
         , ("targets"          , list encodeTargets ruleDetails.targets )
         , ("tags"             , list encodeTags ruleDetails.tags       )
         ]
-        encodeCrSettings
-      )
 
 encodeCategoryDetails: String -> (Category Rule) -> Value
 encodeCategoryDetails parentId category =

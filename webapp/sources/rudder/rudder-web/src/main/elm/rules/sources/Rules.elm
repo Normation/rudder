@@ -310,7 +310,7 @@ update msg model =
             ui = details.ui
             modelUi = model.ui
             crSettings = case modelUi.crSettings of
-              Just cr -> Just { cr | newMessagePrompt = "" }
+              Just cr -> Just { cr | message = "" }
               Nothing -> modelUi.crSettings
             newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False, crSettings = crSettings} }
           in
@@ -334,7 +334,7 @@ update msg model =
             txtDisable = if ruleDetails.enabled then "enabled" else "disabled"
             ui = model.ui
             crSettings = case ui.crSettings of
-              Just s  -> Just { s | newMessagePrompt = ""}
+              Just s  -> Just { s | message = ""}
               Nothing -> Nothing
           in
             ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}, ui = { ui | crSettings = crSettings}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
@@ -368,7 +368,7 @@ update msg model =
             newMode  = if r.rule.id == ruleId then RuleTable else model.mode
             ui = model.ui
             crSettings = case ui.crSettings of
-              Just s  -> Just { s | newMessagePrompt = ""}
+              Just s  -> Just { s | message = ""}
               Nothing -> Nothing
 
             newModel = { model | mode = newMode, ui = { ui | crSettings = crSettings} }

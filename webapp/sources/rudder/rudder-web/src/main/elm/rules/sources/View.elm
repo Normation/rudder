@@ -146,7 +146,7 @@ view model =
             [ text "Change audit message"
             , text (if crSettings.mandatoryChangeMessage then " (required)" else "")
             ]
-            , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | newMessagePrompt = s}), value crSettings.newMessagePrompt ][]
+            , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
           ]
         ]
       else
@@ -159,7 +159,7 @@ view model =
           (auditForm, btnDisabled) = case crSettings of
             Just s  ->
               ( changeAuditForm s
-              , (s.mandatoryChangeMessage && String.isEmpty s.newMessagePrompt)
+              , (s.mandatoryChangeMessage && String.isEmpty s.message)
               )
             Nothing ->
               ( text ""
@@ -194,7 +194,7 @@ view model =
           (auditForm, btnDisabled) = case crSettings of
             Just s  ->
               ( changeAuditForm s
-              , (s.mandatoryChangeMessage && String.isEmpty s.newMessagePrompt)
+              , (s.mandatoryChangeMessage && String.isEmpty s.message)
               )
             Nothing ->
               ( text ""
@@ -272,7 +272,7 @@ view model =
                   [ i [ class "fa fa-arrow-left space-right" ] []
                   , text "Cancel "
                   ]
-                , button [ class "btn btn-primary", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.newMessagePrompt) ]
+                , button [ class "btn btn-primary", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
                   ( if crSettings.enableChangeRequest then
                     [ text "Create change request "
                     , i [ class "fa fa-plus" ] []

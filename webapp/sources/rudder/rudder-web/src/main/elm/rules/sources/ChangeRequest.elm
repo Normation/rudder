@@ -1,9 +1,8 @@
 module ChangeRequest exposing (..)
 
-import Json.Encode exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Decode.Field exposing (..)
+import Url.Builder
 
 --
 -- Module to handle change request settings
@@ -15,7 +14,7 @@ type alias ChangeRequestSettings =
   , changeMessagePrompt    : String
   , enableChangeRequest    : Bool
   , changeRequestName      : String
-  , newMessagePrompt       : String
+  , message                : String
   , displayMessagePrompt   : Bool
   }
 
@@ -34,22 +33,22 @@ decodeChangeRequestSettings =
     |> hardcoded ""
     |> hardcoded False
 
-encodeChangeRequestSettings: Maybe ChangeRequestSettings -> List (String, Json.Encode.Value)
-encodeChangeRequestSettings changeRequestSettings =
+changeRequestParameters: Maybe ChangeRequestSettings -> List Url.Builder.QueryParameter
+changeRequestParameters changeRequestSettings =
   case changeRequestSettings of
     Nothing -> []
     Just settings ->
       let
         changeAuditParams =
           if settings.enableChangeMessage then
-            [ ( "reason" , Json.Encode.string settings.newMessagePrompt ) ]
+            [ Url.Builder.string "reason" settings.message ]
           else
             []
 
         changeRequestParams =
           if settings.enableChangeRequest then
-            [ ( "changeRequestName"        , Json.Encode.string settings.changeRequestName )
-            , ( "changeRequestDescription" , Json.Encode.string settings.newMessagePrompt  )
+            [ Url.Builder.string  "changeRequestName" settings.changeRequestName
+            , Url.Builder.string "changeRequestDescription"  settings.message
             ]
           else
             []

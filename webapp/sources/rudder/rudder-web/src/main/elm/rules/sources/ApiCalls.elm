@@ -9,7 +9,7 @@ import Time.ZonedDateTime exposing (ZonedDateTime)
 import Url
 import Url.Builder exposing (QueryParameter, int, string)
 
-import ChangeRequest exposing (decodeGetChangeRequestSettings)
+import ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings)
 
 --
 -- This files contains all API calls for the Rules UI
@@ -250,8 +250,8 @@ saveRuleDetails ruleDetails creation model =
       request
         { method  = method
         , headers = []
-        , url     = getUrl model url []
-        , body    = encodeRuleDetails ruleDetails model.ui.crSettings |> jsonBody
+        , url     = getUrl model url  (changeRequestParameters model.ui.crSettings)
+        , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson SaveRuleDetails decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
@@ -267,8 +267,8 @@ saveDisableAction ruleDetails model =
       request
         { method  = "POST"
         , headers = []
-        , url     = getUrl model ["rules", ruleDetails.id.value ] []
-        , body    = encodeRuleDetails ruleDetails model.ui.crSettings |> jsonBody
+        , url     = getUrl model ["rules", ruleDetails.id.value ] (changeRequestParameters model.ui.crSettings)
+        , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson SaveDisableAction decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
