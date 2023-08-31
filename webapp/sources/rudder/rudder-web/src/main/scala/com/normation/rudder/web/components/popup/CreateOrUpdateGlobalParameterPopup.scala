@@ -225,14 +225,16 @@ class CreateOrUpdateGlobalParameterPopup(
 
   // The value may be empty
   private[this] val parameterFormat = {
-    val l = Seq(
-      "string",
-      "json"
-    )
 
     val defaultMode = change.previousGlobalParam.map { p =>
       if (p.value.valueType() == ConfigValueType.STRING) "string" else "json"
     }.getOrElse("string")
+
+    // in delete mode, only show the actual value used by the prop
+    val l = change.action match {
+      case GlobalParamModAction.Delete => Seq(defaultMode)
+      case _                           => Seq("string", "json")
+    }
 
     new WBRadioField(
       "Format",
