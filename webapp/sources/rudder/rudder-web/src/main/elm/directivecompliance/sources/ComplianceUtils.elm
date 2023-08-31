@@ -12,6 +12,7 @@ import String exposing (fromFloat)
 import Tuple exposing (first, second)
 import ApiCalls exposing (..)
 
+
 getValueCompliance : Maybe Float -> Float
 getValueCompliance f =
   case f of
