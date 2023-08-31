@@ -1,6 +1,21 @@
 
 # cargo-vet audits file
 
+[[audits.errno]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.3"
+
+[[audits.hermit-abi]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.1 -> 0.3.2"
+
+[[audits.httpdate]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "1.0.2 -> 1.0.3"
+
 [[audits.iana-time-zone]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -11,10 +26,20 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.10.0 -> 0.10.1"
 
+[[audits.inotify]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.10.1 -> 0.10.2"
+
 [[audits.ipnet]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "2.7.2 -> 2.8.0"
+
+[[audits.pretty_assertions]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-run"
+delta = "1.3.0 -> 1.4.0"
 
 [[audits.schannel]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
@@ -25,6 +50,17 @@ delta = "0.1.21 -> 0.1.22"
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "3.5.0 -> 3.6.0"
+
+[[audits.tempfile]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "3.6.0 -> 3.8.0"
+
+[[trusted.addr2line]]
+criteria = "safe-to-deploy"
+user-id = 4415 # Philip Craig (philipc)
+start = "2019-05-01"
+end = "2024-08-30"
 
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
@@ -37,6 +73,18 @@ criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2022-05-18"
 end = "2024-06-27"
+
+[[trusted.anyhow]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-05"
+end = "2024-08-30"
+
+[[trusted.backtrace]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2023-06-29"
+end = "2024-08-30"
 
 [[trusted.bitflags]]
 criteria = "safe-to-deploy"
@@ -54,13 +102,31 @@ end = "2024-06-27"
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-11-27"
-end = "2024-06-27"
+end = "2024-08-30"
+
+[[trusted.bytes]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2019-03-06"
+end = "2024-08-30"
+
+[[trusted.bytes]]
+criteria = "safe-to-deploy"
+user-id = 6741 # Alice Ryhl (Darksonn)
+start = "2021-01-11"
+end = "2024-08-30"
 
 [[trusted.cc]]
 criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-03-01"
 end = "2024-06-27"
+
+[[trusted.cc]]
+criteria = "safe-to-deploy"
+user-id = 4357 # Thom Chiovoloni (thomcc)
+start = "2023-08-02"
+end = "2024-08-30"
 
 [[trusted.chrono]]
 criteria = "safe-to-deploy"
@@ -80,6 +146,12 @@ user-id = 6743 # Ed Page (epage)
 start = "2023-03-28"
 end = "2024-06-27"
 
+[[trusted.clap_lex]]
+criteria = "safe-to-run"
+user-id = 6743 # Ed Page (epage)
+start = "2022-04-15"
+end = "2024-08-30"
+
 [[trusted.cpufeatures]]
 criteria = "safe-to-deploy"
 user-id = 5059 # Artyom Pavlov (newpavlov)
@@ -92,11 +164,47 @@ user-id = 33035 # Taiki Endo (taiki-e)
 start = "2020-10-12"
 end = "2024-06-27"
 
+[[trusted.diesel]]
+criteria = "safe-to-deploy"
+user-id = 4568 # Georg Semmler (weiznich)
+start = "2019-10-11"
+end = "2024-08-30"
+
+[[trusted.diesel_derives]]
+criteria = "safe-to-deploy"
+user-id = 4568 # Georg Semmler (weiznich)
+start = "2019-10-11"
+end = "2024-08-30"
+
+[[trusted.diesel_table_macro_syntax]]
+criteria = "safe-to-deploy"
+user-id = 4568 # Georg Semmler (weiznich)
+start = "2023-05-26"
+end = "2024-08-30"
+
+[[trusted.either]]
+criteria = "safe-to-run"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-04-02"
+end = "2024-08-30"
+
 [[trusted.equivalent]]
 criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
 start = "2023-02-05"
 end = "2024-06-27"
+
+[[trusted.fastrand]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2021-04-24"
+end = "2024-08-30"
+
+[[trusted.fastrand]]
+criteria = "safe-to-deploy"
+user-id = 69526 # John Nunley (notgull)
+start = "2023-06-09"
+end = "2024-08-30"
 
 [[trusted.filetime]]
 criteria = "safe-to-deploy"
@@ -110,11 +218,41 @@ user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-03-14"
 end = "2024-06-27"
 
+[[trusted.flate2]]
+criteria = "safe-to-deploy"
+user-id = 980 # Sebastian Thiel (Byron)
+start = "2023-08-15"
+end = "2024-08-30"
+
 [[trusted.form_urlencoded]]
 criteria = "safe-to-deploy"
 user-id = 72883 # Valentin Gosu (valenting)
 start = "2022-09-08"
 end = "2024-06-27"
+
+[[trusted.futures-macro]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-08-30"
+
+[[trusted.futures-task]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2019-07-29"
+end = "2024-08-30"
+
+[[trusted.futures-util]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-08-30"
+
+[[trusted.gimli]]
+criteria = "safe-to-deploy"
+user-id = 4415 # Philip Craig (philipc)
+start = "2019-04-25"
+end = "2024-08-30"
 
 [[trusted.h2]]
 criteria = "safe-to-deploy"
@@ -138,7 +276,13 @@ end = "2024-06-27"
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-10-01"
-end = "2024-06-27"
+end = "2024-08-30"
+
+[[trusted.http-body]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2019-04-04"
+end = "2024-08-30"
 
 [[trusted.httparse]]
 criteria = "safe-to-deploy"
@@ -163,6 +307,12 @@ criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
 start = "2020-01-15"
 end = "2024-06-27"
+
+[[trusted.io-lifetimes]]
+criteria = "safe-to-deploy"
+user-id = 6825 # Dan Gohman (sunfishcode)
+start = "2021-06-12"
+end = "2024-08-30"
 
 [[trusted.itoa]]
 criteria = "safe-to-deploy"
@@ -200,6 +350,12 @@ user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2022-02-06"
 end = "2024-06-27"
 
+[[trusted.linux-raw-sys]]
+criteria = "safe-to-deploy"
+user-id = 6825 # Dan Gohman (sunfishcode)
+start = "2021-06-12"
+end = "2024-08-30"
+
 [[trusted.lock_api]]
 criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
@@ -235,6 +391,12 @@ criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-06-10"
 end = "2024-06-27"
+
+[[trusted.object]]
+criteria = "safe-to-deploy"
+user-id = 4415 # Philip Craig (philipc)
+start = "2019-04-26"
+end = "2024-08-30"
 
 [[trusted.openssl]]
 criteria = "safe-to-deploy"
@@ -284,6 +446,24 @@ user-id = 72883 # Valentin Gosu (valenting)
 start = "2022-09-08"
 end = "2024-06-27"
 
+[[trusted.pin-project]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2019-03-02"
+end = "2024-08-30"
+
+[[trusted.pin-project-internal]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2019-08-11"
+end = "2024-08-30"
+
+[[trusted.pin-project-lite]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2019-10-22"
+end = "2024-08-30"
+
 [[trusted.plotters]]
 criteria = "safe-to-deploy"
 user-id = 108598 # Aaron Erhardt (AaronErhardt)
@@ -302,11 +482,23 @@ user-id = 108598 # Aaron Erhardt (AaronErhardt)
 start = "2023-06-16"
 end = "2024-06-27"
 
+[[trusted.pq-sys]]
+criteria = "safe-to-deploy"
+user-id = 4568 # Georg Semmler (weiznich)
+start = "2022-07-18"
+end = "2024-08-30"
+
 [[trusted.proc-macro2]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-04-23"
 end = "2024-06-27"
+
+[[trusted.quote]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-04-09"
+end = "2024-08-30"
 
 [[trusted.regex]]
 criteria = "safe-to-deploy"
@@ -332,11 +524,23 @@ user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-03-04"
 end = "2024-06-27"
 
+[[trusted.rustc-demangle]]
+criteria = "safe-to-deploy"
+user-id = 3489 # Mark Rousskov (Mark-Simulacrum)
+start = "2023-04-16"
+end = "2024-08-30"
+
 [[trusted.rustix]]
 criteria = "safe-to-deploy"
 user-id = 6825 # Dan Gohman (sunfishcode)
 start = "2021-10-29"
 end = "2024-06-27"
+
+[[trusted.rustls-pemfile]]
+criteria = "safe-to-deploy"
+user-id = 4556 # Dirkjan Ochtman (djc)
+start = "2022-08-02"
+end = "2024-08-30"
 
 [[trusted.ryu]]
 criteria = "safe-to-deploy"
@@ -410,11 +614,29 @@ user-id = 5059 # Artyom Pavlov (newpavlov)
 start = "2020-01-06"
 end = "2024-06-27"
 
+[[trusted.slab]]
+criteria = "safe-to-deploy"
+user-id = 6741 # Alice Ryhl (Darksonn)
+start = "2021-10-13"
+end = "2024-08-30"
+
+[[trusted.smallvec]]
+criteria = "safe-to-deploy"
+user-id = 2017 # Matt Brubeck (mbrubeck)
+start = "2019-10-28"
+end = "2024-08-30"
+
 [[trusted.socket2]]
 criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-05-06"
 end = "2024-06-27"
+
+[[trusted.socket2]]
+criteria = "safe-to-deploy"
+user-id = 6025 # Thomas de Zeeuw (Thomasdezeeuw)
+start = "2020-09-09"
+end = "2024-08-30"
 
 [[trusted.syn]]
 criteria = "safe-to-deploy"
@@ -422,11 +644,59 @@ user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-03-01"
 end = "2024-06-27"
 
+[[trusted.thiserror]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-09"
+end = "2024-08-30"
+
+[[trusted.thiserror-impl]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2019-10-09"
+end = "2024-08-30"
+
 [[trusted.thread_local]]
 criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2019-09-07"
 end = "2024-06-27"
+
+[[trusted.tokio]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2019-03-02"
+end = "2024-08-30"
+
+[[trusted.tokio-macros]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2019-04-24"
+end = "2024-08-30"
+
+[[trusted.tokio-stream]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2020-12-03"
+end = "2024-08-30"
+
+[[trusted.tokio-stream]]
+criteria = "safe-to-deploy"
+user-id = 6741 # Alice Ryhl (Darksonn)
+start = "2021-01-04"
+end = "2024-08-30"
+
+[[trusted.tokio-util]]
+criteria = "safe-to-deploy"
+user-id = 10 # Carl Lerche (carllerche)
+start = "2019-11-26"
+end = "2024-08-30"
+
+[[trusted.tokio-util]]
+criteria = "safe-to-deploy"
+user-id = 6741 # Alice Ryhl (Darksonn)
+start = "2021-01-12"
+end = "2024-08-30"
 
 [[trusted.toml]]
 criteria = "safe-to-deploy"
@@ -451,6 +721,18 @@ criteria = "safe-to-deploy"
 user-id = 1249 # Eliza Weisman (hawkw)
 start = "2019-08-08"
 end = "2024-06-27"
+
+[[trusted.unicase]]
+criteria = "safe-to-deploy"
+user-id = 359 # Sean McArthur (seanmonstar)
+start = "2019-03-05"
+end = "2024-08-30"
+
+[[trusted.unicode-ident]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2021-10-02"
+end = "2024-08-30"
 
 [[trusted.url]]
 criteria = "safe-to-deploy"
@@ -524,6 +806,12 @@ user-id = 1 # Alex Crichton (alexcrichton)
 start = "2019-03-04"
 end = "2024-06-27"
 
+[[trusted.wasm-streams]]
+criteria = "safe-to-deploy"
+user-id = 64142 # Mattias Buelens (MattiasBuelens)
+start = "2020-06-14"
+end = "2024-08-30"
+
 [[trusted.web-sys]]
 criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
@@ -595,6 +883,12 @@ criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2023-02-22"
 end = "2024-06-27"
+
+[[trusted.winreg]]
+criteria = "safe-to-deploy"
+user-id = 530 # gentoo90
+start = "2019-07-17"
+end = "2024-08-30"
 
 [[trusted.zeroize]]
 criteria = "safe-to-deploy"

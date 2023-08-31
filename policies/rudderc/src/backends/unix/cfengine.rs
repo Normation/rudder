@@ -140,7 +140,7 @@ fn cfengine_canonify_condition(c: &str) -> String {
         let var = regex_comp!(r"(\$\{[^\}]*})");
         format!(
             "concat(\"{}\")",
-            var.replace_all(c, r##"",canonify("$1"),""##)
+            var.replace_all(c, r#"",canonify("$1"),""#)
         )
     }
 }
