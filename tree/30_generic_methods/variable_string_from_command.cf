@@ -46,45 +46,17 @@ bundle agent variable_string_from_command(prefix, name, command)
       "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-      "tmp_script_name"   string => "/var/rudder/tmp/${prefix}_${name}_${this.promiser_pid}";
-      "c_tmp_script_name" string => canonify("${tmp_script_name}");
-      "inner_class_prefix" string => "file_lines_present_${c_tmp_script_name}";
+      # only capture stdout for compatibility with previous implementation
+      # add a comment to allow executing the exact same command without hitting
+      # https://northerntech.atlassian.net/browse/CFE-4244
+      "result" data => execresult_as_data("${command} # as_data", "useshell", "stdout");
 
-      # Why this ugly code? We need both the result and the return code of the command
-      # and we would prefer only executing it once.
-      #
-      # To achieve this, we concatenate the return code as a three char string, and extract it afterwards.
-      #
-      # There are two little funny things there:
-      # * the $() is considered an undefined variable, and the execresult is skipped. To avoid that,
-      #   we add a /bin/true call, to trigger the "shell execution" case that skips undefined variable checks
-      # * As verification is now skipped, we do not have to do it for ${OUTPUT}.
-      #
-      # The if is necessary to avoid evaluating the command in cf-promises,
-      # for example when checking promises on the server.
-
-      "temp"     string => execresult("OUTPUT=${const.dollar}(/bin/true; 2>/dev/null ${tmp_script_name}); printf \"%3d\" ${const.dollar}?; echo \"${const.dollar}OUTPUT\"", "useshell"),
-                     if => "${inner_class_prefix}_ok";
-      "temp_length" int => string_length("${temp}"),
-                     if => "${inner_class_prefix}_ok";
-      "raw_output_length" string => eval("${temp_length} - 3", "math", "infix"),
-                     if => "${inner_class_prefix}_ok";
-      "output_length" string => format("%d", "${raw_output_length}"),
-                     if => "${inner_class_prefix}_ok";
-      "raw_code" string => string_head("${temp}", "3"),
-                     if => "${inner_class_prefix}_ok";
-      "code" string => format("%d", "${raw_code}"),
-                     if => "${inner_class_prefix}_ok";
-
-      # define the variable within the prefix namespace
-    pass2::
-      "${prefix}.${name}" string =>  string_tail("${temp}", "${output_length}"),
-                              if => "returned_zero";
+    returned_zero::
+      "${prefix}.${name}" string => "${result[output]}";
 
   classes:
-      "should_report"     expression => "${report_data.should_report}";
     pass1::
-      "returned_zero"     expression => strcmp("${code}", "0");
+      "returned_zero"     expression => strcmp("${result[exit_code]}", "0");
     pass2::
       "variable_defined"  expression => isvariable("${prefix}.${name}");
 
@@ -93,26 +65,7 @@ bundle agent variable_string_from_command(prefix, name, command)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-  files:
-    # avoid backups for tmp files
-    pass1.!pass2::
-      "${tmp_script_name}"
-        create        => "true",
-        edit_line     => insert_lines("${command}"),
-        edit_defaults => empty,
-        perms         => mog("700", "root", "0"),
-        comment       => "${class_prefix}",
-        action        => immediate_ignore_dry_run,
-        classes       => classes_generic("${inner_class_prefix}");
-
-    pass3::
-      "${tmp_script_name}"
-        delete => tidy;
-
   methods:
-      # In audit mode, we need to force enforce mode to set and remove the temp files.
-      "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
-
     pass3.!variable_defined::
       "error"    usebundle => _classes_failure("${old_class_prefix}");
       "error"    usebundle => _classes_failure("${class_prefix}");
@@ -122,8 +75,6 @@ bundle agent variable_string_from_command(prefix, name, command)
       "success"  usebundle => _classes_success("${class_prefix}");
 
     pass3::
-      "restore dry-run_${class_prefix}" usebundle => pop_dry_run_mode();
-
       "report"
         usebundle  => _log_v3("Set the string ${prefix}.${name} to the output of '${command}'", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
@@ -131,5 +82,5 @@ bundle agent variable_string_from_command(prefix, name, command)
     pass3.info.returned_zero::
       "The '${command}' command returned '${${prefix}.${name}}'";
     pass3.info.!returned_zero::
-      "The '${command}' command failed with ${code} code";
+      "The '${command}' command failed with ${result[exit_code]} code";
 }
