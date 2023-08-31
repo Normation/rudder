@@ -82,7 +82,7 @@ fn rudder_report_begin(i: &str) -> IResult<&str, &str> {
 
 // TODO make a cheap version that does not parse the date?
 fn line_timestamp(i: &str) -> IResult<&str, DateTime<FixedOffset>> {
-    let (i, datetime) = map_res(take_until(" "), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, datetime) = map_res(take_until(" "), DateTime::parse_from_rfc3339)(i)?;
     let (i, _) = tag(" ")(i)?;
     Ok((i, datetime))
 }
@@ -155,8 +155,7 @@ fn log_entries(i: &str) -> IResult<&str, Vec<LogEntry>> {
 
 pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     let (i, logs) = log_entries(i)?;
-    let (i, execution_datetime) =
-        map_res(take_until(" "), |d| DateTime::parse_from_str(d, "%+"))(i)?;
+    let (i, execution_datetime) = map_res(take_until(" "), DateTime::parse_from_rfc3339)(i)?;
     let (i, _) = tag(" ")(i)?;
     let (i, _) = rudder_report_begin(i)?;
     let (i, policy) = take_until("@@")(i)?;

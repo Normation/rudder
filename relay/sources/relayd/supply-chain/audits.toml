@@ -1,6 +1,11 @@
 
 # cargo-vet audits file
 
+[[audits.chrono]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.4.27 -> 0.4.28"
+
 [[audits.errno]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
