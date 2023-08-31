@@ -106,7 +106,7 @@ pub mod filters {
             // Format expression for Windows too
             value_fmt(format!(
                 "\"{}\"",
-                var.replace_all(&s, r##"" + ([Rudder.Condition]::canonify($1)) + ""##)
+                var.replace_all(&s, r#"" + ([Rudder.Condition]::canonify($1)) + ""#)
             ))
         }
     }
@@ -250,7 +250,7 @@ mod tests {
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
-        let r = r##""" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}""##;
+        let r = r#""" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}""#;
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
     }

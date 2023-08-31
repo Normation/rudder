@@ -58,7 +58,7 @@ impl Technique {
     }
 
     pub fn bundles(mut self, bundles: Vec<Bundle>) -> Self {
-        self.bundles.extend(bundles.into_iter());
+        self.bundles.extend(bundles);
         self
     }
 }
