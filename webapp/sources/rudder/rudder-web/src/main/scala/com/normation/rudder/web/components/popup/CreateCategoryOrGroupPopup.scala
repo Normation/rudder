@@ -160,7 +160,7 @@ class CreateCategoryOrGroupPopup(
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-lg-12 errors-container"
     override def inputField     =
-      super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
+      super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2") % ("autofocus" -> "true")
     override def validations =
       valMinLen(1, "Name must not be empty.") _ :: Nil
   }
