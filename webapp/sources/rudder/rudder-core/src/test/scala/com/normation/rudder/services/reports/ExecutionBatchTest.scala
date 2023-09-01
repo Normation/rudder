@@ -1222,20 +1222,21 @@ class ExecutionBatchTest extends Specification {
     }
 
     // bad:
-    // we have one repair and one unexpected for 'component' (because 'bar' is not the expected value)
+    // we have one repair and one success for 'component' (EVEN IF 'bar' is not the expected value  because
+    // we only match on reportId (see https://issues.rudder.io/issues/23084)
     // we have two errors for 'component1': missing the actual 'bar' report, and unexpected 'foo'
 
     "focus on 'component' and get its two reports" in {
-      withBad.compliance === ComplianceLevel(repaired = 1, unexpected = 1)
+      withBad.compliance === ComplianceLevel(repaired = 1, success = 1)
     }
-    "with bad reports return 4 values" in {
-      withBad.componentValues.size === 4
+    "with bad reports return 3 values (no unexpected)" in {
+      withBad.componentValues.size === 3
     }
     "with bad reports return a component with the key values foo with one unexpected and one repaired " in {
-      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) === Unexpected :: EnforceRepaired :: Nil
+      withBad.componentValues("foo").flatMap(_.messages.map(_.reportType)) === EnforceRepaired :: EnforceRepaired :: Nil
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) === Missing :: Unexpected :: Nil
+      withBad.componentValues("bar").flatMap(_.messages.map(_.reportType)) === EnforceSuccess :: Nil
     }
   }
 
@@ -1696,7 +1697,7 @@ class ExecutionBatchTest extends Specification {
       withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
     }
 
-    "correctly split apart/merge report with component with variables expanded to same name" in {
+    "correctly split apart component with same name & diff reportId, and merge other case of same component name" in {
       // note that in 7.X branches, we don't use reportId yet - see https://issues.rudder.io/issues/23084
 
       val root = withLoop.components
@@ -1708,24 +1709,34 @@ class ExecutionBatchTest extends Specification {
         ComponentValueStatusReport(
           "keyvalue",
           "keyvalue",
-          List(MessageStatusReport(EnforceRepaired, Some("message c1")), MessageStatusReport(EnforceSuccess, Some("message c2")))
+          "report_id_b1c1",
+          List(MessageStatusReport(EnforceRepaired, Some("message c1")))
+        ) ::
+        ComponentValueStatusReport(
+          "keyvalue",
+          "keyvalue",
+          "report_id_b1c2",
+          List(MessageStatusReport(EnforceSuccess, Some("message c2")))
         ) ::
         ComponentValueStatusReport(
           "keyvalue",
           "${loop1}",
+          "report_id_b2c1",
           List(
-            MessageStatusReport(EnforceRepaired, Some("message_2 loop1")),
-            MessageStatusReport(EnforceSuccess, Some("message_1 loop1"))
+            MessageStatusReport(EnforceSuccess, Some("message_1 loop1")),
+            MessageStatusReport(EnforceRepaired, Some("message_2 loop1"))
           )
         ) ::
         ComponentValueStatusReport(
           "loop",
           "${loop1}",
+          "report_id_b2c1",
           List(MessageStatusReport(EnforceSuccess, Some("message_3 loop1")))
         ) ::
         ComponentValueStatusReport(
           "loop",
           "${loop2}",
+          "report_id_b2c2",
           List(MessageStatusReport(EnforceRepaired, Some("message_1 loop2")))
         ) ::
         Nil
@@ -1734,6 +1745,12 @@ class ExecutionBatchTest extends Specification {
       root.componentValues must containTheSameElementsAs(expectedRoot)
     }
 
+    "correctly find the status for a given multi-reports component" in {
+      val s = withLoop.getByReportId("report_id_b2c1").filter(_.componentValue == "keyvalue").map(_.status)
+
+      (s.size === 1) and
+      (s.head === EnforceRepaired)
+    }
   }
 
   "Sub block with same component names are authorised, with reporting focus " should {
@@ -2653,17 +2670,18 @@ class ExecutionBatchTest extends Specification {
         List("""Success:"alice rights are correct"""", """Repaired:"bob rights are correct"""")
       ))
     }
-    "we check that component name matches the variable regex from expected" in {
-      (withBad.compliance === ComplianceLevel(unexpected = 2, missing = 2)) and
+    // see https://issues.rudder.io/issues/23084
+    "we don't check anymore that component name matches the variable regex from expected" in {
+      (withBad.compliance === ComplianceLevel(success = 2)) and
       (withBad.componentValues
         .filter(_.expectedComponentValue == "/bin/createUserScript ${user}")
         .flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
-        List("""Unexpected:"mallory is correctly created"""", """Missing:"Missing report"""")
+        List("""Success:"mallory is correctly created"""")
       )) and
       (withBad.componentValues
         .filter(_.expectedComponentValue == "/bin/checkRightsOK ${user}")
         .flatMap(_.messages.map(_.debugString)) must containTheSameElementsAs(
-        List("""Unexpected:"mallory rights are correct"""", """Missing:"Missing report"""")
+        List("""Success:"mallory rights are correct"""")
       ))
 
     }
