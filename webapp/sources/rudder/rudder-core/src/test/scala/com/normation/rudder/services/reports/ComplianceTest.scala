@@ -249,7 +249,8 @@ class ComplianceTest extends Specification {
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
-      status.compliance must beEqualTo(ComplianceLevel(success = 17, notApplicable = 8))
+      // we really have 26 (ie 18+8) values
+      status.compliance must beEqualTo(ComplianceLevel(success = 18, notApplicable = 8))
     }
   }
 
@@ -270,7 +271,8 @@ class ComplianceTest extends Specification {
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
-      status.compliance must beEqualTo(ComplianceLevel(success = 33, notApplicable = 5))
+      // we really have 39 values in total
+      status.compliance must beEqualTo(ComplianceLevel(success = 34, notApplicable = 5))
     }
   }
 }
