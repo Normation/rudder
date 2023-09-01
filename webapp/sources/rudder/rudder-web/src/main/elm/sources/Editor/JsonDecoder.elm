@@ -110,6 +110,15 @@ decodeTechniqueMaybe =
          _ -> succeed Nothing
      )
 
+decodeOutput : Decoder CompilationOutput
+decodeOutput =
+  succeed CompilationOutput
+    |> required "compiler" string
+    |> required "fallbacked"  bool
+    |> required "resultCode"  int
+    |> required "msg"  string
+    |> required "stdout"  string
+    |> required "stderr"  string
 
 decodeTechnique : Decoder Technique
 decodeTechnique =
@@ -124,6 +133,7 @@ decodeTechnique =
     |> required "parameters" (list decodeTechniqueParameter)
     |> required "resources" (list decodeResource)
     |> required "tags" (keyValuePairs string)
+    |> optional "output" (decodeOutput |> map Just) Nothing
 
 decodeAgent : Decoder Agent
 decodeAgent =

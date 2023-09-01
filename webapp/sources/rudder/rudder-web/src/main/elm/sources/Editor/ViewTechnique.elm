@@ -16,6 +16,7 @@ import Editor.ViewMethod exposing (..)
 import Editor.ViewMethodsList exposing (..)
 import Editor.ViewTechniqueTabs exposing (..)
 import Editor.ViewTechniqueList exposing (..)
+import Maybe.Extra
 
 
 --
@@ -326,6 +327,15 @@ showTechnique model technique origin ui =
               ]
             ]
           ]
+        , if (Maybe.Extra.isJust technique.output) then
+            li [ class (activeTabClass Output)  , onClick (SwitchTab Output)] [
+              a [] [
+                text "Compilation output "
+              , span [  class  ( "fa ") ] []
+              ]
+            ]
+            else
+              text ""
         ]
       ]
     , div [ class "main-details", id "details"]

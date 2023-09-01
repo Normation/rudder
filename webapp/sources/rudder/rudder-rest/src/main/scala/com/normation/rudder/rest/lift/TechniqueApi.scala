@@ -63,6 +63,7 @@ import com.normation.rudder.rest.lift.TechniqueApi.OutputFormat
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
+import java.nio.charset.StandardCharsets
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -267,7 +268,7 @@ class TechniqueApi(
             }
           methodMap        <- techniqueReader.getMethodsMetadata
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
-          json             <- updatedTechnique.toJsonAST.toIO
+          json             <- serviceV14.getTechniqueJson(updatedTechnique)
         } yield {
           json
         }
@@ -450,7 +451,7 @@ class TechniqueApi(
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
           updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
-          json          <- updatedTech.toJsonAST.toIO
+          json          <- serviceV14.getTechniqueJson(updatedTech)
         } yield {
           json
         }
@@ -753,12 +754,12 @@ class TechniqueAPIService6(
 }
 
 class TechniqueAPIService14(
-    readDirective:           RoDirectiveRepository,
-    techniqueRevisions:      TechniqueRevisionRepository,
-    techniqueReader:         EditorTechniqueReader,
-    techniqueSerializer:     TechniqueSerializer,
-    yamlTechniqueSerializer: YamlTechniqueSerializer,
-    restDataSerializer:      RestDataSerializer
+    readDirective:       RoDirectiveRepository,
+    techniqueRevisions:  TechniqueRevisionRepository,
+    techniqueReader:     EditorTechniqueReader,
+    techniqueSerializer: TechniqueSerializer,
+    restDataSerializer:  RestDataSerializer,
+    techniqueCompiler:   TechniqueCompiler
 ) {
 
   def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
@@ -832,19 +833,35 @@ class TechniqueAPIService14(
     techniqueRevisions.getTechniqueRevision(name, version).map(_.map(JRRevisionInfo.fromRevisionInfo))
   }
 
+  def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
+    import techniqueSerializer._
+    import zio.json._
+    import zio.json.yaml.DecoderYamlOps
+    import TechniqueCompilationIO.codecTechniqueCompilationOutput
+    import com.normation.zio._
+    val outputFile = techniqueCompiler.getCompilationOutputFile(editorTechnique)
+    val json       = (for {
+      content <- IOResult.attempt("error when reading compilation output")(outputFile.contentAsString(StandardCharsets.UTF_8))
+      out     <- content.fromYaml[TechniqueCompilationOutput].toIO
+      json    <- out.toJsonAST.toIO
+    } yield {
+      ("output", json) :: Nil
+    }).catchAll(_ => Nil.succeed).runNow
+    editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor")) :: json: _*))).toIO
+  }
+
   def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion], format: TechniqueApi.OutputFormat) = {
     for {
-      lib                          <- readDirective.getFullDirectiveLibrary()
-      activeTechnique               = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
-      methods                      <- techniqueReader.getMethodsMetadata
-      x                            <- techniqueReader.readTechniquesMetadataFile
-      (techniques, methods, errors) = x
-      _                            <- if (errors.isEmpty) ().succeed
-                                      else {
-                                        ApiLoggerPure.error(
-                                          s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
-                                        )
-                                      }
+      lib                    <- readDirective.getFullDirectiveLibrary()
+      activeTechnique         = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
+      x                      <- techniqueReader.readTechniquesMetadataFile
+      (techniques, _, errors) = x
+      _                      <- if (errors.isEmpty) ().succeed
+                                else {
+                                  ApiLoggerPure.error(
+                                    s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                  )
+                                }
 
       json <- ZIO.foreach(
                 activeTechnique.flatMap(at => {
@@ -858,6 +875,7 @@ class TechniqueAPIService14(
                   techniques.find(t =>
                     t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
                   ) match {
+
                     case Some(editorTechnique) =>
                       format match {
                         case OutputFormat.Yaml =>
@@ -865,9 +883,7 @@ class TechniqueAPIService14(
                           import zio.yaml.YamlOps._
                           editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
                         case OutputFormat.Json =>
-                          import techniqueSerializer._
-                          import zio.json._
-                          editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                          getTechniqueJson(editorTechnique)
                       }
                     case None                  =>
                       restDataSerializer.serializeTechnique(technique).succeed
@@ -880,26 +896,24 @@ class TechniqueAPIService14(
 
   def getTechniquesWithData(): IOResult[Seq[Json]] = {
     for {
-      lib                         <- readDirective.getFullDirectiveLibrary()
-      activeTechniques             = lib.allActiveTechniques.values.toSeq
-      res                         <- techniqueReader.readTechniquesMetadataFile
-      (techniques, method, errors) = res
-      _                           <- if (errors.isEmpty) ().succeed
-                                     else {
-                                       ApiLoggerPure.error(
-                                         s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
-                                       )
-                                     }
-      json                        <- {
+      lib                    <- readDirective.getFullDirectiveLibrary()
+      activeTechniques        = lib.allActiveTechniques.values.toSeq
+      res                    <- techniqueReader.readTechniquesMetadataFile
+      (techniques, _, errors) = res
+      _                      <- if (errors.isEmpty) ().succeed
+                                else {
+                                  ApiLoggerPure.error(
+                                    s"An error occurred while reading techniques when getting them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                  )
+                                }
+      json                   <- {
         ZIO.foreach(activeTechniques.flatMap(_.techniques)) {
           case (version, technique) =>
             techniques.find(t =>
               t.id.value == technique.id.name.value && t.version.value == version.version.toVersionString
             ) match {
               case Some(editorTechnique) =>
-                import techniqueSerializer._
-                import zio.json._
-                editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor"))))).toIO
+                getTechniqueJson(editorTechnique)
               case None                  =>
                 restDataSerializer.serializeTechnique(technique).succeed
             }
@@ -908,7 +922,6 @@ class TechniqueAPIService14(
     } yield {
       json
     }
-
   }
 
 }
