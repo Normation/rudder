@@ -147,6 +147,7 @@ impl Display for ParameterType {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Constraints {
     #[serde(default = "Constraints::default_allow_empty")]
     pub allow_empty: bool,
