@@ -159,6 +159,9 @@ pub struct Constraints {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub password_hashes: Option<Vec<PasswordType>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub default: Option<String>
 }
 
 impl Constraints {
@@ -290,11 +293,6 @@ pub struct Parameter {
     pub _type: ParameterType,
     #[serde(default)]
     pub constraints: Constraints,
-    //#[serde(default)]
-    //pub escaping: Escaping,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

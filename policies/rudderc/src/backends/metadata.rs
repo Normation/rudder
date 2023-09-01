@@ -107,7 +107,7 @@ impl From<Parameter> for Input {
                 },
                 regex: regex_constraint,
                 password_hashes: password_constraint,
-                default: p.default,
+                default: p.constraints.default,
             },
         }
     }
@@ -147,7 +147,7 @@ impl From<Parameter> for SelectOne {
                 },
                 regex: None,
                 password_hashes: None,
-                default: p.default,
+                default: p.constraints.default,
             },
         }
     }
