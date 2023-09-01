@@ -128,6 +128,10 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
       // this should not be called because we force rudderc via compilation config, so here we failed loudly if exec
       throw new IllegalArgumentException(s"Test is calling fallback compiler for technique: ${technique.path}")
     }
+
+    override def getCompilationOutputFile(technique: EditorTechnique): File = null
+
+    override def getCompilationConfigFile(technique: EditorTechnique): File = null
   }
 
   val techniqueCompiler = new TechniqueCompilerWithFallback(

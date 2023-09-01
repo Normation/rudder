@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
+import String.Extra
 
 
 --
@@ -279,3 +280,48 @@ techniqueTab model technique creation ui =
             ]
           ]
         ]
+    Output ->
+      case technique.output of
+        Nothing -> text ""
+        Just out ->
+         div [ class "tab tab-general" ] [
+           div [ class "row form-group" ] [
+             label [ class "col-xs-12 control-label" ] [ text "Compiled by"  ]
+           , div  [ class "col-sm-8" ] [
+               input [readonly True, type_ "text", class "form-control", value out.compiler ] []
+             ]
+           ]
+         , div [ class "row form-group" ] [
+             label [ class "col-xs-12 control-label" ] [ text "Result code"  ]
+           , div  [ class "col-sm-8" ] [
+               input [readonly True, type_ "text", class "form-control", value (String.fromInt out.resultCode) ] []
+             ]
+           ]
+         , if String.Extra.isBlank out.msg then
+             text ""
+           else
+             div [ class "row form-group" ] [
+               label [ class "col-xs-12 control-label" ] [ text "Message"  ]
+             ,  div  [ class "col-xs-12" ] [
+                  pre [class "command-output pre-scrollable"] [  text out.msg ]
+                ]
+             ]
+         , if String.Extra.isBlank out.stdout then
+             text ""
+           else
+             div [ class "row form-group" ] [
+               label [ class "col-xs-12 control-label" ] [ text "Standard out"  ]
+             , div  [ class "col-xs-12" ] [
+                 pre [class "command-output pre-scrollable"] [ text out.stdout ]
+               ]
+             ]
+         , if String.Extra.isBlank out.stderr then
+             text ""
+           else
+             div [ class "row form-group" ] [
+               label [ class "col-xs-12 control-label" ] [ text "Error out"  ]
+             , div  [ class "col-xs-12" ] [
+                 pre [class "command-output pre-scrollable"] [ text out.stderr ]
+               ]
+             ]
+         ]
