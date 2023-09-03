@@ -46,8 +46,8 @@ getTechniques  model =
     req
 
 
-getTechniqueYaml :  Model -> Technique -> Cmd Msg
-getTechniqueYaml model technique =
+getTechniqueYaml : Model -> Technique -> Cmd Msg
+getTechniqueYaml  model technique =
   let
     req =
       request
@@ -62,16 +62,23 @@ getTechniqueYaml model technique =
   in
     req
 
-checkTechniqueYaml :  Model -> String -> Cmd Msg
-checkTechniqueYaml model content =
+checkTechnique : CheckMode -> Model -> Cmd Msg
+checkTechnique mode model =
   let
+    techniqueDecoder =  Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list decodeTechnique))
+    yamlDecoder = Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list (Json.Decode.at ["output"] Json.Decode.string)))
+    (input,output,(expect, body))=
+      case mode of
+        Import content -> ("yaml","json",(Detailed.expectJson (CheckOutJson mode) techniqueDecoder, stringBody "application/x-yml" content ))
+        EditYaml content -> ("yaml", "json",(Detailed.expectJson (CheckOutJson mode) techniqueDecoder, stringBody "application/x-yml" content))
+        CheckJson technique -> ("json", "yaml",(Detailed.expectJson (CheckOutYaml mode) yamlDecoder,  jsonBody (encodeTechnique technique)))
     req =
       request
         { method  = "POST"
         , headers = []
-        , url     = getUrl model "techniques/check"
-        , body    = jsonBody (object [( "content", string content)] )
-        , expect  = Detailed.expectJson CheckTechnique ( Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list decodeTechnique)))
+        , url     = getUrl model "techniques/check?input="++input++"&output="++output
+        , body    =  body
+        , expect  = expect
         , timeout = Nothing
         , tracker = Nothing
         }
