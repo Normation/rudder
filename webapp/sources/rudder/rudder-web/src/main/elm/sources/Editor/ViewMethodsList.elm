@@ -163,7 +163,7 @@ showMethodsCategories : Model -> (String, List  Method) -> Element Msg
 showMethodsCategories model (category, methods) =
   let
     addIndex = case model.mode of
-      TechniqueDetails t _ _ -> List.length t.elems
+      TechniqueDetails t _ _ _ -> List.length t.elems
       _ -> 0
     header = element "h5"
              |> addAttribute ( id category )
@@ -201,7 +201,7 @@ showMethod ui method mode dnd =
     attributes = class ("method method-elmt " ++ (if docOpen then "doc-opened" else ""))::  id method.id.value :: []
     methodUi =
       case mode of
-        TechniqueDetails _ _ techUiInfo ->
+        TechniqueDetails _ _ techUiInfo _ ->
           Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get method.id.value techUiInfo.callsUI)
         _  -> (MethodCallUiInfo Closed CallParameters Unchanged)
   in
