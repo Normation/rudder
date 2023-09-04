@@ -71,7 +71,7 @@ debugHttpErr error =
 updateResourcesResponse : Model -> Msg
 updateResourcesResponse model =
   case model.mode of
-    TechniqueDetails _ s _ -> CallApi ( getRessources s )
+    TechniqueDetails _ s _ editInfo -> CallApi ( getRessources s )
     _ -> Ignore
 
 parseDraftsResponse: Value -> Msg
@@ -96,7 +96,7 @@ mainInit initValues =
 updatedStoreTechnique: Model -> (Model, Cmd msg)
 updatedStoreTechnique model =
   case model.mode of
-    TechniqueDetails t o _ ->
+    TechniqueDetails t o _ editInfo ->
       let
         (drafts, action) =
           case o of
@@ -167,8 +167,9 @@ selectTechnique model technique =
     callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls effectiveTechnique.elems)))
     blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks effectiveTechnique.elems)))
     ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+    editInfo = TechniqueEditInfo "" False (Ok ())
   in
-    ({ model | mode = TechniqueDetails effectiveTechnique  state ui } )
+    ({ model | mode = TechniqueDetails effectiveTechnique  state ui editInfo } )
       |> update OpenMethods
       |> Tuple.mapSecond ( always ( Cmd.batch [ initInputs "", getRessources state model, action  ]  ))
 
@@ -221,7 +222,7 @@ update msg model =
 
     SelectTechnique technique ->
       case model.mode of
-        TechniqueDetails t _ _ ->
+        TechniqueDetails t _ _ editInfo ->
           if t.id == (Either.unpack .id (.technique >> .id) technique) then
              ( { model | mode = Introduction }, initInputs "")
           else
@@ -233,7 +234,8 @@ update msg model =
       let
         ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
         t = Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] [] Nothing
-        newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui}
+        editInfo = TechniqueEditInfo "" False (Ok ())
+        newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui editInfo}
       in
         updatedStoreTechnique newModel
 
@@ -243,16 +245,18 @@ update msg model =
     ImportFile file ->
       (model, Task.perform (ParseImportedFile file) (File.toString file) )
     ParseImportedFile file content ->
-      (model, checkTechniqueYaml model content)
+      (model, checkTechnique (Import content) model)
       {-
       case Json.Decode.decodeString (Json.Decode.at ["data"] decodeTechnique ) content of
         Ok t ->
           let
             callsState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls t.elems)))
             bloksState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks t.elems)))
+
+            editInfo = TechniqueEditInfo "" False (Ok ())
             mode = TechniqueDetails t (Creation t.id) (
                      TechniqueUiInfo General callsState bloksState [] False (checkTechniqueName t model) (checkTechniqueId (Creation t.id) t model) Nothing
-                   )
+                   ) editInfo
             (newModel, cmd) = (update (CallApi ( getRessources (Creation t.id) ))  {model | mode = mode })
           in
             ( newModel, Cmd.batch [ cmd, infoNotification ("Technique '"++ t.id.value ++ "' successfully imported, please save to create technique") ] )
@@ -266,7 +270,7 @@ update msg model =
       let
         newMode =
           case model.mode of
-           TechniqueDetails technique o ui-> TechniqueDetails technique o { ui | tab = tab }
+           TechniqueDetails technique o ui editInfo -> TechniqueDetails technique o { ui | tab = tab } editInfo
            m -> m
       in
         ({ model | mode = newMode}, Cmd.none )
@@ -281,9 +285,9 @@ update msg model =
             technique.id
         newModel =
           case model.mode of
-            TechniqueDetails _ o ui ->
+            TechniqueDetails _ o ui editInfo ->
 
-              { model | mode = TechniqueDetails {technique | id = techniqueId} o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } }
+              { model | mode = TechniqueDetails {technique | id = techniqueId} o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -298,7 +302,8 @@ update msg model =
         callState =  Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap allMethodCalls technique.elems))
         blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
-        newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique internalId) ui }
+        editInfo = TechniqueEditInfo "" False (Ok ())
+        newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique internalId) ui editInfo }
       in
         updatedStoreTechnique newModel
 
@@ -310,12 +315,12 @@ update msg model =
            technique :: model.techniques
         (newMode, idToClean) =
           case model.mode of
-            TechniqueDetails _ (Edit _) ui ->
-              (TechniqueDetails technique (Edit technique) {ui | saving = False}, technique.id)
-            TechniqueDetails _ (Creation id) ui ->
-              (TechniqueDetails technique (Edit technique) {ui | saving = False}, id)
-            TechniqueDetails _ (Clone _ id) ui ->
-              (TechniqueDetails technique (Edit technique) {ui | saving = False}, id)
+            TechniqueDetails _ (Edit _) ui editInfo ->
+              (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, technique.id)
+            TechniqueDetails _ (Creation id) ui editInfo ->
+              (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, id)
+            TechniqueDetails _ (Clone _ id) ui editInfo ->
+              (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, id)
             m -> (m, technique.id)
         drafts = Dict.remove idToClean.value model.drafts
       in
@@ -324,35 +329,35 @@ update msg model =
     SaveTechnique (Err err) ->
       let
         newModel = case model.mode of
-          TechniqueDetails t s ui -> {model | mode = TechniqueDetails t s {ui | saving = False}}
+          TechniqueDetails t s ui editInfo -> {model | mode = TechniqueDetails t s {ui | saving = False} editInfo}
           _ -> model
       in
         ( newModel , errorNotification ("Error when saving technique: " ++ debugHttpErr err ) )
 
     StartSaving ->
       case model.mode of
-        TechniqueDetails t o ui ->
+        TechniqueDetails t o ui editInfo ->
           let
             newUi = {ui | saving = True}
           in
             case o of
               Edit _ ->
-                update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o newUi }
+                update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o newUi editInfo }
               Creation internalId ->
-                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi }
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
               Clone _ internalId ->
-                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi }
+                update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
         _ -> (model, Cmd.none)
 
     DeleteTechnique (Ok (metadata, techniqueId)) ->
       case model.mode of
-                     TechniqueDetails t (Edit _) _ ->
+                     TechniqueDetails t (Edit _) _ _->
                        let
                          techniques = List.filter (.id >> (/=) techniqueId) model.techniques
                          newMode = if t.id == techniqueId then Introduction else model.mode
                        in
                          ({ model | mode = newMode, techniques = techniques}, infoNotification ("Successfully deleted technique '" ++ techniqueId.value ++  "'"))
-                     TechniqueDetails t (Creation id) _ ->
+                     TechniqueDetails t (Creation id) _ _->
                        let
                          drafts = Dict.remove techniqueId.value model.drafts
                          newMode = if id == techniqueId then Introduction else model.mode
@@ -377,7 +382,7 @@ update msg model =
       let
         newModel =
           case model.mode of
-            TechniqueDetails base s ui ->
+            TechniqueDetails base s ui editInfo ->
               let
                 (technique, drafts) =
                   case s of
@@ -385,7 +390,7 @@ update msg model =
                     Clone t _ -> (t, model.drafts)
                     Creation _ -> (base, model.drafts)
               in
-                { model | mode = TechniqueDetails technique s ui, drafts = drafts }
+                { model | mode = TechniqueDetails technique s ui editInfo, drafts = drafts }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -394,7 +399,7 @@ update msg model =
       let
         newModel =
           case model.mode of
-            TechniqueDetails technique s ui ->
+            TechniqueDetails technique s ui editInfo ->
               let
                 origin =
                   case s of
@@ -440,7 +445,7 @@ update msg model =
                     Nothing -> ui
 
               in
-                { model | mode = TechniqueDetails updatedTechnique s newUi }
+                { model | mode = TechniqueDetails updatedTechnique s newUi editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -449,9 +454,8 @@ update msg model =
     Export ->
       let
         action = case model.mode of
-                   TechniqueDetails t _ _ ->
+                   TechniqueDetails t _ _ _ ->
                        getTechniqueYaml model t
-
                    _ -> Cmd.none
       in
         (model, action)
@@ -462,12 +466,12 @@ update msg model =
       let
         newModel =
           case model.mode of
-            TechniqueDetails t o ui->
+            TechniqueDetails t o ui editInfo->
               let
                 parameters = List.Extra.updateIf (\c -> paramId == c.id ) (always newValue)  t.parameters
                 technique = { t | parameters = parameters }
               in
-                { model | mode = TechniqueDetails technique o ui }
+                { model | mode = TechniqueDetails technique o ui editInfo }
             _ -> model
       in
        updatedStoreTechnique newModel
@@ -476,13 +480,13 @@ update msg model =
       let
         newModel =
           case model.mode of
-            TechniqueDetails t o ui->
+            TechniqueDetails t o ui editInfo->
               let
                 parameters = List.Extra.filterNot (\c -> paramId == c.id ) t.parameters
                 newUI = {ui | openedParameters = List.Extra.remove paramId ui.openedParameters }
                 technique = { t | parameters = parameters }
               in
-                { model | mode = TechniqueDetails technique o newUI }
+                { model | mode = TechniqueDetails technique o newUI editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -491,11 +495,11 @@ update msg model =
       let
         newMode =
           case model.mode of
-            TechniqueDetails t o ui->
+            TechniqueDetails t o ui editInfo->
               let
                 parameters = List.append t.parameters [  TechniqueParameter paramId "" "" False ]
               in
-                TechniqueDetails { t | parameters = parameters } o ui
+                TechniqueDetails { t | parameters = parameters } o ui editInfo
             _ -> model.mode
       in
         ({ model | mode = newMode}, Cmd.none )
@@ -504,11 +508,11 @@ update msg model =
       let
         newMode =
           case model.mode of
-            TechniqueDetails t o ui->
+            TechniqueDetails t o ui editInfo->
               let
                 newUI = {ui | openedParameters = (if List.member paramId ui.openedParameters then List.Extra.remove else (::) ) paramId ui.openedParameters }
               in
-                TechniqueDetails t o newUI
+                TechniqueDetails t o newUI editInfo
             _ -> model.mode
       in
         ({ model | mode = newMode}, Cmd.none )
@@ -519,7 +523,7 @@ update msg model =
     OpenFileManager ->
       let
         cmd = case model.mode of
-                TechniqueDetails t s _ ->
+                TechniqueDetails t s _ editInfo ->
                   let
                     url = case s of
                             Edit _ ->  t.id.value ++ "/" ++ t.version ++ "/" ++ t.category
@@ -534,8 +538,8 @@ update msg model =
     GetTechniqueResources (Ok  (metadata, resources)) ->
       let
         mode = case model.mode of
-                 TechniqueDetails t s ui ->
-                   TechniqueDetails {t | resources = resources } s ui
+                 TechniqueDetails t s ui editInfo ->
+                   TechniqueDetails {t | resources = resources } s ui editInfo
                  _ -> model.mode
       in
         ({ model | mode = mode },  Cmd.none )
@@ -594,12 +598,12 @@ update msg model =
         newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting
         newModel =
           case model.mode of
-            TechniqueDetails t o ui ->
+            TechniqueDetails t o ui editInfo ->
               let
                 technique =  { t | elems = t.elems ++ [Call Nothing newCall] }
                 newUi = { ui | callsUI = Dict.update newId.value (always (Just ({defaultMethodUiInfo | mode = Opened} ))) ui.callsUI }
               in
-              { model | mode = TechniqueDetails technique o newUi }
+              { model | mode = TechniqueDetails technique o newUi editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -612,12 +616,12 @@ update msg model =
         newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport []
         newModel =
           case model.mode of
-            TechniqueDetails t o ui ->
+            TechniqueDetails t o ui editInfo ->
               let
                 technique =  { t | elems =  t.elems ++ [Block Nothing newCall]  }
                 newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) False)) ) ui.blockUI }
               in
-              { model | mode = TechniqueDetails technique o newUi }
+              { model | mode = TechniqueDetails technique o newUi editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -629,12 +633,12 @@ update msg model =
       let
         newMode =
           case model.mode of
-            TechniqueDetails t o ui ->
+            TechniqueDetails t o ui editInfo ->
               let
                 technique = { t | elems = updateElemIf (getId >> .value >> (==) "") (setId newId) t.elems }
                 newUi = { ui | callsUI = Dict.insert newId.value defaultMethodUiInfo ui.callsUI}
               in
-                TechniqueDetails technique o newUi
+                TechniqueDetails technique o newUi editInfo
             m -> m
       in
         ( { model | mode = newMode } , Cmd.none )
@@ -645,11 +649,11 @@ update msg model =
       let
         newMode =
           case model.mode of
-           TechniqueDetails t o ui->
+           TechniqueDetails t o ui editInfo->
              let
                newUi = {ui | callsUI = Dict.update  callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
              in
-              TechniqueDetails t o newUi
+              TechniqueDetails t o newUi editInfo
            m -> m
       in
         ({ model | mode = newMode}, initInputs "" )
@@ -659,11 +663,11 @@ update msg model =
       let
         newMode =
           case model.mode of
-           TechniqueDetails t o ui->
+           TechniqueDetails t o ui editInfo->
              let
                newUi = {ui | blockUI = Dict.update  callId.value (always (Just newBlockUi) ) ui.blockUI }
              in
-               TechniqueDetails t o newUi
+               TechniqueDetails t o newUi editInfo
            m -> m
       in
         ({ model | mode = newMode}, initInputs "" )
@@ -673,12 +677,12 @@ update msg model =
       let
         newMode =
           case model.mode of
-           TechniqueDetails t o ui ->
+           TechniqueDetails t o ui editInfo ->
             let
               technique = { t |  elems = removeElem (getId >> (==) callId) t.elems }
               newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI, blockUI = Dict.remove callId.value  ui.blockUI }
             in
-            TechniqueDetails technique o newUi
+            TechniqueDetails technique o newUi editInfo
            m -> m
         newModel = { model | mode = newMode}
       in
@@ -691,7 +695,7 @@ update msg model =
                   Block p b -> Block p {b | calls = [] }
         newModel =
           case model.mode of
-            TechniqueDetails t o ui ->
+            TechniqueDetails t o ui editInfo ->
               let
                 newMethods =
                    case getParent clone of
@@ -712,7 +716,7 @@ update msg model =
                 newUi = case call of
                           Call _ _  -> { ui | callsUI = Dict.update newId.value (always (Just defaultMethodUiInfo)) ui.callsUI }
                           Block _ _  -> { ui | blockUI = Dict.update newId.value (always (Just defaultBlockUiInfo)) ui.blockUI }
-                m = { model | mode = TechniqueDetails technique o newUi }
+                m = { model | mode = TechniqueDetails technique o newUi editInfo }
               in
                 case call of
                           Call _ _  -> m
@@ -739,7 +743,7 @@ update msg model =
 
     MethodCallModified method ->
       case model.mode of
-        TechniqueDetails t s ui ->
+        TechniqueDetails t s ui editInfo ->
           let
             newUi =
               case method of
@@ -752,7 +756,7 @@ update msg model =
                  in
                   { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
                 Call _ _ -> ui
-            newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi}
+            newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi editInfo}
           in
             updatedStoreTechnique newModel
         _ -> (model,Cmd.none)
@@ -762,7 +766,7 @@ update msg model =
       let
         newModel =
           case model.mode of
-            TechniqueDetails t o ui->
+            TechniqueDetails t o ui editInfo->
               let
 
                 calls = updateElemIf (getId >> (==) call.id )  (updateParameter paramId newValue) t.elems
@@ -788,7 +792,7 @@ update msg model =
                   Dict.update call.id.value updateCallUi  ui.callsUI
                 technique = { t | elems = calls }
               in
-                { model | mode = TechniqueDetails technique o {ui | callsUI = callUi } }
+                { model | mode = TechniqueDetails technique o {ui | callsUI = callUi } editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -796,13 +800,13 @@ update msg model =
     SetMissingIds newId ->
       case model.mode of
         Introduction -> (model, Cmd.none)
-        TechniqueDetails t e u->
+        TechniqueDetails t e u editInfo->
           let
            newUi = { u | callsUI = Dict.update newId (always (Just defaultMethodUiInfo) ) u.callsUI }
           in
           case setIdRec newId t.elems of
             (_, False) -> updatedStoreTechnique model
-            (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi }
+            (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi editInfo }
 
     MoveStarted draggedItemId ->
       ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing }, clearTooltips "" )
@@ -816,7 +820,7 @@ update msg model =
     MoveCompleted draggedItemId dropTarget ->
       case model.mode of
         Introduction -> (model, Cmd.none)
-        TechniqueDetails t u e ->
+        TechniqueDetails t u e editInfo ->
           let
             (baseCalls, newElem) =
               case draggedItemId of
@@ -864,7 +868,7 @@ update msg model =
                                                     _ -> x
                                                   ) baseCalls
             updateTechnique = { t | elems = updatedCalls}
-            newModel = { model | mode = TechniqueDetails updateTechnique u e , dnd = DragDrop.initialState}
+            newModel = { model | mode = TechniqueDetails updateTechnique u e editInfo , dnd = DragDrop.initialState}
           in
             update (GenerateId SetMissingIds ) newModel
 
@@ -882,45 +886,87 @@ update msg model =
     DisableDragDrop ->
       case model.mode of
         Introduction -> (model, Cmd.none)
-        TechniqueDetails t e u ->
-          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Nothing} }, Cmd.none )
+        TechniqueDetails t e u editInfo ->
+          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Nothing} editInfo }, Cmd.none )
     EnableDragDrop id ->
       case model.mode of
         Introduction -> (model, Cmd.none)
-        TechniqueDetails t e u ->
-          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} }, Cmd.none )
+        TechniqueDetails t e u editInfo ->
+          ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} editInfo }, Cmd.none )
     HoverMethod id ->
       ({model | isMethodHovered = id} , Cmd.none)
 
     GetYaml result ->
-      let
-        cmd = case result of
+      case result of
           Ok (_, content) ->
              case model.mode of
-               TechniqueDetails t _ _ ->
-                 File.Download.string (t.id.value ++ ".yml") "application/json" content
-               _ -> Cmd.none
-          Err e -> Cmd.none
-      in
-        (model,cmd)
 
-    CheckTechnique result ->
+               TechniqueDetails t o ui editInfo->
+                   (model, File.Download.string (t.id.value ++ ".yml") "application/json" content)
+               _ -> (model, Cmd.none)
+          Err e -> (model, Cmd.none)
+
+    CheckOutJson mode result ->
        case result of
           Ok (_, technique) ->
-            let
-               callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls technique.elems)))
-               blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems)))
-               ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
-            in
-               update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui }
+            case mode of
+              Import _ ->
+                let
+                  callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls technique.elems)))
+                  blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems)))
+                  ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+                  editInfo = TechniqueEditInfo "" True (Ok ())
+                in
+                  update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui editInfo}
+              EditYaml _->
+                case model.mode of
+                  TechniqueDetails t o ui oldEdit ->
+                    ({model | mode = TechniqueDetails technique o ui oldEdit} , Cmd.none)
+                  _ ->
+                    (model, Cmd.none)
+              CheckJson  _->
+                  (model, Cmd.none)
+
+
+          Err e -> (model, Cmd.none)
+
+    CheckOutYaml mode result ->
+       case result of
+          Ok (_, yaml) ->
+            case mode of
+              Import _ ->
+                (model,Cmd.none)
+              CheckJson _ ->
+                case model.mode of
+                  TechniqueDetails t o ui oldEdit ->
+                    ({model | mode = TechniqueDetails t o ui {oldEdit | value = yaml }} , Cmd.none)
+                  _ ->
+                    (model, Cmd.none)
+              EditYaml _ ->
+                (model, Cmd.none)
+
+
           Err e -> (model, Cmd.none)
 
     FinalizeImport draftId ->
       case model.mode of
-        TechniqueDetails t _ ui ->
-          updatedStoreTechnique {model | mode = TechniqueDetails t (Creation (TechniqueId draftId)) ui }
+        TechniqueDetails t _ ui editInfo ->
+          updatedStoreTechnique {model | mode = TechniqueDetails t (Creation (TechniqueId draftId)) ui editInfo }
         _ ->
           (model, Cmd.none)
+
+    UpdateEdition edition ->
+      case model.mode of
+        TechniqueDetails t o ui oldEdit->
+            let
+              newModel =  { model | mode = TechniqueDetails t o ui edition }
+              cmd = if edition.open && not oldEdit.open then checkTechnique (CheckJson t) newModel
+                    else if edition.value /= oldEdit.value then checkTechnique (EditYaml edition.value) newModel
+                    else Cmd.none
+            in
+            ( newModel , cmd)
+        _ -> (model,Cmd.none)
+
 
 
 

@@ -17,6 +17,7 @@ import Editor.ViewMethodsList exposing (..)
 import Editor.ViewTechniqueTabs exposing (..)
 import Editor.ViewTechniqueList exposing (..)
 import Maybe.Extra
+import Json.Decode
 
 
 --
@@ -147,8 +148,8 @@ checkBlocksOnError methodElems =
         _              -> False
   ) methodBlockOnError)
 
-showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> Html Msg
-showTechnique model technique origin ui =
+showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> TechniqueEditInfo -> Html Msg
+showTechnique model technique origin ui editInfo =
   let
     fakeMetadata = Http.Metadata "internal-elm-call" 200 "call from elm app" Dict.empty
     blocksOnError = checkBlocksOnError technique.elems
@@ -291,6 +292,11 @@ showTechnique model technique origin ui =
               text "Reset "
             , i [ class "fa fa-undo"] []
             ]
+
+          , button [ class "btn btn-primary", onClick (UpdateEdition ({editInfo | open = not editInfo.open }))] [
+              text (if (editInfo.open) then "Visual editor " else "Edit Yaml ")
+            , i [ class "fa fa-pen"] []
+            ]
           , btnSave ui.saving (isUnchanged || not (isValid ui) || String.isEmpty technique.name || isEmptyParameters || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
           ]
         ]
@@ -353,7 +359,8 @@ showTechnique model technique origin ui =
               , i [ class "fa fa-plus-circle" ] []
               ]
             ]
-          , render methodsList
+          , if (editInfo.open) then
+            div [class "col-xs-12"] [ textarea [class "form-control" , rows (String.lines editInfo.value |> List.length), onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value] [] ]else render methodsList
           ]
         ]
       ]
@@ -376,8 +383,8 @@ view model =
                       ]
                     ]
 
-                TechniqueDetails technique state uiInfo ->
-                  showTechnique model technique state uiInfo
+                TechniqueDetails technique state uiInfo editInfo ->
+                  showTechnique model technique state uiInfo editInfo
     classes = "rudder-template " ++ if model.genericMethodsOpen then "show-methods" else "show-techniques"
 
 
@@ -415,3 +422,12 @@ view model =
           ]
     ]
 
+
+onContentEditableInput : (String -> msg) -> Attribute msg
+onContentEditableInput tagger =
+    Html.Events.stopPropagationOn "input"
+        (Json.Decode.map (\x -> ( x, True )) (Json.Decode.map tagger innerText))
+
+innerText : Json.Decode.Decoder String
+innerText =
+  Json.Decode.at ["target", "innerText"] Json.Decode.string

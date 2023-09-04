@@ -59,7 +59,7 @@ import com.normation.rudder.rest.{TechniqueApi => API, _}
 import com.normation.rudder.rest.RestUtils.ActionType
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rest.lift.TechniqueApi.OutputFormat
+import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
@@ -75,17 +75,17 @@ import zio.json.ast.Json.Str
 import zio.syntax._
 
 object TechniqueApi {
-  sealed trait OutputFormat
-  object OutputFormat {
-    def parse(s: String): OutputFormat = {
+  sealed trait QueryFormat
+  object QueryFormat {
+    def parse(s: String): QueryFormat = {
       s.toLowerCase match {
         case "yaml" => Yaml
         case "json" => Json
         case _      => Json // default to json for now
       }
     }
-    case object Json extends OutputFormat
-    case object Yaml extends OutputFormat
+    case object Json extends QueryFormat
+    case object Yaml extends QueryFormat
   }
 }
 
@@ -481,28 +481,40 @@ class TechniqueApi(
     val restExtractor = restExtractorService
     implicit val dataName:                                                                                     String       = "techniques"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      case class Content(content: String)
-      def charset:          String               = RestUtils.getCharset(req)
-      implicit val decoder: JsonDecoder[Content] = DeriveJsonDecoder.gen[Content]
+      def charset: String = RestUtils.getCharset(req)
 
+      val input  = req.params.get("input").flatMap(_.map(QueryFormat.parse).headOption).getOrElse(QueryFormat.Json)
+      val output = req.params.get("output").flatMap(_.map(QueryFormat.parse).headOption).getOrElse(QueryFormat.Json)
       val response: IOResult[Json] = {
         for {
           content   <-
             req.body match {
               case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
-              case Full(bytes) => new String(bytes, charset).fromJson[Content].toIO
+              case Full(bytes) => new String(bytes, charset).succeed
             }
           technique <- {
-            import YamlTechniqueSerializer._
-            val t: IOResult[EditorTechnique] = content.content.fromYaml[EditorTechnique].toIO
-            t
+            input match {
+              case QueryFormat.Yaml =>
+                import YamlTechniqueSerializer._
+                content.fromYaml[EditorTechnique].toIO
+              case QueryFormat.Json =>
+                import techniqueSerializer._
+                content.fromJson[EditorTechnique].toIO
+            }
           }
-          json      <- {
-            import techniqueSerializer._
-            technique.toJsonAST.toIO
+          response  <- {
+            output match {
+              case QueryFormat.Yaml =>
+                import YamlTechniqueSerializer._
+                import zio.yaml.YamlOps._
+                technique.toYaml().map(yaml => Json(("output", Str(yaml)))).toIO
+              case QueryFormat.Json =>
+                import techniqueSerializer._
+                technique.toJsonAST.toIO
+            }
           }
         } yield {
-          json
+          response
         }
       }
 
@@ -624,7 +636,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      serviceV14.getTechniqueWithData(techniqueName, None, OutputFormat.Json).toLiftResponseList(params, schema)
+      serviceV14.getTechniqueWithData(techniqueName, None, QueryFormat.Json).toLiftResponseList(params, schema)
     }
   }
 
@@ -640,8 +652,9 @@ class TechniqueApi(
     ): LiftResponse = {
       val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
 
-      val format = req.params("format").map(TechniqueApi.OutputFormat.parse).headOption.getOrElse(OutputFormat.Json)
-      val json   = TechniqueVersion.parse(version) match {
+      val format: QueryFormat =
+        req.params.get("format").flatMap(_.map(QueryFormat.parse).headOption).getOrElse(QueryFormat.Json)
+      val json = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
           serviceV14.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)
         case Left(error)             =>
@@ -850,7 +863,7 @@ class TechniqueAPIService14(
     editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor")) :: json: _*))).toIO
   }
 
-  def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion], format: TechniqueApi.OutputFormat) = {
+  def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion], format: TechniqueApi.QueryFormat) = {
     for {
       lib                    <- readDirective.getFullDirectiveLibrary()
       activeTechnique         = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
@@ -878,11 +891,11 @@ class TechniqueAPIService14(
 
                     case Some(editorTechnique) =>
                       format match {
-                        case OutputFormat.Yaml =>
+                        case QueryFormat.Yaml =>
                           import YamlTechniqueSerializer._
                           import zio.yaml.YamlOps._
                           editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
-                        case OutputFormat.Json =>
+                        case QueryFormat.Json =>
                           getTechniqueJson(editorTechnique)
                       }
                     case None                  =>

@@ -153,12 +153,12 @@ draftsItem: Model -> Draft -> Html Msg
 draftsItem model draft =
   let
     activeClass = case model.mode of
-                    TechniqueDetails _ (Clone _ id) _ ->
+                    TechniqueDetails _ (Clone _ id) _ _ ->
                       if id.value == draft.id then
                          "jstree-clicked"
                       else
                         ""
-                    TechniqueDetails _ (Creation id) _ ->
+                    TechniqueDetails _ (Creation id) _ _ ->
                       if id.value == draft.id then
                          "jstree-clicked"
                       else
@@ -189,7 +189,7 @@ techniqueItem model technique =
     techniqueMethods = List.concatMap allMethodCalls technique.elems
     unknownMethods = (List.filter (\c -> Maybe.Extra.isNothing (Dict.get c.methodName.value model.methods)) techniqueMethods)
     activeClass = case model.mode of
-                    TechniqueDetails t (Edit _) _ ->
+                    TechniqueDetails t (Edit _) _ _ ->
                       if t.id == technique.id then
                          "jstree-clicked"
                       else

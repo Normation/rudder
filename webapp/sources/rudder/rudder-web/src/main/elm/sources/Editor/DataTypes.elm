@@ -212,14 +212,22 @@ type alias TechniqueUiInfo =
   , nameState        : ValidationState TechniqueNameError
   , idState          : ValidationState TechniqueIdError
   , enableDragDrop   : Maybe CallId
+
+  }
+
+type alias TechniqueEditInfo =
+  {  value : String
+  ,  open : Bool
+  ,  result : Result String ()
   }
 
 type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
 type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
-type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo
+type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
 
+type CheckMode = Import String | EditYaml String | CheckJson Technique
 
 
 -- all events in the event loop
@@ -233,10 +241,12 @@ type Msg =
   | GetTechniqueResources  (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
   | GetCategories (Result (Http.Detailed.Error String)  ( Http.Metadata, TechniqueCategory ))
   | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
-  | CheckTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
+  | CheckOutJson CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
+  | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
   | RemoveMethod CallId
+  | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
   | MethodCallModified MethodElem
