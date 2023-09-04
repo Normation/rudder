@@ -420,7 +420,7 @@ fn ncf_const(s: &str) -> IResult<&str, Expression> {
         terminated(
             map(
                 |s| expression(s, true),
-                |out| Expression::Const(Box::new(out)),
+                |out| Expression::NcfConst(Box::new(out)),
             ),
             char('}'),
         ),
@@ -503,6 +503,11 @@ mod tests {
             out,
             Expression::Const(Box::new(Expression::Scalar("dollar".to_string())))
         );
+        let out: Expression = "${ncf_const.s}".parse().unwrap();
+        assert_eq!(
+            out,
+            Expression::NcfConst(Box::new(Expression::Scalar("s".to_string())))
+        );
         let out: Expression = "${sys.interface_flags[eth0]}".parse().unwrap();
         assert_eq!(
             out,
@@ -556,6 +561,15 @@ mod tests {
         assert_eq!(
             out,
             Expression::GenericVar(Box::new(Expression::Scalar("plouf".to_string())))
+        );
+    }
+
+    #[test]
+    fn it_reads_vcf_const_var() {
+        let (_, out) = ncf_const("${ncf_const.s}").unwrap();
+        assert_eq!(
+            out,
+            Expression::NcfConst(Box::new(Expression::Scalar("s".to_string())))
         );
     }
 
