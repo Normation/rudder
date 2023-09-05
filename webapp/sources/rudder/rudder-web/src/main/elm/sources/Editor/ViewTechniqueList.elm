@@ -7,9 +7,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import List.Extra
 import Maybe.Extra
-
+import NaturalOrdering as N exposing (compare)
 import Editor.DataTypes exposing (..)
-
 
 --
 -- This file deals with the technique list UI
@@ -62,8 +61,8 @@ techniqueList : Model -> List Technique -> Html Msg
 techniqueList model techniques =
   let
     strFilter = String.toLower (String.trim model.techniqueFilter.filter)
-    filteredTechniques = List.sortBy .name (List.filter (\t -> (String.contains strFilter (String.toLower t.name)) || (String.contains strFilter (String.toLower t.id.value)) ) techniques)
-    filteredDrafts = List.sortBy (.technique >> .name) (List.filter (\t -> (String.contains strFilter (String.toLower t.technique.name)) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
+    filteredTechniques = List.sortWith (\t1 t2 -> N.compare t1.name t2.name) (List.filter (\t -> (String.contains strFilter (String.toLower t.name)) || (String.contains strFilter (String.toLower t.id.value)) ) techniques)
+    filteredDrafts = List.sortWith (\t1 t2 -> N.compare t1.technique.name t2.technique.name) (List.filter (\t -> (String.contains strFilter (String.toLower t.technique.name)) && Maybe.Extra.isNothing t.origin ) (Dict.values model.drafts))
     techniqueItems =
       if List.isEmpty techniques && Dict.isEmpty model.drafts then
          div [ class "empty"] [text "The techniques list is empty."]

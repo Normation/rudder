@@ -9,7 +9,9 @@ import List.Extra
 import List
 import Maybe.Extra
 import Set
-import NaturalOrdering exposing (compareOn)
+import NaturalOrdering as N exposing (compareOn, compare)
+import NaturalOrdering as N exposing (compareOn, compare)
+import ComplianceUtils exposing (..)
 import Tuple3
 
 import Rules.ComplianceUtils exposing (..)
@@ -395,7 +397,7 @@ directivesTab model details =
         let
           filteredDirectives = ruleDirectives
             |> List.filter (\d -> d.enabled && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
-            |> List.sortBy .displayName
+            |> List.sortWith (\d1 d2 -> N.compare d1.displayName d2.displayName)
           sortedDirectives   = case tableFilters.sortOrder of
             Asc  -> filteredDirectives
             Desc -> List.reverse filteredDirectives
@@ -473,7 +475,7 @@ directivesTab model details =
           let
             directivesList = item.directives
               |> List.filter (\d -> (filterSearch model.ui.directiveFilters.treeFilters.filter (searchFieldDirectives d)))
-              |> List.sortBy .displayName
+              |> List.sortWith (\d1 d2 -> N.compare d1.displayName d2.displayName)
               |> List.map  (\d ->
                 let
                   selectedClass = if (List.member d.id rule.directives) then " item-selected" else ""
@@ -529,7 +531,7 @@ directivesTab model details =
         directiveTreeCategory item =
           let
             categories = getSubElems item
-              |> List.sortBy .name
+              |> List.sortWith (\c1 c2 -> N.compare c1.name c2.name)
               |> List.filterMap directiveTreeCategory
             techniques = item.elems
               |> List.filterMap directiveTreeElem
@@ -819,11 +821,11 @@ groupsTab model details =
         groupTreeCategory item =
           let
             categories = getSubElems item
-              |> List.sortBy .name
+              |> List.sortWith (\c1 c2 -> N.compare c1.name c2.name)
               |> List.filterMap groupTreeCategory
             groups = item.elems
               |> List.filter (\g -> (filterSearch model.ui.groupFilters.treeFilters.filter (searchFieldGroups g)))
-              |> List.sortBy .name
+              |> List.sortWith (\g1 g2 -> N.compare g1.name g2.name)
               |> List.map groupTreeElem
             children  = categories ++ groups
           in
