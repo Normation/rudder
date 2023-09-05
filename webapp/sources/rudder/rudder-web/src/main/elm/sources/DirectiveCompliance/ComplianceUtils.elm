@@ -14,6 +14,7 @@ import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
 
 
+
 getValueCompliance : Maybe Float -> Float
 getValueCompliance f =
   case f of

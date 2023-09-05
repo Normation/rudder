@@ -11,6 +11,7 @@ import Maybe.Extra
 import String exposing (fromFloat)
 import Json.Decode as Decode
 import Tuple3
+import NaturalOrdering as N exposing (compare)
 
 import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.ComplianceUtils exposing (..)
@@ -69,9 +70,9 @@ valueCompliance =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
-    [ ("Value", .value >> text, (\d1 d2 -> compare d1.value  d2.value))
-    , ("Messages", .reports >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> compare d1.value d2.value) )
-    , ( "Status", .reports >> buildComplianceReport, (\d1 d2 -> compare d1.value d2.value))
+    [ ("Value", .value >> text, (\d1 d2 -> N.compare d1.value  d2.value))
+    , ("Messages", .reports >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> N.compare d1.value d2.value) )
+    , ( "Status", .reports >> buildComplianceReport, (\d1 d2 -> Basics.compare d1.value d2.value))
     ]
     .value
     Nothing
@@ -104,8 +105,8 @@ byComponentCompliance subFun =
              List.map Right (List.sortWith sortFunction c.values)
     )
     (\_ i -> i)
-    [ ("Component", name >> text,  (\d1 d2 -> compare (name d1) (name d2)))
-    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> compare (name d1) (name d2)) )
+    [ ("Component", name >> text,  (\d1 d2 -> N.compare (name d1) (name d2)))
+    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> Basics.compare (name d1) (name d2)) )
     ]
     name
     (Just ( \x ->
@@ -132,8 +133,8 @@ byNodeCompliance mod =
         List.sortWith sortFunction item.rules
     )
     (\m i -> i)
-    [ ("Node", (\nId -> span[][ (badgePolicyMode mod.policyMode nId.policyMode), text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\n1 n2 -> compare n1.name n2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\n1 n2 -> compare n1.compliance n2.compliance))
+    [ ("Node", (\nId -> span[][ (badgePolicyMode mod.policyMode nId.policyMode), text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\n1 n2 -> N.compare n1.name n2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\n1 n2 -> Basics.compare n1.compliance n2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\b -> showComplianceDetails rule b))
@@ -153,8 +154,8 @@ byRuleCompliance model subFun =
       List.sortWith sortFunction item.components
     )
     (\m i ->  i )
-    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode (Maybe.map .policyMode model.directiveCompliance|> Maybe.withDefault "default")), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> compare r1.name r2.name ))
-    , ("Compliance", \i -> buildComplianceBar  i.complianceDetails,  (\(r1) (r2) -> compare r1.compliance r2.compliance ))
+    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode (Maybe.map .policyMode model.directiveCompliance|> Maybe.withDefault "default")), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
+    , ("Compliance", \i -> buildComplianceBar  i.complianceDetails,  (\(r1) (r2) -> Basics.compare r1.compliance r2.compliance ))
     ]
     (.ruleId >> .value)
     (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
@@ -170,8 +171,8 @@ nodeValueCompliance mod =
         List.sortWith sortFunction item.values
     )
     (\_ i -> i)
-    [ ("Node", (\nId -> span[][text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\d1 d2 -> compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> compare d1.compliance d2.compliance))
+    [ ("Node", (\nId -> span[][text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\item -> showComplianceDetails valueCompliance item))

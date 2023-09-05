@@ -6,6 +6,7 @@ import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
 import String
+import NaturalOrdering as N exposing (compare)
 
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
@@ -51,21 +52,21 @@ view model =
       let
         missingCat = getSubElems item
           |> List.filter (\c -> c.id == missingCategoryId)
-          |> List.sortBy .name
+          |> List.sortWith (\c1 c2 -> N.compare c1.name c2.name)
           |> List.filterMap ruleTreeCategory
 
         categories = getSubElems item
           |> List.filter (\c -> c.id /= missingCategoryId)
-          |> List.sortBy .name
+          |> List.sortWith (\c1 c2 -> N.compare c1.name c2.name)
           |> List.filterMap ruleTreeCategory
 
         rules = item.elems
           |> List.filter (\r -> filterSearch model.ui.ruleFilters.treeFilters.filter (searchFieldRules r model))
           |> List.filter (\r -> filterTags r.tags model.ui.ruleFilters.treeFilters.tags)
-          |> List.sortBy .name
+          |> List.sortWith (\r1 r2 -> N.compare r1.name r2.name)
           |> List.map ruleTreeElem
 
-        childsList  = ul[class "jstree-children"] (List.concat [categories, rules, missingCat] )
+        childsList  = ul[class "jstree-children"] (List.concat [categories, rules, missingCat])
 
         mainMissingCat =
           if(item.id == missingCategoryId) then

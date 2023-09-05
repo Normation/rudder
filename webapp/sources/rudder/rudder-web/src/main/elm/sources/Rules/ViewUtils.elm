@@ -11,6 +11,7 @@ import Maybe.Extra
 import String exposing (fromFloat)
 import Json.Decode as Decode
 import Tuple3
+import NaturalOrdering as N exposing (compare)
 
 import Rules.ComplianceUtils exposing (..)
 import Rules.DataTypes exposing (..)
@@ -131,9 +132,9 @@ valueCompliance =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
-    [ ("Value", .value >> text, (\d1 d2 -> compare d1.value  d2.value))
-    , ("Message", .message >>  text, (\d1 d2 -> compare d1.message d2.message) )
-    , ("Status", \r -> td [class "report-compliance"] [ div[] [ span[class r.status][text ( buildComplianceReport r) ] ] ] , (\d1 d2 -> compare (reportStatusOrder d1) (reportStatusOrder d2)))
+    [ ("Value", .value >> text, (\d1 d2 -> N.compare d1.value  d2.value))
+    , ("Message", .message >>  text, (\d1 d2 -> N.compare d1.message d2.message) )
+    , ("Status", \r -> td [class "report-compliance"] [ div[] [ span[class r.status][text ( buildComplianceReport r) ] ] ] , (\d1 d2 -> Basics.compare (reportStatusOrder d1) (reportStatusOrder d2)))
     ]
     .value
     Nothing
@@ -149,8 +150,8 @@ nodeValueCompliance mod =
         List.sortWith sortFunction item.values
     )
     (\_ i -> i)
-    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> compare d1.compliance d2.compliance))
+    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\item -> showComplianceDetails valueCompliance item))
@@ -187,8 +188,8 @@ byComponentCompliance subFun =
              List.map Right (List.sortWith sortFunction c.values)
     )
     (\_ i -> i)
-    [ ("Component", name >> text,  (\d1 d2 -> compare (name d1) (name d2)))
-    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> compare (complianceValue d1) (complianceValue d2)) )
+    [ ("Component", name >> text,  (\d1 d2 -> N.compare (name d1) (name d2)))
+    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> Basics.compare (complianceValue d1) (complianceValue d2)) )
     ]
     name
     (Just ( \x ->
@@ -216,8 +217,8 @@ byDirectiveCompliance mod subFun =
       List.sortWith sortFunction item.components
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
-    [ ("Directive", \(d,_)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> compare d1.name d2.name ))
-    , ("Compliance", \(_,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> compare d1.compliance d2.compliance ))
+    [ ("Directive", \(d,_)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> N.compare d1.name d2.name ))
+    , ("Compliance", \(_,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
     (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
@@ -236,8 +237,8 @@ byNodeCompliance mod =
         List.sortWith sortFunction item.directives
     )
     (\_ i -> i)
-    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> compare d1.compliance d2.compliance))
+    [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
+    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\b -> showComplianceDetails directive b))
