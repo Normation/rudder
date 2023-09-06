@@ -120,6 +120,10 @@ criteria = "safe-to-deploy"
 version = "0.3.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.hostname]]
+version = "0.3.1"
+criteria = "safe-to-deploy"
+
 [[exemptions.html5ever]]
 version = "0.26.0"
 criteria = "safe-to-deploy"
@@ -190,6 +194,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.normpath]]
 version = "1.1.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.ntapi]]
+version = "0.4.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.once_cell]]

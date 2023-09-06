@@ -6,6 +6,11 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.5.0 -> 0.5.1"
 
+[[audits.chrono]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.4.27 -> 0.4.29"
+
 [[audits.colored]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -26,6 +31,11 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.3.2 -> 0.3.3"
 
+[[audits.file-owner]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.1.1 -> 0.1.2"
+
 [[audits.format_serde_error]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -35,6 +45,11 @@ version = "0.3.0"
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.3.0 -> 0.3.1@git:06ef275ce1f2c56b91fa0a4785e28c3aa9c67b31"
+
+[[audits.handlebars]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "4.3.7 -> 4.4.0"
 
 [[audits.hermit-abi]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
@@ -71,6 +86,11 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "1.3.0 -> 1.4.0"
 
+[[audits.shlex]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "1.1.0 -> 1.2.0"
+
 [[audits.static_assertions]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -90,6 +110,11 @@ delta = "3.6.0 -> 3.7.0"
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "3.7.0 -> 3.8.0"
+
+[[audits.uname-rs]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+version = "0.1.1"
 
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
@@ -211,6 +236,30 @@ user-id = 5059 # Artyom Pavlov (newpavlov)
 start = "2022-08-18"
 end = "2024-08-03"
 
+[[trusted.crossbeam-channel]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-09-06"
+end = "2024-09-06"
+
+[[trusted.crossbeam-deque]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-12"
+end = "2024-09-06"
+
+[[trusted.crossbeam-epoch]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-12"
+end = "2024-09-06"
+
+[[trusted.crossbeam-utils]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-12"
+end = "2024-09-06"
+
 [[trusted.either]]
 criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
@@ -233,7 +282,7 @@ end = "2024-06-27"
 criteria = "safe-to-deploy"
 user-id = 33035 # Taiki Endo (taiki-e)
 start = "2021-04-24"
-end = "2024-08-03"
+end = "2024-09-06"
 
 [[trusted.form_urlencoded]]
 criteria = "safe-to-deploy"
@@ -354,6 +403,12 @@ criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
 start = "2019-05-20"
 end = "2024-08-03"
+
+[[trusted.num_cpus]]
+criteria = "safe-to-deploy"
+user-id = 359 # Sean McArthur (seanmonstar)
+start = "2019-06-10"
+end = "2024-09-06"
 
 [[trusted.parking_lot]]
 criteria = "safe-to-deploy"
@@ -565,6 +620,12 @@ user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-03-01"
 end = "2024-06-27"
 
+[[trusted.sysinfo]]
+criteria = "safe-to-deploy"
+user-id = 111 # Guillaume Gomez (GuillaumeGomez)
+start = "2019-03-01"
+end = "2024-09-06"
+
 [[trusted.termcolor]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
@@ -594,6 +655,12 @@ criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2019-09-07"
 end = "2024-08-01"
+
+[[trusted.time]]
+criteria = "safe-to-deploy"
+user-id = 15682 # Jacob Pratt (jhpratt)
+start = "2019-12-19"
+end = "2024-09-06"
 
 [[trusted.toml]]
 criteria = "safe-to-deploy"
