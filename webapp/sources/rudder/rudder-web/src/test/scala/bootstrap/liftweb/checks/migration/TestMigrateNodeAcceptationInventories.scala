@@ -40,6 +40,8 @@ package bootstrap.liftweb.checks.migration
 import better.files.File
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.errors._
+import com.normation.eventlog.EventActor
+import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.FullInventoryFromLdapEntriesImpl
 import com.normation.inventory.ldap.core.InventoryDit
@@ -54,10 +56,14 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
+import com.normation.rudder.services.nodes.history.impl.FactLogData
 import com.normation.rudder.services.nodes.history.impl.FullInventoryFileParser
+import com.normation.rudder.services.nodes.history.impl.InventoryHistoryDelete
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
+import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
@@ -85,10 +91,9 @@ class TestMigrateNodeAcceptationInventoriesFile extends TestMigrateNodeAcceptati
 class TestMigrateNodeAcceptationInventoriesJdbc extends TestMigrateNodeAcceptationInventories with DBCommon {
   override def doJdbcTest = doDatabaseConnection
 
-//  org.slf4j.LoggerFactory
-//    .getLogger("sql")
-//    .asInstanceOf[ch.qos.logback.classic.Logger]
-//    .setLevel(ch.qos.logback.classic.Level.TRACE)
+  // format: off
+  //org.slf4j.LoggerFactory.getLogger("sql").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
+  // format: on
 
   override def afterAll(): Unit = {
     cleanDb()
@@ -97,6 +102,12 @@ class TestMigrateNodeAcceptationInventoriesJdbc extends TestMigrateNodeAcceptati
 }
 
 trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll {
+  implicit class ForceParse(s: String) {
+    def forceParse: DateTime = DateFormaterService.parseDate(s) match {
+      case Right(x)  => x
+      case Left(err) => throw new IllegalArgumentException(s"Error in test when parsing date: ${err}")
+    }
+  }
 
   def doJdbcTest = false
 
@@ -156,18 +167,19 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   /*
    * Store migrated inventories under rootDir/migrated as a nodeid/date.json files
    */
-  object fileFactLog extends HistoryLogRepository[NodeId, DateTime, NodeFact, FactLog] {
+  object fileFactLog extends HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete {
     import com.normation.rudder.facts.nodes.NodeFactSerialisation._
     import zio.json._
 
     val root = testDir / "migrated"
     root.createDirectories()
 
-    def nodeDir(nodeId: NodeId):                  File                  = root / nodeId.value
-    def factFile(nodeId: NodeId, date: DateTime): File                  = {
+    def nodeDir(nodeId: NodeId):                  File = root / nodeId.value
+    def factFile(nodeId: NodeId, date: DateTime): File = {
       nodeDir(nodeId) / (dateFormat.print(date) + ".json")
     }
-    override def getIds:                          IOResult[Seq[NodeId]] = {
+
+    override def getIds: IOResult[Seq[NodeId]] = {
       for {
         files <- IOResult.attempt(root.list.toSeq)
       } yield files.toSeq.map(f => NodeId(f.name))
@@ -177,7 +189,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       for {
         json <- IOResult.attempt(s"Read json for ${id.value}}")(factFile(id, version).contentAsString)
         fact <- json.fromJson[NodeFact].toIO
-      } yield FactLog(id, version, fact)
+      } yield FactLog(id, version, FactLogData(fact, EventActor("rudder-migration"), AcceptedInventory))
     }
 
     override def versions(id: NodeId): IOResult[Seq[DateTime]] = {
@@ -187,14 +199,33 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       } yield dates.toSeq
     }
 
-    override def save(id: NodeId, data: NodeFact, datetime: DateTime): IOResult[FactLog] = {
+    override def save(id: NodeId, data: FactLogData, datetime: DateTime): IOResult[FactLog] = {
       for {
         _   <- IOResult.attempt(nodeDir(id).createDirectoryIfNotExists())
-        json = data.toJson
+        json = data.fact.toJson
         _   <- IOResult.attempt(factFile(id, datetime).writeText(json))
       } yield FactLog(id, datetime, data)
     }
+
+    override def saveDeleteEvent(id: NodeId, date: DateTime, actor: EventActor): IOResult[Unit] = ZIO.unit
+
+    override def getDeleteEvent(id: NodeId): IOResult[Option[NodeDeleteEvent]] = None.succeed
+
+    override def delete(id: NodeId): IOResult[Unit] = ZIO.unit
+
+    override def deleteFactIfDeleteEventBefore(date: DateTime): IOResult[Vector[NodeId]] = {
+      // we want to test that only in the case of postgresql, it's hardcoded correct in file case
+      deleteBefore.succeed
+    }
+
+    override def deleteFactCreatedBefore(date: DateTime): IOResult[Vector[NodeId]] = {
+      // we want to test that only in the case of postgresql, it's hardcoded correct in file case
+      acceptedBefore.succeed
+    }
   }
+
+  lazy val deleteBefore   = Vector(NodeId("fb0096f3-a928-454d-9776-e8079d48cdd8"))
+  lazy val acceptedBefore = Vector(NodeId("1bd58a1f-3faa-4783-a7a2-52d84021663a"), NodeId("59512a56-53e9-41e1-b36f-ca22d3cdfcbc"))
 
   // lazy val needed to be able to not init datasource when tests are skipped
   lazy val testFactLog = if (doJdbcTest && doobie != null) new InventoryHistoryJdbcRepository(doobie) else fileFactLog
@@ -285,4 +316,15 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     migratedAndCanRead("0bd58a1f-3faa-4783-a7a2-52d84021663a", "2023-05-30T12:00:00.000+02:00")
   }
 
+  "check that deletion of old deleted works as expected" >> {
+    // during migration, we set the deletion time at "now" to avoid having to query the whole evenl log base.
+    // So to test cleaning, we must say before "now" (which is after the migration now)
+    val res = testFactLog.deleteFactIfDeleteEventBefore(DateTime.now()).runNow
+    res must containTheSameElementsAs(deleteBefore)
+  }
+
+  "check that deletion of old facts works as expected" >> {
+    val res = testFactLog.deleteFactCreatedBefore("2023-04-15T00:00:00Z".forceParse).runNow
+    res must containTheSameElementsAs(acceptedBefore)
+  }
 }

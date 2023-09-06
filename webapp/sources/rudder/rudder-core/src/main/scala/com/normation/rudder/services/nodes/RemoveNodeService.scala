@@ -73,6 +73,7 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoServiceCached
+import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
@@ -132,7 +133,7 @@ trait PostNodeDeleteAction {
   // a node can have several status (if inventories already deleted, and now in pending again for ex)
   // or zero (if only some things remain)
   // and if can optionnally have a nodeInfo
-  def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit]
+  def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus], actor: EventActor): UIO[Unit]
 }
 
 object PostNodeDeleteAction {
@@ -247,7 +248,7 @@ class RemoveNodeServiceImpl(
           _       <- NodeLoggerPure.Delete.debug(s"-> execute clean-up actions for node '${nodeId.value}'")
           actions <- postNodeDeleteActions.get
           optInfo <- info.get
-          _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, mode, optInfo, status))
+          _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, mode, optInfo, status, actor))
           _       <- NodeLoggerPure.Delete.info(
                        s"Node '${nodeId.value}' ${optInfo.map(_.hostname).getOrElse("")} was successfully deleted"
                      )
@@ -513,7 +514,13 @@ class RemoveNodeFromGroups(
     woNodeGroupRepository: WoNodeGroupRepository,
     uuidGen:               StringUuidGenerator
 ) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     (for {
       _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from its groups")
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
@@ -539,7 +546,13 @@ class RemoveNodeFromGroups(
 }
 
 class RemoveNodeInfoFromCache(nodeInfoService: NodeInfoServiceCached)                    extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - remove node from NodeInfoService Cache '${nodeId.value}'") *>
     nodeInfoService
       .removeNodeFromCache(nodeId)
@@ -551,7 +564,13 @@ class RemoveNodeFromComplianceCache(
     configurationService: CachedNodeConfigurationService,
     cachedCompliance:     CachedFindRuleNodeStatusReports
 ) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     for {
       _ <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from compliance and expected report cache")
       _ <-
@@ -575,7 +594,13 @@ class RemoveNodeFromComplianceCache(
  * Also delete nodes_info for that node.
  */
 class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRepository) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     for {
       _ <- NodeLoggerPure.Delete.debug(s"  - close expected reports for '${nodeId.value}'")
       _ <- expectedReportsRepository
@@ -589,7 +614,13 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
 
 // when the node is a policy server, delete directive/rule/group related to it
 class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementService) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     // we can avoid to do LDAP requests if we are sure the node wasn't a policy server
     info.map(_.isPolicyServer) match {
       case Some(false) =>
@@ -609,7 +640,13 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
 
 // clean up certification key status (only in move mode, not erase)
 class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     if (mode == DeleteMode.MoveToRemoved) {
       NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
       (for {
@@ -629,7 +666,13 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
 
 // clean-up cfengine key - only possible if we still have an inventory
 class CleanUpCFKeys extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     info match {
       case Some(i) =>
         val agentTypes = i.agentsName.map(_.agentType).toSet
@@ -688,7 +731,13 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
   import better.files._
   import better.files.File._
 
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>
     cleanPoliciesRec(nodeId, File(varRudderShare)).runDrain.catchAll(err => {
       NodeLoggerPure.Delete.info(
@@ -763,7 +812,13 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
 }
 
 class DeleteNodeFact(nodeFactStorage: NodeFactStorage) extends PostNodeDeleteAction {
-  override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - delete fact about node '${nodeId.value}'") *>
     nodeFactStorage
       .changeStatus(nodeId, RemovedInventory)
@@ -771,5 +826,27 @@ class DeleteNodeFact(nodeFactStorage: NodeFactStorage) extends PostNodeDeleteAct
         NodeLoggerPure.info(s"Error when trying to update fact when deleting node '${nodeId.value}': ${err.fullMsg}")
       )
       .unit
+  }
+}
+
+/*
+ * This hook registers the deletion events into postgresql `nodefacts` table so that the inventory accept/refuse
+ * fact can be latter cleaned-up.
+ */
+class StoreDeleteEventHistory(history: InventoryHistoryJdbcRepository, cleanUpImmediately: Boolean) extends PostNodeDeleteAction {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[NodeInfo],
+      status: Set[InventoryStatus],
+      actor:  EventActor
+  ): UIO[Unit] = {
+    (if (cleanUpImmediately) {
+       history.delete(nodeId)
+     } else { // save delete event, clean-up will be automatically done by script
+       history.saveDeleteEvent(nodeId, DateTime.now(), actor)
+     }).catchAll(err =>
+      NodeLoggerPure.warn(s"Error when updating node '${nodeId.value}' historical inventory information in base: ${err.fullMsg}")
+    )
   }
 }
