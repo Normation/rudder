@@ -76,7 +76,7 @@ impl SharedFile {
         }
         if !check.is_match(&file_id) {
             return Err(
-                RudderError::InvalidSharedFile(format!("invalid file_id: {}", source_id)).into(),
+                RudderError::InvalidSharedFile(format!("invalid file_id: {}", file_id)).into(),
             );
         }
         Ok(SharedFile {
