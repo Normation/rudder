@@ -37,7 +37,7 @@ impl Yum {
         for line in updates.lines() {
             let re = Regex::new(r"^(\S+)\.([^.\s]+)\s+(\S+)\s+(\S+)\s*$").unwrap();
             let Some(caps) = re.captures(line) else {
-                continue
+                continue;
             };
 
             let _info_re =
