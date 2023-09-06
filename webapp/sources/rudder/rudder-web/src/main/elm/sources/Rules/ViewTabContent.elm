@@ -11,7 +11,6 @@ import Maybe.Extra
 import Set
 import NaturalOrdering as N exposing (compareOn, compare)
 import NaturalOrdering as N exposing (compareOn, compare)
-import ComplianceUtils exposing (..)
 import Tuple3
 
 import Rules.ComplianceUtils exposing (..)
