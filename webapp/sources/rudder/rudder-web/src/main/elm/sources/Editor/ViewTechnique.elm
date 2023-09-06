@@ -294,7 +294,7 @@ showTechnique model technique origin ui editInfo =
             ]
 
           , button [ class "btn btn-primary", onClick (UpdateEdition ({editInfo | open = not editInfo.open }))] [
-              text (if (editInfo.open) then "Visual editor " else "Edit Yaml ")
+              text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
           , btnSave ui.saving (isUnchanged || not (isValid ui) || String.isEmpty technique.name || isEmptyParameters || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
@@ -360,7 +360,7 @@ showTechnique model technique origin ui editInfo =
               ]
             ]
           , if (editInfo.open) then
-            div [class "col-xs-12"] [ textarea [class "form-control" , rows (String.lines editInfo.value |> List.length), onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value] [] ]else render methodsList
+            div [class "col-xs-12"] [ textarea [class "yaml-editor" , rows (String.lines editInfo.value |> List.length), onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value] [] ]else render methodsList
           ]
         ]
       ]

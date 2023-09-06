@@ -1653,3 +1653,15 @@ ul li.hide-method {
 .unknown-gm-icon {
   color:#da291c;
 }
+
+/* YAML editor */
+textarea.yaml-editor {
+  font-family: var(--font-mono);
+  /* Remove decoration */
+  border: none;
+  box-shadow: none;
+  resize: none;
+  outline: none;
+  width: 100%;
+  margin-top: 10px;
+}
