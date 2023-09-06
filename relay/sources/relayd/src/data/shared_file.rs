@@ -59,7 +59,7 @@ impl SharedFile {
         // Only ascii alphanumeric, - and .
         // This is the documented constraint for file_id
         // More than enough for node ids too but we don't have a precise spec
-        let check = Regex::new(r"^[A-Za-z0-9\-.]+$").unwrap();
+        let check = Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap();
         if !check.is_match(&source_id) {
             return Err(RudderError::InvalidSharedFile(format!(
                 "invalid source_id: {}",
