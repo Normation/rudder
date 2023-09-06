@@ -61,7 +61,4 @@ impl Yum {
 }
 
 #[cfg(test)]
-mod tests {
-    
-    
-}
+mod tests {}
