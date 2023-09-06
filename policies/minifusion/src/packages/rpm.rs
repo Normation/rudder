@@ -25,7 +25,7 @@ impl Rpm {
     fn parse_installed(list: &str) -> Result<Vec<Package>> {
         let mut res = vec![];
         for line in list.lines() {
-            let items: Vec<&str> = line.split("\t").collect();
+            let items: Vec<&str> = line.split('\t').collect();
             let version = if items[4] != "0" && items[4] != "(none)" {
                 format!("{}:{}", items[4], items[1])
             } else {

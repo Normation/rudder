@@ -23,21 +23,19 @@ fn cmd<T: AsRef<str>>(command: T, args: &[T], fallback: Option<T>) -> Result<Str
         .args(args.iter().map(|s| s.as_ref()))
         .output()?;
     Ok(if cmd.status.success() {
-        str::from_utf8(&*cmd.stdout)?.to_owned()
+        str::from_utf8(&cmd.stdout)?.to_owned()
+    } else if let Some(v) = fallback {
+        v.as_ref().to_string()
     } else {
-        if let Some(v) = fallback {
-            v.as_ref().to_string()
-        } else {
-            bail!(
-                "Could not get value from '{}' command with the '{}' arguments: {}",
-                command.as_ref(),
-                args.iter()
-                    .map(|s| s.as_ref())
-                    .collect::<Vec<&str>>()
-                    .join(" "),
-                str::from_utf8(&cmd.stderr)?.to_owned()
-            )
-        }
+        bail!(
+            "Could not get value from '{}' command with the '{}' arguments: {}",
+            command.as_ref(),
+            args.iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<&str>>()
+                .join(" "),
+            str::from_utf8(&cmd.stderr)?.to_owned()
+        )
     }
     .trim()
     .to_string())
