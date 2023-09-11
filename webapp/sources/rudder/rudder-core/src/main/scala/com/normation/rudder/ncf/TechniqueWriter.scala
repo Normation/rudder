@@ -54,6 +54,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
 import zio._
+import zio.json.yaml._
 
 /*
  * This service is in charge of writing an editor technique and it's related files.
@@ -180,7 +181,6 @@ class TechniqueWriterImpl(
   // write the given EditorTechnique as YAML file in ${technique.path}/technique.yml
   def writeYaml(technique: EditorTechnique): IOResult[String] = {
     import YamlTechniqueSerializer._
-    import zio.yaml.YamlOps._
 
     val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
     val path         = s"${baseConfigRepoPath}/${metadataPath}"

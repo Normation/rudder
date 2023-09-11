@@ -48,8 +48,7 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.ncf._
 import zio.json._
-import zio.json.yaml.DecoderYamlOps
-import zio.yaml.YamlOps._
+import zio.json.yaml._
 
 /*
  * Here we provide the datatype used to communicate with rudderc

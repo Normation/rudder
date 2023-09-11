@@ -464,7 +464,7 @@ limitations under the License.
     <cats-effect-version>3.5.1</cats-effect-version>
     <dev-zio-version>2.0.16</dev-zio-version>
     <zio-cats-version>23.0.0.8</zio-cats-version> <!-- gives fs2 3.1.6, but doobie 1.0.0-RC1 is in 3.0.3 -->
-    <zio-json-version>0.6.1</zio-json-version>
+    <zio-json-version>0.6.2</zio-json-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.

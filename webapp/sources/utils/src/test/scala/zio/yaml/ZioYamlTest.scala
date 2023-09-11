@@ -28,6 +28,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import zio.json._
+import zio.json.yaml._
 
 // test data
 final case class Param(id: String, mandatory: Boolean)
@@ -41,22 +42,7 @@ class ZioYamlTest extends Specification {
 
   val c = Container("foo", 42, List(Param("p1", true)))
 
-  "demonstrating yaml bad encoding with default ZIO Yaml" >> {
-    import zio.json.yaml._
-
-    // see the line break after `-`
-    c.toYaml() must beEqualTo(Right("""id: foo
-                                      |version: 42
-                                      |params:
-                                      |  -
-                                      |  id: p1
-                                      |  mandatory: true
-                                      |""".stripMargin))
-
-  }
-
   "demonstrating correct encoding with our ZIO Yaml" >> {
-    import zio.yaml.YamlOps._
 
     c.toYaml() must beEqualTo(
       Right(

@@ -49,6 +49,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import java.nio.charset.StandardCharsets
 import zio._
 import zio.json._
+import zio.json.yaml._
 
 /**
  * An object able to migrate a (set of) old techniques with a
@@ -171,7 +172,6 @@ object MigrateJsonTechniquesService {
    */
   def toYaml(json: String): PureResult[String] = {
     import YamlTechniqueSerializer._
-    import zio.yaml.YamlOps._
 
     for {
       technique <- fromOldJsonTechnique(json).left.map(err =>

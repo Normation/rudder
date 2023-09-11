@@ -72,6 +72,7 @@ import scala.collection.SortedMap
 import zio._
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
+import zio.json.yaml._
 import zio.syntax._
 
 object TechniqueApi {
@@ -506,7 +507,6 @@ class TechniqueApi(
             output match {
               case QueryFormat.Yaml =>
                 import YamlTechniqueSerializer._
-                import zio.yaml.YamlOps._
                 technique.toYaml().map(yaml => Json(("output", Str(yaml)))).toIO
               case QueryFormat.Json =>
                 import techniqueSerializer._
@@ -893,7 +893,6 @@ class TechniqueAPIService14(
                       format match {
                         case QueryFormat.Yaml =>
                           import YamlTechniqueSerializer._
-                          import zio.yaml.YamlOps._
                           editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
                         case QueryFormat.Json =>
                           getTechniqueJson(editorTechnique)
