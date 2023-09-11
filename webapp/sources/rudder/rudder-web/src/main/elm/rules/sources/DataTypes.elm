@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
+import ChangeRequest exposing (ChangeRequestSettings)
 --
 -- All our data types
 --
@@ -22,7 +23,7 @@ type alias Tag =
   , value : String
   }
 
-type ModalState = NoModal | DeletionValidation Rule | DeactivationValidation Rule | DeletionValidationCat (Category Rule)
+type ModalState = NoModal | DeletionValidation Rule (Maybe ChangeRequestSettings) | DeactivationValidation Rule (Maybe ChangeRequestSettings) | DeletionValidationCat (Category Rule) | SaveAuditMsg Bool Rule (Maybe Rule) ChangeRequestSettings
 
 type RuleTarget = Composition RuleTarget RuleTarget | And (List RuleTarget) | Or (List RuleTarget) | NodeGroupId String | Special String | Node String
 
@@ -31,18 +32,18 @@ type alias DirectiveId = { value : String }
 type alias NodeId      = { value : String }
 
 type alias Rule =
-  { id                : RuleId
-  , name              : String
-  , categoryId        : String
-  , shortDescription  : String
-  , longDescription   : String
-  , enabled           : Bool
-  , isSystem          : Bool
-  , directives        : List DirectiveId
-  , targets           : List RuleTarget
-  , policyMode        : String
-  , status            : RuleStatus
-  , tags              : List Tag
+  { id               : RuleId
+  , name             : String
+  , categoryId       : String
+  , shortDescription : String
+  , longDescription  : String
+  , enabled          : Bool
+  , isSystem         : Bool
+  , directives       : List DirectiveId
+  , targets          : List RuleTarget
+  , policyMode       : String
+  , status           : RuleStatus
+  , tags             : List Tag
   }
 
 
@@ -276,6 +277,7 @@ type alias UI =
   , loadingRules     : Bool
   , isAllCatFold     : Bool
   , saving           : Bool
+  , crSettings       : Maybe ChangeRequestSettings
   }
 
 type alias  Changes =
@@ -316,6 +318,7 @@ type Msg
   | CallApi                  Bool (Model -> Cmd Msg)
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
+  | GetChangeRequestSettings (Result Error ChangeRequestSettings)
   | GetCategoryDetailsResult (Result Error (Category Rule))
   | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
   | GetRuleNodesDirectivesResult RuleId (Result Error RuleNodesDirectives)
@@ -336,6 +339,7 @@ type Msg
   | OpenDeletionPopup Rule
   | OpenDeletionPopupCat (Category Rule)
   | OpenDeactivationPopup Rule
+  | OpenSaveAuditMsgPopup Rule ChangeRequestSettings
   | ClosePopup Msg
   | Ignore
   | ToggleRow              String String
@@ -347,3 +351,4 @@ type Msg
   | FoldAllCategories      Filters
   | RefreshComplianceTable RuleId
   | RefreshReportsTable    RuleId
+  | UpdateCrSettings       ChangeRequestSettings

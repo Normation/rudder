@@ -12,6 +12,7 @@ import Result
 import ApiCalls exposing (..)
 import ViewUtils exposing (..)
 import List.Extra
+import Maybe.Extra exposing (isNothing)
 import Random
 import UUID
 
@@ -87,6 +88,18 @@ update msg model =
             )
         Err err ->
           processApiError "Getting Policy Mode" err model
+
+    GetChangeRequestSettings res ->
+      case res of
+        Ok settings ->
+          let
+            ui = model.ui
+          in
+            ( { model | ui = { ui | crSettings = Just settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings" err model
 
     GetGroupsTreeResult res ->
       case res of
@@ -296,7 +309,10 @@ update msg model =
               Nothing -> "created"
             ui = details.ui
             modelUi = model.ui
-            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False} }
+            crSettings = case modelUi.crSettings of
+              Just cr -> Just { cr | newMessagePrompt = "" }
+              Nothing -> modelUi.crSettings
+            newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False, crSettings = crSettings} }
           in
             (newModel, Cmd.batch
               [ successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action)
@@ -316,8 +332,12 @@ update msg model =
         RuleForm details ->
           let
             txtDisable = if ruleDetails.enabled then "enabled" else "disabled"
+            ui = model.ui
+            crSettings = case ui.crSettings of
+              Just s  -> Just { s | newMessagePrompt = ""}
+              Nothing -> Nothing
           in
-            ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
+            ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}, ui = { ui | crSettings = crSettings}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
         _   -> (model, Cmd.none)
 
     SaveDisableAction (Err err) ->
@@ -346,7 +366,12 @@ update msg model =
         RuleForm r ->
           let
             newMode  = if r.rule.id == ruleId then RuleTable else model.mode
-            newModel = { model | mode = newMode }
+            ui = model.ui
+            crSettings = case ui.crSettings of
+              Just s  -> Just { s | newMessagePrompt = ""}
+              Nothing -> Nothing
+
+            newModel = { model | mode = newMode, ui = { ui | crSettings = crSettings} }
           in
             (newModel, Cmd.batch [successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"), getRulesTree newModel, pushUrl ("", "") ])
         _ -> (model, Cmd.none)
@@ -382,10 +407,14 @@ update msg model =
 
     OpenDeletionPopup rule ->
       case model.mode of
-        RuleForm _ ->
-          let ui = model.ui
+        RuleForm rd ->
+          let
+            ui = model.ui
+            crSettings = case ui.crSettings of
+              Just cr -> Just { cr | changeRequestName = ("Delete Rule '" ++ rd.rule.name ++ "'") }
+              Nothing -> Nothing
           in
-            ( { model | ui = {ui | modal = DeletionValidation rule} } , Cmd.none )
+            ( { model | ui = {ui | modal = DeletionValidation rule crSettings, crSettings = crSettings} } , Cmd.none )
         _ -> (model, Cmd.none)
 
     OpenDeletionPopupCat category ->
@@ -393,15 +422,31 @@ update msg model =
         CategoryForm _ ->
           let ui = model.ui
           in
-            ( { model | ui = {ui | modal = DeletionValidationCat category} } , Cmd.none )
+            ( { model | ui = {ui | modal = DeletionValidationCat category } } , Cmd.none )
         _ -> (model, Cmd.none)
 
     OpenDeactivationPopup rule ->
       case model.mode of
-        RuleForm _ ->
-          let ui = model.ui
+        RuleForm rd ->
+          let
+            ui = model.ui
+            crSettings = case ui.crSettings of
+              Just cr -> Just { cr | changeRequestName = ("Deactivate Rule '" ++ rd.rule.name ++ "'")}
+              Nothing -> Nothing
           in
-            ( { model | ui = {ui | modal = DeactivationValidation rule}} , Cmd.none )
+            ( { model | ui = {ui | modal = DeactivationValidation rule crSettings, crSettings = crSettings}} , Cmd.none )
+        _ -> (model, Cmd.none)
+
+    OpenSaveAuditMsgPopup rule crSettings ->
+      case model.mode of
+        RuleForm rd ->
+          let
+            ui = model.ui
+            creation = (isNothing rd.originRule)
+            action = if creation then "Create" else "Update"
+            newCrSettings = { crSettings | changeRequestName = (action ++ " Rule '" ++ rd.rule.name ++ "'")}
+          in
+            ( { model | ui = {ui | modal = SaveAuditMsg creation rule rd.originRule newCrSettings}} , Cmd.none )
         _ -> (model, Cmd.none)
 
     ClosePopup callback ->
@@ -498,6 +543,17 @@ update msg model =
               Just lastChanges -> [ getRepairedReports model ruleId lastChanges.start lastChanges.end ]
       in
         (model, Cmd.batch getChanges)
+
+    UpdateCrSettings settings ->
+      let
+        ui = model.ui
+        newModalState = case ui.modal of
+          SaveAuditMsg c r oR s      -> SaveAuditMsg c r oR settings
+          DeactivationValidation r s -> DeactivationValidation r (Just settings)
+          DeletionValidation  r s    -> DeletionValidation r (Just settings)
+          _ -> ui.modal
+      in
+        ({ model | ui = { ui | crSettings = Just settings, modal = newModalState } }, Cmd.none)
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

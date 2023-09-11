@@ -2,25 +2,28 @@ module  JsonEncoder exposing (..)
 
 import DataTypes exposing (..)
 import Json.Encode exposing (..)
+import ChangeRequest exposing (ChangeRequestSettings, encodeChangeRequestSettings)
 
-
-encodeRuleDetails: Rule -> Value
-encodeRuleDetails ruleDetails =
+encodeRuleDetails: Rule -> Maybe ChangeRequestSettings -> Value
+encodeRuleDetails ruleDetails crSettings =
   let
     listTags = object(List.map (\t -> (t.key, string t.value)) ruleDetails.tags)
+    encodeCrSettings = encodeChangeRequestSettings crSettings
   in
-      object [
-        ("id"               , string ruleDetails.id.value            )
-      , ("displayName"      , string ruleDetails.name                )
-      , ("category"         , string ruleDetails.categoryId          )
-      , ("shortDescription" , string ruleDetails.shortDescription    )
-      , ("longDescription"  , string ruleDetails.longDescription     )
-      , ("enabled"          , bool   ruleDetails.enabled             )
-      , ("system"           , bool   ruleDetails.isSystem            )
-      , ("directives"       , list string (List.map .value ruleDetails.directives) )
-      , ("targets"          , list encodeTargets ruleDetails.targets )
-      , ("tags"             , list encodeTags ruleDetails.tags       )
-      ]
+      object ( List.append
+        [ ("id"               , string ruleDetails.id.value            )
+        , ("displayName"      , string ruleDetails.name                )
+        , ("category"         , string ruleDetails.categoryId          )
+        , ("shortDescription" , string ruleDetails.shortDescription    )
+        , ("longDescription"  , string ruleDetails.longDescription     )
+        , ("enabled"          , bool   ruleDetails.enabled             )
+        , ("system"           , bool   ruleDetails.isSystem            )
+        , ("directives"       , list string (List.map .value ruleDetails.directives) )
+        , ("targets"          , list encodeTargets ruleDetails.targets )
+        , ("tags"             , list encodeTags ruleDetails.tags       )
+        ]
+        encodeCrSettings
+      )
 
 encodeCategoryDetails: String -> (Category Rule) -> Value
 encodeCategoryDetails parentId category =

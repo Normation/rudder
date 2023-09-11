@@ -9,6 +9,7 @@ import Time.ZonedDateTime exposing (ZonedDateTime)
 import Url
 import Url.Builder exposing (QueryParameter, int, string)
 
+import ChangeRequest exposing (decodeGetChangeRequestSettings)
 
 --
 -- This files contains all API calls for the Rules UI
@@ -93,6 +94,23 @@ getPolicyMode model =
         }
   in
     req
+
+getCrSettings : Model -> Cmd Msg
+getCrSettings model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "settings" ] []
+        , body    = emptyBody
+        , expect  = expectJson GetChangeRequestSettings decodeGetChangeRequestSettings
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
 
 getGroupsTree : Model -> Cmd Msg
 getGroupsTree model =
@@ -233,7 +251,7 @@ saveRuleDetails ruleDetails creation model =
         { method  = method
         , headers = []
         , url     = getUrl model url []
-        , body    = encodeRuleDetails ruleDetails |> jsonBody
+        , body    = encodeRuleDetails ruleDetails model.ui.crSettings |> jsonBody
         , expect  = expectJson SaveRuleDetails decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
@@ -244,12 +262,13 @@ saveRuleDetails ruleDetails creation model =
 saveDisableAction : Rule -> Model ->  Cmd Msg
 saveDisableAction ruleDetails model =
   let
+    changeAction = "Disable "
     req =
       request
         { method  = "POST"
         , headers = []
         , url     = getUrl model ["rules", ruleDetails.id.value ] []
-        , body    = encodeRuleDetails ruleDetails |> jsonBody
+        , body    = encodeRuleDetails ruleDetails model.ui.crSettings |> jsonBody
         , expect  = expectJson SaveDisableAction decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
