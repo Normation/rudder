@@ -3,25 +3,25 @@ module Rules.JsonEncoder exposing (..)
 import Json.Encode exposing (..)
 
 import Rules.DataTypes exposing (..)
-
+import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 encodeRuleDetails: Rule -> Value
 encodeRuleDetails ruleDetails =
   let
     listTags = object(List.map (\t -> (t.key, string t.value)) ruleDetails.tags)
   in
-      object [
-        ("id"               , string ruleDetails.id.value            )
-      , ("displayName"      , string ruleDetails.name                )
-      , ("category"         , string ruleDetails.categoryId          )
-      , ("shortDescription" , string ruleDetails.shortDescription    )
-      , ("longDescription"  , string ruleDetails.longDescription     )
-      , ("enabled"          , bool   ruleDetails.enabled             )
-      , ("system"           , bool   ruleDetails.isSystem            )
-      , ("directives"       , list string (List.map .value ruleDetails.directives) )
-      , ("targets"          , list encodeTargets ruleDetails.targets )
-      , ("tags"             , list encodeTags ruleDetails.tags       )
-      ]
+   object
+        [ ("id"               , string ruleDetails.id.value            )
+        , ("displayName"      , string ruleDetails.name                )
+        , ("category"         , string ruleDetails.categoryId          )
+        , ("shortDescription" , string ruleDetails.shortDescription    )
+        , ("longDescription"  , string ruleDetails.longDescription     )
+        , ("enabled"          , bool   ruleDetails.enabled             )
+        , ("system"           , bool   ruleDetails.isSystem            )
+        , ("directives"       , list string (List.map .value ruleDetails.directives) )
+        , ("targets"          , list encodeTargets ruleDetails.targets )
+        , ("tags"             , list encodeTags ruleDetails.tags       )
+        ]
 
 encodeCategoryDetails: String -> (Category Rule) -> Value
 encodeCategoryDetails parentId category =
