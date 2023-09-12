@@ -80,7 +80,7 @@ class Doobie(datasource: DataSource) {
     // our transaction EC: wait for aquire/release connections, must accept blocking operations
     te <- ZIO.blockingExecutor.map(_.asExecutionContext)
   } yield {
-    Transactor.fromDataSource[Task](datasource, te)
+    Transactor.fromDataSource[Task](datasource, te, Some(Doobie.slf4jDoobieLogger))
   }).runNow
 
   def transactTask[T](query: Transactor[Task] => Task[T]): Task[T] = {
@@ -102,13 +102,13 @@ class Doobie(datasource: DataSource) {
 
 object Doobie {
 
-  implicit val slf4jDoobieLogger: LogHandler[IOResult] = {
+  implicit val slf4jDoobieLogger: LogHandler[zio.Task] = {
     object DoobieLogger extends NamedZioLogger {
-      val loggerName = "sql"
+      lazy val loggerName = "sql"
     }
 
-    new LogHandler[IOResult] {
-      def run(logEvent: LogEvent): IOResult[Unit] = {
+    new LogHandler[zio.Task] {
+      def run(logEvent: LogEvent): zio.Task[Unit] = {
         logEvent match {
 
           // we could log only if exec duration is more than X ms, etc.
