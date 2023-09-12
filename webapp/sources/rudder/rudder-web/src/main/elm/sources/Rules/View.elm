@@ -1,10 +1,11 @@
 module Rules.View exposing (..)
 
-import Html exposing (Html, button, div, i, span, text, h1, h3, ul, li, input, a, table, thead, tbody, label)
+import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
+import Maybe.Extra exposing (isNothing)
 import String
 import NaturalOrdering as N exposing (compare)
 
@@ -14,7 +15,7 @@ import Rules.ViewCategoryDetails exposing (..)
 import Rules.ViewRulesTable exposing (..)
 import Rules.ViewRuleDetails exposing (..)
 import Rules.ViewUtils exposing (..)
-
+import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 view : Model -> Html Msg
 view model =
@@ -126,33 +127,81 @@ view model =
       CategoryForm details ->
         (editionTemplateCat model details)
 
+    changeAuditForm : ChangeRequestSettings -> Html Msg
+    changeAuditForm crSettings =
+      if crSettings.enableChangeMessage || crSettings.enableChangeRequest then
+        div []
+        [ h4 [class "audit-title"] [text "Change audit log"]
+        , ( if crSettings.enableChangeRequest then
+          div[class "form-group"]
+          [ label[]
+             [ text "Change request title"
+            ]
+            , input [type_ "text", class "form-control", onInput (\s -> UpdateCrSettings {crSettings | changeRequestName = s}), value crSettings.changeRequestName ][]
+          ]
+          else
+          text ""
+          )
+        , div[class "form-group"]
+          [ label[]
+            [ text "Change audit message"
+            , text (if crSettings.mandatoryChangeMessage then " (required)" else "")
+            ]
+            , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
+          ]
+        ]
+      else
+        text ""
+
     modal = case model.ui.modal of
       NoModal -> text ""
-      DeletionValidation rule ->
-        div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-        [ div [class "modal-backdrop fade in"][]
-        , div [ class "modal-dialog" ] [
-            div [ class "modal-content" ] [
-              div [ class "modal-header ng-scope" ] [
-                h3 [ class "modal-title" ] [ text "Delete Rule"]
-              ]
-            , div [ class "modal-body" ] [
-                text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")
-              ]
-            , div [ class "modal-footer" ] [
-                button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
-                [ text "Cancel " ]
-              , button [ class "btn btn-danger", onClick (ClosePopup (CallApi False (deleteRule rule))) ]
-                [ text "Delete "
-                , i [ class "fa fa-times-circle" ] []
+      DeletionValidation rule crSettings ->
+        let
+          (auditForm, btnDisabled) = case crSettings of
+            Just s  ->
+              ( changeAuditForm s
+              , (s.mandatoryChangeMessage && String.isEmpty s.message)
+              )
+            Nothing ->
+              ( text ""
+              , False
+              )
+        in
+          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+          [ div [class "modal-backdrop fade in"][]
+          , div [ class "modal-dialog" ] [
+              div [ class "modal-content" ] [
+                div [ class "modal-header ng-scope" ] [
+                  h3 [ class "modal-title" ] [ text "Delete Rule"]
+                ]
+              , div [ class "modal-body" ]
+                [ h4 [class "text-center"][text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")]
+                , auditForm
+                ]
+              , div [ class "modal-footer" ] [
+                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                  [ text "Cancel " ]
+                , button [ class "btn btn-danger", onClick (ClosePopup (CallApi False (deleteRule rule))), disabled btnDisabled ]
+                  [ text "Delete "
+                  , i [ class "fa fa-times-circle" ] []
+                  ]
                 ]
               ]
             ]
           ]
-        ]
-      DeactivationValidation rule ->
+      DeactivationValidation rule crSettings ->
         let
           txtDisable = if rule.enabled then "Disable" else "Enable"
+          (auditForm, btnDisabled) = case crSettings of
+            Just s  ->
+              ( changeAuditForm s
+              , (s.mandatoryChangeMessage && String.isEmpty s.message)
+              )
+            Nothing ->
+              ( text ""
+              , False
+              )
+
         in
           div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
           [ div [class "modal-backdrop fade in"][]
@@ -161,15 +210,16 @@ view model =
                 div [ class "modal-header ng-scope" ] [
                   h3 [ class "modal-title" ] [ text (txtDisable ++" Rule")]
                 ]
-              , div [ class "modal-body" ] [
-                  text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")
+              , div [ class "modal-body" ]
+                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
+                , auditForm
                 ]
               , div [ class "modal-footer" ] [
                   button [ class "btn btn-default pull-left", onClick (ClosePopup Ignore) ]
                   [ i [ class "fa fa-arrow-left space-right" ] []
                   , text "Cancel "
                   ]
-                , button [ class "btn btn-primary", onClick (ClosePopup DisableRule) ]
+                , button [ class "btn btn-primary", onClick (ClosePopup DisableRule), disabled btnDisabled ]
                   [ text (txtDisable ++ " ")
                   , i [ class "fa fa-ban" ] []
                   ]
@@ -186,7 +236,7 @@ view model =
                  h3 [ class "modal-title" ] [ text "Delete category"]
                ]
              , div [ class "modal-body" ] [
-                 text ("Are you sure you want to delete category '"++ category.name ++"'?")
+                 h4 [class "text-center"][text ("Are you sure you want to delete category '"++ category.name ++"'?")]
                ]
              , div [ class "modal-footer" ] [
                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
@@ -199,6 +249,44 @@ view model =
              ]
            ]
          ]
+      SaveAuditMsg creation rule originRule crSettings ->
+        let
+          action = if creation then "Create" else "Update"
+        in
+          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
+          [ div [class "modal-backdrop fade in"][]
+          , div [ class "modal-dialog" ]
+            [ div [ class "modal-content" ]
+              [ div [ class "modal-header ng-scope" ]
+                [ h3 [ class "modal-title" ] [ text (action ++" Rule")]
+                ]
+              , div [ class "modal-body" ]
+                [ h4 [class "text-center"]
+                  [ text "Are you sure that you want to "
+                  , text (String.toLower action)
+                  , text " this rule ?"
+                  ]
+                , changeAuditForm crSettings
+                ]
+              , div [ class "modal-footer" ]
+                [ button [ class "btn btn-default pull-left", onClick (ClosePopup Ignore) ]
+                  [ i [ class "fa fa-arrow-left space-right" ] []
+                  , text "Cancel "
+                  ]
+                , button [ class "btn btn-primary", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
+                  ( if crSettings.enableChangeRequest then
+                    [ text "Create change request "
+                    , i [ class "fa fa-plus" ] []
+                    ]
+                  else
+                    [ text "Confirm "
+                    , i [ class "fa fa-check" ] []
+                    ]
+                  )
+                ]
+              ]
+            ]
+          ]
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]

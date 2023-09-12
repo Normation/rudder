@@ -4,7 +4,7 @@ import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, custom)
+import Html.Events exposing (onClick, custom, onInput)
 import List.Extra
 import List
 import Maybe.Extra
@@ -12,6 +12,7 @@ import String exposing (fromFloat)
 import Json.Decode as Decode
 import Tuple3
 import NaturalOrdering as N exposing (compare)
+import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 import Rules.ComplianceUtils exposing (..)
 import Rules.DataTypes exposing (..)

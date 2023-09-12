@@ -282,6 +282,20 @@
   font-size: 0.8em;
   margin-left: 6px;
 }
+
+.header-buttons .dropdown-menu.dropdown-message {
+  padding: 10px;
+  background-color: #F8F9FC;
+  border: 1px solid #D6DEEF;
+  width: 450px;
+  font-size: 14px;
+}
+.header-buttons .dropdown-menu.dropdown-message textarea + .btn {
+  margin-left: 0;
+  margin-top: 10px;
+  min-width: 60px;
+}
+
 /* === BADGES === */
 .badge.badge-grey {
   font-weight: 600 !important;

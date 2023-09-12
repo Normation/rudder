@@ -147,10 +147,21 @@ editionTemplate model details =
       Nothing -> 0
 
     saveAction =
-      if String.isEmpty (String.trim rule.name) then
-        Ignore
-      else
-        (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
+      let
+        defaultAction = checkAction (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
+        checkAction action =
+          if String.isEmpty (String.trim rule.name) then
+            Ignore
+          else
+            action
+      in
+        case model.ui.crSettings of
+          Just cr ->
+            if cr.enableChangeMessage || cr.enableChangeRequest then
+              checkAction (OpenSaveAuditMsgPopup rule cr)
+            else
+              defaultAction
+          Nothing -> defaultAction
 
   in
     div [class "main-container"]
