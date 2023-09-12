@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.joda.time.DateTime
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 import zio._
 import zio.syntax._
@@ -290,6 +291,7 @@ object Watchers                                                   {
         // When we call "stop" on the FileMonitor, it always throws a ClosedWatchServiceException.
         // It seems to be because the "run" in start continue to try to execute its
         // action on the stop watcher. We need to catch that.
+        @nowarn("msg=parameter executionContext in method start is never used")
         override def start()(implicit executionContext: ExecutionContext): Unit = {
           (
             (
