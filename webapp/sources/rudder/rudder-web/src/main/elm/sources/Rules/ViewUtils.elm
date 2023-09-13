@@ -1,6 +1,7 @@
 module Rules.ViewUtils exposing (..)
 
 import Dict exposing (Dict)
+import Dict.Extra
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -120,16 +121,36 @@ subItemOrder fun model id  =
     Nothing -> (\_ _ -> EQ)
 
 type alias ItemFun item subItem data =
-  { children : item -> Model -> String ->  List subItem
+  { children : item -> Model -> String -> List subItem
   , data : Model -> item -> data
   , rows : List (String, data -> Html Msg, (data -> data -> Order) )
   , id : item -> String
   , childDetails : Maybe (subItem -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg))
   , subItemRows : item -> List String
+  , filterItems : item -> Bool
   }
 
-valueCompliance :  ItemFun ValueLine () ValueLine
-valueCompliance =
+filterByCompliance : ComplianceFilters -> ComponentCompliance value -> Bool
+filterByCompliance filter i =
+  let
+    compliance = \item ->
+      case item of
+        Block b -> b.complianceDetails
+        Value c -> c.complianceDetails
+  in
+    (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (compliance i) filter)
+
+filterDetailsByCompliance filter = \i ->
+  (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (i.complianceDetails) filter)
+
+filterValueByCompliance filter = \i ->
+  let
+    isSelected = List.member i.status filter.selectedStatus
+  in
+    ( List.isEmpty filter.selectedStatus ) || ( if filter.showOnlyStatus then isSelected else not isSelected )
+
+valueCompliance : ComplianceFilters -> ItemFun ValueLine () ValueLine
+valueCompliance complianceFilters =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
@@ -140,110 +161,131 @@ valueCompliance =
     .value
     Nothing
     (always [])
+    (filterValueByCompliance complianceFilters)
 
-nodeValueCompliance : Model -> ItemFun NodeValueCompliance ValueLine NodeValueCompliance
-nodeValueCompliance mod =
+nodeValueCompliance : Model -> ComplianceFilters -> ItemFun NodeValueCompliance ValueLine NodeValueCompliance
+nodeValueCompliance mod complianceFilters =
   ItemFun
     (\item model sortId ->
       let
-        sortFunction =  subItemOrder valueCompliance model sortId
+        sortFunction = subItemOrder (valueCompliance complianceFilters) model sortId
       in
-        List.sortWith sortFunction item.values
+        item.values
+        |> List.filter (filterValueByCompliance complianceFilters)
+        |> List.sortWith sortFunction
     )
     (\_ i -> i)
     [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
+    , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
-    (Just (\item -> showComplianceDetails valueCompliance item))
-    (always (List.map Tuple3.first valueCompliance.rows))
+    (Just (\item -> showComplianceDetails (valueCompliance complianceFilters) item))
+    (always (List.map Tuple3.first (valueCompliance complianceFilters).rows))
+    (filterDetailsByCompliance complianceFilters)
 
-byComponentCompliance : ItemFun  value subValue valueData -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
-byComponentCompliance subFun =
+byComponentCompliance : ItemFun value subValue valueData  -> ComplianceFilters -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
+byComponentCompliance subFun complianceFilters =
   let
     name = \item ->
-             case item of
-               Block b -> b.component
-               Value c -> c.component
+      case item of
+        Block b -> b.component
+        Value c -> c.component
     compliance = \item ->
-                   case item of
-                     Block b -> b.complianceDetails
-                     Value c -> c.complianceDetails
+      case item of
+        Block b -> b.complianceDetails
+        Value c -> c.complianceDetails
     complianceValue = \item ->
-                   case item of
-                     Block b -> b.compliance
-                     Value c -> c.compliance
+      case item of
+        Block b -> b.compliance
+        Value c -> c.compliance
   in
-  ItemFun
+    ItemFun
     ( \item model sortId ->
       case item of
         Block b ->
           let
-            sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
+            sortFunction = subItemOrder (byComponentCompliance subFun complianceFilters) model sortId
           in
-             List.map Left (List.sortWith sortFunction b.components)
+            b.components
+            |> List.filter (filterByCompliance complianceFilters)
+            |> List.sortWith sortFunction
+            |> List.map Left
         Value c ->
           let
             sortFunction =  subItemOrder subFun model sortId
           in
-             List.map Right (List.sortWith sortFunction c.values)
+            c.values
+            |> List.filter subFun.filterItems
+            |> List.sortWith sortFunction
+            |> List.map Right
     )
     (\_ i -> i)
     [ ("Component", name >> text,  (\d1 d2 -> N.compare (name d1) (name d2)))
-    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> Basics.compare (complianceValue d1) (complianceValue d2)) )
+    , ("Compliance", \i -> buildComplianceBar complianceFilters (compliance  i ), (\d1 d2 -> Basics.compare (complianceValue d1) (complianceValue d2)) )
     ]
     name
     (Just ( \x ->
       case x of
-        Left  b -> showComplianceDetails (byComponentCompliance subFun) b
-        Right value ->   showComplianceDetails subFun value
+        Left  b -> showComplianceDetails (byComponentCompliance subFun complianceFilters) b
+        Right value -> showComplianceDetails subFun value
     ))
     ( \x ->
       case x of
-        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun).rows)
+        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows)
         Value _ ->  (List.map Tuple3.first subFun.rows)
     )
+    (always True)
 
-byDirectiveCompliance : Model -> ItemFun value subValue valueData -> ItemFun (DirectiveCompliance value) (ComponentCompliance value) (Directive, DirectiveCompliance value)
-byDirectiveCompliance mod subFun =
+byDirectiveCompliance : Model -> ComplianceFilters -> ItemFun value subValue valueData -> ItemFun (DirectiveCompliance value) (ComponentCompliance value) (Directive, DirectiveCompliance value)
+byDirectiveCompliance mod complianceFilters subFun =
   let
     globalPolicy = mod.policyMode
     contextPath  = mod.contextPath
+    compliance = \item ->
+      case item of
+        Block b -> b.complianceDetails
+        Value c -> c.complianceDetails
   in
     ItemFun
     (\item model sortId ->
     let
-      sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
+      sortFunction = subItemOrder (byComponentCompliance subFun complianceFilters) model sortId
     in
-      List.sortWith sortFunction item.components
+      item.components
+      |> List.filter (filterByCompliance complianceFilters)
+      |> List.sortWith sortFunction
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
     [ ("Directive", \(d,_)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> N.compare d1.name d2.name ))
-    , ("Compliance", \(_,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> Basics.compare d1.compliance d2.compliance ))
+    , ("Compliance", \(_,i) -> buildComplianceBar complianceFilters i.complianceDetails,  (\(_,d1) (_,d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
-    (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
-    (always (List.map Tuple3.first (byComponentCompliance subFun).rows))
+    (Just (\b -> showComplianceDetails (byComponentCompliance subFun complianceFilters) b))
+    (always (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows))
+    (always True)
 
-byNodeCompliance :  Model -> ItemFun NodeCompliance (DirectiveCompliance ValueLine) NodeCompliance
-byNodeCompliance mod =
+byNodeCompliance :  Model -> ComplianceFilters -> ItemFun NodeCompliance (DirectiveCompliance ValueLine) NodeCompliance
+byNodeCompliance mod complianceFilters =
   let
-    directive = byDirectiveCompliance mod valueCompliance
+    directive = byDirectiveCompliance mod complianceFilters (valueCompliance complianceFilters)
   in
-  ItemFun
+    ItemFun
     (\item _ sortId ->
       let
         sortFunction = subItemOrder directive mod sortId
       in
-        List.sortWith sortFunction item.directives
+        item.directives
+        |> List.filter (filterDetailsByCompliance complianceFilters)
+        |> List.sortWith sortFunction
     )
     (\_ i -> i)
     [ ("Node", .nodeId >> (\nId -> span[][text (getNodeHostname mod nId.value), goToBtn (getNodeLink mod.contextPath nId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
+    , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters  ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\b -> showComplianceDetails directive b))
     (always (List.map Tuple3.first directive.rows))
+    (always True)
 
 
 
@@ -252,7 +294,7 @@ showComplianceDetails fun compliance parent openedRows model =
   let
     itemRows = List.map Tuple3.second (fun.rows)
     data = fun.data model compliance
-    detailsRows = List.map (\row -> td [class "ok"] [row data]) itemRows
+    detailsRows = List.map (\row -> td [] [row data]) itemRows
     id = fun.id compliance
     rowId = parent ++ "/" ++ id
     rowOpened = Dict.get rowId openedRows
@@ -263,39 +305,41 @@ showComplianceDetails fun compliance parent openedRows model =
       else
         []
     (details, classes) =
-              case (fun.childDetails, rowOpened) of
-                (Just detailsFun, Just (sortId, sortOrder)) ->
-                  let
-                    childrenSort = fun.children compliance model sortId
-                    (children, order, newOrder) = case sortOrder of
-                      Asc -> (childrenSort, "asc", Desc)
-                      Desc -> (List.reverse childrenSort, "desc", Asc)
-                  in
-                   ([ tr [ class "details" ] [
-                     td [ class "details", colspan 2 ] [
-                       div [ class "innerDetails" ] [
-                         table [class "dataTable compliance-table"] [
-                           thead [] [
-                             tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))  ] [ text row ]) (fun.subItemRows compliance) )
-                           ]
-                         , tbody []
-                            ( if(List.isEmpty children)
-                              then
-                                [ tr [] [ td [colspan 2, class "dataTables_empty" ] [ text "There is no compliance details" ] ] ]
-                              else
-                                let
-                                  sortedChildren = children
-                                in
-                                  List.concatMap (\child ->
-                                    (detailsFun child) rowId openedRows model
-                                  ) sortedChildren
-                            )
-                       ]
-                     ]
-                  ] ] ],
-                          "row-foldable row-open")
-                (Just _, Nothing) -> ([], "row-foldable row-folded")
-                (Nothing, _) -> ([],"")
+      case (fun.childDetails, rowOpened) of
+        (Just detailsFun, Just (sortId, sortOrder)) ->
+          let
+            childrenSort = fun.children compliance model sortId
+            filteredChildren = childrenSort
+
+            (children, order, newOrder) = case sortOrder of
+              Asc -> (childrenSort, "asc", Desc)
+              Desc -> (List.reverse childrenSort, "desc", Asc)
+          in
+           ([ tr [ class "details" ] [
+             td [ class "details", colspan 2 ] [
+               div [ class "innerDetails" ] [
+                 table [class "dataTable compliance-table"] [
+                   thead [] [
+                     tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))  ] [ text row ]) (fun.subItemRows compliance) )
+                   ]
+                 , tbody []
+                    ( if(List.isEmpty children)
+                      then
+                        [ tr [] [ td [colspan 2, class "dataTables_empty" ] [ text "There is no compliance details" ] ] ]
+                      else
+                        let
+                          sortedChildren = children
+                        in
+                          List.concatMap (\child ->
+                            (detailsFun child) rowId openedRows model
+                          ) sortedChildren
+                    )
+               ]
+             ]
+          ] ] ],
+                  "row-foldable row-open")
+        (Just _, Nothing) -> ([], "row-foldable row-folded")
+        (Nothing, _) -> ([],"")
   in
     (tr ( class classes :: clickEvent)
       detailsRows)
@@ -533,23 +577,26 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
   in
     rowIncludeGroup
 
-buildComplianceBar : ComplianceDetails -> Html Msg
-buildComplianceBar complianceDetails=
+buildComplianceBar :ComplianceFilters -> ComplianceDetails   -> Html Msg
+buildComplianceBar filters complianceDetails =
   let
+    filteredCompliance = filterCompliance complianceDetails filters
     displayCompliance : {value : Float, rounded : Int, details : String} -> String -> Html msg
     displayCompliance compliance className =
       if compliance.value > 0 then
         let
 
           --Hide the compliance text if the value is too small (less than 3%)
-          complianceTxt = if compliance.rounded < 3 then "" else String.fromInt (compliance.rounded) ++ "%"
+          realPercent = compliance.value / (sumPercent filteredCompliance) * 100
+          realRounded = Basics.floor realPercent
+          complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
         in
-          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat compliance.value)]
+          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
           [ text complianceTxt ]
       else
         text ""
 
-    allComplianceValues = getAllComplianceValues complianceDetails
+    allComplianceValues = getAllComplianceValues filteredCompliance
   in
     if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
       div[ class "text-muted"][text "No data available"]
@@ -566,22 +613,22 @@ buildComplianceBar complianceDetails=
 
 buildComplianceReport : ValueLine -> String
 buildComplianceReport report =
-      case report.status of
-        "reportsDisabled"            -> "Reports Disabled"
-        "noReport"                   -> "No report"
-        "error"                      -> "Error"
-        "successAlreadyOK"           -> "Success"
-        "successRepaired"            -> "Repaired"
-        "applying"                   -> "Applying"
-        "successNotApplicable"       -> "Not applicable"
-        "unexpectedUnknownComponent" -> "Unexpected"
-        "unexpectedMissingComponent" -> "Missing"
-        "auditNotApplicable"         -> "Not applicable"
-        "auditError"                 -> "Error"
-        "auditCompliant"             -> "Compliant"
-        "auditNonCompliant"          -> "Non compliant"
-        "badPolicyMode"              -> "Bad Policy Mode"
-        val -> val
+  case report.status of
+    "reportsDisabled"            -> "Reports Disabled"
+    "noReport"                   -> "No report"
+    "error"                      -> "Error"
+    "successAlreadyOK"           -> "Success"
+    "successRepaired"            -> "Repaired"
+    "applying"                   -> "Applying"
+    "successNotApplicable"       -> "Not applicable"
+    "unexpectedUnknownComponent" -> "Unexpected"
+    "unexpectedMissingComponent" -> "Missing"
+    "auditNotApplicable"         -> "Not applicable"
+    "auditError"                 -> "Error"
+    "auditCompliant"             -> "Compliant"
+    "auditNonCompliant"          -> "Non compliant"
+    "badPolicyMode"              -> "Bad Policy Mode"
+    val -> val
 
 
 reportStatusOrder : ValueLine -> Int
@@ -765,3 +812,82 @@ rulesTableHeader ruleFilters =
       , onClick (UpdateRuleFilters (sortTable ruleFilters RuleChanges))
       ] [ text "Changes" ]
  ]
+
+displayComplianceFilters : Filters -> (Filters -> Msg) -> Html Msg
+displayComplianceFilters filters updateAction =
+  let
+    tableFilters = filters.tableFilters
+    complianceFilters = tableFilters.compliance
+  in
+    ( if complianceFilters.showComplianceFilters then
+      let
+        selectedStatus = filters.tableFilters.compliance.selectedStatus
+        statusDropdown status substatus =
+          let
+            allSelected   = substatus |> List.all (\s -> List.member s selectedStatus)
+            newSelection  = if allSelected then selectedStatus |> List.filter (\s -> List.Extra.notMember s substatus) else List.Extra.unique (List.append selectedStatus substatus)
+          in
+            [ li [class "compliance-group", onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = newSelection }}})]
+              [ span[] [ input [type_ "checkbox", checked allSelected][] ]
+              , span[]
+                [ i[class ("compliance-badge badge-sm " ++ (String.toLower (String.replace " " "-" status)))][]
+                , text status
+                ]
+              ]
+            , if List.length substatus > 1 then
+              ul[]
+              ( substatus
+                |> List.map (\s ->
+                  let
+                    isSelected   = List.member s selectedStatus
+                    subSelection = if isSelected then List.Extra.remove s selectedStatus else s :: selectedStatus
+                  in
+                    li [onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = subSelection }}})]
+                    [ span[] [ input [type_ "checkbox", checked isSelected][] ]
+                    , span[] [ text (getComplianceStatusTitle s) ]
+                    ]
+                )
+              )
+              else
+              text ""
+            ]
+      in
+        div[class "more-filters filter-compliance"]
+        [ label [][text "Compliance"]
+        , div [class "form-group"]
+          [ div [class "btn-group "]
+            [ label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then " active" else "")), onClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | showOnlyStatus = True }}})][text "Show only"]
+            , label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then "" else " active")), onClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | showOnlyStatus = False}}})][text "Hide"     ]
+            ]
+          , div [class "btn-group"]
+            [ button [attribute "data-toggle" "dropdown", type_ "button", class "btn btn-default btn-dropdown-compliance"]
+              [ text "Select status"
+              , span[class "badge"][text (String.fromInt (List.length selectedStatus))]
+              , i [class "fa fa-angle-down"][]
+              ]
+            , ul [class "dropdown-menu dropdown-compliance"]
+              ( complianceStatusGroups
+              |> Dict.map statusDropdown
+              |> Dict.values
+              |> List.concat
+              )
+            ]
+          ]
+        , div []
+          ( complianceFilters.selectedStatus
+            |> List.map (\s ->
+              let
+                className = case Dict.Extra.find (\status substatus -> List.member s substatus) complianceStatusGroups of
+                  Just (st, sbst) -> st
+                  Nothing -> s
+              in
+                span[class ("compliance-badge " ++ (String.toLower (String.replace " " "-" className))), onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = List.Extra.remove s selectedStatus }}})]
+                [ text (getComplianceStatusTitle s)
+                , i[class "fa fa-times"][]
+                ]
+            )
+          )
+        ]
+      else
+      text ""
+    )
