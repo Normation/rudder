@@ -89,6 +89,7 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
+import com.normation.rudder.services.nodes.history.impl.FactLogData
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
@@ -358,7 +359,7 @@ class ComposedNewNodeManager[A](
     serverSummaryService:           NodeSummaryService,
     unitAcceptors:                  Seq[UnitAcceptInventory],
     unitRefusors:                   Seq[UnitRefuseInventory],
-    historyLogRepository:           HistoryLogRepository[NodeId, DateTime, NodeFact, FactLog],
+    historyLogRepository:           HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog],
     eventLogRepository:             EventLogRepository,
     updateDynamicGroups:            UpdateDynamicGroups,
     cachedNodeConfigurationService: InvalidateCache[CacheExpectedReportAction],
@@ -995,7 +996,7 @@ class AcceptHostnameAndIp(
 class HistorizeNodeStateOnChoice(
     override val name: String,
     repos:             ReadOnlyFullInventoryRepository,
-    historyRepos:      HistoryLogRepository[NodeId, DateTime, NodeFact, FactLog],
+    historyRepos:      HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog],
     inventoryStatus:   InventoryStatus // expected inventory status of nodes for that processor
 ) extends UnitAcceptInventory with UnitRefuseInventory {
 
@@ -1017,7 +1018,10 @@ class HistorizeNodeStateOnChoice(
   def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
     // set status to "acccepted" before historisation
     val postSM = sm.modify(_.node.main.status).setTo(AcceptedInventory)
-    historyRepos.save(postSM.node.main.id, NodeFact.newFromFullInventory(postSM, None)).toBox.map(_ => postSM)
+    historyRepos
+      .save(postSM.node.main.id, FactLogData(NodeFact.newFromFullInventory(postSM, None), actor, AcceptedInventory))
+      .toBox
+      .map(_ => postSM)
   }
 
   /**
@@ -1037,7 +1041,11 @@ class HistorizeNodeStateOnChoice(
                 case Some(inv) =>
                   historyRepos.save(
                     srv.id,
-                    NodeFact.newFromFullInventory(inv.modify(_.node.main.status).setTo(RemovedInventory), None)
+                    FactLogData(
+                      NodeFact.newFromFullInventory(inv.modify(_.node.main.status).setTo(RemovedInventory), None),
+                      actor,
+                      RemovedInventory
+                    )
                   )
               }
     } yield srv

@@ -423,7 +423,8 @@ CREATE INDEX event_state_index ON CampaignEvents ((state->>'value'));
  */
 
 CREATE TABLE NodeFacts (
-  nodeId           text PRIMARY KEY
-, acceptRefuseDate timestamp with time zone
-, acceptRefuseFact jsonb
+  nodeId            text PRIMARY KEY
+, acceptRefuseEvent jsonb  -- { 'date': 'rfc3339 timestamp', 'actor': 'actor name', 'statue'; 'accepted or refused' }
+, acceptRefuseFact  jsonb  -- the big node fact data structure
+, deleteEvent       jsonb  -- { 'date': 'rfc3339 timestamp', 'actor': 'actor name' }
 );

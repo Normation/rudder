@@ -51,7 +51,6 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports._
-import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.softwaremill.quicklens._
@@ -783,12 +782,10 @@ object NodeFactSerialisation {
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
   import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime => _, encoderDateTime => _, _}
+  import com.normation.utils.DateFormaterService.json._
 
   object SimpleCodec {
 
-    implicit val encoderDateTime:     JsonEncoder[DateTime]       = JsonEncoder.string.contramap(DateFormaterService.serialize)
-    implicit val decoderDateTime:     JsonDecoder[DateTime]       =
-      JsonDecoder.string.mapOrFail(d => DateFormaterService.parseDate(d).left.map(_.fullMsg))
     implicit val codecOptionDateTime: JsonCodec[Option[DateTime]] = DeriveJsonCodec.gen
     implicit val codecNodeId:         JsonCodec[NodeId]           = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
     implicit val codecJsonOsDetails:  JsonCodec[JsonOsDetails]    = DeriveJsonCodec.gen

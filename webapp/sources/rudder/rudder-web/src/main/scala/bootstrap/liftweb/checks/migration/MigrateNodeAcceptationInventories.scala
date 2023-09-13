@@ -40,6 +40,7 @@ package bootstrap.liftweb.checks.migration
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.errors.IOResult
+import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
@@ -48,6 +49,8 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
+import com.normation.rudder.services.nodes.history.impl.FactLogData
+import com.normation.rudder.services.nodes.history.impl.InventoryHistoryDelete
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
 import com.normation.zio._
 import doobie.implicits._
@@ -75,7 +78,7 @@ class MigrateNodeAcceptationInventories(
     nodeInfoService:   NodeInfoService,
     doobie:            Doobie,
     fileLogRepository: InventoryHistoryLogRepository,
-    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, NodeFact, FactLog],
+    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete,
     MAX_KEEP_REFUSED:  Duration
 ) extends BootstrapChecks {
 
@@ -83,24 +86,42 @@ class MigrateNodeAcceptationInventories(
 
   val msg = "old inventory accept/refuse facts to 'NodeFacts' database table"
 
+  val migrationActor = EventActor("rudder-migration")
+
   override def description: String =
     "Check if table 'NodeFacts' exists and if data from /var/rudder/inventories/historical are migrated"
 
   def createTableStatement: IOResult[Unit] = {
     val sql = sql"""CREATE TABLE IF NOT EXISTS NodeFacts (
         nodeId           text PRIMARY KEY
-      , acceptRefuseDate timestamp with time zone
-      , acceptRefuseFact jsonb
+      , acceptRefuseEvent jsonb
+      , acceptRefuseFact  jsonb
+      , deleteEvent       jsonb
     );"""
 
-    transactIOResult(s"Error with 'NodeFacts' table creation")(xa => sql.update.run.transact(xa)).unit
+    // migrate from previous Rudder 8.0 beta  (before beta 2)
+    val sqlMigrate = {
+      sql"""ALTER TABLE IF EXISTS NodeFacts
+           ADD COLUMN IF NOT EXISTS acceptRefuseEvent jsonb,
+           ADD COLUMN IF NOT EXISTS deleteEvent json,
+           DROP COLUMN IF EXISTS acceptRefuseDate;"""
+    }
+
+    transactIOResult(s"Error with 'NodeFacts' table creation")(xa => sql.update.run.transact(xa)).unit *>
+    transactIOResult(s"Error with 'NodeFacts' table migration")(xa => sqlMigrate.update.run.transact(xa)).unit
   }
 
   /*
    * Save a full inventory as a node fact in postgresql.
    */
-  def saveInDB(id: NodeId, date: DateTime, data: FullInventory) = {
-    jdbcLogRepository.save(id, NodeFact.newFromFullInventory(data, None), date)
+  def saveInDB(id: NodeId, date: DateTime, data: FullInventory, deleted: Boolean) = {
+    jdbcLogRepository.save(
+      id,
+      FactLogData(NodeFact.newFromFullInventory(data, None), migrationActor, data.node.main.status),
+      date
+    ) *> ZIO.when(deleted) {
+      jdbcLogRepository.saveDeleteEvent(id, DateTime.now(), migrationActor)
+    }
   }
 
   /*
@@ -134,7 +155,7 @@ class MigrateNodeAcceptationInventories(
             last <- fileLogRepository.get(nodeId, v)
             opt  <- nodeInfoService.getNodeInfo(nodeId)
             _    <- ZIO.when(opt.isDefined || last.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
-                      saveInDB(nodeId, last.datetime, last.data)
+                      saveInDB(nodeId, last.datetime, last.data, !opt.isDefined)
                     }
           } yield ()
       }
