@@ -438,11 +438,15 @@ rudder.git.gc=0 42 3 * * ?
 rudder.dir.gitRootFactRepo=/var/rudder/fact-repository
 
 #
-# By default, Rudder won"t make a commit for each inventory and
-# changes in node and it will only keep a non historized JSON
-# serialisation of the current state of the node. You can make
-# Rudder historize node changes with that option (boolean).
-#
+# By default, Rudder won"t save anything about node on file
+# system. You can enable writing a JSON serialization of the
+# in node fact directory (/var/rudder/fact-repository/nodes) with
+# the following property set to true:
+rudder.facts.repo.writeNodeState=false
+
+# In addition to previous property, you can enable historization of
+# all node change in the fact-repository git by setting the following
+# property to true:
 rudder.facts.repo.historizeNodeChange=false
 
 ###############################

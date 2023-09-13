@@ -136,6 +136,11 @@ trait SerializeFacts[A, B] {
 
 }
 
+object NoopNodeFactRepository extends NodeFactRepository {
+  override def persist(nodeInfo: NodeInfo, inventory: FullInventory, software: Seq[Software]): IOResult[Unit] = ZIO.unit
+  override def changeStatus(nodeId: NodeId, status: InventoryStatus):                          IOResult[Unit] = ZIO.unit
+}
+
 /*
  * We have only one git for all fact repositories. This is the one managing semaphore, init, etc.
  * All fact repositories will be a subfolder on it:
