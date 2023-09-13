@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
-import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
@@ -80,8 +79,8 @@ class NodeHistoryViewer extends StatefulSnippet {
             case Empty            => <div class="error">No history was retrieved for the chosen date</div>
             case Full(sm)         =>
               <div id={hid}>{
-                DisplayNode.showPannedContent(None, sm.data.toFullInventory, AcceptedInventory, "hist") ++
-                Script(DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist"))
+                DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist") ++
+                Script(DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist"))
               }</div>
           }
         }
@@ -121,8 +120,8 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Failure(m, _, _) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty            => Alert("No history was retrieved for the chosen date")
       case Full(sm)         =>
-        SetHtml(hid, DisplayNode.showPannedContent(None, sm.data.toFullInventory, AcceptedInventory, "hist")) &
-        DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist")
+        SetHtml(hid, DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist")) &
+        DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist")
     }
   }
 

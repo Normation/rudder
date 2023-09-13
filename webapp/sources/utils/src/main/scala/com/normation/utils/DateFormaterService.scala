@@ -48,6 +48,7 @@ import org.joda.time.format.DateTimeFormatterBuilder
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 import scala.util.control.NonFatal
+import zio.json._
 
 object DateFormaterService {
 
@@ -138,4 +139,11 @@ object DateFormaterService {
     .appendFractionOfSecond(3, 9)
     .toFormatter()
 
+  object json {
+    implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder.string.contramap(DateFormaterService.serialize)
+    implicit val decoderDateTime: JsonDecoder[DateTime] =
+      JsonDecoder.string.mapOrFail(d => DateFormaterService.parseDate(d).left.map(_.fullMsg))
+
+    implicit val codecDateTime: JsonCodec[DateTime] = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
+  }
 }

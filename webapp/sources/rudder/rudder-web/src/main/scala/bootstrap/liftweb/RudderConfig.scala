@@ -1032,12 +1032,36 @@ object RudderParsedProperties {
   }
 
   /*
-   * Duration for which a node which was refused will have its nodefact
-   * available (and so viewable in the history tab of pending node)
+   * inventory accept/refuse history information clean-up.
+   * These properties manage how long we keep inventory that we store when a node is accepted.
+   * There is:
+   * - one absolute time: duration we keep info even if the node is still present in rudder.
+   * - a time after deletion: how many time we keep the inventory info after node was refused / deleted.
    */
-  val KEEP_REFUSED_NODE_FACT_DURATION = {
+
+  // how long we keep accept/refuse inventory (even if the node is still present). O means "forever if the node is node deleted"
+  val KEEP_ACCEPTATION_NODE_FACT_DURATION = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString("rudder.inventories.keep.refused.fact")))
+      Duration.fromScala(
+        scala.concurrent.duration.Duration(config.getString("rudder.inventories.pendingChoiceHistoryCleanupLatency.acceptedNode"))
+      )
+    } catch {
+      case ex: ConfigException => 0.days // forever
+    }
+  }
+
+  /*
+   * Duration for which a node which was refused/deleted will have its nodefact
+   * available (and so viewable in the history tab of pending node).
+   * 0 means "delete immediately when node is deleted or refused"
+   */
+  val KEEP_DELETED_NODE_FACT_DURATION = {
+    try {
+      Duration.fromScala(
+        scala.concurrent.duration.Duration(
+          config.getString("rudder.inventories.pendingChoiceHistoryCleanupLatency.deletedNode")
+        )
+      )
     } catch {
       case ex: ConfigException => 30.days
     }
@@ -2003,10 +2027,13 @@ object RudderConfigInit {
     }
 
     lazy val cleanOldInventoryBatch = {
-      new PurgeOldInventoryFiles(
+      new PurgeOldInventoryData(
         RUDDER_INVENTORIES_CLEAN_CRON,
         RUDDER_INVENTORIES_CLEAN_AGE,
-        List(better.files.File(INVENTORY_DIR_FAILED), better.files.File(INVENTORY_DIR_RECEIVED))
+        List(better.files.File(INVENTORY_DIR_FAILED), better.files.File(INVENTORY_DIR_RECEIVED)),
+        inventoryHistoryJdbcRepository,
+        KEEP_ACCEPTATION_NODE_FACT_DURATION,
+        KEEP_DELETED_NODE_FACT_DURATION
       )
     }
 
@@ -3236,6 +3263,7 @@ object RudderConfigInit {
         :: new CleanUpCFKeys()
         :: new CleanUpNodePolicyFiles("/var/rudder/share")
         :: new DeleteNodeFact(nodeFactStorage)
+        :: new StoreDeleteEventHistory(inventoryHistoryJdbcRepository, (KEEP_DELETED_NODE_FACT_DURATION.getSeconds == 0))
         :: Nil
       )
       .runNow
@@ -3321,7 +3349,7 @@ object RudderConfigInit {
         doobie,
         inventoryHistoryLogRepository,
         inventoryHistoryJdbcRepository,
-        KEEP_REFUSED_NODE_FACT_DURATION
+        KEEP_DELETED_NODE_FACT_DURATION
       ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,

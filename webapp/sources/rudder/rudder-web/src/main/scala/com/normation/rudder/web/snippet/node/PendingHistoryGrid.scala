@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.eventlog._
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.RemovedInventory
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import com.normation.rudder.web.services.DisplayNode
@@ -230,9 +229,9 @@ object PendingHistoryGrid extends Loggable {
                displayIfDeleted(id, version, deletedNodes)
              else
                NodeSeq.Empty) ++
-            DisplayNode.showPannedContent(None, sm.data.toFullInventory, RemovedInventory, "hist")
+            DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist")
           ) &
-          DisplayNode.jsInit(sm.id, sm.data.toFullInventory.node.softwareIds, "hist")
+          DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist")
       }
     }
   }

@@ -40,20 +40,27 @@ package com.normation.rudder.batch
 import better.files.File
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
 import com.normation.utils.CronParser._
 import com.normation.zio._
 import cron4s.CronExpr
 import java.time.Instant
+import org.joda.time.DateTime
 import zio._
 
 /**
- * A scheduler which deletes old inventory files under /var/rudder/inventories/{received, failed}
+ * A scheduler which deletes old inventory data:
+ * - files under /var/rudder/inventories/{received, failed}
+ * - old accept/refuse inventories
  * It uses a cron-like config parsed by cron4s.
  */
-class PurgeOldInventoryFiles(
-    optCron:          Option[CronExpr],
-    maxAge:           Duration,
-    cleanDirectories: List[File]
+class PurgeOldInventoryData(
+    optCron:           Option[CronExpr],
+    maxAge:            Duration,
+    cleanDirectories:  List[File],
+    inventoryHistory:  InventoryHistoryJdbcRepository,
+    deleteLogAccepted: Duration,
+    deleteLogDeleted:  Duration
 ) {
 
   val logger = InventoryProcessingLogger
@@ -96,6 +103,39 @@ class PurgeOldInventoryFiles(
     _  <- logger.debug(s"Cleaned-up old inventory files in ${Duration.fromMillis(t1 - t0).toString}")
   } yield ()
 
+  // the part for inventory data in jdbc
+  val cleanHistoricalInventories = {
+    val now            = DateTime.now()
+    val deleteAccepted = (for {
+      ids <- inventoryHistory.deleteFactCreatedBefore(now.minus(deleteLogAccepted.toMillis))
+      _   <- InventoryProcessingLogger.info(
+               s"Deleted historical pending inventory information of nodes: '${ids.map(_.value).mkString("', '")}'"
+             )
+    } yield ()).catchAll { err =>
+      InventoryProcessingLogger.error(
+        s"Error when deleting historical pending inventory information for nodes: ${err.fullMsg}"
+      )
+    }
+
+    val deleteDeleted = (for {
+      ids <- inventoryHistory.deleteFactIfDeleteEventBefore(now.minus(deleteLogDeleted.toMillis))
+      _   <- InventoryProcessingLogger.info(
+               s"Deleted historical pending inventory information of nodes: '${ids.map(_.value).mkString("', '")}'"
+             )
+    } yield ()).catchAll { err =>
+      InventoryProcessingLogger.error(
+        s"Error when deleting historical pending inventory information for deleted nodes: ${err.fullMsg}"
+      )
+    }
+
+    for {
+      // delete facts for refused / deleted nodes
+      _ <- deleteDeleted
+      // delete facts for accepted nodes only if interval value is > 0 ('0' means 'keeps forever')
+      _ <- ZIO.when(deleteLogAccepted.toSeconds != 0)(deleteAccepted)
+    } yield ()
+  }
+
   // create the schedule cron or nothing if disabled.
   // Must not fail.
   val prog: URIO[Any, Unit] = optCron match {
@@ -110,7 +150,7 @@ class PurgeOldInventoryFiles(
             .map(_.pathAsString)
             .mkString("', '")}' (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')"
       ) *>
-      cleanOldFiles.schedule(schedule).unit
+      (cleanOldFiles *> cleanHistoricalInventories).schedule(schedule).unit
   }
 
   // start cron
