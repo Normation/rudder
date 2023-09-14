@@ -115,7 +115,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
-import com.normation.rudder.facts.nodes.GitNodeFactRepositoryImpl
+import com.normation.rudder.facts.nodes.{GitNodeFactRepositoryImpl, NoopFactStorage}
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -205,6 +205,7 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -214,6 +215,7 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 import zio.{Scheduler => _, System => _, _}
@@ -607,21 +609,30 @@ object RudderParsedProperties {
    * Root directory for git config-repo et fact-repo.
    * We should homogeneize naming here, ie s/rudder.dir.gitRoot/rudder.dir.gitRootConfigRepo/
    */
-  val RUDDER_GIT_ROOT_CONFIG_REPO                  = config.getString("rudder.dir.gitRoot")
-  val RUDDER_GIT_ROOT_FACT_REPO                    = {
+  val RUDDER_GIT_ROOT_CONFIG_REPO = config.getString("rudder.dir.gitRoot")
+  val RUDDER_GIT_ROOT_FACT_REPO   = {
     try {
       config.getString("rudder.dir.gitRootFactRepo")
     } catch {
       case ex: Exception => "/var/rudder/fact-repository"
     }
   }
-  val RUDDER_GIT_FACT_COMMIT_NODES                 = {
+
+  val RUDDER_GIT_FACT_WRITE_NODES  = {
+    try {
+      config.getBoolean("rudder.facts.repo.writeNodeState")
+    } catch {
+      case ex: Exception => false
+    }
+  }
+  val RUDDER_GIT_FACT_COMMIT_NODES = {
     try {
       config.getBoolean("rudder.facts.repo.historizeNodeChange")
     } catch {
       case ex: Exception => false
     }
   }
+
   val RUDDER_DIR_TECHNIQUES                        = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = config.getInt("rudder.batch.dyngroup.updateInterval") // 60 //one hour
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL =
@@ -1937,9 +1948,11 @@ object RudderConfigInit {
       .make(RUDDER_GIT_ROOT_FACT_REPO)
       .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
     lazy val gitFactRepoGC   = new GitGC(gitFactRepo, RUDDER_GIT_GC)
-    lazy val nodeFactStorage =
-      new GitNodeFactRepositoryImpl(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO, RUDDER_GIT_FACT_COMMIT_NODES)
-    nodeFactStorage.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
+    lazy val nodeFactStorage = if (RUDDER_GIT_FACT_WRITE_NODES) {
+      val r = new GitNodeFactRepositoryImpl(gitFactRepo, RUDDER_GROUP_OWNER_CONFIG_REPO, RUDDER_GIT_FACT_COMMIT_NODES)
+      r.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
+      r
+    } else NoopFactStorage
 
     lazy val ldifInventoryLogger = new DefaultLDIFInventoryLogger(LDIF_TRACELOG_ROOT_DIR)
     lazy val inventorySaver      = new DefaultInventorySaver(
