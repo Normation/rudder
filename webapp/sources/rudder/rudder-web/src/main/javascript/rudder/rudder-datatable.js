@@ -495,6 +495,9 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
           "targets": [ 0 ]
         , "visible": false
         , "searchable": true
+      } , {
+          "targets": "_all"
+        , "type"   : "natural"
       }]
     , "fnDrawCallback": function( oSettings ) {
       $('.rudder-label, .tags-label').bsTooltip();
@@ -1361,6 +1364,7 @@ function createNodeTable(gridId, refresh) {
     , columnDefs : [
       {
         "targets": "_all"
+      , "type"   : "natural"
       , "render": $.fn.dataTable.render.text() // escape HTML by default for columns value.
       },{
          "target" : 0
