@@ -897,6 +897,13 @@ object DisplayNode extends Loggable {
              |app.ports.copy.subscribe(function(str) {
              |  navigator.clipboard.writeText(str);
              |});
+             |app.ports.initInputs.subscribe(function(str) {
+             |  setTimeout(function(){
+             |    $$(".auto-resize").on("input", autoResize).each(function(){
+             |      autoResize(this);
+             |    });
+             |  }, 10);
+             |});
              |""".stripMargin
         )
       )

@@ -80,7 +80,6 @@ $(document).ready(function(){
 
 
   fm.ports.close.subscribe(function(files) {
-    console.log(files)
     app.ports.updateResources.send(null)
   });
 
@@ -130,16 +129,8 @@ $(document).ready(function(){
     $(".popover").remove();
   });
   app.ports.initInputs.subscribe(function(str) {
-    function autoResize(e) {
-      elem = e.target ? e.target : e;
-      if(elem !== undefined && elem !== null){
-        elem.style.height = 'auto';
-        elem.style.height = elem.scrollHeight + 'px';
-      }
-    }
     setTimeout(function(){
       $(".method textarea.form-control").on("input", autoResize).each(function(){
-        console.log($(this).clone(false));
         autoResize(this);
       });
     }, 10);
