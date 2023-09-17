@@ -42,7 +42,6 @@ import com.normation.box._
 import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
@@ -68,6 +67,7 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox

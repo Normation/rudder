@@ -55,8 +55,8 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
 import com.normation.rudder.services.reports.Pending
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService

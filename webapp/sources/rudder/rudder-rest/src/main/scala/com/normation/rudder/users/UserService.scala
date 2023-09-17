@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2017 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,59 +35,11 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.services
-
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.Rights
-import com.normation.rudder.RudderAccount
-import com.normation.rudder.User
-import com.normation.rudder.api.ApiAuthorization
-import net.liftweb.http.SessionVar
-import org.springframework.security.core.context.SecurityContextHolder
+package com.normation.rudder.users
 
 /**
- * An utility class that get the currently logged user
- * (if any)
- *
+ * A minimalistic definition of a service that give access to currently logged user .
  */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
-      SecurityContextHolder.getContext.getAuthentication match {
-        case null => None
-        case auth =>
-          auth.getPrincipal match {
-            case u: RudderUserDetail => Some(u)
-            case _ => None
-          }
-      }
-
-    }) with User {
-
-  def getRights: Rights = this.get match {
-    case Some(u) => u.authz
-    case None    => Rights.forAuthzs(AuthorizationType.NoRights)
-  }
-
-  def account: RudderAccount = this.get match {
-    case None    => RudderAccount.User("unknown", "")
-    case Some(u) => u.account
-  }
-
-  def checkRights(auth: AuthorizationType): Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(AuthorizationType.NoRights)) false
-    else if (authz.contains(AuthorizationType.AnyRights)) true
-    else {
-      auth match {
-        case AuthorizationType.NoRights => false
-        case _                          => authz.contains(auth)
-      }
-    }
-  }
-
-  def getApiAuthz: ApiAuthorization = {
-    this.get match {
-      case None    => ApiAuthorization.None
-      case Some(u) => u.apiAuthz
-    }
-  }
+trait UserService {
+  def getCurrentUser: AuthenticatedUser
 }

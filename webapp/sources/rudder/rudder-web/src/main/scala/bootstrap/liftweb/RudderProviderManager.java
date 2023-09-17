@@ -17,7 +17,7 @@
 package bootstrap.liftweb;
 
 import com.normation.rudder.domain.logger.ApplicationLogger;
-import com.normation.rudder.web.services.RudderUserDetail;
+import com.normation.rudder.users.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -29,10 +29,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.SpringSecurityMessageSource;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.util.Assert;
 
 import java.util.Arrays;
 import java.util.List;
+
+import com.normation.JZioRuntime;
 
 
 /**
@@ -41,7 +44,7 @@ import java.util.List;
  * - it dynamically obtained (ie, even if a plugin add some providers after construction)
  * - provider are tested for enablement (license ok or whatever)
  */
-public class RudderProviderManager implements AuthenticationManager, MessageSourceAware,
+public class RudderProviderManager implements org.springframework.security.authentication.AuthenticationManager, MessageSourceAware,
 		InitializingBean {
 	// ~ Static fields/initializers
 	// =====================================================================================
@@ -56,11 +59,15 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 	private AuthenticationManager parent;
 	private boolean eraseCredentialsAfterAuthentication = true;
 
-  // the rudder provider
-  private DynamicRudderProviderManager dynamicProvider;
+    // storing user and their sessions
+    private UserRepository userRepository;
 
-	public RudderProviderManager(DynamicRudderProviderManager dynamicProvider) {
+    // the rudder provider
+    private DynamicRudderProviderManager dynamicProvider;
+
+	public RudderProviderManager(DynamicRudderProviderManager dynamicProvider, UserRepository userRepository) {
 	    this.dynamicProvider = dynamicProvider;
+        this.userRepository = userRepository;
 	}
 
 	// ~ Methods
@@ -143,12 +150,31 @@ public class RudderProviderManager implements AuthenticationManager, MessageSour
 
                     Boolean authenticated = false;
 
+
                     if(result != null) {
                         authenticated = result.isAuthenticated();
                         if(result.getPrincipal() != null && result.getPrincipal() instanceof RudderUserDetail) {
-                            principal = ((RudderUserDetail) result.getPrincipal()).getUsername();
+                            RudderUserDetail details = ((RudderUserDetail) result.getPrincipal());
+                            principal = details.getUsername();
+
+                            if(authenticated) {
+                                // create the session in base if authenticated
+                                // sessions id is available in the "result.details" part for web auth... It's really a guessing
+                                // game, spring is not helping
+                                String sessionId = null;
+                                if(result.getDetails() instanceof WebAuthenticationDetails) {
+                                  sessionId = ((WebAuthenticationDetails)result.getDetails()).getSessionId();
+                                } else {
+                                  final String className = result.getDetails().getClass().getName();
+                                  ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
+                                  sessionId = Integer.toHexString(result.getDetails().hashCode());
+                                }
+                                JZioRuntime.runNow(userRepository.logStartSession(details.getUsername(), details.roles().map(x -> x.name()).toList(), com.normation.rudder.users.SessionId.apply(sessionId), p.name(), org.joda.time.DateTime.now()));
+                            }
                         }
                     }
+
+
                     String msg = "Rudder authentication attempt for principal '" +principal+
                             "' with backend '"+p.name()+"': " + (authenticated? "success":"failure");
 

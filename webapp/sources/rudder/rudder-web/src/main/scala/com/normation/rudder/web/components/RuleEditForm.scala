@@ -53,13 +53,13 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.RuleModificationValidationPopup
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._

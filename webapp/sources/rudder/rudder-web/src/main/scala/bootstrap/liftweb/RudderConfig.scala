@@ -47,10 +47,12 @@ import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
 import bootstrap.liftweb.checks.consistency.CheckConnections
 import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
+import bootstrap.liftweb.checks.consistency.CloseOpenUserSessions
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckAddSpecialTargetAllPolicyServers
 import bootstrap.liftweb.checks.migration.CheckMigratedSystemTechniques
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.CheckTableUsers
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
@@ -96,7 +98,6 @@ import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
-import com.normation.rudder.UserService
 import com.normation.rudder.api._
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.RestDataSerializerImpl
@@ -139,10 +140,7 @@ import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.AgentRunIntervalServiceImpl
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.reports.ComplianceModeServiceImpl
+import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.jdbc._
@@ -150,12 +148,10 @@ import com.normation.rudder.repository.ldap._
 import com.normation.rudder.repository.xml._
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.rest._
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal._
 import com.normation.rudder.rest.lift
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rule.category._
-import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.services._
 import com.normation.rudder.services.eventlog._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
@@ -166,26 +162,18 @@ import com.normation.rudder.services.modification.DiffServiceImpl
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.services.policies._
-import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import com.normation.rudder.services.policies.nodeconfig._
-import com.normation.rudder.services.policies.write.AgentRegister
-import com.normation.rudder.services.policies.write.BuildBundleSequence
-import com.normation.rudder.services.policies.write.PathComputerImpl
-import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl
-import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
-import com.normation.rudder.services.policies.write.WriteAllAgentSpecificFiles
+import com.normation.rudder.services.policies.write._
 import com.normation.rudder.services.queries._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports._
 import com.normation.rudder.services.servers._
 import com.normation.rudder.services.system._
-import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.services.user.TrivialPersonIdentService
+import com.normation.rudder.services.user._
 import com.normation.rudder.services.workflows._
+import com.normation.rudder.users._
 import com.normation.rudder.web.model._
 import com.normation.rudder.web.services._
-import com.normation.rudder.web.services.EventLogDetailsGenerator
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.templates.FillTemplatesService
 import com.normation.utils.CronParser._
 import com.normation.utils.StringUuidGenerator
@@ -991,6 +979,44 @@ object RudderParsedProperties {
     }
   }
 
+  // user clean-up
+  val RUDDER_USERS_CLEAN_CRON               = (
+    try {
+      config.getString("rudder.users.cleanup.cron")
+    } catch {
+      // missing key, perhaps due to migration, use default
+      case ex: Exception => {
+        val default = "0 17 1 * * ?"
+        logger.info(s"`rudder.users.cleanup.cron` property is missing, using default schedule: ${default}")
+        default
+      }
+    }
+  ).toOptCron match {
+    case Left(err)  =>
+      logger.error(
+        s"Error when parsing cron for 'rudder.users.cleanup.cron', it will be disabled: ${err.fullMsg}"
+      )
+      None
+    case Right(opt) => opt
+  }
+  val RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE = parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 60.days)
+  val RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE  = parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", 120.days)
+  val RUDDER_USERS_CLEAN_DELETED_PURGE      = parseDuration("rudder.users.cleanup.purgeDeletedAfter", 30.days)
+  val RUDDER_USERS_CLEAN_SESSIONS_PURGE     = parseDuration("rudder.users.cleanup.sessions.purgeAfter", 30.days)
+
+  def parseDuration(propName: String, default: Duration): Duration = {
+    try {
+      Duration.fromScala(scala.concurrent.duration.Duration(config.getString(propName)))
+    } catch {
+      case ex: ConfigException       => // default
+        default
+      case ex: NumberFormatException =>
+        ApplicationLogger.error(
+          s"Error when reading key: '${propName}', defaulting to ${default}: ${ex.getMessage}"
+        )
+        default
+    }
+  }
 }
 
 /**
@@ -1133,6 +1159,7 @@ object RudderConfig extends Loggable {
   val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
   val userAuthorisationLevel:              DefaultUserAuthorisationLevel              = rci.userAuthorisationLevel
   val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
+  val userRepository:                      UserRepository                             = rci.userRepository
   val userService:                         UserService                                = rci.userService
   val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
   val woDirectiveRepository:               WoDirectiveRepository                      = rci.woDirectiveRepository
@@ -1274,6 +1301,7 @@ case class RudderServiceApi(
     snippetExtensionRegister:            SnippetExtensionRegister,
     clearCacheService:                   ClearCacheService,
     linkUtil:                            LinkUtil,
+    userRepository:                      UserRepository,
     userService:                         UserService,
     apiVersions:                         List[ApiVersion],
     apiDispatcher:                       RudderEndpointDispatcher,
@@ -1457,6 +1485,20 @@ object RudderConfigInit {
     implicit lazy val userService = new UserService {
       def getCurrentUser = CurrentUser
     }
+
+    lazy val userRepository:   UserRepository = new JdbcUserRepository(doobie)
+    // batch for cleaning users
+    lazy val userCleanupBatch: CleanupUsers   = new CleanupUsers(
+      userRepository,
+      RUDDER_USERS_CLEAN_CRON,
+      RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE,
+      RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE,
+      RUDDER_USERS_CLEAN_DELETED_PURGE,
+      RUDDER_USERS_CLEAN_SESSIONS_PURGE,
+      List(DefaultAuthBackendProvider.FILE, DefaultAuthBackendProvider.ROOT_ADMIN)
+    )
+
+    // register callback for listFileUsers
 
     lazy val ncfTechniqueReader: ncf.TechniqueReader = new ncf.TechniqueReader(
       restExtractorService,
@@ -3207,6 +3249,7 @@ object RudderConfigInit {
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap),
+      new CheckTableUsers(doobie),
       new MigrateEventLogEnforceSchema(doobie),
       new MigrateChangeValidationEnforceSchema(doobie),
       new CheckTechniqueLibraryReload(
@@ -3258,7 +3301,8 @@ object RudderConfigInit {
         uuidGen
       ),
       new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),
-      new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl)
+      new LoadNodeComplianceCache(nodeInfoService, reportingServiceImpl),
+      new CloseOpenUserSessions(userRepository)
     )
 
     //////////////////////////////////////////////////////////////////////////////////////////
@@ -3549,6 +3593,7 @@ object RudderConfigInit {
       snippetExtensionRegister,
       clearCacheService,
       linkUtil,
+      userRepository,
       userService,
       ApiVersions,
       apiDispatcher,
@@ -3587,10 +3632,12 @@ object RudderConfigInit {
     cleanOldInventoryBatch.start()
     gitFactRepoGC.start()
     gitConfigRepoGC.start()
+    rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
+    userCleanupBatch.start()
     // UpdateDynamicGroups is part of rci
     // reportingServiceImpl part of rci
     // checkInventoryUpdate part of rci
-    // purgeDeletedInventories paat of rci
+    // purgeDeletedInventories part of rci
     // purgeUnreferencedSoftwares part of rci
     // AutomaticReportLogger part of rci
     // AutomaticReportsCleaning part of rci

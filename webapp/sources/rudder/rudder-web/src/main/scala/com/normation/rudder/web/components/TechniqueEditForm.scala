@@ -46,9 +46,9 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.policies._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model._
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._

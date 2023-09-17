@@ -38,7 +38,7 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import net.liftweb._
 import net.liftweb.common._
 import net.liftweb.http._

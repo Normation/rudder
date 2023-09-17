@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
@@ -49,6 +50,7 @@ import com.normation.plugins.RudderPluginDef
 import com.normation.plugins.RudderPluginModule
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.eventlog.ApplicationStarted
+import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
@@ -58,7 +60,7 @@ import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users._
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.zio._
 import java.net.URI
@@ -216,6 +218,45 @@ object FatalException {
     ApplicationLogger.info(
       s"Global exception handler configured to stop Rudder on: ${fatalException.toList.sorted.mkString(", ")}"
     )
+  }
+}
+
+/*
+ * Logic lo logout an user and clean-up all security context, sessions, etc.
+ * It is session bound, and use Lift & spring security thread-local logic for session management
+ */
+object UserLogout {
+
+  def cleanUpSession(session: LiftSession, endCause: String) = {
+    SecurityContextHolder.getContext.getAuthentication match {
+      case null => // impossible to know who is login out
+        ApplicationLogger.debug("Logout called for a null authentication, can not log user out")
+      case auth =>
+        auth.getPrincipal() match {
+          case u: RudderUserDetail =>
+            (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(), endCause) *>
+            RudderConfig.eventLogRepository
+              .saveEventLog(
+                ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+                LogoutEventLog(
+                  EventLogDetails(
+                    modificationId = None,
+                    principal = EventActor(u.getUsername),
+                    details = EventLog.emptyDetails,
+                    reason = None
+                  )
+                )
+              )).runNowLogError(err => ApplicationLogger.error(s"Error when saving user loggin event log result: ${err.fullMsg}"))
+
+          case x => // impossible to know who is login out
+            ApplicationLogger.debug("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
+        }
+    }
+    // Let's terminate the session
+    SecurityContextHolder.clearContext()
+    // info.session.destroySession() //does not seems to actually terminate the session everytime
+    session.httpSession.foreach(_.terminate)
+    session.destroySession()
   }
 }
 
@@ -432,10 +473,7 @@ class Boot extends Loggable {
                     ApplicationLogger.debug(
                       s"Session $id has been inactive for ${inactiveFor}ms which exceeds the ${timeout}ms limit, terminating"
                     )
-                    // Let's terminate the session
-                    SecurityContextHolder.clearContext()
-                    // info.session.destroySession() //does not seems to actually terminate the session everytime
-                    info.session.httpSession.foreach(s => s.terminate)
+                    UserLogout.cleanUpSession(info.session, s"Session timeout after ${inactiveFor}ms")
                     // This only cleans up the session at lift level and unlink underlying session
                     // but does nothing on it.
                     delete(info)

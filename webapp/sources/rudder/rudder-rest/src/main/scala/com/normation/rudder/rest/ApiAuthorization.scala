@@ -40,8 +40,6 @@ package com.normation.rudder.rest
 import cats.data._
 import cats.implicits._
 import com.normation.eventlog.EventActor
-import com.normation.rudder.RudderAccount
-import com.normation.rudder.UserService
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
@@ -50,7 +48,9 @@ import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.users.RudderAccount
+import com.normation.rudder.users.UserService
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.json.JsonDSL._
@@ -90,9 +90,9 @@ class DefaultApiAuthorizationLevel(logger: Log) extends ApiAuthorizationLevelSer
     logger.info(s"Update API authorization level to '${l.name}'")
     level = Some(l)
   }
-  override def aclEnabled:                            Boolean                              = level.map(_.aclEnabled).getOrElse(false)
 
-  override def name: String = "Default implementation (RO/RW authorization)"
+  override def aclEnabled: Boolean = level.map(_.aclEnabled).getOrElse(false)
+  override def name:       String  = "Default implementation (RO/RW authorization)"
 }
 
 /*
