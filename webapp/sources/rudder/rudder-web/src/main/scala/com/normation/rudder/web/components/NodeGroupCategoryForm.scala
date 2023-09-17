@@ -44,11 +44,11 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.repository._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml

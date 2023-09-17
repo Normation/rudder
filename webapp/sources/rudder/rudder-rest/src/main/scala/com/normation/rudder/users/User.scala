@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2019 Normation SAS
+ * Copyright 2023 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -34,17 +34,37 @@
  *
  *************************************************************************************
  */
-package com.normation.rudder.web.services
+package com.normation.rudder.users
 
+import com.normation.eventlog.EventActor
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
-import com.normation.rudder.RudderAccount
+import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
 import java.util.Collection
+import net.liftweb.http.SessionVar
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import scala.jdk.CollectionConverters._
+
+/*
+ * User related data structures related to authentication and bridging with Spring-security.
+ * Base UserDetails and UserSession structure are defined in rudder-core.
+ */
+
+/**
+ * Rudder user details must know if the account is for a
+ * rudder user or an api account, and in the case of an
+ * api account, what sub-case of it.
+ */
+sealed trait RudderAccount
+object RudderAccount {
+  final case class User(login: String, password: String) extends RudderAccount
+  final case class Api(api: ApiAccount)                  extends RudderAccount
+}
 
 /**
  * We don't use at all Spring Authority to implements
@@ -79,13 +99,15 @@ object RudderAuthType {
 }
 
 /**
- * Our simple model for for user authentication and authorizations.
+ * Our model for user authentication and authorizations based on SpringSecurity UserDetails.
+ * Used only during authentication and in authentication-backends plugins.
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
  * Don't make it final as SSO kind of authentication may need to extend it.
  */
 case class RudderUserDetail(
     account:  RudderAccount,
+    status:   UserStatus,
     roles:    Set[Role],
     apiAuthz: ApiAuthorization
 ) extends UserDetails {
@@ -99,5 +121,64 @@ case class RudderUserDetail(
   override val isAccountNonExpired                        = true
   override val isAccountNonLocked                         = true
   override val isCredentialsNonExpired                    = true
-  override val isEnabled                                  = true
+  override val isEnabled                                  = status == UserStatus.Active
+}
+
+/**
+ * An authenticated user with the relevant authentication information. That structure
+ * will be kept in session (or for API, in the request processing).
+ */
+trait AuthenticatedUser {
+  def account: RudderAccount
+  def checkRights(auth: AuthorizationType): Boolean
+  def getApiAuthz: ApiAuthorization
+  final def actor = EventActor(account match {
+    case RudderAccount.User(login, _) => login
+    case RudderAccount.Api(api)       => api.name.value
+  })
+}
+
+/**
+ * An utility class that get the currently logged user
+ * (if any)
+ */
+object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
+      SecurityContextHolder.getContext.getAuthentication match {
+        case null => None
+        case auth =>
+          auth.getPrincipal match {
+            case u: RudderUserDetail => Some(u)
+            case _ => None
+          }
+      }
+    }) with AuthenticatedUser {
+
+  def getRights: Rights = this.get match {
+    case Some(u) => u.authz
+    case None    => Rights.forAuthzs(AuthorizationType.NoRights)
+  }
+
+  def account: RudderAccount = this.get match {
+    case None    => RudderAccount.User("unknown", "")
+    case Some(u) => u.account
+  }
+
+  def checkRights(auth: AuthorizationType): Boolean = {
+    val authz = getRights.authorizationTypes
+    if (authz.contains(AuthorizationType.NoRights)) false
+    else if (authz.contains(AuthorizationType.AnyRights)) true
+    else {
+      auth match {
+        case AuthorizationType.NoRights => false
+        case _                          => authz.contains(auth)
+      }
+    }
+  }
+
+  def getApiAuthz: ApiAuthorization = {
+    this.get match {
+      case None    => ApiAuthorization.None
+      case Some(u) => u.apiAuthz
+    }
+  }
 }
