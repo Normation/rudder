@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2021 Normation SAS
+ * Copyright 2017 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,35 +35,11 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet
+package com.normation.rudder.users
 
-import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.rudder.AuthorizationType.Administration
-import com.normation.rudder.users.CurrentUser
-import net.liftweb.common._
-import net.liftweb.http.CurrentReq
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js.JsCmds._
-
-class SetupRedirect extends DispatchSnippet with Loggable {
-
-  private[this] val configService = RudderConfig.configService
-
-  def dispatch = { case "display" => _ => Script(display()) }
-
-  def display() = {
-
-    configService.rudder_setup_done().toBox match {
-      case Full(false)
-          if CurrentUser.checkRights(Administration.Write) && !CurrentReq.value.request.url.contains("administration/setup") =>
-        RedirectTo("/secure/administration/setup")
-      case Full(_) =>
-        Noop
-      case eb: EmptyBox =>
-        val msg = eb ?~! "Could not get 'setup done' property"
-        logger.error(msg.messageChain)
-        Noop
-    }
-  }
+/**
+ * A minimalistic definition of a service that give access to currently logged user .
+ */
+trait UserService {
+  def getCurrentUser: AuthenticatedUser
 }

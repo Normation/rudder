@@ -41,7 +41,6 @@ import com.normation.box._
 import com.normation.errors._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.FullDetails
 import com.normation.rudder.apidata.JsonQueryObjects._
@@ -68,6 +67,7 @@ import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows._
+import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import net.liftweb.common._

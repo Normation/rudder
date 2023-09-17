@@ -46,6 +46,7 @@ import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.users.CurrentUser
 import net.liftweb.common._
 import net.liftweb.common.Box
 import net.liftweb.http.SHtml

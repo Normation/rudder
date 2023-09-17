@@ -63,6 +63,30 @@ ALTER database rudder SET standard_conforming_strings=true;
 
 CREATE SEQUENCE serial START 101;
 
+CREATE TABLE Users (
+  id             text PRIMARY KEY NOT NULL CHECK (id <> '')
+, creationDate   timestamp with time zone NOT NULL
+, status         text NOT NULL
+, managedBy      text NOT NULL CHECK (managedBy <> '')
+, name           text
+, email          text
+, lastLogin      timestamp with time zone
+, statusHistory  jsonb
+, otherInfo      jsonb -- general additional user info
+);
+
+CREATE TABLE UserSessions (
+  userId       text NOT NULL CHECK (userId <> '')
+, sessionId    text NOT NULL CHECK (sessionId <> '')
+, creationDate timestamp with time zone NOT NULL
+, authMethod   text
+, permissions  text[]
+, endDate      timestamp with time zone
+, endCause     text
+, PRIMARY KEY(userId, sessionId)
+);
+
+
 CREATE TABLE RudderSysEvents (
   id                 bigint PRIMARY KEY default nextval('serial')
 , executionDate      timestamp with time zone NOT NULL

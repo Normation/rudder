@@ -49,9 +49,9 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.sequence

@@ -44,12 +44,12 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components._
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.services.AgentCompat
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.ReasonBehavior._
 import net.liftweb.common._
 import net.liftweb.common.Box.box2Option

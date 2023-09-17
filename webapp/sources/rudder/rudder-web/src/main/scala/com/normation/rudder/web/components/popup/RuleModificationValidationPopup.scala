@@ -43,9 +43,9 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model._
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml

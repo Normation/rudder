@@ -45,6 +45,7 @@ import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services._
 import com.normation.utils.DateFormaterService
 import doobie._

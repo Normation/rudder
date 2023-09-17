@@ -44,13 +44,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.repository._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBRadioField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S

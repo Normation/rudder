@@ -50,10 +50,10 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.web.components.ComplianceModeEditForm
-import com.normation.rudder.web.services.CurrentUser
 import java.nio.charset.StandardCharsets
 import net.liftweb.common._
 import net.liftweb.http._

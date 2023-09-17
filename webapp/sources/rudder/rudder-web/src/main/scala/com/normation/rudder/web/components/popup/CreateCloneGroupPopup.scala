@@ -6,13 +6,13 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBRadioField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet

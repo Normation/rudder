@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2017 Normation SAS
+ * Copyright 2023 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,48 +35,30 @@
  *************************************************************************************
  */
 
-package com.normation.rudder
+package bootstrap.liftweb.checks.consistency
 
-import com.normation.eventlog.EventActor
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
-
-/*
- * This file define data type around what is a User in Rudder,
- * and a service to access it.
- */
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import com.normation.rudder.users._
+import com.normation.zio._
+import javax.servlet.UnavailableException
+import org.joda.time.DateTime
 
 /**
- * Rudder user details must know if the account is for a
- * rudder user or an api account, and in the case of an
- * api account, what sub-case of it.
+ * This class check that all user sessions are closed
  */
-sealed trait RudderAccount
-object RudderAccount {
-  final case class User(login: String, password: String) extends RudderAccount
-  final case class Api(api: ApiAccount)                  extends RudderAccount
-}
+class CloseOpenUserSessions(
+    userRepository: UserRepository
+) extends BootstrapChecks {
 
-trait User {
-  def account: RudderAccount
-  def checkRights(auth: AuthorizationType): Boolean
-  def getApiAuthz: ApiAuthorization
-  final def actor = EventActor(account match {
-    case RudderAccount.User(login, _) => login
-    case RudderAccount.Api(api)       => api.name.value
-  })
-  def nodePerms: NodeSecurityContext
+  override val description = "Check all user sessions are closed"
 
-  def queryContext: QueryContext = {
-    QueryContext(actor, nodePerms)
+  @throws(classOf[UnavailableException])
+  override def checks(): Unit = {
+    userRepository
+      .closeAllOpenSession(DateTime.now(), "sessions still opened while Rudder is starting")
+      .catchAll(err => BootstrapLogger.error(s"Error when closing user sessions when Rudder restart: ${err.fullMsg}"))
+      .runNow
   }
-}
 
-/**
- * A minimalistic definition of a service that give access to currently logged user.
- */
-trait UserService {
-  def getCurrentUser: User
 }

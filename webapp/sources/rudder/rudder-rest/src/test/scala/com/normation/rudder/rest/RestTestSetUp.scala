@@ -135,6 +135,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.users._
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
@@ -191,7 +192,7 @@ import zio.syntax._
 class RestTestSetUp {
 
   implicit val userService: UserService = new UserService {
-    val user           = new User {
+    val user           = new AuthenticatedUser {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz                          = ApiAuthz.allAuthz

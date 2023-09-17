@@ -44,7 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
