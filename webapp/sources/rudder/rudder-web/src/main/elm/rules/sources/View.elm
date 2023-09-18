@@ -144,7 +144,7 @@ view model =
         , div[class "form-group"]
           [ label[]
             [ text "Change audit message"
-            , text (if crSettings.mandatoryChangeMessage then " (required)" else "")
+            , text (if crSettings.enableChangeMessage && crSettings.mandatoryChangeMessage then " (required)" else "")
             ]
             , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
           ]

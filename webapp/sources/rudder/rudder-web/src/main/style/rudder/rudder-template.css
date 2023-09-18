@@ -1607,7 +1607,11 @@ ul.applied-list > .add-target > .fa{
 .btn.btn-save:before{
   content: "Save";
 }
-.btn.btn-save.saving:before{
+.btn.btn-cr:before{
+  content: "Create change request";
+}
+.btn.btn-save.saving:before,
+.btn.btn-cr.saving:before{
   content: "Saving";
 }
 .btn.btn-save > .fa.fa-spin{

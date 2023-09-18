@@ -15,8 +15,11 @@ import List.Extra
 import Maybe.Extra exposing (isNothing)
 import Random
 import UUID
+import Json.Encode exposing (..)
+
 
 -- PORTS / SUBSCRIPTIONS
+port linkSuccessNotification : Value -> Cmd msg
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 port pushUrl             : (String,String) -> Cmd msg
@@ -288,7 +291,7 @@ update msg model =
 
     NewRule id ->
       let
-        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) []
+        rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) [] Nothing
         ruleDetails = RuleDetails Nothing rule Information {defaultRulesUI | editGroups = True, editDirectives = True} Nothing Nothing Nothing []
       in
         ({model | mode = RuleForm ruleDetails}, Cmd.none)
@@ -309,13 +312,38 @@ update msg model =
               Nothing -> "created"
             ui = details.ui
             modelUi = model.ui
-            crSettings = case modelUi.crSettings of
-              Just cr -> Just { cr | message = "" }
-              Nothing -> modelUi.crSettings
+            defaultNotif = successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action)
+            (crSettings, successNotif) = case modelUi.crSettings of
+              Just cr ->
+                ( Just { cr | message = "" }
+                , ( if cr.enableChangeRequest then
+                  case ruleDetails.changeRequestId of
+                    Just id ->
+                      let
+                        message = "Change request #"++ id ++" successfully created."
+                        linkUrl = model.contextPath ++ "/secure/plugins/changes/changeRequest/" ++ id
+                        linkTxt = "See details of change request #" ++ id
+                        encodeToastInfo =
+                          object
+                          [ ("message", string message)
+                          , ("linkUrl", string linkUrl)
+                          , ("linkTxt", string linkTxt)
+                          ]
+                      in
+                        linkSuccessNotification encodeToastInfo
+                    Nothing -> errorNotification("Error while trying to create change request")
+                  else
+                  defaultNotif
+                  )
+                )
+              Nothing ->
+                ( modelUi.crSettings
+                , defaultNotif
+                )
             newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False, crSettings = crSettings} }
           in
             (newModel, Cmd.batch
-              [ successNotification ("Rule '"++ ruleDetails.name ++"' successfully " ++ action)
+              [ successNotif
               , getRulesTree newModel
               , getRulesComplianceDetails ruleDetails.id newModel
               , getRuleNodesDirectives ruleDetails.id newModel
