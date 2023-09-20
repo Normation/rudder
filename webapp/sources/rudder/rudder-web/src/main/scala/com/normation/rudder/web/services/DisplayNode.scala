@@ -55,6 +55,7 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
 import com.normation.rudder.services.reports.Pending
+import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.RegisterToasts
@@ -1149,7 +1150,7 @@ object DisplayNode extends Loggable {
   private[this] def removeNode(node: NodeSummary): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     removeNodeService
-      .removeNodePure(node.id, RudderConfig.RUDDER_DEFAULT_DELETE_NODE_MODE, modId, CurrentUser.actor)
+      .removeNodePure(node.id, DeleteMode.Erase, modId, CurrentUser.actor) // only erase for Rudder 8.0
       .toBox match {
       case Full(_) =>
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)

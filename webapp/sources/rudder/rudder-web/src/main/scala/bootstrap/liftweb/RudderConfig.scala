@@ -115,7 +115,8 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.queries._
-import com.normation.rudder.facts.nodes.{GitNodeFactRepositoryImpl, NoopFactStorage}
+import com.normation.rudder.facts.nodes.GitNodeFactRepositoryImpl
+import com.normation.rudder.facts.nodes.NoopFactStorage
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -205,7 +206,6 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
-
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -215,7 +215,6 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
 import zio.{Scheduler => _, System => _, _}
@@ -971,20 +970,6 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_DEFAULT_DELETE_NODE_MODE = {
-    val default = DeleteMode.Erase
-    val mode    = {
-      try {
-        config.getString("rudder.nodes.delete.defaultMode")
-      } catch {
-        case ex: ConfigException => default.name
-      }
-    }
-    val cfg     = DeleteMode.all.find(_.name == mode).getOrElse(default)
-    ApplicationLogger.info(s"Using '${cfg.name}' behavior when a node is deleted")
-    cfg
-  }
-
   // Store it an a Box as it's only used in Lift
   val AUTH_IDLE_TIMEOUT = {
     try {
@@ -1097,7 +1082,6 @@ object RudderConfig extends Loggable {
   def RUDDER_SERVER_HSTS_SUBDOMAINS                = RudderParsedProperties.RUDDER_SERVER_HSTS_SUBDOMAINS
   def AUTH_IDLE_TIMEOUT                            = RudderParsedProperties.AUTH_IDLE_TIMEOUT
   def WATCHER_ENABLE                               = RudderParsedProperties.WATCHER_ENABLE
-  def RUDDER_DEFAULT_DELETE_NODE_MODE              = RudderParsedProperties.RUDDER_DEFAULT_DELETE_NODE_MODE
   def RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = RudderParsedProperties.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   def RUDDER_GIT_ROOT_CONFIG_REPO                  = RudderParsedProperties.RUDDER_GIT_ROOT_CONFIG_REPO
   def RUDDER_BCRYPT_COST                           = RudderParsedProperties.RUDDER_BCRYPT_COST
@@ -2147,7 +2131,7 @@ object RudderConfigInit {
           nodeApiService13,
           nodeApiService16,
           nodeInheritedProperties,
-          RUDDER_DEFAULT_DELETE_NODE_MODE
+          DeleteMode.Erase // only supported mode for Rudder 8.0
         ),
         new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
         new SettingsApi(
