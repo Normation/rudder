@@ -147,7 +147,7 @@ class ExecutionBatchTest extends Specification {
                 case ExpectedValueMatch(value, _) =>
                   ResultSuccessReport(now, ruleId, directiveId, nodeId, "report_id", componentName, value, now, "empty text")
               }
-            case BlockExpectedReport(componentName, logic, sub)       =>
+            case BlockExpectedReport(componentName, logic, sub, _)    =>
               sub.map(mapComponent(_, directiveId)).flatten
           }
         }
@@ -816,7 +816,8 @@ class ExecutionBatchTest extends Specification {
       new ValueExpectedReport(
         "component",
         ExpectedValueMatch("foo", "foo") :: ExpectedValueMatch("bar", "bar") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val withGood = ExecutionBatch
@@ -937,7 +938,8 @@ class ExecutionBatchTest extends Specification {
       new ValueExpectedReport(
         "component",
         ExpectedValueMatch("foo", "foo") :: ExpectedValueMatch("bar", "bar") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val withGood = ExecutionBatch
@@ -1058,7 +1060,8 @@ class ExecutionBatchTest extends Specification {
       new ValueExpectedReport(
         "component",
         ExpectedValueMatch("foo", "foo") :: ExpectedValueMatch("bar", "bar") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val withGood = ExecutionBatch
@@ -1182,7 +1185,8 @@ class ExecutionBatchTest extends Specification {
       ) :: new ValueExpectedReport(
         "component1",
         ExpectedValueId("bar", "report_1") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val withGood = ExecutionBatch
@@ -1358,7 +1362,8 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b1c2", "b1c2") :: Nil
-        ) :: Nil
+        ) :: Nil,
+        None
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.WeightedReport,
@@ -1368,8 +1373,10 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b2c2", "b2c2") :: Nil
-        ) :: Nil
-      ) :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
     )
     val directiveExpectedReports =
       DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
@@ -1527,7 +1534,8 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b1c2", "b1c2") :: Nil
-        ) :: Nil
+        ) :: Nil,
+        None
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.WeightedReport,
@@ -1537,8 +1545,10 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("${loop}", "${loop}") :: Nil
-        ) :: Nil
-      ) :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
     )
     val directiveExpectedReports =
       DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
@@ -1663,7 +1673,8 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component",
           ExpectedValueId("keyvalue", "report_id_b1c2") :: Nil
-        ) :: Nil
+        ) :: Nil,
+        None
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.WeightedReport,
@@ -1673,8 +1684,10 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component",
           ExpectedValueId("${loop2}", "report_id_b2c2") :: Nil
-        ) :: Nil
-      ) :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
     )
     val directiveExpectedReports =
       DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
@@ -1855,7 +1868,8 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b1c2", "b1c2") :: Nil
-        ) :: Nil
+        ) :: Nil,
+        None
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.FocusReport("component1"),
@@ -1865,8 +1879,10 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b2c2", "b2c2") :: Nil
-        ) :: Nil
-      ) :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
     )
     val directiveExpectedReports =
       DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
@@ -2060,7 +2076,8 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b1c2", "b1c2") :: Nil
-        ) :: Nil
+        ) :: Nil,
+        None
       ) :: BlockExpectedReport(
         "block2",
         ReportingLogic.WeightedReport,
@@ -2070,8 +2087,10 @@ class ExecutionBatchTest extends Specification {
         ) :: new ValueExpectedReport(
           "component2",
           ExpectedValueMatch("b2c2", "b2c2") :: Nil
-        ) :: Nil
-      ) :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
     )
     val directiveExpectedReports =
       DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
@@ -2214,7 +2233,8 @@ class ExecutionBatchTest extends Specification {
       new ValueExpectedReport(
         "component",
         ExpectedValueMatch("foo", "foo") :: ExpectedValueMatch("bar", "bar") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val withGood = ExecutionBatch
@@ -2535,7 +2555,8 @@ class ExecutionBatchTest extends Specification {
       ) :: new ValueExpectedReport(
         "Check right OK for ${user} and what follows '$' does not matter in pattern matching",
         ExpectedValueId("/bin/checkRightsOK ${user}", "report_1") :: Nil
-      ) :: Nil
+      ) :: Nil,
+      None
     )
 
     val reports = Seq[ResultReports](
@@ -2751,7 +2772,8 @@ class ExecutionBatchTest extends Specification {
           List(
             ValueExpectedReport("gm1", List(ExpectedValueId("value1", "reportid1"))),
             ValueExpectedReport("gm2", List(ExpectedValueId("value2", "reportid2")))
-          )
+          ),
+          None
         ),
         ValueExpectedReport("gm3", List(ExpectedValueId("value3", "reportid3"))),
         ValueExpectedReport("gm4", List(ExpectedValueId("value4", "reportid4")))

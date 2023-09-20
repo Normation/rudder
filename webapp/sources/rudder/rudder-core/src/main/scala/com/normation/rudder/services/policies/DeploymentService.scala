@@ -41,6 +41,7 @@ import better.files.File
 import cats.data.NonEmptyList
 import cats.implicits._
 import com.normation.box._
+import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors._
@@ -1838,7 +1839,28 @@ object RuleExpectedReportBuilder extends Loggable {
             val currentPath = section.name :: path
             val children    =
               section.children.collect { case c: SectionSpec => c }.flatMap(c => sectionToExpectedReports(currentPath)(c)).toList
-            BlockExpectedReport(section.name, rule, children) :: Nil
+            val correctRule = rule match {
+              case FocusReport(reportId) =>
+                val newComponent = (children
+                  .find(c => {
+                    c match {
+                      case block: BlockExpectedReport => block.id.map(_ == reportId).getOrElse(false)
+                      case v:     ValueExpectedReport =>
+                        v.componentsValues.exists { v =>
+                          v match {
+                            case ExpectedValueMatch(_, _) => false
+                            case ExpectedValueId(_, id)   => id == reportId
+                          }
+                        }
+                    }
+                  }))
+                  .map(_.componentName)
+                  .getOrElse(reportId)
+                FocusReport(newComponent)
+              case r                     => r
+            }
+
+            BlockExpectedReport(section.name, correctRule, children, section.id) :: Nil
 
         }
       } else {

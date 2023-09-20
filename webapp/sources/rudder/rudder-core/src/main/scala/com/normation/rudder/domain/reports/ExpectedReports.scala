@@ -141,7 +141,8 @@ sealed trait ComponentExpectedReport {
 final case class BlockExpectedReport(
     componentName:  String,
     reportingLogic: ReportingLogic,
-    subComponents:  List[ComponentExpectedReport]
+    subComponents:  List[ComponentExpectedReport],
+    id:             Option[String]
 ) extends ComponentExpectedReport
 
 final case class ValueExpectedReport(
@@ -376,7 +377,7 @@ object ExpectedReportsSerialisation {
         reportingLogic: ReportingLogic,
         subComponents:  List[JsonComponentExpectedReport7_0]
     ) extends JsonComponentExpectedReport7_0 {
-      def transform = BlockExpectedReport(componentName, reportingLogic, subComponents.map(_.transform))
+      def transform = BlockExpectedReport(componentName, reportingLogic, subComponents.map(_.transform), None)
     }
     implicit class _JsonBlockExpectedReport7_0(x: BlockExpectedReport)          {
       def transform = JsonBlockExpectedReport7_0(x.componentName, x.reportingLogic, x.subComponents.map(_.transform))
@@ -680,12 +681,16 @@ object ExpectedReportsSerialisation {
         }
       )
     }
-    final case class JsonBlockExpectedReport7_1(bid: String, rl: ReportingLogic, scs: List[JsonComponentExpectedReport7_1])
-        extends JsonComponentExpectedReport7_1                                   {
-      def transform = BlockExpectedReport(bid, rl, scs.map(_.transform))
+    final case class JsonBlockExpectedReport7_1(
+        bid: String,
+        rl:  ReportingLogic,
+        scs: List[JsonComponentExpectedReport7_1],
+        id:  Option[String]
+    ) extends JsonComponentExpectedReport7_1 {
+      def transform = BlockExpectedReport(bid, rl, scs.map(_.transform), id)
     }
     implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport)           {
-      def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform))
+      def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform), x.id)
     }
 
     final case class JsonDirectiveExpectedReports7_1(
