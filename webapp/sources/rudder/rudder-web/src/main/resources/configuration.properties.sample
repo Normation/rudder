@@ -507,6 +507,37 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 rudder.inventories.cleanup.old.files.cron=0 32 3 * * ?
 rudder.inventories.cleanup.old.files.age=30 days
 
+#
+# As of Rudder 8.0, inventory corresponding the moment where a node was accepted or refused
+# in Rudder are stored in PostgreSQL database in place of file system. These inventories
+# allow to display the details information of the node inventory in the "history" tab
+# of pending node page.
+#
+# You can configure the duration for which these inventories are kept:
+# - for refused or deleted nodes (from deletion event),
+# - for accepted (and not deleted) nodes.
+#
+# The clean-up will be executed during the cron configured by `rudder.inventories.cleanup.old.files.cron`
+# so be sure to enable it if you want to use that clean-up feature, and be careful to make the cron
+# run often enough to handle duration configured in the following properties.
+#
+# For each property, the format is "human compatible duration", ie `1 second`, `3 minutes`, `5 hours`,
+# `2 days`. Details here: https://scala-lang.org/api/3.x/scala/concurrent/duration/Duration$.html#apply-537
+#
+
+#
+# Duration between the moment a node is refused or deleted and the clean-up of its historical
+# inventory. O means "immediately". Default to 30 days.
+#
+rudder.inventories.pendingChoiceHistoryCleanupLatency.deletedNode=30 days
+
+#
+# Duration between the moment a node is accepted and the clean-up of its historical inventory.
+# 0 (default) means "never"
+#
+rudder.inventories.pendingChoiceHistoryCleanupLatency.acceptedNode=0 days
+
+
 ###############################
 # Non compliant reports logger #################################################
 ###############################
