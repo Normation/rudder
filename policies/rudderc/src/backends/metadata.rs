@@ -338,6 +338,8 @@ struct Section {
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 struct SectionBlock {
+    #[serde(rename = "@id")]
+    id: String,
     #[serde(rename = "@name")]
     name: String,
     #[serde(rename = "@reporting")]
@@ -427,6 +429,7 @@ impl SectionType {
             .into_iter()
             .filter_map(|r| match r {
                 ItemKind::Block(b) => Some(SectionType::SectionBlock(SectionBlock {
+                    id: b.id.to_string(),
                     name: b.name,
                     component: true,
                     multivalued: true,
@@ -490,6 +493,7 @@ mod tests {
     fn it_computes_metadata_xml() {
         let sections = Sections {
             section: vec![SectionType::SectionBlock(SectionBlock {
+                id: "6dc261b7-606b-43a7-8797-cd353763f50c".to_string(),
                 name: "Variable string match".to_string(),
                 component: true,
                 multivalued: true,
@@ -569,7 +573,9 @@ mod tests {
             sections,
         };
         assert_eq!(
-            read_to_string("tests/metadata/serialized.xml").unwrap(),
+            read_to_string("tests/metadata/serialized.xml")
+                .unwrap()
+                .trim(),
             Metadata::xml(t).unwrap()
         );
     }

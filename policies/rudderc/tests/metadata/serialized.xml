@@ -25,7 +25,7 @@
     </FILES>
   </AGENT>
   <SECTIONS>
-    <SECTION name="Variable string match" reporting="weighted" component="true" multivalued="true">
+    <SECTION id="6dc261b7-606b-43a7-8797-cd353763f50c" name="Variable string match" reporting="weighted" component="true" multivalued="true">
       <SECTION name="Variable dict" id="f6810347-f367-4465-96be-3a50860f4cb1" component="true" multivalued="true">
         <REPORTKEYS>
           <VALUE id="5dbfb761-f15f-40b5-9f75-b3d88b81483e">

@@ -38,7 +38,7 @@
         </VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION name="A simpl block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+    <SECTION id="c9e259a1-51c5-40b3-98ef-0eeaf52dca99" name="A simpl block" reporting="worst-case-weighted-one" component="true" multivalued="true">
       <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
         <REPORTKEYS>
           <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c12">
@@ -47,7 +47,7 @@
         </REPORTKEYS>
       </SECTION>
     </SECTION>
-    <SECTION name="A simple block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+    <SECTION id="c9e259a1-51c5-40b3-98ef-0eeaf52dca98" name="A simple block" reporting="worst-case-weighted-one" component="true" multivalued="true">
       <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c45" component="true" multivalued="true">
         <REPORTKEYS>
           <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c45">
@@ -56,8 +56,8 @@
         </REPORTKEYS>
       </SECTION>
     </SECTION>
-    <SECTION name="A nested block" reporting="worst-case-weighted-one" component="true" multivalued="true">
-      <SECTION name="A simple block inside" reporting="worst-case-weighted-one" component="true" multivalued="true">
+    <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca45" name="A nested block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+      <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca96" name="A simple block inside" reporting="worst-case-weighted-one" component="true" multivalued="true">
         <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c14" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c14">
@@ -66,7 +66,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION name="Another block inside" reporting="worst-case-weighted-sum" component="true" multivalued="true">
+      <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca97" name="Another block inside" reporting="worst-case-weighted-sum" component="true" multivalued="true">
         <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c13" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c13">
@@ -75,7 +75,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
+      <SECTION id="074d64ca-10ec-4c50-b0e1-4c85903f8b4c" name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
         <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c21">
