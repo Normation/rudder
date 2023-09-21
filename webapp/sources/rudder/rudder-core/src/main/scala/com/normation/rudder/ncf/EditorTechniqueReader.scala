@@ -86,6 +86,7 @@ class EditorTechniqueReaderImpl(
                             (for {
                               content    <- IOResult.attempt(s"Error when reading '${file.pathAsString}'")(file.contentAsString)
                               editorTech <- yamlTechniqueSerializer.yamlToEditorTechnique(file.contentAsString)
+                              _          <- EditorTechnique.checkTechniqueIdConsistency(file.parent, editorTech)
                             } yield editorTech)
                               .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
                               .either
