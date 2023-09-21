@@ -17,7 +17,7 @@ export PATH="/opt/rudder/bin:$PATH"
 # we need to reload the configuration on apache2, based on the policies
 # it must be done even if the hash didn't change, as cf-serverd doesn't have the lists of
 # windows agent in it, and it doesn't change on windows node addition/deletion
-rudder agent run -b system_rudder_apache_configuration,system_reload_rudder_services
+rudder agent run -lb system_rudder_apache_configuration,system_reload_rudder_services
 
 # for linux agents
 ACL_BACK="/var/rudder/tmp/cf-serverd.sha256"
