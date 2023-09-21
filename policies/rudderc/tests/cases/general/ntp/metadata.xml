@@ -48,7 +48,7 @@
         </VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION name="my block" reporting="worst-case-weighted-one" component="true" multivalued="true">
+    <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca98" name="my block" reporting="worst-case-weighted-one" component="true" multivalued="true">
       <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
         <REPORTKEYS>
           <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c12">
