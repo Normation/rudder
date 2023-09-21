@@ -3068,6 +3068,12 @@ table a > i.fa-pencil:hover{
   max-width: unset !important;
 }
 
+/* AUTORESIZE */
+.form-control.auto-resize{
+  display: block;
+  overflow: hidden;
+}
+
 /* MARKDOWN */
 .markdown{
   padding: 10px;
