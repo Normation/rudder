@@ -887,3 +887,12 @@ function sidebarControl(a){
     e.is(".treeview-menu") && a.preventDefault()
   })
 }
+
+// Update the height of a input/textarea according to its content
+function autoResize(e) {
+  elem = e.target ? e.target : e;
+  if(elem !== undefined && elem !== null){
+    elem.style.height = 'auto';
+    elem.style.height = elem.scrollHeight + 'px';
+  }
+}

@@ -533,11 +533,6 @@ td.listclose:after {
 #nodePropertiesTab .cancel-icon{
   transform: scaleX(-1) scaleY(-1);
 }
-#nodePropertiesTab > tbody > tr > td textarea{
-  max-height: 290px;
-  overflow: auto !important;
-  min-height: 30px;
-}
 #nodePropertiesTab .format-container .btn{
   width: 100%;
   text-align: left;

@@ -17,6 +17,7 @@ import NodeProperties.View exposing (view)
 port errorNotification   : String -> Cmd msg
 port successNotification : String -> Cmd msg
 port initTooltips        : String -> Cmd msg
+port initInputs          : String -> Cmd msg
 port copy                : String -> Cmd msg
 
 subscriptions : Model -> Sub Msg
@@ -67,7 +68,7 @@ update msg model =
               }
           in
             ( newModel
-            , Cmd.batch [ initTooltips "" , successNotification successMsg, getNodeProperties newModel]
+            , Cmd.batch [ initInputs "", initTooltips "" , successNotification successMsg, getNodeProperties newModel]
             )
         Err err ->
           processApiError "saving node properties" err model
@@ -79,7 +80,7 @@ update msg model =
             modelUi  = model.ui
           in
             ( { model | properties = properties, ui = { modelUi | loading = False } }
-              , initTooltips ""
+              , Cmd.batch [initTooltips "", initInputs ""]
             )
         Err err ->
           processApiError "Getting node properties" err model
@@ -106,7 +107,7 @@ update msg model =
         (newModel, cmd)
 
     DeleteProperty key ->
-          (model, Cmd.none)
+      (model, Cmd.none)
 
     ToggleEditPopup modalState ->
       let
@@ -131,7 +132,7 @@ update msg model =
                 in
                   case checkJsonFormat of
                     Ok s  ->
-                      (updatedModel, saveProperty [property] model successMsg)
+                      (updatedModel, Cmd.batch [saveProperty [property] model successMsg, initInputs ""])
                     Err _ -> (model, errorNotification "JSON check is enabled, but the value format is invalid.")
 
             else
@@ -144,7 +145,7 @@ update msg model =
           editedProperties = ui.editedProperties
             |> Dict.insert key property
         in
-          ( { model | ui = {ui | editedProperties = editedProperties} }, Cmd.none )
+          ( { model | ui = {ui | editedProperties = editedProperties} }, initInputs "" )
 
     UpdateTableFilters tableFilters ->
       let

@@ -35,7 +35,7 @@ view model =
                 [ td [class ("form-group" ++ if ((checkEmptyName && checkPristineName) || checkUsedName) then " has-error" else "")]
                   [ input
                     [ placeholder "Name"
-                    , class "form-control input-sm input-key"
+                    , class "form-control input-key"
                     , id "newPropName"
                     , name "newPropName"
                     , value newProperty.name
@@ -54,7 +54,8 @@ view model =
                 , td [class ("form-group" ++ if ((checkEmptyVal && checkPristineVal) || checkFormatVal) then " has-error" else "")]
                   [ textarea
                     [ placeholder "Value"
-                    , class "form-control input-sm input-value"
+                    , class "form-control input-value auto-resize"
+                    , attribute "rows" "1"
                     , name "newPropValue"
                     , value newProperty.value
                     , onInput (\s -> UpdateNewProperty { newProperty | value = s, pristineValue = False, errorFormat = False})
@@ -77,7 +78,7 @@ view model =
                     ]
                   ]
                 , td[]
-                  [ button [type_ "button",  class "btn btn-success btn-sm", disabled (List.any (\c -> c == True) checks), onClick AddProperty]
+                  [ button [type_ "button",  class "btn btn-success", disabled (List.any (\c -> c == True) checks), onClick AddProperty]
                     [ span [class "fa fa-plus"] []
                     ]
                   ]
