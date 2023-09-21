@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest
 
+import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -104,17 +105,14 @@ class TestDirectiveComplianceCsv extends Specification {
           Seq(
             ByRuleBlockCompliance(
               "Check Cipher TLS_RSA_WITH_DES_CBC_SHA",
-              notUsed,
               Seq(
                 ByRuleValueCompliance(
                   "Command execution",
-                  notUsed,
                   Seq(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-www-01.lab.rudder.io",
                       None,
-                      notUsed,
                       Seq(
                         ComponentValueStatusReport(
                           "Disable-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\" ",
@@ -134,7 +132,6 @@ class TestDirectiveComplianceCsv extends Specification {
                       NodeId("n1"),
                       "prod-windows-2016.demo.normation.com",
                       None,
-                      notUsed,
                       Seq(
                         ComponentValueStatusReport(
                           "Disable-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\" ",
@@ -154,13 +151,11 @@ class TestDirectiveComplianceCsv extends Specification {
                 ),
                 ByRuleValueCompliance(
                   "Audit from Powershell execution",
-                  notUsed,
                   Seq(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-app-01.lab.rudder.io",
                       None,
-                      notUsed,
                       Seq(
                         ComponentValueStatusReport(
                           "(Get-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\").Count",
@@ -180,7 +175,6 @@ class TestDirectiveComplianceCsv extends Specification {
                       NodeId("n1"),
                       "prod-windows-2016.demo.normation.com",
                       None,
-                      notUsed,
                       Seq(
                         ComponentValueStatusReport(
                           "(Get-TlsCipherSuite -Name \"TLS_RSA_WITH_DES_CBC_SHA\").Count",
@@ -198,7 +192,8 @@ class TestDirectiveComplianceCsv extends Specification {
                     )
                   )
                 )
-              )
+              ),
+              WeightedReport
             )
           )
         )
