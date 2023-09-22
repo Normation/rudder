@@ -88,7 +88,7 @@ update msg model =
 
     AddProperty ->
       let
-        successMsg = ("property '" ++ model.newProperty.name ++ "' has been added")
+        successMsg = ("property '" ++ (String.trim model.newProperty.name) ++ "' has been added")
         ( newModel , cmd ) = case model.newProperty.format of
           StringFormat -> (model, saveProperty [model.newProperty] model successMsg)
           JsonFormat   ->
@@ -121,7 +121,7 @@ update msg model =
           ui = model.ui
           editedProperties = ui.editedProperties
             |> Dict.remove key
-          successMsg = ("property '" ++ property.name ++ "' has been updated")
+          successMsg = ("property '" ++ (String.trim property.name) ++ "' has been updated")
           updatedModel = { model | ui = {ui | editedProperties = editedProperties} }
           (newModel, cmd) = if save then -- If we want to save changes
             case property.format of

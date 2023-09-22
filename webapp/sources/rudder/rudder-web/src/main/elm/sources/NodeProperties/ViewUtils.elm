@@ -180,10 +180,12 @@ displayNodePropertyRow model =
             ]
           Just eP ->
             let
+              trimmedName = String.trim eP.name
+              trimmedVal  = String.trim eP.value
               checkPristineName = not eP.pristineName
-              checkEmptyName    = String.isEmpty eP.name
-              checkUsedName     = eP.name /= p.name && List.member eP.name (List.map .name model.properties)
-              checkEmptyVal     = String.isEmpty eP.value
+              checkEmptyName    = String.isEmpty trimmedName
+              checkUsedName     = trimmedName /= p.name && List.member trimmedName (List.map .name model.properties)
+              checkEmptyVal     = String.isEmpty trimmedVal
               checkPristineVal  = not eP.pristineValue
             in
             tr []
