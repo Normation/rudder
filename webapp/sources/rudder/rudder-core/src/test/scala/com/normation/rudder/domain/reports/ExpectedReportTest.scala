@@ -202,7 +202,8 @@ class ExpectedReportTest extends Specification {
                           ExpectedValueId("/tmp/${node.properties[filename]}", "87cad41f-ec88-4b32-a13c-136f15f7bf17")
                         )
                       )
-                    )
+                    ),
+                    None
                   )
                 )
               )

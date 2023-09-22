@@ -43,6 +43,7 @@ type alias Rule =
   , policyMode       : String
   , status           : RuleStatus
   , tags             : List Tag
+  , changeRequestId  : Maybe String
   }
 
 type alias Directive =

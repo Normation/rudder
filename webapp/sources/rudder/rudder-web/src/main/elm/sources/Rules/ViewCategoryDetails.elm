@@ -111,7 +111,7 @@ editionTemplateCat model details =
                 [ button [ class "btn btn-danger" , onClick (OpenDeletionPopupCat category)]
                   [ text "Delete", i [ class "fa fa-times-circle"][]]
                 ]
-              , btnSave model.ui.saving False (CallApi True (saveCategoryDetails category details.parentId (Maybe.Extra.isNothing details.originCategory)))
+              , btnSave model.ui.saving False (CallApi True (saveCategoryDetails category details.parentId (Maybe.Extra.isNothing details.originCategory))) False
               ]
             else
               []

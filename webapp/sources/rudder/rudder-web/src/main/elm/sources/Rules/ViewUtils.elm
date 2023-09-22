@@ -785,12 +785,20 @@ getGroupsNbResourcesBadge nbTargets nbInclude msg =
     , warningIcon
     ]
 
-btnSave : Bool -> Bool -> Msg -> Html Msg
-btnSave saving disable action =
+btnSave : Bool -> Bool -> Msg -> Bool -> Html Msg
+btnSave saving disable action crEnabled =
   let
-    icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else i [ class "fa fa-download"] []
+    icon =
+      if saving then
+        i [ class "fa fa-spinner fa-pulse"] []
+      else if crEnabled then
+        i [ class "fa fa-plus"] []
+      else
+        i [ class "fa fa-download"] []
+
+    btnClass = if crEnabled then "btn-cr" else "btn-save"
   in
-    button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
+    button [class ("btn btn-success " ++ btnClass ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
     [ icon ]
 
 rulesTableHeader : Filters -> Html Msg
