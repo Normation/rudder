@@ -79,6 +79,14 @@ searchField property =
   , (displayJsonValue property.value)
   ]
 
+checkUsedName : String -> List Property -> Bool
+checkUsedName name properties =
+  properties
+    |> List.any (\p -> case p.provider of
+      Just provider -> provider /= "inherited" && p.name == name
+      Nothing -> p.name == name
+    )
+
 displayJsonValue : JsonValue -> String
 displayJsonValue value  =
   case value of
@@ -180,17 +188,17 @@ displayNodePropertyRow model =
             ]
           Just eP ->
             let
-              checkPristineName = not eP.pristineName
-              checkEmptyName    = String.isEmpty eP.name
-              checkUsedName     = eP.name /= p.name && List.member eP.name (List.map .name model.properties)
-              checkEmptyVal     = String.isEmpty eP.value
-              checkPristineVal  = not eP.pristineValue
+              checkPristineName    = not eP.pristineName
+              checkEmptyName       = String.isEmpty eP.name
+              checkAlreadyUsedName = eP.name /= p.name && checkUsedName eP.name model.properties
+              checkEmptyVal        = String.isEmpty eP.value
+              checkPristineVal     = not eP.pristineValue
             in
             tr []
             [ td [class "is-edited"]
               [ div []
                 [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False}) ][]
-                , ( if checkUsedName then small [class "text-danger"][ text "This name is already used by another property" ] else text "" )
+                , ( if checkAlreadyUsedName then small [class "text-danger"][ text "This name is already used by another property" ] else text "" )
                 , ( if (checkEmptyName && checkPristineName) then small [class "text-danger"][text "Name is required"] else text "" )
                 ]
               ]

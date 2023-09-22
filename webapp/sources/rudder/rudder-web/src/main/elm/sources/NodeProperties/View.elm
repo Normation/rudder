@@ -15,13 +15,13 @@ view model =
     let
       newProperty = model.newProperty
       isJson      = newProperty.format == JsonFormat
-      checkPristineName = not newProperty.pristineName
-      checkEmptyName    = String.isEmpty newProperty.name
-      checkUsedName     = List.member newProperty.name (List.map .name model.properties)
-      checkEmptyVal     = String.isEmpty newProperty.value
-      checkPristineVal  = not newProperty.pristineValue
-      checkFormatVal    = newProperty.errorFormat
-      checks  = [checkEmptyName, checkUsedName, checkEmptyVal, checkFormatVal]
+      checkPristineName    = not newProperty.pristineName
+      checkEmptyName       = String.isEmpty newProperty.name
+      checkAlreadyUsedName = checkUsedName newProperty.name model.properties
+      checkEmptyVal        = String.isEmpty newProperty.value
+      checkPristineVal     = not newProperty.pristineValue
+      checkFormatVal       = newProperty.errorFormat
+      checks  = [checkEmptyName, checkAlreadyUsedName, checkEmptyVal, checkFormatVal]
       filters = model.ui.filters
     in
       div[]
@@ -32,7 +32,7 @@ view model =
           , table[id "addPropTable"]
             [ tbody[]
               [ tr[]
-                [ td [class ("form-group" ++ if ((checkEmptyName && checkPristineName) || checkUsedName) then " has-error" else "")]
+                [ td [class ("form-group" ++ if ((checkEmptyName && checkPristineName) || checkAlreadyUsedName) then " has-error" else "")]
                   [ input
                     [ placeholder "Name"
                     , class "form-control input-key"
@@ -87,7 +87,7 @@ view model =
             ]
           , div[class "errors"]
             [ (if (checkEmptyName && checkPristineName) then div [class "text-danger"][text "Name is required"] else text "")
-            , (if checkUsedName then div [class "text-danger"][text "This name is already used by another property"] else text "")
+            , (if checkAlreadyUsedName then div [class "text-danger"][text "This name is already used by another property"] else text "")
             , (if (checkEmptyVal && checkPristineVal)  then div [ class "text-danger"][text "Value is required"] else text "")
             ]
           ]
