@@ -12,6 +12,9 @@ $(document).ready(function(){
     var message = msg ? msg : "Your changes have been saved";
     appNotif.ports.successNotification.send(message);
   };
+  createLinkSuccessNotification = function (json){
+    appNotif.ports.linkSuccessNotification.send(json);
+  };
   createErrorNotification   = function (msg, code){
     appNotif.ports.errorNotification.send(msg, code);
   };

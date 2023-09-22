@@ -86,6 +86,7 @@ decodeRule =
     |> required "policyMode"       string
     |> required "status"           decodeStatus
     |> required "tags"            (list (keyValuePairs string) |> andThen toTags)
+    |> optional "changeRequestId" (map Just string) Nothing
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)
 toTags lst =
