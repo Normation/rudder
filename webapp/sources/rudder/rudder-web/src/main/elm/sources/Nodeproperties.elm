@@ -62,8 +62,9 @@ update msg model =
         Ok p ->
           let
             ui  = model.ui
-            newModel = { model
+            newModel ={ model
               | newProperty = (EditProperty "" "" model.newProperty.format True True False)
+              , properties  = p
               , ui = { ui | loading = False }
               }
           in
