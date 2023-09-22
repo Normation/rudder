@@ -17,7 +17,8 @@ decodeSaveProperties =
   at [ "data" ] decodeProperties
 
 decodeSaveGroupProperties =
-  at [ "data", "groups" ] decodeProperties
+  at [ "data", "groups" ] (index 0 decodeProperties)
+
 
 decodeProperties =
   at [ "properties" ] (list decodeProperty)
