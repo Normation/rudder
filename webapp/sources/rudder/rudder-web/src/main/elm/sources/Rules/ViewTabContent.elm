@@ -4,7 +4,7 @@ import Dict
 import Dict.Extra
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, onCheck)
 import List.Extra
 import List
 import Maybe.Extra
@@ -80,7 +80,7 @@ informationTab model details =
     compliance =
       case getRuleCompliance model rule.id of
        Just co ->
-          buildComplianceBar co.complianceDetails
+          buildComplianceBar (ComplianceFilters False False [] ) co.complianceDetails
        Nothing -> text "No report"
     rightCol =
       if isNewRule then
@@ -237,6 +237,12 @@ directivesTab model details =
     rule       = details.rule
     originRule = details.originRule
     ui         = details.ui
+
+    directiveFilters  = model.ui.directiveFilters
+    tableFilters      = directiveFilters.tableFilters
+    treeFilters       = directiveFilters.treeFilters
+    complianceFilters = tableFilters.compliance
+
     --Get more information about directives, to correctly sort them by displayName
     directives =
       let
@@ -289,7 +295,7 @@ directivesTab model details =
       Just oR -> oR.directives
       Nothing -> []
     nbDirectives = details.numberOfDirectives
-    fun = byDirectiveCompliance model (nodeValueCompliance model)
+    fun = byDirectiveCompliance model complianceFilters (nodeValueCompliance model complianceFilters)
     directiveRows = List.map Tuple3.first fun.rows
     rowId = "byDirectives/"
     (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Directive",Asc)
@@ -298,8 +304,10 @@ directivesTab model details =
       Nothing -> (\_ _ -> EQ)
     filter       = model.ui.directiveFilters.tableFilters.filter
     childs       = Maybe.withDefault [] (Maybe.map .directives details.compliance)
+
     childrenSort = childs
       |> List.filter (\d -> (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectiveCompliance d)))
+      |> List.filter (filterDetailsByCompliance model.ui.directiveFilters.tableFilters.compliance)
       |> List.sortWith sort
     (directivesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
@@ -310,10 +318,6 @@ directivesTab model details =
 
     disabledRuleDirectives = ruleDirectives
       |> List.filter (\d -> not d.enabled)
-
-    directiveFilters = model.ui.directiveFilters
-    tableFilters     = directiveFilters.tableFilters
-    treeFilters      = directiveFilters.treeFilters
 
     noNodes = (Maybe.withDefault 1 (getRuleNbNodes details))  <= 0
     noNodesInfo =
@@ -387,10 +391,17 @@ directivesTab model details =
             ]
         )
       , noNodesInfo
-      , div [class "table-header"]
-        [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
-        , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-        , button [class "btn btn-default", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
+      , div [class "table-header extra-filters"]
+        [ div [class "main-filters"]
+          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
+          , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
+          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | compliance = {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}}}), style "min-width" "170px"]
+            [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+            , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+            ]
+          , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
+          ]
+        , displayComplianceFilters directiveFilters UpdateDirectiveFilters
         ]
       , div[class "table-container"] [(
         let
@@ -406,7 +417,7 @@ directivesTab model details =
             table [class "dataTable compliance-table"]
             [ thead []
               [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
-            ]
+              ]
             , tbody [] (
               if List.length childs <= 0 then
                 [ tr[]
@@ -439,20 +450,19 @@ directivesTab model details =
               else
                 sortedDirectives
                 |> List.map (\d ->
-                     tr []
-                     [ td[]
-                       [
-                         a []
-                         [ badgePolicyMode model.policyMode d.policyMode
-                         , span [class "item-name tooltipable"][text d.displayName]
-                         , buildTagsTree d.tags
-                         , div [class "treeActions-container"]
-                           [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
-                           ]
-                         , goToBtn (getDirectiveLink model.contextPath  d.id)
-                         ]
-                       ]
-                     ])
+                tr []
+                [ td[]
+                  [ a []
+                    [ badgePolicyMode model.policyMode d.policyMode
+                    , span [class "item-name tooltipable"][text d.displayName]
+                    , buildTagsTree d.tags
+                    , div [class "treeActions-container"]
+                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
+                    ]
+                    , goToBtn (getDirectiveLink model.contextPath  d.id)
+                    ]
+                  ]
+                ])
               )
             ]
         )]
@@ -616,7 +626,12 @@ nodesTab : Model -> RuleDetails -> Html Msg
 nodesTab model details =
   let
     ui = details.ui
-    fun = byNodeCompliance model
+
+    groupFilters = model.ui.groupFilters
+    tableFilters = groupFilters.tableFilters
+    complianceFilters = tableFilters.compliance
+
+    fun = byNodeCompliance model model.ui.groupFilters.tableFilters.compliance
     nodeRows =  List.map Tuple3.first fun.rows
     rowId = "byNodes/"
     (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Node",Asc)
@@ -625,7 +640,10 @@ nodesTab model details =
                Nothing -> (\_ _ -> EQ)
     filter = model.ui.groupFilters.tableFilters.filter
     childs       = Maybe.withDefault [] (Maybe.map .nodes details.compliance)
-    childrenSort = childs |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )  |> List.sortWith sort
+    childrenSort = childs
+      |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )
+      |> List.filter (filterDetailsByCompliance model.ui.groupFilters.tableFilters.compliance)
+      |> List.sortWith sort
     (nodesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
@@ -678,16 +696,17 @@ nodesTab model details =
             ]
           ]
         ]
-      , div [class "table-header"]
-        [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
-          , onInput (\s ->
-            let
-              groupFilters = model.ui.groupFilters
-              tableFilters = groupFilters.tableFilters
-            in
-              UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}}
-          )][]
-        , button [class "btn btn-default btn-sm", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
+      , div [class "table-header extra-filters"]
+        [ div [class "main-filters"]
+          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
+            , onInput (\s -> UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}} )][]
+          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | compliance = {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}}}), style "min-width" "170px"]
+            [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+            , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+            ]
+          , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
+          ]
+        , displayComplianceFilters groupFilters UpdateGroupFilters
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [

@@ -17,7 +17,6 @@ type TabMenu
   | TechnicalLogs
   | Rules
 
-
 type alias Tag =
   { key   : String
   , value : String
@@ -46,7 +45,6 @@ type alias Rule =
   , tags             : List Tag
   }
 
-
 type alias Directive =
   { id               : DirectiveId
   , displayName      : String
@@ -57,7 +55,7 @@ type alias Directive =
   , system           : Bool
   , policyMode       : String
   , tags             : List Tag
- }
+  }
 
 type alias Technique =
   { name       : String
@@ -160,12 +158,11 @@ type alias DirectiveCompliance value =
 
 type ComponentCompliance value = Block (BlockCompliance value) | Value (ComponentValueCompliance value)
 type alias BlockCompliance value =
-    { component         : String
-    , compliance        : Float
-    , complianceDetails : ComplianceDetails
-    , components        : List (ComponentCompliance value)
-    }
-
+  { component         : String
+  , compliance        : Float
+  , complianceDetails : ComplianceDetails
+  , components        : List (ComponentCompliance value)
+  }
 
 type alias ComponentValueCompliance value =
   { component         : String
@@ -185,7 +182,7 @@ type alias NodeValueCompliance =
   }
 
 type alias  ValueLine =
-  {  value   : String
+  { value   : String
   , message : String
   , status  : String
   }
@@ -250,10 +247,11 @@ type SortBy
 
 
 type alias TableFilters =
-  { sortBy    : SortBy
-  , sortOrder : SortOrder
-  , filter    : String
-  , unfolded  : List String
+  { sortBy     : SortBy
+  , sortOrder  : SortOrder
+  , filter     : String
+  , unfolded   : List String
+  , compliance : ComplianceFilters
   }
 
 type alias TreeFilters =
@@ -266,6 +264,12 @@ type alias TreeFilters =
 type alias Filters =
   { tableFilters : TableFilters
   , treeFilters  : TreeFilters
+  }
+
+type alias ComplianceFilters =
+  { showComplianceFilters : Bool
+  , showOnlyStatus        : Bool
+  , selectedStatus        : List String
   }
 
 type alias UI =

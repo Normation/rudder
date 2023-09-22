@@ -17,7 +17,6 @@ import Rules.Init exposing (init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 
-
 -- PORTS / SUBSCRIPTIONS
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
@@ -215,8 +214,6 @@ update msg model =
               (model, Cmd.none)
         Err err ->
           processApiError ("Getting compliance details of Rule "++ id.value) err model
-
-
 
     GetRepairedReportsResult id start end res ->
       case res of

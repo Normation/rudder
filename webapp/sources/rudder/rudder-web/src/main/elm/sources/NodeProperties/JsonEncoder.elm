@@ -6,7 +6,6 @@ import Json.Decode exposing (decodeValue, decodeString)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.JsonDecoder exposing (..)
 
-import Debug as D
 
 encodeProperty : Model -> List EditProperty -> String -> Json.Encode.Value
 encodeProperty model properties action =

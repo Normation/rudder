@@ -982,6 +982,7 @@
   border-top: 2px solid #d6deef;
   justify-content: space-between;
 }
+
 .list-container .list-heading{
   display: flex;
   justify-content: space-between;
@@ -998,6 +999,7 @@
 .tab-table-content .table-header .form-control{
   max-width: 420px;
 }
+
 .rudder-template .main-details .table-container{
   margin: 0 -15px -10px -15px;
 }

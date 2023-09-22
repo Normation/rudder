@@ -83,7 +83,7 @@ buildRulesTable model rules =
         compliance   =
           case getRuleCompliance model r.id of
             Just co ->
-              buildComplianceBar co.complianceDetails
+              buildComplianceBar (ComplianceFilters False False []) co.complianceDetails
             Nothing -> text "No report"
 
         changes = text (String.fromFloat (countRecentChanges r.id model.changes))

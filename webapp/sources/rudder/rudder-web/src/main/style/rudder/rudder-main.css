@@ -3100,6 +3100,45 @@ table a > i.fa-pencil:hover{
   margin-bottom: 0;
 }
 
+/* DATATABLE FILTERS */
+.btn.btn-dropdown-compliance{
+  min-width: 250px;
+  display: inline-flex;
+  justify-content: start;
+  align-items: baseline;
+}
+.btn.btn-dropdown-compliance > i{
+  margin-left: auto;
+}
+.dropdown-menu.dropdown-compliance{
+  min-width: 250px;
+  padding-top: 0;
+  border-top: 1px solid #D6DEEF;
+  height: 400px;
+  overflow: auto;
+}
+ul.dropdown-menu.dropdown-compliance li {
+  border-bottom: 1px solid #D6DEEF;
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  cursor: pointer;
+}
+ul.dropdown-menu.dropdown-compliance li > span:first-child{
+  padding: 4px 4px 4px 10px;
+}
+ul.dropdown-menu.dropdown-compliance li > span:last-child {
+  padding: 4px 10px 4px 4px;
+}
+ul.dropdown-menu.dropdown-compliance li:not(.compliance-group) > span:first-child{
+  padding-left: 28px;
+}
+ul.dropdown-menu.dropdown-compliance > li {
+  background-color: #F8F9FC;
+}
+ul.dropdown-menu.dropdown-compliance > li > span:last-child {
+  font-weight: bold;
+}
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}

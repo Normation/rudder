@@ -636,3 +636,25 @@ td.greyBackground, th.greyBackground {
 .pagination > li > a, .pagination > li > span {
   padding: 4px 8px;
 }
+
+/* HEADER */
+.rudder-template .table-header.extra-filters{
+  flex-direction: column;
+}
+.rudder-template .table-header .main-filters{
+  display: flex;
+  width: 100%;
+}
+.rudder-template .table-header .more-filters{
+  margin-top: 15px;
+}
+.rudder-template .table-header .more-filters .btn-group + .btn-group{
+  margin-left: 15px;
+}
+.rudder-template .table-header .main-filters .form-control + .btn,
+.rudder-template .table-header .main-filters .btn + .btn{
+  margin-left: 15px;
+}
+.rudder-template .table-header .btn-refresh{
+  margin-left: auto !important;
+}
