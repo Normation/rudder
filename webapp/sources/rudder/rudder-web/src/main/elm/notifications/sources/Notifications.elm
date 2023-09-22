@@ -1,17 +1,19 @@
 port module Notifications exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (  class, style )
+import Html.Attributes exposing (  class, style, href )
 import String
 import Toasty
 import Browser
-
+import Json.Decode exposing (..)
+import Json.Decode.Pipeline exposing (..)
 
 port successNotification : (String -> msg) -> Sub msg
 port errorNotification   : (String -> msg) -> Sub msg
 port warningNotification : (String -> msg) -> Sub msg
 port infoNotification    : (String -> msg) -> Sub msg
 
+port linkSuccessNotification : (Value -> msg) -> Sub msg
 ------------------------------
 -- SUBSCRIPTIONS
 ------------------------------
@@ -20,6 +22,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
   Sub.batch
     [ successNotification CreateSuccessNotification
+    , linkSuccessNotification parseToastInfo
     , errorNotification   CreateErrorNotification
     , warningNotification CreateWarningNotification
     , infoNotification CreateInfoNotification
@@ -57,12 +60,33 @@ type alias Model =
 type Msg
   = ToastyMsg (Toasty.Msg MyToast)
   | CreateSuccessNotification String
+  | CreateLinkSuccessNotification ToastInfo
   | CreateErrorNotification   String
   | CreateWarningNotification String
   | CreateInfoNotification    String
 
 type MyToast =
-  Success String | Warning String | Error String | Info String
+  Success String | Warning String | Error String | Info String | SuccessLink String String String
+
+type alias ToastInfo =
+  { message : String
+  , linkUrl : String
+  , linkTxt : String
+  }
+
+decodeToastInfo : Decoder ToastInfo
+decodeToastInfo =
+  succeed ToastInfo
+    |> required "message" string
+    |> required "linkUrl" string
+    |> required "linkTxt" string
+
+parseToastInfo: Value -> Msg
+parseToastInfo json =
+  case Json.Decode.decodeValue decodeToastInfo json of
+    Ok toastInfo ->
+      CreateLinkSuccessNotification toastInfo
+    Err e -> CreateErrorNotification "Error while trying to display notification"
 
 ------------------------------
 -- UPDATE --
@@ -76,6 +100,9 @@ update msg model =
     CreateSuccessNotification m ->
       (model, Cmd.none)
         |> (createSuccessNotification m)
+    CreateLinkSuccessNotification toastInfo ->
+      (model, Cmd.none)
+        |> (createLinkSuccessNotification toastInfo)
     CreateErrorNotification m ->
       (model, Cmd.none)
         |> (createErrorNotification m)
@@ -135,26 +162,40 @@ createInfoNotification   : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 createInfoNotification   message =
   addTempToast (Info  message)
 
+-- NOTIFICATIONS WITH LINK
+createLinkSuccessNotification : ToastInfo -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+createLinkSuccessNotification toastInfo =
+  addToast (SuccessLink toastInfo.message toastInfo.linkUrl toastInfo.linkTxt)
 
 viewToast : MyToast -> Html msg
 viewToast toast =
-    case toast of
-        Success message ->
-            genericToast "callout-success" "fa-check-circle" "Success" message
-        Warning message ->
-            genericToast "callout-warning" "fa-exclamation-circle" "Warning" message
-        Error message ->
-            genericToast "callout-danger" "fa-times-circle" "Error" message
-        Info message ->
-            genericToast "callout-info" "fa-info-circle" "Info" message
-
+  case toast of
+    Success message ->
+      genericToast "callout-success" "fa-check-circle" "Success" message
+    Warning message ->
+      genericToast "callout-warning" "fa-exclamation-circle" "Warning" message
+    Error message ->
+      genericToast "callout-danger" "fa-times-circle" "Error" message
+    Info message ->
+      genericToast "callout-info" "fa-info-circle" "Info" message
+    SuccessLink message linkUrl linkTxt ->
+      linkToast "callout-success" "fa-check-circle" "Success" message linkUrl linkTxt
 
 genericToast : String -> String -> String -> String -> Html msg
 genericToast variantClass iconClass title message =
-    div
-        [ class "callout-fade", class variantClass ]
-        [
-         div [ class "marker"] [ span [ class "fa", class iconClass ] [] ]
-        , h4 [ ] [   text title ]
-        , p [ ] [ text message ]
-        ]
+  div
+    [ class "callout-fade", class variantClass ]
+    [ div [ class "marker"] [ span [ class "fa", class iconClass ] [] ]
+    , h4 [ ] [   text title ]
+    , p [ ] [ text message ]
+    ]
+
+linkToast : String -> String -> String -> String -> String -> String -> Html msg
+linkToast variantClass iconClass title message linkUrl linkTxt =
+  div
+    [ class "callout-fade", class variantClass ]
+    [ div [ class "marker"] [ span [ class "fa", class iconClass ] [] ]
+    , h4 [] [ text title   ]
+    , p  [] [ text message ]
+    , a  [ href linkUrl ] [ text linkTxt ]
+    ]

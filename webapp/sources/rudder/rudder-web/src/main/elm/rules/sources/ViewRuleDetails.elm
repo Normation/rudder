@@ -144,7 +144,7 @@ editionTemplate model details =
       Just oR -> Maybe.withDefault 0 details.numberOfDirectives
       Nothing -> 0
 
-    saveAction =
+    (saveAction, enabledCR) =
       let
         defaultAction = checkAction (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
         checkAction action =
@@ -156,10 +156,17 @@ editionTemplate model details =
         case model.ui.crSettings of
           Just cr ->
             if cr.enableChangeMessage || cr.enableChangeRequest then
-              checkAction (OpenSaveAuditMsgPopup rule cr)
+              ( checkAction (OpenSaveAuditMsgPopup rule cr)
+              , cr.enableChangeRequest
+              )
             else
-              defaultAction
-          Nothing -> defaultAction
+              ( defaultAction
+              , cr.enableChangeRequest
+              )
+          Nothing ->
+            ( defaultAction
+            , False
+            )
 
   in
     div [class "main-container"]
@@ -175,7 +182,7 @@ editionTemplate model details =
           :: (
             if model.ui.hasWriteRights then
               [ div [ class "btn-group" ]  topButtons
-              , btnSave model.ui.saving (String.isEmpty (String.trim rule.name)) saveAction
+              , btnSave model.ui.saving (String.isEmpty (String.trim rule.name)) saveAction enabledCR
               ]
             else
               []

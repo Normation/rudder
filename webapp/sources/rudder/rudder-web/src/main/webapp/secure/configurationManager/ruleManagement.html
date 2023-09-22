@@ -29,6 +29,9 @@
       app.ports.successNotification.subscribe(function(str) {
         createSuccessNotification(str)
       });
+      app.ports.linkSuccessNotification.subscribe(function(json) {
+        createLinkSuccessNotification(json)
+      });
       app.ports.errorNotification.subscribe(function(str) {
         createErrorNotification(str)
       });

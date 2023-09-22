@@ -44,6 +44,7 @@ type alias Rule =
   , policyMode       : String
   , status           : RuleStatus
   , tags             : List Tag
+  , changeRequestId  : Maybe String
   }
 
 
