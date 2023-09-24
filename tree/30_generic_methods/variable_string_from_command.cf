@@ -46,10 +46,15 @@ bundle agent variable_string_from_command(prefix, name, command)
       "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
       "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
+    # means < 8.0, promises.cf breaks on >= 3.14
+    # can be removed when 7.X compat is dropped
+    cfengine_3_15|cfengine_3_18::
       # only capture stdout for compatibility with previous implementation
       # add a comment to allow executing the exact same command without hitting
       # https://northerntech.atlassian.net/browse/CFE-4244
       "result" data => execresult_as_data("${command} # as_data", "useshell", "stdout");
+    !(cfengine_3_15|cfengine_3_18)::
+      "result" data => execresult_as_data("${command}", "useshell", "stdout");
 
     returned_zero::
       "${prefix}.${name}" string => "${result[output]}";
