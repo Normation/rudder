@@ -13,21 +13,22 @@ encodeProperty model properties action =
     encodeProp : EditProperty -> Json.Encode.Value
     encodeProp p =
       let
+        trimValue = (String.trim p.value)
         value = if action == "Delete" then string "" else
           case p.format of
             JsonFormat ->
-              decodeString Json.Decode.value p.value
-                |> Result.withDefault (Json.Encode.string p.value)
-            StringFormat -> string p.value
+              decodeString Json.Decode.value trimValue
+                |> Result.withDefault (Json.Encode.string trimValue)
+            StringFormat -> string trimValue
       in
       object (
-        [ ( "name"  , string p.name  )
+        [ ( "name"  , string (String.trim p.name)  )
         , ( "value" , value )
         ] )
 
     propertyTxt = if List.length properties > 1 then " properties" else
       case List.head properties of
-        Just p  -> " property '" ++ p.name ++ "'"
+        Just p  -> " property '" ++ (String.trim p.name) ++ "'"
         Nothing -> " property"
 
     reason  = action ++ propertyTxt ++ " to " ++ model.objectType ++ " '" ++ model.nodeId ++ "'"
