@@ -286,9 +286,13 @@ class RuddercServiceImpl(
       // in all case, whatever the return code, move everything from target subdir if it exists to parent and delete it
       outputDir = compilationOutputDir(techniqueDir)
       _        <- ZIO.whenZIO(IOResult.attempt(outputDir.exists)) {
-                    ZIO.foreach(outputDir.children.toList)(f =>
-                      IOResult.attempt(f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING)))
-                    ) *>
+                    ZIO.foreach(outputDir.children.toList)(f => {
+                      IOResult.attempt {
+                        val dest = techniqueDir / f.name
+                        if (dest.exists()) dest.delete()
+                        f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
+                      }
+                    }) *>
                     IOResult.attempt(outputDir.delete())
                   }
       time_1   <- currentTimeNanos
