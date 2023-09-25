@@ -241,7 +241,7 @@ update msg model =
 
     -- import a technique from a JSON file
     StartImport ->
-        (model, File.Select.file [ "text/plain", "application/json", "text/x-yaml", "application/x-yaml", "text/vnd.yaml", "application/vnd.yaml", ".yml", ".yaml" ]  ImportFile )
+        (model, File.Select.file [ "text/plain", "application/json", ".yml", ".yaml" ]  ImportFile )
     ImportFile file ->
       (model, Task.perform (ParseImportedFile file) (File.toString file) )
     ParseImportedFile file content ->
