@@ -15,10 +15,12 @@ view model =
     let
       newProperty = model.newProperty
       isJson      = newProperty.format == JsonFormat
+      trimmedName = String.trim newProperty.name
+      trimmedVal  = String.trim newProperty.value
       checkPristineName    = not newProperty.pristineName
-      checkEmptyName       = String.isEmpty newProperty.name
-      checkAlreadyUsedName = checkUsedName newProperty.name model.properties
-      checkEmptyVal        = String.isEmpty newProperty.value
+      checkEmptyName       = String.isEmpty trimmedName
+      checkAlreadyUsedName = checkUsedName trimmedName model.properties
+      checkEmptyVal        = String.isEmpty trimmedVal
       checkPristineVal     = not newProperty.pristineValue
       checkFormatVal       = newProperty.errorFormat
       checks  = [checkEmptyName, checkAlreadyUsedName, checkEmptyVal, checkFormatVal]
