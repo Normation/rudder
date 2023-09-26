@@ -967,7 +967,7 @@ object DisplayNode extends Loggable {
       <h3 class="page-title foldable" onclick="$('.variables-table-container').toggle(); $(this).toggleClass('folded');">Inventory variables <i class="fa fa-chevron-down"></i></h3>
       <div class="variables-table-container">
         <div class="alert alert-info">
-          These are the node inventory variables that can be used in directive inputs with the <b class="variable-syntax">${{node.inventory[NAME]}}</b> syntax.
+          These are the node inventory variables that can be used in directive inputs with the <b class="code">${{node.inventory[NAME]}}</b> syntax.
         </div>
         <table class="no-footer dataTable">
           <thead>

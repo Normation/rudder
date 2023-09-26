@@ -7,6 +7,7 @@ import Maybe.Extra exposing (isJust)
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import NaturalOrdering as N exposing (compare)
+import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty)
@@ -167,7 +168,12 @@ displayNodePropertyRow model =
             , td [class "property-value"]
               [ div []
                 [ div [class ("value-container" ++ (if List.member p.name model.ui.showMore then " toggle" else "") ++ (if isTooLong p.value then " show-more" else "") ), onClick (ShowMore p.name) ]
-                  [ pre [class "json-beautify"][ text (displayJsonValue p.value) ]
+                  [ pre [class "json-beautify"][ useTheme gitHub,
+                                                 json (displayJsonValue p.value)
+                                                       |> Result.map toInlineHtml
+                                                       |> Result.withDefault ( text (displayJsonValue p.value) )
+                                               ]
+                  
                   ]
                 , span [class "toggle-icon"][]
                 , button [class "btn btn-xs btn-default btn-clipboard", title "Copy to clipboard", onClick (Copy (displayJsonValue p.value))]
@@ -218,7 +224,7 @@ displayNodePropertyRow model =
               ]
             , td [class "is-edited"]
               [ div []
-                [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value auto-resize", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
+                [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value auto-resize code", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
                 , (if (checkEmptyVal && checkPristineVal)  then small [class "text-danger"][text "Value is required"] else text "")
                 ]
               ]
