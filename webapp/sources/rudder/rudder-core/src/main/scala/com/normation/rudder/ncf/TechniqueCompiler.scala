@@ -556,7 +556,7 @@ class WebappTechniqueCompiler(
           NodeSeq.Empty
         } else {
           val reportingLogic = block.reportingLogic.value
-          <SECTION component="true" multivalued="true" name={block.component} reporting={reportingLogic}>
+          <SECTION component="true" multivalued="true" name={block.component} reporting={reportingLogic} id={block.id}>
             {childs}
           </SECTION>
         }
