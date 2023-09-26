@@ -38,7 +38,7 @@
 body {
   font-family: var(--font-sans);
 }
-code, kbd, pre, samp {
+code, kbd, pre, samp, .code {
   font-family: var(--font-mono);
 }
 
@@ -142,6 +142,10 @@ pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
 }
 pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
   transform:rotate(90deg);
+}
+/* override syntax highlighting background */
+pre.json-beautify code.elmsh {
+  background: transparent !important;
 }
 /* - MODAL 4.0 - */
 body > .modal-backdrop.fade.in{
