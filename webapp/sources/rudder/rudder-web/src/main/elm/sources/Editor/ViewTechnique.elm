@@ -360,7 +360,19 @@ showTechnique model technique origin ui editInfo =
               ]
             ]
           , if (editInfo.open) then
-            div [class "col-xs-12"] [ textarea [class "yaml-editor" , rows (String.lines editInfo.value |> List.length), onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value] [] ]else render methodsList
+              div [class "col-xs-12"]
+              [ textarea
+                [ -- to deactivate plugin "Grammarly" or "Language Tool" from
+                  -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+                  attribute "data-gramm" "false"
+                , attribute "data-gramm_editor" "false"
+                , attribute "data-enable-grammarly" "false"
+                , spellcheck False
+                , class "yaml-editor"
+                , rows (String.lines editInfo.value |> List.length)
+                , onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value][]
+              ]
+            else render methodsList
           ]
         ]
       ]
