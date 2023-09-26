@@ -42,6 +42,7 @@
             "myrho/elm-round": "1.0.5",
             "pablen/toasty": "1.2.0",
             "pablohirafuji/elm-markdown": "2.0.5",
+            "pablohirafuji/elm-syntax-highlight": "3.5.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.4",
             "toastal/either": "3.6.3",
             "visotype/elm-dom": "1.1.3",

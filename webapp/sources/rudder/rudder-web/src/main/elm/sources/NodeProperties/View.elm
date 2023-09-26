@@ -56,7 +56,7 @@ view model =
                 , td [class ("form-group" ++ if ((checkEmptyVal && checkPristineVal) || checkFormatVal) then " has-error" else "")]
                   [ textarea
                     [ placeholder "Value"
-                    , class "form-control input-value auto-resize"
+                    , class "form-control input-value auto-resize code"
                     , attribute "rows" "1"
                     , name "newPropValue"
                     , value newProperty.value
