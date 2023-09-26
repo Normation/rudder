@@ -4,7 +4,9 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
+import Compliance.DataTypes exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
+
 --
 -- All our data types
 --
@@ -156,22 +158,6 @@ type alias DirectiveCompliance value =
   , components        : List (ComponentCompliance value)
   }
 
-
-type ComponentCompliance value = Block (BlockCompliance value) | Value (ComponentValueCompliance value)
-type alias BlockCompliance value =
-  { component         : String
-  , compliance        : Float
-  , complianceDetails : ComplianceDetails
-  , components        : List (ComponentCompliance value)
-  }
-
-type alias ComponentValueCompliance value =
-  { component         : String
-  , compliance        : Float
-  , complianceDetails : ComplianceDetails
-  , values            : List value
-  }
-
 type SortOrder = Asc | Desc
 
 type alias NodeValueCompliance =
@@ -186,11 +172,6 @@ type alias  ValueLine =
   { value   : String
   , message : String
   , status  : String
-  }
-
-type alias Report =
-  { status  : String
-  , message : Maybe String
   }
 
 type alias RuleStatus =
@@ -208,22 +189,6 @@ type alias RepairedReport =
   , message            : String
   }
 
-type alias ComplianceDetails =
-  { successNotApplicable       : Maybe Float
-  , successAlreadyOK           : Maybe Float
-  , successRepaired            : Maybe Float
-  , error                      : Maybe Float
-  , auditCompliant             : Maybe Float
-  , auditNonCompliant          : Maybe Float
-  , auditError                 : Maybe Float
-  , auditNotApplicable         : Maybe Float
-  , unexpectedUnknownComponent : Maybe Float
-  , unexpectedMissingComponent : Maybe Float
-  , noReport                   : Maybe Float
-  , reportsDisabled            : Maybe Float
-  , applying                   : Maybe Float
-  , badPolicyMode              : Maybe Float
-  }
 
 type alias RuleDetailsUI = { editDirectives: Bool, editGroups : Bool, newTag : Tag, openedRows : Dict String (String, SortOrder)  }
 
@@ -265,12 +230,6 @@ type alias TreeFilters =
 type alias Filters =
   { tableFilters : TableFilters
   , treeFilters  : TreeFilters
-  }
-
-type alias ComplianceFilters =
-  { showComplianceFilters : Bool
-  , showOnlyStatus        : Bool
-  , selectedStatus        : List String
   }
 
 type alias UI =
@@ -352,6 +311,8 @@ type Msg
   | UpdateRuleFilters      Filters
   | UpdateDirectiveFilters Filters
   | UpdateGroupFilters     Filters
+  | UpdateDirectiveComplianceFilters ComplianceFilters
+  | UpdateGroupComplianceFilters     ComplianceFilters
   | GoTo                   String
   | FoldAllCategories      Filters
   | RefreshComplianceTable RuleId

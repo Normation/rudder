@@ -12,19 +12,22 @@ import Dict
 import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
 import DirectiveCompliance.ViewUtils exposing (..)
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
 
 
 displayNodesComplianceTable : Model -> Html Msg
 displayNodesComplianceTable model =
   let
     filters = model.ui.nodeFilters
-    fun     = byNodeCompliance model
+    complianceFilters = filters.compliance
+    fun     = byNodeCompliance model complianceFilters
     col     = "Node"
     childs  = case model.directiveCompliance of
       Just dc -> dc.nodes
       Nothing -> []
     childrenSort = childs
       |> List.filter (\n -> (filterSearch filters.filter (searchFieldNodeCompliance n)))
+      |> List.filter (filterDetailsByCompliance complianceFilters)
       |> List.sortWith sort
 
     (children, order, newOrder) = case sortOrder of
@@ -42,9 +45,15 @@ displayNodesComplianceTable model =
       generateLoadingTable
       else
       div[]
-      [ div [class "table-header"]
-        [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter
-        , onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
+      [ div [class "table-header extra-filters"]
+        [ div[class "main-filters"]
+          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter, onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
+          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
+            [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+            , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+            ]
+          ]
+        , displayComplianceFilters complianceFilters UpdateComplianceFilters
         ]
       , div[class "table-container"]
         [ table [class "dataTable compliance-table"]

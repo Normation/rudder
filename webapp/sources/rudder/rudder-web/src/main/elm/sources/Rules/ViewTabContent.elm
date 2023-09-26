@@ -13,10 +13,11 @@ import NaturalOrdering as N exposing (compareOn, compare)
 import NaturalOrdering as N exposing (compareOn, compare)
 import Tuple3
 
-import Rules.ComplianceUtils exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
+import Compliance.DataTypes exposing (..)
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, buildComplianceBar)
 
 
 --
@@ -401,7 +402,7 @@ directivesTab model details =
             ]
           , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
           ]
-        , displayComplianceFilters directiveFilters UpdateDirectiveFilters
+        , displayComplianceFilters directiveFilters.tableFilters.compliance UpdateDirectiveComplianceFilters
         ]
       , div[class "table-container"] [(
         let
@@ -706,7 +707,7 @@ nodesTab model details =
             ]
           , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
           ]
-        , displayComplianceFilters groupFilters UpdateGroupFilters
+        , displayComplianceFilters groupFilters.tableFilters.compliance UpdateGroupComplianceFilters
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [

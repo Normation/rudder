@@ -14,9 +14,9 @@ import Tuple3
 import NaturalOrdering as N exposing (compare)
 
 import DirectiveCompliance.ApiCalls exposing (..)
-import DirectiveCompliance.ComplianceUtils exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
-
+import Compliance.DataTypes exposing (..)
+import Compliance.Utils exposing (..)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -57,126 +57,143 @@ subItemOrder fun model id  =
     Nothing -> (\_ _ -> EQ)
 
 type alias ItemFun item subItem data =
-  { children : item -> Model -> String ->  List subItem
+  { children : item -> Model -> String -> List subItem
   , data : Model -> item -> data
   , rows : List (String, data -> Html Msg, (data -> data -> Order) )
   , id : item -> String
   , childDetails : Maybe (subItem -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg))
   , subItemRows : item -> List String
+  , filterItems : item -> Bool
   }
 
-valueCompliance :  ItemFun ValueCompliance () ValueCompliance
-valueCompliance =
+valueCompliance : ComplianceFilters -> ItemFun ValueCompliance () ValueCompliance
+valueCompliance complianceFilters =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
-    [ ("Value", .value >> text, (\d1 d2 -> N.compare d1.value  d2.value))
-    , ("Messages", .reports >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> N.compare d1.value d2.value) )
-    , ( "Status", .reports >> buildComplianceReport, (\d1 d2 -> Basics.compare d1.value d2.value))
+    [ ("Value"   , .value   >> text, (\d1 d2 -> N.compare d1.value  d2.value))
+    , ("Messages", .reports >> List.filter (filterReports complianceFilters) >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> N.compare d1.value d2.value) )
+    , ("Status"  , .reports >> List.filter (filterReports complianceFilters) >> buildComplianceReport, (\d1 d2 -> Basics.compare d1.value d2.value))
     ]
     .value
     Nothing
     (always [])
+    (filterReportsByCompliance complianceFilters)
 
-byComponentCompliance : ItemFun value subValue valueData -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
-byComponentCompliance subFun =
+byComponentCompliance : ItemFun value subValue valueData -> ComplianceFilters -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
+byComponentCompliance subFun complianceFilters =
   let
     name = \item ->
-             case item of
-               Block b -> b.component
-               Value c -> c.component
+      case item of
+        Block b -> b.component
+        Value c -> c.component
     compliance = \item ->
-                   case item of
-                     Block b -> b.complianceDetails
-                     Value c -> c.complianceDetails
+      case item of
+        Block b -> b.complianceDetails
+        Value c -> c.complianceDetails
   in
-  ItemFun
+    ItemFun
     ( \item model sortId ->
       case item of
         Block b ->
           let
-            sortFunction =  subItemOrder (byComponentCompliance subFun) model sortId
+            sortFunction =  subItemOrder (byComponentCompliance subFun complianceFilters) model sortId
           in
-             List.map Left (List.sortWith sortFunction b.components)
+            b.components
+            |> List.filter (filterByCompliance complianceFilters)
+            |> List.sortWith sortFunction
+            |> List.map Left
         Value c ->
           let
             sortFunction =  subItemOrder subFun model sortId
           in
-             List.map Right (List.sortWith sortFunction c.values)
+            c.values
+            |> List.filter subFun.filterItems
+            |> List.sortWith sortFunction
+            |> List.map Right
     )
     (\_ i -> i)
     [ ("Component", name >> text,  (\d1 d2 -> N.compare (name d1) (name d2)))
-    , ("Compliance", \i -> buildComplianceBar (compliance i), (\d1 d2 -> Basics.compare (name d1) (name d2)) )
+    , ("Compliance", \i -> buildComplianceBar complianceFilters (compliance i), (\d1 d2 -> Basics.compare (name d1) (name d2)) )
     ]
     name
     (Just ( \x ->
       case x of
-        Left  value -> showComplianceDetails (byComponentCompliance subFun) value
+        Left  value -> showComplianceDetails (byComponentCompliance subFun complianceFilters) value
         Right value -> showComplianceDetails subFun value
     ))
     ( \x ->
       case x of
-        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun).rows)
+        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows)
         Value _ ->  (List.map Tuple3.first subFun.rows)
     )
+    (always True)
 
-byNodeCompliance :  Model -> ItemFun NodeCompliance (RuleCompliance ValueCompliance) NodeCompliance
-byNodeCompliance mod =
+byNodeCompliance : Model -> ComplianceFilters -> ItemFun NodeCompliance (RuleCompliance ValueCompliance) NodeCompliance
+byNodeCompliance mod complianceFilters =
   let
-    rule = byRuleCompliance mod valueCompliance
+    rule = byRuleCompliance mod (valueCompliance complianceFilters) complianceFilters
   in
   ItemFun
     (\item model sortId ->
       let
         sortFunction = subItemOrder rule mod sortId
       in
-        List.sortWith sortFunction item.rules
+        item.rules
+        |> List.filter (filterDetailsByCompliance complianceFilters)
+        |> List.sortWith sortFunction
     )
     (\m i -> i)
     [ ("Node", (\nId -> span[][ (badgePolicyMode mod.policyMode nId.policyMode), text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\n1 n2 -> N.compare n1.name n2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar,  (\n1 n2 -> Basics.compare n1.compliance n2.compliance))
+    , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters,  (\n1 n2 -> Basics.compare n1.compliance n2.compliance))
     ]
     (.nodeId >> .value)
     (Just (\b -> showComplianceDetails rule b))
     (always (List.map Tuple3.first rule.rows))
+    (always True)
 
-
-byRuleCompliance : Model -> ItemFun value subValue valueData -> ItemFun (RuleCompliance value) (ComponentCompliance value) (RuleCompliance value)
-byRuleCompliance model subFun =
+byRuleCompliance : Model -> ItemFun value subValue valueData -> ComplianceFilters -> ItemFun (RuleCompliance value) (ComponentCompliance value) (RuleCompliance value)
+byRuleCompliance model subFun complianceFilters =
   let
     contextPath  = model.contextPath
   in
     ItemFun
     (\item m sortId ->
     let
-      sortFunction = subItemOrder (byComponentCompliance subFun) m sortId
+      sortFunction = subItemOrder (byComponentCompliance subFun complianceFilters) m sortId
     in
-      List.sortWith sortFunction item.components
+      item.components
+      |> List.filter (filterByCompliance complianceFilters)
+      |> List.sortWith sortFunction
     )
     (\m i ->  i )
     [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode (Maybe.map .policyMode model.directiveCompliance|> Maybe.withDefault "default")), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
-    , ("Compliance", \i -> buildComplianceBar  i.complianceDetails,  (\(r1) (r2) -> Basics.compare r1.compliance r2.compliance ))
+    , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(r1) (r2) -> Basics.compare r1.compliance r2.compliance ))
     ]
     (.ruleId >> .value)
-    (Just (\b -> showComplianceDetails (byComponentCompliance subFun) b))
-    (always (List.map Tuple3.first (byComponentCompliance subFun).rows))
+    (Just (\b -> showComplianceDetails (byComponentCompliance subFun complianceFilters) b))
+    (always (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows))
+    (always True)
 
-nodeValueCompliance : Model -> ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
-nodeValueCompliance mod =
+nodeValueCompliance : Model -> ComplianceFilters -> ItemFun NodeValueCompliance ValueCompliance NodeValueCompliance
+nodeValueCompliance mod complianceFilters =
   ItemFun
     (\item model sortId ->
       let
-        sortFunction =  subItemOrder valueCompliance model sortId
+        sortFunction =  subItemOrder (valueCompliance complianceFilters) model sortId
       in
-        List.sortWith sortFunction item.values
+        item.values
+        |> List.filter (filterReportsByCompliance complianceFilters)
+        |> List.sortWith sortFunction
     )
     (\_ i -> i)
     [ ("Node", (\nId -> span[][text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
-    , ("Compliance", .complianceDetails >> buildComplianceBar ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
+    , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)
-    (Just (\item -> showComplianceDetails valueCompliance item))
-    (always (List.map Tuple3.first valueCompliance.rows))
+    (Just (\item -> showComplianceDetails (valueCompliance complianceFilters) item))
+    (always (List.map Tuple3.first (valueCompliance complianceFilters).rows))
+    (filterDetailsByCompliance complianceFilters)
 
 showComplianceDetails : ItemFun item subItems data -> item -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg)
 showComplianceDetails fun compliance parent openedRows model =
@@ -277,36 +294,6 @@ buildTooltipContent title content =
     closeTag   = "</div>"
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
-
-buildComplianceBar : ComplianceDetails -> Html Msg
-buildComplianceBar complianceDetails=
-  let
-    displayCompliance : {value : Float, rounded : Int, details : String} -> String -> Html msg
-    displayCompliance compliance className =
-      if compliance.value > 0 then
-        let
-          --Hide the compliance text if the value is too small (less than 3%)
-          complianceTxt = if compliance.rounded < 3 then "" else String.fromInt (compliance.rounded) ++ "%"
-        in
-          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat compliance.value)]
-          [ text complianceTxt ]
-      else
-        text ""
-
-    allComplianceValues = getAllComplianceValues complianceDetails
-  in
-    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-      div[ class "text-muted"][text "No data available"]
-    else
-      div[ class "progress progress-flex"]
-      [ displayCompliance allComplianceValues.okStatus        "success"
-      , displayCompliance allComplianceValues.nonCompliant    "audit-noncompliant"
-      , displayCompliance allComplianceValues.error           "error"
-      , displayCompliance allComplianceValues.unexpected      "unknown progress-bar-striped"
-      , displayCompliance allComplianceValues.pending         "pending progress-bar-striped"
-      , displayCompliance allComplianceValues.reportsDisabled "reportsdisabled"
-      , displayCompliance allComplianceValues.noReport        "no-report"
-      ]
 
 buildComplianceReport : List Report -> Html Msg
 buildComplianceReport reports =

@@ -55,6 +55,23 @@ update msg model =
       in
         ({model | ui = newUi}, initTooltips "")
 
+    UpdateComplianceFilters newFilters ->
+      let
+        ui = model.ui
+        newUi = case ui.viewMode of
+          RulesView ->
+            let
+              ruleFilters = ui.ruleFilters
+            in
+              { ui | ruleFilters = { ruleFilters | compliance = newFilters}}
+          NodesView ->
+            let
+              nodeFilters = ui.nodeFilters
+            in
+              { ui | nodeFilters = { nodeFilters | compliance = newFilters}}
+      in
+        ({model | ui = newUi}, initTooltips "")
+
     ChangeViewMode mode ->
       let
         ui = model.ui

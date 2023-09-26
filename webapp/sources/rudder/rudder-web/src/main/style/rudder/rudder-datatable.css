@@ -655,6 +655,7 @@ td.greyBackground, th.greyBackground {
 .rudder-template .table-header .main-filters .btn + .btn{
   margin-left: 15px;
 }
-.rudder-template .table-header .btn-refresh{
+.rudder-template .table-header .btn-refresh,
+.rudder-template .table-header .btn-export{
   margin-left: auto !important;
 }

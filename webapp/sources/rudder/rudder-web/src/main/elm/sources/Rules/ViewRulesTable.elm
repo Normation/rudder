@@ -9,10 +9,11 @@ import List
 import String
 import NaturalOrdering exposing (compareOn)
 
-import Rules.ComplianceUtils exposing (getAllComplianceValues, getRuleCompliance)
 import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 
+import Compliance.DataTypes exposing (..)
+import Compliance.Utils exposing (getAllComplianceValues, buildComplianceBar)
 
 --
 -- This file contains all methods to display the Rules table
