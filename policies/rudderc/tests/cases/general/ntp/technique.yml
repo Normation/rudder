@@ -2,6 +2,8 @@
 id: ntp_technique
 name: NTP
 version: "0.1"
+description: "Short description"
+documentation: "Long documentation"
 params:
   - id: 3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e
     name: server

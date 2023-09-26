@@ -205,6 +205,7 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
         Ok(Technique {
             name: src.name.clone(),
             description: src.description.unwrap_or(src.name),
+            long_description: src.documentation,
             // false is for legacy techniques, we only use the modern reporting
             use_method_reporting: true,
             agent,
@@ -221,6 +222,8 @@ struct Technique {
     #[serde(rename = "@name")]
     name: String,
     description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    long_description: Option<String>,
     #[serde(rename = "USEMETHODREPORTING")]
     use_method_reporting: bool,
     #[serde(rename = "MULTIINSTANCE")]
@@ -566,6 +569,7 @@ mod tests {
         let t = Technique {
             name: "Configure NTP".into(),
             description: "This is a description".into(),
+            long_description: None,
             use_method_reporting: true,
             multi_instance: true,
             policy_generation: "separated-with-parameters".to_string(),
