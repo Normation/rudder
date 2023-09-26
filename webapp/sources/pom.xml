@@ -419,7 +419,7 @@ limitations under the License.
     <commons-codec-version>1.16.0</commons-codec-version>
     <commons-fileupload>1.5</commons-fileupload>
     <commons-csv-version>1.10.0</commons-csv-version>
-    <jgit-version>6.6.0.202305301015-r</jgit-version>
+    <jgit-version>6.7.0.202309050840-r</jgit-version>
     <spring-version>5.3.29</spring-version>
     <spring-security-version>5.7.10</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
