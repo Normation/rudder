@@ -37,8 +37,11 @@
 
 package com.normation.rudder.ncf
 
+import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import com.normation.inventory.domain.AgentType
@@ -46,6 +49,7 @@ import com.normation.inventory.domain.Version
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
 import java.util.regex.Pattern
+import zio.ZIO
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
 
@@ -103,6 +107,29 @@ final case class EditorTechnique(
     internalId:    Option[String]
 ) {
   val path = s"techniques/${category}/${id.value}/${version.value}"
+}
+
+object EditorTechnique {
+
+  /*
+   * Check for agreement between technique id from path and technique id from descriptor since the technique may
+   * have been put in Rudder by hand by a dev (see https: //issues.rudder.io/issues/23474)
+   */
+  def checkTechniqueIdConsistency(techniqueBaseDirectory: File, techniqueDescriptor: EditorTechnique): IOResult[Unit] = {
+    ZIO
+      .when(!techniqueBaseDirectory.path.endsWith(techniqueDescriptor.path)) {
+        ZIO.fail(
+          Inconsistency(
+            s"Technique descriptor at path '${techniqueBaseDirectory.pathAsString}' contains a technique 'id' or " +
+            s"'version' attribute that does not match the conventional path of the technique " +
+            s"which must be: '.../category/parts/.../{techniqueId}/{techniqueVersion}/technique.yml'. " +
+            s"Please change either technique directory or the descriptor information so that they " +
+            s"match one other each others."
+          )
+        )
+      }
+      .unit
+  }
 }
 
 @jsonDiscriminator("type")

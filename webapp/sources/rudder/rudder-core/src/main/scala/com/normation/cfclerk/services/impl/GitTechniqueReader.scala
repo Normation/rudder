@@ -48,11 +48,13 @@ import com.normation.rudder.git.ExactFileTreeFilter
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.zio._
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.IOException
+import java.nio.charset.StandardCharsets
 import net.liftweb.common._
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
@@ -143,8 +145,8 @@ class GitTechniqueReader(
   // semaphore to have consistent read
   val semaphore = Semaphore.make(1).runNow
 
-  // the path of the PT lib relative to the git repos
-  // withtout leading and trailing /.
+  // the path of the technique library relative to the git repos root path
+  // without leading and trailing /.
   val canonizedRelativePath = relativePathToGitRepos.flatMap { path =>
     val p1 = path.trim
     val p2 = if (p1(0) == '/') p1.tail else p1
@@ -161,7 +163,7 @@ class GitTechniqueReader(
    * Change a path relative to the Git repository to a path relative
    * to the root of policy template library.
    * As it is required that the git repository is in  a parent of the
-   * ptLib, it's just removing start of the string.
+   * technique library, it's just removing start of the string.
    */
   private[this] def toTechniquePath(path: String): TechniquePath = {
     canonizedRelativePath match {
@@ -502,8 +504,8 @@ class GitTechniqueReader(
 
   private[this] def processRevTreeId(db: Repository, id: ObjectId, parseDescriptor: Boolean = true): IOResult[TechniquesInfo] = {
     /*
-     * Global process : the logic is completly different
-     * from a standard "directory then subdirectoies" walk, because
+     * Global process : the logic is completely different
+     * from a standard "directory then subdirectories" walk, because
      * we have access to the full list of path in that RevTree.
      * So, we are just looking for:
      * - paths which end by categoryDescriptorName:
@@ -822,46 +824,92 @@ class GitTechniqueReader(
                          loadDescriptorFile(is, filePath).flatMap(d => ZIO.fromEither(techniqueParser.parseXml(d, techniqueId)))
                        else dummyTechnique.succeed
       info          <- techniquesInfo.get
-      res           <- ZIO.attempt {
-                         // check that that package is not already know, else its an error (by id ?)
-                         info.techniques.get(techniqueId.name) match {
-                           case None             => // so we don't have any version yet, and so no id
-                             if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
-                               info.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
-                               info.techniquesCategory(techniqueId) = parentCategoryId
-                             }
-                           case Some(versionMap) => // check for the version
-                             versionMap.get(techniqueId.version) match {
-                               case None    => // add that version
-                                 if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
-                                   info.techniques(techniqueId.name)(techniqueId.version) = pack
-                                   info.techniquesCategory(techniqueId) = parentCategoryId
-                                 }
-                               case Some(v) => // error, policy package version already exsits
-                                 logger.error(
-                                   "Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s"
-                                     .format(TechniqueId, descriptorFile.getParent, info.techniquesCategory(techniqueId).toString)
-                                 )
-                             }
+      res           <- (
+                         // if we are in the case of a yaml technique, check that techniqueId in yaml/path agrees
+                         checkTechniqueIdMatchesYaml(descriptorFile.getParentFile, techniqueId) *>
+                         ZIO.attempt {
+                           // check that that package is not already know, else its an error (by id ?)
+                           info.techniques.get(techniqueId.name) match {
+                             case None             => // so we don't have any version yet, and so no id
+                               if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
+                                 info.techniques(techniqueId.name) = MutMap(techniqueId.version -> pack)
+                                 info.techniquesCategory(techniqueId) = parentCategoryId
+                               }
+                             case Some(versionMap) => // check for the version
+                               versionMap.get(techniqueId.version) match {
+                                 case None    => // add that version
+                                   if (updateParentCat(info, parentCategoryId, techniqueId, descriptorFile)) {
+                                     info.techniques(techniqueId.name)(techniqueId.version) = pack
+                                     info.techniquesCategory(techniqueId) = parentCategoryId
+                                   }
+                                 case Some(v) => // error, policy package version already exists
+                                   logger.error(
+                                     "Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s"
+                                       .format(TechniqueId, descriptorFile.getParent, info.techniquesCategory(techniqueId).toString)
+                                   )
+                               }
+                           }
                          }
-                       }.fold(
-                         err =>
-                           err match {
+                       ).fold(
+                         ex =>
+                           ex match {
                              case e: ConstraintException =>
                                s"Ignoring technique '${filePath}}' because the descriptor file is malformed. Error message was: ${e.getMessage}}".fail
-                             case e: Throwable           => s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
+                             case e: Throwable           =>
+                               s"Error when processing technique '${filePath}}': ${e.getMessage}}".fail
                            },
-                         ok => techniquesInfo.set(info)
+                         _ => techniquesInfo.set(info)
                        )
     } yield {
       ()
     }
   }
 
+  // techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
+  def checkTechniqueIdMatchesYaml(techniqueRelativePath: File, techniqueId: TechniqueId): Task[Unit] = {
+    import zio._
+    import zio.json.yaml._
+    import com.normation.rudder.ncf.yaml.{Technique => YamlTechnique}
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer._
+
+    // looking at descriptor on file path, because it's what TechniqueCompiler will look at
+    val descriptor =
+      repo.rootDirectory / relativePathToGitRepos.getOrElse("") / techniqueRelativePath.getPath / TechniqueFiles.yaml
+
+    ZIO.attempt {
+      if (descriptor.exists()) {
+        val yaml = descriptor.contentAsString(StandardCharsets.UTF_8)
+        yaml.fromYaml[YamlTechnique] match {
+          // in the case where the descriptor is invalid but we have an xml metadata file, things are strange.
+          // We raise an error so that the technique is ignored. The user can delete the bad yaml file if he
+          // wants to keep only the xml.
+          case Left(err) =>
+            throw new IllegalArgumentException(
+              s"Technique ${techniqueId.serialize} has a YAML descriptor file, but that descriptor can't be " +
+              s"read. Please correct it, or delete it if you only want to keep the metadata.xml file as source of truth for that technique. " +
+              s"Error was: ${err}"
+            )
+          case Right(y)  =>
+            if (y.id.value != techniqueId.name.value || y.version.value != techniqueId.version.serialize) {
+              val msg = {
+                s"Technique ${descriptor.parent.pathAsString} has a YAML descriptor file, but that descriptor contains a different " +
+                s"technique ID (${y.id.value}/${y.version.value}). Please verify that the directory of the technique matches the naming" +
+                s"convention: .../category/parts/.../{techniqueId}/{techniqueVersion}/technique.yml'"
+              }
+
+              // we want to be warn even if the technique was previously loaded and not miss the warning in logs
+              TechniqueReaderLoggerPure.logEffect.warn(msg)
+              throw new IllegalArgumentException(msg)
+            }
+        }
+      }
+    }
+  }
+
   /**
    * Register a category, but without checking that its parent
    * is legal.
-   * So that will lead to an inconsistant Map of categories
+   * So that will lead to an inconsistent Map of categories
    * which must be normalized before use !
    *
    * If the category descriptor is here, but incorrect,

@@ -81,14 +81,14 @@ import zio.syntax._
 trait TechniqueCompiler {
 
   /*
+   * Compile given technique based on editor descriptor.
+   *
    * Note: until we get ride of webapp generation, we must keep `EditorTechnique` as the main parameter of the
    * compilation service. This is because the likely main case where we will need to fallback to webapp generation
    * is for technique from editor, and in that case we have more chance to be able to fall back if we use
    * directly the data structure of the editor than if we follow a chain of translation from editor technique to yaml to
    * something back that the fallback compiler can understand.
    */
-
-  // compile given technique based on editor
   def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput]
 
   // compile based on absolute path of techniqueId/1.0 directory. If the technique is not yaml, it's an error.
@@ -101,6 +101,7 @@ trait TechniqueCompiler {
                 yamlFile.contentAsString(StandardCharsets.UTF_8)
               }
       t    <- yaml.fromYaml[EditorTechnique].toIO
+      _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t)
       res  <- compileTechnique(t)
     } yield res
   }
@@ -375,8 +376,8 @@ class TechniqueCompilerWithFallback(
     gitDir / getTechniqueRelativePath(technique) / compilationConfigFilename
 
   /*
-   * This method read compilation file, compile accordingly, and write if need the new
-   * compilation file
+   * This method read compilation file, compile accordingly, and write if needed the new
+   * compilation file.
    */
   override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
     for {
