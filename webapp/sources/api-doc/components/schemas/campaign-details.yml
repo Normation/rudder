@@ -32,7 +32,9 @@ properties:
           - $ref: './campaign-schedule-monthly.yml'
   campaignType:
     type: string
-    example : system-update
+    enum:
+      - system-update
+      - software-update
     description: Type of campaign (with version determine what kind of campaign you handle and the details object)
   version:
     type: integer
