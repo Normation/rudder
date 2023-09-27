@@ -122,11 +122,16 @@ update msg model =
           ui = model.ui
           editedProperties = ui.editedProperties
             |> Dict.remove key
-          successMsg = ("property '" ++ (String.trim property.name) ++ "' has been updated")
+
+          (successMsg, updatedProperty) =
+            if (property.value == key) then
+              ("property '" ++ (String.trim property.name) ++ "' has been updated", [property])
+            else
+              ( "property '" ++ (String.trim key) ++ "' has been updated and renamed to '" ++ (String.trim property.name) ++ "'", [property, {property | name = key, value = ""} ] )
           updatedModel = { model | ui = {ui | editedProperties = editedProperties} }
           (newModel, cmd) = if save then -- If we want to save changes
             case property.format of
-              StringFormat -> (updatedModel, saveProperty [property] model successMsg)
+              StringFormat -> (updatedModel, saveProperty updatedProperty model successMsg)
               JsonFormat   ->
                 let
                   checkJsonFormat = Json.Decode.decodeString Json.Decode.value property.value
@@ -138,8 +143,8 @@ update msg model =
 
             else
               (updatedModel, Cmd.none)
-          in
-            (newModel, cmd)
+        in
+          (newModel, cmd)
       else
         let
           ui = model.ui
