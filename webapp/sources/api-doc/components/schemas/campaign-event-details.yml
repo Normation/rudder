@@ -34,7 +34,9 @@ properties:
         description: used only for skipped status
   campaignType:
     type: string
-    example : system-update
+    enum:
+      - system-update
+      - software-update
     description: Type of campaign
   campaignId:
     type: string
