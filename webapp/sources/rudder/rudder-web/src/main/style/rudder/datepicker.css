@@ -1,0 +1,411 @@
+/* Comes from https://github.com/mercurymedia/elm-datetime-picker/tree/8.0.0/css */
+/* Needs to be updated when updating the mercurymedia/elm-datetime-picker lib */
+
+/* DateTimePickerTheme.css */
+
+:root {
+    /* THEME */
+    --edtp-box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+    --edtp-border-radius-lg: 5px;
+    --edtp-border-radius-default: 3px;
+    --edtp-font-size-base: 1rem;
+    --edtp-font-size-sm: 0.875rem;
+    --edtp-font-size-xs: 0.75rem;
+    --edtp-font-size-xxs: 0.625rem;
+    --edtp-icon-button-size: 24px;
+    --edtp-duration-calendars-gap: 1rem;
+    --edtp-transition: all cubic-bezier(0.4, 0, 0.2, 1) 150ms;
+
+    --edtp-container-color: #22292f;
+    --edtp-container-background-color: #fff;
+
+    --edtp-header-text-color: #22292f;
+    --edtp-header-chevron-color: #22292f;
+    --edtp-header-chevron-background-color: transparent;
+    --edtp-header-chevron-hover-color: #22292f;
+    --edtp-header-chevron-hover-background-color: #f1f5f8;
+    --edtp-header-week-color: #a0aec0;
+
+    --edtp-day-size: 42px;
+    --edtp-day-color: #22292f;
+    --edtp-day-background-color: transparent;
+    --edtp-day-hover-color: #22292f;
+    --edtp-day-hover-background-color: #a0aec0;
+    --edtp-day-between-color: #22292f;
+    --edtp-day-between-background-color: #e0e9f0;
+    --edtp-day-disabled-color: #8294ab;
+    --edtp-day-disabled-background-color: transparent;
+    --edtp-day-picked-color: #fff;
+    --edtp-day-picked-background-color: #3490dc;
+    --edtp-day-today-color: #3490dc;
+    --edtp-day-today-background-color: transparent;
+
+    --edtp-week-number-color: #bfc8d4;
+    --edtp-week-number-background-color: #f1f5f8;
+
+    --edtp-footer-border-width: 1px;
+    --edtp-footer-border-color: #a0aec0;
+    --edtp-footer-color: #22292f;
+    --edtp-footer-background-color: transparent;
+    --edtp-footer-empty-color: #a0aec0;
+    --edtp-footer-font-weight: normal;
+
+    --edtp-footer-toggle-button-color: #3490dc;
+    --edtp-footer-toggle-button-background-color: transparent;
+    --edtp-footer-toggle-button-hover-color: #3490dc;
+    --edtp-footer-toggle-button-hover-background-color: #f1f5f8;
+
+    --edtp-footer-select-color: #22292f;
+    --edtp-footer-select-background-color: #fff;
+    --edtp-footer-select-border-color: #a0aec0;
+}
+
+/* DateTimePicker.css */
+
+.elm-datetimepicker--picker-container {
+    background-color: var(--edtp-container-background-color);
+    position: absolute;
+    color: var(--edtp-container-color);
+    font-size: var(--edtp-font-size);
+    border-radius: var(--edtp-border-radius-lg);
+    box-shadow: var(--edtp-box-shadow);
+    overflow: hidden;
+}
+
+.elm-datetimepicker--duration 
+.elm-datetimepicker--calendars-container {
+    display: flex;
+    gap: var(--edtp-duration-calendars-gap);
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendars-container
+.elm-datetimepicker--calendar-container:first-child
+.elm-datetimepicker--calendar-header-navigation--next {
+    visibility: hidden;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendars-container
+.elm-datetimepicker--calendar-container:last-child
+.elm-datetimepicker--calendar-header-navigation--previous {
+    visibility: hidden;
+}
+
+
+.elm-datetimepicker--calendar-container {
+    padding: 1rem;
+}
+
+.elm-datetimepicker--calendar-header {
+    font-weight: bold;
+}
+
+.elm-datetimepicker--calendar-header-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.elm-datetimepicker--calendar-header-navigation {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.elm-datetimepicker--calendar-header-text {
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+    color: var(--edtp-header-text-color);
+}
+
+.elm-datetimepicker--calendar-header-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--edtp-header-chevron-background-color);
+    color: var(--edtp-header-chevron-color);
+    width: var(--edtp-icon-button-size);
+    height: var(--edtp-icon-button-size);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--edtp-transition);
+}
+
+.elm-datetimepicker--calendar-header-chevron:hover {
+    background-color: var(--edtp-header-chevron-hover-background-color);
+    color: var(--edtp-header-chevron-hover-color);
+}
+
+.elm-datetimepicker--calendar-header-week {
+    display: flex;
+    color: var(--edtp-header-week-color);
+    text-transform: uppercase;
+    font-size: var(--edtp-font-size-xs);
+    font-weight: normal;
+    letter-spacing: 1px;
+}
+
+.elm-datetimepicker--calendar-header-day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--edtp-day-size);
+    width: var(--edtp-day-size);
+}
+
+.elm-datetimepicker--calendar-month {
+}
+
+.elm-datetimepicker--calendar-week {
+    display: flex;
+}
+
+.elm-datetimepicker--calendar-header-week-number,
+.elm-datetimepicker--calendar-week-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--edtp-day-size);
+    width: var(--edtp-day-size);
+    font-size: var(--edtp-font-size-xxs);
+    letter-spacing: 2px;
+    color: var(--edtp-week-number-color);
+    background-color: var(--edtp-week-number-background-color);
+    margin-right: 0.25rem;
+}
+
+.elm-datetimepicker--calendar-header-week-number {
+    border-top-right-radius: var(--edtp-border-radius-default);
+    border-top-left-radius: var(--edtp-border-radius-default);
+}
+
+.elm-datetimepicker--calendar-month > div > .elm-datetimepicker--calendar-week:last-child > .elm-datetimepicker--calendar-week-number {
+    border-bottom-right-radius: var(--edtp-border-radius-default);
+    border-bottom-left-radius: var(--edtp-border-radius-default);
+}
+
+.elm-datetimepicker--calendar-day {
+    height: var(--edtp-day-size);
+    width: var(--edtp-day-size);
+    font-size: var(--edtp-font-size-sm);
+    background-color: var(--edtp-day-background-color);
+    color: var(--edtp-day-color);
+    border-radius: var(--edtp-border-radius-default);
+    transition: var(--edtp-transition);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: 0;
+    outline: 0;
+    padding: 0;
+}
+
+.elm-datetimepicker--calendar-day:hover {
+    background-color: var(--edtp-day-hover-background-color);
+    color: var(--edtp-day-hover-color);
+}
+
+.elm-datetimepicker--calendar-day.elm-datetimepicker--hidden {
+    visibility: hidden;
+}
+
+.elm-datetimepicker--calendar-day.elm-datetimepicker--disabled {
+    background-color: var(--edtp-day-disabled-background-color);
+    color: var(--edtp-day-disabled-color);
+    cursor: default;
+}
+
+.elm-datetimepicker--calendar-day.elm-datetimepicker--picked {
+    background-color: var(--edtp-day-picked-background-color);
+    color: var(--edtp-day-picked-color);
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--start {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--between + .elm-datetimepicker--calendar-day:not(.elm-datetimepicker--between):hover,
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--picked + .elm-datetimepicker--calendar-day:not(.elm-datetimepicker--between):hover,
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--end {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--start.elm-datetimepicker--end {
+    border-radius: var(--edtp-border-radius-default);
+}
+
+.elm-datetimepicker--calendar-day.elm-datetimepicker--today {
+    background-color: var(--edtp-day-today-background-color);
+    color: var(--edtp-day-today-color);
+    font-weight: bold;
+    position: relative;
+}
+
+.elm-datetimepicker--calendar-day.elm-datetimepicker--today:hover {
+    background-color: var(--edtp-day-hover-background-color);
+    color: var(--edtp-day-hover-color);
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--between {
+    background-color: var(--edtp-day-between-background-color);
+    color: var(--edtp-day-between-color);
+    border-radius: 0;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--between:hover {
+    background-color: var(--edtp-day-hover-background-color);
+    color: var(--edtp-day-hover-color);
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--calendar-day.elm-datetimepicker--today-between {
+    background-color: var(--edtp-day-between-background-color);
+    color: var(--edtp-day-between-color);
+    border-radius: 0;
+}
+
+.elm-datetimepicker--footer {
+    width: 100%;
+    background-color: var(--edtp-footer-background-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: var(--edtp-footer-font-weight);
+    color: var(--edtp-footer-color);
+    border-top: var(--edtp-footer-border-width) solid var(--edtp-footer-border-color);
+    padding: 1rem;
+}
+
+.elm-datetimepicker--footer-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 3px;
+    font-weight: bold;
+    color: var(--edtp-footer-empty-color);
+    min-height: var(--edtp-icon-button-size);
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--footer-empty {
+    flex: 1;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--footer-datetimes-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+}
+.elm-datetimepicker--duration
+.elm-datetimepicker--footer-datetimes-separator {
+    width: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    opacity: 0.25;
+}
+
+.elm-datetimepicker--footer-datetime-container {
+}
+
+.elm-datetimepicker--single
+.elm-datetimepicker--footer-datetime-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.elm-datetimepicker--duration
+.elm-datetimepicker--footer-datetime-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    align-items: center;
+}
+
+.elm-datetimepicker--time-picker-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 50%;
+    width: var(--edtp-icon-button-size);
+    height: var(--edtp-icon-button-size);
+    color: var(--edtp-footer-toggle-button-color);
+    background-color: var(--edtp-footer-toggle-button-background-color);
+    transition: var(--edtp-transition);
+}
+.elm-datetimepicker--time-picker-toggle:hover {
+    color: var(--edtp-footer-toggle-button-hover-color);
+    background-color: var(--edtp-footer-toggle-button-hover-background-color);
+}
+
+.elm-datetimepicker--time-picker {
+    display: flex;
+    justify-content: space-between;
+}
+
+.elm-datetimepicker--select-container {
+    display: inline-flex;
+}
+
+.elm-datetimepicker--select {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.elm-datetimepicker--select > select {
+    border-radius: var(--edtp-border-radius-default);
+    height: var(--edtp-icon-button-size);
+    outline: 0;
+    font-weight: normal;
+    color: var(--edtp-footer-select-color);
+    background-color: var(--edtp-footer-select-background-color);
+    border: 1px solid var(--edtp-footer-select-border-color);
+    padding: 0 24px 0 0.25rem;
+    appearance: none;
+}
+
+.elm-datetimepicker--select > svg {
+    position: absolute;
+    right: 0.25rem;
+    pointer-events: none;
+}
+
+.elm-datetimepicker--selection-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--edtp-icon-button-size);
+}
+
+.elm-datetimepicker--selection-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.elm-datetimepicker--select-spacer {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 .25rem 0 .25rem;
+    user-select: none;
+}
