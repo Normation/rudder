@@ -802,12 +802,12 @@ class DirectiveEditForm(
             } else {
               val success = {
                 if (action == DGModAction.Delete) {
-                  val nSeq = <div id={htmlId_policyConf}>Directive successfully deleted</div>
+                  val nSeq = <style>#policyConfiguration{{height: initial !important;}}</style>
                   (_: ChangeRequestId) =>
                     JsRaw("$('#basePopup').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
-                    successNotification()
+                    successNotification("Directive successfully deleted")
                 } else { (_: ChangeRequestId) =>
-                  JsRaw("$('#basePopup').bsModal('hide');") & successNotification() & onSuccessCallback(Left(newDirective))
+                  JsRaw("$('#basePopup').bsModal('hide');") & successNotification("") & onSuccessCallback(Left(newDirective))
                 }
               }
 
@@ -823,7 +823,7 @@ class DirectiveEditForm(
             workflowService,
             onSuccessCallback = successCallback,
             onFailureCallback = failureCallback,
-            onCreateSuccessCallBack = (result => onSuccessCallback(result) & successNotification()),
+            onCreateSuccessCallBack = (result => onSuccessCallback(result) & successNotification("")),
             onCreateFailureCallBack = onFailure _,
             parentFormTracker = formTracker
           )
@@ -868,7 +868,7 @@ class DirectiveEditForm(
 
   ///////////// success pop-up ///////////////
 
-  private[this] def successNotification(): JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+  private[this] def successNotification(msg: String): JsCmd = {
+    JsRaw(s"""createSuccessNotification("${msg}")""")
   }
 }
