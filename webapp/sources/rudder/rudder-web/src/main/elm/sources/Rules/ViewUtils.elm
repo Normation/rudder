@@ -6,6 +6,7 @@ import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, custom, onInput)
+import Json.Encode
 import List.Extra
 import List
 import Maybe.Extra
@@ -25,7 +26,7 @@ onCustomClick msg =
     (Decode.succeed
       { message         = msg
       , stopPropagation = True
-      , preventDefault  = True
+      , preventDefault  = False
       }
     )
 
@@ -833,10 +834,12 @@ displayComplianceFilters filters updateAction =
         statusDropdown status substatus =
           let
             allSelected   = substatus |> List.all (\s -> List.member s selectedStatus)
+            anySelect = substatus |> List.any (\s -> List.member s selectedStatus)
+            indeterminate = property "indeterminate" (if not allSelected && anySelect then Json.Encode.string "true" else Json.Encode.null)
             newSelection  = if allSelected then selectedStatus |> List.filter (\s -> List.Extra.notMember s substatus) else List.Extra.unique (List.append selectedStatus substatus)
           in
             [ li [class "compliance-group", onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = newSelection }}})]
-              [ span[] [ input [type_ "checkbox", checked allSelected][] ]
+              [ span[] [ input [type_ "checkbox", checked allSelected, indeterminate][] ]
               , span[]
                 [ i[class ("compliance-badge badge-sm " ++ (String.toLower (String.replace " " "-" status)))][]
                 , text status
