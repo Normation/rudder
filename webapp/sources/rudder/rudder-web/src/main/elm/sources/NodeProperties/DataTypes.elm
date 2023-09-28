@@ -2,6 +2,7 @@ module NodeProperties.DataTypes exposing (..)
 
 import Http exposing (Error)
 import Dict exposing (Dict)
+import Json.Encode exposing (Value)
 --
 -- All our data types
 --
@@ -21,20 +22,12 @@ type ValueFormat = JsonFormat | StringFormat
 
 type alias Property =
   { name      : String
-  , value     : JsonValue
+  , value     : Value
   , provider  : Maybe String
   , hierarchy : Maybe String
-  , origval   : Maybe JsonValue
+  , origval   : Maybe Value
   }
 
-type JsonValue
-  = JsonString String
-  | JsonInt Int
-  | JsonFloat Float
-  | JsonBoolean Bool
-  | JsonArray (List JsonValue)
-  | JsonObject (Dict String JsonValue)
-  | JsonNull
 
 type SortOrder = Asc | Desc
 
