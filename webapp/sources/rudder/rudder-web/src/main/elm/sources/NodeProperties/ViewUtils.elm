@@ -3,6 +3,7 @@ module NodeProperties.ViewUtils exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value, title, placeholder, style, tabindex    )
 import Html.Events exposing (onClick, onInput)
+import Json.Decode exposing (decodeValue)
 import Maybe.Extra exposing (isJust)
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
@@ -50,6 +51,19 @@ sortTable tableFilters sortBy =
     else
       { tableFilters | sortBy = sortBy, sortOrder = Asc}
 
+
+getFormat : Property -> ValueFormat
+getFormat pr =
+  case decodeValue Json.Decode.string pr.value of
+    Ok _  ->  StringFormat
+    Err _ -> JsonFormat
+
+getFormatTxt : ValueFormat -> String
+getFormatTxt format =
+    case format of
+      StringFormat -> "String"
+      JsonFormat -> "JSON"
+
 getSortFunction : Model -> Property -> Property -> Order
 getSortFunction model p1 p2 =
   let
@@ -57,14 +71,15 @@ getSortFunction model p1 p2 =
       Name    -> N.compare p1.name p2.name
       Format  ->
         let
-          getFormat pr = case pr.value of
-              JsonString s  ->  "String"
-              _ -> "JSON"
           formatP1 = getFormat p1
           formatP2 = getFormat p2
         in
-          N.compare formatP1 formatP2
-      Value   -> N.compare p1.name p2.name
+          case (formatP1,formatP2) of
+            (StringFormat,StringFormat) -> EQ
+            (JsonFormat, JsonFormat) -> EQ
+            (StringFormat, JsonFormat) -> GT
+            (JsonFormat, StringFormat) -> LT
+      Value   -> N.compare (Json.Encode.encode 0 p1.value) (Json.Encode.encode 0 p2.value)
   in
     if model.ui.filters.sortOrder == Asc then
       order
@@ -77,7 +92,7 @@ getSortFunction model p1 p2 =
 searchField : Property -> List String
 searchField property =
   [ property.name
-  , (displayJsonValue property.value)
+  , (Json.Encode.encode 0 property.value)
   ]
 
 checkUsedName : String -> List Property -> Bool
@@ -88,22 +103,9 @@ checkUsedName name properties =
       Nothing -> p.name == name
     )
 
-displayJsonValue : JsonValue -> String
-displayJsonValue value  =
-  case value of
-    JsonString s  -> s
-    _ -> encode 2 (encodeJsonValue value)
-
-encodeJsonValue : JsonValue -> Value
-encodeJsonValue value =
-  case value of
-    JsonString s  -> string s
-    JsonInt i     -> int i
-    JsonFloat f   -> float f
-    JsonBoolean b -> bool b
-    JsonNull      -> null
-    JsonArray a   -> list encodeJsonValue a
-    JsonObject o  -> (dict identity encodeJsonValue o)
+displayJsonValue : Value -> String
+displayJsonValue value =
+    encode 2 value
 
 displayNodePropertyRow : Model -> List (Html Msg)
 displayNodePropertyRow model =
@@ -117,10 +119,8 @@ displayNodePropertyRow model =
     propertyRow : Property -> Html Msg
     propertyRow p =
       let
-        (format, formatTxt) = case p.value of
-            JsonString s  -> (StringFormat, "String")
-            _ -> (JsonFormat, "JSON")
-
+        format = getFormat p
+        formatTxt = getFormatTxt format
         defaultEditProperty = EditProperty p.name (displayJsonValue p.value) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
@@ -144,7 +144,7 @@ displayNodePropertyRow model =
               )
           Nothing -> (text "", True)
 
-        isTooLong : JsonValue -> Bool
+        isTooLong : Value -> Bool
         isTooLong value =
           let
             str = displayJsonValue value
