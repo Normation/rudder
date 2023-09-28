@@ -28,7 +28,14 @@ view model =
     in
       div[]
       [ div [class "row", id "nodeProp"]
-        [ ( if model.ui.hasWriteRights then
+        [ div [ class "col-xs-12" ] [
+            div [ class "alert alert-info" ] [
+                text "These are node properties that can be used in directive inputs with the "
+              , b [ class "code" ] [ text "${node.properties[NAME]}" ]
+              , text " syntax."
+              ]
+          ]
+        , ( if model.ui.hasWriteRights then
           div[class "col-lg-7 col-md-8 col-xs-12 add-prop-form"]
           [ label[for "newPropName"][text "Add a new property:"]
           , table[id "addPropTable"]
