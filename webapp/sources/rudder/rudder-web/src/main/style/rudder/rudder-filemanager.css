@@ -156,6 +156,7 @@
   align-items: center;
   width: 100px;
   height: 60px;
+  position: relative;
 }
 
 .fm-upload .fm-thumb {
@@ -418,4 +419,27 @@ tr.fm-file-list .fm-thumb {
 tr.fm-file-list .fm-name {
   margin-left: 4px;
   width: initial;
+}
+
+.fm-thumb.jpg:before,
+.fm-thumb.jpeg:before,
+.fm-thumb.png:before,
+.fm-thumb.PNG:before{
+  position: absolute;
+  color: #fff;
+  z-index: 1;
+  font-weight: bold;
+  margin-top: 6px;
+  font-size: 0.9em;
+}
+
+.fm-thumb.jpg:before{
+  content: "JPG";
+}
+.fm-thumb.jpeg:before{
+  content: "JPEG";
+}
+.fm-thumb.png:before,
+.fm-thumb.PNG:before{
+  content: "PNG";
 }

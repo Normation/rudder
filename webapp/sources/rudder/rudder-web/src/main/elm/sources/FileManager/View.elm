@@ -281,11 +281,8 @@ fileIcon =
   ]
 
 renderFileThumb : String -> String -> String -> Html Msg
-renderFileThumb api thumbApi fullName = if member (getExt fullName) ["jpg", "jpeg", "png", "PNG"]
-  then div [ class "fm-thumb" ]
-    [ img [ src <| thumbApi ++ fullName, draggable "false" ] []
-    ]
-  else div [ class "fm-thumb" ] [ fileIcon ]
+renderFileThumb api thumbApi fullName =
+  div [ class ("fm-thumb " ++ (getExt fullName)) ] [ fileIcon ]
 
 folderIcon : Int -> Html Msg
 folderIcon s =
