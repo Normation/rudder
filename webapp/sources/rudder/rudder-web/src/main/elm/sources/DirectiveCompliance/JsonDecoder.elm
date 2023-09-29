@@ -5,6 +5,7 @@ import Json.Decode.Pipeline exposing (..)
 import Json.Decode.Field exposing (require)
 
 import DirectiveCompliance.DataTypes exposing (..)
+import Compliance.DataTypes exposing (..)
 
 
 decodeGetPolicyMode : Decoder String

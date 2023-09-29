@@ -4,7 +4,7 @@ import Dict
 
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
-
+import Compliance.DataTypes exposing (..)
 
 init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =

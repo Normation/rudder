@@ -1,36 +1,36 @@
-module Rules.ComplianceUtils exposing (..)
+module Compliance.Utils exposing (..)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Maybe.Extra exposing (isJust)
-import Html exposing (Html, button, div, i, span, text, h1, h4, ul, li, input, a, p, form, label, textarea, select, option, table, thead, tbody, tr, th, td, small)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, href, colspan, rowspan, style, selected, disabled, attribute)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (..)
+import Html.Attributes exposing (class, type_, value, style, attribute, checked, property)
+import Html.Events exposing (onClick, onInput, custom)
 import List.Extra
 import List
 import String exposing (fromFloat)
 import Tuple exposing (first, second)
+import Maybe.Extra exposing (isJust)
+import Json.Decode as Decode
+import Json.Encode
 
-import Rules.ApiCalls exposing (..)
-import Rules.DataTypes exposing (..)
+import Compliance.DataTypes exposing (..)
 
 
-getCompliance : Float -> String -> Html msg
-getCompliance val t =
-  if val > 0 then
-    div[class ("progress-bar progress-bar-" ++ t), style "flex" (fromFloat val)][text ((fromFloat val) ++ "%")]
-  else
-    text ""
+onCustomClick : msg -> Html.Attribute msg
+onCustomClick msg =
+  custom "click"
+    (Decode.succeed
+      { message         = msg
+      , stopPropagation = True
+      , preventDefault  = False
+      }
+    )
 
 getValueCompliance : Maybe Float -> Float
 getValueCompliance f =
   case f of
     Just v  -> v
     Nothing -> 0
-
-getRuleCompliance : Model -> RuleId -> Maybe RuleComplianceGlobal
-getRuleCompliance model rId =
-  Dict.get rId.value model.rulesCompliance
 
 getAllComplianceValues : ComplianceDetails ->
   { okStatus        : {value : Float, rounded : Int, details : String}
@@ -103,7 +103,7 @@ getAllComplianceValues complianceDetails =
 
     nonCompliantText =
       if nonCompliant > 0 then
-        barContent [( nonCompliant , "Non compliant" )]
+        barContent [( nonCompliant , "Non compliance" )]
       else
         ""
 
@@ -205,7 +205,6 @@ getAllComplianceValues complianceDetails =
   in
     allComplianceValues
 
-
 sumPercent : ComplianceDetails -> Float
 sumPercent compliance =
   let
@@ -216,26 +215,6 @@ sumPercent compliance =
      compliance.noReport, compliance.reportsDisabled, compliance.successNotApplicable, compliance.successRepaired,
      compliance.unexpectedMissingComponent, compliance.unexpectedUnknownComponent
    ] |> List.map getValue |> List.sum
-
-getDirectiveComputedCompliance : (DirectiveCompliance value) -> Float
-getDirectiveComputedCompliance dc =
-  let
-    allComplianceValues = getAllComplianceValues dc.complianceDetails
-  in
-    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-      -1.0
-    else
-      dc.compliance
-
-getNodeComputedCompliance : NodeCompliance -> Float
-getNodeComputedCompliance nc =
-  let
-    allComplianceValues = getAllComplianceValues nc.complianceDetails
-  in
-    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-      -1.0
-    else
-      nc.compliance
 
 mergeCompliance : ComplianceDetails -> ComplianceDetails -> ComplianceDetails
 mergeCompliance c1 c2 =
@@ -300,30 +279,31 @@ filterCompliance : ComplianceDetails -> ComplianceFilters -> ComplianceDetails
 filterCompliance complianceDetails complianceFilters =
   let
     dict s = case s of
-               "successAlreadyOK"  ->  \v -> { v | successAlreadyOK = Nothing }
-               "auditCompliant"  ->  \v -> { v | auditCompliant = Nothing }
-               "successRepaired"  ->  \v -> { v | successRepaired = Nothing }
-               "successNotApplicable"  ->  \v -> { v | successNotApplicable = Nothing }
-               "auditNotApplicable"  ->  \v -> { v | auditNotApplicable = Nothing }
-               "auditNonCompliant"  ->  \v -> { v | auditNonCompliant = Nothing }
-               "error"  ->  \v -> { v | error = Nothing }
-               "auditError"  ->  \v -> { v | auditError = Nothing }
-               "unexpectedMissingComponent"  ->  \v -> { v | unexpectedMissingComponent = Nothing }
-               "unexpectedUnknownComponent"  ->  \v -> { v | unexpectedUnknownComponent = Nothing }
-               "badPolicyMode"  ->  \v -> { v | badPolicyMode = Nothing }
-               "applying"  ->  \v -> { v | applying = Nothing }
-               "reportsDisabled"  ->  \v -> { v | reportsDisabled = Nothing }
-               "noReport"  ->  \v -> { v | noReport = Nothing }
-               _ -> \v -> v
+      "successAlreadyOK"             ->  \v -> { v | successAlreadyOK = Nothing }
+      "auditCompliant"               ->  \v -> { v | auditCompliant = Nothing }
+      "successRepaired"              ->  \v -> { v | successRepaired = Nothing }
+      "successNotApplicable"         ->  \v -> { v | successNotApplicable = Nothing }
+      "auditNotApplicable"           ->  \v -> { v | auditNotApplicable = Nothing }
+      "auditNonCompliant"            ->  \v -> { v | auditNonCompliant = Nothing }
+      "error"                        ->  \v -> { v | error = Nothing }
+      "auditError"                   ->  \v -> { v | auditError = Nothing }
+      "unexpectedMissingComponent"   ->  \v -> { v | unexpectedMissingComponent = Nothing }
+      "unexpectedUnknownComponent"   ->  \v -> { v | unexpectedUnknownComponent = Nothing }
+      "badPolicyMode"                ->  \v -> { v | badPolicyMode = Nothing }
+      "applying"                     ->  \v -> { v | applying = Nothing }
+      "reportsDisabled"              ->  \v -> { v | reportsDisabled = Nothing }
+      "noReport"                     ->  \v -> { v | noReport = Nothing }
+      _ -> \v -> v
 
     fun key current = (dict key) current
 
     allStatuses =
-                 [ "successAlreadyOK", "auditCompliant", "successRepaired", "successNotApplicable", "auditNotApplicable"
-                 , "auditNonCompliant"
-                   , "error", "auditError", "unexpectedMissingComponent", "unexpectedUnknownComponent", "badPolicyMode"
-                 , "applying" , "reportsDisabled" , "noReport"
-                   ]
+      [ "successAlreadyOK", "auditCompliant", "successRepaired", "successNotApplicable", "auditNotApplicable"
+      , "auditNonCompliant"
+      , "error", "auditError", "unexpectedMissingComponent", "unexpectedUnknownComponent", "badPolicyMode"
+      , "applying" , "reportsDisabled" , "noReport"
+      ]
+
     statuses = if complianceFilters.showOnlyStatus then
                  List.filter (\s -> not (List.member s complianceFilters.selectedStatus )) allStatuses
                else
@@ -363,3 +343,159 @@ checkFilterCompliance complianceDetails complianceFilters =
         else
           not isSelected
     )
+
+
+filterByCompliance : ComplianceFilters -> ComponentCompliance value -> Bool
+filterByCompliance filter i =
+  let
+    compliance = \item ->
+      case item of
+        Block b -> b.complianceDetails
+        Value c -> c.complianceDetails
+  in
+    (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (compliance i) filter)
+
+filterDetailsByCompliance filter = \i ->
+  (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (i.complianceDetails) filter)
+
+filterValueByCompliance filter = \i ->
+  let
+    isSelected = List.member i.status filter.selectedStatus
+  in
+    ( List.isEmpty filter.selectedStatus ) || ( if filter.showOnlyStatus then isSelected else not isSelected )
+
+filterReports filter = \r ->
+  let
+    isSelected = List.member r.status filter.selectedStatus
+  in
+    ( if filter.showOnlyStatus then isSelected else not isSelected )
+
+filterReportsByCompliance filter = \i ->
+  ( List.isEmpty filter.selectedStatus ) || (
+    i.reports
+    |> List.any (filterReports filter)
+  )
+
+
+displayComplianceFilters : ComplianceFilters -> (ComplianceFilters -> msg) -> Html msg
+displayComplianceFilters complianceFilters updateAction =
+  ( if complianceFilters.showComplianceFilters then
+    let
+      selectedStatus = complianceFilters.selectedStatus
+      statusDropdown status substatus =
+        let
+          allSelected   = substatus |> List.all (\s -> List.member s selectedStatus)
+          anySelect = substatus |> List.any (\s -> List.member s selectedStatus)
+          indeterminate = property "indeterminate" (if not allSelected && anySelect then Json.Encode.string "true" else Json.Encode.null)
+          newSelection  = if allSelected then selectedStatus |> List.filter (\s -> List.Extra.notMember s substatus) else List.Extra.unique (List.append selectedStatus substatus)
+        in
+          [ li [class "compliance-group", onCustomClick (updateAction { complianceFilters | selectedStatus = newSelection })]
+            [ span[] [ input [type_ "checkbox", checked allSelected, indeterminate][] ]
+            , span[]
+              [ i[class ("compliance-badge badge-sm " ++ (String.toLower (String.replace " " "-" status)))][]
+              , text status
+              ]
+            ]
+          , if List.length substatus > 1 then
+            ul[]
+            ( substatus
+              |> List.map (\s ->
+                let
+                  isSelected   = List.member s selectedStatus
+                  subSelection = if isSelected then List.Extra.remove s selectedStatus else s :: selectedStatus
+                in
+                  li [onCustomClick (updateAction { complianceFilters | selectedStatus = subSelection })]
+                  [ span[] [ input [type_ "checkbox", checked isSelected][] ]
+                  , span[] [ text (getComplianceStatusTitle s) ]
+                  ]
+              )
+            )
+            else
+            text ""
+          ]
+    in
+      div[class "more-filters filter-compliance"]
+      [ label [][text "Compliance"]
+      , div [class "form-group"]
+        [ div [class "btn-group "]
+          [ label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then " active" else "")), onClick (updateAction { complianceFilters | showOnlyStatus = True })][text "Show only"]
+          , label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then "" else " active")), onClick (updateAction { complianceFilters | showOnlyStatus = False})][text "Hide"     ]
+          ]
+        , div [class "btn-group"]
+          [ button [attribute "data-toggle" "dropdown", type_ "button", class "btn btn-default btn-dropdown-compliance"]
+            [ text "Select status"
+            , span[class "badge"][text (String.fromInt (List.length selectedStatus))]
+            , i [class "fa fa-angle-down"][]
+            ]
+          , ul [class "dropdown-menu dropdown-compliance"]
+            ( complianceStatusGroups
+            |> Dict.map statusDropdown
+            |> Dict.values
+            |> List.concat
+            )
+          ]
+        ]
+      , div []
+        ( complianceFilters.selectedStatus
+          |> List.map (\s ->
+            let
+              className = case Dict.Extra.find (\status substatus -> List.member s substatus) complianceStatusGroups of
+                Just (st, sbst) -> st
+                Nothing -> s
+            in
+              span[class ("compliance-badge " ++ (String.toLower (String.replace " " "-" className))), onCustomClick (updateAction { complianceFilters | selectedStatus = List.Extra.remove s selectedStatus })]
+              [ text (getComplianceStatusTitle s)
+              , i[class "fa fa-times"][]
+              ]
+          )
+        )
+      ]
+    else
+    text ""
+  )
+
+buildComplianceBar : ComplianceFilters -> ComplianceDetails -> Html msg
+buildComplianceBar filters complianceDetails =
+  let
+    filteredCompliance = filterCompliance complianceDetails filters
+    displayCompliance : {value : Float, rounded : Int, details : String} -> String -> Html msg
+    displayCompliance compliance className =
+      if compliance.value > 0 then
+        let
+          --Hide the compliance text if the value is too small (less than 3%)
+          realPercent = compliance.value / (sumPercent filteredCompliance) * 100
+          realRounded = Basics.floor realPercent
+          complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
+        in
+          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
+          [ text complianceTxt ]
+      else
+        text ""
+
+    allComplianceValues = getAllComplianceValues filteredCompliance
+
+  in
+    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
+      div[ class "text-muted"][text "No data available"]
+    else
+      div[ class "progress progress-flex"]
+      [ displayCompliance allComplianceValues.okStatus        "success"
+      , displayCompliance allComplianceValues.nonCompliant    "audit-noncompliant"
+      , displayCompliance allComplianceValues.error           "error"
+      , displayCompliance allComplianceValues.unexpected      "unknown progress-bar-striped"
+      , displayCompliance allComplianceValues.pending         "pending progress-bar-striped"
+      , displayCompliance allComplianceValues.reportsDisabled "reportsdisabled"
+      , displayCompliance allComplianceValues.noReport        "no-report"
+      ]
+
+-- WARNING:
+--
+-- Here the content is an HTML so it need to be already escaped.
+buildTooltipContent : String -> String -> String
+buildTooltipContent title content =
+  let
+    headingTag = "<h4 class='tags-tooltip-title'>"
+    contentTag = "</h4><div class='tooltip-inner-content'>"
+    closeTag   = "</div>"
+  in
+    headingTag ++ title ++ contentTag ++ content ++ closeTag

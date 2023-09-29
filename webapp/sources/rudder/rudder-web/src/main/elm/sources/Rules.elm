@@ -519,6 +519,22 @@ update msg model =
       in
         ({model | ui = { ui | groupFilters = filters}}, initTooltips "")
 
+    UpdateDirectiveComplianceFilters filters ->
+      let
+        ui = model.ui
+        directiveFilters = ui.directiveFilters
+        tableFilters = directiveFilters.tableFilters
+      in
+        ({model | ui = { ui | directiveFilters = {directiveFilters | tableFilters = {tableFilters | compliance = filters}}}}, initTooltips "")
+
+    UpdateGroupComplianceFilters filters ->
+      let
+        ui = model.ui
+        groupFilters = ui.groupFilters
+        tableFilters = groupFilters.tableFilters
+      in
+        ({model | ui = { ui | directiveFilters = {groupFilters | tableFilters = {tableFilters | compliance = filters}}}}, initTooltips "")
+
     ToggleRow rowId defaultSortId ->
       case model.mode of
         RuleForm r ->

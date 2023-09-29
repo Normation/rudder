@@ -12,19 +12,21 @@ import Dict
 import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
 import DirectiveCompliance.ViewUtils exposing (..)
-
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
 
 displayRulesComplianceTable : Model -> Html Msg
 displayRulesComplianceTable model =
   let
     filters = model.ui.ruleFilters
-    fun     = byRuleCompliance model (nodeValueCompliance model)
+    complianceFilters = filters.compliance
+    fun     = byRuleCompliance model (nodeValueCompliance model complianceFilters) complianceFilters
     col     = "Rule"
     childs  = case model.directiveCompliance of
       Just dc -> dc.rules
       Nothing -> []
     childrenSort = childs
       |> List.filter (\d -> (filterSearch filters.filter (searchFieldRuleCompliance d)))
+      |> List.filter (filterDetailsByCompliance complianceFilters)
       |> List.sortWith sort
 
     (children, order, newOrder) = case sortOrder of
@@ -41,13 +43,18 @@ displayRulesComplianceTable model =
     ( if model.ui.loading then
       generateLoadingTable
       else
-      div[][ div [class "table-header"]
-      [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter
-      , onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
-      , label [class "btn btn-sm btn-primary", onClick (CallApi getCSVExport)]
-        [ text "Export "
-        , i [ class "fa fa-download" ] []
+      div[][ div [class "table-header extra-filters"]
+      [ div[class "main-filters"]
+        [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter
+          , onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
+        , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
+          [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+          , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+          ]
+        , button [class "btn btn-sm btn-primary btn-export", onClick (CallApi getCSVExport) ]
+          [ text "Export " , i [ class "fa fa-download" ] [] ]
         ]
+      , displayComplianceFilters complianceFilters UpdateComplianceFilters
       ]
       , div[class "table-container"]
         [ table [class "dataTable compliance-table"]

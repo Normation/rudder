@@ -6,7 +6,6 @@ import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, custom, onInput)
-import Json.Encode
 import List.Extra
 import List
 import Maybe.Extra
@@ -16,9 +15,9 @@ import Tuple3
 import NaturalOrdering as N exposing (compare)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
-import Rules.ComplianceUtils exposing (..)
 import Rules.DataTypes exposing (..)
-
+import Compliance.DataTypes exposing (..)
+import Compliance.Utils exposing (..)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -30,6 +29,10 @@ onCustomClick msg =
       }
     )
 
+getRuleCompliance : Model -> RuleId -> Maybe RuleComplianceGlobal
+getRuleCompliance model rId =
+  Dict.get rId.value model.rulesCompliance
+  
 getListRules : Category Rule -> List (Rule)
 getListRules r = getAllElems r
 
@@ -131,25 +134,6 @@ type alias ItemFun item subItem data =
   , filterItems : item -> Bool
   }
 
-filterByCompliance : ComplianceFilters -> ComponentCompliance value -> Bool
-filterByCompliance filter i =
-  let
-    compliance = \item ->
-      case item of
-        Block b -> b.complianceDetails
-        Value c -> c.complianceDetails
-  in
-    (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (compliance i) filter)
-
-filterDetailsByCompliance filter = \i ->
-  (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (i.complianceDetails) filter)
-
-filterValueByCompliance filter = \i ->
-  let
-    isSelected = List.member i.status filter.selectedStatus
-  in
-    ( List.isEmpty filter.selectedStatus ) || ( if filter.showOnlyStatus then isSelected else not isSelected )
-
 valueCompliance : ComplianceFilters -> ItemFun ValueLine () ValueLine
 valueCompliance complianceFilters =
   ItemFun
@@ -184,7 +168,7 @@ nodeValueCompliance mod complianceFilters =
     (always (List.map Tuple3.first (valueCompliance complianceFilters).rows))
     (filterDetailsByCompliance complianceFilters)
 
-byComponentCompliance : ItemFun value subValue valueData  -> ComplianceFilters -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
+byComponentCompliance : ItemFun value subValue valueData -> ComplianceFilters -> ItemFun (ComponentCompliance value) (Either (ComponentCompliance value) value) (ComponentCompliance value)
 byComponentCompliance subFun complianceFilters =
   let
     name = \item ->
@@ -287,7 +271,6 @@ byNodeCompliance mod complianceFilters =
     (Just (\b -> showComplianceDetails directive b))
     (always (List.map Tuple3.first directive.rows))
     (always True)
-
 
 
 showComplianceDetails : ItemFun item subItems data -> item -> String -> Dict String (String, SortOrder) -> Model -> List (Html Msg)
@@ -578,40 +561,6 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
   in
     rowIncludeGroup
 
-buildComplianceBar :ComplianceFilters -> ComplianceDetails   -> Html Msg
-buildComplianceBar filters complianceDetails =
-  let
-    filteredCompliance = filterCompliance complianceDetails filters
-    displayCompliance : {value : Float, rounded : Int, details : String} -> String -> Html msg
-    displayCompliance compliance className =
-      if compliance.value > 0 then
-        let
-
-          --Hide the compliance text if the value is too small (less than 3%)
-          realPercent = compliance.value / (sumPercent filteredCompliance) * 100
-          realRounded = Basics.floor realPercent
-          complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
-        in
-          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
-          [ text complianceTxt ]
-      else
-        text ""
-
-    allComplianceValues = getAllComplianceValues filteredCompliance
-  in
-    if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-      div[ class "text-muted"][text "No data available"]
-    else
-      div[ class "progress progress-flex"]
-      [ displayCompliance allComplianceValues.okStatus        "success"
-      , displayCompliance allComplianceValues.nonCompliant    "audit-noncompliant"
-      , displayCompliance allComplianceValues.error           "error"
-      , displayCompliance allComplianceValues.unexpected      "unknown progress-bar-striped"
-      , displayCompliance allComplianceValues.pending         "pending progress-bar-striped"
-      , displayCompliance allComplianceValues.reportsDisabled "reportsdisabled"
-      , displayCompliance allComplianceValues.noReport        "no-report"
-      ]
-
 buildComplianceReport : ValueLine -> String
 buildComplianceReport report =
   case report.status of
@@ -650,6 +599,7 @@ reportStatusOrder report =
     "reportsDisabled"            -> 12
     "noReport"                   -> 13
     _ -> -1
+
 generateLoadingList : Html Msg
 generateLoadingList =
   ul[class "skeleton-loading"]
@@ -821,84 +771,3 @@ rulesTableHeader ruleFilters =
       , onClick (UpdateRuleFilters (sortTable ruleFilters RuleChanges))
       ] [ text "Changes" ]
  ]
-
-displayComplianceFilters : Filters -> (Filters -> Msg) -> Html Msg
-displayComplianceFilters filters updateAction =
-  let
-    tableFilters = filters.tableFilters
-    complianceFilters = tableFilters.compliance
-  in
-    ( if complianceFilters.showComplianceFilters then
-      let
-        selectedStatus = filters.tableFilters.compliance.selectedStatus
-        statusDropdown status substatus =
-          let
-            allSelected   = substatus |> List.all (\s -> List.member s selectedStatus)
-            anySelect = substatus |> List.any (\s -> List.member s selectedStatus)
-            indeterminate = property "indeterminate" (if not allSelected && anySelect then Json.Encode.string "true" else Json.Encode.null)
-            newSelection  = if allSelected then selectedStatus |> List.filter (\s -> List.Extra.notMember s substatus) else List.Extra.unique (List.append selectedStatus substatus)
-          in
-            [ li [class "compliance-group", onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = newSelection }}})]
-              [ span[] [ input [type_ "checkbox", checked allSelected, indeterminate][] ]
-              , span[]
-                [ i[class ("compliance-badge badge-sm " ++ (String.toLower (String.replace " " "-" status)))][]
-                , text status
-                ]
-              ]
-            , if List.length substatus > 1 then
-              ul[]
-              ( substatus
-                |> List.map (\s ->
-                  let
-                    isSelected   = List.member s selectedStatus
-                    subSelection = if isSelected then List.Extra.remove s selectedStatus else s :: selectedStatus
-                  in
-                    li [onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = subSelection }}})]
-                    [ span[] [ input [type_ "checkbox", checked isSelected][] ]
-                    , span[] [ text (getComplianceStatusTitle s) ]
-                    ]
-                )
-              )
-              else
-              text ""
-            ]
-      in
-        div[class "more-filters filter-compliance"]
-        [ label [][text "Compliance"]
-        , div [class "form-group"]
-          [ div [class "btn-group "]
-            [ label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then " active" else "")), onClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | showOnlyStatus = True }}})][text "Show only"]
-            , label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then "" else " active")), onClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | showOnlyStatus = False}}})][text "Hide"     ]
-            ]
-          , div [class "btn-group"]
-            [ button [attribute "data-toggle" "dropdown", type_ "button", class "btn btn-default btn-dropdown-compliance"]
-              [ text "Select status"
-              , span[class "badge"][text (String.fromInt (List.length selectedStatus))]
-              , i [class "fa fa-angle-down"][]
-              ]
-            , ul [class "dropdown-menu dropdown-compliance"]
-              ( complianceStatusGroups
-              |> Dict.map statusDropdown
-              |> Dict.values
-              |> List.concat
-              )
-            ]
-          ]
-        , div []
-          ( complianceFilters.selectedStatus
-            |> List.map (\s ->
-              let
-                className = case Dict.Extra.find (\status substatus -> List.member s substatus) complianceStatusGroups of
-                  Just (st, sbst) -> st
-                  Nothing -> s
-              in
-                span[class ("compliance-badge " ++ (String.toLower (String.replace " " "-" className))), onCustomClick (updateAction {filters | tableFilters = {tableFilters | compliance = { complianceFilters | selectedStatus = List.Extra.remove s selectedStatus }}})]
-                [ text (getComplianceStatusTitle s)
-                , i[class "fa fa-times"][]
-                ]
-            )
-          )
-        ]
-      else
-      text ""
-    )

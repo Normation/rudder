@@ -11,7 +11,7 @@ import Time.ZonedDateTime exposing (ZonedDateTime)
 import Tuple
 
 import Rules.DataTypes exposing (..)
-
+import Compliance.DataTypes exposing (..)
 
 -- GENERAL
 decodeGetPolicyMode : Decoder String
