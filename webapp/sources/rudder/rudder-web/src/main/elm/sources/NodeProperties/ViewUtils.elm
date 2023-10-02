@@ -105,7 +105,10 @@ checkUsedName name properties =
 
 displayJsonValue : Value -> String
 displayJsonValue value =
-    encode 2 value
+  case decodeValue Json.Decode.string value of
+    -- Properties are not typed, so we use this heuristic to chose between strand and JSON types 
+    Ok s  -> s
+    Err _ -> encode 2 value
 
 displayNodePropertyRow : Model -> List (Html Msg)
 displayNodePropertyRow model =
@@ -168,12 +171,12 @@ displayNodePropertyRow model =
             , td [class "property-value"]
               [ div []
                 [ div [class ("value-container" ++ (if List.member p.name model.ui.showMore then " toggle" else "") ++ (if isTooLong p.value then " show-more" else "") ), onClick (ShowMore p.name) ]
-                  [ pre [class "json-beautify"][ useTheme gitHub,
-                                                 json (displayJsonValue p.value)
-                                                       |> Result.map toInlineHtml
-                                                       |> Result.withDefault ( text (displayJsonValue p.value) )
-                                               ]
-                  
+                  [ pre [class "json-beautify"]
+                    [ useTheme gitHub,
+                      json (displayJsonValue p.value)
+                           |> Result.map toInlineHtml
+                           |> Result.withDefault ( text (displayJsonValue p.value) )
+                    ]
                   ]
                 , span [class "toggle-icon"][]
                 , button [class "btn btn-xs btn-default btn-clipboard", title "Copy to clipboard", onClick (Copy (displayJsonValue p.value))]
