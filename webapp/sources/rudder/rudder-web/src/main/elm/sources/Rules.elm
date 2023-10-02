@@ -533,7 +533,7 @@ update msg model =
         groupFilters = ui.groupFilters
         tableFilters = groupFilters.tableFilters
       in
-        ({model | ui = { ui | directiveFilters = {groupFilters | tableFilters = {tableFilters | compliance = filters}}}}, initTooltips "")
+        ({model | ui = { ui | groupFilters = {groupFilters | tableFilters = {tableFilters | compliance = filters}}}}, initTooltips "")
 
     ToggleRow rowId defaultSortId ->
       case model.mode of
