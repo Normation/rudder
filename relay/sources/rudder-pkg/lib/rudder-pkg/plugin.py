@@ -27,21 +27,32 @@ class Plugin:
             with open(utils.INDEX_PATH) as f:
                 data = json.load(f)
             for metadata in data:
-                if metadata['name'] == 'rudder-plugin-%s' % (self.name):
-                    version = rpkg.PluginVersion(metadata['version'])
-                    package = rpkg.Rpkg(
-                        metadata['name'], self.name, metadata['path'], version, metadata
-                    )
-                    self.packagesInfo.add(package)
-                    if version.mode == 'release':
-                        self.releasePackagesInfo.add(package)
-                    elif version.mode == 'nightly':
-                        self.nightlyPackagesInfo.add(package)
-                    else:
-                        utils.fail(
-                            'Unknown release mode, found %s and expecting release or nightly'
-                            % (version.mode)
+                try:
+                    if metadata['name'] == 'rudder-plugin-%s' % (self.name):
+                        version = rpkg.PluginVersion(metadata['version'])
+                        package = rpkg.Rpkg(
+                            metadata['name'], self.name, metadata['path'], version, metadata
                         )
+                        self.packagesInfo.add(package)
+                        if version.mode == 'release':
+                            self.releasePackagesInfo.add(package)
+                        elif version.mode == 'nightly':
+                            self.nightlyPackagesInfo.add(package)
+                        else:
+                            utils.fail(
+                                'Unknown release mode, found %s and expecting release or nightly'
+                                % (version.mode)
+                            )
+                except Exception as e:
+                    name = '<no valid name>'
+                    version = '<no valid version>'
+                    if 'name' in metadata:
+                        name = metadata['name']
+                    if 'version' in metadata:
+                        version = metadata['version']
+                    logger.warn(
+                        "There was an invalid entry for plugin '%s' version '%s'" % (name, version)
+                    )
         except Exception as e:
             logger.error(
                 'Verify that %s is correctly configured, run `rudder package update` and retry'
