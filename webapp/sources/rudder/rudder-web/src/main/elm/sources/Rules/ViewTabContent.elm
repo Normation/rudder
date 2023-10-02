@@ -632,18 +632,18 @@ nodesTab model details =
     tableFilters = groupFilters.tableFilters
     complianceFilters = tableFilters.compliance
 
-    fun = byNodeCompliance model model.ui.groupFilters.tableFilters.compliance
+    fun = byNodeCompliance model complianceFilters
     nodeRows =  List.map Tuple3.first fun.rows
     rowId = "byNodes/"
     (sortId, sortOrder) = Dict.get rowId ui.openedRows |> Maybe.withDefault ("Node",Asc)
     sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
                Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
                Nothing -> (\_ _ -> EQ)
-    filter = model.ui.groupFilters.tableFilters.filter
+    filter = tableFilters.filter
     childs       = Maybe.withDefault [] (Maybe.map .nodes details.compliance)
     childrenSort = childs
       |> List.filter (\d -> (String.contains filter d.name) || (String.contains filter d.nodeId.value) )
-      |> List.filter (filterDetailsByCompliance model.ui.groupFilters.tableFilters.compliance)
+      |> List.filter (filterDetailsByCompliance complianceFilters)
       |> List.sortWith sort
     (nodesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
@@ -699,7 +699,7 @@ nodesTab model details =
         ]
       , div [class "table-header extra-filters"]
         [ div [class "main-filters"]
-          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.groupFilters.tableFilters.filter
+          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value tableFilters.filter
             , onInput (\s -> UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}} )][]
           , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | compliance = {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}}}), style "min-width" "170px"]
             [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
@@ -707,7 +707,7 @@ nodesTab model details =
             ]
           , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
           ]
-        , displayComplianceFilters groupFilters.tableFilters.compliance UpdateGroupComplianceFilters
+        , displayComplianceFilters complianceFilters UpdateGroupComplianceFilters
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [
