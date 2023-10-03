@@ -122,12 +122,13 @@ update msg model =
           ui = model.ui
           editedProperties = ui.editedProperties
             |> Dict.remove key
-
+          oldName = String.trim key
+          newName = String.trim property.name
           (successMsg, updatedProperty) =
-            if (property.value == key) then
-              ("property '" ++ (String.trim property.name) ++ "' has been updated", [property])
+            if (oldName == newName) then
+              ("property '" ++ newName ++ "' has been updated", [property])
             else
-              ( "property '" ++ (String.trim key) ++ "' has been updated and renamed to '" ++ (String.trim property.name) ++ "'", [property, {property | name = key, value = ""} ] )
+              ( "property '" ++ oldName ++ "' has been updated and renamed to '" ++ newName ++ "'", [property, {property | name = key, value = ""} ] )
           updatedModel = { model | ui = {ui | editedProperties = editedProperties} }
           (newModel, cmd) = if save then -- If we want to save changes
             case property.format of
