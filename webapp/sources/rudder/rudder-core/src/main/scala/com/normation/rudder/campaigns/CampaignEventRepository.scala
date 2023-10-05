@@ -50,7 +50,7 @@ import org.joda.time.DateTime
 import zio.interop.catz._
 
 trait CampaignEventRepository {
-  def get(campaignEventId:                 CampaignEventId): IOResult[CampaignEvent]
+  def get(campaignEventId:                 CampaignEventId): IOResult[Option[CampaignEvent]]
   def saveCampaignEvent(c:                 CampaignEvent):   IOResult[CampaignEvent]
   def numberOfEventsByCampaign(campaignId: CampaignId):      IOResult[Int]
   def deleteEvent(
@@ -111,10 +111,10 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     }
   }
 
-  def get(id: CampaignEventId): IOResult[CampaignEvent] = {
+  def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
     val q =
       sql"select eventId, campaignId, name, state, startDate, endDate, campaignType from  CampaignEvents where eventId = ${id.value}"
-    transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].unique.transact(xa))
+    transactIOResult(s"error when getting campaign event with id ${id.value}")(xa => q.query[CampaignEvent].option.transact(xa))
   }
 
   def getWithCriteria(
