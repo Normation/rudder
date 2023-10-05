@@ -6,6 +6,7 @@
 //! The style is heavily inspired from cargo/rustc.
 
 use std::{
+    env,
     fmt::{Display, Formatter},
     str::FromStr,
 };
@@ -56,13 +57,16 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
         .from_env_lossy()
         .add_directive(level.into());
 
+    // Already handled by the colored crate by default for other output
+    let no_color = env::var("NO_COLOR").is_ok();
+
     let builder = Subscriber::builder()
         .without_time()
         .with_target(false)
         .with_env_filter(filter);
     match format {
         OutputFormat::Human => builder
-            .event_format(fmt::format().compact().without_time())
+            .event_format(fmt::format().compact().without_time().with_ansi(!no_color))
             .init(),
         OutputFormat::Json => builder.event_format(fmt::format().json()).init(),
     };

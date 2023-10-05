@@ -312,7 +312,7 @@ class RuddercServiceImpl(
       ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
-    Cmd(ruddercCmd, params, Map())
+    Cmd(ruddercCmd, params, Map("NO_COLOR" -> "1"))
   }
 
   def logReturnCode(result: RuddercResult): IOResult[Unit] = {
@@ -411,7 +411,7 @@ class TechniqueCompilerWithFallback(
       app:       Option[TechniqueCompilerApp]
   ): IOResult[TechniqueCompilationOutput] = {
 
-    val verbose        = true
+    val verbose        = false
     val ruddercOptions = RuddercOptions(verbose)
 
     val ruddercAll = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
