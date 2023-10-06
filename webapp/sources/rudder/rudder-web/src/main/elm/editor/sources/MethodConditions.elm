@@ -17,7 +17,7 @@ module MethodConditions exposing (..)
 type OS = AIX     { version : Maybe  Int }
         | Linux   ( Maybe LinuxOS )
         | Solaris { major : Maybe  Int, minor : Maybe Int }
-        | Windows
+        | Windows ( Maybe WindowsOS )
 
 type alias Condition =
   { os       : Maybe OS
@@ -33,6 +33,7 @@ showUbuntuMinor v =
     All ->  "All"
     ZeroFour -> "04"
     Ten -> "10"
+
 -- Here Redhat and Suse are actually families of OSes
 -- But we want to avoid a third level of selection so we keep them inline
 type LinuxOS = DebianFamily
@@ -52,6 +53,25 @@ type LinuxOS = DebianFamily
              | OpenSuse  { major : Maybe  Int, minor : Maybe Int }
              | Slackware { major : Maybe  Int, minor : Maybe Int }
 
+-- Treat all Windows versions as specific enum variants. Numbering is inconsistant
+-- and trying to use integers would be misleading to users.
+-- We don't have anything generic other server vs. non server, so we only have one enum
+type WindowsOS = Seven | Eight | EightDotOne | WinTen | Eleven | V2008 | V2008R2 | V2012 | V2012R2 | V2016 | V2019 | V2022
+showWindowsOS: WindowsOS -> String
+showWindowsOS os =
+  case os of
+    Seven       -> "7"
+    Eight       -> "8"
+    EightDotOne -> "8.1"
+    WinTen      -> "10"
+    Eleven      -> "11"
+    V2008   -> "Server 2008"
+    V2008R2 -> "Server 2008 R2"
+    V2012   -> "Server 2012"
+    V2012R2 -> "Server 2012 R2"
+    V2016   -> "Server 2016"
+    V2019   -> "Server 2019"
+    V2022   -> "Server 2022"
 
 osName: Maybe OS -> String
 osName maybeOs =
@@ -59,10 +79,11 @@ osName maybeOs =
     Nothing -> "All"
     Just os ->
       case os of
-        AIX _         -> "AIX"
-        Solaris _     -> "Solaris"
-        Windows       -> "Windows"
-        Linux Nothing -> "Linux"
+        AIX _              -> "AIX"
+        Solaris _          -> "Solaris"
+        Windows Nothing    -> "Windows family"
+        Windows (Just win) -> "Windows " ++ (showWindowsOS win)
+        Linux Nothing      -> "Linux"
         Linux (Just linux) ->
           case linux of
             DebianFamily  -> "Debian family"
@@ -103,6 +124,22 @@ versionSPCondition s v =
     (Just major, Just minor) -> s ++ "_" ++ (String.fromInt major) ++ "_" ++ (String.fromInt minor)
     _                        -> s
 
+conditionWin: WindowsOS -> String
+conditionWin os =
+  case os of
+    Seven       -> "windows_7"
+    Eight       -> "windows_8"
+    EightDotOne -> "windows_8_1"
+    WinTen      -> "windows_10"
+    Eleven      -> "windows_11"
+    V2008   -> "windows_server_2008"
+    V2008R2 -> "windows_server_2008_R2"
+    V2012   -> "windows_server_2012"
+    V2012R2 -> "windows_server_2012_R2"
+    V2016   -> "windows_server_2016"
+    V2019   -> "windows_server_2019"
+    V2022   -> "windows_server_2022"
+
 conditionLinux: LinuxOS -> String
 conditionLinux os =
   case os of
@@ -131,7 +168,8 @@ conditionOs os =
     AIX v                -> Maybe.withDefault "aix" (Maybe.map (String.fromInt >> (++) "aix_") v.version)
     Linux Nothing        -> "linux"
     Solaris v            -> majorMinorVersionCondition "solaris" v
-    Windows              -> "windows"
+    Windows Nothing      -> "windows"
+    Windows (Just winOs) -> conditionWin winOs
     Linux (Just linuxOs) -> conditionLinux linuxOs
 
 conditionStr : Condition -> String
@@ -144,7 +182,20 @@ conditionStr condition =
 parseOs: String -> Maybe OS
 parseOs os =
   case String.split "_" os of
-    [ "windows" ]      -> Just Windows
+    [ "windows" ]                         -> Just (Windows Nothing)
+    [ "windows", "server", "2008" ]       -> Just (Windows (Just V2008))
+    [ "windows", "server", "2008", "R2" ] -> Just (Windows (Just V2008R2))
+    [ "windows", "server", "2012" ]       -> Just (Windows (Just V2012))
+    [ "windows", "server", "2012", "R2" ] -> Just (Windows (Just V2012R2))
+    [ "windows", "server", "2016" ]       -> Just (Windows (Just V2016))
+    [ "windows", "server", "2019" ]       -> Just (Windows (Just V2019))
+    [ "windows", "server", "2022" ]       -> Just (Windows (Just V2022))
+    [ "windows", "7" ]      -> Just (Windows (Just Seven))
+    [ "windows", "8" ]      -> Just (Windows (Just Eight))
+    [ "windows", "8", "1" ] -> Just (Windows (Just EightDotOne))
+    [ "windows", "10" ]     -> Just (Windows (Just WinTen))
+    [ "windows", "11" ]     -> Just (Windows (Just Eleven))
+    
     [ "linux" ]        -> Just (Linux Nothing)
     [ "suse" ]         -> Just (Linux (Just (SuseFamily)))
     [ "redhat" ]       -> Just (Linux (Just (RedhatFamily)))
@@ -305,7 +356,19 @@ osList =
   , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (OpenSuse noVersion)))
   , Just (Linux (Just (Slackware noVersion)))
-  , Just Windows
+  , Just (Windows Nothing)
+  , Just (Windows (Just V2008))
+  , Just (Windows (Just V2008R2))
+  , Just (Windows (Just V2012))
+  , Just (Windows (Just V2012R2))
+  , Just (Windows (Just V2016))
+  , Just (Windows (Just V2019))
+  , Just (Windows (Just V2022))
+  , Just (Windows (Just Seven))
+  , Just (Windows (Just Eight))
+  , Just (Windows (Just EightDotOne))
+  , Just (Windows (Just WinTen))
+  , Just (Windows (Just Eleven))
   , Just ( AIX {version = Nothing} )
   , Just ( Solaris noVersion)
   ]
@@ -468,6 +531,7 @@ osClass maybeOs =
       case os of
         AIX _ -> "optGroup"
         Solaris _ -> "optGroup"
-        Windows -> "optGroup"
+        Windows Nothing -> "optGroup"
+        Windows (Just _) -> "optChild"
         Linux Nothing -> "optGroup"
         Linux (Just _) -> "optChild"
