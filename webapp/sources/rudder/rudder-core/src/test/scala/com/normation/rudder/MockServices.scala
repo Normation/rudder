@@ -3014,7 +3014,7 @@ class MockCampaign() {
     def get(id: CampaignEventId):            IOResult[Option[CampaignEvent]] = {
       items.get.map(_.get(id))
     }
-    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
+    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent]         = {
       for {
         _ <- items.update(map => map + ((c.id, c)))
       } yield c
