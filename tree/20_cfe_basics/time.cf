@@ -152,7 +152,7 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
       "unpredictable" not => strcmp("${run_shift}", "0");
 
       # global error
-      "job_${job_id}_error" expression => "job_${job_id}_error_null_agent_periodicity|job_${job_id}_error_delay_too_small|job_${job_id}_error_delay_too_big",
+      "job_${job_id}_error" expression => "job_${job_id}_error_null_agent_periodicity|job_${job_id}_error_delay_too_small|job_${job_id}_error_delay_too_big|null_job_periodicity",
                             scope => "namespace";
 
     any::
@@ -163,6 +163,9 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
       "Warning, there is a shift of ${run_shift} minutes between agent run period and ${job_id} run period";
     delay_too_small.!delay_null::
       "Warning, max_execution_delay for ${job_id} is less than your agent run period but not null, it will be ignored";
+    null_job_periodicity::
+      "Warning, schedule job ${job_id} periodicity is set to null, the agent can not compute a correct schedule table, it will be ignored";
+
 
 }
 
