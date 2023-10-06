@@ -3082,10 +3082,10 @@ class MockCampaign() {
       e.state == Scheduled || e.state == Running
     }
 
-    def get(id: CampaignEventId):            IOResult[CampaignEvent] = {
-      items.get.map(_.get(id)).notOptional(s"Campaign event not found: ${id.value}")
+    def get(id: CampaignEventId):            IOResult[Option[CampaignEvent]] = {
+      items.get.map(_.get(id))
     }
-    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
+    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent]         = {
       for {
         _ <- items.update(map => map + ((c.id, c)))
       } yield c

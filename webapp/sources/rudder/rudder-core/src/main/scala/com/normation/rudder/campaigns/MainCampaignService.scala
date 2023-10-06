@@ -155,136 +155,153 @@ class MainCampaignService(
 
       repo
         .get(eventId)
-        .flatMap(event => {
-          (for {
-            campaign <- campaignRepo.get(event.campaignId)
-            _        <- CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
+        .flatMap {
+          case None        =>
+            CampaignLogger.error(
+              s"An error occurred while treating campaign event ${eventId.value}, error details : Could not find campaign event details "
+            )
+          case Some(event) =>
+            {
+              for {
+                campaign <- campaignRepo.get(event.campaignId)
+                _        <- CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
 
-            _               <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
-            wait            <-
-              event.state match {
-                case Finished | Skipped(_) =>
-                  ().succeed
-                case Scheduled             =>
-                  campaign.info.status match {
-                    case Disabled(reason)       =>
-                      val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
-                      repo.saveCampaignEvent(
-                        event.copy(state = Skipped(s"Event was cancelled because campaign is disabled. ${reasonMessage}"))
-                      )
-                    case Archived(reason, date) =>
-                      val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
-                      repo.saveCampaignEvent(
-                        event.copy(state = Skipped(s"Event was cancelled because campaign is archived. ${reasonMessage}"))
-                      )
-                    case Enabled                =>
+                _    <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
+                wait <-
+                  event.state match {
+                    case Finished | Skipped(_) =>
+                      ().succeed
+                    case Scheduled             =>
+                      campaign.info.status match {
+                        case Disabled(reason)       =>
+                          val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                          repo.saveCampaignEvent(
+                            event.copy(state = Skipped(s"Event was cancelled because campaign is disabled. ${reasonMessage}"))
+                          )
+                        case Archived(reason, date) =>
+                          val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
+                          repo.saveCampaignEvent(
+                            event.copy(state = Skipped(s"Event was cancelled because campaign is archived. ${reasonMessage}"))
+                          )
+                        case Enabled                =>
+                          val effectiveStart = event.start.minusHours(startDelay)
+                          if (effectiveStart.isAfter(now)) {
+                            for {
+                              _ <-
+                                CampaignLogger.debug(
+                                  s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
+                                      .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
+                                )
+                              _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
+                            } yield {
+                              ().succeed
+                            }
+                          } else {
+                            CampaignLogger.debug(
+                              s"${event.id.value} should be treated by ${event.campaignType.value} handler for Scheduled state"
+                            )
+                          }
+                      }
+                    case Running               =>
                       val effectiveStart = event.start.minusHours(startDelay)
+                      val effectiveEnd   = event.end.plusHours(endDelay)
                       if (effectiveStart.isAfter(now)) {
                         for {
+                          // Campaign should be planned, not running
+                          _ <-
+                            CampaignLogger.warn(
+                              s"Campaign event ${event.id.value} was considered Running but we are before its start date, setting state to Schedule and wait for event to start, on ${DateFormaterService
+                                  .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
+                            )
+                          _ <- repo.saveCampaignEvent(event.copy(state = Scheduled))
                           _ <-
                             CampaignLogger.debug(
                               s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
                                   .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
                             )
+
                           _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
                         } yield {
-                          ().succeed
+                          ()
+                        }
+                      } else if (effectiveEnd.isAfter(now)) {
+                        for {
+                          _ <-
+                            CampaignLogger.debug(
+                              s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService
+                                  .serialize(effectiveEnd)}, ${endDelay} hour${if (endDelay > 1) "s" else ""} after official end date, so that we can gather results"
+                            )
+                          _ <- ZIO.sleep(Duration.fromMillis(effectiveEnd.getMillis - now.getMillis))
+                        } yield {
+                          ()
                         }
                       } else {
                         CampaignLogger.debug(
-                          s"${event.id.value} should be treated by ${event.campaignType.value} handler for Scheduled state"
+                          s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state"
                         )
                       }
                   }
-                case Running               =>
-                  val effectiveStart = event.start.minusHours(startDelay)
-                  val effectiveEnd   = event.end.plusHours(endDelay)
-                  if (effectiveStart.isAfter(now)) {
-                    for {
-                      // Campaign should be planned, not running
-                      _ <-
-                        CampaignLogger.warn(
-                          s"Campaign event ${event.id.value} was considered Running but we are before its start date, setting state to Schedule and wait for event to start, on ${DateFormaterService
-                              .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
-                        )
-                      _ <- repo.saveCampaignEvent(event.copy(state = Scheduled))
-                      _ <-
-                        CampaignLogger.debug(
-                          s"Scheduled Campaign event ${event.id.value} put to sleep until it should start, on ${DateFormaterService
-                              .serialize(effectiveStart)}, ${startDelay} hour${if (startDelay > 1) "s" else ""} before official start date, to ensure policies are correctly dispatched, nothing will be applied on the node"
-                        )
 
-                      _ <- ZIO.sleep(Duration.fromMillis(effectiveStart.getMillis - now.getMillis))
-                    } yield {
-                      ()
-                    }
-                  } else if (effectiveEnd.isAfter(now)) {
-                    for {
-                      _ <-
-                        CampaignLogger.debug(
-                          s"Running Campaign event ${event.id.value} put to sleep until it should end, on ${DateFormaterService
-                              .serialize(effectiveEnd)}, ${endDelay} hour${if (endDelay > 1) "s" else ""} after official end date, so that we can gather results"
-                        )
-                      _ <- ZIO.sleep(Duration.fromMillis(effectiveEnd.getMillis - now.getMillis))
-                    } yield {
-                      ()
-                    }
-                  } else {
-                    CampaignLogger.debug(
-                      s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state"
-                    )
-                  }
+                // Get updated event and campaign, state of the event could have changed, campaign parameter also
+                _    <- repo.get(event.id).flatMap {
+                          case None               =>
+                            CampaignLogger.warn(
+                              s"Campaign event ${event.name} (id '${event.id.value}') was deleted while it was waiting to be treated, it state was ${event.state.value}, it should have run between ${DateFormaterService
+                                  .getDisplayDate(event.start)} and ${DateFormaterService.getDisplayDate(event.end)}, we will ignore this event and do nothing with it"
+                            )
+                          case Some(updatedEvent) =>
+                            for {
+                              updatedCampaign <- campaignRepo.get(event.campaignId)
+                              _               <- CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
+
+                              handle       = {
+                                services.map(_.handle(main, updatedEvent)).foldLeft(base(updatedEvent)) {
+                                  case (base, handler) => handler orElse base
+                                }
+                              }
+                              newCampaign <- handle.apply(updatedCampaign)
+
+                              _    <-
+                                CampaignLogger.debug(
+                                  s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}"
+                                )
+                              save <- repo.saveCampaignEvent(newCampaign)
+                              post <-
+                                newCampaign.state match {
+                                  case Finished | Skipped(_) =>
+                                    for {
+                                      campaign <- campaignRepo.get(event.campaignId)
+                                      up       <- scheduleCampaignEvent(campaign, newCampaign.end)
+                                    } yield {
+                                      up
+                                    }
+                                  case Scheduled | Running   =>
+                                    for {
+                                      _ <- queueCampaign(newCampaign)
+                                    } yield {
+                                      ()
+                                    }
+                                }
+                            } yield {
+                              ()
+                            }
+                        }
+              } yield {
+                ()
               }
-
-            // Get updated event and campaign, state of the event could have changed, campaign parameter also
-            updatedEvent    <- repo.get(event.id)
-            updatedCampaign <- campaignRepo.get(event.campaignId)
-            _               <- CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
-
-            handle       = {
-              services.map(_.handle(main, updatedEvent)).foldLeft(base(updatedEvent)) {
-                case (base, handler) => handler orElse base
-              }
+            }.catchAll { err =>
+              /*
+               * When we have an error at that level, if we don't skip the event, it will be requeue and we are extremely
+               * likely to get the same error, and to loop infinitely, filling the disk with logs at full speed.
+               * See: https://issues.rudder.io/issues/22141
+               */
+              CampaignLogger.error(
+                s"An error occurred while treating campaign event ${eventId.value}, skipping that event. Error details : ${err.fullMsg}"
+              ) *>
+              repo.saveCampaignEvent(event.copy(state = Skipped(s"An error occurred when processing event: ${err.fullMsg}")))
             }
-            newCampaign <- handle.apply(updatedCampaign)
-
-            _    <-
-              CampaignLogger.debug(
-                s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}"
-              )
-            save <- repo.saveCampaignEvent(newCampaign)
-            post <-
-              newCampaign.state match {
-                case Finished | Skipped(_) =>
-                  for {
-                    campaign <- campaignRepo.get(event.campaignId)
-                    up       <- scheduleCampaignEvent(campaign, newCampaign.end)
-                  } yield {
-                    up
-                  }
-                case Scheduled | Running   =>
-                  for {
-                    _ <- queueCampaign(newCampaign)
-                  } yield {
-                    ()
-                  }
-              }
-          } yield {
-            ()
-          }).catchAll { err =>
-            /*
-             * When we have an error at that level, if we don't skip the event, it will be requeue and we are extremely
-             * likely to get the same error, and to loop infinitely, filling the disk with logs at full speed.
-             * See: https://issues.rudder.io/issues/22141
-             */
-            CampaignLogger.error(
-              s"An error occurred while treating campaign event ${eventId.value}, skipping that event. Error details : ${err.fullMsg}"
-            ) *>
-            repo.saveCampaignEvent(event.copy(state = Skipped(s"An error occurred when processing event: ${err.fullMsg}")))
-          }
-        })
+        }
         .catchAll(failingLog) // this catch all is when event the previous level does not work. It should not create loop
-
     }
 
     def loop() = {
