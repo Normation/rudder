@@ -58,17 +58,7 @@ update msg model =
     UpdateComplianceFilters newFilters ->
       let
         ui = model.ui
-        newUi = case ui.viewMode of
-          RulesView ->
-            let
-              ruleFilters = ui.ruleFilters
-            in
-              { ui | ruleFilters = { ruleFilters | compliance = newFilters}}
-          NodesView ->
-            let
-              nodeFilters = ui.nodeFilters
-            in
-              { ui | nodeFilters = { nodeFilters | compliance = newFilters}}
+        newUi = { ui | complianceFilters = newFilters }
       in
         ({model | ui = newUi}, initTooltips "")
 

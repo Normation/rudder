@@ -18,7 +18,7 @@ displayRulesComplianceTable : Model -> Html Msg
 displayRulesComplianceTable model =
   let
     filters = model.ui.ruleFilters
-    complianceFilters = filters.compliance
+    complianceFilters = model.ui.complianceFilters
     fun     = byRuleCompliance model (nodeValueCompliance model complianceFilters) complianceFilters
     col     = "Rule"
     childs  = case model.directiveCompliance of

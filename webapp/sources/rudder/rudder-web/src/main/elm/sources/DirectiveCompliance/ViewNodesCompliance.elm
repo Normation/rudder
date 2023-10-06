@@ -19,7 +19,7 @@ displayNodesComplianceTable : Model -> Html Msg
 displayNodesComplianceTable model =
   let
     filters = model.ui.nodeFilters
-    complianceFilters = filters.compliance
+    complianceFilters = model.ui.complianceFilters
     fun     = byNodeCompliance model complianceFilters
     col     = "Node"
     childs  = case model.directiveCompliance of
