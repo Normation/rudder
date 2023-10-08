@@ -26,8 +26,9 @@
   <SECTIONS>
     <SECTION name="Technique parameters">
       <INPUT>
-        <NAME>server</NAME>
-        <DESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3</DESCRIPTION>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e</NAME>
+        <DESCRIPTION>server</DESCRIPTION>
+        <LONGDESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
