@@ -26,7 +26,7 @@
   <SECTIONS>
     <SECTION name="Technique parameters">
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27a</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27A</NAME>
         <DESCRIPTION>server_a</DESCRIPTION>
         <LONGDESCRIPTION>description</LONGDESCRIPTION>
         <CONSTRAINT>
@@ -34,7 +34,7 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27b</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27B</NAME>
         <DESCRIPTION>server_b</DESCRIPTION>
         <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
         <CONSTRAINT>
@@ -61,21 +61,21 @@
         </CONSTRAINT>
       </SELECT1>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27d</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27D</NAME>
         <DESCRIPTION>server_d</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>mail</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
         <DESCRIPTION>server_e</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>boolean</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27f</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27F</NAME>
         <DESCRIPTION>server_f</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -83,7 +83,7 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27g</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27G</NAME>
         <DESCRIPTION>server_g</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -91,42 +91,42 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27h</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27H</NAME>
         <DESCRIPTION>server_h</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>perm</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27i</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27I</NAME>
         <DESCRIPTION>server_i</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>size-gb</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27j</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27J</NAME>
         <DESCRIPTION>server_j</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27k</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27K</NAME>
         <DESCRIPTION>server_k</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>ipv6</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27l</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27L</NAME>
         <DESCRIPTION>server_l</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27m</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27M</NAME>
         <DESCRIPTION>server_m</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>integer</TYPE>
@@ -134,7 +134,7 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27n</NAME>
+        <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27N</NAME>
         <DESCRIPTION>server_n</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
