@@ -320,6 +320,8 @@ class TechniqueArchiverImpl(
       s"ncf/50_techniques/${technique.id.name.value}" +:       // added in 5.1 for migration to 6.0
         s"dsc/ncf/50_techniques/${technique.id.name.value}" +: // added in 6.1
         (gitTechniquePath + "/technique.rd") +:                // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+        (gitTechniquePath + "/technique.json") +:              // deprecated 8.0. Old json format replaced by using technique.yml
+        (gitTechniquePath + "/rudder_reporting.cf") +:         // deprecated in 8.0. It was merged within technique.cf
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 
