@@ -95,7 +95,7 @@ impl From<Parameter> for Input {
         };
 
         Self {
-            name: p.id.to_string(),
+            name: p.id.to_string().to_uppercase(),
             description: p.name,
             long_description: p.description,
             constraint: Constraint {
