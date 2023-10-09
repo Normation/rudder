@@ -95,9 +95,9 @@ impl From<Parameter> for Input {
         };
 
         Self {
-            name: p.name.clone(),
-            description: p.description.unwrap_or(p.name),
-            long_description: p.documentation,
+            name: p.id.to_string(),
+            description: p.name,
+            long_description: p.description,
             constraint: Constraint {
                 _type: type_constraint.to_string(),
                 may_be_empty: if p.constraints.allow_empty {

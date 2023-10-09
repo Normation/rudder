@@ -26,16 +26,17 @@
   <SECTIONS>
     <SECTION name="Technique parameters">
       <INPUT>
-        <NAME>server_a</NAME>
-        <DESCRIPTION>description</DESCRIPTION>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27a</NAME>
+        <DESCRIPTION>server_a</DESCRIPTION>
+        <LONGDESCRIPTION>description</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_b</NAME>
-        <DESCRIPTION>The server hostname</DESCRIPTION>
-        <LONGDESCRIPTION>This is markdown</LONGDESCRIPTION>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27b</NAME>
+        <DESCRIPTION>server_b</DESCRIPTION>
+        <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
           <MAYBEEMPTY>true</MAYBEEMPTY>
@@ -60,21 +61,21 @@
         </CONSTRAINT>
       </SELECT1>
       <INPUT>
-        <NAME>server_d</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27d</NAME>
         <DESCRIPTION>server_d</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>mail</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_e</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27e</NAME>
         <DESCRIPTION>server_e</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>boolean</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_f</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27f</NAME>
         <DESCRIPTION>server_f</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -82,7 +83,7 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_g</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27g</NAME>
         <DESCRIPTION>server_g</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -90,42 +91,42 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_h</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27h</NAME>
         <DESCRIPTION>server_h</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>perm</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_i</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27i</NAME>
         <DESCRIPTION>server_i</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>size-gb</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_j</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27j</NAME>
         <DESCRIPTION>server_j</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_k</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27k</NAME>
         <DESCRIPTION>server_k</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>ipv6</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_l</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27l</NAME>
         <DESCRIPTION>server_l</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_m</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27m</NAME>
         <DESCRIPTION>server_m</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>integer</TYPE>
@@ -133,7 +134,7 @@
         </CONSTRAINT>
       </INPUT>
       <INPUT>
-        <NAME>server_n</NAME>
+        <NAME>3439bbb0-d8f1-4c43-95a9-0c56bfb8c27n</NAME>
         <DESCRIPTION>server_n</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
