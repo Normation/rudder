@@ -90,7 +90,7 @@ object MigrateJsonTechniquesService {
     )
 
     case class JRTechniqueResource(
-        path:  String,
+        name:  String,
         state: String
     )
 
@@ -149,7 +149,7 @@ object MigrateJsonTechniquesService {
         desc,
         doc,
         oldTechnique.parameter.map(p => TechniqueParameter(ParameterId(p.id), ParameterId(p.name), p.description, p.mayBeEmpty)),
-        oldTechnique.resources.flatMap(s => ResourceFileState.parse(s.state).map(ResourceFile(s.path, _)).toSeq),
+        oldTechnique.resources.flatMap(s => ResourceFileState.parse(s.state).map(ResourceFile(s.name, _)).toSeq),
         Map(),
         None
       )
