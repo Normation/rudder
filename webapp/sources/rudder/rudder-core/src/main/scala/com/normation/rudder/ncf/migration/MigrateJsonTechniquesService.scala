@@ -148,7 +148,9 @@ object MigrateJsonTechniquesService {
         oldTechnique.calls.map(toMethodElem),
         desc,
         doc,
-        oldTechnique.parameter.map(p => TechniqueParameter(ParameterId(p.id), ParameterId(p.name), p.description, p.mayBeEmpty)),
+        oldTechnique.parameter.map(p =>
+          TechniqueParameter(ParameterId(p.id), canonify(p.name), p.name, p.description, p.mayBeEmpty)
+        ),
         oldTechnique.resources.flatMap(s => ResourceFileState.parse(s.state).map(ResourceFile(s.name, _)).toSeq),
         Map(),
         None
@@ -181,6 +183,15 @@ object MigrateJsonTechniquesService {
     } yield yaml
   }
 
+  /*
+   * The yaml name is the canonified version of the old json technique "name".
+   * We must use the same algo that what was used in technique editor to display what value to use in code.
+   * See
+   *   - AgentValueParser.elm => canonifyHelper
+   *   - EditorTechnique.scala => NcfId#canonify
+   */
+  def canonify(value: String): String = value.replaceAll("[^a-zA-Z0-9_]", "_")
+
   // migrate JSON technique at base path. If technique.json does not exists, does nothing (noop)
   def migrateJson(techniquePath: File): IOResult[Unit] = {
     val jsonFile = techniquePath / TechniqueFiles.json
@@ -194,7 +205,7 @@ object MigrateJsonTechniquesService {
                   }
           yaml <- toYaml(json).toIO
           _    <- IOResult.attempt(yamlFile.write(yaml))
-          // on success, delete json file and generated files
+          // on success, delete json file ; file generation will be done latter on on technique reload
           _    <- IOResult
                     .attempt(jsonFile.delete())
                     .chainError(s"Error when deleting migrated json metadata file: '${jsonFile.pathAsString}'")

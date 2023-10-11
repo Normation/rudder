@@ -1,0 +1,17 @@
+id: technique_with_parameters
+name: Technique with parameters
+version: '1.0'
+description: A technique with some parameters
+category: ncf_techniques
+params:
+  - id: 345388b1-7f68-44bd-95bc-c8b66a5010e9
+    name: The_File_To_Check
+    description: The File To Check
+    constraints:
+      allow_empty: false
+items:
+  - id: 66744459-5829-43e0-8b1c-5fece7c0df7f
+    name: Trivial command
+    method: command_execution
+    params:
+      command: ls ${The_File_To_Check}

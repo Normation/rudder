@@ -56,7 +56,6 @@ import zio.json.jsonHint
 sealed trait NcfId {
   def value:        String
   def validDscName: String
-  def canonify: String = value.replaceAll("[^a-zA-Z0-9_]", "_")
 }
 final case class BundleName(value: String) extends NcfId {
   val validDscName: String = value.split("_").map(_.capitalize).mkString("-")
@@ -190,10 +189,11 @@ final case class MethodParameter(
     parameterType: ParameterType.ParameterType
 )
 final case class TechniqueParameter(
-    id:          ParameterId,
-    name:        ParameterId,
-    description: String,
-    mayBeEmpty:  Boolean
+    id:            ParameterId,
+    name:          String,
+    description:   String,
+    documentation: String,
+    mayBeEmpty:    Boolean
 )
 
 object ParameterType {

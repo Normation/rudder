@@ -1,0 +1,52 @@
+<TECHNIQUE name="Technique with parameters">
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <DESCRIPTION>A technique with some parameters</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <AGENT type="cfengine-community,cfengine-nova">
+    <BUNDLES>
+      <NAME>technique_with_parameters</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_with_parameters/1.0/technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_with_parameters/1.0/resources/test_resources.txt">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>technique_with_parameters/1.0/resources/test_resources.txt</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-With-Parameters</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_with_parameters/1.0/technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/techniques/ncf_techniques/technique_with_parameters/1.0/resources/test_resources.txt">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>technique_with_parameters/1.0/resources/test_resources.txt</OUTPATH>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" id="66744459-5829-43e0-8b1c-5fece7c0df7f" name="Trivial command">
+      <REPORTKEYS>
+        <VALUE id="66744459-5829-43e0-8b1c-5fece7c0df7f">ls ${The_File_To_Check}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>345388B1-7F68-44BD-95BC-C8B66A5010E9</NAME>
+        <DESCRIPTION>The File To Check</DESCRIPTION>
+        <LONGDESCRIPTION></LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+          <MAYBEEMPTY>false</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

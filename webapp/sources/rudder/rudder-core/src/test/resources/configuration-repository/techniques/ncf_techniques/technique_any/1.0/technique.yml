@@ -6,7 +6,8 @@ category: ncf_techniques
 params:
   - id: package_version
     name: version
-    description: Package version to install
+    description: package version
+    documentation: Package version to install
     constraints:
       allow_empty: false
 items:

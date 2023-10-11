@@ -1,7 +1,7 @@
 # @name Test Technique created through Rudder API
 # @description This Technique exists only to see if Rudder creates Technique correctly.
 # @version 1.0
-# @parameter {"name":"version","id":"package_version","description":"Package version to install"}
+# @parameter {"name":"version","id":"package_version","description":"package version"}
 
 bundle agent technique_any(version)
 {

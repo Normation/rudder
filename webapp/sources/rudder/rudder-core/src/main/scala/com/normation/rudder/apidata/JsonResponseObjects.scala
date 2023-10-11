@@ -230,7 +230,7 @@ object JsonResponseObjects {
     def from(param: TechniqueParameter) = {
       JRTechniqueParameter(
         param.id.value,
-        param.name.value,
+        param.name,
         param.description,
         param.mayBeEmpty
       )
