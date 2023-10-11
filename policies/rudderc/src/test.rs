@@ -12,7 +12,11 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
-use std::{collections::HashMap, path::Path, process::Command};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+    process::Command,
+};
 
 use anyhow::{bail, Result};
 use rudder_commons::logs::ok_output;
@@ -30,6 +34,9 @@ pub struct TestCase {
     #[serde(rename = "params")]
     #[serde(default)]
     parameters: HashMap<String, String>,
+    /// Conditions to define before running the test
+    #[serde(default)]
+    conditions: HashSet<String>,
     /// Test setup steps
     #[serde(default)]
     setup: Vec<Step>,

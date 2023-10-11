@@ -1,6 +1,9 @@
 # Parameters for the technique
 params:
   server: "rudder.io"
+# Conditions to define before running the test
+conditions:
+  - my_cond
 # Prepare env
 setup:
   - sh: "rm -f /tmp/rudderc_test_one"
