@@ -92,6 +92,19 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
     Ok(policy)
 }
 
+// Sanity check on the output to prevent generating broken output.
+// We can easily end up with non-printable chars here as double-quoted YAML strings
+// interpret backslash escaped control characters.
+// TODO: Move the check earlier in YAML lint
+// TODO: See if quick_xml should encode these anyway
+fn check_for_control_chars(s: String) -> Result<String> {
+    // \n, \r and \t are allowed in XML
+    match s.chars().find(|c| c.is_ascii_control() && !['\n', '\r', '\t'].contains(c)) {
+         Some(c) => bail!("Output contains a forbidden control character '{}', stopping. This can happen when using escape sequence in YAML double quotes.", c.escape_default()),
+         None => Ok(s),
+    }
+}
+
 /// Compute the output of the file
 pub fn compile(policy: Technique, target: Target, src: &Path, standalone: bool) -> Result<String> {
     ok_output(
@@ -99,7 +112,9 @@ pub fn compile(policy: Technique, target: Target, src: &Path, standalone: bool) 
         format!("{} v{} [{}]", policy.name, policy.version, target,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
-    backend(target).generate(policy, resources_path.as_path(), standalone)
+    backend(target)
+        .generate(policy, resources_path.as_path(), standalone)
+        .and_then(check_for_control_chars)
 }
 
 /// Compile metadata file
@@ -311,4 +326,18 @@ fn lint_expression(s: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_for_control_chars;
+
+    #[test]
+    fn it_checks_for_forbidden_chars() {
+        // Backspace
+        assert!(check_for_control_chars("\x08".to_string()).is_err());
+        assert!(
+            check_for_control_chars("This is \r\n\t a À @ 🥰 normal string".to_string()).is_ok()
+        );
+    }
 }
