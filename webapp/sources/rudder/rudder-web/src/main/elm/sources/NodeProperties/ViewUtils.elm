@@ -124,7 +124,8 @@ displayNodePropertyRow model =
       let
         format = getFormat p
         formatTxt = getFormatTxt format
-        defaultEditProperty = EditProperty p.name (displayJsonValue p.value) format True True False
+        origVal = Maybe.withDefault p.value p.origval
+        defaultEditProperty = EditProperty p.name (displayJsonValue origVal) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
         (providerBadge, editRight) = case p.provider of
@@ -186,8 +187,8 @@ displayNodePropertyRow model =
               ]
             , td [class "text-center default-actions"]
               [ (if (editRight) then
-                div [] -- ng-if="!isEdited(property.name) && property.rights !== 'read-only' && (property.provider === undefined || property.provider === 'overridden')">
-                [ span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][] -- ng-click="editProperty(property)"
+                div []
+                [ span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][]
                 , span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (ToggleEditPopup (Deletion p.name))][]
                 ]
                 else
