@@ -212,7 +212,8 @@ trait TechniqueArchiver {
  */
 final case class TechniqueFilesToCommit(
     add:    Chunk[String],
-    delete: Chunk[String]
+    delete: Chunk[String],
+    stage:  Chunk[String] // files to just stage. Do not add or rm them explicitly, just do so if they are/are not on the fs
 )
 
 object TechniqueFiles {
@@ -232,11 +233,14 @@ object TechniqueFiles {
 
     // specific by agent
 
-    val cfengine = Chunk("rudder_reporting.cf", "technique.cf")
+    // `rudder_reporting.cf` is only used when the generation is done by webapp, it does not exist with rudderc
+    val cfengineReporting = "rudder_reporting.cf"
+    val cfengineRudderc   = Chunk("technique.cf")
+    val cfengineAll       = Chunk(cfengineReporting, "technique.cf")
 
     val dsc = Chunk("technique.ps1")
 
-    val all: Chunk[String] = all_common ++ cfengine ++ dsc
+    val all: Chunk[String] = all_common ++ cfengineAll ++ dsc
   }
 
   // all is for current version only, ie json is not part of it.
@@ -306,7 +310,7 @@ class TechniqueArchiverImpl(
            .collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)
            .nonEmpty
        ) {
-         TechniqueFiles.Generated.cfengine
+         TechniqueFiles.Generated.cfengineAll
        } else Chunk()) ++
       (if (technique.agentConfigs.collectFirst(_.agentType == AgentType.Dsc).nonEmpty) {
          TechniqueFiles.Generated.dsc
@@ -325,7 +329,12 @@ class TechniqueArchiverImpl(
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 
-    TechniqueFilesToCommit(filesToAdd, filesToDelete)
+    val filesToStage = Chunk(
+      (gitTechniquePath + "/technique.json"),     // deprecated 8.0. Old json format replaced by using technique.yml
+      (gitTechniquePath + "/rudder_reporting.cf") // deprecated in 8.0. It was merged within technique.cf
+    )
+
+    TechniqueFilesToCommit(filesToAdd, filesToDelete, filesToStage)
   }
 
   override def saveTechnique(
@@ -355,6 +364,7 @@ class TechniqueArchiverImpl(
       ident    <- personIdentservice.getPersonIdentOrDefault(committer.name)
       added    <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
       removed  <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      staged   <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
       commit   <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }

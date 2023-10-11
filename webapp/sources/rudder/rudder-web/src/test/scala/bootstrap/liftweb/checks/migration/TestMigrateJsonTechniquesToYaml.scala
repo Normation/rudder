@@ -114,7 +114,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
               .replace("<DESCRIPTION></DESCRIPTION>", "<DESCRIPTION>regenerated</DESCRIPTION>")
           )
           // we can replace other
-          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengine).foreach(n =>
+          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach(n =>
             (techniqueDir / n).write("regenerated")
           )
           RuddercResult.Ok("", "", "")
