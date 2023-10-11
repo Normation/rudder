@@ -12,11 +12,11 @@
     "jquery": "^3.7.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
+    "jsondiffpatch": "^0.5.0",
     "jstree": "^3.3.15",
     "showdown": "^2.1.0",
     "showdown-xss-filter": "^0.2.0",
-    "xss": "^1.0.14",
-    "jsondiffpatch": "^0.5.0"
+    "xss": "^1.0.14"
   },
   "devDependencies": {
     "better-npm-audit": "^3.7.3",
@@ -27,7 +27,10 @@
     "gulp-elm": "^0.8.2",
     "gulp-mode": "^1.1.0",
     "gulp-rename": "^2.0.0",
+    "gulp-sass": "^5.1.0",
+    "gulp-sourcemaps": "^2.6.5",
     "gulp-terser": "^2.1.0",
-    "merge-stream": "^2.0.0"
+    "merge-stream": "^2.0.0",
+    "sass": "^1.69.1"
   }
 }

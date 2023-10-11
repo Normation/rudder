@@ -188,7 +188,7 @@
 .wrapper .dropdown-search .heading-search h4.panel-title {
   width: 90px;
   display: inline-block;
-  text-align: center;4px
+  text-align: center;
   position: relative;
 }
 .wrapper .filter-search h4.panel-title{
@@ -276,7 +276,6 @@
   background-color: #ffffff;
   color: #4f4f4f;
 }
-    padding: 10px;
 .wrapper .dropdown-search #toggleDoc .glyphicon,.wrapper .dropdown-search #toggleResult .glyphicon{
   top: 4px;
   position: absolute;
