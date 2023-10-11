@@ -72,6 +72,12 @@ bundle agent rudder_test_init {
       "tmp" string => getenv("TMP_DIR","2048");
       # Read params for current test case
       "test_case" data => readyaml("${cwd}/${params}", 100k);
+      # Define conditions
+      "conditions" slist => getvalues("test_case[conditions]");
+
+  classes:
+      "${conditions}" expression => "any",
+                           scope => "namespace";
 
   methods:
     # lib ("ncf") init, including modules update
