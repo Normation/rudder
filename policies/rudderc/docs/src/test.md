@@ -17,6 +17,9 @@ The format of the test case file is:
 params:
   param1: value1
   param2: true
+conditions:
+  - condition1
+  - condition2
 setup:
   - sh: "test command"
 check:
@@ -26,6 +29,7 @@ check:
 
 The setup and check sections contain a list of commands to run.
 These commands run in the test directory, and are passed to `/usr/bin/sh`.
+The `setup`,`params` and `conditions` entries are optional.
 
 The detailed test process is, for each `*.yml` file in the `tests` directory:
 
@@ -34,6 +38,7 @@ The detailed test process is, for each `*.yml` file in the `tests` directory:
 * Run an agent locally, which will:
     * Load all methods from the library
     * Read the parameters values from the YAML test case
+    * Define the conditions from the YAML test case
     * Run the technique with the given parameters
 * Run the check commands sequentially. The commands are called in the `/bin/sh` shell.
 
