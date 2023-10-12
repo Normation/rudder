@@ -1,0 +1,3 @@
+This should be removed: it existed in Rudder 7.3 when the webapp was generating content, but
+with rudderc in 8.0, it is not used anymore.
+It should also be cleanly committed.

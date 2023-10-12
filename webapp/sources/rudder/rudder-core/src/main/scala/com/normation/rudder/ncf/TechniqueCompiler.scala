@@ -980,7 +980,7 @@ class ClassicTechniqueWriter(
 
       val reportingFile = File(
         basePath
-      ) / getTechniqueRelativePath(technique) / "rudder_reporting.cf"
+      ) / getTechniqueRelativePath(technique) / TechniqueFiles.Generated.cfengineReporting
       IOResult.attempt(
         s"Could not write na reporting Technique file '${technique.name}' in path ${reportingFile.path.toString}"
       ) {
@@ -1014,7 +1014,7 @@ class ClassicTechniqueWriter(
         {
       if (needReporting) {
         <FILE name={
-          s"RUDDER_CONFIGURATION_REPOSITORY/${getTechniqueRelativePath(technique)}/rudder_reporting.cf"
+          s"RUDDER_CONFIGURATION_REPOSITORY/${getTechniqueRelativePath(technique)}/${TechniqueFiles.Generated.cfengineReporting}"
         }>
             <INCLUDED>true</INCLUDED>
           </FILE>
