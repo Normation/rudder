@@ -36,7 +36,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>40E3A5AB-0812-4A60-96F3-251BE8CEDF43</NAME>
-        <DESCRIPTION>my_custom_condition</DESCRIPTION>
+        <DESCRIPTION>my custom condition</DESCRIPTION>
         <LONGDESCRIPTION></LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>

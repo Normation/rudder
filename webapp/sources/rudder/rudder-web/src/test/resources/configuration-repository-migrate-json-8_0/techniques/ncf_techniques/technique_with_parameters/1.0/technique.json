@@ -1,0 +1,37 @@
+{
+  "id":"technique_with_parameters",
+  "version":"1.0",
+  "category":"ncf_techniques",
+  "description":"A technique with some parameters",
+  "name":"Technique with parameters",
+  "calls":[
+    {
+      "method":"command_execution",
+      "condition":"",
+      "disableReporting":false,
+      "component":"Trivial command",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"ls ${The_File_To_Check}"
+        }
+      ],
+      "id":"66744459-5829-43e0-8b1c-5fece7c0df7f"
+    }
+  ],
+  "parameter":[
+    {
+      "id":"345388b1-7f68-44bd-95bc-c8b66a5010e9",
+      "name":"The File To Check",
+      "description":"",
+      "mayBeEmpty":false
+    }
+  ],
+  "resources":[
+    {
+      "name":"test_resources.txt",
+      "state":"untouched"
+    }
+  ],
+  "source":"editor"
+}

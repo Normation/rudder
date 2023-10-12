@@ -82,7 +82,8 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
   val gitMock = new MockGitConfigRepo("", "configuration-repository-migrate-json-8_0")
 
   // a place to keep the metadata.xml of the migrated technique
-  val technique_with_blocks_metadata_save = gitMock.abstractRoot / "technique_with_blocks_metadata_save"
+  val technique_with_blocks_metadata_save     = gitMock.abstractRoot / "technique_with_blocks_metadata_save"
+  val technique_with_parameters_metadata_save = gitMock.abstractRoot / "technique_with_parameters_metadata_save"
 
   val techMock = MockTechniques(gitMock)
 
@@ -107,16 +108,19 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
         // replace content to be sure we get there
         IOResult.attempt {
           // we need to keep metadata.xml, it's parsed in technique writer for technique registration
-          val metadata = (techniqueDir / TechniqueFiles.Generated.metadata)
-          metadata.write(
-            technique_with_blocks_metadata_save
-              .contentAsString()
-              .replace("<DESCRIPTION></DESCRIPTION>", "<DESCRIPTION>regenerated</DESCRIPTION>")
-          )
+          val metadata        = (techniqueDir / TechniqueFiles.Generated.metadata)
+          val metadataContent = techniqueDir.parent.name match {
+            case "technique_with_blocks"     =>
+              technique_with_blocks_metadata_save.contentAsString()
+            case "technique_with_parameters" =>
+              technique_with_parameters_metadata_save.contentAsString()
+            // add other if needed here, it will throw an exception if you forget
+          }
+          metadata.write(metadataContent.replace("<DESCRIPTION></DESCRIPTION>", "<DESCRIPTION>regenerated</DESCRIPTION>"))
           // we can replace other
-          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach(n =>
+          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach { n =>
             (techniqueDir / n).write("regenerated")
-          )
+          }
           RuddercResult.Ok("", "", "")
         }
       }
@@ -175,10 +179,12 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     org.slf4j.LoggerFactory.getLogger("techniques").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   // format: on
 
-  "There is only two techniques to migrate" >> {
+  "There is only three techniques to migrate" >> {
     val res = migration.getAllTechniqueFiles(gitMock.configurationRepositoryRoot / "techniques").runNow
-    (res.size === 2) and
-    (res.map(_.parent.parent.name) must containTheSameElementsAs(List("technique_with_blocks", "technique_with_error")))
+    (res.size === 3) and
+    (res.map(_.parent.parent.name) must containTheSameElementsAs(
+      List("technique_with_blocks", "technique_with_error", "technique_with_parameters")
+    ))
   }
 
   "After migration, the config repo matches what is expected" >> {
@@ -199,6 +205,9 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     // save metadata
     technique_with_blocks_metadata_save.write(
       (gitMock.configurationRepositoryRoot / "techniques/ncf_techniques/technique_with_blocks/1.0/metadata.xml").contentAsString
+    )
+    technique_with_parameters_metadata_save.write(
+      (gitMock.configurationRepositoryRoot / "techniques/ncf_techniques/technique_with_parameters/1.0/metadata.xml").contentAsString
     )
 
     migration.checks()

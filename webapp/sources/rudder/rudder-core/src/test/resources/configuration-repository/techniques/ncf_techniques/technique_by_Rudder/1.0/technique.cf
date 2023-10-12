@@ -1,8 +1,7 @@
 # @name Test Technique created through Rudder API
 # @description This Technique exists only to see if Rudder creates Technique correctly.
 # @version 1.0
-# @parameter {"name":"technique_parameter","id":"1aaacd71-c2d5-482c-bcff-5eee6f8da9c2","description":" a long description, with line 
-#  break within"}
+# @parameter {"name":"technique_parameter","id":"1aaacd71-c2d5-482c-bcff-5eee6f8da9c2","description":"technique parameter"}
 
 bundle agent technique_by_Rudder(technique_parameter)
 {

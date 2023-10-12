@@ -1,0 +1,24 @@
+# @name Technique with parameters
+# @description A technique with some parameters
+# @version 1.0
+# @parameter {"name":"The File To Check","id":"345388b1-7f68-44bd-95bc-c8b66a5010e9","description":""}
+
+bundle agent technique_with_parameters(The_File_To_Check)
+{
+  vars:
+    "resources_dir" string => "${this.promise_dirname}/resources";
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+  methods:
+    "66744459-5829-43e0-8b1c-5fece7c0df7f_${report_data.directive_id}" usebundle => technique_with_parameters_gm_0("Trivial command", "ls ${The_File_To_Check}", "66744459-5829-43e0-8b1c-5fece7c0df7f", "ls ${The_File_To_Check}"),
+                                                                              if => concat("any");
+
+}
+
+bundle agent technique_with_parameters_gm_0(c_name, c_key, report_id, command) {
+  methods:
+    "66744459-5829-43e0-8b1c-5fece7c0df7f_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
+    "66744459-5829-43e0-8b1c-5fece7c0df7f_${report_data.directive_id}" usebundle => command_execution("${command}");
+}

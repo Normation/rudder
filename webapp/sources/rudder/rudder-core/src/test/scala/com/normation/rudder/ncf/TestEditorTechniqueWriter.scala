@@ -499,7 +499,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       "",
       TechniqueParameter(
         ParameterId("1aaacd71-c2d5-482c-bcff-5eee6f8da9c2"),
-        ParameterId("technique_parameter"),
+        "technique_parameter",
+        "technique parameter",
         " a long description, with line \n break within",
         // we must ensure that it will lead to: [parameter(Mandatory=$false)]
         true
@@ -644,7 +645,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
-      TechniqueParameter(ParameterId("package_version"), ParameterId("version"), "Package version to install", false) :: Nil,
+      TechniqueParameter(
+        ParameterId("package_version"),
+        "version",
+        "package version",
+        "Package version to install",
+        false
+      ) :: Nil,
       Nil,
       Map(),
       None
@@ -730,7 +737,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       "",
       TechniqueParameter(
         ParameterId("40e3a5ab-0812-4a60-96f3-251be8cedf43"),
-        ParameterId("my_custom_condition"),
+        "my_custom_condition",
+        "my custom condition",
         "",
         false
       ) :: Nil,

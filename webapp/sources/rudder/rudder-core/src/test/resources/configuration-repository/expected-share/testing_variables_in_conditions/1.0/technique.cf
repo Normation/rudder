@@ -1,7 +1,7 @@
 # @name Testing variables in conditions
 # @description 
 # @version 1.0
-# @parameter {"name":"my_custom_condition","id":"40e3a5ab-0812-4a60-96f3-251be8cedf43","description":""}
+# @parameter {"name":"my_custom_condition","id":"40e3a5ab-0812-4a60-96f3-251be8cedf43","description":"my custom condition"}
 
 bundle agent testing_variables_in_conditions(my_custom_condition)
 {

@@ -88,10 +88,11 @@ case class Reporting(
 )
 
 case class TechniqueParameter(
-    id:          ParameterId,
-    name:        ParameterId,
-    description: Option[String],
-    constraints: Constraints
+    id:            ParameterId,
+    name:          String,
+    description:   String,
+    documentation: Option[String],
+    constraints:   Constraints
 )
 
 case class Constraints(
@@ -211,7 +212,8 @@ object YamlTechniqueSerializer {
     TechniqueParameter(
       techniqueParameter.id,
       techniqueParameter.name,
-      if (techniqueParameter.description.isEmpty) None else Some(techniqueParameter.description),
+      techniqueParameter.description,
+      if (techniqueParameter.documentation.isEmpty) None else Some(techniqueParameter.documentation),
       Constraints(allow_empty = Some(techniqueParameter.mayBeEmpty))
     )
   }
@@ -220,7 +222,8 @@ object YamlTechniqueSerializer {
     com.normation.rudder.ncf.TechniqueParameter(
       techniqueParameter.id,
       techniqueParameter.name,
-      techniqueParameter.description.getOrElse(""),
+      techniqueParameter.description,
+      techniqueParameter.documentation.getOrElse(""),
       techniqueParameter.constraints.allow_empty.getOrElse(false)
     )
   }

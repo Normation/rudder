@@ -6,7 +6,8 @@ category: ncf_techniques
 params:
   - id: 1aaacd71-c2d5-482c-bcff-5eee6f8da9c2
     name: technique_parameter
-    description: " a long description, with line \n break within"
+    description: technique parameter
+    documentation: " a long description, with line \n break within"
     constraints:
       allow_empty: true
 items:
