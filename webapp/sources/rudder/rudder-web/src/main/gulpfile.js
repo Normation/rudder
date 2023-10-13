@@ -14,15 +14,16 @@ const sourcemaps = require('gulp-sourcemaps');
 
 const paths = {
     'css': {
-        'src': [
-          'style/libs/**/*',
-          'style/login.css'
-        ],
+        'src': 'style/libs/**/*',
         'dest': 'webapp/style/',
     },
     'scss': {
         'src': 'style/rudder/**/*',
         'dest': 'webapp/style/rudder',
+    },
+    'login_scss': {
+        'src': 'style/login.css',
+        'dest': 'webapp/style/',
     },
     'js': {
         'src': 'javascript/**/*.js',
@@ -149,11 +150,17 @@ function vendor_css(cb) {
 };
 
 function scss(cb) {
-    src(paths.scss.src)
+    var rudderScss = src(paths.scss.src)
       .pipe(sourcemaps.init())
       .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.scss.dest));
+    var loginScss = src(paths.login_scss.src)
+      .pipe(sourcemaps.init())
+      .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+      .pipe(sourcemaps.write())
+      .pipe(dest(paths.login_scss.dest));
+    merge(rudderScss, loginScss);
     cb();
 };
 
