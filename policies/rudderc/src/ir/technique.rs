@@ -16,6 +16,8 @@ use uuid::Uuid;
 
 use crate::ir::condition::Condition;
 
+pub const TECHNIQUE_FORMAT_VERSION: usize = 1;
+
 /// Valid id for techniques, methods, etc.
 ///
 /// Lowest common denominator between target platforms.
@@ -232,7 +234,7 @@ impl Display for PasswordType {
 impl Default for Technique {
     fn default() -> Self {
         Self {
-            format: 0,
+            format: TECHNIQUE_FORMAT_VERSION,
             id: Id::from_str("my_technique").unwrap(),
             name: "My technique".to_string(),
             version: "1.0".to_string(),
@@ -249,7 +251,7 @@ impl Default for Technique {
 /// A Rudder technique (based on methods and/or modules)
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Technique {
-    #[serde(default)]
+    #[serde(default = "Technique::default_format")]
     #[serde(skip_serializing_if = "Technique::format_is_default")]
     pub format: usize,
     pub id: Id,
@@ -271,7 +273,11 @@ pub struct Technique {
 
 impl Technique {
     fn format_is_default(format: &usize) -> bool {
-        *format == 0
+        *format == TECHNIQUE_FORMAT_VERSION
+    }
+
+    fn default_format() -> usize {
+        TECHNIQUE_FORMAT_VERSION
     }
 }
 
