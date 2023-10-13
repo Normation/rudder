@@ -9,15 +9,25 @@ const elm_p = require('gulp-elm');
 const merge = require('merge-stream');
 const del = require('del');
 const through = require('through2');
+const sass = require('gulp-sass')(require('sass'));
+const sourcemaps = require('gulp-sourcemaps');
 
 const paths = {
     'css': {
-        'src': 'style/**/*',
+        'src': 'style/libs/**/*',
+        'dest': 'webapp/style/',
+    },
+    'scss': {
+        'src': 'style/rudder/**/*',
+        'dest': 'webapp/style/rudder',
+    },
+    'login_scss': {
+        'src': 'style/login.css',
         'dest': 'webapp/style/',
     },
     'js': {
         'src': 'javascript/**/*.js',
-        'dest': 'webapp/javascript/',
+        'dest': 'webapp/javascript',
     },
     'vendor_js': {
         'src': [
@@ -60,7 +70,7 @@ var grep = function(regex) {
 }
 
 function clean(cb) {
-    del.sync([paths.js.dest, paths.css.dest]);
+    del.sync([paths.js.dest, paths.css.dest, paths.scss.dest]);
     cb();
 }
 
@@ -128,6 +138,7 @@ function css(cb) {
     cb();
 };
 
+
 function vendor_css(cb) {
     src(paths.vendor_css.src)
         // flatten file hierarchy
@@ -138,12 +149,28 @@ function vendor_css(cb) {
     cb();
 };
 
+function scss(cb) {
+    var rudderScss = src(paths.scss.src)
+      .pipe(sourcemaps.init())
+      .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+      .pipe(sourcemaps.write())
+      .pipe(dest(paths.scss.dest));
+    var loginScss = src(paths.login_scss.src)
+      .pipe(sourcemaps.init())
+      .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+      .pipe(sourcemaps.write())
+      .pipe(dest(paths.login_scss.dest));
+    merge(rudderScss, loginScss);
+    cb();
+};
+
 exports.elm = series(clean, elm)
 exports.watch = series(clean, function() {
     watch(paths.elm.watch, { ignoreInitial: false }, elm);
     watch(paths.js.src, { ignoreInitial: false }, js);
     watch(paths.css.src, { ignoreInitial: false }, css);
+    watch(paths.scss.src, { ignoreInitial: false }, scss);
     watch(paths.vendor_js.src, { ignoreInitial: false }, vendor_js);
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
 });
-exports.default = series(clean, parallel(elm, css, js, vendor_css, vendor_js));
+exports.default = series(clean, parallel(elm, css, scss, js, vendor_css, vendor_js));

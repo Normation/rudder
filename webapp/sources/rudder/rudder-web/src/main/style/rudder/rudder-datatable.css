@@ -410,7 +410,7 @@ td.listclose:after {
 #nodePropertiesTab > tbody > tr > td.edit-actions{
   position: relative;
 }
-#nodePropertiesTab > > tbody > tr > td{
+#nodePropertiesTab > tbody > tr > td{
   vertical-align: top;
 }
 #nodePropertiesTab .action-icon{

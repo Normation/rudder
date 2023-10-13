@@ -1343,7 +1343,7 @@ button.buttonMargin {
 }
 
 #generation-status .glyphicon {
-  top 0;
+  top: 0;
   font-size : 11px;
 }
 
@@ -1365,7 +1365,7 @@ label span.text-fit{
   margin: 10px 0;
 }
 #generation-status .glyphicon {
-  top 0;
+  top: 0;
   font-size : 11px;
 }
 

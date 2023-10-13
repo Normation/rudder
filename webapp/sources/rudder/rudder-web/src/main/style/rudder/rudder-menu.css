@@ -985,7 +985,7 @@ header.main-header .logo-lg img{
 @media (max-width: 767px){
   .navbar-nav .open .dropdown-menu {
     position: absolute;
-    right: 42px;td
+    right: 42px;
     float: none;
     width: 280px;
     background-color: rgb(255, 255, 255);

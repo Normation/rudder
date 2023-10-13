@@ -333,7 +333,7 @@
 .btn.toggle-security-info{
   min-width: 155px;
   margin-top: 8px;
-  transition-duration .2;
+  transition-duration: .2;
 }
 .btn.toggle-security-info:before{
   content: "Show ";

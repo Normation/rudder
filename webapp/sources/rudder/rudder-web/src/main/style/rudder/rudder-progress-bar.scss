@@ -1,0 +1,162 @@
+/*
+*************************************************************************************
+* Copyright 2023 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+* 
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+* 
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+$bar-radius : 4px;
+
+/*
+ * Colours for our progress bars
+ */
+$color-compliance-disabled      : #72829D ;
+$color-compliance-success       : #13BEB7 ;
+$color-compliance-error         : #DA291C ;
+$color-compliance-pending       : #14C3DD ;
+$color-compliance-noreport      : #B1BBCB ;
+$color-compliance-missing       : #F2E27D ;
+$color-compliance-notapplicable : #8DCD8D ;
+$color-compliance-noncompliant  : #EF9600 ;
+
+$bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+
+.content-wrapper {
+  .progress {
+    border-radius: $bar-radius;
+    margin: 3px 5px;
+
+    .progress-bar{
+      color: #fff;
+      line-height: 22px;
+    }
+
+    &.progress-flex {
+      display: flex;
+
+      .progress-bar{
+        min-width: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        padding: 0 2px;
+        border-radius: 0px;
+
+        &:first-chld{
+          border-top-left-radius: $bar-radius;
+          border-bottom-left-radius: $bar-radius;
+        }
+        &:last-chld{
+          border-top-right-radius: $bar-radius;
+          border-bottom-right-radius: $bar-radius;
+        }
+      }
+    }
+  }
+
+  .progress-bar-reportsdisabled,
+  .compliance-badge.disabled {
+    background-color: $color-compliance-disabled;
+  }
+  .progress-bar-success,
+  .compliance-badge.success {
+    background-color: $color-compliance-success;
+  }
+  .progress-bar-error,
+  .compliance-badge.error {
+    background-color: $color-compliance-error;
+  }
+  .progress-bar-pending,
+  .compliance-badge.pending {
+    background-color: $color-compliance-pending;
+  }
+  .progress-bar-no-report,
+  .compliance-badge.no-report {
+    background-color: $color-compliance-noreport;
+  }
+  .progress-bar-unknown,
+  .compliance-badge.unexpected {
+    background-color: $color-compliance-error;
+  }
+  .progress-bar-missing {
+    background-color: $color-compliance-missing;
+  }
+  .progress-bar-audit-compliant {
+    background-color: $color-compliance-success;
+  }
+  .progress-bar-audit-noncompliant,
+  .compliance-badge.non-compliant {
+    background-color: $color-compliance-noncompliant;
+  }
+  .progress-bar-audit-notapplicable {
+    background-color: $color-compliance-notapplicable;
+  }
+  .progress-bar-audit-error {
+    background-color: $color-compliance-error;
+  }
+}
+/* SMALL COMPLIANCE BADGE */
+.compliance-badge {
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: baseline;
+  border-radius: 10px;
+  margin-right: 10px;
+  font-size: .9em;
+  color: #fff;
+  margin-bottom: 10px;
+  font-weight: bold;
+  cursor: pointer;
+
+  & > .fa{
+    margin-left: 4px;
+  }
+
+  &.unexpected,
+  &.pending{
+    background-image: $bar-stripped-gradient;
+  }
+
+  &.badge-sm {
+    padding: 0;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    margin-right: 6px;
+    margin-bottom: 0;
+
+    &.unexpected,
+    &.pending{
+      background-image: $bar-stripped-gradient;
+    }
+  }
+}
