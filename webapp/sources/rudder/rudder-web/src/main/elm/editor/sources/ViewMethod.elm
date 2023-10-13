@@ -522,7 +522,6 @@ callBody model ui techniqueUi call pid =
                                        [ element "div"
                                          |> addClass ("gm-label-name " ++ methodNameLabelClass)
                                          |> appendText method.name
-                                         |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                        , element "div"
                                          |> addClass "form-group"
                                          |> appendChildList
@@ -545,12 +544,11 @@ callBody model ui techniqueUi call pid =
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
-                             |> appendChildConditional
+                             |> appendChild
                                 ( element "div"
                                   |> addClass ("gm-label-name " ++ methodNameLabelClass)
                                   |> appendText method.name
                                 )
-                                ((not (String.isEmpty call.component)) && call.component /= method.name )
 
     methodNameId = case ui.mode of
                      Opened -> element "span" |> appendText method.name
