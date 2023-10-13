@@ -13,47 +13,45 @@ This is a **straightforward guide** aims to setup all tools and settings on a Li
 - git
 - netstat
 
-## Table of Contents  
+## Table of Contents
 - [Synopsis](#synopsis)
-- [Requirements](#requirements)
-- [Part 0 : Installation of required packages and softwares](#part-0---installation-of-required-packages-and-softwares)
-  * [Useful packages](#useful-packages)
-  * [VirtualBox installation](#virtualBox-installation)
-  * [Vagrant installation](#vagrant-installation)
-  * [Intellij Idea Community installation](#intellijIC-installation)
-  * [ldap apache directory studio installation](#ldap-apache-directory-studio-installation)
-  * [Elm installation](#elm-installation)
-  * [Rudder Test framework (RTF)](#rtf-installation)
-- [Part 1 : Setup the local environment and the dev box](#part-1---setup-the-local-environment-and-the-dev-box)
-  * [Install Rudder Test framework (RTF)](#install-rudder-test-framework--rtf-)
-  * [Create a platform description file](#create-a-platform-description-file)
-  * [Setup the local environment](#setup-the-local-environnement)
-    + [Create potentially missing files and add permission](#create-potentially-missing-files-and-add-permission)
-    + [Synchronize techniques](#synchronize-techniques)
-  * [Setup you vagrant box environment](#setup-you-vagrant-box-environment)
-  * [Test LDAP connection](#test-ldap-connection)
-- [Part 2 : Setup workspace development with IntelliJ and Maven](#part-2---setup-workspace-development-with-intellij-and-maven)
-  * [Install plugin from marketplace](#install-plugin-from-marketplace)
-  * [Import Rudder project](#import-rudder-project)
-  * [Setup Run configuration](#setup-run-configuration)
-  * [Setup Module and sources](#setup-module-and-sources)
-  * [Install maven dependencies](#install-maven-dependencies)
-    + [XML Settings File](#xml-settings-file)
-    + [Import dependencies](#import-dependencies)
-  * [Setup File Watchers (Highly recommended)](#setup-file-watchers--highly-recommended-)
-- [Now what ?](#now-what--)
-    + [NCF api and Technique Editor](#ncf)
-    + [Entire Script](#full-script)
-    + [Documentations](#documentations)
-    + [Contribution](#contribution)
-    + [Bug reports](#bug-reports)
-    + [Community](#community)
+- [Requirements for your machine](#requirements-for-your-machine)
+- [Part 0: Installation of required packages and software](#part-0-installation-of-required-packages-and-software)
+  - [Needed packages](#needed-packages)
+  - [VirtualBox installation](#virtualbox-installation)
+  - [Vagrant installation](#vagrant-installation)
+  - [IntelliJ Idea Community installation](#intellij-idea-community-installation)
+  - [LDAP Apache Directory Studio installation](#ldap-apache-directory-studio-installation)
+  - [Elm installation](#elm-installation)
+  - [Rudder Test Framework (RTF) installation](#rudder-test-framework-rtf-installation)
+- [Part 1: Setup the local environment and the dev box](#part-1-setup-the-local-environment-and-the-dev-box)
+  - [Create a platform description file](#create-a-platform-description-file)
+  - [Setup the local environment](#setup-the-local-environment)
+    - [Create potentially missing files and add permission](#create-potentially-missing-files-and-add-permission)
+    - [Synchronize techniques](#synchronize-techniques)
+  - [Setup your Vagrant box environment](#setup-your-vagrant-box-environment)
+  - [Test LDAP connection](#test-ldap-connection)
+- [Part 2: Setup workspace development with IntelliJ and Maven](#part-2-setup-workspace-development-with-intellij-and-maven)
+  - [Install plugin from marketplace](#install-plugin-from-marketplace)
+  - [Import Rudder project](#import-rudder-project)
+  - [Setup Run configuration](#setup-run-configuration)
+  - [Setup Module and sources](#setup-module-and-sources)
+  - [Install Maven dependencies](#install-maven-dependencies)
+  - [Setup File Watchers (Highly recommended)](#setup-file-watchers-highly-recommended)
+- [Now what?](#now-what)
+  - [NCF API and Technique Editor](#ncf-api-and-technique-editor)
+  - [Entire Script](#entire-script)
+  - [Documentations](#documentations)
+  - [Contribution](#contribution)
+  - [Bug reports](#bug-reports)
+  - [Community](#community)
+
 
 ## Part 0 : Installation of required packages and softwares
 
 ### Needed packages
 If you are starting with a clean machine, you might want to take it all, should be needed at some point
-`apt update && apt install -y git openssh-server python3 python3-pip python python-pip openjdk-11-jdk net-tools ldap-utils maven`
+`apt update && apt install -y git openssh-server python3 python3-pip python python-pip openjdk-11-jdk net-tools ldap-utils nodejs npm maven`
 `pip install docopt requests pexpect urllib3` (or `pip3`)
 
 ### VirtualBox installation
@@ -67,6 +65,8 @@ apt install -y virtualbox-${vboxversion}
 wget https://download.virtualbox.org/virtualbox/${vboxlatest}/Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
 echo y | sudo vboxmanage extpack install --replace Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
 rm -rf Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
+mkdir -p /etc/vbox
+echo '* 10.0.0.0/8 192.168.0.0/16' >> /etc/vbox/networks.conf
 ```
 
 ### Vagrant installation
@@ -268,6 +268,8 @@ Then select "Import Module from external model" and go for Maven
 
 ### Setup Run configuration
 1. In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
+- Jetty Runner Folder : _downloaded jar of jetty-runner with version BELOW 11 from https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-runner/
+(jetty 11 is not supported yet because of the lack of support for the servlet version used by rudder)_
 - Module : <all modules>
 - Path : `/rudder`
 - WebApp Folder :
@@ -281,7 +283,7 @@ Then select "Import Module from external model" and go for Maven
 - Runs on Port : 8080
 - VM Args :
 ```
-\-DrjrDisableannotation=true -Drun.mode=production -XX:MaxPermSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/<user>/rudder-tests/dev/configuration.properties
+-DrjrDisableannotation=true -Drun.mode=production -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/<user>/rudder-tests/dev/configuration.properties
 ```
 > Beware, replace `<user>`
 
@@ -334,7 +336,15 @@ The `Program` field value is the same for these 3 watchers
 
 ![File watcher setting](file_watcher2.png)
 
-Otherwise at every modification you will need to run the `src/main/elm/build.sh` script in the module.
+Otherwise at every modification you will need to run the `src/main/build.sh` script in the module.
+
+Also, the requirement of the `src/main/build.sh` is to have installed node dependencies.
+
+So, inside `rudder/webapp/sources/rudder/rudder-web/src/main/`, run :
+
+```bash
+npm install
+```
 
 ## Setup technique editor
 
@@ -343,7 +353,6 @@ Clone ncf repository
 ```
 git clone https://github.com/Normation/ncf.git
 sudo ln -s <path/to/ncf/repo> /usr/share/ncf
-chmod 755 <path/to/ncf/repo>/builder -R
 mkdir -p /var/rudder/configuration-repository/ncf 
 ```
 
