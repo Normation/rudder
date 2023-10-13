@@ -406,6 +406,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     This logger is in charge of general application logging (webapp status, etc).
     You can use "application.plugin" name if you want to set a different level
     for plusins related log
+    WARNING! Log levels set to "debug" or "trace" may cause
+    sensitive information (e.g. session ID, cookie) to be output
+    in clear text by some loggers, just add the setting and
+    the appropriate comment for them in the current file.
   -->
   <logger name="application" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
@@ -526,6 +530,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     to not wanting this information.
     Set the level to debug if you are really interested
     in AJAX-related debug messages.
+    WARNING! Log levels set to "debug" or "trace" may cause
+    sensitive information (e.g. session ID, cookie) to be output
+    in clear text. Change it at your own risk!
   -->
   <logger name="comet_trace" level="info" />
 
@@ -535,6 +542,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     We really don't want to see SpringFramework debug info,
     whatever the root logger level is - it's an internal
     component only.
+    WARNING! Log levels set to "debug" or "trace" may cause
+    sensitive information (e.g. session ID, cookie) to be output
+    in clear text. Change it at your own risk!
   -->
   <logger name="org.springframework" level="warn" />
 
