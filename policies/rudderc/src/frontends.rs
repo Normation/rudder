@@ -8,7 +8,10 @@ use format_serde_error::SerdeError;
 use rudder_commons::methods::{self, Methods};
 use tracing::{error, trace};
 
-use crate::{compiler::user_error, ir::Technique};
+use crate::{
+    compiler::user_error,
+    ir::{technique::TECHNIQUE_FORMAT_VERSION, Technique},
+};
 
 /// Rudder technique represented in YAML file
 pub fn read(input: &str) -> Result<Technique> {
@@ -27,7 +30,7 @@ pub fn read(input: &str) -> Result<Technique> {
     trace!("Parsed input:\n{:#?}", policy);
 
     // Stop if unknown format
-    if policy.format != 0 {
+    if policy.format != TECHNIQUE_FORMAT_VERSION {
         error!("Unknown policy format version: {}", policy.format);
         user_error()
     }
