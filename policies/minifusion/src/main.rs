@@ -11,6 +11,7 @@ use os_release::OsRelease;
 use quick_xml::se::Serializer;
 use serde::Serialize;
 use sysinfo::{CpuExt, ProcessExt, System, SystemExt, UserExt};
+#[cfg(unix)]
 use uname_rs::Uname;
 
 pub const AGENT_CERT_PATH: &str = "/opt/rudder/etc/ssl/agent.cert";
@@ -133,6 +134,7 @@ pub struct User {
 
 impl Inventory {
     pub fn new() -> Result<Self> {
+        #[cfg(unix)]
         let uts = Uname::new()?;
         let hostname = hostname::get()?
             .into_string()
@@ -197,12 +199,15 @@ impl Inventory {
             operating_system: OperatingSystem {
                 arch,
                 boot_time: "".to_string(),
+                #[cfg(unix)]
                 dns_domain: uts.domainname,
                 // FIXME not fqdn
                 fqdn: hostname.clone(),
                 full_name: os_release.pretty_name,
                 host_id: "".to_string(),
+                #[cfg(unix)]
                 kernel_name: uts.sysname.to_lowercase(),
+                #[cfg(unix)]
                 kernel_version: uts.release,
                 name: os_release.name,
                 version: os_release.version,
@@ -233,6 +238,7 @@ pub struct OperatingSystem {
     // <BOOT_TIME>2023-06-29 15:04:23</BOOT_TIME>
     boot_time: String,
     // <DNS_DOMAIN>rudder.local</DNS_DOMAIN>
+    #[cfg(unix)]
     dns_domain: String,
     // <FQDN>server.rudder.local</FQDN>
     fqdn: String,
@@ -242,8 +248,10 @@ pub struct OperatingSystem {
     #[serde(rename = "HOSTID")]
     host_id: String,
     // <KERNEL_NAME>linux</KERNEL_NAME>
+    #[cfg(unix)]
     kernel_name: String,
     // <KERNEL_VERSION>4.18.0-365.el8.x86_64</KERNEL_VERSION>
+    #[cfg(unix)]
     kernel_version: String,
     // <NAME>CentOS</NAME>
     name: String,

@@ -18,6 +18,7 @@ const TEST_LIB: &str = "tests/lib/common";
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compile and tests all files in `cases/test`. This tests the testing feature itself.
+#[cfg(unix)]
 #[test_resources("tests/cases/test/*/*.yml")]
 fn test(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();
