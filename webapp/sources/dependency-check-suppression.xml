@@ -42,4 +42,12 @@
    <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-web@.*$</packageUrl>
    <cve>CVE-2016-1000027</cve>
 </suppress>
+<!-- False positive in depdencency check https://github.com/jeremylong/DependencyCheck/issues/5943 -->
+<suppress>
+   <notes><![CDATA[
+   file name: jgit-6.7.0.202309050840-r.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
+   <cve>CVE-2023-4759</cve>
+</suppress>
 </suppressions>
