@@ -149,7 +149,7 @@ object MigrateJsonTechniquesService {
         desc,
         doc,
         oldTechnique.parameter.map(p =>
-          TechniqueParameter(ParameterId(p.id), canonify(p.name), p.name, p.description, p.mayBeEmpty)
+          TechniqueParameter(ParameterId(p.id), canonify(p.name), p.name, Some(p.description), p.mayBeEmpty)
         ),
         oldTechnique.resources.flatMap(s => ResourceFileState.parse(s.state).map(ResourceFile(s.name, _)).toSeq),
         Map(),

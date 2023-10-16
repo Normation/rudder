@@ -17,6 +17,10 @@ displayValueHelper value =
     Value s -> s
     Variable v -> "${" ++ (displayValue v) ++ "}"
 
+canonifyString : String -> String
+canonifyString s =
+     Regex.replace ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") (always "_") s
+
 canonify : List AgentValue -> String
 canonify value =
   String.join "" (List.map canonifyHelper value)
@@ -24,7 +28,7 @@ canonify value =
 canonifyHelper : AgentValue -> String
 canonifyHelper value =
   case value of
-    Value s -> Regex.replace ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") (always "_") s
+    Value s -> canonifyString s
     Variable v -> "${" ++ (displayValue v) ++ "}"
 
 isEmptyValue: List AgentValue -> Bool

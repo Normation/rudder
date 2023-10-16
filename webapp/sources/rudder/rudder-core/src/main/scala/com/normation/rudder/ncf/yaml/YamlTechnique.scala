@@ -213,7 +213,7 @@ object YamlTechniqueSerializer {
       techniqueParameter.id,
       techniqueParameter.name,
       techniqueParameter.description,
-      if (techniqueParameter.documentation.isEmpty) None else Some(techniqueParameter.documentation),
+      techniqueParameter.documentation,
       Constraints(allow_empty = Some(techniqueParameter.mayBeEmpty))
     )
   }
@@ -223,7 +223,7 @@ object YamlTechniqueSerializer {
       techniqueParameter.id,
       techniqueParameter.name,
       techniqueParameter.description,
-      techniqueParameter.documentation.getOrElse(""),
+      techniqueParameter.documentation,
       techniqueParameter.constraints.allow_empty.getOrElse(false)
     )
   }
