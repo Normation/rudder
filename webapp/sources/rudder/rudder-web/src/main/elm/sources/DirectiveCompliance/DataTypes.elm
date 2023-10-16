@@ -52,17 +52,17 @@ type alias TableFilters =
   { sortOrder  : SortOrder
   , filter     : String
   , openedRows : Dict String (String, SortOrder)
-  , compliance : ComplianceFilters
   }
 
 type SortOrder = Asc | Desc
 
 type alias UI =
-  { ruleFilters  : TableFilters
-  , nodeFilters  : TableFilters
-  , viewMode     : ViewMode
-  , loading      : Bool
-  , loaded       : Bool
+  { ruleFilters       : TableFilters
+  , nodeFilters       : TableFilters
+  , complianceFilters : ComplianceFilters
+  , viewMode          : ViewMode
+  , loading           : Bool
+  , loaded            : Bool
   }
 
 type ViewMode = RulesView | NodesView

@@ -242,7 +242,7 @@ directivesTab model details =
     directiveFilters  = model.ui.directiveFilters
     tableFilters      = directiveFilters.tableFilters
     treeFilters       = directiveFilters.treeFilters
-    complianceFilters = tableFilters.compliance
+    complianceFilters = model.ui.complianceFilters
 
     --Get more information about directives, to correctly sort them by displayName
     directives =
@@ -308,7 +308,7 @@ directivesTab model details =
 
     childrenSort = childs
       |> List.filter (\d -> (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectiveCompliance d)))
-      |> List.filter (filterDetailsByCompliance model.ui.directiveFilters.tableFilters.compliance)
+      |> List.filter (filterDetailsByCompliance complianceFilters)
       |> List.sortWith sort
     (directivesChildren, order, newOrder) = case sortOrder of
        Asc -> (childrenSort, "asc", Desc)
@@ -396,13 +396,13 @@ directivesTab model details =
         [ div [class "main-filters"]
           [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
           , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | compliance = {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}}}), style "min-width" "170px"]
+          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
             [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
             , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
             ]
           , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
           ]
-        , displayComplianceFilters directiveFilters.tableFilters.compliance UpdateDirectiveComplianceFilters
+        , displayComplianceFilters complianceFilters UpdateComplianceFilters
         ]
       , div[class "table-container"] [(
         let
@@ -630,7 +630,7 @@ nodesTab model details =
 
     groupFilters = model.ui.groupFilters
     tableFilters = groupFilters.tableFilters
-    complianceFilters = tableFilters.compliance
+    complianceFilters = model.ui.complianceFilters
 
     fun = byNodeCompliance model complianceFilters
     nodeRows =  List.map Tuple3.first fun.rows
@@ -701,13 +701,13 @@ nodesTab model details =
         [ div [class "main-filters"]
           [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value tableFilters.filter
             , onInput (\s -> UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | filter = s}} )][]
-          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateGroupFilters {groupFilters | tableFilters = {tableFilters | compliance = {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}}}), style "min-width" "170px"]
+          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
             [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
             , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
             ]
           , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
           ]
-        , displayComplianceFilters complianceFilters UpdateGroupComplianceFilters
+        , displayComplianceFilters complianceFilters UpdateComplianceFilters
         ]
       , div[class "table-container"] [
           table [class "dataTable compliance-table"] [
