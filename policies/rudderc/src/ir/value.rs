@@ -85,7 +85,8 @@ pub enum Expression {
     /// `${node.property[KEY][SUBKEY]}`
     NodeProperty(Vec<Expression>),
     /// `${anything_unidentified}` (all other variable expressions)
-    GenericVar(Box<Expression>),
+    /// `${anything.unknown[but][valid]}`
+    GenericVar(Vec<Expression>),
     /// A static value
     Scalar(String),
     /// A list of tokens
@@ -118,7 +119,11 @@ impl Expression {
                 }
             }
             // TODO: Maybe check for technique parameters, without dots
-            Self::GenericVar(e) => e.lint()?,
+            Self::GenericVar(v) => {
+                for e in v {
+                    e.lint()?;
+                }
+            }
             Self::Scalar(_) => (),
             Self::NodeProperty(s) => {
                 for e in s {
@@ -261,7 +266,22 @@ impl Expression {
                 .map(|i| i.fmt(target))
                 .collect::<Vec<String>>()
                 .join(""),
-            Self::GenericVar(e) => format!("${{{}}}", e.fmt(target)),
+            Self::GenericVar(e) => {
+                if e.len() == 1 {
+                    format!("${{{}}}", e[0].fmt(target))
+                } else {
+                    let keys = e
+                        .iter()
+                        .skip(1)
+                        .map(|i| i.fmt(target))
+                        .collect::<Vec<String>>()
+                        .join("][");
+                    match target {
+                        Target::Unix => format!("${{{}[{}]}}", e[0].fmt(target), keys),
+                        Target::Windows => format!("$(${}[{}])", e[0].fmt(target), keys),
+                    }
+                }
+            }
             Self::Scalar(s) => s.to_string(),
             Self::NodeProperty(e) => {
                 let keys = e
@@ -367,16 +387,15 @@ fn string(s: &str) -> IResult<&str, Expression> {
 
 // Reads a node property
 fn generic_var(s: &str) -> IResult<&str, Expression> {
-    preceded(
-        tag("${"),
-        terminated(
-            map(
-                |s| expression(s, true),
-                |out| Expression::GenericVar(Box::new(out)),
-            ),
-            char('}'),
-        ),
-    )(s)
+    let (s, _) = tag("${")(s)?;
+    // Property name, mandatory
+    let (s, name) = expression(s, true)?;
+    // Keys, optional
+    let (s, mut keys) = many0(key)(s)?;
+    let (s, _) = char('}')(s)?;
+    let mut res = vec![name];
+    res.append(&mut keys);
+    Ok((s, Expression::GenericVar(res)))
 }
 
 fn parameter(s: &str) -> IResult<&str, Expression> {
@@ -494,9 +513,9 @@ mod tests {
         let out: Expression = "${sys.${host}}".parse().unwrap();
         assert_eq!(
             out,
-            Expression::Sys(vec![Expression::GenericVar(Box::new(Expression::Scalar(
+            Expression::Sys(vec![Expression::GenericVar(vec![Expression::Scalar(
                 "host".to_string()
-            )))])
+            )])])
         );
         let out: Expression = "${const.dollar}".parse().unwrap();
         assert_eq!(
@@ -520,6 +539,14 @@ mod tests {
         assert_eq!(
             out,
             Expression::NodeInventory(vec![Expression::Scalar("hostname".to_string())])
+        );
+        let out: Expression = "${database.secret[password]}".parse().unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![
+                Expression::Scalar("database.secret".to_string()),
+                Expression::Scalar("password".to_string())
+            ])
         );
     }
 
@@ -560,7 +587,20 @@ mod tests {
         let (_, out) = generic_var("${plouf}").unwrap();
         assert_eq!(
             out,
-            Expression::GenericVar(Box::new(Expression::Scalar("plouf".to_string())))
+            Expression::GenericVar(vec![Expression::Scalar("plouf".to_string())])
+        );
+        let (_, out) = generic_var("${bundle.plouf}").unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![Expression::Scalar("bundle.plouf".to_string())])
+        );
+        let (_, out) = generic_var("${bundle.plouf[key]}").unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![
+                Expression::Scalar("bundle.plouf".to_string()),
+                Expression::Scalar("key".to_string())
+            ])
         );
     }
 
@@ -609,11 +649,17 @@ mod tests {
             "$($node.properties[$($node.properties[inner${sys.host}$($sys.interfaces[eth0])])][tutu])".to_string()
         );
         let e = Expression::Sequence(vec![Expression::Sys(vec![Expression::Sequence(vec![
-            Expression::GenericVar(Box::new(Expression::Sequence(vec![Expression::Scalar(
+            Expression::GenericVar(vec![Expression::Sequence(vec![Expression::Scalar(
                 "host".to_string(),
-            )]))),
+            )])]),
         ])])]);
-        assert_eq!(e.fmt(Target::Windows), "${sys.${host}}".to_string())
+        assert_eq!(e.fmt(Target::Windows), "${sys.${host}}".to_string());
+        let e = Expression::GenericVar(vec![
+            Expression::Scalar("bundle.plouf".to_string()),
+            Expression::Scalar("key".to_string()),
+        ]);
+        assert_eq!(e.fmt(Target::Windows), "$($bundle.plouf[key])".to_string());
+        assert_eq!(e.fmt(Target::Unix), "${bundle.plouf[key]}".to_string());
     }
 
     #[test]
