@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::{bail, Result};
 use askama::Template;
-use rudder_commons::Escaping;
+use rudder_commons::{methods::method::Agent, Escaping};
 
 use super::Backend;
 use crate::ir::{
@@ -132,6 +132,7 @@ struct WindowsMethod {
     condition: Option<String>,
     args: Vec<(String, String, Escaping)>,
     name: String,
+    is_supported: bool,
 }
 
 fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
@@ -164,6 +165,8 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
     // We want a stable output
     args.sort();
 
+    let is_supported = m.info.unwrap().agent_support.contains(&Agent::Dsc);
+
     Ok(WindowsMethod {
         id: m.id.to_string(),
         class_prefix: m.info.as_ref().unwrap().class_prefix.clone(),
@@ -178,6 +181,7 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
         },
         args,
         name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
+        is_supported,
     })
 }
 

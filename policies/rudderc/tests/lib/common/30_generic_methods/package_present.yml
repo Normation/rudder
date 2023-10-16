@@ -13,6 +13,7 @@ bundle_args:
   - provider
 agent_support:
   - cfengine-community
+  - dsc
 parameter:
   - name: name
     description: "Name of the package, or path to a local package"

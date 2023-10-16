@@ -29,16 +29,7 @@
         DisableReporting = $false
         TechniqueName = $techniqueName
     }
-    
-    $methodParams = @{
-        Condition = "it_generates_properly"
-        ReportMessage = "This should be ReportMessage"
-        
-    }
-    $call = Report-If-Condition @methodParams -PolicyMode $policyMode
-    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-    $localContext.merge($methodContext)
-    
+    Rudder-Report-NA @reportParams
 
 
     EndTechniqueCall -Name $techniqueName
