@@ -1020,14 +1020,6 @@ object RudderParsedProperties {
   }
 
   /*
-   * the return code used by rudderc to notify the webapp that it didn't successfully terminated
-   * and that the webapp should generate the technique.
-   */
-  val RUDDERC_FALLBACK_RETURN_CODE = {
-    42
-  }
-
-  /*
    * inventory accept/refuse history information clean-up.
    * These properties manage how long we keep inventory that we store when a node is accepted.
    * There is:
@@ -1845,7 +1837,7 @@ object RudderConfigInit {
         _.path,
         RUDDER_GIT_ROOT_CONFIG_REPO
       ),
-      new RuddercServiceImpl(RUDDERC_CMD, RUDDERC_FALLBACK_RETURN_CODE, 5.seconds),
+      new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
       TECHNIQUE_COMPILER_APP,
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
