@@ -112,6 +112,7 @@ type alias TechniqueParameter =
   { id          : ParameterId
   , name        : String
   , description : String
+  , documentation : Maybe String
   , mayBeEmpty  : Bool
   }
 

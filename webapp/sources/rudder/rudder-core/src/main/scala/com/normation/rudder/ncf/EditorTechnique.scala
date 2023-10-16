@@ -192,7 +192,7 @@ final case class TechniqueParameter(
     id:            ParameterId,
     name:          String,
     description:   String,
-    documentation: String,
+    documentation: Option[String],
     mayBeEmpty:    Boolean
 )
 

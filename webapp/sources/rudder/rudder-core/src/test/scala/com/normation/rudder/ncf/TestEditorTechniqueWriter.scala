@@ -501,7 +501,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ParameterId("1aaacd71-c2d5-482c-bcff-5eee6f8da9c2"),
         "technique_parameter",
         "technique parameter",
-        " a long description, with line \n break within",
+        Some(" a long description, with line \n break within"),
         // we must ensure that it will lead to: [parameter(Mandatory=$false)]
         true
       ) :: Nil,
@@ -649,7 +649,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ParameterId("package_version"),
         "version",
         "package version",
-        "Package version to install",
+        Some("Package version to install"),
         false
       ) :: Nil,
       Nil,
@@ -739,7 +739,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ParameterId("40e3a5ab-0812-4a60-96f3-251be8cedf43"),
         "my_custom_condition",
         "my custom condition",
-        "",
+        None,
         false
       ) :: Nil,
       Nil,

@@ -7,6 +7,7 @@ params:
   - id: 345388b1-7f68-44bd-95bc-c8b66a5010e9
     name: The_File_To_Check
     description: The File To Check
+    documentation: ''
     constraints:
       allow_empty: false
 items:

@@ -621,7 +621,7 @@ class WebappTechniqueCompiler(
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
         <DESCRIPTION>{parameter.description}</DESCRIPTION>
-        <LONGDESCRIPTION>{parameter.documentation}</LONGDESCRIPTION>
+        <LONGDESCRIPTION>{parameter.documentation.getOrElse("")}</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
           <MAYBEEMPTY>{parameter.mayBeEmpty}</MAYBEEMPTY>

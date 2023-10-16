@@ -39,16 +39,17 @@ techniqueResource  resource =
 techniqueParameter :  Model -> Technique -> TechniqueParameter -> Bool -> Html Msg
 techniqueParameter model technique param opened =
   let
+    param_var_name = if (String.isEmpty param.name) then canonifyString param.description else param.name
     param_name =
-      if (String.isEmpty param.name) then
+      if (String.isEmpty param.name && String.isEmpty param.description ) then
         [  div [ class "empty-name"] [ text "Set a parameter name" ]]
 
       else
         [ div [ class "use-with" ] [
-            span [] [ text ("${"++(canonifyHelper (Value param.name))++"}") ]
+            span [] [ text ("${"++param_var_name++"}") ]
           ]
         , div [ class "full-name" ] [
-            span [] [ text (technique.id.value ++"." ++ (canonifyHelper (Value param.name)))]
+            span [] [ text ( technique.id.value ++"." ++ param_var_name )]
           ]
 
         ]
@@ -65,15 +66,18 @@ techniqueParameter model technique param opened =
     li [] [
       span [ class "border" ] []
     , div [ class "param" ] [
-        div [ class "input-group" ] [
-          input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.name, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+        div [ class "input-group form-group" ] [
+          input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
         , div [ class "input-group-btn" ] [
             button [ class ("btn btn-outline " ++ beEmptyClass), title beEmptyTitle, onClick (TechniqueParameterModified param.id {param | mayBeEmpty = not param.mayBeEmpty }) ] [
               text ( if param.mayBeEmpty then "May be empty" else "Required" )
             ]
           ]
+        ]
+      , div [ class "input-group" ] [
+           input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
         , div [ class "input-group-btn" ] [
-            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ (canonifyHelper (Value param.name)) ++ "}")) ] [
+            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
               i [ class "ion ion-clipboard" ] []
             ]
           ]
@@ -83,7 +87,7 @@ techniqueParameter model technique param opened =
           text "Description "
         , i [ class (if opened then "fa fa-times" else "ion ion-edit") ] []
         ]
-      , if opened then textarea [ readonly (not model.hasWriteRights), style "margin-top" "10px",  class "form-control",  rows 1,  value param.description, onInput (\s -> TechniqueParameterModified param.id {param | description = s })] [] else text "" -- msd-elastic
+      , if opened then textarea [ readonly (not model.hasWriteRights), style "margin-top" "10px",  class "form-control",  rows 1,  value (Maybe.withDefault "" param.documentation), onInput (\s -> TechniqueParameterModified param.id {param | documentation = if (String.isEmpty s) then Nothing else Just s })] [] else text "" -- msd-elastic
       ]
     , div [ class "remove-item", onClick (TechniqueParameterRemoved param.id) ] [
         i [ class "fa fa-times"] []

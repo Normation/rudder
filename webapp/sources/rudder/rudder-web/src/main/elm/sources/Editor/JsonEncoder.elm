@@ -60,12 +60,18 @@ encodeResource resource =
 
 encodeTechniqueParameters: TechniqueParameter -> Value
 encodeTechniqueParameters param =
-  object [
-    ("id"         , string param.id.value)
-  , ("name"       , string param.name)
-  , ("description", string param.description)
-  , ("mayBeEmpty" , bool   param.mayBeEmpty)
-  ]
+  let
+    doc =  ( case param.documentation of
+                 Nothing -> []
+                 Just s -> [ ( "documentation", string s)]
+           )
+    base = [ ("id"         , string param.id.value)
+           , ("name"       , string (if (String.isEmpty param.name) then (canonifyString param.description) else param.name))
+           , ("description", string param.description)
+           , ("mayBeEmpty" , bool   param.mayBeEmpty)
+           ]
+  in
+    object (List.append base doc )
 
 encodeMethodElem: MethodElem -> Value
 encodeMethodElem call =
