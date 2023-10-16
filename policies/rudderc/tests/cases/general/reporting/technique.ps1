@@ -34,7 +34,9 @@
         Architecture = ""
         Name = "htop"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -88,7 +90,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -112,7 +116,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -136,7 +142,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -160,7 +168,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -184,7 +194,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
@@ -208,7 +220,9 @@
         Architecture = ""
         Name = "ntp"
         Provider = ""
-        Version = ""
+        Version = @'
+
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode

@@ -34,7 +34,9 @@
         Architecture = ""
         Name = "htop"
         Provider = ""
-        Version = "2.3.4"
+        Version = @'
+2.3.4
+'@
         
     }
     $call = Package-Present @methodParams -PolicyMode $policyMode
