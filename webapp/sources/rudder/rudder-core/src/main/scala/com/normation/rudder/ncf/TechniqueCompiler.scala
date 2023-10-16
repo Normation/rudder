@@ -217,17 +217,19 @@ object RuddercResult       {
   final case class Fail(code: Int, msg: String, stdout: String, stderr: String)      extends RuddercError
 
   // biased it toward system error for now, it can change when rudderc is mature enough
-  def parseToError(code: Int, stdout: String, stderr: String): RuddercResult = {
+  def fromCmdResult(code: Int, userMsg: String, stdout: String, stderr: String): RuddercResult = {
     // todo: parse a rudderc output and get an error from it
     if (code == 0) {
-      Ok("", stdout, stderr)
-    } else if (code == 2) {
-      UserError(code, "", stdout, stderr)
+      Ok(userMsg, stdout, stderr)
+    } else if (code == USER_ERROR_CODE) {
+      UserError(code, userMsg, stdout, stderr)
     } else {
       // returns 1 on internal error
-      Fail(code, "", stdout, stderr)
+      Fail(code, userMsg, stdout, stderr)
     }
   }
+
+  val USER_ERROR_CODE = 2
 }
 
 /*
@@ -261,9 +263,8 @@ trait RuddercService {
  * notice: https://issues.rudder.io/issues/23053 => mv from target to parent at the end of compilation
  */
 class RuddercServiceImpl(
-    val ruddercCmd:      String,
-    ruddercFallbackCode: Int,
-    killTimeout:         Duration
+    val ruddercCmd: String,
+    killTimeout:    Duration
 ) extends RuddercService {
 
   def compilationOutputDir(techniqueDir: File): File = techniqueDir / "target"
@@ -280,7 +281,7 @@ class RuddercServiceImpl(
                       ok.succeed
                     case None     =>
                       val error = s"Rudderc ${cmd.display} timed out after ${killTimeout.render}"
-                      RuddercLogger.error(error) *> CmdResult(ruddercFallbackCode, "", error).succeed
+                      RuddercLogger.error(error) *> CmdResult(1, "", error).succeed
                   }
       c         = translateReturnCode(techniqueDir.pathAsString, r)
       _        <- logReturnCode(c)
@@ -322,7 +323,7 @@ class RuddercServiceImpl(
              RuddercLogger.trace(s"  -> stdout : ${result.stdout}") *>
              RuddercLogger.trace(s"  -> stderr : ${result.stderr}")
            }
-      _ <- ZIO.when(result.code >= ruddercFallbackCode) { // warning
+      _ <- ZIO.when(result.code >= 1 && result.code != RuddercResult.USER_ERROR_CODE) { // log at warning level rudderc own errors
              for {
                _ <- RuddercLogger.warn(result.stdout)
                _ <- ZIO.when(result.stdout.size > 0)(RuddercLogger.warn(s"  -> stdout : ${result.stdout}"))
@@ -339,16 +340,7 @@ class RuddercServiceImpl(
       } else ""
       s"Exit code=${result.code}${specialCode} for technique: '${techniquePath}'."
     }
-    if (result.code == 0) {
-      RuddercResult.Ok(msg, result.stdout, result.stderr)
-    } else if (result.code < 0) { // this should not happen, and/or is likely a system error (bad !#, etc)
-      // using script error because we do have an error code and it can help in some case
-      RuddercResult.Fail(result.code, msg, result.stdout, result.stderr)
-    } else if (result.code >= 1 && result.code < ruddercFallbackCode) { // error for the user
-      RuddercResult.UserError(result.code, msg, result.stdout, result.stderr)
-    } else { // code >= ruddercFallbackCode: rudderc failure
-      RuddercResult.Fail(result.code, msg, result.stdout, result.stderr)
-    }
+    RuddercResult.fromCmdResult(result.code, msg, result.stdout, result.stderr)
   }
 }
 
