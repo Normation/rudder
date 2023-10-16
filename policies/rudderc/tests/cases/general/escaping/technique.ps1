@@ -43,7 +43,7 @@
 	"
             Provider = ""
             Version = @'
-
+if(Get-Service "Zabbix agent") { write-output "exists" }
 '@
             
         }
@@ -53,6 +53,35 @@
     } else {
         Rudder-Report-NA @reportParams
     }
+
+    $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d977"
+    $componentKey = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3
+	"
+    $reportParams = @{
+        ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
+        ComponentKey = $componentKey
+        ComponentName = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3
+	"
+        PolicyMode = $policyMode
+        ReportId = $reportId
+        DisableReporting = $false
+        TechniqueName = $techniqueName
+    }
+    
+    $methodParams = @{
+        Architecture = ""
+        Name = "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ `" `"`" \ \\😋aà3
+	"
+        Provider = ""
+        Version = @'
+if(Get-Service "Zabbix agent") { write-output "exists" }
+'@
+        
+    }
+    $call = Package-Present @methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
 
 
     EndTechniqueCall -Name $techniqueName
