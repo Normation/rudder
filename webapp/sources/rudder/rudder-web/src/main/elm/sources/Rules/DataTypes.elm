@@ -217,7 +217,6 @@ type alias TableFilters =
   , sortOrder  : SortOrder
   , filter     : String
   , unfolded   : List String
-  , compliance : ComplianceFilters
   }
 
 type alias TreeFilters =
@@ -233,15 +232,16 @@ type alias Filters =
   }
 
 type alias UI =
-  { ruleFilters      : Filters
-  , directiveFilters : Filters
-  , groupFilters     : Filters
-  , modal            : ModalState
-  , hasWriteRights   : Bool
-  , loadingRules     : Bool
-  , isAllCatFold     : Bool
-  , saving           : Bool
-  , crSettings       : Maybe ChangeRequestSettings
+  { ruleFilters       : Filters
+  , directiveFilters  : Filters
+  , groupFilters      : Filters
+  , complianceFilters : ComplianceFilters
+  , modal             : ModalState
+  , hasWriteRights    : Bool
+  , loadingRules      : Bool
+  , isAllCatFold      : Bool
+  , saving            : Bool
+  , crSettings        : Maybe ChangeRequestSettings
   }
 
 type alias  Changes =
@@ -311,8 +311,7 @@ type Msg
   | UpdateRuleFilters      Filters
   | UpdateDirectiveFilters Filters
   | UpdateGroupFilters     Filters
-  | UpdateDirectiveComplianceFilters ComplianceFilters
-  | UpdateGroupComplianceFilters     ComplianceFilters
+  | UpdateComplianceFilters ComplianceFilters
   | GoTo                   String
   | FoldAllCategories      Filters
   | RefreshComplianceTable RuleId
