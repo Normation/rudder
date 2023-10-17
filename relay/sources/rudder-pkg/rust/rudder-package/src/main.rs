@@ -1,7 +1,11 @@
 use std::{
     collections::HashMap,
-    fs,
+    fs::File,
+    io::{Read},
+    str,
 };
+use ar::Archive;
+use anyhow::{Result, Context};
 
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +57,26 @@ struct InstalledPluginDependency {
     rpm: Option<Vec<String>>,
 }
 
+fn read_rpkg_metadata(path: String) -> Result<PluginMetadata>{
+  let p = &path;
+  let mut archive = Archive::new(File::open(p).unwrap());
+  while let Some(entry_result) = archive.next_entry() {
+    let mut entry = entry_result.unwrap();
+    let mut buffer = String::new();
+    let entry_title = str::from_utf8(entry.header().identifier()).unwrap();
+    if entry_title == "metadata" {
+      let _ = entry.read_to_string(&mut buffer)?;
+      let m: PluginMetadata = serde_json::from_str(&buffer)
+                              .with_context(|| format!("Failed to parse {} metadata", p))?;
+      return Ok(m)
+    };
+  };
+  return Err(anyhow::anyhow!("No metadata found in {}", p));
+}
+
 fn main() {
+  let m = read_rpkg_metadata(String::from("/home/fdallidet/Downloads/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg"));
+  println!("{:?}", m.unwrap());
 }
 
 #[cfg(test)]
