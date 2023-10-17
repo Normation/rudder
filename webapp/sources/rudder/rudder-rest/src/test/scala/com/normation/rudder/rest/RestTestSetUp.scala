@@ -860,10 +860,10 @@ class RestTestSetUp {
       mockConfigRepo.configurationRepository,
       mockTechniques.techniqueRevisionRepo
     )
-    val featureSwitchState    = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
+
     // archive name in a Ref to make it simple to change in tests
-    val rootDirName           = Ref.make("archive").runNow
-    val zipArchiveReader      = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
+    val rootDirName      = Ref.make("archive").runNow
+    val zipArchiveReader = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
     // a mock save archive that stores result in a ref
     object archiveSaver   extends SaveArchiveService  {
       val base = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
@@ -876,7 +876,6 @@ class RestTestSetUp {
     }
     val api = new ArchiveApi(
       archiveBuilderService,
-      featureSwitchState.get,
       rootDirName.get,
       zipArchiveReader,
       archiveSaver,

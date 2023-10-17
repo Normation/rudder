@@ -186,11 +186,6 @@ trait ReadConfigService {
   def rudder_featureSwitch_directiveScriptEngine(): IOResult[FeatureSwitch]
 
   /**
-   * Should we activate import/export archive API
-   */
-  def rudder_featureSwitch_archiveApi(): IOResult[FeatureSwitch]
-
-  /**
    * Default value for node properties after acceptation:
    * - policy mode
    * - node lifecycle state
@@ -314,11 +309,6 @@ trait UpdateConfigService {
    */
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit]
 
-  /*
-   * Should we enable import/export archive API ?
-   */
-  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit]
-
   /**
    * Set the compliance mode
    */
@@ -414,7 +404,6 @@ class GenericConfigService(
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=true
        rudder.featureSwitch.directiveScriptEngine=enabled
-       rudder.featureSwitch.archiveApi=disabled
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
        rudder.compliance.unexpectedReportUnboundedVarValues=true
@@ -707,12 +696,6 @@ class GenericConfigService(
   def rudder_featureSwitch_directiveScriptEngine():                          IOResult[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): IOResult[Unit]          =
     save("rudder_featureSwitch_directiveScriptEngine", status)
-
-  /**
-   * Should we enable import/export archive API?
-   */
-  def rudder_featureSwitch_archiveApi():                          IOResult[FeatureSwitch] = get("rudder_featureSwitch_archiveApi")
-  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit]          = save("rudder_featureSwitch_archiveApi", status)
 
   /**
    * Default value for node properties after acceptation:
