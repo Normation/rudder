@@ -54,7 +54,6 @@ isValidState state =
     InvalidState _ -> False
 
 checkParameter param = (not (String.isEmpty param.description)) && (not (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name))
-
 isValid: Technique -> TechniqueUiInfo -> Bool
 isValid t ui =
   (isValidState ui.idState )  && ( isValidState ui.nameState ) && (List.all (isValidState) (List.map .validation (Dict.values ui.callsUI)))
@@ -169,7 +168,6 @@ showTechnique model technique origin ui editInfo =
     -- Keep the ID of the method in the UI if it contains invalid parameters value
     areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
     areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
-    isEmptyParameters = List.any (\p -> String.isEmpty p.name) technique.parameters
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -301,7 +299,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isEmptyParameters || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
+          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
           ]
         ]
       ]
