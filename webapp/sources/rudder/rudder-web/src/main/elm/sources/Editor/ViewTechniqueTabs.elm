@@ -65,7 +65,7 @@ techniqueParameter model technique param opened =
         )
     (invalidParamClass, invalidParamElem) =
         if (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name) then
-          ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "Invalid variable name is required, valid characters are [_a-zA-Z\\d]" ] ] )
+          ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "The variable name is invalid, only alphanumerical characters and _ are accepted" ] ] )
         else
           ("", text "")
     (invalidNameClass, invalidNameElem) =
