@@ -25,7 +25,7 @@ decodeTechniqueParameter =
     |> required "id" (map ParameterId string)
     |> required "name" string
     |> required "description" string
-    |> optional  "description" (maybe string) Nothing
+    |> optional "documentation" (maybe string) Nothing
     |> optional "mayBeEmpty" bool False
 
 decodeCallParameter : List (String, List AgentValue) -> List CallParameter

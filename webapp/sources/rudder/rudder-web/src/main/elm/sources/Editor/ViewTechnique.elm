@@ -18,6 +18,8 @@ import Editor.ViewTechniqueTabs exposing (..)
 import Editor.ViewTechniqueList exposing (..)
 import Maybe.Extra
 import Json.Decode
+import Regex
+import String.Extra
 
 
 --
@@ -51,10 +53,12 @@ isValidState state =
     ValidState -> True
     InvalidState _ -> False
 
-isValid: TechniqueUiInfo -> Bool
-isValid ui =
+checkParameter param = (not (String.isEmpty param.description)) && (not (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name))
+
+isValid: Technique -> TechniqueUiInfo -> Bool
+isValid t ui =
   (isValidState ui.idState )  && ( isValidState ui.nameState ) && (List.all (isValidState) (List.map .validation (Dict.values ui.callsUI)))
-  && (List.all (isValidState) (List.map (.validation) (Dict.values ui.blockUI)))
+  && (List.all (isValidState) (List.map (.validation) (Dict.values ui.blockUI))) && (List.all (checkParameter) t.parameters)
 
 {- Contains methods with parameters error
 
@@ -297,7 +301,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid ui) || String.isEmpty technique.name || isEmptyParameters || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
+          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isEmptyParameters || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
           ]
         ]
       ]
