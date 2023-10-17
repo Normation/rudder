@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
+import Regex
 import String.Extra
 
 
@@ -62,26 +63,38 @@ techniqueParameter model technique param opened =
         ( "Parameter cannot be empty and needs a value.\nIf you add a parameter to an existing technique, policy generation will fail and you will need to update all directives with the new parameter value"
         , "btn-info"
         )
+    (invalidParamClass, invalidParamElem) =
+        if (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name) then
+          ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "Invalid variable name is required, valid characters are [_a-zA-Z\\d]" ] ] )
+        else
+          ("", text "")
+    (invalidNameClass, invalidNameElem) =
+        if (String.isEmpty param.description) then
+          ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "Parameter name cannot be empty" ] ] )
+        else
+          ("", text "")
   in
     li [] [
       span [ class "border" ] []
     , div [ class "param" ] [
         div [ class "input-group form-group" ] [
-          input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
+          input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
         , div [ class "input-group-btn" ] [
             button [ class ("btn btn-outline " ++ beEmptyClass), title beEmptyTitle, onClick (TechniqueParameterModified param.id {param | mayBeEmpty = not param.mayBeEmpty }) ] [
               text ( if param.mayBeEmpty then "May be empty" else "Required" )
             ]
           ]
         ]
+      , invalidNameElem
       , div [ class "input-group" ] [
-           input [readonly (not model.hasWriteRights), type_ "text",  class "form-control", value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+           input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
         , div [ class "input-group-btn" ] [
             button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
               i [ class "ion ion-clipboard" ] []
             ]
           ]
         ]
+      , invalidParamElem
       , div [] param_name
       , button [ class "btn btn-sm btn-outline-primary",  style "margin-top" "5px" , onClick (TechniqueParameterToggle param.id)] [
           text "Description "
