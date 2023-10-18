@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::rpkg::plugin;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RepoIndex(Vec<Plugin>);
@@ -14,18 +14,16 @@ pub struct Plugin {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use pretty_assertions::assert_eq;
-  use std::{
-      collections::HashMap,
-      fs,
-  };
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use std::{collections::HashMap, fs};
 
-  #[test]
-  fn test_plugin_index_parsing() {
-    let data = fs::read_to_string("./tests/repo_index.json").expect("Unable to parse file './tests/repo_index.json'");
-    let index: RepoIndex = serde_json::from_str(&data).unwrap();
-    let expected = RepoIndex {
+    #[test]
+    fn test_plugin_index_parsing() {
+        let data = fs::read_to_string("./tests/repo_index.json")
+            .expect("Unable to parse file './tests/repo_index.json'");
+        let index: RepoIndex = serde_json::from_str(&data).unwrap();
+        let expected = RepoIndex {
       0: vec!(
         Plugin {
           metadata: plugin::Metadata {
@@ -74,6 +72,6 @@ mod tests {
         },
       )
     };
-    assert_eq!(expected, index);
-  }
+        assert_eq!(expected, index);
+    }
 }

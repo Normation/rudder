@@ -1,5 +1,5 @@
 pub mod database;
 pub use database::Database;
-pub mod plugin;
 pub mod archive;
+pub mod plugin;
 pub mod repo_index;
