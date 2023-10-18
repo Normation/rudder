@@ -544,9 +544,15 @@ class EventLogFactoryImpl(
           modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x)) ++
           modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x)) ++
           modifyDiff.modPriority.map(x => SimpleDiff.intToXml(<priority/>, x)) ++
+          modifyDiff.modPolicyMode.map(x => {
+            SimpleDiff.toXml[Option[PolicyMode]](<policyMode/>, x) {
+              case None    => Text(PolicyMode.defaultValue)
+              case Some(y) => Text(y.name)
+            }
+          }) ++
           modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x)) ++
           modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x)) ++
-          modifyDiff.modTags.map(x => SimpleDiff.toXml[Set[Tag]](<tags/>, x)(tags => TagsXml.toXml(Tags(tags))))
+          modifyDiff.modTags.map(x => SimpleDiff.toXml[Tags](<tags/>, x)(tags => TagsXml.toXml(tags)))
         }
         </directive>
       )
