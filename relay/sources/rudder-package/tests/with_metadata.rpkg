@@ -1,0 +1,18 @@
+!<arch>
+file1.txt/      1697546632  1000  1000  100644  14        `
+A simple file
+file2.txt/      1697546648  1000  1000  100644  13        `
+Another file
+
+metadata/       1697546551  1000  1000  100644  316       `
+{
+  "type": "plugin",
+  "name": "rudder-plugin-aix",
+  "version": "8.0.0~rc1-2.1",
+  "build-date": "2023-10-13T09:44:54+00:00",
+  "build-commit": "cdcf8a4b01124b9b309903cafd95b3a161a9c35c",
+  "jar-files": [ "/opt/rudder/share/plugins/aix/aix.jar" ],
+  "content": {
+    "files.txz": "/opt/rudder/share/plugins"
+  }
+}
