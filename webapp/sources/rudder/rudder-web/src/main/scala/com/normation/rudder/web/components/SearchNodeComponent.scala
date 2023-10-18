@@ -494,13 +494,9 @@ object SearchNodeComponent {
         }
       case Nil    => ""
     }
+    val newForm      = comp.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control input-sm"))
     comp.destroyForm(v_eltid) &
-    JsRaw(
-      "jQuery('#%s').replaceWith('%s')".format(
-        v_eltid,
-        comp.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control input-sm"))
-      )
-    ) &
+    JsCmds.Replace(v_eltid, newForm) &
     comp.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid, comparators, Full(selectedComp)) &
     setIsEnableFor(selectedComp, v_eltid) &
