@@ -850,7 +850,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
               diff(_.isEnabled),
               diff(_.isSystem),
               diff(_.policyMode),
-              diff(_.tags.tags)
+              diff(_.tags)
             )
           )
       }

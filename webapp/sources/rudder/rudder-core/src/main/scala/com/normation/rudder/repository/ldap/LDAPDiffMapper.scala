@@ -272,8 +272,9 @@ class LDAPDiffMapper(
         case (modify: LDIFModifyChangeRecord, Some(beforeChangeEntry)) =>
           for {
             oldPi <- mapper.entry2Directive(beforeChangeEntry)
-            diff  <- modify.getModifications().foldLeft(ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name).asRight[RudderError]) {
-                       (diff, mod) =>
+            diff  <- modify
+                       .getModifications()
+                       .foldLeft(ModifyDirectiveDiff.emptyMod(ptName, oldPi.id, oldPi.name).asRight[RudderError]) { (diff, mod) =>
                          mod.getAttributeName() match {
                            case A_TECHNIQUE_VERSION   =>
                              mod.getAttribute().getValue match {
@@ -336,15 +337,15 @@ class LDAPDiffMapper(
                              for {
                                d    <- diff
                                tags <- mod.getOptValue() match {
-                                         case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).map(_.tags).toPureResult
-                                         case None    => Right(Set[Tag]())
+                                         case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).toPureResult
+                                         case None    => Right(Tags(Set()))
                                        }
                              } yield {
-                               d.copy(modTags = Some(SimpleDiff(oldPi.tags.tags, tags)))
+                               d.copy(modTags = Some(SimpleDiff(oldPi.tags, tags)))
                              }
                            case x                     => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                          }
-                     }
+                       }
           } yield {
             Some(diff)
           }

@@ -41,6 +41,10 @@ import com.normation.errors._
 
 sealed trait PolicyMode { def name: String }
 object PolicyMode       {
+
+  // value which corresponds to a default policy mode, its value depending on context
+  val defaultValue: String = "default"
+
   final case object Audit   extends PolicyMode { val name = "audit"   }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 
@@ -60,11 +64,11 @@ object PolicyMode       {
     }
   }
 
-  // get from string, with null, '' and 'default' will result in a None
+  // get from string, with null, '' and default value will result in a None
   def parseDefault(value: String): Either[RudderError, Option[PolicyMode]] = {
     value match {
-      case null | "" | "default" => Right(None)
-      case _                     => parse(value).map(Some(_))
+      case null | "" | `defaultValue` => Right(None)
+      case _                          => parse(value).map(Some(_))
     }
   }
 

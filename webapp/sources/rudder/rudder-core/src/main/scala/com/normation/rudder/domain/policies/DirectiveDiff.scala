@@ -75,19 +75,44 @@ final case class ModifyDirectiveDiff(
     id:            DirectiveId,
     name:          String, // keep the name around to be able to display it as it was at that time
 
-    modName:             Option[SimpleDiff[String]] = None,
-    modTechniqueVersion: Option[SimpleDiff[TechniqueVersion]] = None,
-    modParameters:       Option[SimpleDiff[SectionVal]] = None,
-    modShortDescription: Option[SimpleDiff[String]] = None,
-    modLongDescription:  Option[SimpleDiff[String]] = None,
-    modPriority:         Option[SimpleDiff[Int]] = None,
-    modIsActivated:      Option[SimpleDiff[Boolean]] = None,
-    modIsSystem:         Option[SimpleDiff[Boolean]] = None,
-    modPolicyMode:       Option[SimpleDiff[Option[PolicyMode]]] = None,
-    modTags:             Option[SimpleDiff[Set[Tag]]] = None
+    modName:             Option[SimpleDiff[String]],
+    modTechniqueVersion: Option[SimpleDiff[TechniqueVersion]],
+    modParameters:       Option[SimpleDiff[SectionVal]],
+    modShortDescription: Option[SimpleDiff[String]],
+    modLongDescription:  Option[SimpleDiff[String]],
+    modPriority:         Option[SimpleDiff[Int]],
+    modIsActivated:      Option[SimpleDiff[Boolean]],
+    modIsSystem:         Option[SimpleDiff[Boolean]],
+    modPolicyMode:       Option[SimpleDiff[Option[PolicyMode]]],
+    modTags:             Option[SimpleDiff[Tags]]
 ) extends DirectiveSaveDiff {
   def needDeployment: Boolean = {
     modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined || modName.isDefined || modPolicyMode.isDefined
+  }
+}
+
+object ModifyDirectiveDiff {
+  // ModifyDirectiveDiff that has no modification
+  def emptyMod(
+      techniqueName: TechniqueName,
+      id:            DirectiveId,
+      name:          String
+  ): ModifyDirectiveDiff = {
+    ModifyDirectiveDiff(
+      techniqueName,
+      id,
+      name,
+      modName = None,
+      modTechniqueVersion = None,
+      modParameters = None,
+      modShortDescription = None,
+      modLongDescription = None,
+      modPriority = None,
+      modIsActivated = None,
+      modIsSystem = None,
+      modPolicyMode = None,
+      modTags = None
+    )
   }
 }
 
