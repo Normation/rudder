@@ -3,7 +3,7 @@
 == General information
 
 The compiler version used to build the projects are
-set in a `rust-toolchain` file in each project root, but
+set in a `rust-toolchain.toml` file in each project root, but
 we strive to keep compiler versions in sync between projects.
 We can rely on recent Rust compilers as we control the version
 installed on our package builders.
@@ -20,7 +20,7 @@ The Rust projects share a common base Makefile (`rust.makefile` at the repositor
 The easiest way to install and manage
 Rust toolchains locally is to use https://rustup.rs[rustup].
 It will install the latest stable toolchain by default, and download
-additional toolchains when needed (based on the `rust-toolchain` file).
+additional toolchains when needed (based on the `rust-toolchain.toml` file).
 
 === IDE/Editor
 
@@ -29,6 +29,12 @@ any editor supporting LSP.
 
 When using VS Code or another LSP-based editor integration, https://github.com/rust-analyzer/rust-analyzer#language-server-quick-start[rust-analyzer]
 should be used.
+
+Our CI checks source formatting using the default `rustfmt` configuration, so the easiest way to apply it
+is to configure your editor to format the files on save.
+
+We also prevent `clippy` warning so it can be useful to configure your editor to use it for linting
+instead of `cargo check`.
 
 === Tools
 
@@ -43,5 +49,4 @@ cargo install cargo-update   # to update cargo-installed tools
 cargo install cargo-tree     # to see the tree of dependencies
 cargo install cargo-benchcmp # to compare benchmarks results
 cargo install sccache        # to share compilation cache locally between projects
-cargo install cargo-nextest  # to run tests in parallel (when possible)
 ```
