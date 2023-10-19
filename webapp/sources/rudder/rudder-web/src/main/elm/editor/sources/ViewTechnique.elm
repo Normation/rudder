@@ -357,7 +357,8 @@ view model =
                         h1 [] [ text "Techniques" ]
                       , p [] [ text "Create a new technique or edit one from the list on the left."]
                       , p [] [ text "Define target configuration using the generic methods from the list on the right as building blocks."]
-                      , button [ class "btn btn-success btn-lg" , onClick (GenerateId (\s -> NewTechnique (TechniqueId s) ))] [
+                      , if (not model.hasWriteRights) then text "" else
+                        button [ class "btn btn-success btn-lg" , onClick (GenerateId (\s -> NewTechnique (TechniqueId s) ))] [
                           text "Create Technique "
                         , i [ class "fa fa-plus-circle" ] []
                         ]
