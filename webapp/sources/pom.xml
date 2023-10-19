@@ -416,14 +416,14 @@ limitations under the License.
     <commons-codec-version>1.15</commons-codec-version>
     <commons-fileupload>1.5</commons-fileupload>
     <commons-csv-version>1.10.0</commons-csv-version>
-    <spring-version>5.3.29</spring-version>
-    <spring-security-version>5.7.10</spring-security-version>
-    <jgit-version>6.3.0.202209071007-r</jgit-version>
+    <jgit-version>6.7.0.202309050840-r</jgit-version>
+    <spring-version>5.3.30</spring-version>
+    <spring-security-version>5.7.11</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.4</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
     <bouncycastle-compat>jdk18on</bouncycastle-compat>
-    <bouncycastle-version>1.72</bouncycastle-version>
+    <bouncycastle-version>1.76</bouncycastle-version>
     <better-files-version>3.9.1</better-files-version>
     <sourcecode-version>0.3.0</sourcecode-version>
     <quicklens-version>1.9.0</quicklens-version>
@@ -431,6 +431,7 @@ limitations under the License.
     <nuprocess-version>2.0.5</nuprocess-version>
     <postgresql-version>42.6.0</postgresql-version>
     <json-path-version>2.7.0</json-path-version>
+    <json-smart-version>2.4.11</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>6.0.6</unboundid-version>
     <fastparse-version>2.3.3</fastparse-version>
@@ -438,7 +439,7 @@ limitations under the License.
     <caffeine-version>3.1.1</caffeine-version>
     <jgrapht-version>1.5.1</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
-    <graalvm-version>22.3.0</graalvm-version>
+    <graalvm-version>22.3.4</graalvm-version>
     <chimney-version>0.6.2</chimney-version>
     <cron4s-version>0.6.1</cron4s-version>
     <ipaddress-version>5.3.4</ipaddress-version>

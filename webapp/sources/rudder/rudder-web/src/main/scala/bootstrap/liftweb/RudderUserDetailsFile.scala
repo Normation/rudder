@@ -42,7 +42,6 @@ import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
-import com.normation.errors.effectUioUnit
 import com.normation.rudder._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger

@@ -45,9 +45,7 @@ import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import scala.annotation.nowarn
 
-@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class SharedFilesApiTest extends Specification {
 

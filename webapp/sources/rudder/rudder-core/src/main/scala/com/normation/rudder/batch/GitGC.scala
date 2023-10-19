@@ -79,6 +79,11 @@ class GitGC(
     }
 
     def isCancelled = false
+
+    // Added in recent jgit version (at least 6.5.0.202303070854-r)
+    // It can be used to display the duration of logs but we don't it just keep it
+    // If we really want to do it, then we would add a private var and use it in other methods
+    def showDuration(enabled: Boolean): Unit = ()
   }
 
   // must not fail, will be in a cron
