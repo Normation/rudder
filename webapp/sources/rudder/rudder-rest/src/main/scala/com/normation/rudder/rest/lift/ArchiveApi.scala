@@ -180,7 +180,6 @@ object MergePolicy       {
 
 class ArchiveApi(
     archiveBuilderService: ZipArchiveBuilderService,
-    featureSwitchState:    IOResult[FeatureSwitch],
     getArchiveName:        IOResult[String],
     zipArchiveReader:      ZipArchiveReader,
     saveArchiveService:    SaveArchiveService,
@@ -192,35 +191,11 @@ class ArchiveApi(
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
       e match {
-        case API.Import       => FeatureSwitch0(Import, ImportDisabled)(featureSwitchState)
-        case API.ExportSimple => FeatureSwitch0(ExportSimple, ExportSimpleDisabled)(featureSwitchState)
+        case API.Import       => Import
+        case API.ExportSimple => ExportSimple
       }
     })
   }
-
-  /*
-   * Default answer to use when the feature is disabled
-   */
-  trait ApiDisabled extends LiftApiModule0 {
-
-    override def process0(
-        version:    ApiVersion,
-        path:       ApiPath,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      RudderJsonResponse
-        .internalError(
-          ResponseSchema.fromSchema(schema),
-          """This API is disabled. It is in beta version and no compatibility is ensured. You can enable it with """ +
-          """the setting `rudder_featureSwitch_archiveApi` in settings API set to `{"value":"enabled"}`"""
-        )(params.prettify)
-        .toResponse
-    }
-  }
-
-  object ExportSimpleDisabled extends LiftApiModule0 with ApiDisabled { val schema = API.ExportSimple }
 
   /*
    * This API does not returns a standard JSON response, it returns a ZIP archive.
@@ -303,8 +278,6 @@ class ArchiveApi(
       new OutputStreamResponse(send, -1, headers, Nil, 200)
     }
   }
-
-  object ImportDisabled extends LiftApiModule0 with ApiDisabled { override val schema = API.Import }
 
   object Import extends LiftApiModule0 {
     val schema = API.Import

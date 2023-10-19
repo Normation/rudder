@@ -2033,7 +2033,6 @@ object RudderConfigInit {
       val rootDirName           = "archive".succeed
       new com.normation.rudder.rest.lift.ArchiveApi(
         archiveBuilderService,
-        configService.rudder_featureSwitch_archiveApi(),
         rootDirName,
         new ZipArchiveReaderImpl(queryParser, techniqueParser),
         new SaveArchiveServicebyRepo(

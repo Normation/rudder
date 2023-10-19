@@ -130,7 +130,6 @@ class SettingsApi(
     RestNodeAcceptDuplicatedHostname ::
     RestComputeDynGroupMaxParallelism ::
     RestSetupDone ::
-    ArchiveApiFeatureSwitch ::
     Nil
   }
 
@@ -634,23 +633,6 @@ class SettingsApi(
     val key                       = "enable_javascript_directives"
     def get                       = configService.rudder_featureSwitch_directiveScriptEngine()
     def set                       = (value: FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_directiveScriptEngine(value)
-  }
-
-  case object ArchiveApiFeatureSwitch extends RestSetting[FeatureSwitch] {
-    val startPolicyGeneration = false
-    def toJson(value: FeatureSwitch): JValue = value.name
-    def parseJson(json: JValue)   = {
-      json match {
-        case JString(value) => FeatureSwitch.parse(value)
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String) = {
-      FeatureSwitch.parse(param)
-    }
-    val key                       = "rudder_featureSwitch_archiveApi"
-    def get                       = configService.rudder_featureSwitch_archiveApi()
-    def set                       = (value: FeatureSwitch, _, _) => configService.set_rudder_featureSwitch_archiveApi(value)
   }
 
   case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
