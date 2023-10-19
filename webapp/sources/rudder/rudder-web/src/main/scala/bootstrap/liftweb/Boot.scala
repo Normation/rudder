@@ -543,7 +543,7 @@ class Boot extends Loggable {
         >> LocGroup(name + "Group")
         >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Rule.Read))
         >> Hidden,
-        Menu("240-global-parameters", <span>Parameters</span>) /
+        Menu("240-global-parameters", <span>Global properties</span>) /
         "secure" / (name + "Manager") / "parameterManagement"
         >> LocGroup(name + "Group")
         >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Parameter.Read))
