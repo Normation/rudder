@@ -2,7 +2,7 @@ module Rules.ViewRulesTable exposing (..)
 
 import Dict
 import Html exposing (Html, text,  tr, td, i, span)
-import Html.Attributes exposing (class, colspan, attribute)
+import Html.Attributes exposing (class, colspan, attribute, title)
 import Html.Events exposing (onClick)
 import List.Extra
 import List
@@ -96,7 +96,7 @@ buildRulesTable model rules =
           in
             case r.status.details of
               Just ms ->
-               span[ class "bs-tooltip disabled", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Reason(s)" ms)]
+               span[ class "bs-tooltip disabled", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Reason(s)" ms)]
                [ status
                , i[class "fa fa-info-circle"][]
                ]

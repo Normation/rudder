@@ -180,11 +180,11 @@ class NodeGroupCategoryForm(
            <div class="modal-dialog">
              <div class="modal-content">
                <div class="modal-header">
-                 <div class="close" data-dismiss="modal">
+                 <div class="close" data-bs-dismiss="modal">
                    <span aria-hidden="true">&times;</span>
-                   <span class="sr-only">Close</span>
+                   <span class="visually-hidden">Close</span>
                  </div>
-                 <h4 class="modal-title text-left">
+                 <h4 class="modal-title text-start">
                    Delete a group category
                  </h4>
                </div>
@@ -198,7 +198,7 @@ class NodeGroupCategoryForm(
                  </div>
                </div>
                <div class="modal-footer" style="text-align:center">
-                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                 <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                  {SHtml.ajaxButton("Delete", onDelete _, ("class", "btn btn-danger"))}
                </div>
              </div>
@@ -210,9 +210,9 @@ class NodeGroupCategoryForm(
         ("class", "btn btn-danger")
       )
     } else {
-      (<span class="btn btn-danger btn-tooltip disabled" data-toggle="tooltip" data-placement="bottom" data-html="true" data-original-title={
+      (<span class="btn btn-danger btn-tooltip disabled" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
         "<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"
-      }>Delete</span>) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();"""))
+      }>Delete</span>) ++ Script(JsRaw("""initBsTooltips();"""))
     }
   }
 

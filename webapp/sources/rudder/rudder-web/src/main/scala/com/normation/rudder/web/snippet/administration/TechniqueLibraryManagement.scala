@@ -645,7 +645,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         """
         SHtml.a(
           () => onClickTemplateNode(Some(technique), None),
-          <span class="treeTechniqueNamebsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={
+          <span class="treeTechniqueNamebsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
             tooltipContent
           }>{agentCompat.icon}{technique.name}</span>
         )
@@ -737,7 +737,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               SHtml.a(
                 () => onClickTemplateNode(Some(technique), Some(activeTechnique)),
                 (
-                  <span class="treeTechniqueName bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" title={
+                  <span class="treeTechniqueName bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
                     tooltipContent
                   }><span class="item-name">{agentCompat.icon} {technique.name}</span>{badgeDisabled}</span>
                   <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>

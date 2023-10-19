@@ -76,7 +76,7 @@ view model =
                   ]
                 , td [class "json-check-col"]
                   [ div[]
-                    [ button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-toggle" "dropdown"]
+                    [ button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
                       [ text (if isJson then "JSON " else "String ")
                       , span [class "caret"][]
                       ]

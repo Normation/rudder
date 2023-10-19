@@ -271,7 +271,8 @@ function recentChangesText(id) {
   // Elem Content
   graphElem.text(count).addClass("center")
   graphElem.append(toolTipContainer);
-  createTooltip();$('.rudder-label').bsTooltip();
+  createTooltip();
+  initBsTooltips();
 }
 
 /*
@@ -500,7 +501,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         , "type"   : "natural"
       }]
     , "fnDrawCallback": function( oSettings ) {
-      $('.rudder-label, .tags-label').bsTooltip();
+      initBsTooltips();
       $('#updateRuleTable').on('click',function(){
         refresh();
       })
@@ -618,7 +619,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, createDirectiveTable(false, true, contextPath), contextPath, "rule");
-        $('.rudder-label').bsTooltip();
+        initBsTooltips();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -652,7 +653,10 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         "mDataProp": "value"
       , "sTitle"   : "Value"
     } ];
-    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();$('.rudder-label, .tags-label').bsTooltip();}
+    return function (gridId,data) {
+      createTable(gridId, data, columns, defaultParams, contextPath);
+      initBsTooltips();
+    }
   };
 
   var localComponentTable = function() {
@@ -717,7 +721,8 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
     return function (gridId, data, refresh) {
       createTable(gridId, data, columns, params, contextPath, refresh);
-      createTooltip();$('.rudder-label, .tags-label').bsTooltip();
+      createTooltip();
+      initBsTooltips();
     }
   };
 
@@ -743,7 +748,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
   } ];
   var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, localDirectiveTable(), contextPath, "rule");
-        $('.rudder-label, .tags-label').bsTooltip();
+        initBsTooltips();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
@@ -808,7 +813,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           editLink.addClass("reportIcon");
           $(nTd).append(editLink);
           var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
-          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation, '#editRuleZonePortlet'));
+          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
         }
       }
   } , {
@@ -831,7 +836,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath, "directive");
-        $('.rudder-label, .tags-label').bsTooltip();
+        initBsTooltips();
       }
   };
 
@@ -848,7 +853,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
   return function (gridId, data, refresh) {
     createTable(gridId, data, columns, params, contextPath, refresh);
     createTooltip();
-    $('.rudder-label, .tags-label').bsTooltip();
+    initBsTooltips();
   }
 }
 
@@ -880,7 +885,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
         $(nTd).append(editLink);
-        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation, '#editRuleZonePortlet'));
+        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
       }
   } , {
       "sWidth": "25%"
@@ -908,14 +913,15 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this,createDirectiveTable(false, true, contextPath),"node");
-        $('.rudder-label').bsTooltip();
+        initBsTooltips();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
   createTable(gridId, data, columns, params, contextPath, refresh);
 
-  createTooltip();$('.rudder-label').bsTooltip();
+  createTooltip();
+  initBsTooltips();
 }
 
 /*
@@ -1045,7 +1051,10 @@ function createNodeComponentValueTable(contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
   }
-  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
+  return function (gridId,data) {
+    createTable(gridId, data, columns, params, contextPath);
+    initBsTooltips();
+  }
 
 }
 
@@ -1095,7 +1104,10 @@ function createRuleComponentValueTable (contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
   }
 
-  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
+  return function (gridId,data) {
+    createTable(gridId, data, columns, params, contextPath);
+    initBsTooltips();
+  }
 
 }
 
@@ -1135,10 +1147,10 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
 
     var provider = $("")
     if (property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden')
-      provider = $('<span class="rudder-label label-provider label-sm" data-toggle="tooltip" data-placement="right" data-html="true" title="This property is managed by its provider <b>‘'+property.provider+'</b>’" data-container="body" >' + property.provider + '</span>')
+      provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right" title="This property is managed by its provider <b>‘'+property.provider+'</b>’">' + property.provider + '</span>')
 
     if (property.provider === 'inherited') {
-      provider = $('<span class="rudder-label label-provider label-sm" data-toggle="tooltip" data-placement="right" data-html="true" data-container="body" >inherited</span>')
+      provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right">inherited</span>')
       provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>"+ property.hierarchy + "</div>.")
     }
     var pre = $("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'></pre>").text(text);
@@ -1212,7 +1224,7 @@ var allColumns = {
         } else if (oData.globalModeOverride === "none") {
           explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p>"
         }
-        $(nTd).prepend(createBadgeAgentPolicyMode('node',oData.policyMode,explanation, "body"));
+        $(nTd).prepend(createBadgeAgentPolicyMode('node',oData.policyMode,explanation));
       }
     }
   , "IP addresses" :
@@ -1386,7 +1398,7 @@ function createNodeTable(gridId, refresh) {
     , "dataSrc" : ""
     }
     , "drawCallback": function( oSettings ) {
-        $('.rudder-label').bsTooltip();
+        initBsTooltips();
       }
     , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -2359,7 +2371,7 @@ function displayTags(element, tagsArray){
     , "</div>"
     ].join('');
   tagsCpt.html(" "+tagsArray.length);
-  tagsLabel.attr("data-toggle","tooltip").attr("data-placement","top").attr("data-html","true").attr("data-original-title",tagsTooltipContent)
+  tagsLabel.attr("data-bs-toggle","tooltip").attr("data-bs-placement","top").attr("title",tagsTooltipContent)
   tagsLabel.append(iconTag).append(tagsCpt);
   $(element).append(tagsLabel);
 }

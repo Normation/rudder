@@ -30,7 +30,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
                 <span id="cmd-user" class="cmd-text">
                   rudder server create-user -u &lt;username&gt;
                 </span>
-                <button class="btn btn-cmd-user btn-clipboard" type="button" data-clipboard-text="rudder server create-user -u " data-toggle='tooltip' data-placement='bottom' data-container="html" title="Copy to clipboard">
+                <button class="btn btn-cmd-user btn-clipboard" type="button" data-clipboard-text="rudder server create-user -u " data-bs-toggle="tooltip" data-bs-placement="bottom" title="Copy to clipboard">
                   <i class="far fa-clipboard"></i>
                 </button>
               </div>

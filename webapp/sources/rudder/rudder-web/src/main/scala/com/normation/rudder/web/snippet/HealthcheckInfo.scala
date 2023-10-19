@@ -84,10 +84,9 @@ class HealthcheckInfo(
       val tooltipContent = "<h4><i class='fa fa-warning'></i> " + notifTitle + "</h4><div>" + checksMenu + "</div>"
       <li
       class={"plugin-warning " + notifClass}
-      data-toggle="tooltip"
-      data-placement="bottom"
-      data-html="true"
-      data-original-title={tooltipContent}
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
+      title={tooltipContent}
       >
         <a href="/secure/utilities/healthcheck"><span class="fa fa-heart"></span></a>
       </li>
@@ -134,9 +133,9 @@ class HealthcheckInfo(
         "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Health Check</b> page</div>"
       <i class={
         "fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass
-      } data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
+      } data-bs-toggle="tooltip" data-bs-placement="right" title={
         tooltipContent
-      } data-container="body"></i>
+      } data-bs-container="body"></i>
     }
 
     (for {

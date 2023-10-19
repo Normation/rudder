@@ -336,7 +336,7 @@ class NodeGroupForm(
                                                      |// Initialize tooltips
                                                      |app.ports.initTooltips.subscribe(function(msg) {
                                                      |  setTimeout(function(){
-                                                     |    $$('.bs-tooltip').bsTooltip();
+                                                     |    initBsTooltips();
                                                      |  }, 400);
                                                      |});
                                                      |app.ports.copy.subscribe(function(str) {

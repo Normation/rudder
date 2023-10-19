@@ -124,7 +124,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                          [ element "button"
                                            |> addClass "btn btn-default dropdown-toggle"
                                            |> addAttributeList
-                                              [ id "OsCondition" , attribute  "data-toggle" "dropdown"
+                                              [ id "OsCondition" , attribute  "data-bs-toggle" "dropdown"
                                               , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
                                               , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                               ]
@@ -162,7 +162,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                            [ element "button"
                                              |> addClass "btn btn-default dropdown-toggle"
                                              |> addAttributeList
-                                                [ id "ubuntuMinor" , attribute  "data-toggle" "dropdown"
+                                                [ id "ubuntuMinor" , attribute  "data-bs-toggle" "dropdown"
                                                 , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
                                                 , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                                                 ]
@@ -322,7 +322,7 @@ buildSelectReporting id label items value =
             |> addClass "btn btn-default dropdown-toggle"
             |> Dom.setId id
             |> addAttributeList
-                 [ attribute  "data-toggle" "dropdown"
+                 [ attribute  "data-bs-toggle" "dropdown"
                  , attribute  "aria-haspopup" "true"
                  , attribute "aria-expanded" "true"
                  ]
@@ -354,9 +354,9 @@ blockBody model parentId block ui techniqueUi =
                              |> addClass textClass
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
                              |> addAttributeList
-                                  [ type_ "button", attribute "data-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-toggle" "popover"
-                                  , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                                  , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
+                                  , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                                  , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                                   ]
                            )
                 |> addAction ("click",  UIBlockAction block.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
@@ -366,9 +366,9 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "text-success method-action tooltip-bs"
                   |> addActionStopPropagation ("click", GenerateId (\s -> CloneElem (Block parentId block) (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", title "Clone this block", attribute "data-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", title "Clone this block", attribute "data-bs-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild cloneIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
@@ -376,9 +376,9 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "method-action tooltip-bs"
                   |> addActionStopPropagation ("click", ResetMethodCall (Block parentId block))
                   |> addAttributeList
-                     [ type_ "button", title "Reset this block", attribute "data-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", title "Reset this block", attribute "data-bs-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
@@ -386,9 +386,9 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "text-danger method-action tooltip-bs"
                   |> addActionStopPropagation ("click", RemoveMethod block.id)
                   |> addAttributeList
-                     [ type_ "button", title "Remove this block", attribute "data-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "left"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", title "Remove this block", attribute "data-bs-toggle" "tooltip"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild removeIcon
     condition = element "div"

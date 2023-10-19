@@ -49,7 +49,7 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery-ui-timepicker-addon.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery-ui-timepicker-addon-i18n.min.js"></script>
 
-    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/bootstrap.min.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/bootstrap.bundle.min.js"></script>
 
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/chart.min.js"></script>
 
@@ -115,7 +115,7 @@
         </a>
         <nav class="navbar navbar-static-top" role="navigation">
           <a href="#" class="sidebar-toggle" role="button" onclick="$('body').toggleClass('sidebar-collapse')">
-            <span class="sr-only">Toggle navigation</span>
+            <span class="visually-hidden">Toggle navigation</span>
           </a>
           <!-- Quick Search-->
 
@@ -144,7 +144,7 @@
               </li>
               <!-- Log out -->
               <li>
-                <a id="logout" href="#" data-toggle="control-sidebar"><i class="fa fa-sign-out"></i></a>
+                <a id="logout" href="#" data-bs-toggle="control-sidebar"><i class="fa fa-sign-out"></i></a>
               </li>
             </ul>
           </div>
@@ -178,9 +178,9 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="close" data-dismiss="modal">
+                    <div class="close" data-bs-dismiss="modal">
                         <span aria-hidden="true">&times;</span>
-                        <span class="sr-only">Close</span>
+                        <span class="visually-hidden">Close</span>
                     </div>
                     <h4 class="modal-title">Participate in usage survey?</h4>
                 </div>
@@ -196,7 +196,7 @@
                 </div>
                 <div class="modal-footer" style="text-align:center">
                     <button type="button" id="noSendMetrics" class="btn btn-default pull-left">No</button>
-                    <button type="button" id="laterSendMetrics" class="btn btn-default"  data-dismiss="modal">Ask again later</button>
+                    <button type="button" id="laterSendMetrics" class="btn btn-default"  data-bs-dismiss="modal">Ask again later</button>
                     <button type="button" id="yesSendMetrics" class="btn btn-default pull-right">Yes</button>
                 </div>
             </div><!-- /.modal-content -->
@@ -208,9 +208,9 @@
         <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <div class="close" data-dismiss="modal">
+            <div class="close" data-bs-dismiss="modal">
             <span aria-hidden="true">&times;</span>
-            <span class="sr-only">Close</span>
+            <span class="visually-hidden">Close</span>
             </div>
             <h4 class="modal-title" id="myModalLabel">Log out</h4>
           </div>
@@ -223,7 +223,7 @@
             </h5>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             <span data-lift="UserInformation.logout">
               <a href="/logout" class="btn btn-danger">Log out</a>
             </span>

@@ -157,7 +157,7 @@ object DisplayDirectiveTree extends Loggable {
         </div>
       """
       private[this] val xml            = (
-        <span class="treeActiveTechniqueCategoryName bsTooltip" data-toggle="tooltip" data-placement="top" data-container="#editRuleZonePortlet" data-html="true" title={
+        <span class="treeActiveTechniqueCategoryName bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
           tooltipContent
         }>
           {Text(category.name)}
@@ -274,7 +274,9 @@ object DisplayDirectiveTree extends Loggable {
             }
             val disabledBadge = if (!activeTechnique.isEnabled) { <span class="badge-disabled"></span> }
             else { NodeSeq.Empty }
-            <span class={className} data-toggle="tooltip" data-placement="top" data-html="true" data-container="body" title={
+            <span class={
+              className
+            } data-bs-toggle="tooltip" data-bs-placement="top" title={
               tooltipContent
             }>{
               agentCompat.icon
@@ -335,7 +337,7 @@ object DisplayDirectiveTree extends Loggable {
               </div>
             """
             <span class="treeActions">
-              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title={
+              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-bs-toggle="tooltip" data-bs-placement="top" title={
               tooltipContent
             } onclick={linkUtil.redirectToDirectiveLink(directive.id.uid).toJsCmd}> </span>
             </span>
@@ -360,11 +362,9 @@ object DisplayDirectiveTree extends Loggable {
         val directiveTagsTooltip  = {
           if (directive.tags.tags.size > 0) {
             <span class="tags-label"
-                  data-toggle="tooltip"
-                  data-placement="top"
-                  data-container="body"
-                  data-html="true"
-                  data-original-title={tagsTooltipContent}>
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title={tagsTooltipContent}>
               <i class="fa fa-tags"></i>
               <b> {directive.tags.tags.size}</b>
             </span>
@@ -376,7 +376,7 @@ object DisplayDirectiveTree extends Loggable {
           onClickDirective match {
             case Some(f) =>
               <span class="treeActions">
-                <span class="treeAction fa action-icon directive bsTooltip"  data-toggle="tooltip" data-placement="top" data-html="true" title="" onclick={
+                <span class="treeAction fa action-icon directive bsTooltip"  data-bs-toggle="tooltip" data-bs-placement="top" title="" onclick={
                 f(directive)
               }> </span>
               </span>
@@ -472,7 +472,7 @@ object DisplayDirectiveTree extends Loggable {
           """
 
           <span id={"badge-apm-" + tooltipId}>[BADGE]</span> ++
-          <span class="treeDirective bsTooltip" data-toggle="tooltip" data-placement="top" data-html="true" data-container="body" title={
+          <span class="treeDirective bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
             tooltipContent
           }>
             <span class="techversion">
@@ -500,7 +500,7 @@ object DisplayDirectiveTree extends Loggable {
           Script(
             JsRaw(
               s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
-                  .toString()}", "#boxDirectiveTree"));"""
+                  .toString()}"));"""
             )
           )
         }
@@ -531,8 +531,7 @@ object DisplayDirectiveTree extends Loggable {
                |  if (typeof tagsApp === "undefined") return false;
                |  tagsApp.ports.getFilterTags.send(tags);
                |});
-      $$(".bsTooltip").bsTooltip({container: "${if (addEditLink) { "#editRuleZonePortlet" }
-              else { "#boxDirectiveTree" }}"})
+               initBsTooltips();
     """.stripMargin)
     )
     directiveLib.subCategories.filterNot(_.isSystem).sortBy(_.name).flatMap(cat => displayCategory(cat, cat.id.value).toXml)

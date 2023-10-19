@@ -41,7 +41,9 @@ body {
 code, kbd, pre, samp, .code {
   font-family: var(--font-mono);
 }
-
+a{
+  text-decoration: none !important;
+}
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
   font-weight: bold;

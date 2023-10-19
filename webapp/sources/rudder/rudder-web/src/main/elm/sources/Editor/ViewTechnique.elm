@@ -284,7 +284,7 @@ showTechnique model technique origin ui editInfo =
           h1 [] title
         , div [ class "header-buttons btn-technique", hidden (not model.hasWriteRights) ] [
             div [ class "btn-group" ] [
-              button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ] [
+              button [ class "btn btn-default dropdown-toggle" , attribute "data-bs-toggle" "dropdown" ] [
                 text "Actions "
               , i [ class "caret" ] []
               ]
@@ -321,12 +321,10 @@ showTechnique model technique origin ui editInfo =
               text "Resources "
             , span [  class  ( "badge badge-secondary badge-resources tooltip-bs " ++ if List.isEmpty technique.resources then "empty" else "") ] [
                  -- ng-class="{'empty' : selectedTechnique.resources.length <= 0}"
-                 -- data-toggle="tooltip"
+                 -- data-bs-toggle="tooltip"
                  -- data-trigger="hover"
-                 -- data-container="body"
-                --  data-placement="right"
+                --  data-bs-placement="right"
                 --  data-title="{{getResourcesInfo()}}"
-                 -- data-html="true"
                  -- data-delay='{"show":"400", "hide":"100"}'
                  -- >
                 if ((List.isEmpty technique.resources)|| (List.any (\s -> (s.state == Untouched) || (s.state == Modified)) technique.resources) ) then span [ class "nb-resources" ] [text (String.fromInt (List.length (List.filter  (\s -> s.state == Untouched || s.state == Modified) technique.resources ) ))] else text ""

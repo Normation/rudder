@@ -36,7 +36,7 @@ viewResult result =
   div [] [
     div [ class "panel-heading",  role "tab",  id ("resultGroup"++ name)] [
       h4 [ class "panel-title" ] [
-        a [ role "button", attribute "data-toggle" "collapse", href ("#result" ++name) ] [
+        a [ role "button", attribute "data-bs-toggle" "collapse", href ("#result" ++name) ] [
           span [ class "glyphicon glyphicon-chevron-right" ] []
         , text name
         , span [ class "angucomplete-description" ]
@@ -114,10 +114,10 @@ view model =
                       div [ class "panel panel-default panel-help" ] [
                         div [ class "panel-heading heading-search" ] [
                           div [ class "btn-toolbar", role "toolbar" ] [
-                            div [ class "btn-group group-all", attribute "data-toggle" "buttons" ] [
+                            div [ class "btn-group group-all", attribute "data-bs-toggle" "buttons" ] [
                               filterButton model All
                             ]
-                          , div  [ class "btn-group group-filters", attribute "data-toggle" "buttons" ]
+                          , div  [ class "btn-group group-filters", attribute "data-bs-toggle" "buttons" ]
                               (List.map (filterButton model) allFilters)
                           ]
                         ]

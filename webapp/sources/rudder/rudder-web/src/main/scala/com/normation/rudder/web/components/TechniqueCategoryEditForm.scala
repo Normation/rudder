@@ -85,9 +85,9 @@ class TechniqueCategoryEditForm(
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="close" data-dismiss="modal">
+                <div class="close" data-bs-dismiss="modal">
                 <span aria-hidden="true">&times;</span>
-                <span class="sr-only">Close</span>
+                <span class="visually-hidden">Close</span>
                 </div>
                 <h4 class="modal-title">
                     Delete a category
@@ -101,7 +101,7 @@ class TechniqueCategoryEditForm(
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                 {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class" -> "btn btn-danger")}
             </div>
         </div><!-- /.modal-content -->

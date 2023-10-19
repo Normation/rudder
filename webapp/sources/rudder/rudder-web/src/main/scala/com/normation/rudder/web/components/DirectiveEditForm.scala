@@ -365,7 +365,7 @@ class DirectiveEditForm(
                  |// Initialize tooltips
                  |app.ports.initTooltips.subscribe(function(msg) {
                  |  setTimeout(function(){
-                 |    $$('.bs-tooltip').bsTooltip();
+                 |    initBsTooltips();
                  |  }, 400);
                  |});
                  |$$("#complianceLinkTab").on("click", function (){
@@ -427,7 +427,7 @@ class DirectiveEditForm(
           <p>To do so, please go to the corresponding tab, or use the shortcut below:
         </p>
           <div class="action-btn">
-            <a class="btn btn-primary btn-icon" href="#parametersTab" aria-controls="parametersTab" role="tab" data-toggle="tab" onclick="$('.ui-tabs-nav .active').removeClass('active');$('#paramNav').addClass('active');">
+            <a class="btn btn-primary btn-icon" href="#parametersTab" aria-controls="parametersTab" role="tab" data-bs-toggle="tab" onclick="$('.ui-tabs-nav .active').removeClass('active');$('#paramNav').addClass('active');">
               Set parameters
               <i class="fa fa-arrow-right"></i>
             </a>

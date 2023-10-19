@@ -202,7 +202,7 @@ showMethodTab model method parentId call uiInfo=
               label [ style "display" "inline-block", for ("OsCondition-" ++ call.id.value)]
               [ text "Operating system: " ]
             , div [ class "btn-group" ]
-              [ button [ class "btn btn-default dropdown-toggle", id ("OsCondition-" ++ call.id.value), attribute  "data-toggle" "dropdown"
+              [ button [ class "btn btn-default dropdown-toggle", id ("OsCondition-" ++ call.id.value), attribute  "data-bs-toggle" "dropdown"
                 , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) ]
                 [ text ((osName condition.os) ++ " ")
                 , span [ class "caret" ] []
@@ -235,7 +235,7 @@ showMethodTab model method parentId call uiInfo=
            , if  ( isUbuntu condition.os ) then
                div [ style  "margin-left" "5px", class "btn-group" ]
                  [ button
-                   [ class "btn btn-default dropdown-toggle", id "ubuntuMinor" , attribute  "data-toggle" "dropdown"
+                   [ class "btn btn-default dropdown-toggle", id "ubuntuMinor" , attribute  "data-bs-toggle" "dropdown"
                    , attribute  "aria-haspopup" "true", attribute "aria-expanded" "true"
                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                    ]
@@ -435,9 +435,9 @@ callBody model ui techniqueUi call pid =
                              |> addClass textClass
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
                              |> addAttributeList
-                                  [ type_ "button", attribute "data-content" ((if (ui.mode == Opened) then "Close method details<br/>" else "") ++ tooltipContent) , attribute "data-toggle" "popover"
-                                  , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                                  , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close method details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
+                                  , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                                  , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                                   ]
                            )
                 |> addAction ("click",  UIMethodAction call.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
@@ -446,9 +446,9 @@ callBody model ui techniqueUi call pid =
                   |> addClass "text-success method-action popover-bs"
                   |> addActionStopAndPrevent ("click", GenerateId (\s -> CloneElem (Call pid call) (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", attribute "data-content" "Clone this method", attribute "data-toggle" "popover"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", attribute "data-bs-content" "Clone this method", attribute "data-bs-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild cloneIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
@@ -456,9 +456,9 @@ callBody model ui techniqueUi call pid =
                   |> addClass "text-danger method-action popover-bs"
                   |> addActionStopAndPrevent ("click", RemoveMethod call.id)
                   |> addAttributeList
-                     [ type_ "button", attribute "data-content" "Remove this method", attribute "data-toggle" "popover"
-                       , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", attribute "data-bs-content" "Remove this method", attribute "data-bs-toggle" "popover"
+                       , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild removeIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
@@ -466,9 +466,9 @@ callBody model ui techniqueUi call pid =
                   |> addClass "method-action popover-bs"
                   |> addActionStopAndPrevent ("click", ResetMethodCall (Call pid call))
                   |> addAttributeList
-                     [ type_ "button", attribute "data-content" "Reset this method", attribute "data-toggle" "popover"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", attribute "data-bs-content" "Reset this method", attribute "data-bs-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild resetIcon
     docIcon = element "i" |> addClass "fa fa-book"
@@ -476,9 +476,9 @@ callBody model ui techniqueUi call pid =
                   |> addClass "text-info method-action popover-bs"
                   |> addActionStopAndPrevent ("click", ShowDoc call.methodName)
                   |> addAttributeList
-                     [ type_ "button", attribute "data-content" "Show documentation", attribute "data-toggle" "popover"
-                     , attribute "data-trigger" "hover", attribute "data-container" "body", attribute "data-placement" "auto"
-                     , attribute "data-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     [ type_ "button", attribute "data-bs-content" "Show documentation", attribute "data-bs-toggle" "popover"
+                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild docIcon
 {--
@@ -603,9 +603,9 @@ callBody model ui techniqueUi call pid =
                )
                , element "span" |> addAttributeList
                                    [ class deprecatedClass
-                                   , attribute "data-toggle" "popover", attribute "data-trigger" "hover", attribute "data-container" "body"
-                                   , attribute "data-placement" "auto", attribute "data-content" (getTooltipContent method)
-                                   , attribute "data-html" "true"
+                                   , attribute "data-bs-toggle" "popover", attribute "data-trigger" "hover", attribute "data-bs-container" "body"
+                                   , attribute "data-bs-placement" "auto", attribute "data-bs-content" (getTooltipContent method)
+                                   , attribute "data-bs-html" "true"
                                    ]
                ]
 
