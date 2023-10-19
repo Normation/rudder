@@ -72,6 +72,10 @@ import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.json.JArray
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JString
 import net.liftweb.util.Helpers._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
@@ -411,6 +415,11 @@ class EventLogDetailsGenerator(
                     "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
                     "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
                     "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
+                    "#policyMode *" #> mapSimpleDiffT[Option[PolicyMode]](
+                      modDiff.modPolicyMode,
+                      _.fold(PolicyMode.defaultValue)(_.name)
+                    ) &
+                    "#tags" #> tagsDiff(modDiff.modTags) &
                     "#parameters" #> (
                       modDiff.modParameters.map(diff => "#diff" #> displaydirectiveInnerFormDiff(diff, event.id))
                     )
@@ -1151,8 +1160,17 @@ class EventLogDetailsGenerator(
       diff:    Option[SimpleDiff[T]],
       name:    String,
       default: String
-  ) = diff.map(value => displayFormDiff(value, name)).getOrElse(Text(default))
-  private[this] def displayFormDiff[T](diff: SimpleDiff[T], name: String)(implicit fun: T => String = (t: T) => t.toString) = {
+  ): NodeSeq = displaySimpleDiff(diff, name).getOrElse(Text(default))
+
+  private[this] def displaySimpleDiff[T](
+      diff: Option[SimpleDiff[T]],
+      name: String
+  ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
+
+  private[this] def displayFormDiff[T](
+      diff:       SimpleDiff[T],
+      name:       String
+  )(implicit fun: T => String = (t: T) => t.toString): NodeSeq = {
     <pre style="width:200px;" id={s"before${name}"}
          class="nodisplay">{fun(diff.oldValue)}</pre>
       <pre style="width:200px;" id={s"after${name}"}
@@ -1331,17 +1349,18 @@ class EventLogDetailsGenerator(
   }
 
   /*
-   * Special diff for node properties: use a json js tool.
+   * Special diff for json: use a json diff tool.
    */
-  private[this] def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
-    def toJson(props: List[NodeProperty]): String = {
-      net.liftweb.json.compactRender(props.toDataJson)
+  private[this] def jsonDiff(diff: Option[SimpleDiff[JValue]]): NodeSeq = {
+    val s = Random.nextInt(100000)
+
+    def stringify(jValue: JValue): String = {
+      net.liftweb.json.compactRender(jValue)
     }
 
-    opt match {
+    diff match {
       case None       => NodeSeq.Empty
       case Some(diff) =>
-        val s = Random.nextInt(100000)
         <div>
           <div id={s"nodediff-${s}"}>shouldBeReplacedByDiff</div>
         </div> ++ Script(
@@ -1351,13 +1370,36 @@ class EventLogDetailsGenerator(
             JsRaw(
               s"""
                  |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
-                 |  jsondiffpatch.diff( ${toJson(diff.oldValue)}, ${toJson(diff.newValue)} )
+                 |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
                  |);
                  |""".stripMargin
             )
           )
         )
     }
+  }
+
+  /*
+   * Special diff for tags as a list of key-value pair using a simple line diff against "key=value" tag format
+   */
+  private[this] def tagsDiff(opt: Option[SimpleDiff[Tags]]) = {
+    def tagsToLines(tags: Tags): String = {
+      tags.tags.toList.sortBy(_.name.value).map(t => s" ${t.name.value}=${t.value.value} ").mkString("\n")
+    }
+
+    val linesDiff = opt.map(diff => SimpleDiff(tagsToLines(diff.oldValue), tagsToLines(diff.newValue)))
+    displaySimpleDiff(linesDiff, "tags")
+  }
+
+  /*
+   * Special diff for node properties using a json diff tool.
+   */
+  private[this] def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
+    def toJson(props: List[NodeProperty]): JObject = {
+      props.toDataJson
+    }
+
+    jsonDiff(opt.map(diff => SimpleDiff(toJson(diff.oldValue), toJson(diff.newValue))))
   }
 
   private[this] def promotedNodeDetails(id: NodeId, name: String) = (
@@ -1543,6 +1585,8 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("shortDescription", "Description")}
       {liModDetailsXML("longDescription", "Details")}
       {liModDetailsXML("ptVersion", "Target")}
+      {liModDetailsXML("policyMode", "Policy mode")}
+      {liModDetailsXML("tags", "Tags")}
       {liModDirectiveDetailsXML("parameters", "Policy parameters")}
       {liModDetailsXML("priority", "Priority")}
       {liModDetailsXML("isEnabled", "Activation status")}

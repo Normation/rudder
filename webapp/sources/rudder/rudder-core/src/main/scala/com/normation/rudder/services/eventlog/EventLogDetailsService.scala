@@ -435,6 +435,8 @@ class EventLogDetailsServiceImpl(
       isSystem         <- getFromTo[Boolean]((directive \ "isSystem").headOption, s => tryo(s.text.toBoolean))
       policyMode       <-
         getFromTo[Option[PolicyMode]]((directive \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
+      tags             <-
+        getFromTo[Tags]((directive \ "tags").headOption, extractTags(entryType = "directive"))
     } yield {
       ModifyDirectiveDiff(
         techniqueName = TechniqueName(ptName),
@@ -448,7 +450,8 @@ class EventLogDetailsServiceImpl(
         priority,
         isEnabled,
         isSystem,
-        policyMode
+        policyMode,
+        tags
       )
     }
   }
@@ -1029,6 +1032,24 @@ class EventLogDetailsServiceImpl(
       } yield {
         properties
       }
+    }
+  }
+
+  // extract tags, with mention to the entryType when reporting errors
+  private[this] def extractTags(entryType: String)(details: NodeSeq): Box[Tags] = {
+    if (details.isEmpty) Full(Tags(Set()))
+    else {
+      val tags = sequence(details \\ "tag") { prop =>
+        for {
+          name  <-
+            (prop \ "@name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type $entryType : '$details'"
+          value <-
+            (prop \ "@value").headOption.map(_.text) ?~! s"Missing attribute 'value' in entry type $entryType : '$details'"
+          tag    = Tag(TagName(name), TagValue(value))
+        } yield tag
+      }
+
+      tags.map(l => Tags(l.toSet))
     }
   }
 
