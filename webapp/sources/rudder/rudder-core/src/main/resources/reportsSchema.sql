@@ -308,13 +308,13 @@ CREATE SEQUENCE eventLogIdSeq START 1;
 CREATE TABLE EventLog (
   id             integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
 , creationDate   timestamp with time zone NOT NULL DEFAULT 'now'
-, severity       integer
+, severity       integer NOT NULL DEFAULT 100
 , causeId        integer
 , modificationId text
-, principal      text
+, principal      text NOT NULL DEFAULT 'unknown'
 , reason         text
-, eventType      text
-, data           xml
+, eventType      text NOT NULL DEFAULT ''
+, data           xml NOT NULL DEFAULT ''
 );
 
 CREATE INDEX eventType_idx ON EventLog (eventType);
