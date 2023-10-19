@@ -420,8 +420,8 @@ limitations under the License.
     <commons-fileupload>1.5</commons-fileupload>
     <commons-csv-version>1.10.0</commons-csv-version>
     <jgit-version>6.7.0.202309050840-r</jgit-version>
-    <spring-version>5.3.29</spring-version>
-    <spring-security-version>5.7.10</spring-security-version>
+    <spring-version>5.3.30</spring-version>
+    <spring-security-version>5.7.11</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.5</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
