@@ -49,7 +49,6 @@ import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.apidata.JsonQueryObjects.JQRule
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -65,11 +64,9 @@ import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import java.io.FileOutputStream
-import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.OutputStreamResponse
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.revwalk.RevWalk
@@ -113,30 +110,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
   sequential
 
-  "when the feature switch is disabled, request" should {
-    "error in GET /archives/export" in {
-      restTest.testGETResponse("/api/latest/archives/export") {
-        case Full(InMemoryResponse(json, _, _, 500)) =>
-          new String(json, StandardCharsets.UTF_8) must beMatching(".*This API is disabled.*")
-        case err                                     => ko(s"I got an error in test: ${err}")
-      }
-    }
-
-    "error in POST /archives/export" in {
-      restTest.testEmptyPostResponse("/api/latest/archives/import") {
-        case Full(InMemoryResponse(json, _, _, 500)) =>
-          new String(json, StandardCharsets.UTF_8) must beMatching(".*This API is disabled.*")
-        case err                                     => ko(s"I got an error in test: ${err}")
-      }
-    }
-  }
-
-  // FROM THERE, FEATURE IS ENABLED
-  "when the feature switch is enabled, request" should {
+  "the archive feature is always enabled, and request" should {
     "succeed in GET /archives/export" in {
-      // feature switch change needs to be at that level and not under "should" directly,
-      // else it contaminated all tests, even with the sequential annotation
-      restTestSetUp.archiveAPIModule.featureSwitchState.set(FeatureSwitch.Enabled).runNow
       restTest.testGETResponse("/api/latest/archives/export") {
         case Full(resp) => resp.toResponse.code must beEqualTo(200)
         case err        => ko(s"I got an error in test: ${err}")
