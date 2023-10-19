@@ -211,7 +211,7 @@ class PasswordForm {
     this.newPassword.isScript = false;
     if(formType === "withHashes") {
       // If no hash was set put it to default hash
-      this.newPassword.hash = this.defaultHash;
+      this.newPassword.hash = Object.keys(this.hashes)[0] === undefined ? this.defaultHash : Object.keys(this.hashes)[0] ;
     } else if (formType === "clearText") {
       this.newPassword.hash = "plain";
     } else if (formType === "preHashed") {
