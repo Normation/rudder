@@ -240,22 +240,23 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         ".main-header [class+]" #> "no-header" &
         "#details *" #> {
           <div>
-              <style>
-                #policyConfiguration{{
-                display:none;}}
-              </style>
-              <div class="jumbotron">
-                <h1>Directives</h1>
-                <p>A directive is an instance of a technique, which allows to set values for the parameters of the latter.</p>
-                <p>Each directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the technique.</p>
-                <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
-                <ol>
-                  <li><b>Bugs</b> are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
-                  <li>A new <b>minor</b> technique version is created for any new features</li>
-                  <li>A new <b>major</b> version is created for any <b>architectural change</b> (such as refactoring)</li>
-                </ol>
-                <p>You can find your own techniques written in the technique editor in the <b>User Techniques</b> category.</p>
-              </div>
+            <style>
+              #policyConfiguration{{
+              display:none;
+              }}
+            </style>
+            <div class="jumbotron">
+              <h1>Directives</h1>
+              <p>A directive is an instance of a technique, which allows to set values for the parameters of the latter.</p>
+              <p>Each directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the technique.</p>
+              <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
+              <ol>
+                <li><b>Bugs</b> are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
+                <li>A new <b>minor</b> technique version is created for any new features</li>
+                <li>A new <b>major</b> version is created for any <b>architectural change</b> (such as refactoring)</li>
+              </ol>
+              <p>You can find your own techniques written in the technique editor in the <b>User Techniques</b> category.</p>
+            </div>
             </div>
         }
 
@@ -685,8 +686,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
         updateDirectiveLibrary() &
-        updateDirectiveForm(Left(dir), None) &
-        After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');"""))
+        updateDirectiveForm(Left(dir), None)
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
         linkUtil.redirectToChangeRequestLink(changeRequestId)
@@ -694,8 +694,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def onRemoveSuccessCallBack(): JsCmd = {
-    updateDirectiveLibrary() &
-    After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');"""))
+    updateDirectiveLibrary()
   }
 
   private[this] def updateDirectiveLibrary(): JsCmd = {
