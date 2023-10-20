@@ -1,6 +1,6 @@
 mod rpkg;
 
 fn main() {
-    let _ =
-        rpkg::archive::install("/home/fdallidet/Downloads/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg");
+    let x = rpkg::webapp_xml::WebappXml::new(String::from("./tests/webapp_xml/rudder.xml"));
+    let _ = x.disable_jar(String::from("patapouf"));
 }

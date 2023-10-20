@@ -40,7 +40,7 @@ mod tests {
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
     use pretty_assertions::assert_eq;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn test_plugin_database_parsing() {
@@ -73,7 +73,7 @@ mod tests {
             },
         };
         a.plugins.insert(addon.metadata.name.clone(), addon);
-        let dir = TempDir::new("rudder_package_test").unwrap();
+        let dir = TempDir::new().unwrap();
         let target_path = dir
             .path()
             .join("target.json")
