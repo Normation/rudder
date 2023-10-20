@@ -4,6 +4,8 @@ use std::{collections::HashMap, fs::*, io::BufWriter};
 
 use crate::rpkg::plugin;
 
+use super::archive::Rpkg;
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
     pub plugins: HashMap<String, InstalledPlugin>,
@@ -24,6 +26,13 @@ impl Database {
             .with_context(|| format!("Failed to update the installed plugins database {}", path))?;
         Ok(())
     }
+
+    pub fn is_installed(self, r: Rpkg) -> bool {
+        match self.plugins.get(&r.metadata.name) {
+            None => false,
+            Some(installed) => installed.metadata.version == r.metadata.version,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -36,6 +45,8 @@ pub struct InstalledPlugin {
 
 #[cfg(test)]
 mod tests {
+    use crate::rpkg::archive;
+
     use super::*;
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
@@ -49,7 +60,7 @@ mod tests {
         let db: Database = serde_json::from_str(&data).unwrap();
         assert_eq!(
             db.plugins["rudder-plugin-aix"].metadata.plugin_type,
-            "plugin"
+            archive::PackageType::Plugin
         );
     }
 
@@ -59,7 +70,7 @@ mod tests {
         let addon = InstalledPlugin {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
-                plugin_type: String::from("plugin"),
+                plugin_type: archive::PackageType::Plugin,
                 name: String::from("my_name"),
                 version: String::from("0.0.0.0"),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),

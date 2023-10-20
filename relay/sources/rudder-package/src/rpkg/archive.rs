@@ -1,19 +1,74 @@
 use crate::rpkg;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Ok, Result};
 use ar::Archive;
+use core::fmt;
 use lzma_rs;
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::Path,
+    process::Command,
     str,
 };
 use tar;
 
+use super::Database;
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+pub enum PackageType {
+    #[serde(rename = "plugin")]
+    Plugin,
+}
+
+impl fmt::Display for PackageType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PackageType::Plugin => write!(f, "plugin"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PackageScript {
+    Postinst,
+    Postrm,
+    Preinst,
+    Prerm,
+}
+
+impl fmt::Display for PackageScript {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PackageScript::Postinst => write!(f, "postinst"),
+            PackageScript::Postrm => write!(f, "postrm"),
+            PackageScript::Preinst => write!(f, "preinst"),
+            PackageScript::Prerm => write!(f, "prerm"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PackageScriptArg {
+    Install,
+    Upgrade,
+    None,
+}
+
+impl fmt::Display for PackageScriptArg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PackageScriptArg::Install => write!(f, "install"),
+            PackageScriptArg::Upgrade => write!(f, "upgrade"),
+            PackageScriptArg::None => write!(f, ""),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Rpkg {
-    path: String,
-    metadata: rpkg::plugin::Metadata,
+    pub path: String,
+    pub metadata: rpkg::plugin::Metadata,
 }
 
 impl Rpkg {
@@ -61,15 +116,64 @@ impl Rpkg {
         Ok(())
     }
 
+    pub fn is_installed(&self) -> Result<bool> {
+        let current_database = Database::read(rpkg::PACKAGES_DATABASE_PATH)?;
+        Ok(current_database.is_installed(self.to_owned()))
+    }
+
     pub fn install(&self) -> Result<()> {
         let keys = self.metadata.content.keys().clone();
+        // Extract package scripts
+        match self.unpack_embedded_txz("script.txz", rpkg::PACKAGES_FOLDER) {
+            Err(err) => panic!("{}", err),
+            Ok => (),
+        }
+        // Run preinst if any
+        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        match self.run_package_script(PackageScript::Preinst, install_or_upgrade) {
+            Err(err) => bail!(err),
+            Ok => (),
+        }
+        // Extract archive content
         for txz_name in keys {
             let dst = self.get_txz_dst(&txz_name);
             match self.unpack_embedded_txz(&txz_name, &dst) {
                 Err(err) => panic!("{}", err),
-                Ok(_) => (),
+                Ok => (),
             }
         }
+        // Run postinst if any
+        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        match self.run_package_script(PackageScript::Postinst, install_or_upgrade) {
+            Err(err) => bail!(err),
+            Ok => (),
+        }
+        // Update the webapp xml file if the plugin contains one or more jar file
+        match self.metadata.jar_files.clone() {
+            None => (),
+            Some(jars) => {
+                let w = rpkg::webapp_xml::WebappXml::new(String::from(rpkg::WEBAPP_XML_PATH));
+                for jar_path in jars.into_iter() {
+                    match w.enable_jar(jar_path) {
+                        Err(e) => bail!(e),
+                        Ok => (),
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn run_package_script(&self, script: PackageScript, arg: PackageScriptArg) -> Result<()> {
+        let package_script_path = Path::new(rpkg::PACKAGES_FOLDER)
+            .join(self.metadata.name.clone())
+            .join(script.to_string());
+        if !package_script_path.exists() {
+            return Ok(());
+        }
+        let result = Command::new(package_script_path)
+            .arg(arg.to_string())
+            .output()?;
         Ok(())
     }
 }
