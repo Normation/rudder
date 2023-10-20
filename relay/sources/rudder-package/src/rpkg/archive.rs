@@ -1,5 +1,5 @@
 use crate::rpkg;
-use anyhow::{bail, Context, Ok, Result};
+use anyhow::{Context, Ok, Result};
 use ar::Archive;
 use core::fmt;
 use lzma_rs;
@@ -97,13 +97,8 @@ impl Rpkg {
             }
             let parent = dst.parent().unwrap();
             // Verify that the directory structure exists
-            fs::create_dir_all(parent).map_err(|e| {
-                let context = format!(
-                    "Make sure the folder '{}' exists, {}",
-                    parent.to_str().unwrap(),
-                    e
-                );
-                anyhow::Error::new(e).context(context)
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Make sure the folder '{}' exists", parent.to_str().unwrap(),)
             })?;
             // Unpack the txz archive
             let mut unxz_archive = Vec::new();
@@ -124,40 +119,25 @@ impl Rpkg {
     pub fn install(&self) -> Result<()> {
         let keys = self.metadata.content.keys().clone();
         // Extract package scripts
-        match self.unpack_embedded_txz("script.txz", rpkg::PACKAGES_FOLDER) {
-            Err(err) => panic!("{}", err),
-            Ok => (),
-        }
+        self.unpack_embedded_txz("script.txz", rpkg::PACKAGES_FOLDER)?;
         // Run preinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
-        match self.run_package_script(PackageScript::Preinst, install_or_upgrade) {
-            Err(err) => bail!(err),
-            Ok => (),
-        }
+        self.run_package_script(PackageScript::Preinst, install_or_upgrade)?;
         // Extract archive content
         for txz_name in keys {
-            let dst = self.get_txz_dst(&txz_name);
-            match self.unpack_embedded_txz(&txz_name, &dst) {
-                Err(err) => panic!("{}", err),
-                Ok => (),
-            }
+            let dst = self.get_txz_dst(txz_name);
+            self.unpack_embedded_txz(txz_name, &dst)?
         }
         // Run postinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
-        match self.run_package_script(PackageScript::Postinst, install_or_upgrade) {
-            Err(err) => bail!(err),
-            Ok => (),
-        }
+        self.run_package_script(PackageScript::Postinst, install_or_upgrade)?;
         // Update the webapp xml file if the plugin contains one or more jar file
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
                 let w = rpkg::webapp_xml::WebappXml::new(String::from(rpkg::WEBAPP_XML_PATH));
                 for jar_path in jars.into_iter() {
-                    match w.enable_jar(jar_path) {
-                        Err(e) => bail!(e),
-                        Ok => (),
-                    }
+                    w.enable_jar(jar_path)?;
                 }
             }
         }
@@ -171,7 +151,7 @@ impl Rpkg {
         if !package_script_path.exists() {
             return Ok(());
         }
-        let result = Command::new(package_script_path)
+        let _result = Command::new(package_script_path)
             .arg(arg.to_string())
             .output()?;
         Ok(())
@@ -197,8 +177,8 @@ fn read_metadata(path: &str) -> Result<rpkg::plugin::Metadata> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path;
-    use tempfile::{tempdir, TempDir};
+
+    use tempfile::tempdir;
     extern crate dir_diff;
 
     #[test]

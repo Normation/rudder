@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::{cell::Cell, collections::HashMap, fs::File, io::BufReader};
+use std::{collections::HashMap, fs::File, io::BufReader};
 use xmltree::Element;
 
 pub struct WebappXml {
@@ -25,23 +25,20 @@ impl WebappXml {
         let elements = self.get_xml_tree()?;
         let mut plugins: Vec<String> = Vec::new();
         for node in elements.children {
-            match node.as_element() {
-                Some(e) => {
-                    if e.name == "Set" {
-                        match e.attributes.get("name").as_ref().map(|s| &s[..]) {
-                            Some("extraClasspath") => match e.children.get(0) {
-                                Some(c_node) => match c_node.as_text() {
-                                    Some(jar) => plugins.push(jar.to_string()),
-                                    None => (),
-                                },
-                                None => (),
-                            },
-                            Some(_) => (),
-                            None => (),
+            if let Some(e) = node.as_element() {
+                if e.name == "Set" {
+                    match e.attributes.get("name").as_ref().map(|s| &s[..]) {
+                        Some("extraClasspath") => {
+                            if let Some(c_node) = e.children.get(0) {
+                                if let Some(jar) = c_node.as_text() {
+                                    plugins.push(jar.to_string())
+                                }
+                            }
                         }
+                        Some(_) => (),
+                        None => (),
                     }
                 }
-                None => (),
             }
         }
         Ok(plugins)
@@ -109,7 +106,7 @@ mod tests {
     use rstest::rstest;
     use std::fs;
     use std::path;
-    use tempfile::{tempdir, TempDir};
+    use tempfile::TempDir;
 
     #[rstest]
     #[case("enable_test1.xml", "extra_jar.jar")]
