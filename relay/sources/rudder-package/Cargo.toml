@@ -1,9 +1,13 @@
 [package]
 name = "rudder-package"
-version = "0.1.0"
+version = "0.0.0-dev"
+description = "Plugin manager for Rudder"
+authors = ["Rudder developers <dev@rudder.io>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+readme = "README.md"
+homepage = "https://www.rudder.io"
+repository = "https://github.com/Normation/rudder"
+license = "GPL-3.0-or-later"
 
 [dependencies]
 anyhow = "1.0.75"
@@ -19,3 +23,11 @@ serde_toml = "0.0.1"
 tar = "0.4.40"
 tempfile = "3.8.0"
 xmltree = "0.10.3"
+
+[profile.dev]
+# Disabling debug info speeds up builds a bunch,
+# and we don't rely on it for debugging that much.
+debug = 0
+
+[profile.release]
+strip = true
