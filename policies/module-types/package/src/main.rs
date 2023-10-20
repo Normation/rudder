@@ -1,0 +1,121 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2021 Normation SAS
+
+use std::{fs, path::PathBuf};
+
+use anyhow::{bail, Context};
+use file_owner::PathExt;
+use rudder_module_type::{
+    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
+    PolicyMode, ValidateResult,
+};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+// Configuration
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum State {
+    Present,
+    Absent,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::Present
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct DirectoryParameters {
+    /// Required parameter
+    path: PathBuf,
+    #[serde(default)]
+    state: State,
+    owner: Option<String>,
+    /// Allowed owners for audit mode
+    #[serde(default)]
+    allowed_owners: Vec<String>,
+    group: Option<String>,
+    #[serde(default)]
+    allowed_groups: Vec<String>,
+    mode: Option<String>,
+}
+
+// Module
+
+struct Directory {}
+
+impl ModuleType0 for Directory {
+    fn metadata(&self) -> ModuleTypeMetadata {
+        let meta = include_str!("../rudder_module_type.yml");
+        let docs = include_str!("../README.md");
+        ModuleTypeMetadata::from_metadata(meta)
+            .expect("invalid metadata")
+            .documentation(docs)
+    }
+
+    fn validate(&self, parameters: &Parameters) -> ValidateResult {
+        // Parse as parameters type
+        let _parameters: DirectoryParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        Ok(())
+    }
+
+    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+        assert!(self.validate(parameters).is_ok());
+        let parameters: DirectoryParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let directory = parameters.path.as_path();
+        let dir = directory.display();
+
+        let current_state = if directory.exists() {
+            State::Present
+        } else {
+            State::Absent
+        };
+        let _current_owner = if directory.exists() {
+            Some(directory.owner().unwrap())
+        } else {
+            None
+        };
+        let _current_group = if directory.exists() {
+            Some(directory.group().unwrap())
+        } else {
+            None
+        };
+
+        let presence_outcome = match (mode, parameters.state, current_state) {
+            // Ok
+            (_, e, c) if e == c => Outcome::success(),
+            // Enforce
+            (PolicyMode::Enforce, State::Present, State::Absent) => {
+                fs::create_dir(directory).with_context(|| "Creating directory {dir}")?;
+                Outcome::repaired(format!("Created directory {dir}"))
+            }
+            (PolicyMode::Enforce, State::Absent, State::Present) => {
+                fs::remove_dir(directory).with_context(|| "Removing directory {dir}")?;
+                Outcome::repaired(format!("Removed directory {dir}"))
+            }
+            // Audit
+            (PolicyMode::Audit, State::Present, State::Absent) => {
+                bail!("Directory {dir} should be present but is not")
+            }
+            (PolicyMode::Audit, State::Absent, State::Present) => {
+                bail!("Directory {dir} should not be present but exists")
+            }
+            _ => unreachable!(),
+        };
+        Ok(presence_outcome)
+    }
+}
+
+// Start runner
+
+fn main() -> Result<(), anyhow::Error> {
+    let directory_promise_type = Directory {};
+    // Run the promise executor
+    run(directory_promise_type)
+}
