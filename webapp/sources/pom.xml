@@ -763,6 +763,11 @@ limitations under the License.
         <artifactId>specs2-junit_${scala-binary-version}</artifactId>
         <version>${specs2-version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.tpolecat</groupId>
+        <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
+        <version>${doobie-version}</version>
+      </dependency>
       <!-- No httpclient / commons-logging for jgit -->
       <dependency>
         <groupId>org.eclipse.jgit</groupId>
@@ -914,6 +919,12 @@ limitations under the License.
       <groupId>org.specs2</groupId>
       <artifactId>specs2-junit_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
+      <version>${doobie-version}</version>
       <scope>test</scope>
     </dependency>
     <!-- zio tests -->

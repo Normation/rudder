@@ -38,6 +38,7 @@
 package com.normation.rudder.repository.jdbc
 
 import cats.implicits._
+import cats.syntax.list.catsSyntaxList
 import com.normation.NamedZioLogger
 import com.normation.errors._
 import com.normation.eventlog._
@@ -50,6 +51,7 @@ import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
+import doobie.util.fragments
 import scala.xml._
 import zio.interop.catz._
 import zio.syntax._
@@ -167,52 +169,16 @@ class EventLogJdbcRepository(
       eventTypeFilter: List[EventLogFilter] = Nil
   ): IOResult[Map[ChangeRequestId, EventLog]] = {
 
-    val eventFilter = eventTypeFilter match {
-      case Nil => ""
-      case seq => "where eventType in (" + seq.map(x => "?").mkString(",") + ")"
-    }
-
-    // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
-    // We partition our result by id, and order them by creation desc, and get the number of that row
-    // then we only keep the first row (rownumber <=1)
-    val q = s"""
-      select crid, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
-      from (
-        select
-            eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
-          , cast (xpath('${xpath}', data) as varchar[]) as crid
-          , row_number() over (
-              partition by cast (xpath('${xpath}', data) as varchar[])
-              order by creationDate desc
-            ) as rownumber
-        from eventlog
-        ${eventFilter}
-      ) lastEvents where rownumber <= 1;
-    """
-
-    // here, we have to build the parameters by hand
-    // the first is the array needed by xpath, the following are eventType - if any
-    val eventTypeParam = eventTypeFilter.zipWithIndex
-    val param          = eventTypeParam.traverse {
-      case (event, index) =>
-        // zipwithIndex starts at 0, but sql index at 1, so we +1 the index
-        HPS.set(index + 1, event.eventType.serialize)
-    }.void
-
     transactIOResult(s"Error when retrieving event logs for change request '${xpath}'")(xa => {
       (for {
-        entries <- HC.stream[(String, String, EventLogDetails)](q, param, 512).compile.toVector
+        entries <- EventLogJdbcRepository.getLastEventByChangeRequestSQL(xpath, eventTypeFilter).to[Vector]
       } yield {
         entries.flatMap {
-          case (crid, tpe, details) =>
-            val optId = {
-              try {
-                Some(crid.filter(_ != '"').toInt)
-              } catch {
-                case ex: NumberFormatException => None
-              }
-            }
-            optId.map(id => (ChangeRequestId(id), toEventLog((tpe, details))))
+          case (crIds, tpe, details) => {
+            crIds.headOption
+              .flatMap(_.toIntOption)
+              .map(id => (ChangeRequestId(id), toEventLog((tpe, details))))
+          }
         }.toMap
       }).transact(xa)
     })
@@ -284,6 +250,44 @@ class EventLogJdbcRepository(
       from eventlog where id = ?
     """).toQuery0(id)
     transactIOResult(s"Error when getting event log with id ${id}")(xa => q.unique.map(toEventLog).transact(xa))
+  }
+}
+
+object EventLogJdbcRepository {
+
+  // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
+  // We partition our result by id, and order them by creation desc, and get the number of that row
+  // then we only keep the first row (rownumber <=1)
+  def getLastEventByChangeRequestSQL(
+      xpath:           String,
+      eventTypeFilter: List[EventLogFilter]
+  ): Query0[(List[String], String, EventLogDetails)] = {
+    val subqueryFilter: Fragment = {
+      eventTypeFilter.toNel
+        .map(events => fr"WHERE" ++ fragments.in(fr"eventtype", events.map(_.eventType.serialize)))
+        .getOrElse(fr"")
+    }
+    val xpathFr = Fragment.const(xpath)
+    val subquery: Fragment = {
+      fr"""
+        SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+          , CAST (xpath('$xpathFr', data) AS varchar[]) AS crids
+          , row_number() OVER (
+            PARTITION BY CAST (xpath('$xpathFr', data) AS varchar[])
+            ORDER BY creationDate DESC
+          ) AS rownumber
+        FROM eventlog
+      """ ++ subqueryFilter
+    }
+
+    val result = {
+      fr"""
+        SELECT crids, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+        FROM ( $subquery ) lastEvents WHERE rownumber <= 1
+      """.query[(List[String], String, EventLogDetails)]
+    }
+
+    result
   }
 }
 

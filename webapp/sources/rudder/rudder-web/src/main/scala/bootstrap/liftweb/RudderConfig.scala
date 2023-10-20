@@ -49,6 +49,7 @@ import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
 import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
 import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
@@ -3313,6 +3314,14 @@ object RudderConfigInit {
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap),
+      new MigrateEventLogEnforceSchema(doobie),
+      new MigrateNodeAcceptationInventories(
+        nodeInfoService,
+        doobie,
+        inventoryHistoryLogRepository,
+        inventoryHistoryJdbcRepository,
+        KEEP_DELETED_NODE_FACT_DURATION
+      ),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         uuidGen
@@ -3332,13 +3341,6 @@ object RudderConfigInit {
 
       new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen),
-      new MigrateNodeAcceptationInventories(
-        nodeInfoService,
-        doobie,
-        inventoryHistoryLogRepository,
-        inventoryHistoryJdbcRepository,
-        KEEP_DELETED_NODE_FACT_DURATION
-      ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
