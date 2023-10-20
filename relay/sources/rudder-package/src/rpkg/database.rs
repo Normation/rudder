@@ -27,7 +27,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn is_installed(self, r: Rpkg) -> bool {
+    pub fn is_installed(&self, r: Rpkg) -> bool {
         match self.plugins.get(&r.metadata.name) {
             None => false,
             Some(installed) => installed.metadata.version == r.metadata.version,

@@ -306,7 +306,6 @@ pipeline {
                         POSTGRES_USER     = 'rudderreports'
                     }
                     steps {
-
                         script {
                             running.add("Tests - relayd")
                             updateSlack(errors, running, slackResponse, version, changeUrl)
@@ -343,6 +342,50 @@ pipeline {
                         cleanup {
                             script {
                                 running.remove("Tests - relayd")
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
+                            }
+                        }
+                    }
+                }
+                stage('rudder-package') {
+                    agent {
+                        dockerfile {
+                            filename 'relay/sources/rudder-package/Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            // mount cache
+                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                        }
+                    }
+                    steps {
+
+                        script {
+                            running.add("Tests - rudder-package")
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
+                        }
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('relay/sources/rudder-package') {
+                                sh script: 'make check', label: 'language tests'
+                                //sh script: 'cargo vet', label: 'check dependencies audits'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'rudder-package', name: 'cargo rudder-package', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'relay/sources/rudder-package/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudder-package', name: 'cargo rudder-package')
+                        }
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - rudder-package")
+                                //notifier.notifyResult("rust-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                running.remove("Tests - rudder-package")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
                             }
                         }

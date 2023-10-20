@@ -94,7 +94,7 @@ pipeline {
                 }
             }
         }
-        stage('deps-relayd') {
+        stage('deps-relay') {
             when { not { changeRequest() } }
             agent {
                 dockerfile {
@@ -111,6 +111,11 @@ pipeline {
                         sh script: 'cargo deny check', label: 'check relayd dependencies'
                         sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
                     }
+                    dir('relay/sources/rudder-package') {
+                        sh script: 'mkdir -p target', label: 'create target directory'
+                        sh script: 'cargo deny check', label: 'check rudder-package dependencies'
+                        sh script: 'cargo deny list > target/rudder-package-dependencies.txt', label: 'list rudder-package dependencies'
+                    }
                 }
             }
             post {
@@ -118,7 +123,7 @@ pipeline {
                     script {
                         errors.add("relay")
                         failedBuild = true
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on relay - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                         //notifier.notifyResult("rust-team")
                     }
                 }
@@ -130,7 +135,7 @@ pipeline {
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: 'relay/sources/relayd/target/relayd-dependencies.txt'
+                    archiveArtifacts artifacts: 'relay/sources/relayd/target/*-dependencies.txt'
                 }
             }
         }

@@ -25,8 +25,8 @@ mod tests {
         let data = fs::read_to_string("./tests/repo_index.json")
             .expect("Unable to parse file './tests/repo_index.json'");
         let index: RepoIndex = serde_json::from_str(&data).unwrap();
-        let expected = RepoIndex {
-      0: vec!(
+        let expected = RepoIndex(
+      vec![
         Plugin {
           metadata: plugin::Metadata {
             plugin_type: archive::PackageType::Plugin,
@@ -72,8 +72,7 @@ mod tests {
           },
           path: String::from("./8.0/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg/nightly/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg"),
         },
-      )
-    };
+      ]);
         assert_eq!(expected, index);
     }
 }
