@@ -269,17 +269,17 @@ object Doobie {
     Write[String].contramap(_.toCompactJson)
   }
 
-  import doobie.enumerated.JdbcType.Other
+  import doobie.enumerated.JdbcType.SqlXml
   implicit val XmlMeta: Meta[Elem] = {
     Meta.Advanced.many[Elem](
-      NonEmptyList.of(Other),
+      NonEmptyList.of(SqlXml),
       NonEmptyList.of("xml"),
       (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
       (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
-        val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream)
+        val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream())
         XML.write(osw, e, "UTF-8", false, null)
-        osw.close
+        osw.close()
         ps.setObject(n, sqlXml)
       },
       (_, _, _) => sys.error("update not supported, sorry")
