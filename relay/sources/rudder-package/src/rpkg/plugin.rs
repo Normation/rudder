@@ -1,7 +1,6 @@
+use crate::rpkg::archive;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str};
-use crate::rpkg::archive;
-
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Dependency {

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::{collections::HashMap, fs::File, io::BufReader, cell::Cell};
+use std::{cell::Cell, collections::HashMap, fs::File, io::BufReader};
 use xmltree::Element;
 
 pub struct WebappXml {
@@ -29,16 +29,12 @@ impl WebappXml {
                 Some(e) => {
                     if e.name == "Set" {
                         match e.attributes.get("name").as_ref().map(|s| &s[..]) {
-                            Some("extraClasspath") => {
-                                match e.children.get(0) {
-                                    Some(c_node) => {
-                                        match c_node.as_text() {
-                                            Some(jar) => plugins.push(jar.to_string()),
-                                            None => ()
-                                        }
-                                    },
+                            Some("extraClasspath") => match e.children.get(0) {
+                                Some(c_node) => match c_node.as_text() {
+                                    Some(jar) => plugins.push(jar.to_string()),
                                     None => (),
-                                }
+                                },
+                                None => (),
                             },
                             Some(_) => (),
                             None => (),
@@ -55,7 +51,7 @@ impl WebappXml {
         let mut elements = self.get_xml_tree()?;
         let enabled = self.get_enabled_plugins()?;
         if enabled.contains(&jar_name) {
-          return Ok(())
+            return Ok(());
         }
         let plugin_element = xmltree::Element {
             prefix: None,
@@ -106,15 +102,14 @@ impl WebappXml {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path;
     use pretty_assertions::assert_eq;
-    use std::fs;
-    use tempfile::{tempdir, TempDir};
     use rstest::rstest;
+    use std::fs;
+    use std::path;
+    use tempfile::{tempdir, TempDir};
 
     #[rstest]
     #[case("enable_test1.xml", "extra_jar.jar")]
@@ -127,7 +122,10 @@ mod tests {
         fs::copy(sample, target.clone()).unwrap();
         let x = WebappXml::new(String::from(target.as_path().to_str().unwrap()));
         let _ = x.enable_jar(String::from(jar_name));
-        assert_eq!(fs::read_to_string(target).unwrap(), fs::read_to_string(expected).unwrap());
+        assert_eq!(
+            fs::read_to_string(target).unwrap(),
+            fs::read_to_string(expected).unwrap()
+        );
     }
 
     #[rstest]
@@ -142,6 +140,9 @@ mod tests {
         fs::copy(sample, target.clone()).unwrap();
         let x = WebappXml::new(String::from(target.as_path().to_str().unwrap()));
         let _ = x.disable_jar(String::from(jar_name));
-        assert_eq!(fs::read_to_string(target).unwrap(), fs::read_to_string(expected).unwrap());
+        assert_eq!(
+            fs::read_to_string(target).unwrap(),
+            fs::read_to_string(expected).unwrap()
+        );
     }
 }

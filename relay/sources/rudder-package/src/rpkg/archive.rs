@@ -1,15 +1,15 @@
 use crate::rpkg;
-use anyhow::{Context, Result, bail, Ok};
+use anyhow::{bail, Context, Ok, Result};
 use ar::Archive;
+use core::fmt;
 use lzma_rs;
 use serde::{Deserialize, Serialize};
-use core::fmt;
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::Path,
-    str,
     process::Command,
+    str,
 };
 use tar;
 
@@ -52,7 +52,7 @@ impl fmt::Display for PackageScript {
 enum PackageScriptArg {
     Install,
     Upgrade,
-    None
+    None,
 }
 
 impl fmt::Display for PackageScriptArg {
@@ -132,7 +132,7 @@ impl Rpkg {
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         match self.run_package_script(PackageScript::Preinst, install_or_upgrade) {
             Err(err) => bail!(err),
-            Ok => ()
+            Ok => (),
         }
         // Extract archive content
         for txz_name in keys {
@@ -146,30 +146,34 @@ impl Rpkg {
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         match self.run_package_script(PackageScript::Postinst, install_or_upgrade) {
             Err(err) => bail!(err),
-            Ok => ()
+            Ok => (),
         }
         // Update the webapp xml file if the plugin contains one or more jar file
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
-              let w = rpkg::webapp_xml::WebappXml::new(String::from(rpkg::WEBAPP_XML_PATH));
-              for jar_path in jars.into_iter() {
-                match w.enable_jar(jar_path) {
-                    Err(e) => bail!(e),
-                    Ok => (),
+                let w = rpkg::webapp_xml::WebappXml::new(String::from(rpkg::WEBAPP_XML_PATH));
+                for jar_path in jars.into_iter() {
+                    match w.enable_jar(jar_path) {
+                        Err(e) => bail!(e),
+                        Ok => (),
+                    }
                 }
-              }
             }
         }
         Ok(())
     }
 
     fn run_package_script(&self, script: PackageScript, arg: PackageScriptArg) -> Result<()> {
-        let package_script_path = Path::new(rpkg::PACKAGES_FOLDER).join(self.metadata.name.clone()).join(script.to_string());
-        if ! package_script_path.exists() {
-            return Ok(())
+        let package_script_path = Path::new(rpkg::PACKAGES_FOLDER)
+            .join(self.metadata.name.clone())
+            .join(script.to_string());
+        if !package_script_path.exists() {
+            return Ok(());
         }
-        let result = Command::new(package_script_path).arg(arg.to_string()).output()?;
+        let result = Command::new(package_script_path)
+            .arg(arg.to_string())
+            .output()?;
         Ok(())
     }
 }
