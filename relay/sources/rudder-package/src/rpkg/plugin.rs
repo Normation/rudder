@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str};
+use crate::rpkg::archive;
+
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Dependency {
@@ -16,7 +18,7 @@ pub struct Dependency {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Metadata {
     #[serde(rename = "type")]
-    pub plugin_type: String,
+    pub plugin_type: archive::PackageType,
     pub name: String,
     pub version: String,
     #[serde(rename(serialize = "build-date", deserialize = "build-date"))]
