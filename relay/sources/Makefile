@@ -48,14 +48,21 @@ target/man/rudder-relayd.1.gz:
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
-	# Build relayd
-	mkdir -p ../../../../../.cargo/ relayd/target/
+	# Build rust binaries
+	mkdir -p ../../../../../.cargo/ relayd/target/ rudder-package/target/
 	$(CACHE) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
+	### relayd
 	$(CACHE) get relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	cd relayd && make build
 	# the cache is always updated and cargo will rebuild only what is needed
-	$(CACHE) put ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
+	### rudder-package
+	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
+	cd rudder-package && make build
+	# the cache is always updated and cargo will rebuild only what is needed
+	$(CACHE) put rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
+	### common
+	$(CACHE) put ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
 
 ifeq ($(SELINUX),true)
 	# Build SELinux policy package
@@ -108,6 +115,8 @@ install: build
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
 
+	# rudder-package binary
+	install -m 755 rudder-package/target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	# rudder packaging
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
