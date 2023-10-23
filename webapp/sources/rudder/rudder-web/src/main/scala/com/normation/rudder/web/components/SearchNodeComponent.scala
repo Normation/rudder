@@ -458,12 +458,16 @@ object SearchNodeComponent {
   }
 
   def setIsEnableFor(comparator: String, valueEltId: String): JsCmd = {
-    val e = OrderedComparators.comparatorForString(comparator) match {
+    val e = isComparatorHasValue(comparator)
+    if (e) SetExp(ElemById(valueEltId, "disabled"), JsFalse)
+    else SetExp(ElemById(valueEltId, "disabled"), JsTrue)
+  }
+
+  def isComparatorHasValue(comparator: String): Boolean = {
+    OrderedComparators.comparatorForString(comparator) match {
       case None       => true
       case Some(comp) => comp.hasValue
     }
-    if (e) SetExp(ElemById(valueEltId, "disabled"), JsFalse)
-    else SetExp(ElemById(valueEltId, "disabled"), JsTrue)
   }
 
   def updateCompAndValue(
@@ -507,6 +511,18 @@ object SearchNodeComponent {
         """))
   }
 
+  def updateValue(
+      comparator: String,
+      valueEltId: String
+  ): JsCmd = {
+    val update = {
+      if (isComparatorHasValue(comparator)) Noop
+      else SetExp(ElemById(valueEltId, "value"), "")
+    }
+    setIsEnableFor(comparator, valueEltId) &
+    update
+  }
+
   def replaceAttributes(func: String => Any)(ajaxParam: String): JsCmd = {
     parseAttrParam(ajaxParam) match {
       case None                                                             => Alert("Can't parse for attribute: " + ajaxParam)
@@ -539,7 +555,7 @@ object SearchNodeComponent {
   def replaceValue(ajaxParam: String): JsCmd = { // elementId:String, comp:String, oldValue:String) : JsCmd = {
     parseValParam(ajaxParam) match {
       case None                   => Alert("Can't parse for value: " + ajaxParam)
-      case Some((c_val, v_eltid)) => setIsEnableFor(c_val, v_eltid)
+      case Some((c_val, v_eltid)) => updateValue(c_val, v_eltid)
     }
   }
 
