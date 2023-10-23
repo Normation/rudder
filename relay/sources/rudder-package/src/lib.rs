@@ -11,9 +11,13 @@ mod plugin;
 mod repo_index;
 mod webapp_xml;
 
-use anyhow::Result;
+use std::path::Path;
+
+use anyhow::{Context, Result};
 use clap::Parser;
 use log::{debug, error, LevelFilter};
+
+use crate::config::Configuration;
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
@@ -35,6 +39,10 @@ pub fn run() -> Result<()> {
         .filter_level(filter)
         .init();
     debug!("Parsed CLI arguments: {args:?}");
+    let cfg = Configuration::read(Path::new(&args.config))
+        .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
+    debug!("Parsed configuration: {cfg:?}");
+
     error!("This command is not implemented");
     Ok(())
 }
