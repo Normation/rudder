@@ -279,6 +279,7 @@ object QSLdapBackend {
       IpAddresses       -> A_LIST_OF_IP,
       PolicyServerId    -> A_POLICY_SERVER_UUID,
       Properties        -> A_NODE_PROPERTY,
+      GroupProperties   -> A_JSON_PROPERTY,
       CustomProperties  -> A_CUSTOM_PROPERTY,
       NodeState         -> A_STATE,
       GroupId           -> A_NODE_GROUP_UUID,
@@ -391,6 +392,7 @@ object QSLdapBackend {
         case IpAddresses       => Some(EQ(a.ldapName, token))                // ipHostNumber doesn't have substring match :/
         case PolicyServerId    => sub(a, token)
         case Properties        => sub(a, token)
+        case GroupProperties   => sub(a, token)
         case CustomProperties  => sub(a, token)
         case NodeState         => sub(a, token)
         case GroupId           => sub(a, token)
