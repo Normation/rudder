@@ -1,8 +1,13 @@
-use crate::rpkg;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
+use crate::{
+    plugin::Metadata, webapp_xml::WebappXml, PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
+    WEBAPP_XML_PATH,
+};
 use anyhow::{Context, Ok, Result};
 use ar::Archive;
 use core::fmt;
-use lzma_rs;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
@@ -11,9 +16,8 @@ use std::{
     process::Command,
     str,
 };
-use tar;
 
-use super::Database;
+use crate::database::Database;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PackageType {
@@ -68,7 +72,7 @@ impl fmt::Display for PackageScriptArg {
 #[derive(Clone)]
 pub struct Rpkg {
     pub path: String,
-    pub metadata: rpkg::plugin::Metadata,
+    pub metadata: Metadata,
 }
 
 impl Rpkg {
@@ -112,14 +116,14 @@ impl Rpkg {
     }
 
     pub fn is_installed(&self) -> Result<bool> {
-        let current_database = Database::read(rpkg::PACKAGES_DATABASE_PATH)?;
+        let current_database = Database::read(PACKAGES_DATABASE_PATH)?;
         Ok(current_database.is_installed(self.to_owned()))
     }
 
     pub fn install(&self) -> Result<()> {
         let keys = self.metadata.content.keys().clone();
         // Extract package scripts
-        self.unpack_embedded_txz("script.txz", rpkg::PACKAGES_FOLDER)?;
+        self.unpack_embedded_txz("script.txz", PACKAGES_FOLDER)?;
         // Run preinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         self.run_package_script(PackageScript::Preinst, install_or_upgrade)?;
@@ -135,7 +139,7 @@ impl Rpkg {
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
-                let w = rpkg::webapp_xml::WebappXml::new(String::from(rpkg::WEBAPP_XML_PATH));
+                let w = WebappXml::new(String::from(WEBAPP_XML_PATH));
                 for jar_path in jars.into_iter() {
                     w.enable_jar(jar_path)?;
                 }
@@ -145,7 +149,7 @@ impl Rpkg {
     }
 
     fn run_package_script(&self, script: PackageScript, arg: PackageScriptArg) -> Result<()> {
-        let package_script_path = Path::new(rpkg::PACKAGES_FOLDER)
+        let package_script_path = Path::new(PACKAGES_FOLDER)
             .join(self.metadata.name.clone())
             .join(script.to_string());
         if !package_script_path.exists() {
@@ -158,7 +162,7 @@ impl Rpkg {
     }
 }
 
-fn read_metadata(path: &str) -> Result<rpkg::plugin::Metadata> {
+fn read_metadata(path: &str) -> Result<Metadata> {
     let mut archive = Archive::new(File::open(path).unwrap());
     while let Some(entry_result) = archive.next_entry() {
         let mut entry = entry_result.unwrap();
@@ -166,7 +170,7 @@ fn read_metadata(path: &str) -> Result<rpkg::plugin::Metadata> {
         let entry_title = str::from_utf8(entry.header().identifier()).unwrap();
         if entry_title == "metadata" {
             let _ = entry.read_to_string(&mut buffer)?;
-            let m: rpkg::plugin::Metadata = serde_json::from_str(&buffer)
+            let m: Metadata = serde_json::from_str(&buffer)
                 .with_context(|| format!("Failed to parse {} metadata", path))?;
             return Ok(m);
         };

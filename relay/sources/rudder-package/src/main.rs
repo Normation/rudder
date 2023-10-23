@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 #![allow(dead_code)]
 
-mod rpkg;
-
-fn main() {
-    let x = rpkg::webapp_xml::WebappXml::new(String::from("./tests/webapp_xml/rudder.xml"));
-    let _ = x.disable_jar(String::from("patapouf"));
+fn main() -> anyhow::Result<()> {
+    rudder_package::run()?;
+    Ok(())
 }

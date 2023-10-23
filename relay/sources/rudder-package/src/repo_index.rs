@@ -1,4 +1,7 @@
-use crate::rpkg::plugin;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
+use crate::plugin;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -14,7 +17,7 @@ pub struct Plugin {
 
 #[cfg(test)]
 mod tests {
-    use crate::rpkg::archive;
+    use crate::archive;
 
     use super::*;
     use pretty_assertions::assert_eq;

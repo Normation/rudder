@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::*, io::BufWriter};
 
-use crate::rpkg::plugin;
+use crate::plugin;
 
 use super::archive::Rpkg;
 
@@ -45,7 +48,7 @@ pub struct InstalledPlugin {
 
 #[cfg(test)]
 mod tests {
-    use crate::rpkg::archive;
+    use crate::archive;
 
     use super::*;
     use ::std::fs::read_to_string;

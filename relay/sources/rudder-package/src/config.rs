@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 use std::{fs::read_to_string, path::Path};
 
 use anyhow::Result;
@@ -106,7 +109,7 @@ impl From<RawConfiguration> for Configuration {
 
 #[cfg(test)]
 mod tests {
-    use crate::rpkg::config::{Configuration, Credentials, ProxyConfiguration};
+    use crate::config::{Configuration, Credentials, ProxyConfiguration};
     use pretty_assertions::assert_eq;
     use std::path::Path;
 
@@ -120,7 +123,7 @@ mod tests {
             }),
             proxy: None,
         };
-        let conf = Configuration::read(Path::new("./tests/rudder-pkg.conf")).unwrap();
+        let conf = Configuration::read(Path::new("./tests/config/rudder-pkg.conf")).unwrap();
         assert_eq!(reference, conf);
     }
     #[test]
@@ -149,7 +152,7 @@ mod tests {
                 }),
             }),
         };
-        let conf = Configuration::read(Path::new("./tests/rudder-pkg.proxy.conf")).unwrap();
+        let conf = Configuration::read(Path::new("./tests/config/rudder-pkg.proxy.conf")).unwrap();
         assert_eq!(reference, conf);
     }
 }

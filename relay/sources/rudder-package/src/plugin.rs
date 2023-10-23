@@ -1,4 +1,7 @@
-use crate::rpkg::archive;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
+use crate::archive;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str};
 

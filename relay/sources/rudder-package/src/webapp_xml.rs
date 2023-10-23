@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 use anyhow::Result;
 use std::{collections::HashMap, fs::File, io::BufReader};
 use xmltree::Element;
