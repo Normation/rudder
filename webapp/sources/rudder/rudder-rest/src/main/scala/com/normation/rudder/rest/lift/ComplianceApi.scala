@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePrecision
@@ -71,6 +72,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+
 import scala.collection.immutable
 import zio.syntax._
 
@@ -334,20 +336,27 @@ class ComplianceAPIService(
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
     } yield {
+      println(s"p0000000000000000000000000000000000 $directives")
+      val overridesByRule = reportsByNode.toList.flatMap(report => report._2.overrides.groupBy(_.policy.ruleId)).toMap
+      val overridesRules = overridesByRule.view.mapValues(_ => AggregatedStatusReport(Nil)).toMap
 
+      println(s"overridesByRule.toList ${overridesByRule.toList}")
+      println(s"overridesRules ${overridesRules.toList.foreach(println)}")
       val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      val reportsByRule2 = reportsByNode.flatMap { case (_, status) => status.byRules }
       val t7            = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
-
+      val finalReports = overridesRules ++ reportsByRule2
+      println(s"99999999999999999999999999 ${finalReports.toList.map(_._2)}")
       // for each rule for each node, we want to have a
       // directiveId -> reporttype map
-      val nonEmptyRules = reportsByRule.toSeq.map {
-        case (ruleId, reports) =>
+      val nonEmptyRules = finalReports.toSeq.map {
+        case (ruleId, aggretatedReports) =>
           // aggregate by directives, if level is at least 2
           val byDirectives: Map[DirectiveId, immutable.Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
             Map()
           } else {
-            reports.flatMap(r => r.directives.values.map(d => (r.nodeId, d)).toSeq).groupBy(_._2.directiveId)
+            aggretatedReports.reports.flatMap(r => r.directives.values.map(d => (r.nodeId, d)).toSeq).groupBy(_._2.directiveId)
           }
 
           def components(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
@@ -394,7 +403,7 @@ class ComplianceAPIService(
           ByRuleRuleCompliance(
             ruleId,
             ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule"),
-            ComplianceLevel.sum(reports.map(_.compliance)),
+            ComplianceLevel.sum(aggretatedReports.reports.map(_.compliance)),
             compliance.mode,
             byDirectives.map {
               case (directiveId, nodeDirectives) =>
@@ -424,7 +433,7 @@ class ComplianceAPIService(
       // if any rules is in the list in parameter an not in the nonEmptyRules, then it means
       // there's no compliance for it, so it's empty
       // we need to set the ByRuleCompliance with a compliance of NoAnswer
-      val rulesWithoutCompliance = ruleObjects.keySet -- reportsByRule.keySet
+      val rulesWithoutCompliance = ruleObjects.keySet -- finalReports.keySet
 
       val initializedCompliances: Seq[ByRuleRuleCompliance] = {
         if (rulesWithoutCompliance.isEmpty) {

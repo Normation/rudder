@@ -1,6 +1,7 @@
 module ViewTabContent exposing (..)
 
 import DataTypes exposing (..)
+import Debug exposing (log)
 import Dict
 import Dict.Extra
 import Html exposing (..)
@@ -241,12 +242,12 @@ directivesTab model details =
           |> Dict.values
           |> List.sortWith (compareOn .displayName)
         -- add missing directives
-        knonwIds = List.map .id knownDirectives
+        knonwIds = List.map .id (log "knownDirectives" knownDirectives)
       in
         List.append
           knownDirectives
           ( rule.directives
-            |> List.filter (\id -> not (List.member id knonwIds) )
+            |> List.filter (\id -> not (List.member id (log "knonwIds" knonwIds)) )
             |> List.map (\id -> (Directive id ("Missing directive with ID "++id.value) "" "" "" False False "" []))
           )
     buildListRow : List (Html Msg)
@@ -258,19 +259,19 @@ directivesTab model details =
             newClass = case originRule of
               Nothing -> "new"
               Just oR ->
-                if List.member directive.id oR.directives then
-                  ""
+                if List.member (log "directiveid" directive.id) oR.directives then
+                  "new"
                 else
                   "new"
             (disabledClass, disabledLabel) =
               if directive.enabled then
                 ("", text "")
               else
-                (" is-disabled ", span[class "badge-disabled"][])
+                ("", text "")
           in
             li[class (newClass ++ disabledClass)]
             [ a[href ( getDirectiveLink model.contextPath directive.id )]
-              [ badgePolicyMode model.policyMode directive.policyMode
+              [ badgePolicyMode model.policyMode (log "policymode" directive.policyMode)
               , span [class "target-name"][text directive.displayName]
               , disabledLabel
               , buildTagsList directive.tags
@@ -280,7 +281,7 @@ directivesTab model details =
             , span [class "border"][]
             ]
       in
-        List.map rowDirective directives
+        List.map rowDirective (log "map directives" directives)
 
     ruleDirectivesId = case details.originRule of
       Just oR -> oR.directives
@@ -294,12 +295,12 @@ directivesTab model details =
       Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
       Nothing -> (\_ _ -> EQ)
     filter       = model.ui.directiveFilters.tableFilters.filter
-    childs       = Maybe.withDefault [] (Maybe.map .directives details.compliance)
-    childrenSort = childs
+    childs       = Maybe.withDefault [] (Maybe.map .directives (log "details.compliance" details.compliance))
+    childrenSort = (log "childs" childs)
       |> List.filter (\d -> (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectiveCompliance d)))
       |> List.sortWith sort
     (directivesChildren, order, newOrder) = case sortOrder of
-       Asc -> (childrenSort, "asc", Desc)
+       Asc -> ((log "childrenSort" childrenSort), "asc", Desc)
        Desc -> (List.reverse childrenSort, "desc", Asc)
 
     ruleDirectives = directives
@@ -307,7 +308,8 @@ directivesTab model details =
 
     disabledRuleDirectives = ruleDirectives
       |> List.filter (\d -> not d.enabled)
-
+    skippedDirectives = ruleDirectives
+      |> List.filter (\d -> (not (List.member d.id.value (List.map (\f -> f.directiveId.value) directivesChildren))) && d.enabled)
     directiveFilters = model.ui.directiveFilters
     tableFilters     = directiveFilters.tableFilters
     treeFilters      = directiveFilters.treeFilters
@@ -322,7 +324,7 @@ directivesTab model details =
       else
         text ""
   in
-    if not details.ui.editDirectives then
+    if (log "test condition" (not details.ui.editDirectives)) then
       div[class "tab-table-content"]
       [ div [class "table-title"]
         [ h4 [][text "Compliance by directives"]
@@ -395,15 +397,16 @@ directivesTab model details =
             |> List.filter (\d -> d.enabled && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
             |> List.sortBy .displayName
           sortedDirectives   = case tableFilters.sortOrder of
-            Asc  -> filteredDirectives
-            Desc -> List.reverse filteredDirectives
+            Asc  -> (log "asc fileted directive" filteredDirectives)
+            Desc -> List.reverse (log "desc fileted directive" filteredDirectives)
           toggleSortOrder o = if o == Asc then Desc else Asc
         in
           if rule.enabled && not noNodes then
+           div[][
             table [class "dataTable compliance-table"]
             [ thead []
               [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
-            ]
+              ]
             , tbody [] (
               if List.length childs <= 0 then
                 [ tr[]
@@ -414,8 +417,10 @@ directivesTab model details =
                   [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
                 ]
               else
-                List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
+                List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) (log "directivesChildren" directivesChildren)
               )
+            ]
+            , div [] (List.map (\d -> div[][text d.displayName]) skippedDirectives)
             ]
           else
             table [class "dataTable"]
@@ -434,7 +439,7 @@ directivesTab model details =
                   [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
                 ]
               else
-                sortedDirectives
+                (log "sorteddirecivtes" sortedDirectives)
                 |> List.map (\d ->
                      tr []
                      [ td[]
@@ -453,6 +458,7 @@ directivesTab model details =
               )
             ]
         )]
+        --][]
       ]
     else
       let
@@ -564,8 +570,8 @@ directivesTab model details =
                 ]
               ]
             , ul[class "directives applied-list"]
-              ( if(List.length rule.directives > 0) then
-                 buildListRow
+              ( if(List.length (log "rule.dircectives" rule.directives) > 0) then
+                 (log "buildlistrow:" buildListRow)
                 else
                  [ li [class "empty"]
                    [ span [] [text "There is no directive applied."]

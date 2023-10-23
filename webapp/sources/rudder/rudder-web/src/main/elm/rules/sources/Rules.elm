@@ -2,6 +2,7 @@ port module Rules exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Debug exposing (log)
 import Dict
 import Dict.Extra
 import DataTypes exposing (..)
@@ -102,8 +103,9 @@ update msg model =
         Ok (t,d) ->
           let
             modelUi = model.ui
+            dir = Dict.Extra.fromListBy (.id >> .value) (List.concatMap .directives d)
           in
-          ( { model | techniquesTree = t, directives = Dict.Extra.fromListBy (.id >> .value) (List.concatMap .directives d), ui = { modelUi | loadingRules = False} }
+          ( { model | techniquesTree = t, directives = log "directives : " dir, ui = { modelUi | loadingRules = False} }
             , Cmd.none
           )
         Err err ->
