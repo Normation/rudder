@@ -6,6 +6,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Time.Iso8601
+import Time.ZonedDateTime as ZDT exposing (ZonedDateTime)
+import Time.TimeZone as TZ exposing (TimeZone)
 
 
 type alias TableColumn =
@@ -25,7 +27,7 @@ columns model =
 
 options: RuleId ->  Model -> List (Html Msg)
 options ruleId model =
-  List.reverse <| List.indexedMap (\id c -> option [value (String.fromInt id)] [text ("Between " ++ (Time.Iso8601.fromZonedDateTime c.start) ++  " and " ++ (Time.Iso8601.fromZonedDateTime c.end) ++ " ( " ++ (String.fromFloat c.changes) ++ " changes)") ] ) <| Maybe.withDefault [] (Dict.get ruleId.value model.changes )
+  List.reverse <| List.indexedMap (\id c -> option [value (String.fromInt id)] [text (showChanges c) ] ) <| Maybe.withDefault [] (Dict.get ruleId.value model.changes )
 
 showTab: Model -> RuleDetails -> Html Msg
 showTab model details =
@@ -65,3 +67,18 @@ showTab model details =
           ]
         ]
       ]
+
+showChanges: Changes -> String
+showChanges c =
+  let
+    formatYear = String.fromInt << ZDT.year
+    formatTwoDigitInt = String.padLeft 2 '0' << String.fromInt
+    formatMonth = formatTwoDigitInt << ZDT.month
+    formatDay = formatTwoDigitInt << ZDT.day
+    formatHour = formatTwoDigitInt << ZDT.hour
+    formatMinute = formatTwoDigitInt << ZDT.minute
+    formatTimeZone d = "UTC" ++ (String.left 3 <| TZ.offsetString (ZDT.toPosix d) (ZDT.timeZone d))
+    formatChangeDate d = (formatYear d) ++ "-" ++ (formatMonth d) ++ "-" ++ (formatDay d) ++ " " ++ (formatHour d) ++ ":" ++ (formatMinute d) ++ " " ++ (formatTimeZone d)
+    formatChangeCount n = (String.fromFloat n) ++ (if n > 1 then " changes" else " change")
+  in
+    ("Between " ++ (formatChangeDate c.start) ++  " and " ++ (formatChangeDate c.end) ++ " (" ++ formatChangeCount c.changes) ++ ")"
