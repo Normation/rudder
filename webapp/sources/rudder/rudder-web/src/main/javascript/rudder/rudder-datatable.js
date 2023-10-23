@@ -1188,7 +1188,7 @@ var allColumns = {
                                return JSON.stringify(row.properties[value]);
                              }
                              // 'sort', 'type' and undefined all just use the integer
-                             return value;
+                             return JSON.stringify(row.properties[value]);
                            }
 
              , "title": title
@@ -1321,7 +1321,6 @@ function reloadTable(gridId) {
 }
 
 function createNodeTable(gridId, refresh) {
-
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
