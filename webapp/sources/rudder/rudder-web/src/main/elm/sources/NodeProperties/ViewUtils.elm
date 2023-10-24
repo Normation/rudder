@@ -172,12 +172,15 @@ displayNodePropertyRow model =
             , td [class "property-value"]
               [ div []
                 [ div [class ("value-container" ++ (if List.member p.name model.ui.showMore then " toggle" else "") ++ (if isTooLong p.value then " show-more" else "") ), onClick (ShowMore p.name) ]
-                  [ pre [class "json-beautify"]
-                    [ useTheme gitHub,
-                      json (displayJsonValue p.value)
+                  [ if (format == JsonFormat) then
+                      pre [class "json-beautify"]
+                      [ useTheme gitHub,
+                        json (displayJsonValue p.value)
                            |> Result.map toInlineHtml
                            |> Result.withDefault ( text (displayJsonValue p.value) )
-                    ]
+                      ]
+                    else
+                      pre [class "json-beautify"][text (displayJsonValue p.value)]
                   ]
                 , span [class "toggle-icon"][]
                 , button [class "btn btn-xs btn-default btn-clipboard", title "Copy to clipboard", onClick (Copy (displayJsonValue p.value))]
