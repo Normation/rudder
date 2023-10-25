@@ -101,6 +101,12 @@ tags:
 
 
       Manage secrets variables.
+  - name: "🧩 OpenSCAP"
+    description: >-
+      **Requires that the `openscap` plugin is installed on the server.**
+
+
+      Get OpenSCAP reports for nodes.
 paths:
   "/info":
     $ref: paths/info/all.yml
@@ -324,3 +330,5 @@ paths:
     $ref: paths/systemUpdate/eventResult.yml
   "/systemUpdate/campaign/{id}/history":
     $ref: paths/systemUpdate/campaignHistory.yml
+  "/openscap/report/{nodeId}":
+    $ref: paths/openscap/report.yml

@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2023 Normation SAS
+get:
+  summary: Get an OpenSCAP report
+  description: Get latest OpenSCAP report for the given node
+  operationId: openscapReport
+  parameters:
+    - $ref: ../../components/parameters/node-id.yml
+  responses:
+    "200":
+      description: Promote response
+      content:
+        text/html:
+          schema:
+            type: string
+            format: HTML
+  tags:
+    - 🧩 OpenSCAP
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/openscap/report.sh
