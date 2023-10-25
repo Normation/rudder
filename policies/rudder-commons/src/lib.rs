@@ -224,6 +224,7 @@ pub struct Select {
 #[serde(rename_all = "snake_case")]
 pub struct RegexConstraint {
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
 }
 

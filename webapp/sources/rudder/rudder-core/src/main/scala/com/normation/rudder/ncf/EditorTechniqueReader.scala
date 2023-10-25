@@ -219,12 +219,12 @@ final case class JsonGenericMethodParameterRename(old: String, `new`: String)
 final case class JsonGenericMethodParameter(
     name:        String,
     description: String,
-    constraint:  Option[JsonParameterConstraint],
+    constraints: Option[JsonParameterConstraint],
     `type`:      String
 ) {
   def toMethodParameter(parameterTypeService: ParameterTypeService): PureResult[MethodParameter] = {
     parameterTypeService.create(`type`).map { t =>
-      val c = constraint match {
+      val c = constraints match {
         case None    => Nil
         case Some(x) => x.toConstraint
       }
@@ -233,14 +233,20 @@ final case class JsonGenericMethodParameter(
   }
 }
 
+// name is not used for now
+final case class JsonParameterConstraintSelect(name: Option[String], value: String)
+
+// error_message is not used for now
+final case class JsonParameterConstraintRegex(error_message: Option[String], value: String)
+
 final case class JsonParameterConstraint(
     allow_empty_string:      Boolean,
     allow_whitespace_string: Boolean,
     max_length:              Int,
     min_length:              Option[Int],
-    regex:                   Option[String],
+    regex:                   Option[JsonParameterConstraintRegex],
     not_regex:               Option[String],
-    select:                  Option[List[String]]
+    select:                  Option[List[JsonParameterConstraintSelect]]
 ) {
   def toConstraint: List[Constraint] = {
     import Constraint._
@@ -249,14 +255,16 @@ final case class JsonParameterConstraint(
     AllowWhiteSpace(allow_whitespace_string) ::
     MaxLength(max_length) ::
     min_length.map(MinLength.apply).toList :::
-    regex.map(MatchRegex.apply).toList :::
+    regex.map(_.value).map(MatchRegex.apply).toList :::
     not_regex.map(NotMatchRegex.apply).toList :::
-    select.map(FromList.apply).toList
+    select.map(_.map(_.value)).map(FromList.apply).toList
   }
 }
 
 object GenericMethodSerialization {
 
+  implicit val decodeJsonParameterConstraintRegex:     JsonDecoder[JsonParameterConstraintRegex]     = DeriveJsonDecoder.gen
+  implicit val decodeJsonParameterConstraintSelect:    JsonDecoder[JsonParameterConstraintSelect]    = DeriveJsonDecoder.gen
   implicit val decodeJsonParameterConstraint:          JsonDecoder[JsonParameterConstraint]          = DeriveJsonDecoder.gen
   implicit val decodeJsonGenericMethodParameterRename: JsonDecoder[JsonGenericMethodParameterRename] = DeriveJsonDecoder.gen
   implicit val decodeJsonGenericMethodParameter:       JsonDecoder[JsonGenericMethodParameter]       = DeriveJsonDecoder.gen
