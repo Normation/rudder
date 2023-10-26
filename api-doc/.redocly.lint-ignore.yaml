@@ -1,0 +1,5 @@
+# This file instructs Redocly's linter to ignore the rules contained for specific parts of your API.
+# See https://redoc.ly/docs/cli/ for more information.
+build/relay/openapi.yml:
+  no-server-example.com:
+    - '#/servers/0/url'
