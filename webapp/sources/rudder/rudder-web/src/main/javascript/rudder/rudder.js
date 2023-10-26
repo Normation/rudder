@@ -35,6 +35,11 @@
 *************************************************************************************
 */
 
+
+/* Global variables */
+
+var isLoggedIn = true;
+
 /* Event handler function */
 
 var entityMap = {
@@ -895,4 +900,9 @@ function autoResize(e) {
     elem.style.height = 'auto';
     elem.style.height = elem.scrollHeight + 'px';
   }
+}
+
+function logout(cb){
+    if (isLoggedIn) cb();
+    else window.location.replace(contextPath);
 }
