@@ -80,6 +80,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
   def logout = {
     "*" #> SHtml.ajaxButton(
       "Log out",
+      JE.Call("logout"),
       { () =>
         S.session match {
           case Full(session) => // we have a session, try to know who is login out
