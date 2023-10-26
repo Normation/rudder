@@ -147,8 +147,11 @@ techniqueTab model technique creation ui =
                              ]
                            ]
                          ]
-                       ,-} div [ class "row form-group" ] [--ng-class="{'has-error':ui.editForm.name.$dirty && (ui.editForm.name.$error.required || ui.editForm.name.$error.techniqueName)}">
-                           label [ for "techniqueName", class "col-xs-12 control-label" ] [ text "Name"  ]
+                       ,-} div [ class "row form-group", style "margin-top" "15px" ] [
+                           label [ for "techniqueName", class "col-xs-12" ]
+                           [ text "Name"
+                           , span [class "mandatory-param"] [text " *"]
+                           ]
                          , div  [ class "col-sm-8" ] [
                              input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class ("form-control" ++ classErrorName) , placeholder "Technique Name", value technique.name
                               , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value (String.toLower newName)) else technique.id.value) })
@@ -201,7 +204,10 @@ techniqueTab model technique creation ui =
                                   else text ""
                          ]
                        , div [ class "row form-group" ] [ -- show-errors>
-                           label [ for "category",  class "col-xs-12 control-label"] [ text "Category" ]
+                           label [ for "category",  class "col-xs-12"]
+                           [ text "Category"
+                           , span [class "mandatory-param"] [text " *"]
+                           ]
                          , div [ class "col-sm-8" ] [
                              disableCategory
                            -- Used to be a else on creation with a readonly input a tried a readonly select <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="getCategory(selectedTechnique.category).value">
