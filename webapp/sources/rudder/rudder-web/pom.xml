@@ -161,7 +161,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
             </configuration>
           </execution>
           <execution>
-            <id>elm-test</id>
+            <id>elm-test-editor</id>
             <phase>test</phase>
             <goals>
               <goal>exec</goal>
@@ -170,6 +170,18 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
               <executable>npx</executable>
 	      <workingDirectory>src/main/elm</workingDirectory>
 	      <commandlineArgs>elm-test "sources/**/tests"</commandlineArgs>
+            </configuration>
+          </execution>
+          <execution>
+            <id>elm-test-rules</id>
+            <phase>test</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>npx</executable>
+              <workingDirectory>src/main/elm/rules</workingDirectory>
+              <commandlineArgs>elm-test</commandlineArgs>
             </configuration>
           </execution>
         </executions>
