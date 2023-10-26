@@ -13,6 +13,11 @@ test_shell()
       # fail on >=error
       shellcheck --severity error "$file"
     done
+  # special case for API docs examples
+  # allow absent shebang, prevent warnings
+  for src in relay webapp; do
+    find "${src}/sources/api-doc/code_samples/curl" -name "*.sh" | xargs shellcheck --shell=bash --severity=warning --exclude=SC2148  
+  done
 }
 
 # fails on error and ignores other levels
