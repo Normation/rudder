@@ -61,9 +61,10 @@
 
       // Initialize tooltips
       app.ports.initTooltips.subscribe(function(msg) {
+        $('.bs-tooltip').bsTooltip();
         setTimeout(function(){
           $('.bs-tooltip').bsTooltip();
-        }, 400);
+        }, 800);
       });
 
       // The timeout aims to wait that the tree is fully loaded to
