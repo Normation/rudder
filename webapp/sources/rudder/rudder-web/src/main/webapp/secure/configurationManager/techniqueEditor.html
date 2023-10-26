@@ -129,7 +129,6 @@ $(document).ready(function(){
     }
     setTimeout(function(){
       $(".method textarea.form-control").on("input", autoResize).each(function(){
-        console.log($(this).clone(false));
         autoResize(this);
       });
     }, 10);
