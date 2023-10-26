@@ -390,9 +390,12 @@ class Boot extends Loggable {
     // Do nothing instead, as it allows to keep open tabs context until we get the new cookie
     // This does not affect security as it is only a redirection anyway and did not change
     // the session itself.
-    LiftRules.noCometSessionCmd.default.set(() =>
-      JsRaw(s"createErrorNotification('You have been signed out. Please reload the page to sign in again.')").cmd
-    )
+    // The global variable (rudder.js)
+    LiftRules.noCometSessionCmd.default.set(() => {
+      JsRaw(
+        s"isLoggedIn=false; createErrorNotification('You have been signed out. Please reload the page to sign in again.');"
+      ).cmd
+    })
 
     // Log CSP violations
     LiftRules.contentSecurityPolicyViolationReport = (r: ContentSecurityPolicyViolation) => {
