@@ -35,6 +35,11 @@
 *************************************************************************************
 */
 
+
+/* Global variables */
+
+var isLoggedIn = true;
+
 /* Event handler function */
 
 var entityMap = {
@@ -944,4 +949,9 @@ function sidebarControl(a){
     }
     e.is(".treeview-menu") && a.preventDefault()
   })
+}
+
+function logout(cb){
+    if (isLoggedIn) cb();
+    else window.location.replace(contextPath);
 }
