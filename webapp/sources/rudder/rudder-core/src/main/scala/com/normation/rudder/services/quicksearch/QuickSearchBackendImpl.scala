@@ -167,6 +167,7 @@ object QSDirectiveBackend extends Loggable {
         case IpAddresses       => None
         case PolicyServerId    => None
         case Properties        => None
+        case GroupProperties   => None
         case CustomProperties  => None
         case NodeState         => None
         case GroupId           => None
