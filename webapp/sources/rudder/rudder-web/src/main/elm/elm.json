@@ -31,7 +31,6 @@
             "elm-community/list-extra": "8.7.0",
             "elm-community/maybe-extra": "5.3.0",
             "elm-community/string-extra": "4.0.1",
-            "elm-explorations/test": "2.1.1",
             "isaacseymour/deprecated-time": "1.0.0",
             "jinjor/elm-debounce": "3.0.0",
             "justinmimbs/date": "4.0.1",
