@@ -662,6 +662,12 @@ ul.files-list.parameters > li > .param{
   padding: 10px 10px 10px 12px;
   flex: 1;
 }
+ul.files-list.parameters > li > .param .input-group > label.input-group-addon{
+  border-left: none;
+  border-color: #D6DEEF;
+  background: #F8F9FC;
+  cursor: pointer;
+}
 ul.files-list > li > .border{
   background-color: #ccc;
   opacity: .6;
