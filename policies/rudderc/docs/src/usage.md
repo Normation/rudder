@@ -18,7 +18,7 @@ unify them.
 
 * `rudderc` is built into the Rudder server. The binary is available in `/opt/rudder/bin/rudderc`.
 * On other systems, like workstations, you can download a
-  [pre-built binary](https://repository.rudder.io/tools/rudderc/8.0/rudderc) for Linux x86_64 in the repository.
+  [pre-built binary](https://repository.rudder.io/tools/rudderc/8.0/) for Linux x86_64 in the repository.
 
 To be able to check and compile techniques, the `rudderc` program
 needs access to the method library of the target systems.
