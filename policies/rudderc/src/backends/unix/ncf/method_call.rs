@@ -94,8 +94,8 @@ pub fn method_call(m: Method, condition: Condition) -> Result<(Promise, Bundle)>
             .collect(),
     );
     let na_condition = format!(
-        "canonify(\"${{class_prefix}}_{}_{}\")",
-        info.bundle_name, &report_parameter
+        "canonify(\"${{class_prefix}}_{}_${{c_key}}\")",
+        info.bundle_name
     );
 
     let mut promises = match (&condition, is_supported) {
