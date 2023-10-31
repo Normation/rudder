@@ -51,6 +51,8 @@ import org.apache.commons.io.IOUtils
 import scala.collection.immutable.ArraySeq
 import scopt.OptionParser
 import zio.{System => _, _}
+import zio.json._
+import zio.json.ast.Json
 import zio.syntax._
 
 /**
@@ -302,57 +304,53 @@ object ParseVariables extends Loggable {
 
   def fromString(jsonString: String): IOResult[Set[STVariable]] = {
 
-    def parseAsValue(v: JValue): ArraySeq[Any] = {
+    def parseAsValue(v: Json): ArraySeq[Any] = {
       v match {
-        case JString(value) => ArraySeq(value)
-        case JBool(value)   => ArraySeq(value)
-        case JArray(arr)    =>
+        case Json.Str(value)  => ArraySeq(value)
+        case Json.Bool(value) => ArraySeq(value)
+        case Json.Arr(arr)    =>
           arr.map { x =>
             x match {
-              case JString(value) => value
-              case JBool(value)   => value
-              // at that level, any other thing, including array, is parser as a simple string
-              case value          => compactRender(value)
+              case Json.Str(value)  => value
+              case Json.Bool(value) => value
+              // at that level, any other thing, including array, is parsed as a simple string
+              case value            => value.toJson
             }
           }.to(ArraySeq)
-        case value          => ArraySeq(compactRender(value))
+        case value            => ArraySeq(value.toJson)
       }
     }
 
     // the whole logic
     for {
-      json <- IOResult.attempt(s"Error when parsing the variable file")(JsonParser.parse(jsonString))
+      json <- jsonString.fromJson[Json].left.map(_ => "Error when parsing the variable file").toIO
     } yield {
       json match {
-        case JObject(fields) =>
+        case Json.Obj(fields) =>
           fields.flatMap { x =>
             x match {
-              case field @ JField(name, JObject(values)) => // in that case, only value is mandatory
-                val map = values.map { case JField(n, v) => (n, v) }.toMap
+              case field @ (name, Json.Obj(values)) => // in that case, only value is mandatory
+                val map = values.toMap
 
                 map.get("value") match {
                   case None        =>
-                    logger.info(s"Missing mandatory field 'value' in object ${compactRender(JObject(field))}")
+                    logger.info(s"Missing mandatory field 'value' in object ${Json.Obj(field).toJson}")
                     None
                   case Some(value) =>
                     val optional = map.get("optional") match {
-                      case Some(JBool(b)) => b
-                      case _              => true
+                      case Some(Json.Bool(b)) => b
+                      case _                  => true
                     }
                     val system   = map.get("system") match {
-                      case Some(JBool(b)) => b
-                      case _              => false
+                      case Some(Json.Bool(b)) => b
+                      case _                  => false
                     }
 
                     Some(STVariable(name, optional, parseAsValue(value), system))
                 }
 
               // in any other case, parse as value
-              case JField(name, value)                   => Some(STVariable(name, true, parseAsValue(value), false))
-
-              // and if not a field, well just abort
-              case _ => None
-
+              case (name, value)                    => Some(STVariable(name, true, parseAsValue(value), false))
             }
           }.toSet
 
