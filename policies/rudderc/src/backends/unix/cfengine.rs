@@ -167,6 +167,7 @@ pub fn cf_agent(
     } else {
         Path::new(".").join(input)
     };
+    let canon_lib_path = lib_path.canonicalize()?;
     let cmd = Command::new(Path::new(CF_BIN_DIR).join("cf-agent"))
         .args([
             if agent_verbose { "--verbose" } else { "--info" },
@@ -178,7 +179,7 @@ pub fn cf_agent(
         ])
         // No way to pass textual data as parameter, so we use env variables
         .env("PARAMS_FILE", params)
-        .env("LIB_PATH", lib_path)
+        .env("LIB_PATH", canon_lib_path)
         .env("TMP_DIR", work_dir.path().to_string_lossy().to_string())
         .env("CWD", std::env::current_dir()?)
         .output()?;
