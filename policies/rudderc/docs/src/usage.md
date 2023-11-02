@@ -135,7 +135,8 @@ To update the technique, repeat the import steps.
 ### In the technique editor
 
 The technique editor is able to directly use the YAML format (but does not support technique parameter types
-for now, and does not display tags).
+for now, and does not display tags). You can either import the technique using the import button in the
+Web interface, or if you want to automate it, with:
 
 ```shell
 cd /var/rudder/configuration-repository/

@@ -85,7 +85,7 @@ Each parameter contains the following fields:
 Example:
 
 ```yaml
-parameters:
+params:
   - name: dns_server
     description: "The DNS server hostname"
     default: "1.1.1.1"
