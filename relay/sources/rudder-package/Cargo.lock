@@ -1003,6 +1003,7 @@ dependencies = [
  "log",
  "lzma-rs",
  "pretty_assertions",
+ "regex",
  "reqwest",
  "rstest",
  "serde",

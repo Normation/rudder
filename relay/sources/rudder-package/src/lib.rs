@@ -10,6 +10,7 @@ mod database;
 mod plugin;
 mod repo_index;
 mod repository;
+mod versions;
 mod webapp_xml;
 
 use std::path::Path;

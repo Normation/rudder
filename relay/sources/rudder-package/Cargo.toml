@@ -21,6 +21,7 @@ log = "0.4.20"
 lzma-rs = "0.3.0"
 pretty_assertions = "1.4.0"
 reqwest = { version = "0.11.22", default-features = false, features = ["blocking", "native-tls"] }
+regex = "1.10.2"
 rstest = "0.18.2"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_ini = "0.2.0"
