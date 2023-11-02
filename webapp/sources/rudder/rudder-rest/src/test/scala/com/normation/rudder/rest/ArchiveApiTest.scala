@@ -55,11 +55,15 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.git.ZipUtils
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
+import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
+import com.normation.rudder.rest.lift.TechniqueArchive
 import com.normation.rudder.rest.lift.TechniqueInfo
 import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.utils.DateFormaterService
@@ -77,6 +81,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
+import zio.Chunk
 import zio.ZIO
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
@@ -110,6 +115,42 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   // format: on
 
   sequential
+
+  "We should be able to correctly make a diff between current technique files and archive technique files" >> {
+    // we look at clockConfiguration that is on version 3 and contains files: changelog  clockConfiguration.st  metadata.xml
+    val a = Array[Byte]()
+    val t = TechniqueArchive(
+      TechniqueInfo(
+        TechniqueId(
+          TechniqueName("clockConfiguration"),
+          TechniqueVersion.parse("3.0").getOrElse(throw new IllegalArgumentException("test"))
+        ),
+        "clock configuration",
+        TechniqueType.Metadata
+      ),
+      Chunk("systemSettings", "misc"),
+      Chunk(("clockConfiguration.st", a), ("metadata.xml", a), ("resources/something.txt", a))
+    )
+
+    val res = SaveArchiveServicebyRepo
+      .buildDiff(
+        t,
+        restTestSetUp.mockGitRepo.configurationRepositoryRoot / "techniques" / "systemSettings" / "misc" / "clockConfiguration" / "3.0"
+      )
+      .runNow
+
+    res must containTheSameElementsAs(
+      Chunk(
+        // new
+        ResourceFile("resources/something.txt", ResourceFileState.New),
+        // same or updated
+        ResourceFile("clockConfiguration.st", ResourceFileState.Modified),
+        ResourceFile("metadata.xml", ResourceFileState.Modified),
+        // deleted
+        ResourceFile("changelog", ResourceFileState.Deleted)
+      )
+    )
+  }
 
   "the archive feature is always enabled, and request" should {
     "succeed in GET /archives/export" in {
@@ -492,8 +533,6 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     /*
      * Copy the content of a existing archive into an import directory, zip-it
      */
-    val unzipped = testDir / "archive-rule-with-dep"
-
     val dest = testDir / "import-rule-with-dep"
     // so that we have systemSettings/misc/clockConfiguration
     FileUtils.copyDirectory((testDir / "archive-rule-with-dep").toJava, dest.toJava)
