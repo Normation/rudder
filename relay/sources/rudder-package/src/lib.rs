@@ -9,6 +9,7 @@ mod config;
 mod database;
 mod plugin;
 mod repo_index;
+mod repository;
 mod webapp_xml;
 
 use std::path::Path;
@@ -17,7 +18,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use log::{debug, error, LevelFilter};
 
-use crate::config::Configuration;
+use crate::{config::Configuration, repository::Repository};
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
@@ -42,6 +43,8 @@ pub fn run() -> Result<()> {
     let cfg = Configuration::read(Path::new(&args.config))
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
     debug!("Parsed configuration: {cfg:?}");
+
+    let _repo = Repository::new(&cfg)?;
 
     error!("This command is not implemented");
     Ok(())

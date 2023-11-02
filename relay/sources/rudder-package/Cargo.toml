@@ -13,17 +13,20 @@ license = "GPL-3.0-or-later"
 anyhow = "1.0.75"
 ar = "0.9.0"
 assert-json-diff = "2.0.2"
+base16ct = { version = "0.2.0", features = ["alloc"] }
 clap = { version = "4.4.6", features = ["derive"] }
 dir-diff = "0.3.2"
 env_logger = "0.10.0"
 log = "0.4.20"
 lzma-rs = "0.3.0"
 pretty_assertions = "1.4.0"
+reqwest = { version = "0.11.22", default-features = false, features = ["blocking", "native-tls"] }
 rstest = "0.18.2"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_ini = "0.2.0"
 serde_json = "1.0.107"
 serde_toml = "0.0.1"
+sha2 = "0.10.8"
 tar = "0.4.40"
 tempfile = "3.8.0"
 xmltree = "0.10.3"

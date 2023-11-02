@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 const PUBLIC_REPO_URL: &str = "https://repository.rudder.io/plugins";
 const PRIVATE_REPO_URL: &str = "https://download.rudder.io/plugins";
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Clone, Deserialize, PartialEq, Eq)]
 pub struct SecretString {
     #[serde(flatten)]
     value: String,
@@ -57,21 +57,21 @@ struct RudderSection {
     proxy_password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Credentials {
-    username: String,
-    password: SecretString,
+    pub username: String,
+    pub password: SecretString,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Configuration {
-    url: String,
-    credentials: Option<Credentials>,
-    proxy: Option<ProxyConfiguration>,
+    pub url: String,
+    pub credentials: Option<Credentials>,
+    pub proxy: Option<ProxyConfiguration>,
 }
 
 impl Configuration {
-    fn parse(src: &str) -> Result<Self> {
+    pub fn parse(src: &str) -> Result<Self> {
         let parsed: RawConfiguration = serde_ini::from_str(src)?;
         Ok(Configuration::from(parsed))
     }
@@ -84,8 +84,8 @@ impl Configuration {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct ProxyConfiguration {
-    url: String,
-    credentials: Option<Credentials>,
+    pub url: String,
+    pub credentials: Option<Credentials>,
 }
 
 impl From<RawConfiguration> for Configuration {
