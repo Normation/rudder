@@ -59,6 +59,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
+import com.normation.rudder.rest.lift.PolicyArchive
 import com.normation.rudder.rest.lift.TechniqueInfo
 import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.utils.DateFormaterService
@@ -101,7 +102,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  def children(f: File) = f.children.toList.map(_.name)
+  def children(f: File) = f.listRecursively.toList.map(_.name)
 
   // format: off
 //  org.slf4j.LoggerFactory.getLogger("application.archive").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
@@ -374,7 +375,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         // unzip
         ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
 
-        val techniqueFiles = List(TechniqueFiles.yaml) // other generated files are not included in archive
+        val techniqueFiles =
+          List(TechniqueFiles.yaml, "resources", "something.txt") // other generated files are not included in archive
 
         (
           children(testDir / s"${archiveName}/techniques/ncf_techniques/${techniqueId}") must containTheSameElementsAs(
@@ -493,7 +495,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val unzipped = testDir / "archive-rule-with-dep"
 
     val dest = testDir / "import-rule-with-dep"
-    FileUtils.copyDirectory(unzipped.toJava, dest.toJava)
+    // so that we have systemSettings/misc/clockConfiguration
+    FileUtils.copyDirectory((testDir / "archive-rule-with-dep").toJava, dest.toJava)
+    // so that we have a yaml technique
+    FileUtils.copyDirectory((testDir / "archive-technique-yaml").toJava, dest.toJava)
     // add a group
     (testDir / "archive-group" / "groups" / "Real_nodes.json").copyToDirectory(testDir / "import-rule-with-dep" / "groups")
 
@@ -559,6 +564,104 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         }
 
       case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "uploading an archive with a yaml technique with a mismatch between id and path stop everything" >> {
+    def sed(f: File, replace: String, by: String): Unit = {
+
+      val content = f.contentAsString.replaceAll(replace, by)
+      f.writeText(content)
+    }
+
+    /*
+     * Copy the content of a existing archive into an import directory, zip-it
+     */
+    val dest = testDir / "import-bad-yaml"
+    // so that we have systemSettings/misc/clockConfiguration
+    FileUtils.copyDirectory((testDir / "archive-rule-with-dep").toJava, dest.toJava)
+    // so that we have a yaml technique
+    FileUtils.copyDirectory((testDir / "archive-technique-yaml").toJava, dest.toJava)
+    // add a group
+    (testDir / "archive-group" / "groups" / "Real_nodes.json").copyToDirectory(dest / "groups")
+
+    // save content before upload
+    val tech     = restTestSetUp.mockTechniques.techniqueRepo
+      .get(
+        TechniqueId(
+          TechniqueName("clockConfiguration"),
+          TechniqueVersion.parse("3.0").getOrElse(throw new IllegalArgumentException("test"))
+        )
+      )
+      .getOrElse(throw new IllegalArgumentException("test"))
+    val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
+
+    val dir1  = restTestSetUp.mockDirectives.directiveRepo
+      .getDirective(DirectiveUid("directive1"))
+      .notOptional(s"test")
+      .runNow
+    val group = {
+      val (group, _) = restTestSetUp.mockNodeGroups.groupsRepo
+        .getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
+        .runNow
+    }
+    val rule1 = restTestSetUp.mockRules.ruleRepo
+      .getOpt(RuleId(RuleUid("rule1")))
+      .notOptional(s"test")
+      .runNow
+
+    // change things
+    sed(
+      dest / "techniques" / "systemSettings" / "misc" / "clockConfiguration" / "3.0" / "metadata.xml",
+      """<TECHNIQUE name="Time settings">""",
+      s"""<TECHNIQUE name="XXXXXXXXX">"""
+    )
+    sed(
+      dest / "directives" / "10__Clock_Configuration.json",
+      """"shortDescription" : """"",
+      s""""shortDescription" : "XXXXXXXXXX""""
+    )
+    sed(dest / "groups" / "Real_nodes.json", """"description" : """"", s""""description" : "XXXXXXXX"""")
+    sed(
+      dest / "rules" / "10__Global_configuration_for_all_nodes.json",
+      """global config for all nodes""",
+      s"""XXXXXXXXXX"""
+    )
+
+    // change technique ID in YAML so that it mismatch path
+    sed(
+      dest / "techniques" / "ncf_techniques" / "a_simple_yaml_technique" / "1.0" / "technique.yml",
+      """a_simple_yaml_technique""",
+      s"""bad_bad_technique_id"""
+    )
+
+    // now zip it
+    val zip = File(dest.pathAsString + ".zip")
+    dest.zipTo(zip)
+
+    // reset archive saver
+    restTestSetUp.archiveAPIModule.archiveSaver.base.set(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+
+    restTest.testBinaryPOSTResponse(
+      s"/api/latest/archives/import",
+      "archive",
+      zip.name,
+      zip.newInputStream.readAllBytes()
+    ) {
+      case Full(LiftJsonResponse(res, _, 500)) =>
+        restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
+          case None =>
+            ok
+
+          case Some((p, m)) =>
+            // check that nothing changed - nothing should have
+            (p.techniques(0).technique must beEqualTo(techInfo)) and
+            (p.directives(0).directive must beEqualTo(dir1)) and
+            (p.groups(0).group must beEqualTo(group))
+            (p.rules(0) must beEqualTo(rule1))
+        }
+
+      case err => ko(s"I got an error in test (response should error 500): ${err}")
     }
   }
 
