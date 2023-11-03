@@ -766,14 +766,30 @@ class ZipArchiveReaderImpl(
      * Both technique.json and technique.yaml have priority above metadata.xml
      */
     def checkParseTechniqueDescriptor(
-        id:      TechniqueId,
-        optTech: Ref[Option[TechniqueInfo]],
-        name:    String,
-        content: Array[Byte]
+        basePath: String,
+        id:       TechniqueId,
+        optTech:  Ref[Option[TechniqueInfo]],
+        name:     String,
+        content:  Array[Byte]
     ): IOResult[(String, Array[Byte])] = {
       import YamlTechniqueSerializer._
       import com.normation.rudder.ncf.yaml.{Technique => YTechnique}
       import zio.json.yaml._
+
+      // when the technique is a YAML technique, we need to check that technique ID matches technique path
+      def checkYamlIdMatchesPath(path: String, tech: YTechnique, id: TechniqueId): IOResult[Unit] = {
+        TechniqueVersion.parse(tech.version.value).toIO.flatMap { v =>
+          val yamlId = TechniqueId(TechniqueName(tech.id.value), v)
+          if (yamlId == id) ZIO.unit
+          else {
+            Inconsistency(
+              s"Error: technique in archive at path '${path}' should have ID from ${id.serialize} based " +
+              s"on pattern 'category/techniqueName/techniqueVersion' but the technique descriptor contains id: ${yamlId.serialize}. " +
+              s"You need to make both match."
+            ).fail
+          }
+        }
+      }
 
       // In the technique.json and technique.yml case, we always override what we might already have parsed for metadata/
       // In technique.json, we also first try to migrate to yml.
@@ -782,14 +798,15 @@ class ZipArchiveReaderImpl(
           val json = new String(content, StandardCharsets.UTF_8)
           for {
             yaml <- MigrateJsonTechniquesService.toYaml(json).toIO
-            res  <- checkParseTechniqueDescriptor(id, optTech, TechniqueType.Yaml.name, yaml.getBytes(StandardCharsets.UTF_8))
+            res  <-
+              checkParseTechniqueDescriptor(basePath, id, optTech, TechniqueType.Yaml.name, yaml.getBytes(StandardCharsets.UTF_8))
           } yield res
 
         case TechniqueType.Yaml.name =>
           val yaml = new String(content, StandardCharsets.UTF_8)
           for {
             tech <- yaml.fromYaml[YTechnique].toIO
-            v    <- TechniqueVersion.parse(tech.version.value).toIO
+            _    <- checkYamlIdMatchesPath(basePath, tech, id)
             _    <- optTech.set(Some(TechniqueInfo(id, tech.name, TechniqueType.Yaml)))
           } yield (name, content)
 
@@ -816,7 +833,7 @@ class ZipArchiveReaderImpl(
       updated <- ZIO.foreach(files) {
                    case (f, content) =>
                      val name = f.replaceFirst(basepath + "/", "")
-                     checkParseTechniqueDescriptor(id, optTech, name, content)
+                     checkParseTechniqueDescriptor(basepath, id, optTech, name, content)
                  }
       tech    <-
         optTech.get.notOptional(
@@ -1003,25 +1020,30 @@ class CheckArchiveServiceImpl(
   def checkTechnique(techInfo: TechniquesInfo, techArchive: TechniqueArchive): IOResult[Unit] = {
 
     // check that the imported technique category is the same than the one already existing, if any
-    techInfo.techniquesCategory.collectFirst {
-      case (TechniqueId(name, _), catId) if (name.value == techArchive.technique.id.name.value) => catId
-    } match {
-      case None        => // technique not present, ok
-        ZIO.unit
-      case Some(catId) =>
-        val existing = catId.getPathFromRoot.map(_.value).tail.mkString("/")
-        val archive  = techArchive.category.mkString("/")
-        if (existing == archive) {
+    def checkTechniqueExistSameCat() = {
+      techInfo.techniquesCategory.collectFirst {
+        case (TechniqueId(name, _), catId) if (name.value == techArchive.technique.id.name.value) => catId
+      } match {
+        case None        => // technique not present, ok
           ZIO.unit
-        } else {
-          Inconsistency(
-            s"Technique '${techArchive.technique.id.serialize}' from archive has category '${archive}' but a " +
-            s"technique with that name already exists in category '${existing}': it must be imported in the " +
-            s"same category, please update your archive."
-          ).fail
-        }
+        case Some(catId) =>
+          val existing = catId.getPathFromRoot.map(_.value).tail.mkString("/")
+          val archive  = techArchive.category.mkString("/")
+          if (existing == archive) {
+            ZIO.unit
+          } else {
+            Inconsistency(
+              s"Technique '${techArchive.technique.id.serialize}' from archive has category '${archive}' but a " +
+              s"technique with that name already exists in category '${existing}': it must be imported in the " +
+              s"same category, please update your archive."
+            ).fail
+          }
+      }
     }
+
+    checkTechniqueExistSameCat()
   }
+
   def checkItem[A](a: A): IOResult[Unit] = { // for now, nothing to check for directive, rule, group
     ZIO.unit
   }
