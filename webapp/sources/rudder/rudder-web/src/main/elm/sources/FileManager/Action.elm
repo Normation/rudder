@@ -13,7 +13,7 @@ import String exposing (dropLeft)
 import Url.Builder exposing (string, toQuery, QueryParameter)
 
 import FileManager.Model exposing (..)
-import FileManager.Util exposing (getDirPath)
+import FileManager.Util exposing (getDirPath, processApiError)
 
 get :  String -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 get url decoder handler =
@@ -93,7 +93,7 @@ move api srcDir files dstDir =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
 
 encodeFiles : List FileMeta -> List QueryParameter
 encodeFiles = map (string "files" << .name)
@@ -111,7 +111,7 @@ delete api dir files =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
 
 newFile : String  -> String -> String -> Cmd Msg
 newFile api dir name =
@@ -126,7 +126,7 @@ newFile api dir name =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
 
 headList : Decoder (List a) -> Decoder a
 headList decoder =
@@ -165,7 +165,7 @@ saveContent api dir name content =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
 
 
 newDir : String  -> String -> String -> Cmd Msg
@@ -181,7 +181,7 @@ newDir api dir name =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
 
 rename : String -> String -> String -> String -> Cmd Msg
 rename api dir oldName newName =
@@ -197,4 +197,10 @@ rename api dir oldName newName =
   api
   (Http.jsonBody body )
   (Decode.succeed ())
-  (EnvMsg << Refresh)
+  handleFileUpdate
+
+
+handleFileUpdate : Result Http.Error a -> Msg
+handleFileUpdate r = case r of
+  Ok _ -> EnvMsg (Refresh (Ok ()))
+  Err e -> FileUpdate (FileUpdateHttpError e)

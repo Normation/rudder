@@ -1,8 +1,10 @@
 module FileManager.Util exposing (..)
 
+import FileManager.Port exposing (errorNotification)
 import Html exposing (Attribute, Html)
 import Html.Attributes exposing (type_)
 import Array exposing (Array, fromList, get, toList)
+import Http
 import List exposing (drop, indexedMap, map2, take)
 
 -- List
@@ -49,3 +51,26 @@ button atts childs = Html.button (type_ "button" :: atts) childs
 getDirPath : List String -> String
 getDirPath dir =
   String.replace "//" "/" ((String.join "/" dir) ++ "/")
+
+processApiError : String -> Http.Error -> Cmd msg
+processApiError apiName err =
+  let
+    message =
+      case err of
+        Http.BadUrl url ->
+            "The URL " ++ url ++ " was invalid"
+        Http.Timeout ->
+            "Unable to reach the server, try again"
+        Http.NetworkError ->
+            "Unable to reach the server, check your network connection"
+        Http.BadStatus 500 ->
+            "The server had a problem, try again later"
+        Http.BadStatus 400 ->
+            "Verify your information and try again"
+        Http.BadStatus _ ->
+            "Unknown error"
+        Http.BadBody errorMessage ->
+            errorMessage
+
+  in
+    errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message )
