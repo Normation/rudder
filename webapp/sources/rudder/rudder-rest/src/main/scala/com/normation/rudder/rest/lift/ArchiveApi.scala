@@ -99,6 +99,7 @@ import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
+import java.nio.file.NoSuchFileException
 import java.text.Normalizer
 import java.util.zip.ZipEntry
 import net.liftweb.http.FileParamHolder
@@ -1076,6 +1077,48 @@ trait SaveArchiveService {
   def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit]
 }
 
+object SaveArchiveServicebyRepo {
+
+  /*
+   * Create the resource diff between the archive technique and the corresponding path
+   * (assumed to be the technique base directory, ie ../category/1.0/techniqueId).
+   * If file does not exists, everything is marked as "new", including the base directory.
+   */
+  def buildDiff(t: TechniqueArchive, techniqueBaseDirectory: File): IOResult[Chunk[ResourceFile]] = {
+    for {
+      // path ot 't' are relative to technique. Files we need to add as new in the end
+      addedRef <- Ref.make(Chunk.fromIterable(t.files.map(_._1)))
+      diffRef  <- Ref.make(Chunk[ResourceFile]())
+      // get all file path (relative to technique dir)
+      existing <- IOResult.attempt {
+                    if (techniqueBaseDirectory.exists) {
+                      techniqueBaseDirectory
+                        .collectChildren(!_.isDirectory) // we don't have directories in the archive, only files
+                        .to(Chunk)
+                        .map(_.pathAsString.replaceFirst("\\Q" + techniqueBaseDirectory.pathAsString + "/\\E", ""))
+                    } else { // technique or technique version does not exists
+                      Chunk.empty
+                    }
+                  }
+      _        <- ZIO.foreachDiscard(existing) { e =>
+                    for {
+                      keep <- addedRef.modify(a => {
+                                if (a.contains(e)) {
+                                  (true, a.filterNot(_ == e))
+                                } else {
+                                  (false, a)
+                                }
+                              })
+                      _    <- diffRef.update(_ :+ ResourceFile(e, if (keep) ResourceFileState.Modified else ResourceFileState.Deleted))
+                    } yield ()
+                  }
+      added    <- addedRef.get.map(_.map(ResourceFile(_, ResourceFileState.New)))
+      updated  <- diffRef.get
+    } yield added ++ updated
+  }
+
+}
+
 /*
  * This implementation does not check for possible conflicts and just
  * overwrite existing policies if updates are available in the archive.
@@ -1108,69 +1151,50 @@ class SaveArchiveServicebyRepo(
     )
 
     for {
-      _        <- ApplicationLoggerPure.Archive.debug(
-                    s"Adding technique from archive: '${t.technique.name}' (${techniqueDir.pathAsString})"
-                  )
-      // path are relative to technique. Files we need to add as new in the end
-      addedRef <- Ref.make(Chunk.fromIterable(t.files.map(_._1)))
-      diffRef  <- Ref.make(Chunk[ResourceFile]())
-      // get all file path (relative to technique dir)
-      existing <- IOResult.attempt {
-                    if (techniqueDir.exists) {
-                      techniqueDir
-                        .collectChildren(_ => true)
-                        .toList
-                        .map(_.pathAsString.replaceFirst(techniqueDir.pathAsString + "/", ""))
-                    } else { // technique or technique version does not exists
-                      Chunk.empty
-                    }
-                  }
-      _        <- ZIO.foreachDiscard(existing) { e =>
-                    for {
-                      keep <- addedRef.modify(a => {
-                                if (a.contains(e)) { (true, a.filterNot(_ == e)) }
-                                else { (false, a) }
-                              })
-                      _    <- diffRef.update(_ :+ ResourceFile(e, if (keep) ResourceFileState.Modified else ResourceFileState.Deleted))
-                    } yield ()
-                  }
-      added    <- addedRef.get.map(_.map(ResourceFile(_, ResourceFileState.New)))
-      updated  <- diffRef.get
-
+      _    <- ApplicationLoggerPure.Archive.debug(
+                s"Adding technique from archive: '${t.technique.name}' (${techniqueDir.pathAsString})"
+              )
+      diff <- SaveArchiveServicebyRepo.buildDiff(t, techniqueDir)
       // now, actually delete files marked so
-      _ <- ApplicationLoggerPure.Archive.trace(
-             s"Deleting technique files for technique '${t.technique.id.serialize}': ${updated.collect {
-                 case f if (f.state == ResourceFileState.Deleted) => f.path
-               }.mkString(", ")}"
-           )
-      _ <- ZIO.foreachDiscard(updated) { u =>
-             if (u.state == ResourceFileState.Deleted) {
-               IOResult.attempt(File(techniqueDir.pathAsString).delete())
-             } else ZIO.unit
-           }
+      _    <- ApplicationLoggerPure.Archive.trace {
+                val deleted = diff.collect {
+                  case f if (f.state == ResourceFileState.Deleted) => f.path
+                }.toList match {
+                  case Nil => "none"
+                  case l   => l.mkString(", ")
+                }
+                s"Deleting technique files for technique '${t.technique.id.serialize}': ${deleted}"
+              }
+      _    <- ZIO.foreachDiscard(diff) { u =>
+                if (u.state == ResourceFileState.Deleted) {
+                  IOResult.attempt(File(techniqueDir.pathAsString + "/" + u.path).delete()).catchSome {
+                    case SystemError(_, _: NoSuchFileException) => ZIO.unit
+                  }
+                } else ZIO.unit
+              }
       // now, write new/updated files
-      _ <- ApplicationLoggerPure.Archive.trace(
-             s"Writing for commit files for technique '${t.technique.id.serialize}': ${t.files.map(_._1).mkString(", ")} "
-           )
-      _ <- ZIO.foreachDiscard(t.files) {
-             case (p, bytes) =>
-               val f = File(techniqueDir.pathAsString + "/" + p)
-               IOResult.attempt {
-                 f.parent.createDirectoryIfNotExists(createParents =
-                   true
-                 ) // for when the technique, or subdirectories for resources are not existing yet
-                 f.writeBytes(bytes.iterator)
-               }
-           }
+      _    <- ApplicationLoggerPure.Archive.trace(
+                s"Writing for commit files for technique '${t.technique.id.serialize}': ${t.files.map(_._1).mkString(", ")} "
+              )
+      _    <- ZIO.foreachDiscard(t.files) {
+                case (p, bytes) =>
+                  val f = File(techniqueDir.pathAsString + "/" + p)
+                  IOResult.attempt {
+                    f.parent.createDirectoryIfNotExists(createParents =
+                      true
+                    ) // for when the technique, or subdirectories for resources are not existing yet
+                    f.writeBytes(bytes.iterator)
+                  }
+              }
       // finally commit
-      _ <- techniqueArchiver.saveTechnique(
-             t.technique.id,
-             t.category,
-             added ++ updated,
-             eventMetadata.modId,
-             eventMetadata.actor,
-             eventMetadata.msg.getOrElse(s"Committing technique '${t.technique.id.serialize}' from archive")
-           )
+      _    <- techniqueArchiver.saveTechnique(
+                t.technique.id,
+                t.category,
+                diff,
+                eventMetadata.modId,
+                eventMetadata.actor,
+                eventMetadata.msg.getOrElse(s"Committing technique '${t.technique.id.serialize}' from archive")
+              )
 
     } yield ()
   }
