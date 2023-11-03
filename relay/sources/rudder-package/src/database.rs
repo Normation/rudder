@@ -54,6 +54,7 @@ mod tests {
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
     use pretty_assertions::assert_eq;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[test]
@@ -69,13 +70,15 @@ mod tests {
 
     #[test]
     fn test_adding_a_plugin_to_db() {
+        use crate::versions;
+
         let mut a = Database::read("./tests/database/plugin_database_update_sample.json").unwrap();
         let addon = InstalledPlugin {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
                 plugin_type: archive::PackageType::Plugin,
                 name: String::from("my_name"),
-                version: String::from("0.0.0.0"),
+                version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),
                 depends: None,
                 build_commit: String::from("2abc53fb8b2d1c667a91b1a1da2f941a99872cdf"),

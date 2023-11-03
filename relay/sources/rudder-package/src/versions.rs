@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{bail, Error, Ok, Result};
+use anyhow::{bail, Error, Result};
+use core::fmt;
 use regex::Regex;
-use std::cmp::Ordering;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
+use std::{cmp::Ordering, fmt::Display};
 
-struct ArchiveVersion {
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct ArchiveVersion {
     pub rudder_version: RudderVersion,
     pub plugin_version: PluginVersion,
 }
@@ -27,12 +30,37 @@ impl FromStr for ArchiveVersion {
     }
 }
 
-#[derive(PartialEq, Debug)]
-enum RudderVersionMode {
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum RudderVersionMode {
     Alpha { version: u32 },
     Beta { version: u32 },
     Rc { version: u32 },
     Final,
+}
+
+impl Display for RudderVersionMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            RudderVersionMode::Final => write!(f, ""),
+            RudderVersionMode::Alpha { version } => write!(f, "~alpha{}", version),
+            RudderVersionMode::Beta { version } => write!(f, "~beta{}", version),
+            RudderVersionMode::Rc { version } => write!(f, "~rc{}", version),
+        }
+    }
+}
+
+impl Serialize for ArchiveVersion {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let to_str = format!("{}-{}", self.rudder_version, self.plugin_version);
+        serializer.collect_str(&to_str)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArchiveVersion {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let string = String::deserialize(deserializer)?;
+        string.parse().map_err(de::Error::custom)
+    }
 }
 
 impl FromStr for RudderVersionMode {
@@ -81,12 +109,21 @@ impl FromStr for RudderVersionMode {
 
 // Checking if a rudder version is a nightly or not is not important for plugin compatibility
 // So it is not implemented
-#[derive(PartialEq, Debug)]
-struct RudderVersion {
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct RudderVersion {
     pub major: u32,
     pub minor: u32,
     pub patch: u32,
     pub mode: RudderVersionMode,
+}
+
+impl RudderVersion {
+    pub fn is_compatible(&self, webapp_version: &str) -> bool {
+        match RudderVersion::from_str(webapp_version) {
+            Ok(w) => *self == w,
+            Err(_) => false,
+        }
+    }
 }
 
 impl FromStr for RudderVersion {
@@ -112,8 +149,15 @@ impl FromStr for RudderVersion {
     }
 }
 
-#[derive(PartialEq, Debug)]
-struct PluginVersion {
+impl Display for RudderVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = format!("{}.{}.{}{}", self.major, self.minor, self.patch, self.mode);
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct PluginVersion {
     pub major: u32,
     pub minor: u32,
     pub nightly: bool,
@@ -156,6 +200,14 @@ impl PartialOrd for PluginVersion {
         } else {
             Some(Ordering::Equal)
         }
+    }
+}
+
+impl Display for PluginVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let nightly = if self.nightly { "-nightly" } else { "" };
+        let s = format!("{}.{}{}", self.major, self.minor, nightly);
+        write!(f, "{}", s)
     }
 }
 
@@ -334,5 +386,32 @@ mod tests {
     #[case("8.0.2-2.2-nightly")]
     fn test_rpkg_version(#[case] a: &str) {
         let _ = ArchiveVersion::from_str(a).unwrap();
+    }
+
+    #[rstest]
+    #[case("8.0.1-2.9-nightly", "8.0.1", true)]
+    #[case("8.0.1-2.9-nightly", "8.0.0", false)]
+    #[case("8.0.1~rc3-2.9", "8.0.1", false)]
+    #[case("8.0.1~rc3-2.9", "8.0.1~rc3", true)]
+    #[case("8.0.2~rc3-2.9", "8.0.1~rc3", false)]
+    #[case("8.0.2~rc3-2.9", "8.0.2~rc2", false)]
+    #[case("8.0.2~alpha1-2.9", "8.0.2~alpha1", true)]
+    #[case("8.0.2~alpha1-2.9", "8.0.2~beta1", false)]
+    #[case("8.0.2~beta1-2.9", "8.0.2~beta1", true)]
+    #[case("8.0.2-2.9", "8.0.2~git12345", true)]
+    #[case("8.0.2~alpha1.2-2.9", "8.0.2~git12345", false)]
+    fn test_rpkg_compatibility(
+        #[case] metadata_version: &str,
+        #[case] webapp_version: &str,
+        #[case] is_compatible: bool,
+    ) {
+        let m = ArchiveVersion::from_str(metadata_version).unwrap();
+        assert_eq!(
+            m.rudder_version.clone().is_compatible(webapp_version),
+            is_compatible,
+            "Unexpected compatibility checkfor webapp version '{}' and metadata version {:?}'",
+            webapp_version,
+            m.rudder_version
+        )
     }
 }

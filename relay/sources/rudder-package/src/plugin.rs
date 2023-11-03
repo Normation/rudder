@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use crate::archive;
+use crate::versions;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str};
 
@@ -22,7 +23,7 @@ pub struct Metadata {
     #[serde(rename = "type")]
     pub plugin_type: archive::PackageType,
     pub name: String,
-    pub version: String,
+    pub version: versions::ArchiveVersion,
     #[serde(rename(serialize = "build-date", deserialize = "build-date"))]
     pub build_date: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,4 +34,10 @@ pub struct Metadata {
     #[serde(rename(serialize = "jar-files", deserialize = "jar-files"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub jar_files: Option<Vec<String>>,
+}
+
+impl Metadata {
+    pub fn is_compatible(&self, webapp_version: &str) -> bool {
+        self.version.rudder_version.is_compatible(webapp_version)
+    }
 }
