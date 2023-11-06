@@ -927,11 +927,11 @@ class TestQueryProcessor extends Loggable {
 
     def q(name: String, comp: String, day: Int, expects: Seq[NodeId]) = TestQuery(
       name,
-      parser("""
+      parser(s"""
           {  "select":"node", "where":[
-            { "objectType":"node", "attribute":"inventoryDate", "comparator":"%s"   , "value":"%s/05/2013" }
+            { "objectType":"node", "attribute":"inventoryDate", "comparator":"${comp}"   , "value":"2013/05/${day}" }
           ] }
-          """.format(comp, day)).openOrThrowException("For tests"),
+          """).openOrThrowException("For tests"),
       expects
     )
 

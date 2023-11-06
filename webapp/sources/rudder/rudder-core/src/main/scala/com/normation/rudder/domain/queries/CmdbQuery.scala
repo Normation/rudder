@@ -564,7 +564,7 @@ case object OrderedStringComparator extends TStringComparator {
 
 case object DateComparator extends LDAPCriterionType {
   override val comparators               = OrderedComparators.comparators.filterNot(c => c == Regex || c == NotRegex)
-  val fmt                                = "dd/MM/yyyy"
+  val fmt                                = "yyyy/MM/dd"
   val frenchFmt                          = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
   def error(value: String, e: Exception) = Inconsistency(
     s"Invalide date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
@@ -579,6 +579,7 @@ case object DateComparator extends LDAPCriterionType {
   // init a jquery datepicker
   override def initForm(formId: String): JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
        init['showOn'] = 'focus';
+       init['dateFormat'] = 'yy/mm/dd';
        $('#%s').datepicker(init);
        """.format(formId)))
   override def destroyForm(formId: String): JsCmd = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
