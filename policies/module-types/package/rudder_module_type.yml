@@ -1,6 +1,6 @@
 ---
-name: Directory
-description: Ensure the state of a directory
+name: Package
+description: Manage packages
 version: "0.0.1"
 documentation: "TODO"
 supported_targets: ["unix"]
