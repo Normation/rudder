@@ -48,7 +48,7 @@ import zio.interop.catz._
 
 /*
  * Ths migration applies a change in the schema of the event logs table :
- *  - add NOT NULL constraint to : eventtype, principal, severity, data
+ *  - add not null constraint to : eventtype, principal, severity, data
  *  - add default values to recover from potentially missing data, handling that case in the business logic
  */
 class MigrateEventLogEnforceSchema(
@@ -57,10 +57,10 @@ class MigrateEventLogEnforceSchema(
 
   import doobie._
 
-  val msg: String = "eventLog columns that should be NOT NULL (eventtype, principal, severity, data)"
+  val msg: String = "eventLog columns that should be not null (eventtype, principal, severity, data)"
 
   override def description: String =
-    "Check if eventtype, principal, severity, data have a NOT NULL constraint, otherwise migrate these columns"
+    "Check if eventtype, principal, severity, data have a not null constraint, otherwise migrate these columns"
 
   private val defaultSeverity  = Fragment.const("100")
   private val defaultPrincipal = Fragment.const("'unknown'")
@@ -69,28 +69,28 @@ class MigrateEventLogEnforceSchema(
     val sql = {
       sql"""
         -- Alter the EventLog schema for the 'eventType' column
-        ALTER TABLE IF EXISTS EventLog
-        ALTER COLUMN eventType TYPE text USING COALESCE(eventType, ''),
-        ALTER COLUMN eventType SET DEFAULT '',
-        ALTER COLUMN eventType SET NOT NULL;
+        update EventLog set eventType = '' where eventType is null;
+        alter table EventLog
+        alter column eventType set default '',
+        alter column eventType set not null;
 
         -- Alter the EventLog schema for the 'principal' column
-        ALTER TABLE IF EXISTS EventLog
-        ALTER COLUMN principal TYPE text USING COALESCE(principal, ${defaultPrincipal}),
-        ALTER COLUMN principal SET DEFAULT ${defaultPrincipal},
-        ALTER COLUMN principal SET NOT NULL;
+        update EventLog set principal = ${defaultPrincipal} where principal is null;
+        alter table EventLog
+        alter column principal set default ${defaultPrincipal},
+        alter column principal set not null;
 
         -- Alter the EventLog schema for the 'severity' column
-        ALTER TABLE IF EXISTS EventLog
-        ALTER COLUMN severity TYPE integer USING COALESCE(severity, ${defaultSeverity}),
-        ALTER COLUMN severity SET DEFAULT ${defaultSeverity},
-        ALTER COLUMN severity SET NOT NULL;
+        update EventLog set severity = ${defaultSeverity} where severity is null;
+        alter table EventLog
+        alter column severity set default ${defaultSeverity},
+        alter column severity set not null;
 
         -- Alter the EventLog schema for the 'data' column
-        ALTER TABLE IF EXISTS EventLog
-        ALTER COLUMN data TYPE xml USING COALESCE(data, ''),
-        ALTER COLUMN data SET DEFAULT '',
-        ALTER COLUMN data SET NOT NULL;
+        update EventLog set data = '' where data is null;
+        alter table EventLog
+        alter column data set default '',
+        alter column data set not null;
       """
     }
 
@@ -105,7 +105,7 @@ class MigrateEventLogEnforceSchema(
       } yield ()
     }
 
-    prog.catchAll(err => BootstrapLogger.error(s"Error when trying to migrate ${msg}: ${err.fullMsg}")).runNow
+    prog.catchAll(err => BootstrapLogger.error(s"Error when trying to migrate ${msg}: ${err.fullMsg}")).forkDaemon.runNow
   }
 
 }
