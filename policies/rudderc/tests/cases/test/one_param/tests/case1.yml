@@ -12,3 +12,5 @@ check:
   # Commands to run to check
   - sh: "test -f /tmp/rudderc_test_one"
   - sh: "diff ./reference.conf /tmp/rudderc_test_one"
+cleanup:
+  - sh: "rm /tmp/rudderc_test_one"

@@ -25,11 +25,13 @@ setup:
 check:
   - sh: "test command"
   - sh: "test command2"
+cleanup:
+  - sh: "cleanup command"
 ```
 
 The setup and check sections contain a list of commands to run.
 These commands run in the test directory, and are passed to `/usr/bin/sh`.
-The `setup`,`params` and `conditions` entries are optional.
+The `setup`, `cleanup`, `params` and `conditions` entries are optional.
 
 The detailed test process is, for each `*.yml` file in the `tests` directory:
 
@@ -41,6 +43,7 @@ The detailed test process is, for each `*.yml` file in the `tests` directory:
     * Define the conditions from the YAML test case
     * Run the technique with the given parameters
 * Run the check commands sequentially. The commands are called in the `/bin/sh` shell.
+* Run the cleanup commands sequentially, regardless of the result of the check commands.
 
 The build stops when it encounters a command returning a non-zero return code.
 

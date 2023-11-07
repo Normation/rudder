@@ -42,6 +42,9 @@ pub struct TestCase {
     setup: Vec<Step>,
     /// Check test after
     check: Vec<Step>,
+    /// Cleanup steps
+    #[serde(default)]
+    cleanup: Vec<Step>,
 }
 
 impl TestCase {
@@ -72,6 +75,13 @@ impl TestCase {
 
     pub fn check(&self, dir: &Path) -> Result<()> {
         for s in &self.check {
+            Self::run(s, dir)?;
+        }
+        Ok(())
+    }
+
+    pub fn cleanup(&self, dir: &Path) -> Result<()> {
+        for s in &self.cleanup {
             Self::run(s, dir)?;
         }
         Ok(())
