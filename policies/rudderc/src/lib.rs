@@ -334,7 +334,10 @@ pub mod action {
                 ),
             );
             // Run test checks
-            case.check(test_dir)?;
+            let res = case.check(test_dir);
+            // Run anyway
+            case.cleanup(test_dir)?;
+            res?;
         }
         Ok(())
     }
