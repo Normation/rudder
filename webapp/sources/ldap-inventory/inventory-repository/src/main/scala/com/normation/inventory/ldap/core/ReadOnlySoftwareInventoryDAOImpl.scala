@@ -156,7 +156,7 @@ class ReadOnlySoftwareDAOImpl(
       val softMap = software.map(s => (s.id, s)).toMap
       softwareByNode.map {
         case (node, ids) =>
-          (node, ids.map(s => softMap(s)))
+          (node, ids.flatMap(s => softMap.get(s)))
       }
     })
   }
