@@ -66,17 +66,26 @@ impl Backend for Unix {
         resources: &Path,
         standalone: bool,
     ) -> Result<String> {
-        fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<(Promise, Bundle)>> {
+        fn resolve_module(
+            r: ItemKind,
+            context: Condition,
+            technique_id: &Id,
+        ) -> Result<Vec<(Promise, Bundle)>> {
             match r {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Bundle)> = vec![];
                     for inner in r.items {
-                        calls.extend(resolve_module(inner, context.and(&r.condition))?);
+                        calls.extend(resolve_module(
+                            inner,
+                            context.and(&r.condition),
+                            technique_id,
+                        )?);
                     }
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<(Promise, Bundle)> = vec![method_call(r, context)?];
+                    let method: Vec<(Promise, Bundle)> =
+                        vec![method_call(technique_id, r, context)?];
                     Ok(method)
                 }
                 _ => todo!(),
@@ -114,7 +123,7 @@ impl Backend for Unix {
             ),
         ]);
         for item in technique.items {
-            for call in resolve_module(item, Condition::Defined)? {
+            for call in resolve_module(item, Condition::Defined, &technique.id)? {
                 let (use_bundle, bundle) = call;
                 main_bundle.add_promise_group(vec![use_bundle]);
                 call_bundles.push(bundle)

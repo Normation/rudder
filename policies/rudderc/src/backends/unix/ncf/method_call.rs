@@ -16,7 +16,7 @@ use crate::{
     },
     ir::{
         condition::Condition,
-        technique::{LeafReportingMode, Method},
+        technique::{Id, LeafReportingMode, Method},
     },
 };
 
@@ -29,7 +29,11 @@ use crate::{
 /// * n/a report
 ///
 /// Plus a calling `Promise`
-pub fn method_call(m: Method, condition: Condition) -> Result<(Promise, Bundle)> {
+pub fn method_call(
+    technique_id: &Id,
+    m: Method,
+    condition: Condition,
+) -> Result<(Promise, Bundle)> {
     assert!(!m.name.is_empty());
 
     let info = m.info.unwrap();
@@ -151,7 +155,7 @@ pub fn method_call(m: Method, condition: Condition) -> Result<(Promise, Bundle)>
     };
 
     // Calling bundle
-    let bundle_name = format!("call_{}", c_id);
+    let bundle_name = format!("call_{}_{}", technique_id, c_id);
     let mut call_parameters = vec![
         quoted(&report_component),
         quoted(&report_parameter),
