@@ -37,12 +37,16 @@
 
 package com.normation.rudder.services.eventlog
 
+import cats.data._
 import com.normation.box._
 import com.normation.eventlog._
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.repository.EventLogRepository
+import doobie._
+import doobie.implicits._
 import net.liftweb.common._
+import zio.syntax._
 
 class EventLogDeploymentService(
     val repository:             EventLogRepository,
@@ -53,8 +57,10 @@ class EventLogDeploymentService(
    * Fetch the last deployment (may it be failure or success)
    */
   def getLastDeployement(): Box[CurrentDeploymentStatus] = {
-    val query = "eventtype in ('" + SuccessfulDeploymentEventType.serialize + "', '" + FailedDeploymentEventType.serialize + "')"
-    (repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc"), None).toBox: @unchecked) match {
+    val query = fr"eventtype in (${SuccessfulDeploymentEventType.serialize}, ${FailedDeploymentEventType.serialize})"
+    (repository
+      .getEventLogByCriteria(Some(query), Some(1), List(Fragment.const("creationdate desc")), None)
+      .toBox: @unchecked) match {
       case Full(seq) if seq.size > 1  => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 =>
         eventLogDetailsService.getDeploymentStatusDetails(seq.head.details)
@@ -67,8 +73,10 @@ class EventLogDeploymentService(
    * Fetch the last successful deployment (which may be empty)
    */
   def getLastSuccessfulDeployement(): Box[EventLog] = {
-    val query = "eventtype = '" + SuccessfulDeploymentEventType.serialize + "'"
-    (repository.getEventLogByCriteria(Some(query), Some(1), Some("creationdate desc"), None).toBox: @unchecked) match {
+    val query = fr"eventtype = ${SuccessfulDeploymentEventType.serialize}"
+    (repository
+      .getEventLogByCriteria(Some(query), Some(1), List(Fragment.const("creationdate desc")), None)
+      .toBox: @unchecked) match {
       case Full(seq) if seq.size > 1  => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 => Full(seq.head)
       case Full(seq) if seq.size == 0 => Empty
@@ -81,9 +89,13 @@ class EventLogDeploymentService(
    *
    */
   def getListOfModificationEvents(lastSuccess: EventLog) = {
-    val eventList = ModificationWatchList.events.map("'" + _.serialize + "'").mkString(",")
-    val query     = "eventtype in (" + eventList + ") and id > " + lastSuccess.id.getOrElse(0)
-    repository.getEventLogByCriteria(Some(query), None, Some("id DESC"), None)
+    ModificationWatchList.events.toList.map(_.serialize) match {
+      case Nil    => Nil.succeed
+      case h :: t =>
+        val query =
+          Fragments.and(Fragments.in(fr"eventtype", NonEmptyList.of(h, t: _*)), fr" id > ${lastSuccess.id.getOrElse(0)}")
+        repository.getEventLogByCriteria(Some(query), None, List(Fragment.const("id DESC")), None)
+    }
   }
 
 }

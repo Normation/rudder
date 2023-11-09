@@ -113,6 +113,7 @@ import com.normation.zio._
 import com.softwaremill.quicklens._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
+import doobie._
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
@@ -181,16 +182,16 @@ class TestMigrateSystemTechniques7_0 extends Specification {
   val rudderDit = new RudderDit(new DN("ou=Rudder,cn=rudder-configuration"))
 
   val eventLogRepos = new EventLogRepository {
-    override def saveEventLog(modId: ModificationId, eventLog: EventLog):                    IOResult[EventLog]                                    = eventLog.succeed
-    override def eventLogFactory:                                                            EventLogFactory                                       = ???
+    override def saveEventLog(modId: ModificationId, eventLog: EventLog):                        IOResult[EventLog]                                    = eventLog.succeed
+    override def eventLogFactory:                                                                EventLogFactory                                       = ???
     override def getEventLogByCriteria(
-        criteria:       Option[String],
+        criteria:       Option[Fragment],
         limit:          Option[Int],
-        orderBy:        Option[String],
-        extendedFilter: Option[String]
+        orderBy:        List[Fragment],
+        extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long):                                                  IOResult[EventLog]                                    = ???
-    override def getEventLogCount(criteria: Option[String], extendedFilter: Option[String]): IOResult[Long]                                        = ???
+    override def getEventLogById(id: Long):                                                      IOResult[EventLog]                                    = ???
+    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long]                                        = ???
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,
@@ -198,7 +199,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
         orderBy:         Option[String],
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
-    override def getEventLogWithChangeRequest(id: Int):                                      IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getEventLogWithChangeRequest(id: Int):                                          IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]

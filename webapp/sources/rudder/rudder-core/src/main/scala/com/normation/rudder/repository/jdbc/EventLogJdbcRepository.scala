@@ -184,13 +184,13 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogCount(criteria: Option[String], extendedFilter: Option[String] = None): IOResult[Long] = {
-    val from = extendedFilter.getOrElse("from eventlog")
-    val q    = s"SELECT count(*) ${from} where ${criteria.getOrElse("1 = 1")}"
+  def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment] = None): IOResult[Long] = {
+    val from = extendedFilter.getOrElse(fr"from eventlog")
+    val q    = sql"SELECT count(*) ${from} where ${criteria.getOrElse(Fragment.const(" 1 = 1 "))}"
     // sql"SELECT count(*) FROM eventlog".query[Long].option.transact(xa).unsafeRunSync
     transactIOResult(s"Error when retrieving event logs count with request: ${q}")(xa => {
       (for {
-        entries <- query[Long](q).unique
+        entries <- q.query[Long].unique
       } yield {
         entries
       }).transact(xa)
@@ -198,26 +198,32 @@ class EventLogJdbcRepository(
   }
 
   def getEventLogByCriteria(
-      criteria:       Option[String],
+      criteria:       Option[Fragment],
       optLimit:       Option[Int] = None,
-      orderBy:        Option[String],
-      extendedFilter: Option[String]
+      orderBy:        List[Fragment],
+      extendedFilter: Option[Fragment]
   ): IOResult[Seq[EventLog]] = {
 
-    val where = criteria.map(c => s"where ${c}").getOrElse("")
-    val order = orderBy.map(o => s" order by ${o}").getOrElse("")
-    val limit = optLimit.map(l => s" limit ${l}").getOrElse("")
-    val from  = extendedFilter.getOrElse("from eventlog")
+    val where = criteria match {
+      case Some(value) => fr" where " ++ value
+      case None        => Fragment.empty
+    }
+    val order = orderBy match {
+      case Nil  => Fragment.empty
+      case list => fr" order by " ++ list.intercalate(fr",")
+    }
+    val limit = optLimit match {
+      case Some(l) => fr" limit ${l} "
+      case None    => Fragment.empty
+    }
+    val from  = extendedFilter.getOrElse(fr"from eventlog")
 
-    val q = s"""
-      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
-      ${from}
-      ${where} ${order} ${limit}
-    """
+    val q = sql"""select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data """ ++
+      from ++ where ++ order ++ limit
 
     transactIOResult(s"Error when retrieving event logs for change request with request: ${q}")(xa => {
       (for {
-        entries <- query[(String, EventLogDetails)](q).to[Vector]
+        entries <- q.query[(String, EventLogDetails)].to[Vector]
       } yield {
         entries.map(toEventLog)
       }).transact(xa)

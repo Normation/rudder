@@ -72,10 +72,8 @@ import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
-import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JString
 import net.liftweb.util.Helpers._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime

@@ -40,6 +40,7 @@ package com.normation.rudder.services.eventlog
 import com.normation.box._
 import com.normation.rudder.domain.eventlog.InventoryEventLog
 import com.normation.rudder.repository.EventLogRepository
+import doobie._
 import net.liftweb.common._
 
 class InventoryEventLogServiceImpl(
@@ -51,7 +52,9 @@ class InventoryEventLogServiceImpl(
    * @return
    */
   def getInventoryEventLogs(): Box[Seq[InventoryEventLog]] = {
-    repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode')")).toBox match {
+    repository
+      .getEventLogByCriteria(Some(Fragment.const(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode') ")))
+      .toBox match {
       case Full(seq) =>
         val result = scala.collection.mutable.Buffer[InventoryEventLog]()
         for (log <- seq) {

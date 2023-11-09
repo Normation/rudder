@@ -139,6 +139,7 @@ import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
+import doobie._
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -236,15 +237,15 @@ class RestTestSetUp {
   val eventLogRepo                  = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
-    override def eventLogFactory:                                                            EventLogFactory                                       = ???
+    override def eventLogFactory:                                                                EventLogFactory                                       = ???
     override def getEventLogByCriteria(
-        criteria:       Option[String],
+        criteria:       Option[Fragment],
         limit:          Option[Int],
-        orderBy:        Option[String],
-        extendedFilter: Option[String]
+        orderBy:        List[Fragment],
+        extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long):                                                  IOResult[EventLog]                                    = ???
-    override def getEventLogCount(criteria: Option[String], extendedFilter: Option[String]): IOResult[Long]                                        = ???
+    override def getEventLogById(id: Long):                                                      IOResult[EventLog]                                    = ???
+    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long]                                        = ???
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,
@@ -252,7 +253,7 @@ class RestTestSetUp {
         orderBy:         Option[String],
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
-    override def getEventLogWithChangeRequest(id: Int):                                      IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getEventLogWithChangeRequest(id: Int):                                          IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]

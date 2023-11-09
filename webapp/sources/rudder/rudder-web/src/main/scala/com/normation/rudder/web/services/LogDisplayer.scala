@@ -125,7 +125,9 @@ class LogDisplayer(
         case eb: EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
-          val xml  = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
+          val xml  = <div class="error">Error when trying to get last event logs. Error message was: {
+            fail.msg
+          }</div> // we don't want to let the user know about SQL error
           SetHtml("eventLogsError", xml)
       }
     }
