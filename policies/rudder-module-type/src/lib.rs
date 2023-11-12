@@ -3,7 +3,8 @@
 
 //! Agent-side implementation of base module_type types
 
-use std::{fmt, process::exit};
+pub use rudder_commons::PolicyMode;
+use std::process::exit;
 
 use anyhow::{Error, Result};
 use gumdrop::Options;
@@ -115,32 +116,6 @@ pub trait ModuleType0 {
     /// can be used for clean up tasks.
     fn terminate(&mut self) -> ProtocolResult {
         ProtocolResult::Success
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-pub enum PolicyMode {
-    Enforce,
-    Audit,
-}
-
-impl fmt::Display for PolicyMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                PolicyMode::Enforce => "enforce",
-                PolicyMode::Audit => "audit",
-            }
-        )
-    }
-}
-
-impl Default for PolicyMode {
-    fn default() -> Self {
-        Self::Enforce
     }
 }
 

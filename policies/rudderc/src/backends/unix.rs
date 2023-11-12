@@ -45,7 +45,14 @@ impl Unix {
         // i.e. lib loading and global vars (`g.X`).
         let static_prelude = include_str!("unix/prelude.cf");
         let init = Promise::usebundle("rudder_test_init", None, None, vec![]);
-        let technique = Promise::usebundle(
+        let policy_mode = Promise::usebundle(
+            "set_dry_run_mode",
+            None,
+            None,
+            vec!["${rudder_test_init.dry_run}".to_string()],
+        );
+        //   "CIS audit/CIS 9.1 configure cron"  usebundle => set_dry_run_mode("true");
+        let technique_call = Promise::usebundle(
             technique_id.to_string(),
             None,
             None,
@@ -54,7 +61,7 @@ impl Unix {
                 .map(|p| cfengine::quoted(&format!("${{rudder_test_init.test_case[params][{p}]}}")))
                 .collect(),
         );
-        let call = Bundle::agent("main").promise_group(vec![init, technique]);
+        let call = Bundle::agent("main").promise_group(vec![init, policy_mode, technique_call]);
         format!("{static_prelude}\n{}", call)
     }
 }

@@ -1,0 +1,10 @@
+# Parameters for the technique
+# none here
+target: windows
+# Prepare env
+setup:
+  - sh: "rm -f /tmp/rudderc_test_zero_windows"
+# Check after technique has run
+check:
+  # Commands to run to check
+  - sh: "test -f /tmp/rudderc_test_zero_windows"

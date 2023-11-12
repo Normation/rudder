@@ -1,0 +1,9 @@
+target: windows
+params:
+  server: "rudder.io"
+setup:
+  - sh: "rm -f /tmp/rudderc_test_one_windows"
+check:
+  - sh: "test -f /tmp/rudderc_test_one_windows"
+cleanup:
+  - sh: "rm /tmp/rudderc_test_one_windows"

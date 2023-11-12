@@ -34,6 +34,16 @@ libs:
 	[ -d target/repos/dsc ] || git clone git@github.com:Normation/rudder-agent-windows.git target/repos/dsc || mkdir -p target/repos/dsc/plugin/ncf/30_generic_methods/
 	cd target/repos/dsc && git checkout master && git pull origin master || true
 
+agent-windows: libs
+	curl -sS --output target/rudder-agent.msi https://publisher.normation.com/misc/windows/8.0.3/rudder-agent-8.0.3.2000000000.msi
+	msiextract target/rudder-agent.msi -C target/agent-windows/
+	# Sadly, we need to add .cf files to the agent to have everything in one place for now
+	mkdir -p target/agent-windows/Rudder/share/initial-policy/ncf/cf/
+	cp target/repos/ncf/tree/30_generic_methods/*.cf target/agent-windows/Rudder/share/initial-policy/ncf/cf/
+	cp target/repos/dsc/plugin/src/ncf/30_generic_methods/*.cf target/agent-windows/Rudder/share/initial-policy/ncf/cf/
+	# Simulate a real agent to get correct reporting
+	echo "1d58a791-7278-4a2c-a10d-048c7b4be2a6" > target/agent-windows/Rudder/etc/uuid.hive
+
 check: lint test test-docs
 
 .PHONY: docs libs clean

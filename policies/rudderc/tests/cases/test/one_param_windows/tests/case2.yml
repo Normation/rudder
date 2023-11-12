@@ -1,0 +1,8 @@
+target: windows
+params:
+  server: "rudder.io"
+policy_mode: audit
+setup:
+  - sh: "rm -f /tmp/rudderc_test_one_windows"
+check:
+  - sh: "! test -f /tmp/rudderc_test_one_windows"

@@ -3,3 +3,109 @@ bundle agent rudder_reporting_context_v4(a, b, c, d, e, f) {}
 bundle agent _method_reporting_context_v4(d, e, f) {}
 bundle agent _classes_noop(a) {}
 bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix, args) {}
+
+bundle agent set_dry_run_mode(mode)
+{
+  vars:
+    pass2.unset_mode::
+      "ignored" string        => "",
+                      classes => if_ok_cancel("dry_run");
+
+  classes:
+      # double negation, so that the default is dry_run (in case of error)
+      "unset_mode" expression => strcmp("${mode}", "false");
+      "pass2" expression      => "pass1";
+      "pass1" expression      => "any";
+
+    pass2.!unset_mode::
+      "dry_run" expression    => "any", scope => "namespace";
+}
+
+body classes if_ok_cancel(x)
+{
+      cancel_repaired => { "$(x)" };
+      cancel_kept => { "$(x)" };
+}
+
+
+body file control
+{
+   namespace => "bodydefault";
+}
+
+body action users_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action files_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action packages_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action guest_environments_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action processes_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action services_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action commands_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action storage_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action databases_action
+{
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body file control
+{
+    namespace => "default";
+}

@@ -1,0 +1,14 @@
+# Parameters for the technique
+params:
+  server: "rudder.io"
+# Conditions to define before running the test
+conditions:
+  - my_cond
+policy_mode: audit
+# Prepare env
+setup:
+  - sh: "rm -f /tmp/rudderc_test_one"
+# Check after technique has run
+check:
+  # Commands to run to check
+  - sh: "! test -f /tmp/rudderc_test_one"

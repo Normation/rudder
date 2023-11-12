@@ -14,29 +14,60 @@ use std::{
 use rudderc::action;
 use test_generator::test_resources;
 
-const TEST_LIB: &str = "tests/lib/common";
+const UNIX_TEST_LIB: &str = "tests/lib/common";
+// We need a real windows agent
+const WINDOWS_TEST_LIB: &str = "../target/agent-windows/Rudder";
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compile and tests all files in `cases/test`. This tests the testing feature itself.
-#[test_resources("tests/cases/test/*/*.yml")]
-fn test(filename: &str) {
+#[test_resources("tests/cases/test/*_unix/*.yml")]
+fn test_unix(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();
     let cwd = env::current_dir().unwrap();
+    let src = technique_dir.join("technique.yml");
 
     action::build(
         &[PathBuf::from(TEST_METHODS)],
-        technique_dir.join("technique.yml").as_path(),
-        technique_dir.join("target").as_path(),
+        &src,
+        &technique_dir.join("target"),
         true,
         false,
     )
     .unwrap();
     action::test(
-        technique_dir.join("target").join("technique.cf").as_path(),
-        technique_dir.join("tests").as_path(),
-        &[cwd.join(TEST_LIB)],
+        &src,
+        &technique_dir.join("target"),
+        &technique_dir.join("tests"),
+        &[cwd.join(UNIX_TEST_LIB)],
         None,
         false,
     )
     .unwrap();
+}
+
+/// Compile and tests all files in `cases/test`. This tests the testing feature itself.
+#[test_resources("tests/cases/test/*_windows/*.yml")]
+fn test_windows(filename: &str) {
+    let technique_dir = Path::new(filename).parent().unwrap();
+    let cwd = env::current_dir().unwrap();
+    let src = technique_dir.join("technique.yml");
+
+    action::build(
+        &[PathBuf::from(TEST_METHODS)],
+        &src,
+        &technique_dir.join("target"),
+        true,
+        false,
+    )
+    .unwrap();
+    let res = action::test(
+        &src,
+        &technique_dir.join("target"),
+        &technique_dir.join("tests"),
+        &[cwd.join(WINDOWS_TEST_LIB)],
+        None,
+        false,
+    );
+    dbg!(&res);
+    res.unwrap();
 }
