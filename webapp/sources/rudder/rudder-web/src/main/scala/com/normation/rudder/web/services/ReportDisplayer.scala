@@ -534,24 +534,24 @@ class ReportDisplayer(
       getReports:     NodeId => Box[NodeStatusReport],
       addOverriden:   Boolean
   ): NodeSeq = {
-    val data = getComplianceData(node.id, reports, addOverriden).map(_.json).getOrElse(JsArray())
-
-    val jsFunctionName = if (withCompliance) {
-      "createRuleComplianceTable"
-    } else {
-      "createExpectedReportTable"
-    }
-
-    <table id={tableId} class="tablewidth" cellspacing="0"></table> ++
+    <div id="nodecompliance-app"></div> ++
     Script(JsRaw(s"""
-      ${jsFunctionName}("${tableId}",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(
-        node,
-        tableId,
-        getReports,
-        addOverriden
-      ).toJsCmd});
-      createTooltip();
-    """))
+                    |var main = document.getElementById("nodecompliance-app")
+                    |var initValues = {
+                    |  nodeId : "${node.id.value}",
+                    |  contextPath : contextPath
+                    |};
+                    |var app = Elm.Nodecompliance.init({node: main, flags: initValues});
+                    |app.ports.errorNotification.subscribe(function(str) {
+                    |  createErrorNotification(str)
+                    |});
+                    |// Initialize tooltips
+                    |app.ports.initTooltips.subscribe(function(msg) {
+                    |  setTimeout(function(){
+                    |    $$('.bs-tooltip').bsTooltip();
+                    |  }, 800);
+                    |});
+                    |""".stripMargin))
   }
 
   // this method cannot return an IOResult, as it uses S.

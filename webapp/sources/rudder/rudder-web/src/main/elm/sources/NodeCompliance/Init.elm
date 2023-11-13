@@ -1,0 +1,23 @@
+module NodeCompliance.Init exposing (..)
+
+import Dict exposing (Dict)
+
+import NodeCompliance.ApiCalls exposing (..)
+import NodeCompliance.DataTypes exposing (..)
+import Compliance.DataTypes exposing (..)
+
+
+init : { nodeId : String, contextPath : String } -> ( Model, Cmd Msg )
+init flags =
+  let
+    initFilters  = (TableFilters Asc "" Dict.empty)
+    initUI       = UI initFilters (ComplianceFilters False False []) True
+    initModel    = Model (DirectiveId flags.nodeId) flags.contextPath "" initUI Nothing
+    listInitActions =
+      [ getPolicyMode initModel
+      , getNodeCompliance initModel
+      ]
+  in
+    ( initModel
+    , Cmd.batch listInitActions
+    )
