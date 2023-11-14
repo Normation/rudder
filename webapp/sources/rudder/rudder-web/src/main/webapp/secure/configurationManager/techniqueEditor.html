@@ -83,6 +83,9 @@ $(document).ready(function(){
     app.ports.updateResources.send(null)
   });
 
+  fm.ports.errorNotification.subscribe(function(errorMessage) {
+    createErrorNotification(errorMessage);
+  });
 
 
   app.ports.pushUrl.subscribe(function(id) {

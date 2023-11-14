@@ -56,6 +56,10 @@
         hasWriteRights : hasWriteRights
       }
     });
+
+  fm.ports.errorNotification.subscribe(function(errorMessage) {
+    createErrorNotification(errorMessage);
+  });
   </script>
 
   <div id="editForm">

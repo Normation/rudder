@@ -3,6 +3,7 @@ module FileManager.Update exposing (..)
 import Browser.Navigation exposing (reload)
 import File.Download
 import File.Select
+import FileManager.Port exposing (errorNotification)
 import List exposing (map, filter)
 import Http
 import Maybe
@@ -12,8 +13,7 @@ import FileManager.Model exposing (..)
 import FileManager.Vec exposing (..)
 import FileManager.Action exposing (..)
 import FileManager.Env exposing (handleEnvMsg)
-import FileManager.Util exposing (getDirPath)
-
+import FileManager.Util exposing (getDirPath, processApiError)
 
 init : Flags -> (Model, Cmd Msg)
 init flags = (initModel flags, let { api, dir } = flags in listDirectory api [dir] )
@@ -82,7 +82,7 @@ update msg model = case msg of
               ]
           )
         _ -> ({ model | filesAmount = 0 }, listDirectory model.api model.dir)
-    Err _ -> (model, Cmd.none)
+    Err err -> (model, processApiError "uploading file" err)
   OpenNameDialog state->
     let
       cmd =
@@ -113,8 +113,19 @@ update msg model = case msg of
       Closed -> (model,Cmd.none)
       NewDir s -> ({ model | dialogState = Closed, load = True }, newDir model.api (getDirPath model.dir) s)
       NewFile s -> ({ model | dialogState = Closed, load = True }, newFile model.api (getDirPath model.dir) s)
-      Rename f s -> ({ model | dialogState = Closed, load = True },FileManager.Action.rename model.api (getDirPath model.dir) f.name s)
       Edit file content -> ({ model | dialogState = Closed, load = True },saveContent model.api (getDirPath model.dir) file content)
+      Rename _ "" -> update (FileUpdate (FileValidationError "File name should not be empty")) model
+      Rename f name -> if (String.contains "/" name || String.contains "\\0" name)
+        then update (FileUpdate (FileValidationError "File name should not contain invalid characters such as '/' or '\\0'")) model
+        else
+          ( { model
+            | dialogState = Closed, load = True
+            }
+            , FileManager.Action.rename model.api (getDirPath model.dir) f.name name
+         )
+
+  FileUpdate (FileValidationError err) -> (model, errorNotification err)
+  FileUpdate (FileUpdateHttpError err) -> (model, processApiError "updating file" err)
 
   Download ->
     ( { model

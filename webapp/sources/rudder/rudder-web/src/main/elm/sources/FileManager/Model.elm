@@ -86,6 +86,7 @@ type Msg
   | OpenNameDialog DialogAction
   | CloseNameDialog
   | ConfirmNameDialog
+  | FileUpdate FileUpdateError
   | Name String
   | Download
   | Cut
@@ -111,3 +112,4 @@ type EnvMsg
   | GotContent (Result Error String)
 
 type DialogAction = Rename FileMeta String | NewFile String | NewDir String | Edit String String | Closed
+type FileUpdateError = FileValidationError String | FileUpdateHttpError Http.Error

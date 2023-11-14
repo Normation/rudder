@@ -1,7 +1,7 @@
 var FileManager = function () {
   return function (options) {
     var container;
-    
+
     if (!options.container) {
       container = document.createElement('div');
       document.body.appendChild(container);
@@ -27,6 +27,10 @@ var FileManager = function () {
 
       set onClose(callback) {
         fm.ports.close.subscribe(callback);
+      },
+
+      errorNotification: function (callback) {
+        fm.ports.createErrorNotification.subscribe(callback);
       }
     };
   };
