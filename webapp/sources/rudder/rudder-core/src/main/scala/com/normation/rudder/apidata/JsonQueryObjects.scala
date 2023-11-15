@@ -102,7 +102,10 @@ object JsonQueryObjects {
   ) {
 
     def update(ruleCategory: RuleCategory) = {
-      ruleCategory.using(this).ignoreRedundantPatcherFields.patch
+      ruleCategory.copy(
+        name = name.getOrElse(ruleCategory.name),
+        description = description.getOrElse(ruleCategory.description)
+      )
     }
   }
 
