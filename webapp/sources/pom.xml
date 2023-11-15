@@ -178,6 +178,7 @@ limitations under the License.
             <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder).
                  For -byname-implicit, it's because of Doobie, see: https://gitter.im/tpolecat/doobie?at=5f59e618765d633c54e74d52
             -->
+            <arg>-Xfatal-warnings</arg>              <!-- Fail the compilation if there are any warnings. -->
             <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator,-byname-implicit</arg>
             <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
 
