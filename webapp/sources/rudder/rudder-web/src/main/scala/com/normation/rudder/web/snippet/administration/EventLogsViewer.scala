@@ -40,6 +40,7 @@ package com.normation.rudder.web.snippet.administration
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.eventlog.EventLog
+import doobie._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 
@@ -48,7 +49,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val eventList = RudderConfig.eventListDisplayer
 
   def getLastEvents: Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")).toBox
+    repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox
   }
 
   def dispatch = { case "display" => _ => eventList.display(() => getLastEvents) }

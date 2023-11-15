@@ -36,6 +36,7 @@
  */
 
 package com.normation.rudder.rest.internal
+import cats.syntax.all._
 import com.normation.box._
 import com.normation.eventlog._
 import com.normation.rudder.repository.EventLogRepository
@@ -46,7 +47,9 @@ import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.services._
 import com.normation.utils.DateFormaterService
-import com.normation.utils.Utils.DateToIsoString
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common._
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftResponse
@@ -65,6 +68,9 @@ class EventLogAPI(
     eventLogDetail:     EventLogDetailsGenerator,
     personIdentService: PersonIdentService
 ) extends RestHelper with Loggable {
+  implicit class ToSqlTimestamp(d: DateTime) {
+    def toSql = new java.sql.Timestamp(d.getMillis)
+  }
 
   def serialize(event: EventLog): JValue = {
     import net.liftweb.json.JsonDSL._
@@ -93,13 +99,14 @@ class EventLogAPI(
 
   def getEventLogBySlice(
       start:    Int,
-      criteria: Option[String],
+      criteria: Option[Fragment],
       optLimit: Option[Int],
-      orderBy:  String,
-      filter:   Option[String]
+      orderBy:  List[Fragment],
+      filter:   Option[Fragment]
   ): Box[Seq[EventLog]] = {
+    val c = criteria.getOrElse(Fragment.const(" 1 = 1 ")) ++ fr" order by ${orderBy.intercalate(fr",")} offset ${start}"
     repos
-      .getEventLogByCriteria(Some(s"${criteria.getOrElse("1 = 1")} order by ${orderBy} offset ${start}"), optLimit, None, filter)
+      .getEventLogByCriteria(Some(c), optLimit, Nil, filter)
       .toBox match {
       case Full(events) => Full(events)
       case eb: EmptyBox =>
@@ -116,7 +123,8 @@ class EventLogAPI(
           if (value == "") {
             None
           } else {
-            Some(s" temp1.filter like '%${value}%'")
+            val v = "%" + value + "%"
+            Some(fr" temp1.filter like ${v}")
           }
         }
       }
@@ -160,23 +168,28 @@ class EventLogAPI(
                                 case _ => Failure("not a valid column")
 
                               }
-                     dir <- CompleteJson.extractJsonString(json, "dir")
+                     dir   <- CompleteJson.extractJsonString(json, "dir")
+                     order <- dir.toLowerCase match {
+                                case "desc" => Full("DESC")
+                                case "asc"  => Full("ASC")
+                                case x      => Failure(s"not a valid sorting order: ${x}")
+                              }
                    } yield {
-                     s"${col} ${dir}"
+                     Fragment.const(s"${col} ${order}")
                    }
                  }
 
         dateCriteria = (optStartDate, optEndDate) match {
                          case (None, None)                                    => None
-                         case (Some(start), None)                             => Some(s" creationDate >= '${start.toIsoStringNoMillis}'")
-                         case (None, Some(end))                               => Some(s" creationDate <= '${end.toIsoStringNoMillis}'")
+                         case (Some(start), None)                             => Some(fr" creationDate >= ${start.toSql}")
+                         case (None, Some(end))                               => Some(fr" creationDate <= ${end.toSql}")
                          case (Some(start), Some(end)) if end.isBefore(start) =>
                            Some(
-                             s" creationDate >= '${end.toIsoStringNoMillis}' and creationDate <= '${start.toIsoStringNoMillis}'"
+                             fr" creationDate >= ${end.toSql} and creationDate <= ${start.toSql}"
                            )
                          case (Some(start), Some(end))                        =>
                            Some(
-                             s" creationDate >= '${start.toIsoStringNoMillis}' and creationDate <= '${end.toIsoStringNoMillis}'"
+                             fr" creationDate >= ${start.toSql} and creationDate <= ${end.toSql}"
                            )
                        }
 
@@ -186,19 +199,19 @@ class EventLogAPI(
                                (
                                  Some(value),
                                  Some(
-                                   " from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
+                                   fr" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
                                  )
                                )
                              case (Some(value), Some(res)) =>
                                (
-                                 Some(s"${value} and ${res}"),
+                                 Some(fr"${value} and ${res}"),
                                  Some(
-                                   " from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
+                                   fr" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
                                  )
                                )
                            }
 
-        events      <- getEventLogBySlice(start, criteria, Some(length), order.mkString(", "), from)
+        events      <- getEventLogBySlice(start, criteria, Some(length), order, from)
         totalRecord <- repos.getEventLogCount(None).toBox
         totalFilter <- repos.getEventLogCount(criteria, from).toBox
       } yield {
@@ -208,7 +221,8 @@ class EventLogAPI(
           JsonResponse(resp)
         case eb: EmptyBox =>
           val fail = eb ?~! "Error when fetching event logs"
-          JsonResponse(errorFormatter(fail.messageChain), 500)
+          logger.error(fail.messageChain)
+          JsonResponse(errorFormatter(fail.msg), 500) // we don't want to let the user know about SQL error
       })
 
     case Get(id :: "details" :: Nil, req) =>
@@ -233,7 +247,8 @@ class EventLogAPI(
         case Full(resp) => resp
         case eb: EmptyBox =>
           val fail = eb ?~! s"Error when getting event log with id '${id}' details"
-          toJsonError(None, fail.messageChain)
+          logger.error(fail.messageChain)
+          toJsonError(None, fail.msg) // we don't want to let the user know about SQL error
       })
 
     case Get(id :: "details" :: "rollback" :: Nil, req) =>

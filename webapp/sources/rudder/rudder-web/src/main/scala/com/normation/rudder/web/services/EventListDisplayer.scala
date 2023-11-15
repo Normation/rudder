@@ -39,6 +39,9 @@ package com.normation.rudder.web.services
 import com.normation.box._
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common._
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
@@ -68,7 +71,9 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
         case eb: EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
-          val xml  = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
+          val xml  = <div class="error">Error when trying to get last event logs. Error message was: {
+            fail.msg
+          }</div> // we don't want to let the user know about SQL error
           SetHtml("eventLogsError", xml)
       }
     }
@@ -108,13 +113,13 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
                          }
         whereStatement = (startStr, endStr) match {
                            case (None, None)             => None
-                           case (Some(start), None)      => Some(s" creationdate > '$start'")
-                           case (None, Some(end))        => Some(s" creationdate < '$end'")
+                           case (Some(start), None)      => Some(fr" creationdate > ${start}")
+                           case (None, Some(end))        => Some(fr" creationdate < ${end}")
                            case (Some(start), Some(end)) =>
                              val orderedDate = if (start.after(end)) (end, start) else (start, end)
-                             Some(s" creationdate > '${orderedDate._1}' and creationdate < '${orderedDate._2}'")
+                             Some(fr" creationdate > ${orderedDate._1} and creationdate < ${orderedDate._2} ")
                          }
-        logs          <- repos.getEventLogByCriteria(whereStatement, None, Some("id DESC")).toBox
+        logs          <- repos.getEventLogByCriteria(whereStatement, None, List(Fragment.const("id DESC"))).toBox
       } yield {
         logs
       })
