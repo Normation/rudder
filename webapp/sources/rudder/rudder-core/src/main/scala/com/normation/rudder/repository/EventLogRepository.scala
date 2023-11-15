@@ -70,6 +70,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
+import doobie._
 
 trait EventLogRepository {
   def eventLogFactory: EventLogFactory
@@ -483,15 +484,15 @@ trait EventLogRepository {
    * For the moment it only a string, it should be something else in the future
    */
   def getEventLogByCriteria(
-      criteria:       Option[String],
+      criteria:       Option[Fragment],
       limit:          Option[Int] = None,
-      orderBy:        Option[String] = None,
-      extendedFilter: Option[String] = None
+      orderBy:        List[Fragment] = Nil,
+      extendedFilter: Option[Fragment] = None
   ): IOResult[Seq[EventLog]]
 
   def getEventLogById(id: Long): IOResult[EventLog]
 
-  def getEventLogCount(criteria: Option[String], extendedFilter: Option[String] = None): IOResult[Long]
+  def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment] = None): IOResult[Long]
 
   def getEventLogByChangeRequest(
       changeRequest:   ChangeRequestId,
