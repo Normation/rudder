@@ -128,7 +128,7 @@ final case class FeatureSwitch0[A <: LiftApiModule0](enable: A, disable: A)(feat
     featureSwitchState.either.runNow match {
       case Left(err)                     =>
         ApplicationLogger.error(err.fullMsg)
-        RudderJsonResponse.internalError(ResponseSchema.fromSchema(schema), err.fullMsg)(params.prettify).toResponse
+        RudderJsonResponse.internalError(None, ResponseSchema.fromSchema(schema), err.fullMsg)(params.prettify).toResponse
       case Right(FeatureSwitch.Disabled) =>
         disable.process0(version, path, req, params, authzToken)
       case Right(FeatureSwitch.Enabled)  =>
