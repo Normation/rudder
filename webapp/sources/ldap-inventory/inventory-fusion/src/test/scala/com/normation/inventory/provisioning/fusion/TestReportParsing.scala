@@ -115,19 +115,26 @@ class TestInventoryParsing extends Specification with Loggable {
       val fileNames = Map(
         ("centos8.ocs", Linux(Centos, "CentOS Stream release 8", new Version("8"), None, new Version("4.18.0-365.el8.x86_64"))),
         (
-          "debian11.ocs",
-          Linux(Debian, "Debian GNU/Linux 11 (bullseye)", new Version("11"), None, new Version("5.10.0-10-amd64"))
+          "debian12.ocs",
+          Linux(Debian, "Debian GNU/Linux 12 (bookworm)", new Version("12"), None, new Version("6.1.0-13-amd64"))
         ),
         (
-          "sles15.ocs",
-          Linux(Suse, "SUSE Linux Enterprise Server 15", new Version("15"), None, new Version("4.12.14-23-default"))
+          "sles15sp4.ocs",
+          Linux(
+            Suse,
+            "SUSE Linux Enterprise Server 15 SP4",
+            new Version("15"),
+            Some("4"),
+            new Version("5.14.21-150400.22-default")
+          )
         ),
-        ("ubuntu20_04.ocs", Linux(Ubuntu, "Ubuntu 20.04.1 LTS", new Version("20.04"), None, new Version("5.4.0-54-generic")))
+        ("ubuntu22_04.ocs", Linux(Ubuntu, "Ubuntu 22.04 LTS", new Version("22.04"), None, new Version("5.15.0-41-generic")))
       )
 
       fileNames must contain { (pair: (String, OsDetails)) =>
         val inventory = parseRun(dir + pair._1)
-        inventory.node.main.osDetails must beEqualTo(pair._2)
+        (inventory.node.main.osDetails must beEqualTo(pair._2)) and
+        (inventory.node.agents must haveSize(1))
       }.foreach
     }
   }
