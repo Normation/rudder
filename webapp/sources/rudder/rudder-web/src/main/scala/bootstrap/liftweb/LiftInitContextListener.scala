@@ -143,7 +143,18 @@ class LiftInitContextListener extends ContextLoaderListener {
              })
       } yield ()
     } catch {
-      case ex: Throwable => Left(SystemError("Error during initialization of Rudder", ex))
+      case ex: ExceptionInInitializerError => // the type of thrown exception in config loading object
+        ex.getCause() match {
+          case ex: RudderConfigInit.InitError =>
+            Left(SystemError(s"Error during initialization of Rudder", ex))
+          // it seems the ExceptionInInitializerError message is always "null", we are afraid whenever we see that word in stacktrace
+          case cause =>
+            Left(
+              SystemError(s"Error during initialization of Rudder", new RuntimeException(s"uncaught exception", cause))
+            )
+        }
+      case ex: Throwable                   =>
+        Left(SystemError("Error during initialization of Rudder", ex))
     }) match {
       case Left(err) =>
         System.err.println(

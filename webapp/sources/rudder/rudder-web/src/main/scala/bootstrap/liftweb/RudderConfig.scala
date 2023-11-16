@@ -218,6 +218,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 import zio.{Scheduler => _, System => _, _}
 import zio.syntax._
 
@@ -387,6 +388,7 @@ object RudderProperties {
 }
 
 object RudderParsedProperties {
+  import RudderConfigInit._
   import RudderProperties.config
 
   val logger = ApplicationLogger.Properties
@@ -644,11 +646,16 @@ object RudderParsedProperties {
   val RUDDER_BATCH_REPORTSCLEANER_COMPLIANCE_DELETE_TTL =
     config.getInt("rudder.batch.reportscleaner.compliancelevels.delete.TTL") // AutomaticReportsCleaning.defaultDeleteTTL
   val RUDDER_BATCH_REPORTSCLEANER_LOG_DELETE_TTL = {
-    try {
+    (Try {
+      config.getString("rudder.batch.reportsCleaner.deleteLogReport.TTL")
+    } orElse Try {
       config.getString("rudder.batch.reportscleaner.deleteReportLog.TTL")
-    } catch {
-      case ex: Exception => "2x"
-    }
+    }.map { res =>
+      ApplicationLogger.warn(
+        "Config property 'rudder.batch.reportscleaner.deleteReportLog.TTL' is deprecated, please rename it to 'rudder.batch.reportsCleaner.deleteLogReport.TTL'"
+      )
+      res
+    }).getOrElse("2x")
   }
   val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY      =
     config.getString("rudder.batch.reportscleaner.frequency") // AutomaticReportsCleaning.defaultDay
@@ -1030,12 +1037,19 @@ object RudderParsedProperties {
 
   // how long we keep accept/refuse inventory (even if the node is still present). O means "forever if the node is node deleted"
   val KEEP_ACCEPTATION_NODE_FACT_DURATION = {
+    val configKey = "rudder.inventories.pendingChoiceHistoryCleanupLatency.acceptedNode"
     try {
       Duration.fromScala(
-        scala.concurrent.duration.Duration(config.getString("rudder.inventories.pendingChoiceHistoryCleanupLatency.acceptedNode"))
+        scala.concurrent.duration.Duration(config.getString(configKey))
       )
     } catch {
-      case ex: ConfigException => 0.days // forever
+      case ex: ConfigException       => 0.days // forever
+      case ex: NumberFormatException =>
+        throw InitConfigValueError(
+          configKey,
+          "value is not formatted as a long digit and time unit (ms, s, m, h, d), example: 5 days or 5d. Leave it empty to keep forever",
+          Some(ex)
+        )
     }
   }
 
@@ -1045,14 +1059,21 @@ object RudderParsedProperties {
    * 0 means "delete immediately when node is deleted or refused"
    */
   val KEEP_DELETED_NODE_FACT_DURATION = {
+    val configKey = "rudder.inventories.pendingChoiceHistoryCleanupLatency.deletedNode"
     try {
       Duration.fromScala(
         scala.concurrent.duration.Duration(
-          config.getString("rudder.inventories.pendingChoiceHistoryCleanupLatency.deletedNode")
+          config.getString(configKey)
         )
       )
     } catch {
-      case ex: ConfigException => 30.days
+      case ex: ConfigException       => 30.days
+      case ex: NumberFormatException =>
+        throw InitConfigValueError(
+          configKey,
+          "value is not formatted as a long digit and time unit (ms, s, m, h, d), example: 5 days or 5d. Leave it empty to keep forever",
+          Some(ex)
+        )
     }
   }
 
@@ -1378,9 +1399,22 @@ case class RudderServiceApi(
  * See: https://issues.rudder.io/issues/22645
  */
 object RudderConfigInit {
-  private case class InitError(msg: String) extends Throwable(msg, null, false, false)
-
   import RudderParsedProperties._
+
+  /**
+   * Catch all exception during initialization that would prevent initialization.
+   * All exception are catched and will stop the application on boot.
+   * 
+   * Throwing this is more transparent, otherwise the raw error could be unclear
+   */
+  sealed abstract class InitError(val msg: String, val cause: Option[Throwable])
+      extends Throwable(msg, cause.orNull, false, false)
+
+  final case class InitConfigValueError(configKey: String, errMsg: String, override val cause: Option[Throwable])
+      extends InitError(
+        s"Config value error for '$configKey': $errMsg",
+        cause
+      )
 
   def init(): RudderServiceApi = {
 

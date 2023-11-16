@@ -186,6 +186,8 @@ rudder.batch.reportsCleaner.deleteLogReport.TTL=2x
 # you need ~65GB for a month back of data).
 # There is no archive state for compliance levels.
 #
+# Note that 0 (the default value) means that cleaning never occurs.
+#
 rudder.batch.reportscleaner.compliancelevels.delete.TTL=8
 
 #
