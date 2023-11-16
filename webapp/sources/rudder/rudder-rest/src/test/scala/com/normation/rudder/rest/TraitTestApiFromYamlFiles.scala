@@ -38,6 +38,8 @@
 package com.normation.rudder.rest
 
 import better.files._
+import com.normation.BoxSpecMatcher
+import com.normation.JsonSpecMatcher
 import com.normation.box.IOManaged
 import com.normation.errors._
 import com.normation.errors.IOResult
@@ -66,6 +68,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.LiftRules
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
+import org.specs2.matcher.Matcher
 import org.specs2.mutable._
 import org.specs2.specification.core.Fragment
 import org.specs2.specification.core.Fragments
@@ -136,7 +139,7 @@ object TraitTestApiFromYamlFiles {
 
 }
 
-trait TraitTestApiFromYamlFiles extends Specification {
+trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with JsonSpecMatcher {
 
   // source directory for yaml file, must be in the test class path (accessed as a resource).
   // For example, if yaml test files are under src/test/resources/api, then just use "api" here
@@ -284,18 +287,13 @@ trait TraitTestApiFromYamlFiles extends Specification {
     }
   }
 
-  def cleanBreakline(text: String) = {
-    val cleaned = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
-    net.liftweb.json.parseOpt(cleaned).map(net.liftweb.json.prettyRender).getOrElse(cleaned)
-  }
   def cleanResponse(r: LiftResponse): (Int, String) = {
     val response = r.toResponse.asInstanceOf[InMemoryResponse]
-    val resp     = cleanBreakline(new String(response.data, "UTF-8"))
+    val resp     = new String(response.data, "UTF-8")
     (response.code, resp)
   }
-
-  // a way to only test some files in do test. Let it empty to ex on all.
-  def doTest(limitToFiles: List[String] = Nil) = {
+// a way to only test some files in do test. Let it empty to ex on all.
+  def doTest(limitToFiles: List[String] = Nil, semanticJson: Boolean = false) = {
     ///// tests ////
     val restTest = new RestTest(liftRules)
 
@@ -305,6 +303,20 @@ trait TraitTestApiFromYamlFiles extends Specification {
       readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, _.endsWith(".yml")).runNow
     } else {
       readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, f => limitToFiles.exists(n => f.endsWith(n))).runNow
+    }
+
+    def equalsBox[A](m: Matcher[A])(name: String): Matcher[Box[A]]      = (_: Box[A]).mustMatch(m, name)
+    // Full(1) must equalsBoxStrict(1)
+    def equalsBoxStrict[A](a: A)(name: String):    Matcher[Box[A]]      = equalsBox[A](be_==(a))(name)
+    // Full(1) must equalsBoxJson("[3, 4]")
+    def compareJson(s: String)(name: String):      Matcher[String]      =
+      if (semanticJson) equalsJsonSemanticAka(s, name) else equalsJsonAka(s, name)
+    def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s)(name))(name)
+
+    // Full(200, "[3,4]") must equalsResponseCodeAndContent((200, "[3, 4]"))
+    def equalsResponseCodeAndContent(a: (Int, String)): Matcher[Box[(Int, String)]] = {
+      (equalsBoxStrict(a._1)("response code") ^^ { (t: Box[(Int, String)]) => t.map(_._1) }
+      and (equalsBoxJson(a._2)("response content") ^^ { (t: Box[(Int, String)]) => t.map(_._2) }))
     }
 
     Fragments.foreach(files) {
@@ -338,10 +350,8 @@ trait TraitTestApiFromYamlFiles extends Specification {
                   mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
                   // authorize space in response formating
-                  val expected = cleanBreakline(test.responseContent)
-
                   restTest.execRequestResponse(mockReq)(response =>
-                    response.map(cleanResponse(_)) must beEqualTo(Full((test.responseCode, expected)))
+                    response.map(cleanResponse(_)) must equalsResponseCodeAndContent((test.responseCode, test.responseContent))
                   )
                 }
             }

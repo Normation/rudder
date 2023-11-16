@@ -42,14 +42,16 @@ import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
+import org.specs2.matcher.NoShouldExpectations
 import org.specs2.mutable.Specification
 
 /**
  * Here we manage all the initialisation of services and database
  * state for the full example (after/before class).
  */
-trait BoxSpecMatcher extends Specification with Loggable {
+trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectations {
 
   /*
    * helpers for Box
@@ -82,6 +84,8 @@ trait BoxSpecMatcher extends Specification with Loggable {
     }
 
     def mustFullEq(res: T): MatchResult[Any] = matchRes((x: T) => x === res)
+
+    def mustMatch(m: Matcher[T], name: String): MatchResult[Any] = matchRes((x: T) => (x aka name) must m)
 
     def mustFull: MatchResult[Any] = matchRes((x: T) => ok(s"Got a ${x}"))
 
