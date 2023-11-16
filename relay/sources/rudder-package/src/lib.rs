@@ -12,6 +12,7 @@ mod dependency;
 mod plugin;
 mod repo_index;
 mod repository;
+mod signature;
 mod versions;
 mod webapp_xml;
 
@@ -27,6 +28,7 @@ const PACKAGES_FOLDER: &str = "/var/rudder/packages";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
 const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
+const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg";
 
 /// CLI entry point
 pub fn run() -> Result<()> {

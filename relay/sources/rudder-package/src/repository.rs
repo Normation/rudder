@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::config::{Configuration, Credentials};
+use std::{fs::File, path::Path};
+
 use anyhow::{bail, Result};
-use reqwest::{blocking::Client, blocking::Response, Proxy, StatusCode, Url};
-use sha2::{Digest, Sha512};
-use std::{fs::File, io, path::Path};
+use reqwest::{
+    blocking::{Client, Response},
+    Proxy, StatusCode, Url,
+};
+
+use crate::config::{Configuration, Credentials};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -68,24 +72,16 @@ impl Repository {
         self.get("")?;
         Ok(())
     }
-
-    /// Returns hexadecimal encoded sha512 hash of the file
-    fn file_sha512(path: &Path) -> Result<String> {
-        let mut hasher = Sha512::new();
-        let mut file = File::open(path)?;
-        io::copy(&mut file, &mut hasher)?;
-        let hash = hasher.finalize();
-        Ok(base16ct::lower::encode_string(&hash))
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs::read_to_string;
+
+    use tempfile::NamedTempFile;
+
     use super::Repository;
     use crate::config::Configuration;
-    use std::fs::read_to_string;
-    use std::path::Path;
-    use tempfile::NamedTempFile;
 
     #[test]
     fn it_downloads_files() {
@@ -95,10 +91,5 @@ mod tests {
         repo.download("rpm/rudder_rpm_key.pub", dst.path()).unwrap();
         let contents = read_to_string(dst.path()).unwrap();
         assert!(contents.starts_with("-----BEGIN PGP PUBLIC KEY BLOCK----"))
-    }
-
-    #[test]
-    fn it_hashes_files() {
-        assert_eq!(Repository::file_sha512(Path::new("tests/hash/poem.txt")).unwrap(), "5074b6b33568c923c70931ed89a4182aeb5f1ecffaac10067149211a0466748c577385e9edfcefc6b83c2f407e70718d529e07f19a1dab84df1b4b2cd03faba6");
     }
 }

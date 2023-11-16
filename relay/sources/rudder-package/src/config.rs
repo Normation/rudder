@@ -131,9 +131,11 @@ impl From<RawConfiguration> for Configuration {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{Configuration, Credentials, ProxyConfiguration, SecretString};
-    use pretty_assertions::assert_eq;
     use std::path::Path;
+
+    use pretty_assertions::assert_eq;
+
+    use crate::config::{Configuration, Credentials, ProxyConfiguration, SecretString};
 
     #[test]
     fn it_parses_default_config_file() {

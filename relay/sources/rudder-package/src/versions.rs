@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{bail, Error, Result};
 use core::fmt;
+use std::{cmp::Ordering, fmt::Display, str::FromStr};
+
+use anyhow::{bail, Error, Result};
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use std::str::FromStr;
-use std::{cmp::Ordering, fmt::Display};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct ArchiveVersion {
@@ -213,9 +213,10 @@ impl Display for PluginVersion {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
+
+    use super::*;
 
     #[rstest]
     #[case("7.0.0~alpha2", 7, 0, 0, "~alpha2")]

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::CONFIG_PATH;
 use clap::Parser;
+
+use crate::CONFIG_PATH;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

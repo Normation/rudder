@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::archive;
-use crate::versions;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::dependency::Dependencies;
+use serde::{Deserialize, Serialize};
+
+use crate::{archive, dependency::Dependencies, versions};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Metadata {

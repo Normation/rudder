@@ -115,12 +115,13 @@ install: build
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
 
-	# rudder-package binary
+	# rudder-package new implementation
 	install -m 755 rudder-package/target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
-	# rudder packaging
+	install -m 755 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
+	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+	# rudder-pkg kept as backup for now
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
-	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
 	cp -r rudder-pkg/lib/* $(DESTDIR)/opt/rudder/share/python/

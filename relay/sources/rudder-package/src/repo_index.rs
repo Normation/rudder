@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::plugin;
 use serde::{Deserialize, Serialize};
+
+use crate::plugin;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RepoIndex(Vec<Plugin>);
@@ -17,13 +18,12 @@ pub struct Plugin {
 
 #[cfg(test)]
 mod tests {
-    use crate::archive;
-    use crate::versions;
+    use std::{collections::HashMap, fs, str::FromStr};
+
+    use pretty_assertions::assert_eq;
 
     use super::*;
-    use pretty_assertions::assert_eq;
-    use std::str::FromStr;
-    use std::{collections::HashMap, fs};
+    use crate::{archive, versions};
 
     #[test]
     fn test_plugin_index_parsing() {

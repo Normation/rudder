@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use std::{process::Command, str};
+
 use log::{debug, error};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{process::Command, str};
 use which::which;
 
-use crate::cmd::RudderCmdOutput;
+use crate::cmd::CmdOutput;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Dependencies {
@@ -72,18 +73,15 @@ impl IsInstalled for PythonDependency {
 
 impl IsInstalled for AptDependency {
     fn is_installed(&self) -> bool {
-        let mut binding1 = Command::new("dpkg");
-        let cmd1 = binding1.arg("-l");
+        let mut binding = Command::new("dpkg");
+        let cmd = binding.arg("-l");
         // Retrieve package list
-        let package_list_output = RudderCmdOutput {
-            command: format!("{:?}", cmd1),
-            output: match cmd1.output() {
-                Ok(a) => a,
-                Err(e) => {
-                    debug!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
-                    return false;
-                }
-            },
+        let package_list_output = match CmdOutput::new(cmd) {
+            Ok(a) => a,
+            Err(e) => {
+                debug!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
+                return false;
+            }
         };
         debug!("{}", package_list_output);
         let re = Regex::new(&format!(r"^ii\s+{}\s+.*", self.0)).unwrap();
@@ -101,17 +99,13 @@ impl IsInstalled for RpmDependency {
     fn is_installed(&self) -> bool {
         let mut binding = Command::new("rpm");
         let cmd = binding.arg("-q").arg(self.0.clone());
-        let result = RudderCmdOutput {
-            command: format!("{:?}", cmd),
-            output: match cmd.output() {
-                Ok(a) => a,
-                Err(e) => {
-                    debug!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
-                    return false;
-                }
-            },
+        let result = match CmdOutput::new(cmd) {
+            Ok(a) => a,
+            Err(e) => {
+                debug!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
+                return false;
+            }
         };
-        debug!("{}", result);
         if !result.output.status.success() {
             debug!("Could not find 'rpm' base dependency '{}'", self.0);
         } else {
@@ -138,8 +132,9 @@ impl IsInstalled for BinaryDependency {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
     #[test]
     fn test_rpm_exec() {
         let a = RpmDependency(String::from_str("nonexistingpackage").unwrap());

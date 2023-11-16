@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::*, io::BufWriter};
 
-use crate::plugin;
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
+use crate::plugin;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
@@ -48,14 +48,15 @@ pub struct InstalledPlugin {
 
 #[cfg(test)]
 mod tests {
-    use crate::archive;
+    use std::str::FromStr;
 
-    use super::*;
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
     use pretty_assertions::assert_eq;
-    use std::str::FromStr;
     use tempfile::TempDir;
+
+    use super::*;
+    use crate::archive;
 
     #[test]
     fn test_plugin_database_parsing() {

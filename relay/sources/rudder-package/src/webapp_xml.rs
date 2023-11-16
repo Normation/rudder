@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::Result;
 use std::{collections::HashMap, fs::File, io::BufReader};
+
+use anyhow::Result;
 use xmltree::Element;
 
 pub struct WebappXml {
@@ -104,12 +105,13 @@ impl WebappXml {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::{fs, path};
+
     use pretty_assertions::assert_eq;
     use rstest::rstest;
-    use std::fs;
-    use std::path;
     use tempfile::TempDir;
+
+    use super::*;
 
     #[rstest]
     #[case("enable_test1.xml", "extra_jar.jar")]

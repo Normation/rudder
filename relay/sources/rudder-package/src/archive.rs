@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::{
-    plugin::Metadata, webapp_xml::WebappXml, PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
-    WEBAPP_XML_PATH,
-};
-use anyhow::{bail, Context, Ok, Result};
-use ar::Archive;
 use core::fmt;
-use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
@@ -17,7 +10,14 @@ use std::{
     str,
 };
 
-use crate::database::Database;
+use anyhow::{bail, Context, Ok, Result};
+use ar::Archive;
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    database::Database, plugin::Metadata, webapp_xml::WebappXml, PACKAGES_DATABASE_PATH,
+    PACKAGES_FOLDER, WEBAPP_XML_PATH,
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum PackageType {
@@ -186,9 +186,9 @@ fn read_metadata(path: &str) -> Result<Metadata> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use tempfile::tempdir;
+
+    use super::*;
     extern crate dir_diff;
 
     #[test]
