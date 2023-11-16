@@ -2,7 +2,7 @@
 <REQUEST>
   <CONTENT>
     <ACCESSLOG>
-      <LOGDATE>2023-07-19 17:20:27</LOGDATE>
+      <LOGDATE>2023-11-16 11:26:18</LOGDATE>
     </ACCESSLOG>
     <BATTERIES>
       <CAPACITY>50000</CAPACITY>
@@ -22,7 +22,7 @@
       <MSN>0</MSN>
       <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
       <SMODEL>VirtualBox</SMODEL>
-      <SSN>9c46d097-140d-af43-ab0e-9e1a41a6d37d</SSN>
+      <SSN>945e2666-01fc-764c-8514-1ba27ea005b9</SSN>
     </BIOS>
     <CONTROLLERS>
       <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
@@ -129,45 +129,68 @@
       <TYPE>SATA controller</TYPE>
       <VENDORID>8086</VENDORID>
     </CONTROLLERS>
+    <CPUS>
+      <ARCH>i386</ARCH>
+      <CORE>1</CORE>
+      <FAMILYNUMBER>25</FAMILYNUMBER>
+      <MANUFACTURER>AMD</MANUFACTURER>
+      <MODEL>68</MODEL>
+      <NAME>AMD Ryzen 7 PRO 6850U with Radeon Graphics</NAME>
+      <STEPPING>1</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <ENCRYPT_NAME>n/a</ENCRYPT_NAME>
+      <ENCRYPT_STATUS>Yes</ENCRYPT_STATUS>
+      <FILESYSTEM>xfs</FILESYSTEM>
+      <FREE>10782</FREE>
+      <SERIAL>3380eb57-3aed-42c8-ba2f-df25ba62157b</SERIAL>
+      <TOTAL>13706</TOTAL>
+      <TYPE>/</TYPE>
+      <VOLUMN>/dev/mapper/cs-root</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>xfs</FILESYSTEM>
+      <FREE>805</FREE>
+      <SERIAL>fc72d7ac-ee4a-4181-941f-1b2e60c235e6</SERIAL>
+      <TOTAL>1014</TOTAL>
+      <TYPE>/boot</TYPE>
+      <VOLUMN>/dev/sda1</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>vboxsf</FILESYSTEM>
+      <FREE>442660</FREE>
+      <TOTAL>870384</TOTAL>
+      <TYPE>/vagrant</TYPE>
+      <VOLUMN>vagrant</VOLUMN>
+    </DRIVES>
     <ENVS>
-      <KEY>LOGNAME</KEY>
-      <VAL>root</VAL>
+      <KEY>SELINUX_LEVEL_REQUESTED</KEY>
+      <VAL></VAL>
     </ENVS>
     <ENVS>
-      <KEY>SUDO_GID</KEY>
-      <VAL>1000</VAL>
+      <KEY>which_declare</KEY>
+      <VAL>declare -f</VAL>
     </ENVS>
     <ENVS>
-      <KEY>SHELL</KEY>
-      <VAL>/bin/bash</VAL>
+      <KEY>DEBIAN_FRONTEND</KEY>
+      <VAL>noninteractive</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>XDG_SESSION_ID</KEY>
+      <VAL>3</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>ADMIN_PASSWORD</KEY>
+      <VAL>admin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_CONNECTION</KEY>
+      <VAL>10.0.2.2 56504 10.0.2.15 22</VAL>
     </ENVS>
     <ENVS>
       <KEY>PATH</KEY>
-      <VAL>/sbin:/bin:/usr/sbin:/usr/bin</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>PWD</KEY>
-      <VAL>/home/vagrant</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>USER</KEY>
-      <VAL>root</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>SUDO_COMMAND</KEY>
-      <VAL>/bin/sh -c /opt/rudder/bin/run-inventory --local=/tmp/centos8.ocs</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>MAIL</KEY>
-      <VAL>/var/mail/root</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>HOME</KEY>
-      <VAL>/root</VAL>
-    </ENVS>
-    <ENVS>
-      <KEY>TERM</KEY>
-      <VAL>unknown</VAL>
+      <VAL>/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/sbin:/usr/sbin:/sbin:/usr/sbin</VAL>
     </ENVS>
     <ENVS>
       <KEY>INFOMGR_BYPASS_NONSA</KEY>
@@ -178,16 +201,164 @@
       <VAL>1000</VAL>
     </ENVS>
     <ENVS>
-      <KEY>SUDO_USER</KEY>
-      <VAL>vagrant</VAL>
+      <KEY>HISTCONTROL</KEY>
+      <VAL>ignoredups</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS_NAME</KEY>
+      <VAL>CentOS</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_COMMAND</KEY>
+      <VAL>/bin/bash -l</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USER</KEY>
+      <VAL>demo-normation:chiingimoz6iet7V@</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS_COMPATIBLE_VERSION</KEY>
+      <VAL>8</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HISTSIZE</KEY>
+      <VAL>1000</VAL>
     </ENVS>
     <ENVS>
       <KEY>SHLVL</KEY>
-      <VAL>3</VAL>
+      <VAL>8</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>XDG_RUNTIME_DIR</KEY>
+      <VAL>/run/user/1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LOGNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PM</KEY>
+      <VAL>yum</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_CLIENT</KEY>
+      <VAL>10.0.2.2 56504 22</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DOWNLOAD_USER</KEY>
+      <VAL>demo-normation</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS_VERSION</KEY>
+      <VAL>8</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MAIL</KEY>
+      <VAL>/var/spool/mail/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DBUS_SESSION_BUS_ADDRESS</KEY>
+      <VAL>unix:path=/run/user/1000/bus</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>REPO_PREFIX</KEY>
+      <VAL>rtf/</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>vt100</VAL>
     </ENVS>
     <ENVS>
       <KEY>_</KEY>
       <VAL>/bin/perl</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>FORGET_CREDENTIALS</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHELL</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PM_INSTALL</KEY>
+      <VAL>yum -y install</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS_COMPATIBLE</KEY>
+      <VAL>RHEL</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LESSOPEN</KEY>
+      <VAL>||/usr/bin/lesspipe.sh %s</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_GID</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/var/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_ROLE_REQUESTED</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>OS_MAJOR_VERSION</KEY>
+      <VAL>8</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DISABLE_AUTODETECT_NETWORKS</KEY>
+      <VAL>yes</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>UNSUPPORTED</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DOWNLOAD_PASSWORD</KEY>
+      <VAL>chiingimoz6iet7V</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>ALLOWEDNETWORK</KEY>
+      <VAL>192.168.2.0/24</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PLUGINS_VERSION</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>BASEDIR</KEY>
+      <VAL>/opt/rudder/share/commands</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_USE_CURRENT_RANGE</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOSTNAME</KEY>
+      <VAL>node2</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_USER</KEY>
+      <VAL>vagrant</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>RUDDER_BIN</KEY>
+      <VAL>/bin/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USE_HTTPS</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>BASH_FUNC_which%%</KEY>
+      <VAL>() {  $local name=&quot;$1&quot;; $local IFS_SAVE=&quot;$IFS&quot;; IFS=:; for directory in $PATH; do if [ -x &quot;${directory}/${name}&quot; ]; then echo &quot;${directory}/${name}&quot;; IFS=&quot;$IFS_SAVE&quot;; return 0; fi; done; IFS=&quot;$IFS_SAVE&quot;; return 1}</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/root</VAL>
     </ENVS>
     <FIREWALL>
       <STATUS>off</STATUS>
@@ -196,18 +367,21 @@
       <CHASSIS_TYPE>Other</CHASSIS_TYPE>
       <CHECKSUM>131071</CHECKSUM>
       <DATELASTLOGGEDUSER>Tue Mar 8 16:24:35</DATELASTLOGGEDUSER>
-      <DNS>10.0.2.3</DNS>
-      <ETIME>6</ETIME>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DNS>10.0.2.2</DNS>
+      <ETIME>9</ETIME>
+      <IPADDR>10.0.2.15/192.168.2.4</IPADDR>
       <LASTLOGGEDUSER>wtmp</LASTLOGGEDUSER>
       <MEMORY>208</MEMORY>
-      <NAME>centos8</NAME>
+      <NAME>node2</NAME>
       <OSCOMMENTS>#1 SMP Thu Feb 10 16:11:23 UTC 2022</OSCOMMENTS>
       <OSNAME>CentOS Stream release 8</OSNAME>
       <OSVERSION>4.18.0-365.el8.x86_64</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORT>AMD Ryzen 7 PRO 6850U with Radeon Graphics</PROCESSORT>
       <SWAP>1639</SWAP>
-      <UUID>9c46d097-140d-af43-ab0e-9e1a41a6d37d</UUID>
+      <UUID>945e2666-01fc-764c-8514-1ba27ea005b9</UUID>
       <VMSYSTEM>VirtualBox</VMSYSTEM>
-      <WORKGROUP>home</WORKGROUP>
     </HARDWARE>
     <INPUTS>
       <CAPTION>AT Translated Set 2 keyboard</CAPTION>
@@ -467,13 +641,90 @@
       <MANUFACTURER>VBX</MANUFACTURER>
       <SERIAL>03000400</SERIAL>
     </MONITORS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <IPMASK>255.0.0.0</IPMASK>
+      <IPSUBNET>127.0.0.0</IPSUBNET>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <STATUS>Up</STATUS>
+      <TYPE>loopback</TYPE>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS6>::1</IPADDRESS6>
+      <IPMASK6>fff0::</IPMASK6>
+      <IPSUBNET6>::</IPSUBNET6>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <STATUS>Up</STATUS>
+      <TYPE>loopback</TYPE>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>enp0s3</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPGATEWAY>10.0.2.2</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:12:5d:b1</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>enp0s3</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fe12:5db1</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:12:5d:b1</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>enp0s8</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>192.168.2.4</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.2.0</IPSUBNET>
+      <MACADDR>08:00:27:de:4a:c5</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>enp0s8</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fede:4ac5</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:de:4a:c5</MACADDR>
+      <PCIID>8086:100E:8086:001E</PCIID>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SPEED>1000</SPEED>
+      <STATUS>Up</STATUS>
+      <TYPE>ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
     <OPERATINGSYSTEM>
       <ARCH>x86_64</ARCH>
-      <BOOT_TIME>2023-07-19 16:37:27</BOOT_TIME>
-      <DNS_DOMAIN></DNS_DOMAIN>
-      <FQDN>centos8</FQDN>
+      <BOOT_TIME>2023-11-16 11:24:44</BOOT_TIME>
+      <DNS_DOMAIN>rudder.local</DNS_DOMAIN>
+      <FQDN>node2.rudder.local</FQDN>
       <FULL_NAME>CentOS Stream release 8</FULL_NAME>
-      <HOSTID>a8c0022a</HOSTID>
+      <HOSTID>a8c00402</HOSTID>
       <KERNEL_NAME>linux</KERNEL_NAME>
       <KERNEL_VERSION>4.18.0-365.el8.x86_64</KERNEL_VERSION>
       <NAME>CentOS</NAME>
@@ -491,60 +742,1261 @@
       <SIZE>16101</SIZE>
       <VG_UUID>JNwDNv-difv-LKif-DQEx-ZUOo-NY7s-62zNvV</VG_UUID>
     </PHYSICAL_VOLUMES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd --switched-root --system --deserialize 18</CMD>
+      <CPUUSAGE>1.0</CPUUSAGE>
+      <MEM>2.3</MEM>
+      <PID>1</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>240832</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthreadd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_gp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>3</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_par_gp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>4</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:0-kdmflush/253:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>5</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:0H-events_highpri]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1-xfs-conv/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:0-xfs-cil/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>8</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[mm_percpu_wq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>9</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_tasks_rude_]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>10</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_tasks_trace]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>11</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksoftirqd/0]</CMD>
+      <CPUUSAGE>0.1</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>12</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_sched]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>13</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[migration/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>14</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[watchdog/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>15</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cpuhp/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>16</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdevtmpfs]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>18</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[netns]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>19</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kauditd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>20</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khungtaskd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>21</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[oom_reaper]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>22</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[writeback]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>23</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kcompactd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>24</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksmd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>25</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[crypto]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>26</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kintegrityd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>27</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kblockd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>28</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[blkcg_punt_bio]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>29</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[tpm_dev_wq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>30</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[md]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>31</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[edac-poller]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>32</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[watchdogd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>33</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1H-kblockd]</CMD>
+      <CPUUSAGE>0.5</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>34</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:1-writeback]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>36</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kswapd0]</CMD>
+      <CPUUSAGE>3.1</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>68</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthrotld]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>170</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[acpi_thermal_pm]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>171</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kmpath_rdacd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>172</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kaluad]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>173</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ipv6_addrconf]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>174</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kstrp]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>175</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:2-xfs-buf/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>176</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:3-xfs-conv/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>297</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[iprt-VBoxWQueue]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>446</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata_sff]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>457</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>459</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_tmf_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>460</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>462</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_tmf_1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>464</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>465</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:2-events_unbound]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>466</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_tmf_2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>467</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u2:3]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>468</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdmflush/253:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>543</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdmflush/253:1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>552</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfsalloc]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>576</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs_mru_cache]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>577</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-buf/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>578</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-conv/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>579</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-cil/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>580</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-reclaim/dm-]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>581</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-eofblocks/d]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>582</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-log/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>583</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfsaild/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>584</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-journald</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>677</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>100356</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:4-xfs-conv/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>710</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-udevd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>711</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>116428</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-buf/sda1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>714</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-conv/sda1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>715</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-cil/sda1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>716</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-reclaim/sda]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>717</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-eofblocks/s]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>718</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfs-log/sda1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>719</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[xfsaild/sda1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>720</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/auditd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>793</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>148796</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sedispatch</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>795</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>48636</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/lsmd -d</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>817</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>libstor+</USER>
+      <VIRTUALMEMORY>19744</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/polkit-1/polkitd --no-debug</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>818</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>polkitd</USER>
+      <VIRTUALMEMORY>1630252</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/smartd -n -q never</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>820</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>50684</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only</CMD>
+      <CPUUSAGE>0.1</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>823</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>dbus</USER>
+      <VIRTUALMEMORY>64796</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sssd -i --logger=files</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>826</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>192452</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/chronyd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>837</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>chrony</USER>
+      <VIRTUALMEMORY>151164</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sshd -D -oCiphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc -oMACs=hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512 -oGSSAPIKexAlgorithms=gss-curve25519-sha256-,gss-nistp256-sha256-,gss-group14-sha256-,gss-group16-sha512-,gss-gex-sha1-,gss-group14-sha1- -oKexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -oHostKeyAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oPubkeyAcceptedKeyTypes=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oCASignatureAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-ed25519,rsa-sha2-256,rsa-sha2-512,ssh-rsa</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>849</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>94528</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/platform-python -Es /usr/sbin/tuned -l -P</CMD>
+      <CPUUSAGE>1.3</CPUUSAGE>
+      <MEM>2.3</MEM>
+      <PID>850</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>569912</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/sssd/sssd_be --domain implicit_files --uid 0 --gid 0 --logger=files</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>852</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>201092</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/sssd/sssd_nss --uid 0 --gid 0 --logger=files</CMD>
+      <CPUUSAGE>0.1</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>858</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>202492</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd-logind</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>875</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>92212</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/atd -f</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>882</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>44036</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/crond -n</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>883</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>37020</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:5-xfs-conv/dm-0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>889</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/agetty -o -p -- \u --noclear tty1 linux</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>890</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>13660</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/VBoxService --pidfile /var/run/vboxadd-service.sh</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1151</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>326952</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/lib/systemd/systemd --user</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>1165</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>89512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>(sd-pam)</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1168</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>309864</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant [priv]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1630</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>153504</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant@notty</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1633</PID>
+      <STARTED>2023-11-16 11:24</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>153504</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/rsyslogd -n</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1901</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>214392</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: [accepted]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1994</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>92404</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: [net]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1996</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>sshd</USER>
+      <VIRTUALMEMORY>92404</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/NetworkManager --no-daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2282</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>465888</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sudo -E -H bash -l</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2762</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>130104</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>bash -l</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2764</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12728</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>bash -l</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2785</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12728</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /usr/local/bin/rudder-setup setup-agent ci/8.0 server</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>2878</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>13520</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>head -n 1G</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2879</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>7324</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:6-cgroup_pidlist_destroy]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2942</PID>
+      <STARTED>2023-11-16 11:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-execd --no-fork</CMD>
+      <CPUUSAGE>0.7</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>3573</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>128060</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-serverd --graceful-detach=600 --no-fork --inform</CMD>
+      <CPUUSAGE>2.0</CPUUSAGE>
+      <MEM>1.1</MEM>
+      <PID>3575</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>130704</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/share/commands/agent-inventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.5</MEM>
+      <PID>4751</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12860</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/share/commands/agent-run -l -N -D force_inventory -b doInventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.5</MEM>
+      <PID>4790</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12992</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/cf-agent -I -D info -Cnever -K -b doInventory -D force_inventory</CMD>
+      <CPUUSAGE>58.0</CPUUSAGE>
+      <MEM>10.8</MEM>
+      <PID>4887</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>146320</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>cat</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>4888</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>7452</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/share/commands/../lib/timestamp</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.4</MEM>
+      <PID>4889</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12728</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>tee /var/rudder/tmp/reports//2023-11-16T10:26:17+00:00@25990bc8-2076-43fa-af76-120bfc9d7ba1.log</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>4890</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>7316</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/share/commands/agent-run -l -N -D force_inventory -b doInventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>4891</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12992</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>awk -v info=0 -v full_strings=0 -v summary_only=0 -v quiet=0 -v multihost=0 -v green= -v darkgreen= -v red= -v yellow= -v magenta= -v normal= -v white= -v cyan= -v dblue= -v dgreen= -v timing=0 -v has_fflush=OK -v full_compliance=1 -v partial_run=1 -v error_fail=0 -v noncompliant_fail=0 -f /opt/rudder/share/commands/../lib/reports.awk</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.8</MEM>
+      <PID>4892</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>25776</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory/node2-25990bc8-2076-43fa-af76-120bfc9d7ba1.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>5015</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>9800</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/rudder-perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/var/rudder/tmp/inventory/node2-25990bc8-2076-43fa-af76-120bfc9d7ba1.ocs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>5020</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>9800</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>fusioninventory-agent: running task Inventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>23.8</MEM>
+      <PID>5021</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>130724</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.6</MEM>
+      <PID>5035</PID>
+      <STARTED>2023-11-16 11:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>55824</VIRTUALMEMORY>
+    </PROCESSES>
     <RUDDER>
       <AGENT>
         <AGENT_CERT>-----BEGIN CERTIFICATE-----
-MIIFqzCCA5OgAwIBAgIUGx8h5Ltqn1mXjD49s7NQO1aV/BowDQYJKoZIhvcNAQEL
-BQAwNjE0MDIGCgmSJomT8ixkAQEMJGE5ZGYzOWMzLWFlOWItNDQ5Yi1hODYwLTU4
-MWEwM2YyYzUwMjAeFw0yMzA3MTkxNDM4MzNaFw0zMzA3MTYxNDM4MzNaMDYxNDAy
-BgoJkiaJk/IsZAEBDCRhOWRmMzljMy1hZTliLTQ0OWItYTg2MC01ODFhMDNmMmM1
-MDIwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDoOza69iYvOfG1Iur3
-hYVBcMPm77fXfQZ7956oOlIf/kDhwR0so+127E1v+FsvBaVy//DhVZe+OJbE+yjs
-b9ByWXNzlDhNytjikh6huMnFx70PqoZgs63rJXA97mm4sdc+3k6VDuHLuQAsRsaH
-sxLKO18FKXe5l2oAXGcI6eKxGL5DZat6W/juwK9HvovI2sWuKFZSih6C3VvErqjL
-FKP/zwhxfFiU1D4wFB6BJ+++/tL+oaU76VM+fKXDLM2GDQTRPTtT+LGapSzMrcz2
-KKV28/SSM4LIIPI8RFTrK74ZrQs644qfNGwbH3yt79TDxH6LFFWY7sNmhszoSFhN
-brYE7WOnDltAKdjAh25IsCdUM2FrSXBDPdlPMCx6wJRpFzdi56YagPYWka41xLv/
-lxil9Oc/VzGuDsJwG0HAdnhyGdkTgClBsrAsGbMx0MFd63+heoY1FBj6bqQWTHHu
-vRXvoseJyYOx0E1WzBLoyyWcYi12CncHRKUcUB5raSxfdLY7CN3WBOVdJoM5YSFF
-RHWIpGMOefcYEKzs0Jl2bx96e/rjAfDRp84QrH0m9s8AOkMMa+UZZBlVLw3OatTF
-jiTHAVvEj9axtY7TG/ld2uWscWh+KEU5fccDPNUJ+7UfAaESveMAC950Ou7TiR3H
-p+Hrar29f8GV1Sd4dWJj7jO0SQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD
-VR0OBBYEFAU4yTECx7V9OOX+ydfx8g8G11NCMHEGA1UdIwRqMGiAFAU4yTECx7V9
-OOX+ydfx8g8G11NCoTqkODA2MTQwMgYKCZImiZPyLGQBAQwkYTlkZjM5YzMtYWU5
-Yi00NDliLWE4NjAtNTgxYTAzZjJjNTAyghQbHyHku2qfWZeMPj2zs1A7VpX8GjAL
-BgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBABKo6V0HrbMMZOHpsxr5kqpi
-73kwhYc9pa4iC3SejGUcLBncCWYdeSBT23wOcAZqQSrYsqCSOdpCY9zvsUw87r/d
-t6MAjbAJ4E+OmlejOvOcisY4c/Fh0dRv4Hmf1eEriUeov7NWsJGTKgnS5ulK1WCk
-KFGoCt0TSUjNzJCHcUf1zWyUFWl5cvNTePfNkZ2ieaAML/3inElvb2GnkvzqT4/x
-OD35DyGSo0efk2u6bsLcRnotuhTZ0xft7aleb8E8XmQbCNo6qtSD1AU/Bkzkrw+4
-f/B/nP7xXt9UMhEkEegbmmxV9CNwGby4nME8eg6WQ3CA9yjPnt/yh4oKiWmxqg1O
-7rJlJ3gSVayJqVQWEu4QgH4rn7YItxmLieMmi5O1NzFP2bJqKTYKzFtV3JzwC6jG
-af4fU8/AgfjBMj7W7wTbpyZvyXP8ygyflRKg74P9fd82YvdnZTIIx9VPVlQqwK2o
-7gxmb5DcrAfHPUBiOwRcKe3noZKaynKdkJ6+3+uEWLwxPX4zMBeLOlwJbjyviAHI
-Q8BbcOV7xJiPrdebND/+r/g7b+9swZOgMgvL9fxfnDehuLuWqb+tJLNkw208z5uk
-OzwbCsNlCGrwk5BUfESkrOb3BlAJFTo+MtVIiyeiQfyZnHEwzNREgX3JByKpMXVY
-URK7R9lXRbp68XylKLLX
+MIIFqzCCA5OgAwIBAgIUZbrmhjS80Sy9eG/uPFTNN8RRb4gwDQYJKoZIhvcNAQEL
+BQAwNjE0MDIGCgmSJomT8ixkAQEMJDI1OTkwYmM4LTIwNzYtNDNmYS1hZjc2LTEy
+MGJmYzlkN2JhMTAeFw0yMzExMTYxMDI2MDFaFw0zMzExMTMxMDI2MDFaMDYxNDAy
+BgoJkiaJk/IsZAEBDCQyNTk5MGJjOC0yMDc2LTQzZmEtYWY3Ni0xMjBiZmM5ZDdi
+YTEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDKzT/jmon1T6cDbY3F
+3ImHuk0uu2/9mdc47BS3XkHPIAJzQOK2IKSaVTC9A8mKWBhYFznmCVkyxI56zxoA
+pIsBAV5H39B5J0GZSjvHu1YxzZCPXggBVAUmpf3B3gK71cATvkX9YZJKvwvSYwiY
+ixfJJNdRWGXBNq07bQs9uPuuiKOkCIc5S01ucO0lC9AhV7W49Vu5EyKiYLUHBf2j
+ioq75DNKVRL6hShp4bdi2SkEETVY6jN6fVK4pg6IW0pAVEOUtblqf/Eo3LRV9dgy
+1glNj1oxYVcDD0sQojXwkS947pqaIhXNpA4Ck0+BSfbGSTnB8Z2hSKDI72t5fI59
+bzDu8EEttHhqiS6gVHhfYDnKJfZUmWnKeIXXP4tbdFH2kYnwmm9h54iCXICj9FFP
+3qcVf0O0vtyVAlDZSciJdvqrmsgzz+KcUEyYr+Tq0xQISvNFoyXFeFtkMXu6313h
+oJCC1xluwACE+6/u5YTVkqrQ82eA8dKCtWHqRnu40fDu3vR1WTNFumDiV9BfRGz5
+HgpbrN/AHE7yC8DFadY0QpYUt63ZULS2pauOWzBpopqdT9S/45iB4LNnUGzm4cFe
+1Lekz8SKPN5lF2KrJ+ImWfFB7Y3RJCKFUPFcot+5hpe5flsv8DxEfdlrL/J1GBfD
+cFUrgpTOi1Pn6ahyb3brsVo0qQIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD
+VR0OBBYEFNxdqeX+gmybe99QJ+cf8L5ntzXuMHEGA1UdIwRqMGiAFNxdqeX+gmyb
+e99QJ+cf8L5ntzXuoTqkODA2MTQwMgYKCZImiZPyLGQBAQwkMjU5OTBiYzgtMjA3
+Ni00M2ZhLWFmNzYtMTIwYmZjOWQ3YmExghRluuaGNLzRLL14b+48VM03xFFviDAL
+BgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAKnN+tqQ/581fvuWF4ZLrnXm
+hGKjADUzWs5kpUcM/8/YW71ZIiWg8RTJonC10X5tuatghpm3vz92YnCurxY/gCPe
+RgSG2ABMNkvQf7qz8Gmt7HesAaxf8RHd+LFHNams63pnd/Blal+q5zqNdIL32ylG
+9TMKTSLguYuVpBJ0wnoGGxbS7N/aniW5YtuKCp4DzCP0+heBUKwk/3XaG+RdgITq
+w8+aWi7t5ZIGdwBMWK0SDL+mvxgFdLTQV27O/aIo/shF67IwTLESiirn09aX+HGS
+epSxZjq7heYfzFbuTWrFn2r+dn8MwQgFOdLP29Mk+iKQuMha2lTpSDVmJVMAVTRW
+LnndnLf1OFfT4RA5TI0bFHTIWHIPQFq02gbTmXRZx4ygThfBNu6w0R1mhiSMXjHs
+IeJvI19415XZbDBCc4xPowflpJhwMHPKrHBFfCMESP2QmR3qHT7G43QoUYQfrxbF
+UHdytRhW44A+w660j7Pk7NVhjTll3bbf+DWH9m27zGPNX4FsZeMGn5fX64yJGqsK
+lfY8dfu8Ge7Mm0vZ7QrU76n3T6MnBNbYFYxoc8euMUc1nf3JpYQNSLFlZIB07a0s
+aCGRLX8os7aTSGQvE3D7y5E3p6yVx2PsZ97ityHcSqi6saB6cD+KMx3uFWTvkx6H
+Xc6377P0xsVaT7PheclC
 -----END CERTIFICATE-----
         </AGENT_CERT>
         <AGENT_NAME>cfengine-community</AGENT_NAME>
         <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
-MIICCgKCAgEA6Ds2uvYmLznxtSLq94WFQXDD5u+3130Ge/eeqDpSH/5A4cEdLKPt
-duxNb/hbLwWlcv/w4VWXvjiWxPso7G/Qcllzc5Q4TcrY4pIeobjJxce9D6qGYLOt
-6yVwPe5puLHXPt5OlQ7hy7kALEbGh7MSyjtfBSl3uZdqAFxnCOnisRi+Q2Wrelv4
-7sCvR76LyNrFrihWUooegt1bxK6oyxSj/88IcXxYlNQ+MBQegSfvvv7S/qGlO+lT
-PnylwyzNhg0E0T07U/ixmqUszK3M9iildvP0kjOCyCDyPERU6yu+Ga0LOuOKnzRs
-Gx98re/Uw8R+ixRVmO7DZobM6EhYTW62BO1jpw5bQCnYwIduSLAnVDNha0lwQz3Z
-TzAsesCUaRc3YuemGoD2FpGuNcS7/5cYpfTnP1cxrg7CcBtBwHZ4chnZE4ApQbKw
-LBmzMdDBXet/oXqGNRQY+m6kFkxx7r0V76LHicmDsdBNVswS6MslnGItdgp3B0Sl
-HFAea2ksX3S2Owjd1gTlXSaDOWEhRUR1iKRjDnn3GBCs7NCZdm8fenv64wHw0afO
-EKx9JvbPADpDDGvlGWQZVS8NzmrUxY4kxwFbxI/WsbWO0xv5XdrlrHFofihFOX3H
-AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
+MIICCgKCAgEAys0/45qJ9U+nA22NxdyJh7pNLrtv/ZnXOOwUt15BzyACc0DitiCk
+mlUwvQPJilgYWBc55glZMsSOes8aAKSLAQFeR9/QeSdBmUo7x7tWMc2Qj14IAVQF
+JqX9wd4Cu9XAE75F/WGSSr8L0mMImIsXySTXUVhlwTatO20LPbj7roijpAiHOUtN
+bnDtJQvQIVe1uPVbuRMiomC1BwX9o4qKu+QzSlUS+oUoaeG3YtkpBBE1WOozen1S
+uKYOiFtKQFRDlLW5an/xKNy0VfXYMtYJTY9aMWFXAw9LEKI18JEveO6amiIVzaQO
+ApNPgUn2xkk5wfGdoUigyO9reXyOfW8w7vBBLbR4aokuoFR4X2A5yiX2VJlpyniF
+1z+LW3RR9pGJ8JpvYeeIglyAo/RRT96nFX9DtL7clQJQ2UnIiXb6q5rIM8/inFBM
+mK/k6tMUCErzRaMlxXhbZDF7ut9d4aCQgtcZbsAAhPuv7uWE1ZKq0PNngPHSgrVh
+6kZ7uNHw7t70dVkzRbpg4lfQX0Rs+R4KW6zfwBxO8gvAxWnWNEKWFLet2VC0tqWr
+jlswaaKanU/Uv+OYgeCzZ1Bs5uHBXtS3pM/EijzeZRdiqyfiJlnxQe2N0SQihVDx
+XKLfuYaXuX5bL/A8RH3Zay/ydRgXw3BVK4KUzotT5+mocm9267FaNKkCAwEAAQ==
 -----END RSA PUBLIC KEY-----
         </CFENGINE_KEY>
         <OWNER>root</OWNER>
-        <POLICY_SERVER_HOSTNAME>rudder</POLICY_SERVER_HOSTNAME>
-        <POLICY_SERVER_UUID /></AGENT>
+        <POLICY_SERVER_HOSTNAME>server</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
       <AGENT_CAPABILITIES>
         <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
         <AGENT_CAPABILITY>jq</AGENT_CAPABILITY>
@@ -554,16 +2006,16 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
         <AGENT_CAPABILITY>http_reporting</AGENT_CAPABILITY>
         <AGENT_CAPABILITY>acl</AGENT_CAPABILITY>
       </AGENT_CAPABILITIES>
-      <HOSTNAME>centos8.rudder.local</HOSTNAME>
+      <HOSTNAME>node2.rudder.local</HOSTNAME>
       <SERVER_ROLES></SERVER_ROLES>
-      <UUID>a9df39c3-ae9b-449b-a860-581a03f2c502</UUID>
+      <UUID>25990bc8-2076-43fa-af76-120bfc9d7ba1</UUID>
     </RUDDER>
     <SOFTWARES>
       <ARCH>(none)</ARCH>
       <COMMENTS>gpg(Rudder Project (RPM release key) &lt;security@rudder-project.org&gt;)</COMMENTS>
       <FILESIZE>0</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
       <NAME>gpg-pubkey</NAME>
       <SYSTEM_CATEGORY>Public Keys</SYSTEM_CATEGORY>
       <VERSION>6f07d355-509cdb91</VERSION>
@@ -600,6 +2052,17 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <PUBLISHER>CentOS</PUBLISHER>
       <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
       <VERSION>5.3.0-1.module_el8.0.0+11+5b8c10bd</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Command-line JSON processor</COMMENTS>
+      <FILESIZE>450301</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>jq</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
+      <VERSION>1.6-8.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -1648,14 +3111,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
-      <COMMENTS>Command-line JSON processor</COMMENTS>
-      <FILESIZE>450349</FILESIZE>
+      <COMMENTS>A library for changing configuration files</COMMENTS>
+      <FILESIZE>96558</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>jq</NAME>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>augeas</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
-      <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
-      <VERSION>1.6-7.el8</VERSION>
+      <SYSTEM_CATEGORY>System Environment/Libraries</SYSTEM_CATEGORY>
+      <VERSION>1.12.0-8.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -2714,15 +4177,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>1.44-22.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>x86_64</ARCH>
-      <COMMENTS>A library for changing configuration files</COMMENTS>
-      <FILESIZE>96558</FILESIZE>
+      <ARCH>noarch</ARCH>
+      <COMMENTS>Arbitrary-size integer and float mathematics</COMMENTS>
+      <FILESIZE>695154</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>augeas</NAME>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>perl-Math-BigInt</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
-      <SYSTEM_CATEGORY>System Environment/Libraries</SYSTEM_CATEGORY>
-      <VERSION>1.12.0-8.el8</VERSION>
+      <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
+      <VERSION>1:1.9998.11-7.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -4804,21 +6267,22 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>2.28-189.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>x86_64</ARCH>
-      <COMMENTS>Configuration management and audit tool - agent</COMMENTS>
-      <FILESIZE>37892540</FILESIZE>
+      <ARCH>noarch</ARCH>
+      <COMMENTS>Transparently speed up functions by caching return values</COMMENTS>
+      <FILESIZE>83282</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>rudder-agent</NAME>
-      <SYSTEM_CATEGORY>Applications/System</SYSTEM_CATEGORY>
-      <VERSION>1398866025:8.0.0.alpha2.git202307190211-1.EL.8</VERSION>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>perl-Memoize</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
+      <VERSION>1.03-422.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
       <COMMENTS>A terminal multiplexer</COMMENTS>
       <FILESIZE>743558</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
       <NAME>tmux</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
       <SYSTEM_CATEGORY>Applications/System</SYSTEM_CATEGORY>
@@ -6930,21 +8394,32 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <COMMENTS>gpg(CentOS (CentOS Official Signing Key) &lt;security@centos.org&gt;)</COMMENTS>
       <FILESIZE>0</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
       <NAME>gpg-pubkey</NAME>
       <SYSTEM_CATEGORY>Public Keys</SYSTEM_CATEGORY>
       <VERSION>8483c65d-5ccc5b19</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>noarch</ARCH>
-      <COMMENTS>Transparently speed up functions by caching return values</COMMENTS>
-      <FILESIZE>83282</FILESIZE>
+      <COMMENTS>JSON::XS compatible pure-Perl module</COMMENTS>
+      <FILESIZE>129656</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>perl-Memoize</NAME>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>perl-JSON-PP</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
       <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
-      <VERSION>1.03-422.el8</VERSION>
+      <VERSION>1:2.97.001-3.el8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Regular expressions library</COMMENTS>
+      <FILESIZE>692435</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>oniguruma</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <SYSTEM_CATEGORY>System Environment/Libraries</SYSTEM_CATEGORY>
+      <VERSION>6.8.2-2.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -6970,14 +8445,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
-      <COMMENTS>Regular expressions library</COMMENTS>
-      <FILESIZE>692435</FILESIZE>
+      <COMMENTS>Libraries for augeas</COMMENTS>
+      <FILESIZE>1389242</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>oniguruma</NAME>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>augeas-libs</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
       <SYSTEM_CATEGORY>System Environment/Libraries</SYSTEM_CATEGORY>
-      <VERSION>6.8.2-2.el8</VERSION>
+      <VERSION>1.12.0-8.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -8014,15 +9489,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>0.19.8.1-17.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
-      <ARCH>x86_64</ARCH>
-      <COMMENTS>Libraries for augeas</COMMENTS>
-      <FILESIZE>1389242</FILESIZE>
+      <ARCH>noarch</ARCH>
+      <COMMENTS>Complex numbers and trigonometric functions</COMMENTS>
+      <FILESIZE>88208</FILESIZE>
       <FROM>rpm</FROM>
-      <INSTALLDATE>19/07/2023</INSTALLDATE>
-      <NAME>augeas-libs</NAME>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>perl-Math-Complex</NAME>
       <PUBLISHER>CentOS</PUBLISHER>
-      <SYSTEM_CATEGORY>System Environment/Libraries</SYSTEM_CATEGORY>
-      <VERSION>1.12.0-8.el8</VERSION>
+      <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
+      <VERSION>1.59-422.el8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -8056,6 +9531,17 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <PUBLISHER>CentOS</PUBLISHER>
       <SYSTEM_CATEGORY>Unspecified</SYSTEM_CATEGORY>
       <VERSION>3-41.el8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>x86_64</ARCH>
+      <COMMENTS>Configuration management and audit tool - agent</COMMENTS>
+      <FILESIZE>37904406</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>16/11/2023</INSTALLDATE>
+      <NAME>rudder-agent</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <SYSTEM_CATEGORY>Applications/System</SYSTEM_CATEGORY>
+      <VERSION>1398866025:8.0.3-1.EL.8</VERSION>
     </SOFTWARES>
     <SOFTWARES>
       <ARCH>x86_64</ARCH>
@@ -9086,7 +10572,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>NetworkManager</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.40.16-8.el8</VERSION>
+      <VERSION>1:1.40.16-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9094,7 +10580,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>NetworkManager-libnm</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.40.16-8.el8</VERSION>
+      <VERSION>1:1.40.16-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9102,7 +10588,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>NetworkManager-team</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.40.16-8.el8</VERSION>
+      <VERSION>1:1.40.16-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9110,7 +10596,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>NetworkManager-tui</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.40.16-8.el8</VERSION>
+      <VERSION>1:1.40.16-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9132,6 +10618,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>acl</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>2.2.53-3.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>adcli</NAME>
       <SOURCE>baseos</SOURCE>
       <VERSION>0.9.2-1.el8</VERSION>
@@ -9142,7 +10636,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>annobin</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>11.13-1.el8</VERSION>
+      <VERSION>11.13-2.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9174,7 +10668,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>authselect</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.2.6-1.el8</VERSION>
+      <VERSION>1.2.6-2.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9182,7 +10676,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>authselect-compat</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>1.2.6-1.el8</VERSION>
+      <VERSION>1.2.6-2.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9190,7 +10684,23 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>authselect-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.2.6-1.el8</VERSION>
+      <VERSION>1.2.6-2.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>automake</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>1.16.1-8.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>avahi-libs</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.7-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9206,7 +10716,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>bind-libs</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>32:9.11.36-8.el8</VERSION>
+      <VERSION>32:9.11.36-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9214,7 +10724,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>bind-libs-lite</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>32:9.11.36-8.el8</VERSION>
+      <VERSION>32:9.11.36-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9222,7 +10732,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>bind-license</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>32:9.11.36-8.el8</VERSION>
+      <VERSION>32:9.11.36-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9230,7 +10740,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>bind-utils</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>32:9.11.36-8.el8</VERSION>
+      <VERSION>32:9.11.36-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9238,7 +10748,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>binutils</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.30-121.el8</VERSION>
+      <VERSION>2.30-123.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9318,7 +10828,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>bpftool</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9326,7 +10836,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>c-ares</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.13.0-8.el8</VERSION>
+      <VERSION>1.13.0-10.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9334,7 +10844,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>ca-certificates</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2022.2.54-80.2.el8</VERSION>
+      <VERSION>2023.2.60_v7.0.306-80.0.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9374,7 +10884,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cockpit</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>295-1.el8</VERSION>
+      <VERSION>304-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9382,7 +10892,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cockpit-bridge</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>295-1.el8</VERSION>
+      <VERSION>304-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9390,7 +10900,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cockpit-packagekit</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>295-1.el8</VERSION>
+      <VERSION>304-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9398,7 +10908,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cockpit-system</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>295-1.el8</VERSION>
+      <VERSION>304-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9406,7 +10916,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cockpit-ws</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>295-1.el8</VERSION>
+      <VERSION>304-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9430,7 +10940,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cpp</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9454,7 +10964,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>crypto-policies</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>20221215-1.gitece0092.el8</VERSION>
+      <VERSION>20230731-1.git3177e06.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9462,7 +10972,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>crypto-policies-scripts</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>20221215-1.gitece0092.el8</VERSION>
+      <VERSION>20230731-1.git3177e06.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9470,7 +10980,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cryptsetup</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.3.7-5.el8</VERSION>
+      <VERSION>2.3.7-7.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9478,7 +10988,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cryptsetup-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.3.7-5.el8</VERSION>
+      <VERSION>2.3.7-7.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9494,7 +11004,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>cups-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:2.2.6-51.el8</VERSION>
+      <VERSION>1:2.2.6-55.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9502,7 +11012,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>curl</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>7.61.1-31.el8</VERSION>
+      <VERSION>7.61.1-33.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9510,7 +11020,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dbus</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.12.8-25.el8</VERSION>
+      <VERSION>1:1.12.8-26.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9518,7 +11028,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dbus-common</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.12.8-25.el8</VERSION>
+      <VERSION>1:1.12.8-26.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9526,7 +11036,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dbus-daemon</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.12.8-25.el8</VERSION>
+      <VERSION>1:1.12.8-26.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9534,7 +11044,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dbus-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.12.8-25.el8</VERSION>
+      <VERSION>1:1.12.8-26.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9542,7 +11052,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dbus-tools</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:1.12.8-25.el8</VERSION>
+      <VERSION>1:1.12.8-26.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9606,7 +11116,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dnf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.7.0-18.el8</VERSION>
+      <VERSION>4.7.0-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9614,7 +11124,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dnf-data</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.7.0-18.el8</VERSION>
+      <VERSION>4.7.0-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9622,7 +11132,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dnf-plugins-core</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.0.21-23.el8</VERSION>
+      <VERSION>4.0.21-24.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9630,7 +11140,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dracut</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>049-225.git20230614.el8</VERSION>
+      <VERSION>049-228.git20230802.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9638,7 +11148,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dracut-config-rescue</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>049-225.git20230614.el8</VERSION>
+      <VERSION>049-228.git20230802.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9646,7 +11156,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dracut-network</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>049-225.git20230614.el8</VERSION>
+      <VERSION>049-228.git20230802.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9654,7 +11164,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>dracut-squash</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>049-225.git20230614.el8</VERSION>
+      <VERSION>049-228.git20230802.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9686,7 +11196,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9694,7 +11204,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-debuginfod-client</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>elfutils-debuginfod-client-devel</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9702,7 +11220,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-default-yama-scope</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9710,7 +11228,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-devel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9718,7 +11236,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-libelf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9726,7 +11244,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-libelf-devel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9734,7 +11252,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>elfutils-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.189-2.el8</VERSION>
+      <VERSION>0.189-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -9780,6 +11298,30 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>findutils</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>1:4.6.0-21.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>firewalld</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.9.11-1.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>firewalld-filesystem</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.9.11-1.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>freetype</NAME>
       <SOURCE>baseos</SOURCE>
       <VERSION>2.9.1-9.el8</VERSION>
@@ -9814,7 +11356,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>gcc</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9822,7 +11364,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>gcc-c++</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9830,7 +11372,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>gcc-gdb-plugin</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9902,7 +11444,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9910,7 +11452,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc-common</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9918,7 +11460,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc-devel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9926,7 +11468,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc-gconv-extra</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9934,7 +11476,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc-headers</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -9942,7 +11484,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>glibc-langpack-en</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.28-228.el8</VERSION>
+      <VERSION>2.28-240.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10049,12 +11591,20 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>1.9-13.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>harfbuzz</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>1.7.5-4.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
       <NAME>hwdata</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.314-8.18.el8</VERSION>
+      <VERSION>0.314-8.19.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10070,7 +11620,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iproute</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>6.2.0-2.el8</VERSION>
+      <VERSION>6.2.0-5.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10078,7 +11628,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iptables</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.8.4-24.el8</VERSION>
+      <VERSION>1.8.5-10.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10086,7 +11636,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iptables-ebtables</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.8.4-24.el8</VERSION>
+      <VERSION>1.8.5-10.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10094,7 +11644,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iptables-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.8.4-24.el8</VERSION>
+      <VERSION>1.8.5-10.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10102,7 +11652,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iputils</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>20180629-10.el8</VERSION>
+      <VERSION>20180629-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10110,7 +11660,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>irqbalance</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2:1.9.0-4.el8</VERSION>
+      <VERSION>2:1.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10118,7 +11668,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl100-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>39.31.5.1-115.el8.1</VERSION>
+      <VERSION>39.31.5.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10126,7 +11676,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl1000-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:39.31.5.1-115.el8.1</VERSION>
+      <VERSION>1:39.31.5.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10134,7 +11684,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl105-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>18.168.6.1-115.el8.1</VERSION>
+      <VERSION>18.168.6.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10142,7 +11692,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl135-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>18.168.6.1-115.el8.1</VERSION>
+      <VERSION>18.168.6.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10150,7 +11700,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl2000-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>18.168.6.1-115.el8.1</VERSION>
+      <VERSION>18.168.6.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10158,7 +11708,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl2030-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>18.168.6.1-115.el8.1</VERSION>
+      <VERSION>18.168.6.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10166,7 +11716,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl3160-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:25.30.13.0-115.el8.1</VERSION>
+      <VERSION>1:25.30.13.0-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10174,7 +11724,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl5000-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.83.5.1_1-115.el8.1</VERSION>
+      <VERSION>8.83.5.1_1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10182,7 +11732,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl5150-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.24.2.2-115.el8.1</VERSION>
+      <VERSION>8.24.2.2-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10190,7 +11740,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl6000-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>9.221.4.1-115.el8.1</VERSION>
+      <VERSION>9.221.4.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10198,7 +11748,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl6000g2a-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>18.168.6.1-115.el8.1</VERSION>
+      <VERSION>18.168.6.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10206,7 +11756,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl6050-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>41.28.5.1-115.el8.1</VERSION>
+      <VERSION>41.28.5.1-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -10214,7 +11764,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>iwl7260-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:25.30.13.0-115.el8.1</VERSION>
+      <VERSION>1:25.30.13.0-118.el8.1</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10254,7 +11804,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10262,7 +11812,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-core</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10270,7 +11820,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-devel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10278,7 +11828,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-headers</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10286,7 +11836,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-modules</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10294,7 +11844,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-tools</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10302,7 +11852,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kernel-tools-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10310,7 +11860,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kexec-tools</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.0.25-5.el8</VERSION>
+      <VERSION>2.0.26-10.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kmod</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>25-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10318,7 +11876,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>kmod-kvdo</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>6.2.8.7-91.el8</VERSION>
+      <VERSION>6.2.8.7-93.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kmod-libs</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>25-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10350,7 +11916,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>krb5-devel</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.18.2-22.el8</VERSION>
+      <VERSION>1.18.2-25.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10358,7 +11924,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>krb5-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.18.2-22.el8</VERSION>
+      <VERSION>1.18.2-25.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10372,9 +11938,33 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>libX11</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>1.6.8-7.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>libX11-common</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>1.6.8-7.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>libXpm</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.5.12-9.el8</VERSION>
+      <VERSION>3.5.12-11.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>libacl</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>2.2.53-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10406,7 +11996,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libblkid</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10422,7 +12012,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libcap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.48-4.el8</VERSION>
+      <VERSION>2.48-5.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10454,7 +12044,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libcurl</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>7.61.1-31.el8</VERSION>
+      <VERSION>7.61.1-33.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10470,7 +12060,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libdnf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.63.0-16.el8</VERSION>
+      <VERSION>0.63.0-18.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10494,7 +12084,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libfdisk</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10510,7 +12100,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libgcc</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10526,7 +12116,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libgomp</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10534,7 +12124,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libgs</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>9.27-5.el8</VERSION>
+      <VERSION>9.27-12.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10542,7 +12132,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libibverbs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>46.0-1.el8.1</VERSION>
+      <VERSION>48.0-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10558,7 +12148,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libipa_hbac</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10566,7 +12156,23 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libkadm5</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.18.2-22.el8</VERSION>
+      <VERSION>1.18.2-25.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>libkcapi</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>1.4.0-1.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>libkcapi-hmaccalc</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>1.4.0-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10590,7 +12196,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libmount</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10607,6 +12213,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <NAME>libnftnl</NAME>
       <SOURCE>baseos</SOURCE>
       <VERSION>1.2.2-3.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>libnghttp2</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>1.33.0-5.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10702,7 +12316,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsmartcols</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10710,7 +12324,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsmbclient</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.3-0.el8</VERSION>
+      <VERSION>4.18.6-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10726,7 +12340,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsoup</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.62.3-4.el8</VERSION>
+      <VERSION>2.62.3-5.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10758,7 +12372,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsss_autofs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10766,7 +12380,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsss_certmap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10774,7 +12388,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsss_idmap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10782,7 +12396,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsss_nss_idmap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10790,7 +12404,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libsss_sudo</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10798,7 +12412,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libstdc++</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10806,7 +12420,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libstdc++-devel</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>8.5.0-20.el8</VERSION>
+      <VERSION>8.5.0-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10862,7 +12476,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libtiff</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>4.0.9-28.el8</VERSION>
+      <VERSION>4.0.9-29.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10886,7 +12500,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libuuid</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10910,7 +12524,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>libwbclient</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.3-0.el8</VERSION>
+      <VERSION>4.18.6-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10934,7 +12548,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>linux-firmware</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>20230515-115.gitd1962891.el8</VERSION>
+      <VERSION>20230824-118.git0e048b06.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -10982,7 +12596,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>mcelog</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3:194-1.el8</VERSION>
+      <VERSION>3:195-0.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11006,7 +12620,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>microcode_ctl</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4:20230214-2.el8</VERSION>
+      <VERSION>4:20230808-2.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11020,9 +12634,49 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>ncurses</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>6.1-10.20180224.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>ncurses-base</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>6.1-10.20180224.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>ncurses-c++-libs</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>6.1-10.20180224.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>ncurses-devel</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>6.1-10.20180224.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>ncurses-libs</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>6.1-10.20180224.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>nftables</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:0.9.3-26.el8</VERSION>
+      <VERSION>1:1.0.4-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11046,7 +12700,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11054,7 +12708,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss-softokn</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11062,7 +12716,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss-softokn-freebl</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11070,7 +12724,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss-sysinit</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11078,7 +12732,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss-tools</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11086,7 +12740,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>nss-util</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>3.79.0-11.el8</VERSION>
+      <VERSION>3.90.0-3.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>numactl-libs</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>2.0.16-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11126,7 +12788,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>openssh</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.0p1-17.el8</VERSION>
+      <VERSION>8.0p1-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11134,7 +12796,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>openssh-clients</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.0p1-17.el8</VERSION>
+      <VERSION>8.0p1-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11142,7 +12804,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>openssh-server</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>8.0p1-17.el8</VERSION>
+      <VERSION>8.0p1-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11182,7 +12844,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>pam</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.3.1-27.el8</VERSION>
+      <VERSION>1.3.1-30.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11249,6 +12911,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>2.39.3-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>perl-HTTP-Tiny</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.074-2.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
@@ -11263,6 +12933,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <NAME>perl-IO-Socket-SSL</NAME>
       <SOURCE>appstream</SOURCE>
       <VERSION>2.066-4.module_el8+339+1ec643e0</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>perl-Mozilla-CA</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>20160104-7.module_el8+645+9d809f8c</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11300,9 +12978,25 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>pixman</NAME>
+      <SOURCE>appstream</SOURCE>
+      <VERSION>0.38.4-4.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>platform-python</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.6.8-52.el8</VERSION>
+      <VERSION>3.6.8-56.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>platform-python-pip</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>9.0.3-23.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11350,7 +13044,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>procps-ng</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.3.15-13.el8</VERSION>
+      <VERSION>3.3.15-14.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11390,7 +13084,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-bind</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>32:9.11.36-8.el8</VERSION>
+      <VERSION>32:9.11.36-11.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11398,7 +13092,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-dnf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.7.0-18.el8</VERSION>
+      <VERSION>4.7.0-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11406,7 +13100,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-dnf-plugins-core</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.0.21-23.el8</VERSION>
+      <VERSION>4.0.21-24.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>python3-firewall</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>0.9.11-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11414,7 +13116,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-hawkey</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.63.0-16.el8</VERSION>
+      <VERSION>0.63.0-18.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11422,7 +13124,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-libdnf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.63.0-16.el8</VERSION>
+      <VERSION>0.63.0-18.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11430,7 +13132,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.6.8-52.el8</VERSION>
+      <VERSION>3.6.8-56.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11470,7 +13172,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-linux-procfs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>0.7.1-1.el8</VERSION>
+      <VERSION>0.7.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11478,7 +13180,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-nftables</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1:0.9.3-26.el8</VERSION>
+      <VERSION>1:1.0.4-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11486,7 +13188,15 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-perf</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.0-500.el8</VERSION>
+      <VERSION>4.18.0-521.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>python3-pip-wheel</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>9.0.3-23.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11519,6 +13229,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <NAME>python3-rpm-macros</NAME>
       <SOURCE>baseos</SOURCE>
       <VERSION>3-45.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>python3-setools</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.3.0-5.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11558,7 +13276,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-sssdconfig</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11566,7 +13284,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>python3-syspurpose</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.28.38-1.el8</VERSION>
+      <VERSION>1.28.40-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11575,6 +13293,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <NAME>python3-unbound</NAME>
       <SOURCE>appstream</SOURCE>
       <VERSION>1.16.2-5.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>noarch</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>python3-urllib3</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>1.24.2-6.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11710,7 +13436,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>samba-client-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.3-0.el8</VERSION>
+      <VERSION>4.18.6-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11718,7 +13444,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>samba-common</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.3-0.el8</VERSION>
+      <VERSION>4.18.6-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11726,7 +13452,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>samba-common-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.18.3-0.el8</VERSION>
+      <VERSION>4.18.6-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11734,7 +13460,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>selinux-policy</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.14.3-123.el8</VERSION>
+      <VERSION>3.14.3-131.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -11742,7 +13468,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>selinux-policy-targeted</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.14.3-123.el8</VERSION>
+      <VERSION>3.14.3-131.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11782,7 +13508,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>shadow-utils</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2:4.6-18.el8</VERSION>
+      <VERSION>2:4.6-21.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11798,7 +13524,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sos</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.5.4-1.el8</VERSION>
+      <VERSION>4.6.0-2.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11820,6 +13546,14 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ARCH>x86_64</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
+      <NAME>squashfs-tools</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.3-21.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
       <NAME>sscg</NAME>
       <SOURCE>appstream</SOURCE>
       <VERSION>3.0.0-7.el8</VERSION>
@@ -11830,7 +13564,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11838,7 +13572,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-ad</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11846,7 +13580,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-client</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11854,7 +13588,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-common</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11862,7 +13596,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-common-pac</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11870,7 +13604,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-ipa</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11878,7 +13612,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-kcm</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11886,7 +13620,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-krb5</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11894,7 +13628,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-krb5-common</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11902,7 +13636,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-ldap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11910,7 +13644,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-nfs-idmap</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11918,7 +13652,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>sssd-proxy</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.9.1-1.el8</VERSION>
+      <VERSION>2.9.2-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11942,7 +13676,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemd</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>239-76.el8</VERSION>
+      <VERSION>239-78.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11950,7 +13684,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemd-libs</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>239-76.el8</VERSION>
+      <VERSION>239-78.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11958,7 +13692,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemd-pam</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>239-76.el8</VERSION>
+      <VERSION>239-78.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11966,7 +13700,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemd-udev</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>239-76.el8</VERSION>
+      <VERSION>239-78.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11974,7 +13708,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemtap</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>4.9-1.el8</VERSION>
+      <VERSION>4.9-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11982,7 +13716,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemtap-client</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>4.9-1.el8</VERSION>
+      <VERSION>4.9-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11990,7 +13724,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemtap-devel</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>4.9-1.el8</VERSION>
+      <VERSION>4.9-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -11998,7 +13732,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>systemtap-runtime</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>4.9-1.el8</VERSION>
+      <VERSION>4.9-3.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12017,12 +13751,20 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VERSION>1.31-4.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>tpm2-tss</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>2.3.2-5.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
       <FROM>yum</FROM>
       <ID></ID>
       <NAME>tuned</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.20.0-1.el8</VERSION>
+      <VERSION>2.21.0-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>noarch</ARCH>
@@ -12054,7 +13796,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>util-linux</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12062,7 +13804,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>util-linux-user</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>2.32.1-42.el8</VERSION>
+      <VERSION>2.32.1-43.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12070,7 +13812,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>valgrind</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>1:3.21.0-8.el8</VERSION>
+      <VERSION>1:3.22.0-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12078,7 +13820,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>valgrind-devel</NAME>
       <SOURCE>appstream</SOURCE>
-      <VERSION>1:3.21.0-8.el8</VERSION>
+      <VERSION>1:3.22.0-1.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12126,7 +13868,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>virt-what</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>1.25-3.el8</VERSION>
+      <VERSION>1.25-4.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12150,7 +13892,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>xfsdump</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>3.1.8-6.el8</VERSION>
+      <VERSION>3.1.8-7.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12190,7 +13932,7 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <ID></ID>
       <NAME>yum</NAME>
       <SOURCE>baseos</SOURCE>
-      <VERSION>4.7.0-18.el8</VERSION>
+      <VERSION>4.7.0-20.el8</VERSION>
     </SOFTWAREUPDATES>
     <SOFTWAREUPDATES>
       <ARCH>x86_64</ARCH>
@@ -12448,10 +14190,108 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <SOURCE>baseos</SOURCE>
       <VERSION>4.18.0-500.el8</VERSION>
     </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-508.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-509.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-511.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-512.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-513.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-514.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-516.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-517.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-518.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-519.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <SOFTWAREUPDATES>
+      <ARCH>x86_64</ARCH>
+      <FROM>yum</FROM>
+      <ID></ID>
+      <NAME>kernel-headers</NAME>
+      <SOURCE>baseos</SOURCE>
+      <VERSION>4.18.0-521.el8</VERSION>
+    </SOFTWAREUPDATES>
+    <STORAGES>
+      <DESCRIPTION>SCSI</DESCRIPTION>
+      <DISKSIZE>17179</DISKSIZE>
+      <FIRMWARE>1.0</FIRMWARE>
+      <MANUFACTURER>VBOX HARDDISK</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>sda</NAME>
+      <SERIALNUMBER>VB9ea68c3d-5b7c1bfe</SERIALNUMBER>
+      <TYPE>disk</TYPE>
+    </STORAGES>
     <VERSIONCLIENT>FusionInventory-Agent_v2.6</VERSIONCLIENT>
     <VERSIONPROVIDER>
       <COMMENTS>Platform  : linux aa2c0304b1c54bccacee11bffa62968a 4.18.0-425.3.1.el8.x86_64 1 smp tue nov 8 14:08:25 est 2022 x86_64 x86_64 x86_64 gnulinux </COMMENTS>
-      <COMMENTS>Build date: Wed Jul 19 00:22:10 2023 GMT</COMMENTS>
+      <COMMENTS>Build date: Thu Nov  9 13:26:53 2023 GMT</COMMENTS>
       <NAME>FusionInventory</NAME>
       <PERL_EXE>/usr/bin/perl</PERL_EXE>
       <PERL_VERSION>v5.26.3</PERL_VERSION>
@@ -12469,6 +14309,6 @@ AzzVCfu1HwGhEr3jAAvedDru04kdx6fh62q9vX/BldUneHViY+4ztEkCAwEAAQ==
       <VG_UUID>JNwDNv-difv-LKif-DQEx-ZUOo-NY7s-62zNvV</VG_UUID>
     </VOLUME_GROUPS>
   </CONTENT>
-  <DEVICEID>centos8-2023-07-19-17-15-37</DEVICEID>
+  <DEVICEID>node2-2023-11-16-11-26-03</DEVICEID>
   <QUERY>INVENTORY</QUERY>
 </REQUEST>

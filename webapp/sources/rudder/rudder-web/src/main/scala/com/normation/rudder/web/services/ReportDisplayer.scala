@@ -54,7 +54,6 @@ import com.normation.rudder.services.reports._
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
 import net.liftweb.common._
-import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
