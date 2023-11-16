@@ -187,18 +187,18 @@ function recentChangesGraph(changes, graphId, displayFullGraph) {
     , responsive: true
     , maintainAspectRatio: false
     , scales: {
-        xAxes: [{
+        x: {
             display: displayFullGraph
           , categoryPercentage:1
           , barPercentage:1
-        }]
-      , yAxes: [{
+        }
+      , y: {
           display: displayFullGraph
         , ticks: {
               beginAtZero: true
             , min : 0
           }
-        }]
+        }
       }
     , tooltips : {
           enabled: displayFullGraph
