@@ -5,8 +5,10 @@
 
 mod archive;
 mod cli;
+mod cmd;
 mod config;
 mod database;
+mod dependency;
 mod plugin;
 mod repo_index;
 mod repository;

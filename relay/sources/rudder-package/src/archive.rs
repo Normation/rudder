@@ -5,7 +5,7 @@ use crate::{
     plugin::Metadata, webapp_xml::WebappXml, PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
     WEBAPP_XML_PATH,
 };
-use anyhow::{Context, Ok, Result};
+use anyhow::{bail, Context, Ok, Result};
 use ar::Archive;
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -122,6 +122,12 @@ impl Rpkg {
 
     pub fn install(&self) -> Result<()> {
         let keys = self.metadata.content.keys().clone();
+        // Verify that dependencies are installed
+        if let Some(d) = &self.metadata.depends {
+            if !d.are_installed() {
+                bail!("Some dependencies are missing, install them before trying to install the plugin.")
+            }
+        }
         // Extract package scripts
         self.unpack_embedded_txz("script.txz", PACKAGES_FOLDER)?;
         // Run preinst if any

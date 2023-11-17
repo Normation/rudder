@@ -4,19 +4,9 @@
 use crate::archive;
 use crate::versions;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, str};
+use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct Dependency {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub python: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub binary: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub apt: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub rpm: Option<Vec<String>>,
-}
+use crate::dependency::Dependencies;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Metadata {
@@ -27,7 +17,7 @@ pub struct Metadata {
     #[serde(rename(serialize = "build-date", deserialize = "build-date"))]
     pub build_date: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub depends: Option<Dependency>,
+    pub depends: Option<Dependencies>,
     #[serde(rename(serialize = "build-commit", deserialize = "build-commit"))]
     pub build_commit: String,
     pub content: HashMap<String, String>,
