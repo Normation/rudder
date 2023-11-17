@@ -59,22 +59,7 @@ function escapeHTML (string) {
   });
 }
 
-var bootstrapButton = $.fn.button.noConflict();
-var bootstrapAlert = $.fn.alert.noConflict();
-var bootstrapCarousel = $.fn.carousel.noConflict();
-var bootstrapCollapse = $.fn.collapse.noConflict();
-var bootstrapTooltip = $.fn.tooltip.noConflict();
-var bootstrapPopover = $.fn.popover.noConflict();
-var bootstrapScrollspy = $.fn.scrollspy.noConflict();
-var bootstrapTab = $.fn.tab.noConflict();
-var bootstrapAffix = $.fn.affix.noConflict();
-var bootstrapModal = $.fn.modal.noConflict();
 
-$.fn.bsModal = bootstrapModal;
-$.fn.bsTooltip = bootstrapTooltip;
-$.fn.bsPopover = bootstrapPopover;
-$.fn.bsTab = bootstrapTab;
-$.fn.bsScrollSpy = bootstrapScrollspy;
 /**
  * Instanciate the tooltip
  * For each element having the "tooltipable" class, when hovering it will look for it's
@@ -455,8 +440,8 @@ $(document).ready(function() {
       return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     }
   } );
-  $('[data-toggle="tooltip"]').bsTooltip();
   sidebarControl(".sidebar");
+  initBsTooltips();
 });
 
 function checkMigrationButton(currentVersion,selectId) {
@@ -532,23 +517,17 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var nodeOrDirective = isNode ? "node" : "directive";
   var labelType = "label-"+policyMode;
-  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-toggle='tooltip' data-placement='top' data-html='true' title='' data-container='body'></span>"
+  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip(nodeOrDirective, policyMode, explanation);
   badge.setAttribute("title", tooltip);
   return badge;
 }
 
-function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation, container){
+function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var labelType  = "label-"+policyMode;
-  var dataContainer;
-  if(container && $(container).length){
-    dataContainer = "data-container='" + container + "'";
-  }else{
-    dataContainer = "data-container='body'";
-  }
-  var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' "+ dataContainer +" title=''></span>";
+  var span = "<span class='rudder-label label-sm "+ labelType +"' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>";
   var badge = $(span).get(0);
   var tooltip = null;
   if(currentPolicyMode == "overriden") {
@@ -582,7 +561,7 @@ function createBadgeAgentPolicyModeMixed(data){
   var rules = data.details;
   var badgePolicyMode = getBadgePolicyMode(rules);
   var labelType = "label-"+badgePolicyMode;
-  var span = "<span class='rudder-label "+ labelType +" label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
+  var span = "<span class='rudder-label "+ labelType +" label-sm' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip('policy', badgePolicyMode, '');
   badge.setAttribute("title", tooltip);
@@ -905,4 +884,22 @@ function autoResize(e) {
 function logout(cb){
     if (isLoggedIn) cb();
     else window.location.replace(contextPath);
+}
+
+// BOOTSTRAP 5
+function initBsTooltips(){
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  return tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true});
+  });
+}
+function initBsTabs(){
+  var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
+  triggerTabList.forEach(function (triggerEl) {
+    var tabTrigger = new bootstrap.Tab(triggerEl);
+    triggerEl.addEventListener('click', function (event) {
+      event.preventDefault()
+      tabTrigger.show()
+    });
+});
 }

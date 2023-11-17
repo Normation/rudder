@@ -138,10 +138,10 @@ displayNodePropertyRow model =
             in
               (span
               [ class "rudder-label label-provider label-sm bs-tooltip"
-              , attribute "data-toggle" "tooltip"
-              , attribute "data-placement" "right"
-              , attribute "data-html" "true"
-              , attribute "data-container" "body"
+              , attribute "data-bs-toggle" "tooltip"
+              , attribute "data-bs-placement" "right"
+              , attribute "data-bs-html" "true"
+              , attribute "data-bs-container" "body"
               , title pTitle
               ] [ text pr ]
               , (pr == "overridden")
@@ -219,7 +219,7 @@ displayNodePropertyRow model =
               ]
             , td [class "is-edited"]
               [ div [class "format-container"]
-                [ button [type_ "button", class "btn btn-default btn-sm dropdown-toggle", attribute "data-toggle" "dropdown"]
+                [ button [type_ "button", class "btn btn-default btn-sm dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
                   [ text (if eP.format == JsonFormat then "JSON" else "String")
                   , span [ class "caret"][]
                   ]

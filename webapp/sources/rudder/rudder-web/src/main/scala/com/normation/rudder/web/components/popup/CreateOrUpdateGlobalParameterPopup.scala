@@ -406,9 +406,9 @@ class CreateOrUpdateGlobalParameterPopup(
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="close" data-dismiss="modal">
+                <div class="close" data-bs-dismiss="modal">
                 <span aria-hidden="true">&times;</span>
-                <span class="sr-only">Close</span>
+                <span class="visually-hidden">Close</span>
                 </div>
                 <h4 class="modal-title" id="title">Here come title</h4>
             </div>

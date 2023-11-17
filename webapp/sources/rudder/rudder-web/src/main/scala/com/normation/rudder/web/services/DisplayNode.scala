@@ -484,13 +484,13 @@ object DisplayNode extends Loggable {
           <div><label>Node ID:          </label>{sm.node.main.id.value}</div>
           <div><label>Operating system: </label>{
       escape(sm.node.main.osDetails.fullName)
-    }<span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
+    }<span class="glyphicon glyphicon-info-sign icon-info" data-bs-toggle="tooltip" data-bs-placement="right" title={
       osTooltip
     }></span></div>
           <div>
             <label>Machine:             </label>{displayMachineType(sm.machine)}
             <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-            <span class="glyphicon glyphicon-info-sign icon-info" data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
+            <span class="glyphicon glyphicon-info-sign icon-info" data-bs-toggle="tooltip" data-bs-placement="right" title={
       machineTooltip
     }></span>
           </div>
@@ -508,8 +508,8 @@ object DisplayNode extends Loggable {
         case Some((mode, explanation)) =>
           <label>Policy mode:</label><span id="badge-apm"></span> ++
           Script(OnLoad(JsRaw(s"""
-                $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}", "body"));
-                $$('.rudder-label, .icon-info').bsTooltip();
+                $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
+                initBsTooltips();
               """)))
       }
     }
@@ -892,7 +892,7 @@ object DisplayNode extends Loggable {
              |// Initialize tooltips
              |app.ports.initTooltips.subscribe(function(msg) {
              |  setTimeout(function(){
-             |    $$('.bs-tooltip').bsTooltip();
+             |    initBsTooltips();
              |  }, 400);
              |});
              |app.ports.copy.subscribe(function(str) {

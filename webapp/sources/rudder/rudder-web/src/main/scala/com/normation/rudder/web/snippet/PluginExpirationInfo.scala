@@ -93,10 +93,9 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
         "<h4><i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Plugin information</b> page</div>"
       <li
       class={"plugin-warning " + notifClass}
-      data-toggle="tooltip"
-      data-placement="bottom"
-      data-html="true"
-      data-original-title={tooltipContent}
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
+      title={tooltipContent}
       >
         <a href="/secure/plugins/pluginInformation"><span class="fa fa-puzzle-piece"></span></a>
       </li>
@@ -139,9 +138,9 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
         "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Plugin information</b> page</div>"
       <i class={
         "fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass
-      } data-toggle="tooltip" data-placement="right" data-html="true" data-original-title={
+      } data-bs-toggle="tooltip" data-bs-placement="right" title={
         tooltipContent
-      } data-container="body"></i>
+      } data-bs-container="body"></i>
     }
     if (warnings.licenseError.nonEmpty || warnings.licenseExpired.nonEmpty) {
       displayPluginIcon("critical", "Plugin license error require your attention")

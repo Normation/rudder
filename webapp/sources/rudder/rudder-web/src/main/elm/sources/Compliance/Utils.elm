@@ -3,7 +3,7 @@ module Compliance.Utils exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Html exposing (..)
-import Html.Attributes exposing (class, type_, value, style, attribute, checked, property)
+import Html.Attributes exposing (class, type_, value, style, attribute, checked, property, title)
 import Html.Events exposing (onClick, onInput, custom)
 import List.Extra
 import List
@@ -422,7 +422,7 @@ displayComplianceFilters complianceFilters updateAction =
           , label [class ("btn btn-default" ++ (if complianceFilters.showOnlyStatus then "" else " active")), onClick (updateAction { complianceFilters | showOnlyStatus = False})][text "Hide"     ]
           ]
         , div [class "btn-group"]
-          [ button [attribute "data-toggle" "dropdown", type_ "button", class "btn btn-default btn-dropdown-compliance"]
+          [ button [attribute "data-bs-toggle" "dropdown", type_ "button", class "btn btn-default btn-dropdown-compliance"]
             [ text "Select status"
             , span[class "badge"][text (String.fromInt (List.length selectedStatus))]
             , i [class "fa fa-angle-down"][]
@@ -467,7 +467,7 @@ buildComplianceBar filters complianceDetails =
           realRounded = Basics.floor realPercent
           complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
         in
-          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
+          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
           [ text complianceTxt ]
       else
         text ""

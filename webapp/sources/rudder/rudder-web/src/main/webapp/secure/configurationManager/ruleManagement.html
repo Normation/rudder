@@ -61,9 +61,9 @@
 
       // Initialize tooltips
       app.ports.initTooltips.subscribe(function(msg) {
-        $('.bs-tooltip').bsTooltip();
+        initBsTooltips();
         setTimeout(function(){
-          $('.bs-tooltip').bsTooltip();
+          initBsTooltips();
         }, 800);
       });
 

@@ -149,7 +149,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 <br/>
                 <div class="panel-group" role="tablist">
                   <div class="panel panel-default">
-                    <a class="" id="showTechnicalErrorDetails" role="button" data-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
+                    <a class="" id="showTechnicalErrorDetails" role="button" data-bs-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
                       <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
                         <h4 class="panel-title">
                           Show technical details
@@ -223,7 +223,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def layout = {
     <lift:authz role="deployment_read">
       <li class={"dropdown notifications-menu " ++ statusBackground}>
-        <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
+        <a href="#" class="dropdown-toggle"  data-bs-toggle="dropdown">
           Status
           <i class="fa fa-heartbeat"></i>
           <span id="generation-status" class="label"><span></span></span>
@@ -247,9 +247,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="close" data-dismiss="modal">
+                    <div class="close" data-bs-dismiss="modal">
                     <span aria-hidden="true">&times;</span>
-                    <span class="sr-only">Close</span>
+                    <span class="visually-hidden">Close</span>
                     </div>
                     <h4 class="modal-title">Error</h4>
                 </div>
@@ -266,7 +266,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
@@ -279,9 +279,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <div class="close" data-dismiss="modal">
+            <div class="close" data-bs-dismiss="modal">
               <span aria-hidden="true">&times;</span>
-              <span class="sr-only">Close</span>
+              <span class="visually-hidden">Close</span>
             </div>
             <h4 class="modal-title">Regenerate Policies</h4>
           </div>
@@ -295,7 +295,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             {fullPolicyGeneration}
           </div>
         </div><!-- /.modal-content -->

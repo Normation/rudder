@@ -23,9 +23,9 @@ displayTechniqueRow model =
         , ( if technique.isDeprecated then
           span
           [ class "glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip"
-          , attribute "data-toggle" "tooltip"
-          , attribute "data-placement" "top"
-          , attribute "data-html" "true"
+          , attribute "data-bs-toggle" "tooltip"
+          , attribute "data-bs-placement" "top"
+          , attribute "data-bs-html" "true"
           , title ("Deprecated: " ++ technique.deprecationMessage)
           ][]
           else
@@ -36,9 +36,9 @@ displayTechniqueRow model =
         [ text technique.multiVersionSupport
         , span
           [ class "fa fa-question-circle bsTooltip multiversion-icon"
-          , attribute "data-toggle" "tooltip"
-          , attribute "data-placement" "top"
-          , attribute "data-html" "true"
+          , attribute "data-bs-toggle" "tooltip"
+          , attribute "data-bs-placement" "top"
+          , attribute "data-bs-html" "true"
           , title technique.mvsMessage
           ][]
         ]
@@ -46,9 +46,9 @@ displayTechniqueRow model =
         [ ( if technique.classicSupport then
           span
           [ class "fa fa-gear bsTooltip"
-          , attribute "data-toggle" "tooltip"
-          , attribute "data-placement" "top"
-          , attribute "data-html" "true"
+          , attribute "data-bs-toggle" "tooltip"
+          , attribute "data-bs-placement" "top"
+          , attribute "data-bs-html" "true"
           , title "This Technique version is compatible with the <b>classic</b> agent."
           ][]
           else
@@ -57,9 +57,9 @@ displayTechniqueRow model =
         , ( if technique.dscSupport then
           span
           [ class "dsc-icon bsTooltip"
-          , attribute "data-toggle" "tooltip"
-          , attribute "data-placement" "top"
-          , attribute "data-html" "true"
+          , attribute "data-bs-toggle" "tooltip"
+          , attribute "data-bs-placement" "top"
+          , attribute "data-bs-html" "true"
           , title "This Technique version is compatible with the <b class='dsc'>Window</b> agent."
           ][]
           else

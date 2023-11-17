@@ -70,7 +70,7 @@ bar model =
       else div [] []
   , div [class "fm-bar-actions"]
     [ div [class "btn-group"]
-      [ button [attribute "data-toggle" "dropdown", id "dropDownMenuSearch", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
+      [ button [attribute "data-bs-toggle" "dropdown", id "dropDownMenuSearch", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
         [ i [class "glyphicon glyphicon-search mr2"][]
         ]
       , ul [class "dropdown-menu search-dropdown pull-right"]
@@ -88,7 +88,7 @@ bar model =
       ]
       )
     , div [class "btn-group"]
-      [ button [attribute "data-toggle" "dropdown", id "more", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
+      [ button [attribute "data-bs-toggle" "dropdown", id "more", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
         [ i [class "glyphicon glyphicon-option-vertical"][]
         ]
       , mainContextMenu

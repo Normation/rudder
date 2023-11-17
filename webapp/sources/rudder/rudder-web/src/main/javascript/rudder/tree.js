@@ -261,7 +261,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
 
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
-    $(id+' .rudder-label').bsTooltip();
+    initBsTooltips();
   }).on("ready.jstree", function () {
     // make jstree node openable in a new tab
     var nodes = document.querySelectorAll('[id^="jstree-"][id$="_anchor"]');
@@ -420,7 +420,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
 
-    $(id+' .rudder-label, .bsTooltip').bsTooltip();
+    initBsTooltips();
     }).on("ready.jstree", function () {
       // make jstree node openable in a new tab
       var nodes = document.querySelectorAll('[id^="jsTree-"][id$="_anchor"]');

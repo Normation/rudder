@@ -504,11 +504,9 @@ directivesTab model details =
                     else
                       span
                       [ class "fa fa-warning text-warning-rudder bs-tooltip"
-                      , attribute "data-toggle" "tooltip"
-                      , attribute "data-placement" "bottom"
-                      , attribute "data-container" "body"
-                      , attribute "data-html" "true"
-                      , attribute "data-original-title" (buildTooltipContent "Unused directive" "This directive is not used in any rule")
+                      , attribute "data-bs-toggle" "tooltip"
+                      , attribute "data-bs-placement" "bottom"
+                      , title (buildTooltipContent "Unused directive" "This directive is not used in any rule")
                       ][]
                 in
                   li [class ("jstree-node jstree-leaf directiveNode" ++ disabledClass)]

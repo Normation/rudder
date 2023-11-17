@@ -435,7 +435,7 @@ buildTagsTree tags =
       buildTooltipContent ("Tags <span class='tags-label'><i class='fa fa-tags'></i><b>"++ (String.fromInt nbTags) ++"</b></span>") (String.concat (List.map (\tt -> buildHtmlStringTag tt) listTags))
   in
     if (nbTags > 0) then
-      span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent tags)]
+      span [class "tags-label bs-tooltip", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (tooltipContent tags)]
       [ i [class "fa fa-tags"][]
       , b[][text (String.fromInt nbTags)]
       ]
@@ -464,7 +464,7 @@ buildTagsList tags =
       if (nbTags > 2) then
         span[class "tags-list"](
           List.append (List.map (\t -> spanTags t) (List.take 2 tags)) [
-            span [class "tags-label bs-tooltip", attribute "data-toggle" "tooltip", attribute "data-placement" "top", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (tooltipContent (List.drop 2 tags))]
+            span [class "tags-label bs-tooltip", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (tooltipContent (List.drop 2 tags))]
             [ i [class "fa fa-tags"][]
             , b [][ i[][text (String.fromInt (nbTags - 2)), text " more"]]
             ]
@@ -494,7 +494,7 @@ badgePolicyMode globalPolicyMode policyMode =
         _ -> "Unknown policy mode"
 
   in
-    span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Policy mode" msg)][]
+    span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", attribute "data-bs-container" "body", attribute "data-bs-html" "true", title (buildTooltipContent "Policy mode" msg)][]
 
 -- WARNING:
 --

@@ -46,7 +46,7 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
          |// Initialize tooltips
          |app.ports.initTooltips.subscribe(function(msg) {
          |  setTimeout(function(){
-         |    $$('.bs-tooltip').bsTooltip();
+         |    initBsTooltips();
          |  }, 400);
          |});
          |""".stripMargin

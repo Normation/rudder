@@ -205,12 +205,12 @@ techniqueTab model technique creation ui =
                            label [ for "techniqueDocumentation", class "col-xs-12 control-label" ] [
                              span [ class "text-fit" ] [ text "Documentation" ]
                            , img  [ class "markdown-icon tooltip-icon popover-bs",  src ( model.contextPath ++ "/images/markdown-mark-solid.svg" ) ] []
-                                     --data-toggle="popover"
+                                     --data-bs-toggle="popover"
                                     -- data-trigger="hover"
-                                    -- data-container="body"
-                                    -- data-placement="right"
-                                    -- data-content="This content will be displayed as <b>Markdown</b> in <b>directives</b> using this technique"
-                                   --  data-html="true"
+                                    -- data-bs-container="body"
+                                    -- data-bs-placement="right"
+                                    -- data-bs-content="This content will be displayed as <b>Markdown</b> in <b>directives</b> using this technique"
+                                   --  data-bs-html="true"
                            ]
                          , div [ class "col-sm-8" ] [
                              textarea [  readonly (not model.hasWriteRights), name "documentation",  class "form-control technique-description", id "techniqueDocumentation", rows  4, value technique.documentation, placeholder "Documentation"

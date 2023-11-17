@@ -396,7 +396,7 @@ class ReportDisplayer(
               <i class="fa fa-play"></i>
             </button>
             &nbsp;
-            <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-toggle="collapse" data-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
+            <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-bs-toggle="collapse" data-bs-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
             </button>
             &emsp;
             <div id="countDown" style="display:inline-block;">
@@ -547,7 +547,7 @@ class ReportDisplayer(
                     |// Initialize tooltips
                     |app.ports.initTooltips.subscribe(function(msg) {
                     |  setTimeout(function(){
-                    |    $$('.bs-tooltip').bsTooltip();
+                    |    initBsTooltips();
                     |  }, 800);
                     |});
                     |""".stripMargin))

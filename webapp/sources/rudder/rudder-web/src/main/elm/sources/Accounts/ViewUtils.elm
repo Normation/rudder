@@ -212,11 +212,9 @@ displayAccountDescription a =
   else
     span
       [ class "bs-tooltip fa fa-question-circle icon-info"
-      , attribute "data-toggle" "tooltip"
-      , attribute "data-placement" "top"
-      , attribute "data-container" "body"
-      , attribute "data-html" "true"
-      , attribute "data-original-title" (buildTooltipContent "Description" a.description)
+      , attribute "data-bs-toggle" "tooltip"
+      , attribute "data-bs-placement" "top"
+      , attribute "title" (buildTooltipContent "Description" a.description)
       ][ i[class "fa fa-"][] ]
 
 

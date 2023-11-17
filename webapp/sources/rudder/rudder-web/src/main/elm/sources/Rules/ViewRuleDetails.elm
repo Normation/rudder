@@ -40,7 +40,7 @@ editionTemplate model details =
             txtDisabled = if rule.enabled then "Disable" else "Enable"
           in
             (
-            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-toggle" "dropdown" ]
+            [ button [ class "btn btn-default dropdown-toggle" , attribute "data-bs-toggle" "dropdown" ]
               [ text "Actions "
               , i [ class "caret" ] []
               ]
