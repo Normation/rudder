@@ -47,16 +47,16 @@ impl Dependencies {
         };
         if let Some(v) = &self.apt {
             if let Ok(_) = which("apt") {
-              if !v.into_iter().all(|x| x.is_installed()) {
-                  return false;
-              }
+                if !v.into_iter().all(|x| x.is_installed()) {
+                    return false;
+                }
             }
         };
         if let Some(v) = &self.rpm {
             if let Ok(_) = which("rpm") {
-              if !v.into_iter().all(|x| x.is_installed()) {
-                  return false;
-              }
+                if !v.into_iter().all(|x| x.is_installed()) {
+                    return false;
+                }
             }
         };
         true
@@ -84,10 +84,10 @@ impl IsInstalled for AptDependency {
             output: match cmd1.output() {
                 Ok(a) => a,
                 Err(e) => {
-                  debug!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
-                  return false
+                    debug!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
+                    return false;
                 }
-            }
+            },
         };
         debug!("{}", package_list_output);
         let re = Regex::new(&format!(r"^ii\s+{}\s+.*", self.0)).unwrap();
@@ -111,9 +111,9 @@ impl IsInstalled for RpmDependency {
                 Ok(a) => a,
                 Err(e) => {
                     debug!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
-                    return false
+                    return false;
                 }
-            }
+            },
         };
         debug!("{}", result);
         if !result.output.status.success() {
@@ -142,8 +142,8 @@ impl IsInstalled for BinaryDependency {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use super::*;
+    use std::str::FromStr;
     #[test]
     fn test_rpm_exec() {
         let a = RpmDependency(String::from_str("nonexistingpackage").unwrap());

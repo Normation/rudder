@@ -5,15 +5,15 @@
 
 mod archive;
 mod cli;
+mod cmd;
 mod config;
 mod database;
+mod dependency;
 mod plugin;
 mod repo_index;
 mod repository;
 mod versions;
 mod webapp_xml;
-mod dependency;
-mod cmd;
 
 use std::path::Path;
 
