@@ -12,6 +12,8 @@ mod repo_index;
 mod repository;
 mod versions;
 mod webapp_xml;
+mod dependency;
+mod cmd;
 
 use std::path::Path;
 
