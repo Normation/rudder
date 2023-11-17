@@ -159,7 +159,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               // no modification, so no refreshGroupLib
               refreshTree(htmlTreeNodeId(groupId)) &
               showGroupSection(Right(fullGroupTarget.nodeGroup), lib.categoryByGroupId(gid)) &
-              JsRaw("createTooltip()")
+              JsRaw("initBsTooltips()")
           }
       }
     }
@@ -168,7 +168,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         case Some(t: NonGroupRuleTarget) =>
           refreshTree(htmlTreeNodeId(targetName)) &
           showGroupSection(Left(t), NodeGroupCategoryId("SystemGroups")) &
-          JsRaw("createTooltip()")
+          JsRaw("initBsTooltips()")
         case _                           => Noop
       }
     }

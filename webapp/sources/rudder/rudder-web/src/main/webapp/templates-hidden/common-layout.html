@@ -97,7 +97,7 @@
       // <![CDATA[
       $(document).ready(function() {
         $("a", "form").click(function() { return false; });
-        createTooltip();
+        initBsTooltips();
         //don't let the browser tell, it may end-up with japanese if jquery doesn't know the variation :/
         $.datepicker.setDefaults($.datepicker.regional['en']);
         $.timepicker.setDefaults($.timepicker.regional['en']);

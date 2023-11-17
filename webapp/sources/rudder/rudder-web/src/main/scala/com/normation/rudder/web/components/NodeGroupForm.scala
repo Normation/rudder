@@ -241,7 +241,7 @@ class NodeGroupForm(
                           </button>
             )
           }
-                      <span class="save-tooltip bsTooltip" title="Your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes. Please click on 'Search' to enable saving again"></span>
+                      <span class="save-tooltip" data-bs-toggle="tooltip" title="Your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes. Please click on 'Search' to enable saving again"></span>
                     </span>
         } else NodeSeq.Empty
       }

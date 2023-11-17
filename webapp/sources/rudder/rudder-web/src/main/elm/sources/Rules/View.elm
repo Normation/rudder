@@ -39,7 +39,7 @@ view model =
         [ i[class "jstree-icon jstree-ocl"][]
         , a[class ("jstree-anchor"++classDisabled++classFocus), href (model.contextPath ++ "/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-          , span [class "treeGroupName tooltipable"]
+          , span [class "treeGroupName"]
             [ badgePolicyMode model.policyMode item.policyMode
             , text item.name
             , badgeDisabled
@@ -93,7 +93,7 @@ view model =
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
                 , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClick (OpenCategoryDetails item.id True)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
-                  , span [class ("treeGroupCategoryName tooltipable " ++ missingCatClass ++ mainMissingCat)][text item.name]
+                  , span [class ("treeGroupCategoryName " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
                 , childsList
                 ]

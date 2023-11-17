@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2023 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -58,44 +58,6 @@ function escapeHTML (string) {
     return entityMap[s];
   });
 }
-
-
-/**
- * Instanciate the tooltip
- * For each element having the "tooltipable" class, when hovering it will look for it's
- * tooltipid attribute, and display in the tooltip the content of the div with the id
- * tooltipid
- */
-$.widget("ui.tooltip", $.ui.tooltip, {
-  options: {
-    content: function () {return $(this).prop('title');},
-    show: { duration: 200, delay:0, effect: "none" },
-    hide: { duration: 200, delay:0, effect: "none" }
-  }
-});
-function createTooltip() {
-
-  $(".tooltipable").tooltip({
-    content: function() {
-      return $("#"+$(this).attr("tooltipid")).html();
-    },
-    position: {
-      my: "left top+15",
-      at: "right top",
-      collision: "flipfit"
-    }
-  });
-  createTooltiptr();
-}
-function createTooltiptr() {
-    $(".tooltipabletr").tooltip({
-      content: function() {
-        return $("#"+$(this).attr("tooltipid")).html();
-      },
-      track : true
-    });
-  }
-
 
 function callPopupWithTimeout(timeout, popupName){
   setTimeout("createPopup('"+popupName+"')", timeout);
@@ -569,18 +531,13 @@ function createBadgeAgentPolicyModeMixed(data){
 }
 
 function showFileManager(idField){
-
-  console.log(idField)
   fm.ports.onOpen.send(null);
 
   fm.ports.close.subscribe(function(files) {
-    console.log(files)
-
     if(files.length > 0){
       var inputField = $("#" + idField + "-fileInput")
       inputField.val(files[0].substring(1));
       }
-
   });
 }
 
@@ -893,6 +850,10 @@ function initBsTooltips(){
     return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true});
   });
 }
+function removeBsTooltips(){
+  document.querySelectorAll(".tooltip").forEach(e => e.remove());
+}
+//tooltip.hide()
 function initBsTabs(){
   var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {

@@ -22,7 +22,7 @@ displayTechniqueRow model =
         [ text technique.version
         , ( if technique.isDeprecated then
           span
-          [ class "glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon bsTooltip"
+          [ class "glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon"
           , attribute "data-bs-toggle" "tooltip"
           , attribute "data-bs-placement" "top"
           , attribute "data-bs-html" "true"
@@ -35,7 +35,7 @@ displayTechniqueRow model =
       , td[]
         [ text technique.multiVersionSupport
         , span
-          [ class "fa fa-question-circle bsTooltip multiversion-icon"
+          [ class "fa fa-question-circle multiversion-icon"
           , attribute "data-bs-toggle" "tooltip"
           , attribute "data-bs-placement" "top"
           , attribute "data-bs-html" "true"
@@ -45,7 +45,7 @@ displayTechniqueRow model =
       , td[]
         [ ( if technique.classicSupport then
           span
-          [ class "fa fa-gear bsTooltip"
+          [ class "fa fa-gear"
           , attribute "data-bs-toggle" "tooltip"
           , attribute "data-bs-placement" "top"
           , attribute "data-bs-html" "true"
@@ -56,7 +56,7 @@ displayTechniqueRow model =
           )
         , ( if technique.dscSupport then
           span
-          [ class "dsc-icon bsTooltip"
+          [ class "dsc-icon"
           , attribute "data-bs-toggle" "tooltip"
           , attribute "data-bs-placement" "top"
           , attribute "data-bs-html" "true"

@@ -255,23 +255,16 @@ function recentChangesText(id) {
   if (changes !== undefined) {
     lastChanges = changes.values[changes.values.length - 1];
   }
+  // Tooltip
+  var toolTipContent = ("<div><h3>Recent changes</h3><div>" + count + " changes over the last 3 days <br/> "+ lastChanges+" changes over the last 6 hours </div></div>");
 
   // Prepare graph elem to have tooltip
-  graphElem.attr("tooltipid",tooltipId);
-  graphElem.attr("title","");
+  graphElem.attr("data-bs-toggle","tooltip");
+  graphElem.attr("title",toolTipContent);
 
-  // Tooltip
-  var tooltip= $("<div></div>");
-  var toolTipContainer = $("<div><h3>Recent changes</h3></div>");
-  toolTipContainer.addClass("tooltipContent");
-  toolTipContainer.attr("id",tooltipId);
-  tooltip.html(count+" changes over the last 3 days <br/> "+ lastChanges+" changes over the last 6 hours ");
-  toolTipContainer.append(tooltip);
 
   // Elem Content
   graphElem.text(count).addClass("center")
-  graphElem.append(toolTipContainer);
-  createTooltip();
   initBsTooltips();
 }
 
@@ -402,7 +395,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
         // If there a reasons field, add the tooltip
         if ("reasons" in data) {
           elem.attr("title","<div><h3>Reason(s)</h3>"+ data.reasons+"</div>");
-          elem.addClass("tooltip tooltipable")
+          elem.attr("data-bs-toggle" , "tooltip");
         }
         $(nTd).prepend(elem);
       }
@@ -689,15 +682,11 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           $(nTd).addClass("listopen");
           var tooltipIcon = $("<i>");
-          tooltipIcon.addClass("fa fa-question-circle icon-info tooltipable");
-          var tooltipId = oData.jsid+"-tooltip";
-          tooltipIcon.attr("tooltipid",tooltipId);
-          tooltipIcon.attr("title","");
-          var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
-          toolTipContainer.addClass("tooltipContent");
-          toolTipContainer.attr("id",tooltipId);
+          tooltipIcon.addClass("fa fa-question-circle icon-info");
+          tooltipIcon.attr("data-bs-toggle","tooltip");
+          var toolTipContent= ("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
+          tooltipIcon.attr("title",tooltipContent);
           $(nTd).append(tooltipIcon);
-          $(nTd).append(toolTipContainer);
           displayTags(nTd, oData.tags)
           if (! oData.isSystem) {
             var editLink = $("<a />");
@@ -721,7 +710,6 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
     return function (gridId, data, refresh) {
       createTable(gridId, data, columns, params, contextPath, refresh);
-      createTooltip();
       initBsTooltips();
     }
   };
@@ -793,15 +781,10 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         $(nTd).addClass("listopen");
         var tooltipIcon = $("<i>");
         tooltipIcon.addClass("fa fa-question-circle icon-info");
-        var tooltipId = oData.jsid+"-tooltip";
-        tooltipIcon.attr("tooltipid",tooltipId);
-        tooltipIcon.attr("title","");
-        tooltipIcon.addClass("tooltipable");
-        var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
-        toolTipContainer.addClass("tooltipContent");
-        toolTipContainer.attr("id",tooltipId);
+        tooltipIcon.attr("data-bs-toggle","tooltip");
+        var toolTipContent= ("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
+        tooltipIcon.attr("title",toolTipContent);
         $(nTd).append(tooltipIcon);
-        $(nTd).append(toolTipContainer);
         displayTags(nTd, oData.tags);
         if (! oData.isSystem) {
           var editLink = $("<a />");
@@ -852,7 +835,6 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
 
   return function (gridId, data, refresh) {
     createTable(gridId, data, columns, params, contextPath, refresh);
-    createTooltip();
     initBsTooltips();
   }
 }
@@ -919,8 +901,6 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
   };
 
   createTable(gridId, data, columns, params, contextPath, refresh);
-
-  createTooltip();
   initBsTooltips();
 }
 

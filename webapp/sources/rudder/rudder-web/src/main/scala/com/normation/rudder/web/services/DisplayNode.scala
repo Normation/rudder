@@ -532,22 +532,12 @@ object DisplayNode extends Loggable {
           val checked     = (sm.node.main.status, sm.node.main.keyStatus) match {
             case (AcceptedInventory, CertifiedKey) =>
               <span>
-                    <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={
-                s"tooltip-key-${sm.node.main.id.value}"
-              }></span>
-                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Inventories for this Node must be signed with this key
-                    </span>
-                  </span>
+                <span class="glyphicon glyphicon-ok text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
+              </span>
             case (AcceptedInventory, UndefinedKey) =>
               <span>
-                    <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={
-                s"tooltip-key-${sm.node.main.id.value}"
-              }></span>
-                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Certificate for this node has been reset, next inventory will be trusted automatically
-                    </span>
-                  </span>
+                <span class="glyphicon glyphicon-exclamation-sign text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
+              </span>
             case _                                 => // not accepted inventory? Should not get there
               NodeSeq.Empty
           }
@@ -592,7 +582,7 @@ object DisplayNode extends Loggable {
             s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
           }> <b>{tokenKind}</b> {checked}</button>
                 <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-            Script(OnLoad(JsRaw(s"""createTooltip();""")))
+            Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
           }
               </div>
         case None        => NodeSeq.Empty

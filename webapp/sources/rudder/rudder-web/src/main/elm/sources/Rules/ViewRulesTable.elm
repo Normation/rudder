@@ -96,7 +96,7 @@ buildRulesTable model rules =
           in
             case r.status.details of
               Just ms ->
-               span[ class "bs-tooltip disabled", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Reason(s)" ms)]
+               span[ class "disabled", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Reason(s)" ms)]
                [ status
                , i[class "fa fa-info-circle"][]
                ]

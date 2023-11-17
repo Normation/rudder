@@ -18,4 +18,4 @@ init flags =
     initUi      = UI flags.hasWriteRights False
     initModel   = Model flags.contextPath initUi flags.versions
   in
-    ( initModel , Cmd.none )
+    ( initModel , initTooltips "" )

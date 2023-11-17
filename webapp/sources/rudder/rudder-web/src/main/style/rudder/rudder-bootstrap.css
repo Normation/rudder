@@ -337,9 +337,6 @@ body{
 .content-wrapper .ruddericon {
   color:#999;
 }
-.content-wrapper .tooltipable.ruddericon:hover {
-  color:#666;
-}
 .content-wrapper .form-group, .form-group {
   margin-bottom:5px;
 }

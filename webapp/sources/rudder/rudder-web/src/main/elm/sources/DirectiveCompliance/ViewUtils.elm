@@ -48,7 +48,7 @@ badgePolicyMode globalPolicyMode policyMode =
         _ -> "Unknown policy mode"
 
   in
-    span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
+    span [class ("treeGroupName rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
 
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
 subItemOrder fun model id  =

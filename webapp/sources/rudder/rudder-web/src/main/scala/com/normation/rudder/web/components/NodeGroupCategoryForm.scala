@@ -210,7 +210,7 @@ class NodeGroupCategoryForm(
         ("class", "btn btn-danger")
       )
     } else {
-      (<span class="btn btn-danger btn-tooltip disabled" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+      (<span class="btn btn-danger disabled" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
         "<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"
       }>Delete</span>) ++ Script(JsRaw("""initBsTooltips();"""))
     }

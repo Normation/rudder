@@ -1038,11 +1038,6 @@ table.fixedlayout{
   color: #555
 }
 
-span.treeDirective.tooltipable,span.treeDirective.bsTooltip {
-  color: #555;
-  font-weight: 600;
-}
-
 i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
   color: #555;
 }

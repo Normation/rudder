@@ -51,7 +51,6 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.json._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import scala.xml._
 
@@ -112,7 +111,7 @@ class RuleCategoryTree(
     }
     Replace(htmlId_RuleCategoryTree, html) &
     selectCategory() &
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
+    OnLoad(After(TimeSpan(50), JsRaw("""initBsTooltips();""")))
   }
 
   // Update selected category and select it in the tree (trigger its function)
@@ -222,13 +221,12 @@ class RuleCategoryTree(
               $$.jstree.rollback(data.rlbk);
             }
           });
-          createTooltip();""")
+          initBsTooltips();""")
       )
     )
   }
 
   private[this] def categoryNode(category: RuleCategory): JsTreeNode = new JsTreeNode {
-    val tooltipId = Helpers.nextFuncName
 
     override val attrs = ("data-jstree" -> """{ "type" : "category" }""") :: ("id", category.id.value) :: Nil
 
@@ -298,20 +296,17 @@ class RuleCategoryTree(
         }
       }
 
-      val tooltip = {
+      val xml = {
         if (category.description.size > 0) {
-          <div class="tooltipContent" id={tooltipId}>
-            <h3>{category.name}</h3>
-            <div>{category.description}</div>
-          </div>
+          val tooltipContent = s"<div>\n<h3>${category.name}</h3>\n<div>${category.description}</div>\n</div>"
+          <span id={category.id.value + "Name"} title={tooltipContent} class="treeRuleCategoryName">
+            {applyCheckBox}{category.name}
+          </span> ++ { actionButtons }
         } else {
-          NodeSeq.Empty
+          <span id={category.id.value + "Name"} class="treeRuleCategoryName" >
+            {applyCheckBox}{category.name}
+          </span> ++ { actionButtons }
         }
-      }
-      val xml     = {
-        <span id={category.id.value + "Name"} tooltipid={tooltipId} title="" class="treeRuleCategoryName tooltipable" >
-          {applyCheckBox}{category.name}
-        </span> ++ { actionButtons } ++ { tooltip }
       }
       SHtml.a(
         () => {

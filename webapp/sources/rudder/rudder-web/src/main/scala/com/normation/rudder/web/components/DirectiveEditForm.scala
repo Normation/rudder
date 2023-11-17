@@ -511,20 +511,24 @@ class DirectiveEditForm(
       priorities,
       defaultValue = directive.priority
     ) {
+      val tooltipContent                 = {
+        s"""
+           |<div>
+           |              <h4> Priority </h4>
+           |              <p>Priority has two uses depending if the technique from which that directive is derived is <b>Unique</b> or not.</p>
+           |              <p>Unique directives can be applied only once (for example Time Settings), so only the highest priority will be applied.</p>
+           |              <p>For <b>non-unique</b> directives, priority is used to choose the order of the directive application when applicable. The
+           |                highest priority directive comes first.</p>
+           |              <p>Note that overriding variable definitions are the ones coming last and so, the used value will be the one with the lowest priority.</p>
+           |              <p>More information is available in <a href="https://docs.rudder.io/reference/current/usage/advanced_configuration_management.html#_special_use_case_overriding_generic_variable_definition">documentation about ordering directive application</a>.</p>
+           |            </div>
+           |""".stripMargin
+      }
       override val displayHtml           = {
         <div>
           <b>Priority</b>
           <span>
-            <span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
-            <div class="tooltipContent" id="priorityId">
-              <h4> Priority </h4>
-              <p>Priority has two uses depending if the technique from which that directive is derived is <b>Unique</b> or not.</p>
-              <p>Unique directives can be applied only once (for example Time Settings), so only the highest priority will be applied.</p>
-              <p>For <b>non-unique</b> directives, priority is used to choose the order of the directive application when applicable. The
-                highest priority directive comes first.</p>
-              <p>Note that overriding variable definitions are the ones coming last and so, the used value will be the one with the lowest priority.</p>
-              <p>More information is available in <a href="https://docs.rudder.io/reference/current/usage/advanced_configuration_management.html#_special_use_case_overriding_generic_variable_definition">documentation about ordering directive application</a>.</p>
-            </div>
+            <span class="ruddericon glyphicon glyphicon-question-sign" data-bs-toggle="tooltip" title={tooltipContent}></span>
           </span>
         </div>
       }
@@ -570,23 +574,27 @@ class DirectiveEditForm(
   }
 
   private[this] val policyModesLabel = {
+    val tooltipContent = {
+      s"""
+         |<div>
+         |          <h4>Policy mode</h4>
+         |          <p>Configuration rules in Rudder can operate in one of two modes:</p>
+         |          <ol>
+         |            <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
+         |            <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
+         |          </ol>
+         |          <p>
+         |            By default all nodes and all directives operate in the global default mode defined in
+         |            <b> Settings</b>, which is currently <b>${globalMode.mode.name}</b>.
+         |          </p>
+         |          ${globalOverrideText}
+         |        </div>
+         |""".stripMargin
+    }
     <label class="wbBaseFieldLabel">
       <b>Policy mode</b>
       <span>
-        <span tooltipid="policyModeId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
-        <div class="tooltipContent" id="policyModeId">
-          <h4>Policy mode</h4>
-          <p>Configuration rules in Rudder can operate in one of two modes:</p>
-          <ol>
-            <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
-            <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
-          </ol>
-          <p>
-            By default all nodes and all directives operate in the global default mode defined in
-            <b> Settings</b>, which is currently <b>{globalMode.mode.name}</b>.
-          </p>
-          {globalOverrideText}
-        </div>
+        <span class="ruddericon glyphicon glyphicon-question-sign" data-bs-toggle="tooltip" title={tooltipContent}></span>
       </span>
     </label>
   }

@@ -203,7 +203,7 @@ editionTemplate model details =
         , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Directives})]
             [ text "Directives"
-            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+            , span[class "badge badge-secondary badge-resources"]
               [ getNbResourcesBadge nbDirectives "This rule does not apply any directive"
               , ( if diffDirectivesPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffDirectivesPos)] else text "")
               , ( if diffDirectivesNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffDirectivesNeg)] else text "")
@@ -216,7 +216,7 @@ editionTemplate model details =
           li[class ("ui-tabs-tab" ++ (if details.tab == Nodes        then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
             [ text "Nodes"
-            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+            , span[class "badge badge-secondary badge-resources"]
               [ getNbResourcesBadge (Maybe.withDefault 0 (getRuleNbNodes details)) "This rule is not applied on any node"
               ]
             ]
@@ -225,7 +225,7 @@ editionTemplate model details =
         , li[class ("ui-tabs-tab" ++ (if details.tab == Groups       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = Groups })]
             [ text "Groups"
-            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+            , span[class "badge badge-secondary badge-resources"]
               [ getGroupsNbResourcesBadge (getRuleNbGroups originRule) (List.length (getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))) "This rule is not applied on any group"
               , ( if diffGroupsPos /= 0 then span [class "nb-resources new"] [ text (String.fromInt diffGroupsPos)] else text "")
               , ( if diffGroupsNeg /= 0 then span [class "nb-resources del"] [ text (String.fromInt diffGroupsNeg)] else text "")
@@ -238,7 +238,7 @@ editionTemplate model details =
           li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
             [ text "Recent changes"
-            , span[class "badge badge-secondary badge-resources tooltip-bs"]
+            , span[class "badge badge-secondary badge-resources"]
               [ span [class "nb-resources"] [text (String.fromFloat (countRecentChanges details.rule.id model.changes))]
               ]
             ]

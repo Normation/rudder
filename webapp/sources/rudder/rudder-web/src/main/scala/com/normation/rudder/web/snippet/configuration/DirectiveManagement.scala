@@ -222,7 +222,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
         buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
         $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
-        createTooltip();
+        initBsTooltips();
     """)
   }
 
@@ -315,7 +315,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             }</span> &
             "#techniqueID *" #> technique.id.name.value &
             "#techniqueDescription *" #> Script(
-              JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""")
+              JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription");""")
             ) &
             "#techniqueLongDescription" #> technique.longDescription &
             "#isSingle *" #> showIsSingle(technique) &
@@ -433,7 +433,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              |app.ports.initTooltips.subscribe(function(msg) {
              |  setTimeout(function(){
              |    initBsTooltips();
-             |  }, 400);
+             |  }, 800);
              |});
              |app.ports.errorNotification.subscribe(function(msg) {
              |  createErrorNotification(msg);
@@ -444,10 +444,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              |  if (getVersion === undefined) {
              |    createErrorNotification("Error while creating directive based on technique version '"+version+"'. Reason: Unknown version")
              |  }else{
-             |    console.log(getVersion);
              |    getVersion.action();
              |  }
              |});
+             |removeBsTooltips();
           """.stripMargin
         )
       )
@@ -490,14 +490,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     case Full(diff) =>
                       currentDirectiveSettingForm.set(Empty)
                       Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw(
-                        """createTooltip();"""
+                        """initBsTooltips();"""
                       ) & onRemoveSuccessCallBack()
                     case eb: EmptyBox =>
                       val msg =
                         (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id.debugString})").messageChain
                       // redisplay this form with the new error
                       currentDirectiveSettingForm.set(Failure(msg))
-                      Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""createTooltip();""")
+                      Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""initBsTooltips();""")
                   }
                 },
                 ("class", "dangerButton")
@@ -553,7 +553,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         // Update UI
         Replace(htmlId_policyConf, showDirectiveDetails()) &
         SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-        JsRaw("""createTooltip();""")
+        JsRaw("""initBsTooltips();""")
       case eb: EmptyBox =>
         val fail      = eb ?~! "Could not get global policy mode while creating new directive"
         logger.error(fail.messageChain)
@@ -605,10 +605,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
     JsRaw(s"""
+        removeBsTooltips();
         this.window.location.hash = "#" + JSON.stringify(${json})
         sessionStorage.removeItem('tags-${directiveId.uid.value}');
       """.stripMargin) &
-    After(TimeSpan(0), JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
+    After(TimeSpan(0), JsRaw("""initBsTooltips();"""))
   }
 
   private[this] case class MissingTechniqueException(directive: Directive) extends Exception(
@@ -715,7 +716,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     // Update UI
     Replace(html_techniqueDetails, techniqueDetails.applyAgain()) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
-    JsRaw("""createTooltip();""")
+    JsRaw("""initBsTooltips();""")
   }
 
 }

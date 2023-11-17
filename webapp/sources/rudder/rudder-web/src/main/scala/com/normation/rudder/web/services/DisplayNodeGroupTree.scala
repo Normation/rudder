@@ -85,14 +85,9 @@ object DisplayNodeGroupTree extends Loggable {
 
       private[this] val localOnClickTarget = onClickTarget.map(_.curried(category))
 
-      private[this] val tooltipId = Helpers.nextFuncName
-
-      private[this] val xml = (
-        <span class="treeGroupCategoryName tooltipable" tooltipid={tooltipId} title="">{category.name}</span>
-        <div class="tooltipContent" id={tooltipId}>
-          <h3>{category.name}</h3>
-          <div>{category.description}</div>
-        </div>
+      private[this] val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
+      private[this] val xml            = (
+        <span class="treeGroupCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{category.name}</span>
       )
 
       override def body = onClickCategory match {
@@ -176,12 +171,10 @@ object DisplayNodeGroupTree extends Loggable {
             (targetActions get ("include") match {
 
               case Some(include) =>
-                val tooltipId = Helpers.nextFuncName
                 <span class="treeActions">
-                        <span class="tooltipable fa action-icon accept" tooltipid={tooltipId} title="" onclick={
+                  <span class="fa action-icon accept" data-bs-toggle="tooltip" title="Include Nodes from this group." onclick={
                   include(targetInfo).toJsCmd
                 }></span>
-                        <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div>
                   </span>
 
               case None => NodeSeq.Empty
@@ -189,12 +182,10 @@ object DisplayNodeGroupTree extends Loggable {
             }) ++
             (targetActions get ("exclude") match {
               case Some(exclude) =>
-                val tooltipId = Helpers.nextFuncName
                 <span class="treeActions">
-                  <span class="tooltipable fa action-icon except" tooltipid={tooltipId} title="" onclick={
+                  <span class="fa action-icon except" data-bs-toggle="tooltip" title="Exclude Nodes from this group." onclick={
                   exclude(targetInfo).toJsCmd
                 }></span>
-                  <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div>
             </span>
               case None          => NodeSeq.Empty
             })
@@ -204,8 +195,8 @@ object DisplayNodeGroupTree extends Loggable {
         }
 
         val xml = {
-          val tooltipId = Helpers.nextFuncName
-          <span class="treeGroupName tooltipable" tooltipid={tooltipId} title="">
+          val tooltipContent = "<div>\n<h3>{targetInfo.name}</h3>\n<div>{targetInfo.description}</div>\n</div>"
+          <span class="treeGroupName" data-bs-toggle="tooltip" title={tooltipContent}>
             {targetInfo.name}
             {if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
             <small class="greyscala">{
@@ -214,13 +205,7 @@ object DisplayNodeGroupTree extends Loggable {
               case _ => ""
             }
           }</small>
-
           </span>
-
-          <div class="tooltipContent" id={tooltipId}>
-            <h3>{targetInfo.name}</h3>
-            <div>{targetInfo.description}</div>
-          </div>
           <div class="treeActions-container">{actionButtons} {editButton}</div>
         }
 

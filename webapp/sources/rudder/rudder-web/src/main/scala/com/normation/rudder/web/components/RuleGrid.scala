@@ -284,8 +284,7 @@ class RuleGrid(
                 , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet)).toJsCmd}
                 , ${isPopup}
               );
-              createTooltip();
-              createTooltiptr();
+              initBsTooltips()
           """
         }
         <div id={htmlId_rulesGridZone}>
@@ -644,7 +643,7 @@ class RuleGrid(
         case _: ErrorLine => " error"
         case _ => ""
       }
-      s"tooltipabletr ${error}"
+      s"${error}"
     }
 
     val t3 = System.currentTimeMillis

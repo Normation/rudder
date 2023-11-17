@@ -168,9 +168,7 @@ trait DirectiveField extends BaseField with SectionChildField {
     if (tooltip == "") {
       NodeSeq.Empty
     } else {
-      val tooltipid = Helpers.nextFuncName
-      <span tooltipid={tooltipid} class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
-      <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
+      <span class="fa fa-question-circle icon-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title={tooltip}></span>
     }
   }
 
@@ -529,7 +527,7 @@ final case class MultivaluedSectionField(
    * Command to correct display and behaviour after modifying sections
    */
   private[this] def postModificationJS(): JsExp = {
-    JsRaw("""createTooltip(); """)
+    JsRaw("""initBsTooltips(); """)
   }
 
   override def toHtmlNodeSeq = {

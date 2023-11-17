@@ -128,7 +128,7 @@ editionTemplateCat model details =
           ]
         , li[class ("ui-tabs-tab" ++ (if details.tab == Rules    then " ui-tabs-active" else ""))]
           [ a[onClick (UpdateCategoryForm {details | tab = Rules})][ text "Rules" ]
-          , span[class "badge badge-secondary badge-resources tooltip-bs"]
+          , span[class "badge badge-secondary badge-resources"]
             [ span [class "nb-resources"] [text (String.fromInt (List.length rulesList))]
             ]
           ]

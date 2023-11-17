@@ -455,10 +455,10 @@ directivesTab model details =
                 [ td[]
                   [ a []
                     [ badgePolicyMode model.policyMode d.policyMode
-                    , span [class "item-name tooltipable"][text d.displayName]
+                    , span [class "item-name"][text d.displayName]
                     , buildTagsTree d.tags
                     , div [class "treeActions-container"]
-                    [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
+                    [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
                     ]
                     , goToBtn (getDirectiveLink model.contextPath  d.id)
                     ]
@@ -503,7 +503,7 @@ directivesTab model details =
                     if isUsed then text ""
                     else
                       span
-                      [ class "fa fa-warning text-warning-rudder bs-tooltip"
+                      [ class "fa fa-warning text-warning-rudder"
                       , attribute "data-bs-toggle" "tooltip"
                       , attribute "data-bs-placement" "bottom"
                       , title (buildTooltipContent "Unused directive" "This directive is not used in any rule")
@@ -514,11 +514,11 @@ directivesTab model details =
                   , a [class ("jstree-anchor" ++ selectedClass), onClick (addDirectives d.id)]
                     [ badgePolicyMode model.policyMode d.policyMode
                     , unusedWarning
-                    , span [class "item-name tooltipable"][text d.displayName]
+                    , span [class "item-name"][text d.displayName]
                     , disabledLabel
                     , buildTagsTree d.tags
                     , div [class "treeActions-container"]
-                      [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
+                      [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
                       ]
                     , goToBtn (getDirectiveLink model.contextPath d.id)
                     ]
@@ -529,7 +529,7 @@ directivesTab model details =
               [ i [class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
               , a [class "jstree-anchor"]
                 [ i [class "jstree-icon jstree-themeicon fa fa-gear jstree-themeicon-custom"][]
-                , span [class "item-name tooltipable"][text item.name]
+                , span [class "item-name"][text item.name]
                 ]
               , ul[class "jstree-children"](directivesList)
               ])
@@ -550,7 +550,7 @@ directivesTab model details =
               [ i [class "jstree-icon jstree-ocl", onClick (UpdateDirectiveFilters (foldUnfoldCategory model.ui.directiveFilters item.name))][]
               , a [class "jstree-anchor"]
                 [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                , span [class "treeGroupCategoryName"][text item.name]
                 ]
               , ul[class "jstree-children"] children
               ])
@@ -825,11 +825,11 @@ groupsTab model details =
             [ i [class "jstree-icon jstree-ocl"][]
             , a [class ("jstree-anchor" ++ includeClass), onClick (SelectGroup item.target True)]
               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-              , span [class "item-name tooltipable"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+              , span [class "item-name"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
               , disabledLabel
               , div [class "treeActions-container"]
-                [ span [class "treeActions"][ span [class "tooltipable fa action-icon accept"][]]
-                , span [class "treeActions"][ span [class "tooltipable fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
+                [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
+                , span [class "treeActions"][ span [class "fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
                 ]
               , goToBtn (getGroupLink model.contextPath item.id)
               ]
@@ -851,7 +851,7 @@ groupsTab model details =
               [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
               , a [class "jstree-anchor"]
                 [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-                , span [class "treeGroupCategoryName tooltipable"][text item.name]
+                , span [class "treeGroupCategoryName"][text item.name]
                 ]
               , ul[class "jstree-children"](children)
               ])

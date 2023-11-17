@@ -251,25 +251,17 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     "#mandatoryTooltip *" #> {
       initMandatory.map { b: Boolean =>
-        val tooltipid = Helpers.nextFuncName
-        <span class="tooltipable" tooltipid={tooltipid} title="">
+        <span data-bs-toggle="tooltip" title="If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.">
             <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
-          <div class="tooltipContent" id={tooltipid}>
-            If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.
-          </div>
       }.getOrElse(NodeSeq.Empty)
     } &
 
     "#explanationTooltip *" #> {
       initExplanation.map { s: String =>
-        val tooltipid = Helpers.nextFuncName
-        <span class="tooltipable" tooltipid={tooltipid} title="">
+        <span data-bs-toggle="tooltip" title="Content of the text displayed to prompt the user to enter a change audit log.">
             <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
-          <div class="tooltipContent" id={tooltipid}>
-            Content of the text displayed to prompt the user to enter a change audit log.
-          </div>
       }.getOrElse(NodeSeq.Empty)
     } &
 
@@ -322,15 +314,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       initDenyBadClocks match {
         case Full(_) =>
-          val tooltipid = Helpers.nextFuncName
-
-          <span class="tooltipable" tooltipid={tooltipid} title="">
+          <span data-bs-toggle="tooltip" title="By default, copying configuration policy to nodes requires system clocks to be synchronized to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.">
               <span class="glyphicon glyphicon-info-sign info"></span>
             </span>
-            <div class="tooltipContent" id={tooltipid}>
-               By default, copying configuration policy to nodes requires system clocks to be synchronized
-               to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.
-            </div>
 
         case _ => NodeSeq.Empty
       }
@@ -449,14 +435,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
         initRelaySyncPromises match {
           case Full(_) =>
-            val tooltipid = Helpers.nextFuncName
-            <span class="tooltipable" tooltipid={tooltipid} title="">
+            <span data-bs-toggle="tooltip" title="If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder">
               <span><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
-            <div class="tooltipContent" id={tooltipid}>
-              If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
-              If this is not checked, you'll have to synchronize yourself this folder
-            </div>
 
           case _ => NodeSeq.Empty
         }
@@ -478,16 +460,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
         initRelaySyncSharedFiles match {
           case Full(_) =>
-            val tooltipid = Helpers.nextFuncName
-            <span class="tooltipable" tooltipid={tooltipid} title="">
+            <span data-bs-toggle="tooltip" title="If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.
+              If this is not checked, you'll have to synchronize yourself this folder">
               <span><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
-            <div class="tooltipContent" id={tooltipid}>
-              If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.
-              If this is not checked, you'll have to synchronize yourself this folder
-            </div>
-
-          case _ => NodeSeq.Empty
+          case _       => NodeSeq.Empty
         }
       } &
       "#relaySynchronizationSubmit " #> {

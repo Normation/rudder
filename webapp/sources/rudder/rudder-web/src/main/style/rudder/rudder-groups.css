@@ -54,7 +54,7 @@
   display: inline-block;
   position: relative;
 }
-.save-tooltip.bsTooltip {
+.save-tooltip {
   display: none;
   position: absolute;
   top: 0;
@@ -63,7 +63,7 @@
   bottom: 0;
   cursor: not-allowed;
 }
-input[disabled] + .save-tooltip.bsTooltip {
+input[disabled] + .save-tooltip {
   display: inline-block;
 }
 

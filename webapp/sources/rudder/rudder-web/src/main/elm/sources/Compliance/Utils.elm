@@ -467,7 +467,7 @@ buildComplianceBar filters complianceDetails =
           realRounded = Basics.floor realPercent
           complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
         in
-          div [class ("progress-bar progress-bar-" ++ className ++ " bs-tooltip"), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
+          div [class ("progress-bar progress-bar-" ++ className), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
           [ text complianceTxt ]
       else
         text ""

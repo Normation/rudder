@@ -393,7 +393,7 @@ class SearchNodeComponent(
     srvList match {
       case Full(seq) =>
         val refresh = srvGrid.refreshData(() => Some(seq), onClickCallback, tableId)
-        JsRaw(s"""(${refresh.toJsCmd}());createTooltip();""") & onUpdateCallback()
+        JsRaw(s"""(${refresh.toJsCmd}());initBsTooltips();""") & onUpdateCallback()
 
       case Empty =>
         Noop

@@ -156,7 +156,6 @@ function homePage (
   } else {
 
     $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
-    createTooltip();
 
     var allNodes = nodeCount.active;
     var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
@@ -186,6 +185,7 @@ function homePage (
     var complianceHColors = nodeCompliance.colors.map(x => complianceHoverColors[x]);
     doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors, complianceHColors);
   }
+  initBsTooltips();
 }
 
 var inventoryColors =

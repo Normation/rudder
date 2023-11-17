@@ -137,11 +137,9 @@ displayNodePropertyRow model =
                 _ -> "This property is managed by its provider <b>‘" ++ pr ++ "</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration."
             in
               (span
-              [ class "rudder-label label-provider label-sm bs-tooltip"
+              [ class "rudder-label label-provider label-sm"
               , attribute "data-bs-toggle" "tooltip"
               , attribute "data-bs-placement" "right"
-              , attribute "data-bs-html" "true"
-              , attribute "data-bs-container" "body"
               , title pTitle
               ] [ text pr ]
               , (pr == "overridden")

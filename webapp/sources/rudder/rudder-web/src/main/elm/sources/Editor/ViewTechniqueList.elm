@@ -51,7 +51,7 @@ treeCategory model techniques category =
             [ i[class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter category.id))][]
             , a[class "jstree-anchor" ]
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-              , span [class "treeGroupCategoryName tooltipable"][text category.name]
+              , span [class "treeGroupCategoryName"][text category.name]
               ]
             , ul[class "jstree-children"] children
             ]
@@ -79,7 +79,7 @@ techniqueList model techniques =
             [ i[class "jstree-icon jstree-ocl", onClick (UpdateTechniqueFilter (foldUnfoldCategory model.techniqueFilter "drafts"))][]
             , a[class "jstree-anchor" ]
               [ i [class "jstree-icon jstree-themeicon fa fa-folder jstree-themeicon-custom"][]
-              , i [class "treeGroupCategoryName tooltipable"][text "Drafts"]
+              , i [class "treeGroupCategoryName"][text "Drafts"]
               ]
             , ul[class "jstree-children"] (List.map (draftsItem model) filteredDrafts)
             ]
@@ -170,7 +170,7 @@ draftsItem model draft =
           [ i[class "jstree-icon jstree-ocl"][]
           , a[class ("jstree-anchor " ++ activeClass), onClick (SelectTechnique (Right draft))]
             [ i [class "jstree-icon jstree-themeicon fa fa-pen jstree-themeicon-custom"][]
-            , span [class "treeGroupName tooltipable"]
+            , span [class "treeGroupName"]
               [ text (if String.isEmpty draft.technique.name then "<unamed draft>" else draft.technique.name)  ]
             , if hasDeprecatedMethod  then
                 span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
@@ -210,7 +210,7 @@ techniqueItem model technique =
           [ i[class "jstree-icon jstree-ocl"][]
           , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClick (SelectTechnique (Left technique))]
             [ i [class "jstree-icon jstree-themeicon fa fa-cog jstree-themeicon-custom"][]
-            , span [class "treeGroupName tooltipable"]
+            , span [class "treeGroupName"]
               [ text technique.name  ]
             , if Dict.member technique.id.value model.drafts then
               span [class "badge" ] [ text "draft" ]

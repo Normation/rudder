@@ -363,32 +363,32 @@ blockBody model parentId block ui techniqueUi =
 
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
-                  |> addClass "text-success method-action tooltip-bs"
+                  |> addClass "text-success method-action"
                   |> addActionStopPropagation ("click", GenerateId (\s -> CloneElem (Block parentId block) (CallId s)))
                   |> addAttributeList
                      [ type_ "button", title "Clone this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
-                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     , attribute "data-bs-placement" "left"
+                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild cloneIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
     resetButton = element "button"
-                  |> addClass "method-action tooltip-bs"
+                  |> addClass "method-action"
                   |> addActionStopPropagation ("click", ResetMethodCall (Block parentId block))
                   |> addAttributeList
                      [ type_ "button", title "Reset this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
-                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     , attribute "data-bs-placement" "left"
+                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
     removeButton = element "button"
-                  |> addClass "text-danger method-action tooltip-bs"
+                  |> addClass "text-danger method-action"
                   |> addActionStopPropagation ("click", RemoveMethod block.id)
                   |> addAttributeList
                      [ type_ "button", title "Remove this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "left"
-                     , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                     , attribute "data-bs-placement" "left"
+                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
                      ]
                   |> appendChild removeIcon
     condition = element "div"

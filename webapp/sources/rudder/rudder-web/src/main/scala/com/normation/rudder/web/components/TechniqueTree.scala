@@ -90,7 +90,7 @@ class TechniqueTree(
         { <ul>{treeNode.toXml}</ul> } ++ Script(
           OnLoad(
             JsRaw(
-              """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_activeTechniquesTree)
+              """buildTechniqueDependencyTree('#%s'); initBsTooltips();""".format(htmlId_activeTechniquesTree)
             )
           )
         )
@@ -114,12 +114,11 @@ class TechniqueTree(
       activeTechnique: ActiveTechnique
   ): JsTreeNode = new JsTreeNode {
     override val attrs    = ("data-jstree" -> """{ "type" : "category" }""") :: Nil
+    val tooltipContent    = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
     override def body     = {
-      <a href="#"><span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={
-        category.id.value.replaceAll("/", "")
-      }  title={category.description}>{category.name}</span></a><div class="tooltipContent" id={
-        category.id.value.replaceAll("/", "")
-      }><h3>{category.name}</h3><div>{category.description}</div></div>
+      <a href="#"><span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
+        category.name
+      }</span></a>
     }
     override def children = subCat match {
       case Nil       => techniqueNode(dep, technique, activeTechnique) :: Nil
@@ -132,12 +131,9 @@ class TechniqueTree(
       technique:       Technique,
       activeTechnique: ActiveTechnique
   ): JsTreeNode = new JsTreeNode {
+    val tooltipContent    = s"<h3>${technique.name}</h3>\n<div>${technique.description}</div>"
     override def body     = {
-      <a href="#"><span class="treeTechniqueName tooltipable" tooltipid={activeTechnique.techniqueName.value} title={
-        technique.escapedDescription
-      }>{technique.name}</span></a><div class="tooltipContent" id={activeTechnique.techniqueName.value}><h3>{
-        technique.name
-      }</h3><div>{technique.description}</div></div>
+      <a href="#"><span class="treeTechniqueName"  data-bs-toggle="tooltip" title={tooltipContent}>{technique.name}</span></a>
     }
     override def children = dep.directives.keySet.toList.map(directiveId => directiveNode(dep, directiveId))
     override val attrs    = ("data-jstree" -> """{ "type" : "template" }""") :: Nil ::: (if (!activeTechnique.isEnabled)
@@ -153,11 +149,8 @@ class TechniqueTree(
                                                                                            ("class" -> "disableTreeNode") :: Nil
                                                                                          else Nil)
       override def body     = {
-        <a href="#"><span class="treeDirective tooltipable" tooltipid={directive.id.uid.value} title={
-          directive.shortDescription
-        }>{directive.name}</span></a><div class="tooltipContent" id={directive.id.uid.value}><h3>{directive.name}</h3><div>{
-          directive.shortDescription
-        }</div></div>
+        val tooltipContent = s"<h3>${directive.name}</h3>\n<div>${directive.shortDescription}</div>"
+        <a href="#"><span class="treeDirective" data-bs-toggle="tooltip" title={tooltipContent}>{directive.name}</span></a>
       }
       override def children = ruleIds.map(k => ruleNode(k)).toList
     }
@@ -172,9 +165,10 @@ class TechniqueTree(
                                                                      else Nil)
           }
           override def body     = {
-            <a href="#"><span class="treeRuleName tooltipable" tooltipid={id.serialize} title={rule.shortDescription}>{
+            val tooltipContent = s"<h3>${rule.name}</h3>\n<div>${rule.shortDescription}</div>"
+            <a href="#"><span class="treeRuleName" data-bs-toggle="tooltip" title={tooltipContent}>{
               rule.name
-            }</span></a><div class="tooltipContent" id={id.serialize}><h3>{rule.name}</h3><div>{rule.shortDescription}</div></div>
+            }</span></a>
           }
           override def children = Nil
         }

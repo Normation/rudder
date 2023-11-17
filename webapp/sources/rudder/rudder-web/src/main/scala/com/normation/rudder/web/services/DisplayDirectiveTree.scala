@@ -157,7 +157,7 @@ object DisplayDirectiveTree extends Loggable {
         </div>
       """
       private[this] val xml            = (
-        <span class="treeActiveTechniqueCategoryName bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
+        <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" data-bs-placement="top" title={
           tooltipContent
         }>
           {Text(category.name)}
@@ -265,7 +265,7 @@ object DisplayDirectiveTree extends Loggable {
             }
 
             val className     = {
-              val defaultClass    = "treeActiveTechniqueName bsTooltip"
+              val defaultClass    = "treeActiveTechniqueName"
               val disabledClass   = if (!activeTechnique.isEnabled) { "is-disabled" }
               else { "" }
               val deprecatedClass = if (isDeprecated) { "isDeprecated" }
@@ -337,7 +337,7 @@ object DisplayDirectiveTree extends Loggable {
               </div>
             """
             <span class="treeActions">
-              <span class="treeAction noRight directiveDetails fa fa-pencil bsTooltip"  data-bs-toggle="tooltip" data-bs-placement="top" title={
+              <span class="treeAction noRight directiveDetails fa fa-pencil"  data-bs-toggle="tooltip" data-bs-placement="top" title={
               tooltipContent
             } onclick={linkUtil.redirectToDirectiveLink(directive.id.uid).toJsCmd}> </span>
             </span>
@@ -376,7 +376,7 @@ object DisplayDirectiveTree extends Loggable {
           onClickDirective match {
             case Some(f) =>
               <span class="treeActions">
-                <span class="treeAction fa action-icon directive bsTooltip"  data-bs-toggle="tooltip" data-bs-placement="top" title="" onclick={
+                <span class="treeAction fa action-icon directive"  data-bs-toggle="tooltip" data-bs-placement="top" title="" onclick={
                 f(directive)
               }> </span>
               </span>
@@ -472,7 +472,7 @@ object DisplayDirectiveTree extends Loggable {
           """
 
           <span id={"badge-apm-" + tooltipId}>[BADGE]</span> ++
-          <span class="treeDirective bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
+          <span class="treeDirective" data-bs-toggle="tooltip" data-bs-placement="top" title={
             tooltipContent
           }>
             <span class="techversion">

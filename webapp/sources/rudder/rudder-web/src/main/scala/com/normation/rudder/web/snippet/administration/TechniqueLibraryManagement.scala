@@ -63,7 +63,6 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.json._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import scala.xml._
 
@@ -566,7 +565,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] def refreshTree(): JsCmd = {
     Replace(htmlId_techniqueLibraryTree, systemLibrary()) &
     Replace(htmlId_activeTechniquesTree, userLibrary()) &
-    OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
+    OnLoad(After(TimeSpan(100), JsRaw("""initBsTooltips();""")))
   }
 
   private[this] def refreshActiveTreeLibrary(): JsCmd = {
@@ -637,15 +636,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override def body = {
 
         val tooltipContent = s"""
-          <h4>${technique.name}</h4>
-          <div class="tooltip-content">
+          <h3>${technique.name}</h3>
+          <div>
             <p>${technique.escapedDescription}</p>
             ${agentCompat.techniqueText}
           </div>
         """
         SHtml.a(
           () => onClickTemplateNode(Some(technique), None),
-          <span class="treeTechniqueNamebsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
+          <span class="treeTechniqueName" data-bs-toggle="tooltip" data-bs-placement="top" title={
             tooltipContent
           }>{agentCompat.icon}{technique.name}</span>
         )
@@ -662,15 +661,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     new JsTreeNode {
       // actually transform a technique category to jsTree nodes:
       override def body     = {
-        val tooltipid = Helpers.nextFuncName
+        val tooltipContent = s"<h3>${category.name}</h3\n<div>${category.description}</div>"
         <a href="#">
-          <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipid} title={category.description}>{
+          <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
           category.name
         }</span>
-          <div class="tooltipContent" id={tooltipid}>
-            <h3>{category.name}</h3>
-            <div>{category.description}</div>
-            </div>
         </a>
       }
       override def children = {
@@ -722,28 +717,25 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case Some(technique) =>
           new JsTreeNode {
             override def body     = {
-              val tooltipContent   = s"""
-              <h4>${technique.name}</h4>
-              <div class="tooltip-content">
+              val tooltipContent = s"""<h3>${technique.name}</h3><div>
                 <p>${technique.escapedDescription}</p>
                 ${agentCompat.techniqueText}
                 ${if (!activeTechnique.isEnabled) { <div>This Technique is currently <b>disabled</b>.</div> }
                 else { NodeSeq.Empty }}
               </div>
-            """
-              val badgeDisabled    = if (activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
-              val tooltipid1       = Helpers.nextFuncName
+              """
+              val badgeDisabled  = if (activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
+
               val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that technique"
               SHtml.a(
                 () => onClickTemplateNode(Some(technique), Some(activeTechnique)),
                 (
-                  <span class="treeTechniqueName bsTooltip" data-bs-toggle="tooltip" data-bs-placement="top" title={
+                  <span class="treeTechniqueName" data-bs-toggle="tooltip" data-bs-placement="top" title={
                     tooltipContent
                   }><span class="item-name">{agentCompat.icon} {technique.name}</span>{badgeDisabled}</span>
-                  <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>
+                  <span data-bs-toggle="tooltip" title={numberDirectives}>
                     {s" (${activeTechnique.directives.size})"}
                   </span>
-                  <div class="tooltipContent" id={tooltipid1}>{numberDirectives}</div>
                 )
               )
             }
@@ -778,16 +770,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
           new JsTreeNode {
             override def body     = {
-              val tooltipid = Helpers.nextFuncName
+              val tooltipContent =
+                s"<h3>Missing technique ${activeTechnique.techniqueName.value}</h3>\n<div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>"
               SHtml.a(
                 () => onClickTemplateNode(None, Some(activeTechnique)),
-                <span class="error treeTechniqueName tooltipable" tooltipid={tooltipid} title={
+                <span class="error treeTechniqueName" data-bs-toggle="tooltip" title={tooltipContent}>{
                   activeTechnique.techniqueName.value
-                }>{activeTechnique.techniqueName.value}</span>
-                  <div class="tooltipContent" id={tooltipid}>
-                    <h3>Missing technique {activeTechnique.techniqueName.value}</h3>
-                    <div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>
-                  </div>
+                }</span>
               )
             }
             override def children = Nil
@@ -826,13 +815,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         Nil
       }
       override def body     = {
-        val tooltipid = Helpers.nextFuncName
+        val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
         SHtml.a(
           onClickUserCategory _,
-          <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipid}  title={category.description}>{
+          <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
             category.name
           }</span>
-          <div class="tooltipContent" id={tooltipid}><h3>{category.name}</h3><div>{category.description}</div></div>
         )
       }
       override def children = {
