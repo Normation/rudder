@@ -46,17 +46,13 @@ impl Dependencies {
             }
         };
         if let Some(v) = &self.apt {
-            if which("apt").is_ok() {
-                if !v.iter().all(|x| x.is_installed()) {
-                    return false;
-                }
+            if which("apt").is_ok() && !v.iter().all(|x| x.is_installed()) {
+                return false;
             }
         };
         if let Some(v) = &self.rpm {
-            if which("rpm").is_ok() {
-                if !v.iter().all(|x| x.is_installed()) {
-                    return false;
-                }
+            if which("rpm").is_ok() && !v.iter().all(|x| x.is_installed()) {
+                return false;
             }
         };
         true
