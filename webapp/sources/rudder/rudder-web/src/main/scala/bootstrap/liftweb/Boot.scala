@@ -61,6 +61,7 @@ import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.zio._
+import info.faljse.SDNotify.SDNotify
 import java.net.URI
 import java.net.URLConnection
 import java.util.Locale
@@ -697,6 +698,8 @@ class Boot extends Loggable {
     // release guard for promise generation awaiting end of boot
     RudderConfig.policyGenerationBootGuard.succeed(()).runNow
 
+    // Notify systemd that the service has started
+    SDNotify.sendNotify()
   }
 
   // Run a health check

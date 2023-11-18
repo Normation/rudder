@@ -281,6 +281,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${spring-security-version}</version>
     </dependency>
 
+    <!-- systemd integration -->
+    <dependency>
+      <groupId>info.faljse</groupId>
+      <artifactId>SDNotify</artifactId>
+      <version>1.5</version>
+    </dependency>
+
     <!-- Needed for LDAP authentication -->
     <dependency>
       <groupId>org.springframework.security</groupId>
