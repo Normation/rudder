@@ -138,7 +138,7 @@ impl Rpkg {
                         .to_string_lossy()
                         .to_string();
                     file_list.push(a);
-            })
+                })
         }
         Ok(file_list)
     }
