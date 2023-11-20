@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use anyhow::{anyhow, bail, Context, Ok, Result};
+use ar::Archive;
 use core::fmt;
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
-    path::Path,
+    path::{Path, PathBuf},
     process::Command,
-    str,
 };
 
-use anyhow::{bail, Context, Ok, Result};
-use ar::Archive;
-use serde::{Deserialize, Serialize};
-
 use crate::{
-    database::Database, plugin::Metadata, webapp_xml::WebappXml, PACKAGES_DATABASE_PATH,
-    PACKAGES_FOLDER, WEBAPP_XML_PATH,
+    database::{Database, InstalledPlugin},
+    plugin::Metadata,
+    webapp_xml::WebappXml,
+    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, WEBAPP_XML_PATH,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -86,7 +86,71 @@ impl Rpkg {
 
     fn get_txz_dst(&self, txz_name: &str) -> String {
         // Build the destination path
+        if txz_name == "scripts.txz" {
+            return PACKAGES_FOLDER.to_string();
+        }
         return self.metadata.content.get(txz_name).unwrap().to_string();
+    }
+
+    fn get_archive_installed_files(&self) -> Result<Vec<String>> {
+        let mut txz_names = self.get_txz_list()?;
+        txz_names.retain(|x| x != "scripts.txz");
+        let f = txz_names
+            .iter()
+            .map(|x| self.get_absolute_file_list_of_txz(x))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(f.into_iter().flatten().collect::<Vec<String>>())
+    }
+
+    fn get_txz_list(&self) -> Result<Vec<String>> {
+        let mut txz_names = Vec::<String>::new();
+        let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
+        while let Some(entry_result) = archive.next_entry() {
+            let name = std::str::from_utf8(entry_result?.header().identifier())?.to_string();
+            if name.ends_with(".txz") {
+                txz_names.push(name);
+            }
+        }
+        Ok(txz_names)
+    }
+
+    fn get_relative_file_list_of_txz(&self, txz_name: &str) -> Result<Vec<String>> {
+        let mut file_list = Vec::<String>::new();
+        let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
+        while let Some(entry_result) = archive.next_entry() {
+            let txz_archive = entry_result.unwrap();
+            let entry_title = std::str::from_utf8(txz_archive.header().identifier()).unwrap();
+            if entry_title != txz_name {
+                continue;
+            }
+            let mut unxz_archive = Vec::new();
+            let mut f = std::io::BufReader::new(txz_archive);
+            lzma_rs::xz_decompress(&mut f, &mut unxz_archive)?;
+            let mut tar_archive = tar::Archive::new(Cursor::new(unxz_archive));
+            tar_archive
+                .entries()?
+                .filter_map(|e| e.ok())
+                .for_each(|entry| {
+                    let a = entry
+                        .path()
+                        .unwrap()
+                        .into_owned()
+                        .to_string_lossy()
+                        .to_string();
+                    file_list.push(a);
+                })
+        }
+        Ok(file_list)
+    }
+
+    fn get_absolute_file_list_of_txz(&self, txz_name: &str) -> Result<Vec<String>> {
+        let prefix = self.get_txz_dst(txz_name);
+        let relative_files = self.get_relative_file_list_of_txz(txz_name)?;
+        Ok(relative_files
+            .iter()
+            .map(|x| -> PathBuf { Path::new(&prefix.clone()).join(x) })
+            .map(|y| y.to_str().ok_or(anyhow!("err")).map(|z| z.to_owned()))
+            .collect::<Result<Vec<String>>>()?)
     }
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: &str) -> Result<(), anyhow::Error> {
@@ -95,7 +159,7 @@ impl Rpkg {
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
         while let Some(entry_result) = archive.next_entry() {
             let txz_archive = entry_result.unwrap();
-            let entry_title = str::from_utf8(txz_archive.header().identifier()).unwrap();
+            let entry_title = std::str::from_utf8(txz_archive.header().identifier()).unwrap();
             if entry_title != txz_name {
                 continue;
             }
@@ -138,6 +202,17 @@ impl Rpkg {
             let dst = self.get_txz_dst(txz_name);
             self.unpack_embedded_txz(txz_name, &dst)?
         }
+        // Update the plugin index file to track installed files
+        // We need to add the content section to the metadata to do so
+        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
+        db.plugins.insert(
+            self.metadata.name.clone(),
+            InstalledPlugin {
+                files: self.get_archive_installed_files()?,
+                metadata: self.metadata.clone(),
+            },
+        );
+        Database::write(PACKAGES_DATABASE_PATH, db)?;
         // Run postinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         self.run_package_script(PackageScript::Postinst, install_or_upgrade)?;
@@ -173,7 +248,7 @@ fn read_metadata(path: &str) -> Result<Metadata> {
     while let Some(entry_result) = archive.next_entry() {
         let mut entry = entry_result.unwrap();
         let mut buffer = String::new();
-        let entry_title = str::from_utf8(entry.header().identifier()).unwrap();
+        let entry_title = std::str::from_utf8(entry.header().identifier()).unwrap();
         if entry_title == "metadata" {
             let _ = entry.read_to_string(&mut buffer)?;
             let m: Metadata = serde_json::from_str(&buffer)
@@ -196,6 +271,56 @@ mod tests {
         assert!(read_metadata("./tests/malformed_metadata.rpkg").is_err());
         assert!(read_metadata("./tests/without_metadata.rpkg").is_err());
         read_metadata("./tests/with_metadata.rpkg").unwrap();
+    }
+
+    #[test]
+    fn test_get_relative_file_list_of_txz() {
+        let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
+        assert_eq!(
+            r.get_relative_file_list_of_txz("files.txz").unwrap(),
+            vec![
+                "share/",
+                "share/python/",
+                "share/python/glpi.py",
+                "share/python/notifyd.py"
+            ]
+        );
+        assert_eq!(
+            r.get_relative_file_list_of_txz("scripts.txz").unwrap(),
+            vec!["postinst"]
+        );
+    }
+
+    #[test]
+    fn test_get_absolute_file_list_of_txz() {
+        let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
+        assert_eq!(
+            r.get_absolute_file_list_of_txz("files.txz").unwrap(),
+            vec![
+                "/opt/rudder/share/",
+                "/opt/rudder/share/python/",
+                "/opt/rudder/share/python/glpi.py",
+                "/opt/rudder/share/python/notifyd.py"
+            ]
+        );
+        assert_eq!(
+            r.get_absolute_file_list_of_txz("scripts.txz").unwrap(),
+            vec!["/var/rudder/packages/postinst"]
+        );
+    }
+
+    #[test]
+    fn test_get_archive_installed_filed() {
+        let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
+        assert_eq!(
+            r.get_archive_installed_files().unwrap(),
+            vec![
+                "/opt/rudder/share/",
+                "/opt/rudder/share/python/",
+                "/opt/rudder/share/python/glpi.py",
+                "/opt/rudder/share/python/notifyd.py"
+            ]
+        );
     }
 
     #[test]
