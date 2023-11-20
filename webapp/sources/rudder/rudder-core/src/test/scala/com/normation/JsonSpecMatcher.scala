@@ -2,11 +2,19 @@ package com.normation
 
 import _root_.zio.json._
 import _root_.zio.json.ast.Json
+import org.specs2.execute.FailureDetails
+import org.specs2.matcher.EqualityMatcher
+import org.specs2.matcher.Expectable
 import org.specs2.matcher.Matcher
+import org.specs2.matcher.MatchFailure
+import org.specs2.matcher.MatchResult
 import org.specs2.matcher.MustMatchers
+import org.specs2.matcher.StandardMatchResults
 import org.specs2.mutable.Specification
 
 trait JsonSpecMatcher { self: MustMatchers with Specification =>
+
+  import JsonSpecMatcher._
 
   /**
       * Tests for a non-strict equality of json, by comparing the string.
@@ -15,40 +23,62 @@ trait JsonSpecMatcher { self: MustMatchers with Specification =>
       * 
       * Displays the actual and expected json in the error message in a pretty format.
       */
-  def equalsJson(res: String):                 Matcher[String] = {
-    (
-      (s: String) => cleanParse(s) == cleanParse(res),
-      (s: String) => s"'${prettyPrint(s)}' did not equal '${prettyPrint(res)}'\neven when removing whitespaces"
-    )
-  }
-  // add the aka manually to the error message
-  def equalsJsonAka(res: String, aka: String): Matcher[String] = {
-    (
-      (s: String) => cleanParse(s) == cleanParse(res),
-      (s: String) => s"$aka: '${prettyPrint(s)}' did not equal '${prettyPrint(res)}'\neven when removing whitespaces"
-    )
+  def equalsJson(res: String): Matcher[String] = {
+    new EqualityMatcher(res)
+      .adapt(cleanParse, koFunction = _ + "\neven when removing whitespaces")
   }
 
   def equalsJsonSemantic(res: String): Matcher[String] = {
-    (
-      (s: String) => s.fromJson[Json] == res.fromJson[Json],
-      (s: String) => s"'${prettyPrint(s)}' did not semantically equal '${prettyPrint(res)}'"
-    )
+    res.fromJson[Json] match {
+      case Right(json) =>
+        new JsonEqualityMatcher(json).toStringMatcher
+      case Left(_)     => (s: String) => ko(s"The provided json is not valid, cannot do semantic comparison of $s with $res")
+    }
+  }
+}
+
+private object JsonSpecMatcher {
+  // we choose a custom message using the pretty-rendered json
+  class JsonEqualityMatcher(t: Json) extends EqualityMatcher[Json](t) { outer =>
+
+    /**
+     * Compares both "pretty" format version of json
+     */
+    def toStringMatcher = {
+      new EqualityMatcher[String](t.toJsonPretty) {
+        override def apply[S <: String](s: Expectable[S]): MatchResult[S] = {
+          val checkedValues =
+            s"\n\nParsed actual json: '${prettyPrint(s.value)}'\n  Expected: '${prettyPrint(t)}'\nwith semantic comparison"
+          result(jsonMatchResult(s).updateMessage(_ + checkedValues), s)
+        }
+      }
+    }
+
+    private def stringAsJson(s: Expectable[String]) = s.value.fromJson[Json] match {
+      case Left(_)      =>
+        StandardMatchResults
+          .ko(s"The provided json is not valid, cannot do semantic comparison of $s with ${prettyPrint(t)}")
+      case Right(value) =>
+        this.apply[Json](s.map(_ => value))
+    }
+
+    // intercept the match (json against json) to display 'expected' and 'actual' with prettifed format
+    private def jsonMatchResult(s: Expectable[String]): MatchResult[Any] = stringAsJson(s) match {
+      case MatchFailure(ok, ko, expectable, trace, FailureDetails(actual, expected)) =>
+        MatchFailure(ok, ko, expectable, trace, FailureDetails(prettyPrint(actual), prettyPrint(expected)))
+      case other                                                                     => other
+    }
   }
 
-  def equalsJsonSemanticAka(res: String, aka: String): Matcher[String] = {
-    (
-      (s: String) => s.fromJson[Json] == res.fromJson[Json],
-      (s: String) => s"$aka: '${prettyPrint(s)}' did not semantically equal '${prettyPrint(res)}'"
-    )
-  }
-
-  private def cleanParse(text: String) = {
+  def cleanParse(text: String) = {
     val cleaned = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
     prettyPrint(cleaned)
   }
 
-  private def prettyPrint(json: String) = {
+  def prettyPrint(json: String) = {
     json.fromJson[Json].map(_.toJsonPretty).getOrElse(json)
+  }
+  def prettyPrint(json: Json)   = {
+    json.toJsonPretty
   }
 }

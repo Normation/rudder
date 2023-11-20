@@ -308,16 +308,10 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
     def equalsBox[A](m: Matcher[A])(name: String): Matcher[Box[A]]      = (_: Box[A]).mustMatch(m, name)
     // Full(1) must equalsBoxStrict(1)
     def equalsBoxStrict[A](a: A)(name: String):    Matcher[Box[A]]      = equalsBox[A](be_==(a))(name)
-    // Full(1) must equalsBoxJson("[3, 4]")
-    def compareJson(s: String)(name: String):      Matcher[String]      =
-      if (semanticJson) equalsJsonSemanticAka(s, name) else equalsJsonAka(s, name)
-    def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s)(name))(name)
-
-    // Full(200, "[3,4]") must equalsResponseCodeAndContent((200, "[3, 4]"))
-    def equalsResponseCodeAndContent(a: (Int, String)): Matcher[Box[(Int, String)]] = {
-      (equalsBoxStrict(a._1)("response code") ^^ { (t: Box[(Int, String)]) => t.map(_._1) }
-      and (equalsBoxJson(a._2)("response content") ^^ { (t: Box[(Int, String)]) => t.map(_._2) }))
-    }
+    // Full("[3,4]") must equalsBoxJson("[3, 4]")
+    def compareJson(s: String):                    Matcher[String]      =
+      if (semanticJson) equalsJsonSemantic(s) else equalsJson(s)
+    def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s))(name)
 
     Fragments.foreach(files) {
       case (name, yamls) =>
@@ -349,10 +343,12 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
                   mockReq.parameters = mockReq.parameters ++ test.params
                   mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
-                  // authorize space in response formating
-                  restTest.execRequestResponse(mockReq)(response =>
-                    response.map(cleanResponse(_)) must equalsResponseCodeAndContent((test.responseCode, test.responseContent))
-                  )
+                  restTest.execRequestResponse(mockReq)(response => {
+                    val responseBox = response.map(cleanResponse(_))
+                    responseBox.map(_._1) must equalsBoxStrict(test.responseCode)("response code") and (
+                      responseBox.map(_._2) must equalsBoxJson(test.responseContent)("response content")
+                    )
+                  })
                 }
             }
           }
