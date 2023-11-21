@@ -121,7 +121,8 @@ pub fn run(args: MainArgs) -> Result<()> {
             let library = check_libraries(library)?;
             action::build(library.as_slice(), input, target.as_path(), true, false)?;
             action::test(
-                target.join("technique.cf").as_path(),
+                input,
+                &target,
                 Path::new(TESTS_DIR),
                 library.as_slice(),
                 filter,
@@ -158,11 +159,11 @@ pub mod action {
     };
 
     use anyhow::{bail, Context, Result};
-    use rudder_commons::{logs::ok_output, ALL_TARGETS};
+    use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
 
     pub use crate::compiler::compile;
     use crate::{
-        backends::unix::cfengine::cf_agent,
+        backends::{unix::cfengine::cf_agent, windows::test::win_agent},
         compiler::{metadata, read_technique},
         doc::{book, Format},
         frontends::read_methods,
@@ -271,7 +272,8 @@ pub mod action {
 
     /// Run a test
     pub fn test(
-        technique_file: &Path,
+        technique_src: &Path,
+        target_dir: &Path,
         test_dir: &Path,
         libraries: &[PathBuf],
         filter: Option<String>,
@@ -316,12 +318,33 @@ pub mod action {
             if libraries.len() > 1 {
                 bail!("Tests only support one library path containing a full 'ncf' library");
             }
-            let run_log = cf_agent(
-                technique_file,
-                case_path.as_path(),
-                libraries[0].as_path(),
-                agent_verbose,
-            )?;
+            let run_log = match case.target {
+                Target::Unix => cf_agent(
+                    &target_dir.join("technique.cf"),
+                    case_path.as_path(),
+                    libraries[0].as_path(),
+                    agent_verbose,
+                )?,
+                Target::Windows => {
+                    let technique_file = target_dir.join("technique.ps1");
+                    // Read the technique
+                    // TODO: reuse parsed technique from build step
+                    let methods = read_methods(libraries)?;
+                    ok_output("Read", format!("{} methods", methods.len()));
+                    let policy_str = read_to_string(technique_src).with_context(|| {
+                        format!("Failed to read input from {}", technique_src.display())
+                    })?;
+                    let policy = read_technique(methods, &policy_str)?;
+
+                    win_agent(
+                        &technique_file,
+                        &policy,
+                        &case,
+                        libraries[0].as_path(),
+                        agent_verbose,
+                    )?
+                }
+            };
             let report_file = Path::new(TARGET_DIR).join(case_path.with_extension("json"));
             create_dir_all(report_file.parent().unwrap())?;
             fs::write(&report_file, serde_json::to_string_pretty(&run_log)?)?;

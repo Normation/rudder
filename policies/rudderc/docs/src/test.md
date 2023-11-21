@@ -2,9 +2,7 @@
 
 ## Write technique tests
 
-**NOTE 1**: Techniques tests are only supported on Linux for now.
-
-**NOTE 2**: Not all methods can run successfully with this testing method.
+**NOTE**: Not all methods can run successfully with this testing method.
 In particular all methods exchanging files with the Rudder server won't work. 
 
 The tests are placed in a `tests` folder in the technique directory.
@@ -12,14 +10,27 @@ Each test case is defined by a YAML file in this folder.
 
 The format of the test case file is:
 
+* `params` (optional): Named parameters passed to the technique in as key-values.
+* `conditions` (optional): Conditions to define before running the technique.
+* `policy_mode` (optional): The mode to use for running the technique. `audit` or `enforce`, defaults to `enforce`.
+* `setup` (optional): Steps to run sequentially to prepare the environment for the test.
+* `check`: Test steps, run sequentially. If one of them fails the test will be considered as a failure.
+* `cleanup` (optional): Steps to run sequentially after the test to clean the environment.
+
+The setup and check sections contain a list of commands to run. The only supported step type
+for now is `sh`, which runs commands in a shell (`/usr/bin/sh` on Linux, PowerShell on Windows).
+The outcome is based on the returned code, 0 is a success and other codes are failures.
+
+Example:
+
 ```yaml
-# The technique parameters
 params:
   param1: value1
   param2: true
 conditions:
   - condition1
   - condition2
+policy_mode: audit
 setup:
   - sh: "test command"
 check:
@@ -28,10 +39,6 @@ check:
 cleanup:
   - sh: "cleanup command"
 ```
-
-The setup and check sections contain a list of commands to run.
-These commands run in the test directory, and are passed to `/usr/bin/sh`.
-The `setup`, `cleanup`, `params` and `conditions` entries are optional.
 
 The detailed test process is, for each `*.yml` file in the `tests` directory:
 

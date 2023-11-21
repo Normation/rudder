@@ -75,7 +75,12 @@ bundle agent rudder_test_init {
       # Define conditions
       "conditions" slist => getvalues("test_case[conditions]");
 
+      "dry_run" string => "false";
+    dry_run_test::
+      "dry_run" string => "true";
+
   classes:
+      "dry_run_test"  expression => strcmp("${test_case[policy_mode]}", "audit");
       "${conditions}" expression => "any",
                            scope => "namespace";
 

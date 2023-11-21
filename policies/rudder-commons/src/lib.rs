@@ -27,9 +27,10 @@ macro_rules! regex_comp {
 /// "x86_64-unknown-linux-gnu", it depends on several items.
 ///
 /// We can define our own (operating-system/platform, agent/management technology, environment) target spec.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Default)]
 pub enum Target {
     /// Actually (Unix, CFEngine + patches, system techniques + ncf)
+    #[default]
     Unix,
     /// Actually (Windows, Dotnet + DSC, )
     Windows,
@@ -258,6 +259,27 @@ pub fn canonify(input: &str) -> String {
 
 pub fn is_canonified(input: &str) -> bool {
     input.chars().all(|x| x.is_ascii_alphanumeric() || x == '_')
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum PolicyMode {
+    #[default]
+    Enforce,
+    Audit,
+}
+
+impl fmt::Display for PolicyMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PolicyMode::Enforce => "enforce",
+                PolicyMode::Audit => "audit",
+            }
+        )
+    }
 }
 
 #[cfg(test)]

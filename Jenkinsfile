@@ -417,6 +417,7 @@ pipeline {
                                             credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                                     }
                                 }
+                                sh script: 'make agent-windows', label: 'install local Windows agent'
                                 sh script: 'make check', label: 'language tests'
                                 sh script: 'cargo vet', label: 'check dependencies audits'
                                 sh script: 'make docs', label: 'language docs'

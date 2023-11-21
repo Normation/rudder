@@ -1,0 +1,29 @@
+# Stop on first error
+$errorActionPreference = "Stop"
+
+# Reset Culture
+$currentThread = [System.Threading.Thread]::CurrentThread
+$culture = [System.Globalization.CultureInfo]::InvariantCulture
+$currentThread.CurrentCulture = $culture
+$currentThread.CurrentUICulture = $culture
+
+$agentFolder = "{{ agent_path.display() }}"
+$logFile = "{{ log_path.display() }}"
+$verbosity = "{{ verbosity }}"
+
+if ($isLinux) {
+  Add-Type -Path (Join-Path -Path $agentFolder -ChildPath 'share/initial-policy/ncf/rudderLib/Library.dll')
+  [Rudder.Logger]::StartLogger($logFile, $verbosity)
+} else {
+  Import-Module (Join-Path -Path $agentFolder -ChildPath 'resources/RudderInit') -ArgumentList $agentFolder -Force
+  Initialize-RudderLib -Verbosity $verbosity -LogFile $logFile
+}
+
+# Import the rudderUtils
+Import-Module (Join-Path -Path $agentFolder -ChildPath 'resources/RudderUtils') -Force
+
+# Loading agent CLI
+Import-Module (Join-Path -Path $agentFolder -ChildPath 'resources/RudderCli') -Force -ArgumentList $agentFolder
+
+# FIXME: reportsFolder?
+Invoke-RudderDirectiveRun -ncfFolder "{{ ncf_path.display() }}" -directivePath "{{ directive_path.display() }}" -techniquePath "{{ technique_path.display() }}"

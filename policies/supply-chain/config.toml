@@ -76,10 +76,6 @@ criteria = "safe-to-deploy"
 version = "0.11.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.fastrand]]
-version = "2.0.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.file-owner]]
 version = "0.1.1"
 criteria = "safe-to-deploy"
@@ -263,10 +259,6 @@ criteria = "safe-to-deploy"
 [[exemptions.typenum]]
 version = "1.16.0"
 criteria = "safe-to-deploy"
-
-[[exemptions.unicode-xid]]
-version = "0.1.0"
-criteria = "safe-to-run"
 
 [[exemptions.utf-8]]
 version = "0.7.6"
