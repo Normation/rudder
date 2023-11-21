@@ -23,5 +23,3 @@ RUN sh rudder-setup setup-agent $RUDDER_VER || true
 # and PowerShell!
 RUN wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
 RUN apt-get install ./powershell_7.4.0-1.deb_amd64.deb
-# our lib expects this name for some reason, only used in tests anyway
-RUN ln -s /usr/bin/pwsh /usr/bin/pwsh.exe

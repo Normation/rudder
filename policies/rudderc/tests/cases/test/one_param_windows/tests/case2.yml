@@ -1,8 +1,10 @@
 target: windows
+conditions:
+  - my_cond
 params:
   server: "rudder.io"
 policy_mode: audit
 setup:
   - sh: "rm -f /tmp/rudderc_test_one_windows"
 check:
-  - sh: "! test -f /tmp/rudderc_test_one_windows"
+  - sh: "-Not (Test-Path -Path C:\\rudderc_test_one_windows)"

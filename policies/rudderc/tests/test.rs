@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rudderc::action;
+use rudderc::{action, DEFAULT_AGENT_PATH};
 use test_generator::test_resources;
 
 const UNIX_TEST_LIB: &str = "tests/lib/common";
@@ -39,6 +39,7 @@ fn test_unix(filename: &str) {
         &technique_dir.join("target"),
         &technique_dir.join("tests"),
         &[cwd.join(UNIX_TEST_LIB)],
+        DEFAULT_AGENT_PATH.to_string(),
         None,
         false,
     )
@@ -65,9 +66,9 @@ fn test_windows(filename: &str) {
         &technique_dir.join("target"),
         &technique_dir.join("tests"),
         &[cwd.join(WINDOWS_TEST_LIB)],
+        "../target/agent-windows/Rudder".to_string(),
         None,
         false,
     );
-    dbg!(&res);
     res.unwrap();
 }

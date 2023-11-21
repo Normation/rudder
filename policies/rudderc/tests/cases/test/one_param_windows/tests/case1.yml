@@ -1,4 +1,6 @@
 target: windows
+conditions:
+  - my_cond
 params:
   server: "rudder.io"
 setup:

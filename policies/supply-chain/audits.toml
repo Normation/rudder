@@ -162,6 +162,12 @@ user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-04-02"
 end = "2024-06-27"
 
+[[trusted.byteorder]]
+criteria = "safe-to-deploy"
+user-id = 189 # Andrew Gallant (BurntSushi)
+start = "2019-06-09"
+end = "2024-11-22"
+
 [[trusted.cc]]
 criteria = "safe-to-deploy"
 user-id = 1 # Alex Crichton (alexcrichton)
@@ -216,6 +222,24 @@ user-id = 5059 # Artyom Pavlov (newpavlov)
 start = "2022-08-18"
 end = "2024-08-03"
 
+[[trusted.crc32fast]]
+criteria = "safe-to-deploy"
+user-id = 1546 # Sam Rijs (srijs)
+start = "2019-03-05"
+end = "2024-11-22"
+
+[[trusted.crossbeam-utils]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-12"
+end = "2024-11-22"
+
+[[trusted.deranged]]
+criteria = "safe-to-deploy"
+user-id = 15682 # Jacob Pratt (jhpratt)
+start = "2020-12-10"
+end = "2024-11-22"
+
 [[trusted.either]]
 criteria = "safe-to-deploy"
 user-id = 539 # Josh Stone (cuviper)
@@ -239,6 +263,12 @@ criteria = "safe-to-deploy"
 user-id = 33035 # Taiki Endo (taiki-e)
 start = "2021-04-24"
 end = "2024-08-03"
+
+[[trusted.flate2]]
+criteria = "safe-to-deploy"
+user-id = 980 # Sebastian Thiel (Byron)
+start = "2023-08-15"
+end = "2024-11-22"
 
 [[trusted.form_urlencoded]]
 criteria = "safe-to-deploy"
@@ -432,6 +462,12 @@ user-id = 33035 # Taiki Endo (taiki-e)
 start = "2019-10-22"
 end = "2024-08-01"
 
+[[trusted.powerfmt]]
+criteria = "safe-to-deploy"
+user-id = 15682 # Jacob Pratt (jhpratt)
+start = "2023-10-08"
+end = "2024-11-22"
+
 [[trusted.predicates]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
@@ -599,6 +635,18 @@ criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2019-09-07"
 end = "2024-08-01"
+
+[[trusted.time]]
+criteria = "safe-to-deploy"
+user-id = 15682 # Jacob Pratt (jhpratt)
+start = "2019-12-19"
+end = "2024-11-22"
+
+[[trusted.time-core]]
+criteria = "safe-to-deploy"
+user-id = 15682 # Jacob Pratt (jhpratt)
+start = "2020-12-17"
+end = "2024-11-22"
 
 [[trusted.toml]]
 criteria = "safe-to-deploy"
@@ -797,3 +845,9 @@ criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
 start = "2023-02-22"
 end = "2024-08-03"
+
+[[trusted.zip]]
+criteria = "safe-to-deploy"
+user-id = 84480 # Plecra
+start = "2020-12-06"
+end = "2024-11-22"

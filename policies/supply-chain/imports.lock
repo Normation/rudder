@@ -92,6 +92,13 @@ user-id = 696
 user-login = "fitzgen"
 user-name = "Nick Fitzgerald"
 
+[[publisher.byteorder]]
+version = "1.5.0"
+when = "2023-10-06"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
+
 [[publisher.cc]]
 version = "1.0.83"
 when = "2023-08-20"
@@ -155,6 +162,27 @@ user-id = 5059
 user-login = "newpavlov"
 user-name = "Artyom Pavlov"
 
+[[publisher.crc32fast]]
+version = "1.3.2"
+when = "2022-02-08"
+user-id = 1546
+user-login = "srijs"
+user-name = "Sam Rijs"
+
+[[publisher.crossbeam-utils]]
+version = "0.8.16"
+when = "2023-06-12"
+user-id = 33035
+user-login = "taiki-e"
+user-name = "Taiki Endo"
+
+[[publisher.deranged]]
+version = "0.3.9"
+when = "2023-10-13"
+user-id = 15682
+user-login = "jhpratt"
+user-name = "Jacob Pratt"
+
 [[publisher.either]]
 version = "1.9.0"
 when = "2023-07-22"
@@ -175,6 +203,13 @@ when = "2023-07-10"
 user-id = 539
 user-login = "cuviper"
 user-name = "Josh Stone"
+
+[[publisher.flate2]]
+version = "1.0.28"
+when = "2023-10-13"
+user-id = 980
+user-login = "Byron"
+user-name = "Sebastian Thiel"
 
 [[publisher.form_urlencoded]]
 version = "1.2.0"
@@ -391,6 +426,13 @@ when = "2023-08-25"
 user-id = 33035
 user-login = "taiki-e"
 user-name = "Taiki Endo"
+
+[[publisher.powerfmt]]
+version = "0.2.0"
+when = "2023-10-13"
+user-id = 15682
+user-login = "jhpratt"
+user-name = "Jacob Pratt"
 
 [[publisher.predicates]]
 version = "3.0.3"
@@ -629,6 +671,20 @@ user-id = 2915
 user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
+[[publisher.time]]
+version = "0.3.30"
+when = "2023-10-14"
+user-id = 15682
+user-login = "jhpratt"
+user-name = "Jacob Pratt"
+
+[[publisher.time-core]]
+version = "0.1.2"
+when = "2023-09-24"
+user-id = 15682
+user-login = "jhpratt"
+user-name = "Jacob Pratt"
+
 [[publisher.toml]]
 version = "0.5.11"
 when = "2023-01-20"
@@ -853,12 +909,24 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.zip]]
+version = "0.6.6"
+when = "2023-05-16"
+user-id = 84480
+user-login = "Plecra"
+
 [[audits.bytecode-alliance.wildcard-audits.bumpalo]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
 criteria = "safe-to-deploy"
 user-id = 696 # Nick Fitzgerald (fitzgen)
 start = "2019-03-16"
 end = "2024-03-10"
+
+[[audits.bytecode-alliance.audits.adler]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "1.0.2"
+notes = "This is a small crate which forbids unsafe code and is a straightforward implementation of the adler hashing algorithm."
 
 [[audits.bytecode-alliance.audits.base64]]
 who = "Pat Hickey <phickey@fastly.com>"
@@ -939,6 +1007,20 @@ notes = "I am the maintainer of this crate."
 who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
 version = "0.1.0"
+
+[[audits.bytecode-alliance.audits.miniz_oxide]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "0.7.1"
+notes = """
+This crate is a Rust implementation of zlib compression/decompression and has
+been used by default by the Rust standard library for quite some time. It's also
+a default dependency of the popular `backtrace` crate for decompressing debug
+information. This crate forbids unsafe code and does not otherwise access system
+resources. It's originally a port of the `miniz.c` library as well, and given
+its own longevity should be relatively hardened against some of the more common
+compression-related issues.
+"""
 
 [[audits.bytecode-alliance.audits.pin-utils]]
 who = "Pat Hickey <phickey@fastly.com>"

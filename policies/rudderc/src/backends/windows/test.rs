@@ -2,15 +2,19 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use std::{
-    fs::{self, read_to_string},
+    fs::{self, create_dir_all, read_to_string},
     path::Path,
+    process::Command,
 };
 
 use super::filters;
-use crate::{ir::Technique, test::TestCase};
+use crate::{
+    backends::windows::{POWERSHELL_BIN, POWERSHELL_OPTS},
+    ir::Technique,
+    test::TestCase,
+};
 use anyhow::{Context, Result};
 use askama::Template;
-use powershell_script::PsScriptBuilder;
 use rudder_commons::{
     logs::ok_output,
     report::{Report, RunLog},
@@ -35,18 +39,21 @@ struct TechniqueTestDirectiveTemplate<'a> {
     technique_name: &'a str,
     policy_mode: &'a str,
     params: &'a str,
+    conditions: Vec<&'a String>,
 }
 
 /// Run a test technique with the Windows agent
 pub fn win_agent(
-    technique_path: &Path,
+    target_dir: &Path,
     technique: &Technique,
     case: &TestCase,
-    // We need a full Windows agent
+    case_id: &str,
     agent_path: &Path,
     agent_verbose: bool,
 ) -> Result<RunLog> {
-    let tmp = tempfile::tempdir()?.into_path();
+    // Put all test-specific files into target/{CASE_NAME}/
+    let case_dir = target_dir.join(case_id);
+    create_dir_all(&case_dir)?;
 
     // Compute params arguments
     let params = case
@@ -61,12 +68,13 @@ pub fn win_agent(
         technique_name: &technique.name,
         policy_mode: &filters::camel_case(case.policy_mode.to_string())?,
         params: &params,
+        conditions: case.conditions.iter().collect(),
     };
-    let directive_path = tmp.join("directive.ps1");
+    let directive_path = case_dir.join("directive.ps1");
     let directive_content = technique_test_directive.render()?;
     fs::write(&directive_path, directive_content)?;
 
-    let log_path = tmp.join("agent.log");
+    let log_path = case_dir.join("agent.log");
     let reports_dir = agent_path.join("tmp/reports");
     let technique_test = TechniqueTestTemplate {
         agent_path,
@@ -74,25 +82,19 @@ pub fn win_agent(
         log_path: &log_path,
         ncf_path: &agent_path.join("share/initial-policy/ncf"),
         directive_path: &directive_path,
-        technique_path,
+        technique_path: &target_dir.join("technique.ps1"),
     };
-    let test_path = tmp.join("test.ps1");
+    let test_path = case_dir.join("test.ps1");
     let test_content = technique_test.render()?;
     fs::write(&test_path, test_content)?;
-    ok_output("Running", test_path.display());
+    ok_output("Running", format!("test from {}", case_dir.display()));
 
     // Run the agent
-    let ps = PsScriptBuilder::new()
-        // load profile normally
-        .no_profile(false)
-        // non-interactive session
-        .non_interactive(true)
-        // don't show a window
-        .hidden(true)
-        // don't print commands in output
-        .print_commands(false)
-        .build();
-    let output = ps.run(&test_path.to_string_lossy())?;
+    let output = Command::new(POWERSHELL_BIN)
+        .args(POWERSHELL_OPTS)
+        .arg("-Command")
+        .arg(format!("&'{}'", test_path.display()))
+        .output()?;
 
     // Take latest file from reports_dir
     // FIXME: find something more reliable
@@ -112,7 +114,7 @@ pub fn win_agent(
 
     let run_log = Report::parse(&clean_reports.join("\n"))?;
     debug!("reports: {}", reports);
-    debug!("stdout: {}", output.stdout().unwrap_or("".to_string()));
-    debug!("stderr: {}", output.stderr().unwrap_or("".to_string()));
+    debug!("stdout: {}", String::from_utf8(output.stdout)?);
+    debug!("stderr: {}", String::from_utf8(output.stderr)?);
     Ok(run_log)
 }

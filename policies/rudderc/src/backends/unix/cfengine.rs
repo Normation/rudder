@@ -43,8 +43,6 @@ use tracing::debug;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
-/// Where are CFEngine binaries? As we only target Rudder, we use its path.
-pub const CF_BIN_DIR: &str = "/opt/rudder/bin/";
 
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
@@ -149,6 +147,7 @@ pub fn cf_agent(
     input: &Path,
     params: &Path,
     lib_path: &Path,
+    agent_path: &Path,
     agent_verbose: bool,
 ) -> Result<RunLog> {
     debug!("Running cf-agent on {}", input.display());
@@ -157,10 +156,7 @@ pub fn cf_agent(
     let work_dir = tempdir().unwrap();
     let bin_dir = work_dir.path().join("bin");
     fs::create_dir(&bin_dir)?;
-    fs::copy(
-        Path::new(CF_BIN_DIR).join("cf-promises"),
-        bin_dir.join("cf-promises"),
-    )?;
+    fs::copy(agent_path.join("cf-promises"), bin_dir.join("cf-promises"))?;
     // CFEngine looks in its default dir otherwise
     let input_absolute = if input.is_absolute() {
         input.to_path_buf()
@@ -168,7 +164,7 @@ pub fn cf_agent(
         Path::new(".").join(input)
     };
     let canon_lib_path = lib_path.canonicalize()?;
-    let cmd = Command::new(Path::new(CF_BIN_DIR).join("cf-agent"))
+    let cmd = Command::new(agent_path.join("cf-agent"))
         .args([
             if agent_verbose { "--verbose" } else { "--info" },
             "--no-lock",

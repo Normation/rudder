@@ -10,6 +10,7 @@ Each test case is defined by a YAML file in this folder.
 
 The format of the test case file is:
 
+* `target` (optional): Target platform, `unix` or `windows`. Defaults to `unix`.
 * `params` (optional): Named parameters passed to the technique in as key-values.
 * `conditions` (optional): Conditions to define before running the technique.
 * `policy_mode` (optional): The mode to use for running the technique. `audit` or `enforce`, defaults to `enforce`.
@@ -18,12 +19,13 @@ The format of the test case file is:
 * `cleanup` (optional): Steps to run sequentially after the test to clean the environment.
 
 The setup and check sections contain a list of commands to run. The only supported step type
-for now is `sh`, which runs commands in a shell (`/usr/bin/sh` on Linux, PowerShell on Windows).
+for now is `sh`, which runs commands in a shell (`/usr/bin/sh` on Linux target, PowerShell on Windows target).
 The outcome is based on the returned code, 0 is a success and other codes are failures.
 
 Example:
 
 ```yaml
+target: windows
 params:
   param1: value1
   param2: true
@@ -32,24 +34,26 @@ conditions:
   - condition2
 policy_mode: audit
 setup:
-  - sh: "test command"
+  - sh: "touch /my/file"
 check:
-  - sh: "test command"
-  - sh: "test command2"
+  # Linux target
+  - sh: "test -f /my/file"
+  # Windows target
+  - sh: "Test-Path -Path C:\\my\\file"
 cleanup:
-  - sh: "cleanup command"
+  - sh: "rm -f /my/file"
 ```
 
 The detailed test process is, for each `*.yml` file in the `tests` directory:
 
 * Build the technique in *standalone* mode (i.e. equivalent to passing `--standalone` to the build command). This adds a prelude to the technique allowing it to run without a Rudder server.
-* Run the setup commands sequentially. The commands are called in the `/bin/sh` shell.
+* Run the setup commands sequentially. The commands are called in a shell.
 * Run an agent locally, which will:
     * Load all methods from the library
     * Read the parameters values from the YAML test case
     * Define the conditions from the YAML test case
     * Run the technique with the given parameters
-* Run the check commands sequentially. The commands are called in the `/bin/sh` shell.
+* Run the check commands sequentially. The commands are called in a shell.
 * Run the cleanup commands sequentially, regardless of the result of the check commands.
 
 The build stops when it encounters a command returning a non-zero return code.
@@ -83,7 +87,7 @@ rudderc test --library /path/to/lib case1
 
 ### Test outputs
 
-The test runner will parse the agent output and place it in JSON format into `target/tests/case1.json`.
+The test runner will parse the agent output and place it in JSON format into `target/case1.json`.
 It is written before running check steps, so you can use it to assess reporting output
 (for example, using `jq` in a shell script).
 

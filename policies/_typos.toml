@@ -1,0 +1,3 @@
+[default.extend-words]
+# crate name
+flate = "flate"

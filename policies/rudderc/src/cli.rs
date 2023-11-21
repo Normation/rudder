@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::{doc::Format, logs::OutputFormat};
+use crate::{doc::Format, logs::OutputFormat, DEFAULT_AGENT_PATH};
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
@@ -75,12 +75,26 @@ pub enum Command {
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
 
+        /// Load an agent from a custom path for the test
+        #[arg(default_value_t = DEFAULT_AGENT_PATH.to_string())]
+        #[arg(short, long)]
+        agent: String,
+
         /// Filter tests cases
         filter: Option<String>,
 
         /// Verbose agent
         #[arg(long)]
         agent_verbose: bool,
+    },
+
+    /// Export as an archive for import into a Rudder server
+    Export {
+        /// Output file
+        ///
+        /// Defaults to the target directory.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
 
     /// Build the method documentation
