@@ -1,10 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{collections::HashMap, fs::File, io::BufReader};
+use std::{collections::HashMap, fs::File, io::BufReader, process::Command};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use log::debug;
 use xmltree::Element;
+
+use crate::cmd::CmdOutput;
+
+/// Synchronous restart of the web application
+pub fn restart_webapp() -> Result<()> {
+    debug!("Restarting the Weba application to apply plugin changes");
+    let mut systemctl = Command::new("/usr/bin/systemctl");
+    systemctl
+        .arg("--no-ask-password")
+        .arg("restart")
+        .arg("rudder-jetty");
+    match CmdOutput::new(&mut systemctl) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            bail!("Could not restart the Rudder application:\n{}", e)
+        }
+    }
+}
 
 pub struct WebappXml {
     pub path: String,
