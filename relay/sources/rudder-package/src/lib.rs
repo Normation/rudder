@@ -68,6 +68,7 @@ pub mod action {
 
     use crate::archive::Rpkg;
     use crate::database::Database;
+    use crate::webapp_xml::restart_webapp;
     use crate::PACKAGES_DATABASE_PATH;
     use std::path::Path;
 
@@ -78,7 +79,8 @@ pub mod action {
             bail!("TODO");
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
-        rpkg.install(force)
+        rpkg.install(force)?;
+        restart_webapp()
     }
 
     pub fn list() -> Result<()> {
