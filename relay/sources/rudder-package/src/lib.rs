@@ -47,7 +47,7 @@ pub fn run() -> Result<()> {
     // Ignore on error
     #[cfg(not(debug_assertions))]
     if let Ok(false) = am_i_root() {
-        eprintln!("Need to run as root, aborting.");
+        eprintln!("This program needs to run as root, aborting.");
         exit(1);
     }
 
